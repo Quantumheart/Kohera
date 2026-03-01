@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mockito/mockito.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
+import 'package:lattice/routing/route_names.dart';
 import 'package:lattice/screens/homeserver_screen.dart';
 import 'package:lattice/screens/login_screen.dart';
 import 'package:lattice/screens/registration_screen.dart';
@@ -52,13 +54,48 @@ void main() {
   }
 
   Widget buildTestWidget() {
+    final router = GoRouter(
+      initialLocation: '/login',
+      routes: [
+        GoRoute(
+          path: '/login',
+          name: Routes.login,
+          builder: (context, state) => const HomeserverScreen(),
+          routes: [
+            GoRoute(
+              path: ':homeserver',
+              name: Routes.loginServer,
+              builder: (context, state) {
+                final homeserver = state.pathParameters['homeserver']!;
+                final capabilities =
+                    state.extra as ServerAuthCapabilities? ??
+                        const ServerAuthCapabilities(supportsPassword: true);
+                return LoginScreen(
+                  homeserver: homeserver,
+                  capabilities: capabilities,
+                );
+              },
+            ),
+          ],
+        ),
+        GoRoute(
+          path: '/register',
+          name: Routes.register,
+          builder: (context, state) {
+            final homeserver = state.extra as String? ?? 'matrix.org';
+            return RegistrationScreen(initialHomeserver: homeserver);
+          },
+        ),
+      ],
+    );
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
       ],
-      child: const MaterialApp(
-        home: HomeserverScreen(),
+      child: MaterialApp.router(
+        routerConfig: router,
       ),
     );
   }
