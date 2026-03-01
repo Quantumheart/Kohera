@@ -171,8 +171,9 @@ class _MessageBubbleState extends State<MessageBubble> {
                         onQuickReact: widget.onQuickReact,
                         onReply: widget.onReply,
                         onMore: (pos) => _showContextMenu(context, pos),
-                        onQuickReactOpenChanged: (open) =>
-                            setState(() => _quickReactOpen = open),
+                        onQuickReactOpenChanged: (open) {
+                          if (mounted) setState(() => _quickReactOpen = open);
+                        },
                       ),
                     Flexible(
                       child: Stack(
@@ -357,8 +358,9 @@ class _MessageBubbleState extends State<MessageBubble> {
                         onQuickReact: widget.onQuickReact,
                         onReply: widget.onReply,
                         onMore: (pos) => _showContextMenu(context, pos),
-                        onQuickReactOpenChanged: (open) =>
-                            setState(() => _quickReactOpen = open),
+                        onQuickReactOpenChanged: (open) {
+                          if (mounted) setState(() => _quickReactOpen = open);
+                        },
                       ),
                     // Sender avatar (isMe, inside bubble Row to avoid
                     // overlapping read receipts below)
