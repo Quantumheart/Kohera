@@ -34,16 +34,22 @@ class _HoverActionBarState extends State<HoverActionBar> {
   OverlayEntry? _overlayEntry;
   final LayerLink _layerLink = LayerLink();
 
+  bool _disposing = false;
+
   @override
   void dispose() {
-    _removeOverlay();
+    _disposing = true;
+    _overlayEntry?.remove();
+    _overlayEntry = null;
     super.dispose();
   }
 
   void _removeOverlay() {
     _overlayEntry?.remove();
     _overlayEntry = null;
-    widget.onQuickReactOpenChanged?.call(false);
+    if (!_disposing) {
+      widget.onQuickReactOpenChanged?.call(false);
+    }
   }
 
   void _showQuickReactPopup() {
