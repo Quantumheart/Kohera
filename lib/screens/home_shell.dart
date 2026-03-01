@@ -37,7 +37,7 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   double? _dragPanelWidth; // local state during divider drag
   bool _showRoomDetails = false;
-  String? _detailsPanelRoomId;
+  bool _syncScheduled = false;
 
   static const double _wideBreakpoint = 720;
   static const double _extraWideBreakpoint = 1100;
@@ -46,33 +46,13 @@ class _HomeShellState extends State<HomeShell> {
   // ── Route → MatrixService sync ──────────────────────────────
 
   String? get _routeRoomId => widget.routerState.pathParameters['roomId'];
+  String? get _routeName => widget.routerState.name;
 
-  @override
-  void didUpdateWidget(covariant HomeShell old) {
-    super.didUpdateWidget(old);
-    final newRoomId = _routeRoomId;
-    final matrix = context.read<MatrixService>();
-
-    // Sync route → MatrixService so NotificationService and other
-    // non-widget consumers stay up to date.
-    if (matrix.selectedRoomId != newRoomId) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) matrix.selectRoom(newRoomId);
-      });
-    }
-
-    // Close details panel when the selected room changes.
-    if (_detailsPanelRoomId != null && _detailsPanelRoomId != newRoomId) {
-      _showRoomDetails = false;
-    }
-    _detailsPanelRoomId = newRoomId;
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    // Initial sync on first build.
+  void _syncRoomSelection() {
+    if (_syncScheduled) return;
+    _syncScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncScheduled = false;
       if (!mounted) return;
       final matrix = context.read<MatrixService>();
       final roomId = _routeRoomId;
@@ -82,21 +62,51 @@ class _HomeShellState extends State<HomeShell> {
     });
   }
 
-  // ── Route helpers ─────────────────────────────────────────────
+  @override
+  void didUpdateWidget(covariant HomeShell old) {
+    super.didUpdateWidget(old);
+    final oldRoomId = old.routerState.pathParameters['roomId'];
+    final newRoomId = _routeRoomId;
 
-  String get _location => widget.routerState.matchedLocation;
+    if (oldRoomId != newRoomId) {
+      // Sync route → MatrixService so NotificationService and other
+      // non-widget consumers stay up to date.
+      _syncRoomSelection();
+
+      // Close details panel when the selected room changes.
+      _showRoomDetails = false;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _syncRoomSelection();
+  }
+
+  // ── Route helpers ─────────────────────────────────────────────
 
   /// Whether the current route is a full-screen view on mobile
   /// (no bottom nav bar).
-  bool get _isFullScreenRoute =>
-      _location.startsWith('/rooms/') ||
-      _location == '/settings/notifications' ||
-      _location == '/settings/devices';
+  bool get _isFullScreenRoute {
+    final name = _routeName;
+    return name == Routes.room ||
+        name == Routes.roomDetails ||
+        name == Routes.settingsNotifications ||
+        name == Routes.settingsDevices;
+  }
 
   /// Derive the mobile tab index from the current route.
   int get _mobileTab {
-    if (_location.startsWith('/settings')) return 2;
-    if (_location == '/spaces') return 1;
+    final name = _routeName;
+    if (name == Routes.settings ||
+        name == Routes.settingsNotifications ||
+        name == Routes.settingsDevices) {
+      return 2;
+    }
+    if (name == Routes.spaces) {
+      return 1;
+    }
     return 0;
   }
 
@@ -236,9 +246,13 @@ class _HomeShellState extends State<HomeShell> {
   /// For other routes (settings, etc.), shows the router child directly.
   Widget _buildContentPane(ColorScheme cs) {
     final roomId = _routeRoomId;
+    final name = _routeName;
 
-    // Non-room routes: show the router child (settings, etc.)
-    if (_location.startsWith('/settings')) {
+    // Non-room routes: show the router child (settings, spaces, etc.)
+    if (name == Routes.settings ||
+        name == Routes.settingsNotifications ||
+        name == Routes.settingsDevices ||
+        name == Routes.spaces) {
       return widget.routerChild;
     }
 
@@ -298,7 +312,7 @@ class _HomeShellState extends State<HomeShell> {
     // notification settings, device settings.
     if (_isFullScreenRoute) {
       // For room routes, add the onBack callback to navigate home.
-      if (_routeRoomId != null && _location.startsWith('/rooms/') && !_location.endsWith('/details')) {
+      if (_routeName == Routes.room && _routeRoomId != null) {
         return ChatScreen(
           roomId: _routeRoomId!,
           key: ValueKey(_routeRoomId),

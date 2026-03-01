@@ -10,6 +10,7 @@ import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:lattice/routing/route_names.dart';
 import 'package:lattice/services/matrix_service.dart';
 import 'package:lattice/services/preferences_service.dart';
 import 'package:lattice/widgets/room_list.dart';
@@ -72,7 +73,7 @@ void main() {
           routes: [
             GoRoute(
               path: 'rooms/:roomId',
-              name: 'room',
+              name: Routes.room,
               builder: (context, state) {
                 lastNavigatedRoom = state.pathParameters['roomId'];
                 return Scaffold(

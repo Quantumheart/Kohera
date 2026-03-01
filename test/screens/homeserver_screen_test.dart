@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mockito/mockito.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
+import 'package:lattice/routing/route_names.dart';
 import 'package:lattice/screens/homeserver_screen.dart';
 import 'package:lattice/screens/login_screen.dart';
 import 'package:lattice/screens/registration_screen.dart';
@@ -58,12 +59,12 @@ void main() {
       routes: [
         GoRoute(
           path: '/login',
-          name: 'login',
+          name: Routes.login,
           builder: (context, state) => const HomeserverScreen(),
           routes: [
             GoRoute(
               path: ':homeserver',
-              name: 'login-server',
+              name: Routes.loginServer,
               builder: (context, state) {
                 final homeserver = state.pathParameters['homeserver']!;
                 final capabilities =
@@ -79,7 +80,7 @@ void main() {
         ),
         GoRoute(
           path: '/register',
-          name: 'register',
+          name: Routes.register,
           builder: (context, state) {
             final homeserver = state.extra as String? ?? 'matrix.org';
             return RegistrationScreen(initialHomeserver: homeserver);
