@@ -3,6 +3,8 @@ import 'package:matrix/matrix.dart' hide Visibility;
 import 'package:provider/provider.dart';
 
 import '../services/matrix_service.dart';
+import 'add_existing_rooms_dialog.dart';
+import 'new_room_dialog.dart';
 
 // ── Space Context Menu ──────────────────────────────────────────────
 
@@ -131,10 +133,22 @@ Future<void> showSpaceContextMenu(
       if (context.mounted) await _handleInvite(context, space);
     case SpaceContextAction.leaveSpace:
       if (context.mounted) await _handleLeave(context, space);
-    case SpaceContextAction.spaceSettings:
-    case SpaceContextAction.createRoom:
-    case SpaceContextAction.createSubspace:
     case SpaceContextAction.addExistingRoom:
+      if (context.mounted) {
+        final matrix = context.read<MatrixService>();
+        await AddExistingRoomsDialog.show(
+          context,
+          space: space,
+          matrixService: matrix,
+        );
+      }
+    case SpaceContextAction.createRoom:
+      if (context.mounted) {
+        final matrix = context.read<MatrixService>();
+        await NewRoomDialog.show(context, matrixService: matrix);
+      }
+    case SpaceContextAction.spaceSettings:
+    case SpaceContextAction.createSubspace:
     case SpaceContextAction.notifications:
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1054,11 +1054,19 @@ class _RoomTile extends StatelessWidget {
   final Room room;
 
   bool _hasContextMenu(MatrixService matrix) {
+    // "Remove from space" — when viewing a space with permission.
     final selectedIds = matrix.selectedSpaceIds;
-    if (selectedIds.isEmpty) return false;
-    final space = matrix.client.getRoomById(selectedIds.first);
-    if (space == null) return false;
-    return space.canChangeStateEvent('m.space.child');
+    if (selectedIds.isNotEmpty) {
+      final space = matrix.client.getRoomById(selectedIds.first);
+      if (space != null && space.canChangeStateEvent('m.space.child')) {
+        return true;
+      }
+    }
+    // "Add to space" — when any eligible space exists.
+    final memberships = matrix.spaceMemberships(room.id);
+    return matrix.spaces.any((s) =>
+        s.canChangeStateEvent('m.space.child') &&
+        !memberships.contains(s.id));
   }
 
   void _openContextMenu(BuildContext context, RelativeRect position) {

@@ -41,6 +41,9 @@ void main() {
     when(mockMatrixService.selectedSpaceIds)
         .thenReturn({'!space:example.com'});
     when(mockClient.getRoomById('!space:example.com')).thenReturn(mockSpace);
+    when(mockMatrixService.spaceMemberships('!room:example.com'))
+        .thenReturn(<String>{});
+    when(mockMatrixService.spaces).thenReturn([mockSpace]);
   });
 
   Widget buildTestWidget() {
@@ -75,24 +78,54 @@ void main() {
       expect(find.text('Remove from space'), findsOneWidget);
     });
 
-    testWidgets('menu hidden when no space is selected', (tester) async {
+    testWidgets('shows "Add to space" when eligible spaces exist',
+        (tester) async {
+      // Room is not in the space yet → "Add to space" shown
+      await tester.pumpWidget(buildTestWidget());
+      await tester.tap(find.text('Open Menu'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Add to space'), findsOneWidget);
+      expect(find.text('Remove from space'), findsOneWidget);
+    });
+
+    testWidgets('"Add to space" hidden when room is already in all spaces',
+        (tester) async {
+      when(mockMatrixService.spaceMemberships('!room:example.com'))
+          .thenReturn({'!space:example.com'});
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.tap(find.text('Open Menu'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Add to space'), findsNothing);
+      expect(find.text('Remove from space'), findsOneWidget);
+    });
+
+    testWidgets('menu hidden when no space selected and no eligible spaces',
+        (tester) async {
       when(mockMatrixService.selectedSpaceIds).thenReturn(<String>{});
+      when(mockMatrixService.spaceMemberships('!room:example.com'))
+          .thenReturn({'!space:example.com'});
 
       await tester.pumpWidget(buildTestWidget());
       await tester.tap(find.text('Open Menu'));
       await tester.pumpAndSettle();
 
       expect(find.text('Remove from space'), findsNothing);
+      expect(find.text('Add to space'), findsNothing);
     });
 
     testWidgets('menu hidden when user lacks permission', (tester) async {
       when(mockSpace.canChangeStateEvent('m.space.child')).thenReturn(false);
+      when(mockMatrixService.spaces).thenReturn([mockSpace]);
 
       await tester.pumpWidget(buildTestWidget());
       await tester.tap(find.text('Open Menu'));
       await tester.pumpAndSettle();
 
       expect(find.text('Remove from space'), findsNothing);
+      expect(find.text('Add to space'), findsNothing);
     });
 
     testWidgets('confirmation dialog shown on tap', (tester) async {
