@@ -155,7 +155,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(
+        leading: MediaQuery.sizeOf(context).width < 720
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => context.goNamed(Routes.home),
+              )
+            : null,
+        title: const Text('Settings'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -245,7 +253,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Row(
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
                     children: [
                       OutlinedButton.icon(
                         onPressed: _avatarUploading ? null : _uploadAvatar,
@@ -253,8 +263,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             size: 18),
                         label: const Text('Upload avatar'),
                       ),
-                      if (_avatarUrl != null) ...[
-                        const SizedBox(width: 12),
+                      if (_avatarUrl != null)
                         OutlinedButton.icon(
                           onPressed: _avatarUploading ? null : _removeAvatar,
                           icon: Icon(Icons.delete_outline,
@@ -265,7 +274,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             side: BorderSide(color: cs.error.withValues(alpha: 0.5)),
                           ),
                         ),
-                      ],
                     ],
                   ),
                 ],
