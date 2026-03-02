@@ -93,7 +93,8 @@ class _HomeShellState extends State<HomeShell> {
     return name == Routes.room ||
         name == Routes.roomDetails ||
         name == Routes.settingsNotifications ||
-        name == Routes.settingsDevices;
+        name == Routes.settingsDevices ||
+        name == Routes.inbox;
   }
 
   /// Derive the mobile tab index from the current route.
@@ -252,7 +253,8 @@ class _HomeShellState extends State<HomeShell> {
     if (name == Routes.settings ||
         name == Routes.settingsNotifications ||
         name == Routes.settingsDevices ||
-        name == Routes.spaces) {
+        name == Routes.spaces ||
+        name == Routes.inbox) {
       return widget.routerChild;
     }
 

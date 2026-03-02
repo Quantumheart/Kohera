@@ -5,6 +5,7 @@ import 'package:matrix/matrix.dart';
 
 import '../models/space_node.dart';
 import '../routing/route_names.dart';
+import '../services/inbox_controller.dart';
 import '../services/matrix_service.dart';
 import '../services/preferences_service.dart';
 import '../services/room_list_search_controller.dart';
@@ -45,8 +46,6 @@ class _InviteItem extends _ListItem {
   final Room room;
   _InviteItem({required this.room});
 }
-
-class _FilterBarItem extends _ListItem {}
 
 class _MessageSearchHeaderItem extends _ListItem {
   final int? resultCount;
@@ -203,74 +202,86 @@ class _RoomListState extends State<RoomList>
     return ids;
   }
 
-  List<Room> _applyFilters(
-    List<Room> rooms,
-    RoomCategory filter,
-    PreferencesService prefs, {
-    bool isInvite = false,
-  }) {
-    if (_query.isNotEmpty) {
-      final q = _query.toLowerCase();
-      rooms = rooms.where((r) => _roomMatchesQuery(r, q)).toList();
-    }
-    return switch (filter) {
-      RoomCategory.all => rooms,
-      RoomCategory.directMessages =>
-        rooms.where((r) => r.isDirectChat).toList(),
-      RoomCategory.groups => rooms.where((r) => !r.isDirectChat).toList(),
-      // Invites are always "unread" and never favourited.
-      RoomCategory.unread => isInvite
-          ? rooms
-          : rooms.where((r) => effectiveUnreadCount(r, prefs) > 0).toList(),
-      RoomCategory.favourites => isInvite
-          ? []
-          : rooms.where((r) => r.isFavourite).toList(),
-    };
+  List<Room> _applySearch(List<Room> rooms) {
+    if (_query.isEmpty) return rooms;
+    final q = _query.toLowerCase();
+    return rooms.where((r) => _roomMatchesQuery(r, q)).toList();
   }
 
   List<_ListItem> _buildSectionItems(MatrixService matrix,
       PreferencesService prefs) {
     final collapsed = prefs.collapsedSpaceSections;
-    final filter = prefs.roomFilter;
     final selectedIds = matrix.selectedSpaceIds;
     final tree = matrix.spaceTree;
     final items = <_ListItem>[];
 
-    // Space filter bar
-    if (selectedIds.isNotEmpty) {
-      items.add(_FilterBarItem());
-    }
-
-    // Invited rooms at the top (filtered by search and category)
-    final invitedRooms =
-        _applyFilters(matrix.invitedRooms, filter, prefs, isInvite: true);
+    // Invited rooms at the top (filtered by search)
+    final invitedRooms = _applySearch(matrix.invitedRooms);
     for (final room in invitedRooms) {
       items.add(_InviteItem(room: room));
     }
 
-    // Determine which top-level spaces to show
-    final visibleNodes = selectedIds.isEmpty
-        ? tree
-        : tree
-            .where((n) => selectedIds.contains(n.room.id))
-            .toList();
+    final pinnedIds = <String>{};
 
-    for (final node in visibleNodes) {
-      _addSpaceSection(items, node, 0, matrix, collapsed, filter, prefs);
-    }
+    if (selectedIds.isNotEmpty) {
+      // Space selected: show only that space's rooms with subspace hierarchy
+      final visibleNodes = tree
+          .where((n) => selectedIds.contains(n.room.id))
+          .toList();
+      for (final node in visibleNodes) {
+        _addSpaceSection(items, node, 0, matrix, collapsed, pinnedIds);
+      }
+    } else {
+      // No space selected (Home): Pinned → DMs → Unsorted
 
-    // Unsorted section (only when no space filter active)
-    if (selectedIds.isEmpty) {
-      final orphanRooms = _applyFilters(matrix.orphanRooms, filter, prefs);
-      if (orphanRooms.isNotEmpty) {
+      // Pinned section
+      final pinnedRooms = _applySearch(
+          matrix.rooms.where((r) => r.isFavourite).toList());
+      pinnedIds.addAll(pinnedRooms.map((r) => r.id));
+      if (pinnedRooms.isNotEmpty) {
+        items.add(_HeaderItem(
+          name: 'Pinned',
+          sectionKey: PreferencesService.pinnedSectionKey,
+          depth: 0,
+          roomCount: pinnedRooms.length,
+        ));
+        if (!collapsed.contains(PreferencesService.pinnedSectionKey)) {
+          for (final room in pinnedRooms) {
+            items.add(_RoomItem(room: room, depth: 0));
+          }
+        }
+      }
+
+      // DMs section — all direct chats
+      final dmRooms = _applySearch(
+          matrix.rooms.where((r) => r.isDirectChat && !pinnedIds.contains(r.id)).toList());
+      if (dmRooms.isNotEmpty) {
+        items.add(_HeaderItem(
+          name: 'Direct Messages',
+          sectionKey: PreferencesService.dmSectionKey,
+          depth: 0,
+          roomCount: dmRooms.length,
+        ));
+        if (!collapsed.contains(PreferencesService.dmSectionKey)) {
+          for (final room in dmRooms) {
+            items.add(_RoomItem(room: room, depth: 0));
+          }
+        }
+      }
+
+      // Unsorted section (orphan group rooms)
+      final orphans = _applySearch(matrix.orphanRooms)
+          .where((r) => !pinnedIds.contains(r.id) && !r.isDirectChat)
+          .toList();
+      if (orphans.isNotEmpty) {
         items.add(_HeaderItem(
           name: 'Unsorted',
           sectionKey: PreferencesService.unsortedSectionKey,
           depth: 0,
-          roomCount: orphanRooms.length,
+          roomCount: orphans.length,
         ));
         if (!collapsed.contains(PreferencesService.unsortedSectionKey)) {
-          for (final room in orphanRooms) {
+          for (final room in orphans) {
             items.add(_RoomItem(room: room, depth: 0));
           }
         }
@@ -286,18 +297,18 @@ class _RoomListState extends State<RoomList>
     int depth,
     MatrixService matrix,
     Set<String> collapsed,
-    RoomCategory filter,
-    PreferencesService prefs,
+    Set<String> pinnedIds,
   ) {
-    final rooms = _applyFilters(
-        matrix.roomsForSpace(node.room.id), filter, prefs);
+    final rooms = _applySearch(matrix.roomsForSpace(node.room.id))
+        .where((r) => !pinnedIds.contains(r.id)).toList();
 
     // Count total rooms including all nested subspaces for the header
     var totalRooms = rooms.length;
     void countSubspaces(List<SpaceNode> subs) {
       for (final sub in subs) {
-        totalRooms += _applyFilters(
-            matrix.roomsForSpace(sub.room.id), filter, prefs).length;
+        totalRooms += _applySearch(
+            matrix.roomsForSpace(sub.room.id))
+            .where((r) => !pinnedIds.contains(r.id)).length;
         countSubspaces(sub.subspaces);
       }
     }
@@ -319,7 +330,7 @@ class _RoomListState extends State<RoomList>
       }
       for (final sub in node.subspaces) {
         _addSpaceSection(
-            items, sub, depth + 1, matrix, collapsed, filter, prefs);
+            items, sub, depth + 1, matrix, collapsed, pinnedIds);
       }
     }
   }
@@ -425,33 +436,32 @@ class _RoomListState extends State<RoomList>
                     tooltip: 'Search',
                     onPressed: _toggleSearch,
                   ),
+                  // Show inbox bell on mobile (< 720px where rail is hidden)
+                  if (MediaQuery.sizeOf(context).width < 720)
+                    Builder(builder: (context) {
+                      final inbox = context.watch<InboxController>();
+                      final unread = inbox.unreadCount;
+                      return IconButton(
+                        icon: Badge(
+                          isLabelVisible: unread > 0,
+                          label: Text(
+                            unread > 99 ? '99+' : '$unread',
+                            style: const TextStyle(fontSize: 10),
+                          ),
+                          child: const Icon(
+                              Icons.notifications_outlined),
+                        ),
+                        tooltip: 'Inbox',
+                        onPressed: () =>
+                            context.goNamed(Routes.inbox),
+                      );
+                    }),
                 ],
         ),
         body: Stack(
           children: [
             Column(
               children: [
-              // ── Filter chips ──
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: RoomCategory.values.map((filter) {
-                    return FilterChip(
-                      label: Text(filter.label),
-                      avatar: Icon(filter.icon, size: 18),
-                      selected: prefs.roomFilter == filter,
-                      onSelected: (_) => prefs.setRoomCategory(filter),
-                      showCheckmark: false,
-                      mouseCursor: SystemMouseCursors.click,
-                    );
-                  }).toList(),
-                ),
-              ),
-
-              const SizedBox(height: 4),
-
               // ── Sectioned room list ──
               Expanded(
                 child: isEmpty && items.isEmpty
@@ -459,9 +469,7 @@ class _RoomListState extends State<RoomList>
                         child: Text(
                           _query.isNotEmpty
                               ? 'No results for "$_query"'
-                              : prefs.roomFilter == RoomCategory.all
-                                  ? 'No rooms yet'
-                                  : 'No ${prefs.roomFilter.label.toLowerCase()}',
+                              : 'No rooms yet',
                           style: Theme.of(context)
                               .textTheme
                               .bodyMedium
@@ -478,8 +486,6 @@ class _RoomListState extends State<RoomList>
                         itemBuilder: (context, i) {
                           final item = items[i];
                           return switch (item) {
-                            _FilterBarItem() =>
-                              _SpaceFilterBar(matrix: matrix),
                             _InviteItem() =>
                               _InviteTile(room: item.room),
                             _HeaderItem() => _SectionHeader(
@@ -617,43 +623,6 @@ class _SpeedDialItem extends StatelessWidget {
           child: Icon(icon),
         ),
       ],
-    );
-  }
-}
-
-// ── Space filter bar ────────────────────────────────────────
-class _SpaceFilterBar extends StatelessWidget {
-  const _SpaceFilterBar({required this.matrix});
-  final MatrixService matrix;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final names = matrix.selectedSpaceIds.map((id) {
-      return matrix.client.getRoomById(id)?.getLocalizedDisplayname() ??
-          id;
-    });
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              'Showing: ${names.join(' + ')}',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: cs.primary,
-                  ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close, size: 18),
-            onPressed: () => matrix.clearSpaceSelection(),
-            tooltip: 'Clear space filter',
-            visualDensity: VisualDensity.compact,
-          ),
-        ],
-      ),
     );
   }
 }

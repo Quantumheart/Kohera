@@ -10,6 +10,7 @@ import '../screens/devices_screen.dart';
 import '../screens/notification_settings_screen.dart';
 import '../screens/settings_screen.dart';
 import '../services/matrix_service.dart';
+import '../widgets/inbox_screen.dart';
 import '../widgets/room_details_panel.dart';
 import 'route_names.dart';
 
@@ -101,6 +102,11 @@ GoRouter buildRouter(MatrixService matrixService) {
                 path: 'spaces',
                 name: Routes.spaces,
                 builder: (context, state) => const SizedBox.shrink(),
+              ),
+              GoRoute(
+                path: 'inbox',
+                name: Routes.inbox,
+                builder: (context, state) => const InboxScreen(),
               ),
               GoRoute(
                 path: 'settings',
