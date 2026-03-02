@@ -13,6 +13,7 @@ import '../services/preferences_service.dart';
 import '../utils/media_auth.dart';
 import 'invite_dialog.dart';
 import 'space_action_dialog.dart';
+import 'space_context_menu.dart';
 import 'user_avatar.dart';
 
 /// A vertical icon rail showing the user's Matrix spaces.
@@ -98,33 +99,63 @@ class _SpaceRailState extends State<SpaceRail> {
                   index: i,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 6),
-                    child: _RailIcon(
-                      label: space.getLocalizedDisplayname().isNotEmpty
-                          ? space.getLocalizedDisplayname()[0].toUpperCase()
-                          : '?',
-                      tooltip:
-                          '${space.getLocalizedDisplayname()} \u00b7 $childCount rooms',
-                      isSelected:
-                          matrix.selectedSpaceIds.contains(space.id),
-                      room: space,
-                      color: _spaceColor(i, cs),
-                      unreadCount: unread,
-                      onTap: () {
-                        final keys =
-                            HardwareKeyboard.instance.logicalKeysPressed;
-                        final isModifier = keys.contains(
-                                LogicalKeyboardKey.controlLeft) ||
-                            keys.contains(LogicalKeyboardKey.controlRight) ||
-                            keys.contains(LogicalKeyboardKey.metaLeft) ||
-                            keys.contains(LogicalKeyboardKey.metaRight);
-                        if (isModifier) {
-                          matrix.toggleSpaceSelection(space.id);
-                        } else {
-                          matrix.selectSpace(space.id);
-                        }
-                      },
-                      onLongPress: () =>
-                          matrix.toggleSpaceSelection(space.id),
+                    child: Builder(
+                      builder: (iconContext) => _RailIcon(
+                        label: space.getLocalizedDisplayname().isNotEmpty
+                            ? space.getLocalizedDisplayname()[0].toUpperCase()
+                            : '?',
+                        tooltip:
+                            '${space.getLocalizedDisplayname()} \u00b7 $childCount rooms',
+                        isSelected:
+                            matrix.selectedSpaceIds.contains(space.id),
+                        room: space,
+                        color: _spaceColor(i, cs),
+                        unreadCount: unread,
+                        onTap: () {
+                          final keys =
+                              HardwareKeyboard.instance.logicalKeysPressed;
+                          final isModifier = keys.contains(
+                                  LogicalKeyboardKey.controlLeft) ||
+                              keys.contains(LogicalKeyboardKey.controlRight) ||
+                              keys.contains(LogicalKeyboardKey.metaLeft) ||
+                              keys.contains(LogicalKeyboardKey.metaRight);
+                          if (isModifier) {
+                            matrix.toggleSpaceSelection(space.id);
+                          } else {
+                            matrix.selectSpace(space.id);
+                          }
+                        },
+                        onLongPress: () {
+                          final box =
+                              iconContext.findRenderObject() as RenderBox;
+                          final pos = box.localToGlobal(Offset.zero);
+                          showSpaceContextMenu(
+                            iconContext,
+                            RelativeRect.fromLTRB(
+                              pos.dx + box.size.width,
+                              pos.dy,
+                              pos.dx + box.size.width,
+                              pos.dy + box.size.height,
+                            ),
+                            space,
+                          );
+                        },
+                        onSecondaryTapUp: (details) {
+                          final box =
+                              iconContext.findRenderObject() as RenderBox;
+                          final pos = box.localToGlobal(Offset.zero);
+                          showSpaceContextMenu(
+                            iconContext,
+                            RelativeRect.fromLTRB(
+                              pos.dx + box.size.width,
+                              details.globalPosition.dy,
+                              pos.dx + box.size.width,
+                              details.globalPosition.dy,
+                            ),
+                            space,
+                          );
+                        },
+                      ),
                     ),
                   ),
                 );
@@ -267,6 +298,7 @@ class _RailIcon extends StatefulWidget {
     this.outlined = false,
     this.unreadCount,
     this.onLongPress,
+    this.onSecondaryTapUp,
   });
 
   final IconData? icon;
@@ -279,6 +311,7 @@ class _RailIcon extends StatefulWidget {
   final bool outlined;
   final int? unreadCount;
   final VoidCallback? onLongPress;
+  final void Function(TapUpDetails)? onSecondaryTapUp;
 
   @override
   State<_RailIcon> createState() => _RailIconState();
@@ -360,7 +393,9 @@ class _RailIconState extends State<_RailIcon> {
       );
     }
 
-    Widget icon = Tooltip(
+    Widget icon = GestureDetector(
+      onSecondaryTapUp: widget.onSecondaryTapUp,
+      child: Tooltip(
       message: widget.tooltip,
       preferBelow: false,
       child: Center(
@@ -398,6 +433,7 @@ class _RailIconState extends State<_RailIcon> {
             ),
           ),
         ),
+      ),
       ),
     );
 
