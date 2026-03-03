@@ -1,73 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:matrix/matrix.dart';
 
-import '../models/space_node.dart';
-import '../routing/route_names.dart';
 import '../services/matrix_service.dart';
 import '../services/preferences_service.dart';
 import '../services/room_list_search_controller.dart';
-import '../utils/notification_filter.dart';
-import '../utils/text_highlight.dart';
-import '../utils/time_format.dart';
+import 'invite_tile.dart';
+import 'message_search_tiles.dart';
 import 'new_dm_dialog.dart';
 import 'new_room_dialog.dart';
-import '../utils/reply_fallback.dart';
-import 'chat/typing_indicator.dart' show TypingIndicator;
-import 'room_avatar.dart';
-import 'room_context_menu.dart';
-
-// ── List item types for the flat interleaved list ──────────
-sealed class _ListItem {}
-
-class _HeaderItem extends _ListItem {
-  final String name;
-  final String sectionKey;
-  final int depth;
-  final int roomCount;
-
-  _HeaderItem({
-    required this.name,
-    required this.sectionKey,
-    required this.depth,
-    required this.roomCount,
-  });
-}
-
-class _RoomItem extends _ListItem {
-  final Room room;
-  final int depth;
-
-  _RoomItem({required this.room, this.depth = 0});
-}
-
-class _InviteItem extends _ListItem {
-  final Room room;
-  _InviteItem({required this.room});
-}
-
-class _MessageSearchHeaderItem extends _ListItem {
-  final int? resultCount;
-  final bool isLoading;
-  final String? error;
-
-  _MessageSearchHeaderItem({
-    this.resultCount,
-    required this.isLoading,
-    this.error,
-  });
-}
-
-class _MessageSearchResultItem extends _ListItem {
-  final MessageSearchResult result;
-  _MessageSearchResultItem({required this.result});
-}
-
-class _LoadMoreMessagesItem extends _ListItem {
-  final bool isLoading;
-  _LoadMoreMessagesItem({required this.isLoading});
-}
+import 'room_list_builder.dart';
+import 'room_list_models.dart';
+import 'room_section_header.dart';
+import 'room_tile.dart';
+import 'speed_dial_item.dart';
 
 class RoomList extends StatefulWidget {
   const RoomList({super.key});
@@ -171,171 +116,6 @@ class _RoomListState extends State<RoomList>
     }
   }
 
-  bool _roomMatchesQuery(Room r, String q) {
-    // Room display name
-    if (r.getLocalizedDisplayname().toLowerCase().contains(q)) return true;
-
-    // Room alias / canonical alias
-    final alias = r.canonicalAlias;
-    if (alias.isNotEmpty && alias.toLowerCase().contains(q)) return true;
-
-    // For DMs, check the partner's Matrix ID
-    final dmPartner = r.directChatMatrixID;
-    if (dmPartner != null && dmPartner.toLowerCase().contains(q)) return true;
-
-    return false;
-  }
-
-  Set<String>? _spaceRoomIds(MatrixService matrix) {
-    final selectedIds = matrix.selectedSpaceIds;
-    if (selectedIds.isEmpty) return null;
-
-    final ids = <String>{};
-    void collect(SpaceNode node) {
-      ids.addAll(node.directChildRoomIds);
-      for (final sub in node.subspaces) {
-        collect(sub);
-      }
-    }
-    for (final node in matrix.spaceTree) {
-      if (selectedIds.contains(node.room.id)) collect(node);
-    }
-    return ids;
-  }
-
-  List<Room> _applySearch(List<Room> rooms) {
-    if (_query.isEmpty) return rooms;
-    final q = _query.toLowerCase();
-    return rooms.where((r) => _roomMatchesQuery(r, q)).toList();
-  }
-
-  List<_ListItem> _buildSectionItems(MatrixService matrix,
-      PreferencesService prefs) {
-    final collapsed = prefs.collapsedSpaceSections;
-    final selectedIds = matrix.selectedSpaceIds;
-    final tree = matrix.spaceTree;
-    final items = <_ListItem>[];
-
-    // Invited rooms at the top (filtered by search)
-    final invitedRooms = _applySearch(matrix.invitedRooms);
-    for (final room in invitedRooms) {
-      items.add(_InviteItem(room: room));
-    }
-
-    final pinnedIds = <String>{};
-
-    if (selectedIds.isNotEmpty) {
-      // Space selected: show only that space's rooms with subspace hierarchy
-      final visibleNodes = tree
-          .where((n) => selectedIds.contains(n.room.id))
-          .toList();
-      for (final node in visibleNodes) {
-        _addSpaceSection(items, node, 0, matrix, collapsed, pinnedIds);
-      }
-    } else {
-      // No space selected (Home): Pinned → DMs → Unsorted
-
-      // Pinned section
-      final pinnedRooms = _applySearch(
-          matrix.rooms.where((r) => r.isFavourite).toList());
-      pinnedIds.addAll(pinnedRooms.map((r) => r.id));
-      if (pinnedRooms.isNotEmpty) {
-        items.add(_HeaderItem(
-          name: 'Pinned',
-          sectionKey: PreferencesService.pinnedSectionKey,
-          depth: 0,
-          roomCount: pinnedRooms.length,
-        ));
-        if (!collapsed.contains(PreferencesService.pinnedSectionKey)) {
-          for (final room in pinnedRooms) {
-            items.add(_RoomItem(room: room, depth: 0));
-          }
-        }
-      }
-
-      // DMs section — all direct chats
-      final dmRooms = _applySearch(
-          matrix.rooms.where((r) => r.isDirectChat && !pinnedIds.contains(r.id)).toList());
-      if (dmRooms.isNotEmpty) {
-        items.add(_HeaderItem(
-          name: 'Direct Messages',
-          sectionKey: PreferencesService.dmSectionKey,
-          depth: 0,
-          roomCount: dmRooms.length,
-        ));
-        if (!collapsed.contains(PreferencesService.dmSectionKey)) {
-          for (final room in dmRooms) {
-            items.add(_RoomItem(room: room, depth: 0));
-          }
-        }
-      }
-
-      // Unsorted section (orphan group rooms)
-      final orphans = _applySearch(matrix.orphanRooms)
-          .where((r) => !pinnedIds.contains(r.id) && !r.isDirectChat)
-          .toList();
-      if (orphans.isNotEmpty) {
-        items.add(_HeaderItem(
-          name: 'Rooms',
-          sectionKey: PreferencesService.unsortedSectionKey,
-          depth: 0,
-          roomCount: orphans.length,
-        ));
-        if (!collapsed.contains(PreferencesService.unsortedSectionKey)) {
-          for (final room in orphans) {
-            items.add(_RoomItem(room: room, depth: 0));
-          }
-        }
-      }
-    }
-
-    return items;
-  }
-
-  void _addSpaceSection(
-    List<_ListItem> items,
-    SpaceNode node,
-    int depth,
-    MatrixService matrix,
-    Set<String> collapsed,
-    Set<String> pinnedIds,
-  ) {
-    final rooms = _applySearch(matrix.roomsForSpace(node.room.id))
-        .where((r) => !pinnedIds.contains(r.id)).toList();
-
-    // Count total rooms including all nested subspaces for the header
-    var totalRooms = rooms.length;
-    void countSubspaces(List<SpaceNode> subs) {
-      for (final sub in subs) {
-        totalRooms += _applySearch(
-            matrix.roomsForSpace(sub.room.id))
-            .where((r) => !pinnedIds.contains(r.id)).length;
-        countSubspaces(sub.subspaces);
-      }
-    }
-    countSubspaces(node.subspaces);
-
-    // Skip entirely empty sections
-    if (totalRooms == 0) return;
-
-    items.add(_HeaderItem(
-      name: node.room.getLocalizedDisplayname(),
-      sectionKey: node.room.id,
-      depth: depth,
-      roomCount: totalRooms,
-    ));
-
-    if (!collapsed.contains(node.room.id)) {
-      for (final room in rooms) {
-        items.add(_RoomItem(room: room, depth: depth));
-      }
-      for (final sub in node.subspaces) {
-        _addSpaceSection(
-            items, sub, depth + 1, matrix, collapsed, pinnedIds);
-      }
-    }
-  }
-
   String _appBarTitle(MatrixService matrix) {
     final ids = matrix.selectedSpaceIds;
     if (ids.isEmpty) return 'Chats';
@@ -354,7 +134,7 @@ class _RoomListState extends State<RoomList>
     final prefs = context.watch<PreferencesService>();
     final cs = Theme.of(context).colorScheme;
 
-    final items = _buildSectionItems(matrix, prefs);
+    final items = buildSectionItems(matrix, prefs, _query);
 
     // Pre-compute context menu eligibility data once for all tiles.
     final selectedSpaceCanManage = matrix.selectedSpaceIds.any((id) {
@@ -368,22 +148,22 @@ class _RoomListState extends State<RoomList>
 
     // Append message search items when query is long enough
     if (_query.trim().length >= RoomListSearchController.minQueryLength) {
-      items.add(_MessageSearchHeaderItem(
+      items.add(MessageSearchHeaderItem(
         resultCount: _messageSearch.totalCount,
         isLoading: _messageSearch.isLoading,
         error: _messageSearch.error,
       ));
       for (final result in _messageSearch.results) {
-        items.add(_MessageSearchResultItem(result: result));
+        items.add(MessageSearchResultItem(result: result));
       }
       if (_messageSearch.nextBatch != null && !_messageSearch.isLoading) {
-        items.add(_LoadMoreMessagesItem(isLoading: false));
+        items.add(LoadMoreMessagesItem(isLoading: false));
       }
     }
 
     // Determine if the list is truly empty (no rooms AND no message results)
     final hasRoomItems = items.any((i) =>
-        i is _RoomItem || i is _InviteItem || i is _HeaderItem);
+        i is RoomItem || i is InviteItem || i is HeaderItem);
     final hasMessageResults = _messageSearch.results.isNotEmpty;
     final isMessageSearchActive = _messageSearch.isLoading;
     final isEmpty = !hasRoomItems && !hasMessageResults && !isMessageSearchActive;
@@ -409,7 +189,7 @@ class _RoomListState extends State<RoomList>
                       onChanged: (v) {
                         setState(() => _query = v);
                         _messageSearch.onQueryChanged(v,
-                            scopeRoomIds: _spaceRoomIds(matrix));
+                            scopeRoomIds: spaceRoomIds(matrix));
                       },
                       decoration: InputDecoration(
                         hintText: 'Search\u2026',
@@ -477,18 +257,18 @@ class _RoomListState extends State<RoomList>
                         itemBuilder: (context, i) {
                           final item = items[i];
                           return switch (item) {
-                            _InviteItem() =>
-                              _InviteTile(room: item.room),
-                            _HeaderItem() => _SectionHeader(
+                            InviteItem() =>
+                              InviteTile(room: item.room),
+                            HeaderItem() => RoomSectionHeader(
                                 item: item,
                                 prefs: prefs,
                               ),
-                            _RoomItem() => Padding(
+                            RoomItem() => Padding(
                                 padding: EdgeInsets.only(
                                     left: item.depth * 16.0),
                                 child: Builder(builder: (_) {
                                   final memberships = matrix.spaceMemberships(item.room.id);
-                                  return _RoomTile(
+                                  return RoomTile(
                                     room: item.room,
                                     isSelected: matrix.selectedRoomId == item.room.id,
                                     memberships: memberships,
@@ -497,15 +277,15 @@ class _RoomListState extends State<RoomList>
                                   );
                                 }),
                               ),
-                            _MessageSearchHeaderItem() =>
-                              _MessageSearchHeader(item: item),
-                            _MessageSearchResultItem() =>
-                              _MessageSearchResultTile(
+                            MessageSearchHeaderItem() =>
+                              MessageSearchHeader(item: item),
+                            MessageSearchResultItem() =>
+                              MessageSearchResultTile(
                                 result: item.result,
                                 query: _query,
                               ),
-                            _LoadMoreMessagesItem() =>
-                              _LoadMoreButton(
+                            LoadMoreMessagesItem() =>
+                              LoadMoreButton(
                                 isLoading: item.isLoading,
                                 onPressed: () => _messageSearch.performSearch(
                                     loadMore: true),
@@ -546,7 +326,7 @@ class _RoomListState extends State<RoomList>
                       crossAxisAlignment: CrossAxisAlignment.end,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _SpeedDialItem(
+                        SpeedDialItem(
                           label: 'New Room',
                           icon: Icons.group_add_rounded,
                           onTap: () {
@@ -555,7 +335,7 @@ class _RoomListState extends State<RoomList>
                           },
                         ),
                         const SizedBox(height: 8),
-                        _SpeedDialItem(
+                        SpeedDialItem(
                           label: 'New Direct Message',
                           icon: Icons.chat_bubble_outline_rounded,
                           onTap: () {
@@ -585,716 +365,5 @@ class _RoomListState extends State<RoomList>
         ),
       ),
     );
-  }
-}
-
-// ── Speed dial mini-FAB ─────────────────────────────────────
-class _SpeedDialItem extends StatelessWidget {
-  const _SpeedDialItem({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Material(
-          elevation: 2,
-          borderRadius: BorderRadius.circular(8),
-          color: cs.surfaceContainerHigh,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Text(label,
-                style: TextStyle(fontSize: 13, color: cs.onSurface)),
-          ),
-        ),
-        const SizedBox(width: 12),
-        FloatingActionButton.small(
-          heroTag: label,
-          onPressed: onTap,
-          child: Icon(icon),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Section header ──────────────────────────────────────────
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.item, required this.prefs});
-  final _HeaderItem item;
-  final PreferencesService prefs;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-    final isCollapsed =
-        prefs.collapsedSpaceSections.contains(item.sectionKey);
-
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 10.0 + item.depth * 16.0,
-        right: 10,
-        top: 8,
-        bottom: 2,
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () => prefs.toggleSectionCollapsed(item.sectionKey),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
-          child: Row(
-            children: [
-              Icon(
-                isCollapsed
-                    ? Icons.chevron_right
-                    : Icons.expand_more,
-                size: 18,
-                color: cs.onSurfaceVariant,
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  item.name.toUpperCase(),
-                  style: tt.labelSmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Text(
-                '${item.roomCount}',
-                style: tt.labelSmall?.copyWith(
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.5),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Invite tile ─────────────────────────────────────────────
-class _InviteTile extends StatefulWidget {
-  const _InviteTile({required this.room});
-  final Room room;
-
-  @override
-  State<_InviteTile> createState() => _InviteTileState();
-}
-
-class _InviteTileState extends State<_InviteTile> {
-  bool _isJoining = false;
-  bool _isDeclining = false;
-
-  bool get _inFlight => _isJoining || _isDeclining;
-
-  Future<void> _accept() async {
-    if (_inFlight) return;
-    final matrix = context.read<MatrixService>();
-    setState(() => _isJoining = true);
-    try {
-      await widget.room.join();
-    } catch (e) {
-      debugPrint('[Lattice] Accept invite failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(MatrixService.friendlyAuthError(e))),
-        );
-      }
-      if (mounted) setState(() => _isJoining = false);
-      return;
-    }
-    // Join succeeded — wait briefly for the sync so the room appears as joined.
-    // A timeout here is not an error; the room will appear on the next sync.
-    try {
-      await matrix.client.onSync.stream.first
-          .timeout(const Duration(seconds: 5));
-    } catch (_) {
-      // Timeout is fine — the join already succeeded server-side.
-    }
-    if (mounted) {
-      context.goNamed(Routes.room, pathParameters: {'roomId': widget.room.id});
-      setState(() => _isJoining = false);
-    }
-  }
-
-  Future<void> _decline() async {
-    if (_inFlight) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Decline invite'),
-        content: Text(
-          'Decline invite to ${widget.room.getLocalizedDisplayname()}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Decline'),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !mounted) return;
-
-    setState(() => _isDeclining = true);
-    try {
-      await widget.room.leave();
-    } catch (e) {
-      debugPrint('[Lattice] Decline invite failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(MatrixService.friendlyAuthError(e))),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isDeclining = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final matrix = context.watch<MatrixService>();
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-    final inviter = matrix.inviterDisplayName(widget.room);
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Material(
-        color: cs.tertiaryContainer.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          mouseCursor: SystemMouseCursors.click,
-          onTap: _inFlight ? null : _accept,
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                // Avatar
-                if (_isJoining)
-                  const SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: Center(
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2.5),
-                      ),
-                    ),
-                  )
-                else
-                  RoomAvatarWidget(room: widget.room, size: 48),
-
-                const SizedBox(width: 12),
-
-                // Name + invite subtitle
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.room.getLocalizedDisplayname(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: tt.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        inviter != null
-                            ? 'Invited by $inviter'
-                            : 'Pending invite',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: tt.bodyMedium?.copyWith(
-                          color: cs.onTertiaryContainer
-                              .withValues(alpha: 0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 8),
-
-                // Decline button
-                if (_isDeclining)
-                  const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else
-                  IconButton(
-                    icon: Icon(Icons.close_rounded, color: cs.error),
-                    tooltip: 'Decline invite',
-                    onPressed: _inFlight ? null : _decline,
-                    visualDensity: VisualDensity.compact,
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Message search header ────────────────────────────────────
-class _MessageSearchHeader extends StatelessWidget {
-  const _MessageSearchHeader({required this.item});
-  final _MessageSearchHeaderItem item;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(left: 14, right: 14, top: 12, bottom: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  item.resultCount != null
-                      ? 'MESSAGES (${item.resultCount})'
-                      : 'MESSAGES',
-                  style: tt.labelSmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    letterSpacing: 1.2,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              if (item.isLoading)
-                SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: cs.onSurfaceVariant,
-                  ),
-                ),
-            ],
-          ),
-          if (item.error != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                item.error!,
-                style: tt.bodySmall?.copyWith(color: cs.error),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-// ── Message search result tile ───────────────────────────────
-class _MessageSearchResultTile extends StatelessWidget {
-  const _MessageSearchResultTile({
-    required this.result,
-    required this.query,
-  });
-
-  final MessageSearchResult result;
-  final String query;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-    final spans = highlightSpans(result.body, query.trim());
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          mouseCursor: SystemMouseCursors.click,
-          onTap: () => context.goNamed(
-            Routes.room,
-            pathParameters: {'roomId': result.roomId},
-          ),
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Room name
-                Text(
-                  result.roomName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: tt.labelMedium?.copyWith(
-                    color: cs.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                // Sender + timestamp
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        result.senderName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: tt.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      formatRelativeTimestamp(result.originServerTs),
-                      style: tt.bodySmall?.copyWith(
-                        fontSize: 11,
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                // Body with highlights
-                RichText(
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  text: TextSpan(
-                    children: spans.map((s) {
-                      return TextSpan(
-                        text: s.text,
-                        style: tt.bodyMedium?.copyWith(
-                          color: cs.onSurface,
-                          backgroundColor: s.isMatch
-                              ? cs.primaryContainer
-                              : null,
-                          fontWeight:
-                              s.isMatch ? FontWeight.w600 : null,
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Load more button ─────────────────────────────────────────
-class _LoadMoreButton extends StatelessWidget {
-  const _LoadMoreButton({
-    required this.isLoading,
-    required this.onPressed,
-  });
-
-  final bool isLoading;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Center(
-        child: isLoading
-            ? const Padding(
-                padding: EdgeInsets.all(8),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              )
-            : TextButton(
-                onPressed: onPressed,
-                child: const Text('Load more messages'),
-              ),
-      ),
-    );
-  }
-}
-
-// ── Room tile ───────────────────────────────────────────────
-class _RoomTile extends StatelessWidget {
-  const _RoomTile({
-    required this.room,
-    required this.isSelected,
-    required this.memberships,
-    required this.hasContextMenu,
-  });
-
-  final Room room;
-  final bool isSelected;
-  final Set<String> memberships;
-  final bool hasContextMenu;
-
-  void _openContextMenu(BuildContext context, RelativeRect position) {
-    if (!hasContextMenu) return;
-    showRoomContextMenu(context, position, room);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final prefs = context.watch<PreferencesService>();
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-    final unread = effectiveUnreadCount(room, prefs);
-    final lastEvent = room.lastEvent;
-    final hasMenu = hasContextMenu;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Material(
-        color: isSelected
-            ? cs.primaryContainer.withValues(alpha: 0.5)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          mouseCursor: SystemMouseCursors.click,
-          onTap: () => context.goNamed(Routes.room, pathParameters: {'roomId': room.id}),
-          onSecondaryTapUp: hasMenu
-              ? (details) {
-                  final overlay = Overlay.of(context).context
-                      .findRenderObject()! as RenderBox;
-                  _openContextMenu(
-                    context,
-                    RelativeRect.fromSize(
-                      details.globalPosition & Size.zero,
-                      overlay.size,
-                    ),
-                  );
-                }
-              : null,
-          onLongPress: hasMenu
-              ? () {
-                  final box = context.findRenderObject()! as RenderBox;
-                  final overlay = Overlay.of(context).context
-                      .findRenderObject()! as RenderBox;
-                  final position = box.localToGlobal(
-                    Offset(box.size.width / 2, box.size.height / 2),
-                    ancestor: overlay,
-                  );
-                  _openContextMenu(
-                    context,
-                    RelativeRect.fromSize(
-                      position & Size.zero,
-                      overlay.size,
-                    ),
-                  );
-                }
-              : null,
-          child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              children: [
-                // Avatar
-                RoomAvatarWidget(room: room, size: 48),
-
-                const SizedBox(width: 12),
-
-                // Name + last message
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              room.getLocalizedDisplayname(),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: tt.titleMedium?.copyWith(
-                                fontWeight: unread > 0
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          // Multi-space membership dots
-                          if (memberships.length >= 2) ...[
-                            const SizedBox(width: 6),
-                            for (var j = 0;
-                                j < memberships.length && j < 4;
-                                j++)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 2),
-                                child: Container(
-                                  width: 6,
-                                  height: 6,
-                                  decoration: BoxDecoration(
-                                    color: _dotColor(j, cs),
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      _buildSubtitle(context, prefs, lastEvent, cs, tt),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(width: 8),
-
-                // Timestamp + badge
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 44),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        _formatTime(lastEvent?.originServerTs),
-                        style: tt.bodyMedium?.copyWith(
-                          fontSize: 11,
-                          color: unread > 0
-                              ? cs.primary
-                              : cs.onSurfaceVariant
-                                  .withValues(alpha: 0.5),
-                        ),
-                      ),
-                      if (unread > 0) ...[
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: cs.primary,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            unread > 99 ? '99+' : '$unread',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: cs.onPrimary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSubtitle(
-    BuildContext context,
-    PreferencesService prefs,
-    Event? lastEvent,
-    ColorScheme cs,
-    TextTheme tt,
-  ) {
-    final userId = context.read<MatrixService>().client.userID;
-    final typers = room.typingUsers
-        .where((u) => u.id != userId)
-        .toList();
-    if (typers.isNotEmpty && prefs.typingIndicators) {
-      return Text(
-        _typingPreview(typers),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: tt.bodyMedium?.copyWith(
-          color: cs.primary,
-          fontStyle: FontStyle.italic,
-        ),
-      );
-    }
-    return Text(
-      _lastMessagePreview(lastEvent, userId),
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: tt.bodyMedium?.copyWith(
-        color: cs.onSurfaceVariant.withValues(alpha: 0.7),
-      ),
-    );
-  }
-
-  String _typingPreview(List<User> typers) {
-    return TypingIndicator.formatTypers(typers);
-  }
-
-  Color _dotColor(int index, ColorScheme cs) {
-    final palette = [cs.primary, cs.tertiary, cs.secondary, cs.error];
-    return palette[index % palette.length];
-  }
-
-  String _lastMessagePreview(Event? event, String? myUserId) {
-    if (event == null) return 'No messages yet';
-    if (event.redacted) {
-      final isMe = event.senderId == myUserId;
-      if (isMe) return 'You deleted this message';
-      final redactor = event.redactedBecause?.senderId;
-      final isSelfRedact = redactor == event.senderId;
-      if (isSelfRedact || redactor == null) return 'This message was deleted';
-      final redactorUser =
-          event.room.unsafeGetUserFromMemoryOrFallback(redactor);
-      return 'Deleted by ${redactorUser.displayName ?? redactor}';
-    }
-    if (event.messageType == MessageTypes.BadEncrypted) {
-      return '🔒 Unable to decrypt';
-    }
-    final body = stripReplyFallback(event.body);
-    if (event.messageType == MessageTypes.Text) {
-      return body;
-    }
-    if (event.messageType == MessageTypes.Image) return '📷 Image';
-    if (event.messageType == MessageTypes.Video) return '🎬 Video';
-    if (event.messageType == MessageTypes.File) return '📎 File';
-    if (event.messageType == MessageTypes.Audio) return '🎵 Audio';
-    return body;
-  }
-
-  String _formatTime(DateTime? ts) {
-    if (ts == null) return '';
-    final local = ts.toLocal();
-    final now = DateTime.now();
-    final diff = now.difference(local);
-    if (diff.inMinutes < 1) return 'now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
-    if (diff.inHours < 24) return '${diff.inHours}h';
-    if (diff.inDays < 7) return '${diff.inDays}d';
-    return '${local.day.toString().padLeft(2, '0')}/${local.month.toString().padLeft(2, '0')}';
   }
 }
