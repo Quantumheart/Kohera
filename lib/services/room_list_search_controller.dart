@@ -38,7 +38,7 @@ class RoomListSearchController extends ChangeNotifier {
 
   // ── State ─────────────────────────────────────────────────
   List<MessageSearchResult> _results = [];
-  List<MessageSearchResult> get results => _results;
+  List<MessageSearchResult> get results => List.unmodifiable(_results);
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -76,18 +76,20 @@ class RoomListSearchController extends ChangeNotifier {
       _totalCount = null;
       _error = null;
       _isLoading = false;
-      notifyListeners();
+      _searchGeneration++;
+      if (!_disposed) notifyListeners();
       return;
     }
 
     _isLoading = true;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
     _debounceTimer = Timer(_debounceDuration, () {
       performSearch();
     });
   }
 
   Future<void> performSearch({bool loadMore = false}) async {
+    if (_disposed) return;
     if (_query.length < minQueryLength) return;
 
     final client = getClient();
@@ -243,18 +245,20 @@ class RoomListSearchController extends ChangeNotifier {
               .where((event) =>
                   event.type == EventTypes.Message &&
                   (event.content.tryGet<String>('body')?.isNotEmpty ?? false))
-              .map((event) => MessageSearchResult(
+              .map((event) {
+                final rawBody = event.content.tryGet<String>('body') ?? '';
+                return MessageSearchResult(
                     roomId: room.id,
                     roomName: room.getLocalizedDisplayname(),
                     senderName: room
                         .unsafeGetUserFromMemoryOrFallback(event.senderId)
                         .displayName ?? event.senderId,
                     senderId: event.senderId,
-                    body: stripReplyFallback(
-                        event.content.tryGet<String>('body')!),
+                    body: stripReplyFallback(rawBody),
                     eventId: event.eventId,
                     originServerTs: event.originServerTs,
-                  ))
+                  );
+              })
               .toList();
         } catch (e) {
           debugPrint(
@@ -270,6 +274,7 @@ class RoomListSearchController extends ChangeNotifier {
 
   void clear() {
     _debounceTimer?.cancel();
+    _searchGeneration++;
     _results = [];
     _nextBatch = null;
     _totalCount = null;
@@ -277,7 +282,7 @@ class RoomListSearchController extends ChangeNotifier {
     _isLoading = false;
     _error = null;
     _query = '';
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 
   @override

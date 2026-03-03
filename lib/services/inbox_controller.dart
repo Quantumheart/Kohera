@@ -26,9 +26,10 @@ class InboxController extends ChangeNotifier {
 
   Client _client;
   Client get client => _client;
+  bool _disposed = false;
 
   List<NotificationGroup> _grouped = [];
-  List<NotificationGroup> get grouped => _grouped;
+  List<NotificationGroup> get grouped => List.unmodifiable(_grouped);
   bool _isLoading = false;
   bool get isLoading => _isLoading;
   String? _error;
@@ -54,23 +55,26 @@ class InboxController extends ChangeNotifier {
   // ── Fetch ──────────────────────────────────────────────────
 
   Future<void> fetch() async {
+    if (_isLoading) return;
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
 
     try {
       final response = await _client.getNotifications(
         limit: 30,
         only: _filter == InboxFilter.mentions ? 'highlight' : null,
       );
+      if (_disposed) return;
       _nextToken = response.nextToken;
       _grouped = _groupByRoom(response.notifications);
     } catch (e) {
+      if (_disposed) return;
       _error = e.toString();
       debugPrint('[Lattice] Inbox fetch error: $e');
     } finally {
       _isLoading = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 
@@ -78,7 +82,8 @@ class InboxController extends ChangeNotifier {
     if (_nextToken == null || _isLoading) return;
 
     _isLoading = true;
-    notifyListeners();
+    _error = null;
+    if (!_disposed) notifyListeners();
 
     try {
       final response = await _client.getNotifications(
@@ -86,6 +91,7 @@ class InboxController extends ChangeNotifier {
         from: _nextToken,
         only: _filter == InboxFilter.mentions ? 'highlight' : null,
       );
+      if (_disposed) return;
       _nextToken = response.nextToken;
 
       // Merge new notifications into existing groups
@@ -96,11 +102,12 @@ class InboxController extends ChangeNotifier {
       all.addAll(response.notifications);
       _grouped = _groupByRoom(all);
     } catch (e) {
+      if (_disposed) return;
       _error = e.toString();
       debugPrint('[Lattice] Inbox loadMore error: $e');
     } finally {
       _isLoading = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 
@@ -136,6 +143,7 @@ class InboxController extends ChangeNotifier {
         limit: 30,
         only: _filter == InboxFilter.mentions ? 'highlight' : null,
       );
+      if (_disposed) return;
 
       // Merge polled notifications into existing groups so we don't
       // discard results the user loaded via loadMore().
@@ -153,6 +161,7 @@ class InboxController extends ChangeNotifier {
         }
       }
       _grouped = _groupByRoom(all);
+      _error = null;
       // Only update nextToken if we didn't already paginate further.
       _nextToken ??= response.nextToken;
       notifyListeners();
@@ -196,8 +205,11 @@ class InboxController extends ChangeNotifier {
     _client = newClient;
     _grouped = [];
     _nextToken = null;
+    _isLoading = false;
     _error = null;
+    stopPolling();
     notifyListeners();
+    fetch();
   }
 
   // ── Helpers ────────────────────────────────────────────────
@@ -227,6 +239,7 @@ class InboxController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     stopPolling();
     super.dispose();
   }
