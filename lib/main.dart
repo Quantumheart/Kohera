@@ -6,6 +6,7 @@ import 'package:flutter_vodozemac/flutter_vodozemac.dart' as vod;
 
 import 'routing/app_router.dart';
 import 'services/client_manager.dart';
+import 'services/inbox_controller.dart';
 import 'services/matrix_service.dart';
 import 'services/notification_service.dart';
 import 'services/opengraph_service.dart';
@@ -74,20 +75,30 @@ class _LatticeAppState extends State<LatticeApp> {
                 preferencesService: prefs,
                 child: ChangeNotifierProvider<MatrixService>.value(
                   value: matrix,
-                  child: Builder(
-                    builder: (context) {
-                      final theme = LatticeTheme.light(lightDynamic);
-                      final darkTheme = LatticeTheme.dark(darkDynamic);
-
-                      return MaterialApp.router(
-                        title: 'Lattice',
-                        debugShowCheckedModeBanner: false,
-                        theme: theme,
-                        darkTheme: darkTheme,
-                        themeMode: prefs.themeMode,
-                        routerConfig: router,
-                      );
+                  child: ChangeNotifierProxyProvider<MatrixService, InboxController>(
+                    create: (ctx) => InboxController(
+                      client: ctx.read<MatrixService>().client,
+                    ),
+                    update: (_, matrix, previous) {
+                      if (previous == null) return InboxController(client: matrix.client);
+                      previous.updateClient(matrix.client);
+                      return previous;
                     },
+                    child: Builder(
+                      builder: (context) {
+                        final theme = LatticeTheme.light(lightDynamic);
+                        final darkTheme = LatticeTheme.dark(darkDynamic);
+
+                        return MaterialApp.router(
+                          title: 'Lattice',
+                          debugShowCheckedModeBanner: false,
+                          theme: theme,
+                          darkTheme: darkTheme,
+                          themeMode: prefs.themeMode,
+                          routerConfig: router,
+                        );
+                      },
+                    ),
                   ),
                 ),
               );

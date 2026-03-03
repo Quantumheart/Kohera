@@ -135,6 +135,31 @@ class _ChatScreenState extends State<ChatScreen> {
     if (gen != _initGeneration) return;
     if (mounted) setState(() {});
     _markAsRead(room);
+    _requestMissingKeys(room);
+  }
+
+  /// Request decryption keys from the online backup for any BadEncrypted
+  /// events visible in the current timeline.
+  void _requestMissingKeys(Room room) {
+    final encryption = room.client.encryption;
+    if (encryption == null) return;
+
+    final events = _timeline?.events;
+    if (events == null) return;
+
+    for (final event in events) {
+      if (event.type == EventTypes.Encrypted &&
+          event.messageType == MessageTypes.BadEncrypted) {
+        final sessionId = event.content.tryGet<String>('session_id');
+        if (sessionId != null) {
+          encryption.keyManager.loadSingleKey(room.id, sessionId).catchError(
+            (Object e) {
+              debugPrint('[Lattice] Key load failed for $sessionId: $e');
+            },
+          );
+        }
+      }
+    }
   }
 
   List<Event> get _visibleEvents {

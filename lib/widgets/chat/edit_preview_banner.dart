@@ -44,7 +44,9 @@ class EditPreviewBanner extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  stripReplyFallback(event.body),
+                  event.messageType == MessageTypes.BadEncrypted
+                      ? 'Unable to decrypt'
+                      : stripReplyFallback(event.body),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: tt.bodySmall?.copyWith(

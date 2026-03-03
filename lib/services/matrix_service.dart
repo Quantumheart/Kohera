@@ -368,6 +368,17 @@ class MatrixService extends ChangeNotifier
 
   bool _disposed = false;
 
+  /// Disposes the current [Client] and creates a fresh instance so that
+  /// a subsequent [login] call gets a clean SDK client.
+  @override
+  Future<void> recreateClient() async {
+    _client.dispose();
+    _client = await _clientFactory(
+      clientName,
+      onSoftLogout: (_) async => handleSoftLogout(),
+    );
+  }
+
   /// Whether this service has been disposed.
   bool get disposed => _disposed;
 
