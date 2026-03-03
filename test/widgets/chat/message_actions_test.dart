@@ -137,6 +137,7 @@ void main() {
     when(mockRoom.summary).thenReturn(
       RoomSummary.fromJson({'m.joined_member_count': 3}),
     );
+    when(mockRoom.client).thenReturn(mockClient);
     when(mockTimeline.canRequestHistory).thenReturn(false);
   });
 

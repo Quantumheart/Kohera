@@ -532,6 +532,31 @@ class _MessageBubbleState extends State<MessageBubble> {
       );
     }
 
+    if (widget.event.messageType == MessageTypes.BadEncrypted) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.lock_outline,
+            size: 16,
+            color: widget.isMe
+                ? cs.onPrimary.withValues(alpha: 0.5)
+                : cs.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'Unable to decrypt this message',
+            style: tt.bodyMedium?.copyWith(
+              fontStyle: FontStyle.italic,
+              color: widget.isMe
+                  ? cs.onPrimary.withValues(alpha: 0.5)
+                  : cs.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+          ),
+        ],
+      );
+    }
+
     if (widget.event.messageType == MessageTypes.Image) {
       return ImageBubble(event: widget.event);
     }

@@ -20,6 +20,7 @@ void main() {
     mockClient = MockClient();
     mockMatrixService = MockMatrixService();
     when(mockMatrixService.client).thenReturn(mockClient);
+    when(mockMatrixService.selectedSpaceIds).thenReturn(<String>{});
   });
 
   Widget buildTestWidget() {

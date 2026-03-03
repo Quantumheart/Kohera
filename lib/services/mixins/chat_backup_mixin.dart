@@ -50,13 +50,14 @@ mixin ChatBackupMixin on ChangeNotifier {
     try {
       final state = await client.getCryptoIdentityState();
       if (state.connected) {
-        debugPrint('[AutoUnlock] Skip: already connected');
+        debugPrint('[AutoUnlock] Skip restore: already connected');
       } else {
         await client.restoreCryptoIdentity(storedKey);
-        // Restore room keys from the online backup so that messages
-        // received before auto-unlock can be decrypted.
-        await _restoreRoomKeys();
       }
+      // Always restore room keys — even when already connected, new
+      // messages may have arrived while the app was closed and their
+      // Megolm sessions need to be fetched from the online backup.
+      await _restoreRoomKeys();
     } catch (e) {
       debugPrint('[AutoUnlock] Failed: $e');
       // Silent failure — user can still unlock manually via settings.

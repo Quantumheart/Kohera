@@ -8,17 +8,25 @@ import '../utils/known_contacts.dart';
 // ── New Room dialog ───────────────────────────────────────────
 
 class NewRoomDialog extends StatefulWidget {
-  const NewRoomDialog._({required this.matrixService});
+  const NewRoomDialog._({
+    required this.matrixService,
+    this.parentSpaceIds,
+  });
 
   final MatrixService matrixService;
+  final Set<String>? parentSpaceIds;
 
   static Future<void> show(
     BuildContext context, {
     required MatrixService matrixService,
+    Set<String>? parentSpaceIds,
   }) {
     return showDialog(
       context: context,
-      builder: (_) => NewRoomDialog._(matrixService: matrixService),
+      builder: (_) => NewRoomDialog._(
+        matrixService: matrixService,
+        parentSpaceIds: parentSpaceIds,
+      ),
     );
   }
 
@@ -42,11 +50,30 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
   Timer? _debounce;
   int _searchGeneration = 0;
   List<Profile>? _cachedContacts;
+  bool _addToSpace = true;
+  final Set<String> _targetSpaceIds = {};
 
   @override
   void initState() {
     super.initState();
     _inviteFocusNode.addListener(_onFocusChanged);
+    _initTargetSpaces();
+  }
+
+  void _initTargetSpaces() {
+    final selected = widget.parentSpaceIds ?? widget.matrixService.selectedSpaceIds;
+    final eligible = <String>[];
+    for (final id in selected) {
+      final space = widget.matrixService.client.getRoomById(id);
+      if (space != null && space.canChangeStateEvent('m.space.child')) {
+        eligible.add(id);
+      }
+    }
+    if (eligible.isEmpty) {
+      _addToSpace = false;
+    } else {
+      _targetSpaceIds.addAll(eligible);
+    }
   }
 
   void _onFocusChanged() {
@@ -115,14 +142,14 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
 
   void _addInviteFromProfile(Profile profile) {
     final mxid = profile.userId;
-    if (!_invitedUsers.contains(mxid)) {
-      setState(() {
+    _inviteController.clear();
+    setState(() {
+      if (!_invitedUsers.contains(mxid)) {
         _invitedUsers.add(mxid);
         _networkError = null;
-      });
-    }
-    _inviteController.clear();
-    setState(() => _inviteSearchResults = []);
+      }
+      _inviteSearchResults = [];
+    });
   }
 
   void _addInvite() {
@@ -136,12 +163,12 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
       _inviteController.clear();
       return;
     }
+    _inviteController.clear();
     setState(() {
       _invitedUsers.add(mxid);
       _networkError = null;
+      _inviteSearchResults = [];
     });
-    _inviteController.clear();
-    setState(() => _inviteSearchResults = []);
   }
 
   void _removeInvite(String userId) {
@@ -195,6 +222,60 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
     return tiles;
   }
 
+  List<Widget> _buildSpaceSelection() {
+    final selected = widget.matrixService.selectedSpaceIds;
+    final eligible = <Room>[];
+    for (final id in selected) {
+      final space = widget.matrixService.client.getRoomById(id);
+      if (space != null && space.canChangeStateEvent('m.space.child')) {
+        eligible.add(space);
+      }
+    }
+    if (eligible.isEmpty) return [];
+
+    if (eligible.length == 1) {
+      final space = eligible.first;
+      return [
+        CheckboxListTile(
+          value: _addToSpace && _targetSpaceIds.contains(space.id),
+          onChanged: _loading
+              ? null
+              : (v) => setState(() {
+                    _addToSpace = v ?? false;
+                    if (_addToSpace) {
+                      _targetSpaceIds.add(space.id);
+                    } else {
+                      _targetSpaceIds.remove(space.id);
+                    }
+                  }),
+          title: Text('Add to ${space.getLocalizedDisplayname()}'),
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+        ),
+      ];
+    }
+
+    return [
+      for (final space in eligible)
+        CheckboxListTile(
+          value: _targetSpaceIds.contains(space.id),
+          onChanged: _loading
+              ? null
+              : (v) => setState(() {
+                    if (v == true) {
+                      _targetSpaceIds.add(space.id);
+                    } else {
+                      _targetSpaceIds.remove(space.id);
+                    }
+                    _addToSpace = _targetSpaceIds.isNotEmpty;
+                  }),
+          title: Text('Add to ${space.getLocalizedDisplayname()}'),
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+        ),
+    ];
+  }
+
   Future<void> _submit() async {
     _debounce?.cancel();
     final name = _nameController.text.trim();
@@ -236,6 +317,31 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
       await client
           .waitForRoomInSync(roomId, join: true)
           .timeout(const Duration(seconds: 30));
+
+      // Auto-parent to selected spaces.
+      if (_addToSpace && _targetSpaceIds.isNotEmpty) {
+        var spaceFailures = 0;
+        for (final spaceId in _targetSpaceIds) {
+          final space = client.getRoomById(spaceId);
+          if (space == null) continue;
+          try {
+            await space.setSpaceChild(roomId);
+          } catch (e) {
+            debugPrint('[Lattice] Failed to add room to space: $e');
+            spaceFailures++;
+          }
+        }
+        widget.matrixService.invalidateSpaceTree();
+        if (spaceFailures > 0 && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Room created, but failed to add to $spaceFailures space(s)',
+              ),
+            ),
+          );
+        }
+      }
 
       if (!mounted) return;
       widget.matrixService.selectRoom(roomId);
@@ -343,7 +449,7 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
                   ? null
                   : (v) => setState(() {
                         _isPublic = v;
-                        if (v) _enableEncryption = false;
+                        _enableEncryption = !v;
                       }),
               contentPadding: EdgeInsets.zero,
             ),
@@ -361,6 +467,7 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
                   : (v) => setState(() => _enableEncryption = v),
               contentPadding: EdgeInsets.zero,
             ),
+            ..._buildSpaceSelection(),
             if (_networkError != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),

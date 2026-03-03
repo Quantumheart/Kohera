@@ -45,6 +45,7 @@ void main() {
     );
     when(mockTimeline.events).thenReturn([]);
     when(mockTimeline.canRequestHistory).thenReturn(false);
+    when(mockRoom.client).thenReturn(mockClient);
     when(mockRoom.getTimeline(onUpdate: anyNamed('onUpdate')))
         .thenAnswer((_) async => mockTimeline);
   });

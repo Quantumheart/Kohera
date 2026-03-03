@@ -28,6 +28,7 @@ mixin AuthMixin on ChangeNotifier {
   void resetSelection();
   void resetChatBackupState();
   Future<void> saveSessionBackup();
+  Future<void> recreateClient();
 
   // ── Auth state ────────────────────────────────────────────────
   String? _loginError;
@@ -381,6 +382,10 @@ mixin AuthMixin on ChangeNotifier {
       } catch (_) {
         // Expected — the token is likely already revoked.
       }
+      // The SDK client may be stuck in an initialized state after the
+      // soft logout — dispose and recreate so subsequent login() calls
+      // get a clean instance.
+      await recreateClient();
       notifyListeners();
     }
   }

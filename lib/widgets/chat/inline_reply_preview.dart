@@ -114,7 +114,9 @@ class _InlineReplyPreviewState extends State<InlineReplyPreview> {
                     ),
                   ),
                   Text(
-                    stripReplyFallback(_parentEvent!.body),
+                    _parentEvent!.messageType == MessageTypes.BadEncrypted
+                        ? 'Unable to decrypt'
+                        : stripReplyFallback(_parentEvent!.body),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: tt.bodySmall?.copyWith(

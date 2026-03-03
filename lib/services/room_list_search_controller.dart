@@ -38,7 +38,7 @@ class RoomListSearchController extends ChangeNotifier {
 
   // ── State ─────────────────────────────────────────────────
   List<MessageSearchResult> _results = [];
-  List<MessageSearchResult> get results => _results;
+  List<MessageSearchResult> get results => List.unmodifiable(_results);
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -76,18 +76,20 @@ class RoomListSearchController extends ChangeNotifier {
       _totalCount = null;
       _error = null;
       _isLoading = false;
-      notifyListeners();
+      _searchGeneration++;
+      if (!_disposed) notifyListeners();
       return;
     }
 
     _isLoading = true;
-    notifyListeners();
+    if (!_disposed) notifyListeners();
     _debounceTimer = Timer(_debounceDuration, () {
       performSearch();
     });
   }
 
   Future<void> performSearch({bool loadMore = false}) async {
+    if (_disposed) return;
     if (_query.length < minQueryLength) return;
 
     final client = getClient();
@@ -223,43 +225,57 @@ class RoomListSearchController extends ChangeNotifier {
       '[Lattice] Searching ${encryptedRooms.length} encrypted rooms locally',
     );
 
-    final futures = encryptedRooms.map((room) async {
-      try {
-        final result = await room.searchEvents(
-          searchTerm: query,
-          limit: _searchBatchLimit,
-        );
-        return result.events
-            .where((event) =>
-                event.type == EventTypes.Message &&
-                (event.content.tryGet<String>('body')?.isNotEmpty ?? false))
-            .map((event) => MessageSearchResult(
-                  roomId: room.id,
-                  roomName: room.getLocalizedDisplayname(),
-                  senderName: room
-                      .unsafeGetUserFromMemoryOrFallback(event.senderId)
-                      .displayName ?? event.senderId,
-                  senderId: event.senderId,
-                  body: stripReplyFallback(
-                      event.content.tryGet<String>('body')!),
-                  eventId: event.eventId,
-                  originServerTs: event.originServerTs,
-                ))
-            .toList();
-      } catch (e) {
-        debugPrint(
-          '[Lattice] Local search failed for ${room.id}: $e',
-        );
-        return <MessageSearchResult>[];
-      }
-    });
-
-    final allResults = await Future.wait(futures.toList());
-    return allResults.expand<MessageSearchResult>((list) => list).toList();
+    // Search rooms in batches to avoid excessive concurrent DB queries.
+    const batchSize = 5;
+    final allResults = <MessageSearchResult>[];
+    for (var i = 0; i < encryptedRooms.length; i += batchSize) {
+      if (_disposed) return allResults;
+      final batch = encryptedRooms.sublist(
+        i,
+        i + batchSize > encryptedRooms.length
+            ? encryptedRooms.length
+            : i + batchSize,
+      );
+      final batchResults = await Future.wait(batch.map((room) async {
+        try {
+          final result = await room.searchEvents(
+            searchTerm: query,
+            limit: _searchBatchLimit,
+          );
+          return result.events
+              .where((event) =>
+                  event.type == EventTypes.Message &&
+                  (event.content.tryGet<String>('body')?.isNotEmpty ?? false))
+              .map((event) {
+                final rawBody = event.content.tryGet<String>('body') ?? '';
+                return MessageSearchResult(
+                    roomId: room.id,
+                    roomName: room.getLocalizedDisplayname(),
+                    senderName: room
+                        .unsafeGetUserFromMemoryOrFallback(event.senderId)
+                        .displayName ?? event.senderId,
+                    senderId: event.senderId,
+                    body: stripReplyFallback(rawBody),
+                    eventId: event.eventId,
+                    originServerTs: event.originServerTs,
+                  );
+              })
+              .toList();
+        } catch (e) {
+          debugPrint(
+            '[Lattice] Local search failed for ${room.id}: $e',
+          );
+          return <MessageSearchResult>[];
+        }
+      }));
+      allResults.addAll(batchResults.expand((list) => list));
+    }
+    return allResults;
   }
 
   void clear() {
     _debounceTimer?.cancel();
+    _searchGeneration++;
     _results = [];
     _nextBatch = null;
     _totalCount = null;
@@ -267,7 +283,7 @@ class RoomListSearchController extends ChangeNotifier {
     _isLoading = false;
     _error = null;
     _query = '';
-    notifyListeners();
+    if (!_disposed) notifyListeners();
   }
 
   @override

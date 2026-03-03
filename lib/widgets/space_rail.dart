@@ -1,14 +1,19 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:matrix/matrix.dart' hide Visibility;
 import 'package:provider/provider.dart';
 
 import '../routing/route_names.dart';
 import '../services/client_manager.dart';
+import '../services/inbox_controller.dart';
 import '../services/matrix_service.dart';
 import '../services/preferences_service.dart';
+import '../utils/media_auth.dart';
 import 'invite_dialog.dart';
 import 'space_action_dialog.dart';
+import 'space_context_menu.dart';
 import 'user_avatar.dart';
 
 /// A vertical icon rail showing the user's Matrix spaces.
@@ -21,14 +26,19 @@ class SpaceRail extends StatefulWidget {
 }
 
 class _SpaceRailState extends State<SpaceRail> {
+  bool _orderSynced = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final matrix = context.read<MatrixService>();
-    final prefs = context.read<PreferencesService>();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) matrix.updateSpaceOrder(prefs.spaceOrder);
-    });
+    if (!_orderSynced) {
+      _orderSynced = true;
+      final matrix = context.read<MatrixService>();
+      final prefs = context.read<PreferencesService>();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) matrix.updateSpaceOrder(prefs.spaceOrder);
+      });
+    }
   }
 
   @override
@@ -37,12 +47,16 @@ class _SpaceRailState extends State<SpaceRail> {
     final cs = Theme.of(context).colorScheme;
     final spaces = matrix.spaces;
 
+    final inboxUnread = context.select<InboxController, int>((c) => c.unreadCount);
+
     return Container(
       width: 64,
-      color: cs.surfaceContainerLow,
+      color: Theme.of(context).brightness == Brightness.light
+          ? cs.surfaceContainerLow
+          : cs.surfaceContainerHigh,
       child: Column(
         children: [
-          const SizedBox(height: 12),
+          SizedBox(height: MediaQuery.paddingOf(context).top + 12),
 
           // Home (all rooms)
           _RailIcon(
@@ -92,33 +106,66 @@ class _SpaceRailState extends State<SpaceRail> {
                   index: i,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 6),
-                    child: _RailIcon(
-                      label: space.getLocalizedDisplayname().isNotEmpty
-                          ? space.getLocalizedDisplayname()[0].toUpperCase()
-                          : '?',
-                      tooltip:
-                          '${space.getLocalizedDisplayname()} \u00b7 $childCount rooms',
-                      isSelected:
-                          matrix.selectedSpaceIds.contains(space.id),
-                      avatarUrl: space.avatar?.toString(),
-                      color: _spaceColor(i, cs),
-                      unreadCount: unread,
-                      onTap: () {
-                        final keys =
-                            HardwareKeyboard.instance.logicalKeysPressed;
-                        final isModifier = keys.contains(
-                                LogicalKeyboardKey.controlLeft) ||
-                            keys.contains(LogicalKeyboardKey.controlRight) ||
-                            keys.contains(LogicalKeyboardKey.metaLeft) ||
-                            keys.contains(LogicalKeyboardKey.metaRight);
-                        if (isModifier) {
-                          matrix.toggleSpaceSelection(space.id);
-                        } else {
-                          matrix.selectSpace(space.id);
-                        }
+                    child: Builder(
+                      builder: (iconContext) {
+                        final displayName = space.getLocalizedDisplayname();
+                        return _RailIcon(
+                        label: displayName.isNotEmpty
+                            ? displayName[0].toUpperCase()
+                            : '?',
+                        tooltip:
+                            '$displayName \u00b7 $childCount rooms',
+                        isSelected:
+                            matrix.selectedSpaceIds.contains(space.id),
+                        room: space,
+                        color: _spaceColor(i, cs),
+                        unreadCount: unread,
+                        onTap: () {
+                          final keys =
+                              HardwareKeyboard.instance.logicalKeysPressed;
+                          final isModifier = keys.contains(
+                                  LogicalKeyboardKey.controlLeft) ||
+                              keys.contains(LogicalKeyboardKey.controlRight) ||
+                              keys.contains(LogicalKeyboardKey.metaLeft) ||
+                              keys.contains(LogicalKeyboardKey.metaRight);
+                          if (isModifier) {
+                            matrix.toggleSpaceSelection(space.id);
+                          } else {
+                            matrix.selectSpace(space.id);
+                          }
+                        },
+                        onLongPress: () {
+                          final box =
+                              iconContext.findRenderObject() as RenderBox;
+                          final pos = box.localToGlobal(Offset.zero);
+                          showSpaceContextMenu(
+                            iconContext,
+                            RelativeRect.fromLTRB(
+                              pos.dx + box.size.width,
+                              pos.dy,
+                              pos.dx + box.size.width,
+                              pos.dy + box.size.height,
+                            ),
+                            space,
+                          );
+                        },
+                        onSecondaryTapUp: (details) {
+                          final box =
+                              iconContext.findRenderObject() as RenderBox;
+                          final pos = box.localToGlobal(Offset.zero);
+                          showSpaceContextMenu(
+                            iconContext,
+                            RelativeRect.fromLTRB(
+                              pos.dx + box.size.width,
+                              details.globalPosition.dy,
+                              pos.dx + box.size.width,
+                              details.globalPosition.dy,
+                            ),
+                            space,
+                          );
+                        },
+                      );
                       },
-                      onLongPress: () =>
-                          matrix.toggleSpaceSelection(space.id),
                     ),
                   ),
                 );
@@ -126,63 +173,7 @@ class _SpaceRailState extends State<SpaceRail> {
             ),
           ),
 
-          // Invited spaces (non-reorderable, scrollable, after joined spaces)
-          Builder(builder: (_) {
-            final invited = matrix.invitedSpaces;
-            if (invited.isEmpty) return const SizedBox.shrink();
-            return Flexible(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 4),
-                    child: Divider(height: 1, color: cs.outlineVariant),
-                  ),
-                  Flexible(
-                    child: ListView(
-                      shrinkWrap: true,
-                      padding: EdgeInsets.zero,
-                      children: [
-                        for (final space in invited)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Opacity(
-                              opacity: 0.7,
-                              child: _RailIcon(
-                                label: space
-                                        .getLocalizedDisplayname()
-                                        .isNotEmpty
-                                    ? space
-                                        .getLocalizedDisplayname()[0]
-                                        .toUpperCase()
-                                    : '?',
-                                tooltip:
-                                    'Invited: ${space.getLocalizedDisplayname()}',
-                                isSelected: false,
-                                color: cs.outlineVariant,
-                                outlined: true,
-                                onTap: () async {
-                                  final result = await InviteDialog.show(
-                                    context,
-                                    room: space,
-                                  );
-                                  if (result == true && mounted) {
-                                    matrix.selectSpace(space.id);
-                                  }
-                                },
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-
-          // Add space button
+          // Add space button (after spaces list)
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
             child: Builder(
@@ -209,6 +200,79 @@ class _SpaceRailState extends State<SpaceRail> {
             ),
           ),
 
+          // Invited spaces (non-reorderable, scrollable)
+          Builder(builder: (_) {
+            final invited = matrix.invitedSpaces;
+            if (invited.isEmpty) return const SizedBox.shrink();
+            return Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 4),
+                    child: Divider(height: 1, color: cs.outlineVariant),
+                  ),
+                  Flexible(
+                    child: ListView(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      children: [
+                        for (final space in invited)
+                          Builder(builder: (_) {
+                            final name = space.getLocalizedDisplayname();
+                            return Padding(
+                            padding: const EdgeInsets.only(bottom: 6),
+                            child: Opacity(
+                              opacity: 0.7,
+                              child: _RailIcon(
+                                label: name.isNotEmpty
+                                    ? name[0].toUpperCase()
+                                    : '?',
+                                tooltip: 'Invited: $name',
+                                isSelected: false,
+                                color: cs.outlineVariant,
+                                outlined: true,
+                                onTap: () async {
+                                  final result = await InviteDialog.show(
+                                    context,
+                                    room: space,
+                                  );
+                                  if (result == true && mounted) {
+                                    matrix.selectSpace(space.id);
+                                  }
+                                },
+                              ),
+                            ),
+                          );
+                          }),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+
+          // Divider + Inbox icon with badge
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Divider(height: 1, color: cs.outlineVariant),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: _RailIcon(
+              icon: Icons.inbox_rounded,
+              label: '!',
+              tooltip: 'Inbox',
+              isSelected: false,
+              color: cs.outlineVariant,
+              outlined: true,
+              unreadCount: inboxUnread > 0 ? inboxUnread : null,
+              onTap: () => context.goNamed(Routes.inbox),
+            ),
+          ),
+
           // Account avatar + menu
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -230,74 +294,185 @@ class _SpaceRailState extends State<SpaceRail> {
   }
 }
 
-class _RailIcon extends StatelessWidget {
+class _RailIcon extends StatefulWidget {
   const _RailIcon({
     required this.label,
     required this.tooltip,
     required this.isSelected,
     required this.color,
     required this.onTap,
-    this.avatarUrl,
+    this.icon,
+    this.room,
     this.outlined = false,
     this.unreadCount,
     this.onLongPress,
+    this.onSecondaryTapUp,
   });
 
+  final IconData? icon;
   final String label;
   final String tooltip;
   final bool isSelected;
   final Color color;
   final VoidCallback onTap;
-  final String? avatarUrl;
+  final Room? room;
   final bool outlined;
   final int? unreadCount;
   final VoidCallback? onLongPress;
+  final void Function(TapUpDetails)? onSecondaryTapUp;
+
+  @override
+  State<_RailIcon> createState() => _RailIconState();
+}
+
+class _RailIconState extends State<_RailIcon> {
+  String? _resolvedUrl;
+  Uri? _lastAvatarUri;
+  int _resolveGeneration = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveThumbnail();
+  }
+
+  @override
+  void didUpdateWidget(_RailIcon oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.room?.avatar != _lastAvatarUri) {
+      _resolvedUrl = null;
+      _resolveThumbnail();
+    }
+  }
+
+  Future<void> _resolveThumbnail() async {
+    final avatarUri = widget.room?.avatar;
+    _lastAvatarUri = avatarUri;
+    if (avatarUri == null) return;
+    final generation = ++_resolveGeneration;
+    try {
+      final uri = await avatarUri.getThumbnailUri(
+        widget.room!.client,
+        width: 96,
+        height: 96,
+      );
+      if (mounted && generation == _resolveGeneration) {
+        setState(() => _resolvedUrl = uri.toString());
+      }
+    } catch (e) {
+      debugPrint('[Lattice] Failed to resolve space avatar thumbnail: $e');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _resolveThumbnail();
+  }
+
+  @override
+  void didUpdateWidget(_RailIcon oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.room?.avatar != _lastAvatarUri) {
+      _resolvedUrl = null;
+      _resolveThumbnail();
+    }
+  }
+
+  Future<void> _resolveThumbnail() async {
+    final avatarUri = widget.room?.avatar;
+    _lastAvatarUri = avatarUri;
+    if (avatarUri == null) return;
+    try {
+      final uri = await avatarUri.getThumbnailUri(
+        widget.room!.client,
+        width: 96,
+        height: 96,
+      );
+      if (mounted) setState(() => _resolvedUrl = uri.toString());
+    } catch (e) {
+      debugPrint('[Lattice] Failed to resolve space avatar thumbnail: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final radius = widget.isSelected ? 14.0 : 22.0;
+    final size = widget.isSelected ? 48.0 : 44.0;
 
-    Widget icon = Tooltip(
-      message: tooltip,
-      preferBelow: false,
-      child: Center(
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOutCubic,
-          width: isSelected ? 48 : 44,
-          height: isSelected ? 48 : 44,
-          decoration: BoxDecoration(
-            color: outlined
-                ? Colors.transparent
-                : isSelected
-                    ? color
-                    : cs.surfaceContainerHigh,
-            borderRadius:
-                BorderRadius.circular(isSelected ? 14 : 22),
-            border: outlined
-                ? Border.all(
-                    color: cs.outlineVariant,
-                    width: 1.5,
-                    strokeAlign: BorderSide.strokeAlignInside,
-                  )
-                : null,
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(isSelected ? 14 : 22),
-              mouseCursor: SystemMouseCursors.click,
-              onTap: onTap,
-              onLongPress: onLongPress,
-              child: Center(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: outlined ? 20 : 16,
-                    fontWeight: FontWeight.w600,
-                    color: isSelected ? cs.onPrimary : cs.onSurfaceVariant,
-                  ),
-                ),
+    Widget iconContent;
+    if (widget.icon != null) {
+      iconContent = Center(
+        child: Icon(
+          widget.icon,
+          size: 22,
+          color: widget.isSelected ? cs.onPrimary : cs.onSurfaceVariant,
+        ),
+      );
+    } else if (_resolvedUrl != null) {
+      iconContent = CachedNetworkImage(
+        imageUrl: _resolvedUrl!,
+        httpHeaders: mediaAuthHeaders(widget.room!.client, _resolvedUrl!),
+        fit: BoxFit.cover,
+        width: size,
+        height: size,
+        placeholder: (_, __) => _LetterFallback(
+          label: widget.label,
+          outlined: widget.outlined,
+          isSelected: widget.isSelected,
+        ),
+        errorWidget: (_, __, ___) => _LetterFallback(
+          label: widget.label,
+          outlined: widget.outlined,
+          isSelected: widget.isSelected,
+        ),
+      );
+    } else {
+      iconContent = _LetterFallback(
+        label: widget.label,
+        outlined: widget.outlined,
+        isSelected: widget.isSelected,
+      );
+    }
+
+    Widget icon = GestureDetector(
+      onSecondaryTapUp: widget.onSecondaryTapUp,
+      child: Tooltip(
+        message: widget.tooltip,
+        preferBelow: false,
+        child: Center(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            width: size,
+            height: size,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: widget.outlined
+                  ? Colors.transparent
+                  : _resolvedUrl != null
+                      ? null
+                      : widget.isSelected
+                          ? widget.color
+                          : cs.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(radius),
+              border: widget.outlined
+                  ? Border.all(
+                      color: cs.outlineVariant,
+                      width: 1.5,
+                      strokeAlign: BorderSide.strokeAlignInside,
+                    )
+                  : null,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(radius),
+                mouseCursor: SystemMouseCursors.click,
+                onTap: widget.onTap,
+                onLongPress: widget.onLongPress,
+                child: iconContent,
               ),
             ),
           ),
@@ -306,7 +481,7 @@ class _RailIcon extends StatelessWidget {
     );
 
     // Overlay unread badge
-    if (unreadCount != null && unreadCount! > 0) {
+    if (widget.unreadCount != null && widget.unreadCount! > 0) {
       icon = Stack(
         clipBehavior: Clip.none,
         children: [
@@ -323,7 +498,7 @@ class _RailIcon extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  unreadCount! > 99 ? '99+' : '$unreadCount',
+                  widget.unreadCount! > 99 ? '99+' : '${widget.unreadCount}',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
@@ -341,6 +516,33 @@ class _RailIcon extends StatelessWidget {
   }
 }
 
+class _LetterFallback extends StatelessWidget {
+  const _LetterFallback({
+    required this.label,
+    required this.outlined,
+    required this.isSelected,
+  });
+
+  final String label;
+  final bool outlined;
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Center(
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: outlined ? 20 : 16,
+          fontWeight: FontWeight.w600,
+          color: isSelected ? cs.onPrimary : cs.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
 class _AccountButton extends StatefulWidget {
   const _AccountButton({required this.cs});
   final ColorScheme cs;
@@ -351,11 +553,16 @@ class _AccountButton extends StatefulWidget {
 
 class _AccountButtonState extends State<_AccountButton> {
   Uri? _avatarUrl;
+  String? _lastUserId;
 
   @override
-  void initState() {
-    super.initState();
-    _fetchProfile();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final userId = context.read<MatrixService>().client.userID;
+    if (userId != _lastUserId) {
+      _lastUserId = userId;
+      _fetchProfile();
+    }
   }
 
   Future<void> _fetchProfile() async {
