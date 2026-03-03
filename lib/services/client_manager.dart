@@ -58,7 +58,9 @@ class ClientManager extends ChangeNotifier {
       _services.removeWhere((s) => !s.isLoggedIn);
       if (_services.isEmpty) {
         // All failed — create a fresh default.
-        _services.add(_createService(clientName: 'default'));
+        final fresh = _createService(clientName: 'default');
+        await fresh.init(restoreSession: false);
+        _services.add(fresh);
       }
     }
 

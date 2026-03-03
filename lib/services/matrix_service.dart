@@ -183,8 +183,8 @@ class MatrixService extends ChangeNotifier
   Future<void> _activateSession() async {
     listenForUia();
     listenForLoginState();
-    await startSync();
     _isLoggedIn = true;
+    await startSync();
   }
 
   // ── Session Restore ────────────────────────────────────────────
@@ -226,19 +226,19 @@ class MatrixService extends ChangeNotifier
       debugPrint('[Lattice] Session restore failed: $e');
       debugPrint('[Lattice] Stack trace:\n$s');
 
+      // The SDK client may be stuck in a partially initialized state after
+      // the failed _client.init() call. Dispose and recreate before any
+      // further restore attempts so we get a clean instance.
+      _client.dispose();
+      _client = await _clientFactory(
+        clientName,
+        onSoftLogout: (_) async => handleSoftLogout(),
+      );
+
       // Try restoring from session backup before giving up.
       final restored = await _restoreFromBackup();
       if (!restored) {
         _isLoggedIn = false;
-        // The SDK client is stuck in an initialized state after the
-        // failed _client.init() call — logout() alone doesn't reset
-        // the internal _init flag. Dispose and recreate the client so
-        // a subsequent login() call gets a clean instance.
-        _client.dispose();
-        _client = await _clientFactory(
-          clientName,
-          onSoftLogout: (_) async => handleSoftLogout(),
-        );
         if (isPermanentAuthFailure(e)) {
           await clearSessionKeys();
           await SessionBackup.delete(

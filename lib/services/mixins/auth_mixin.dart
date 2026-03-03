@@ -28,6 +28,7 @@ mixin AuthMixin on ChangeNotifier {
   void cancelSyncSub();
   void resetSelection();
   void resetChatBackupState();
+  Future<void> deleteStoredRecoveryKey();
   Future<void> saveSessionBackup();
   Future<void> recreateClient();
   String Function(Object e) get friendlyError;
@@ -144,8 +145,8 @@ mixin AuthMixin on ChangeNotifier {
       );
     } finally {
       client.homeserver = previousHomeserver;
-      _capabilitiesLock = null;
       lock.complete();
+      _capabilitiesLock = null;
     }
   }
 
@@ -164,7 +165,6 @@ mixin AuthMixin on ChangeNotifier {
       if (!hs.startsWith('http')) hs = 'https://$hs';
 
       debugPrint('[Lattice] Checking homeserver: $hs');
-      client.homeserver = Uri.parse(hs);
       await client.checkHomeserver(Uri.parse(hs));
       debugPrint('[Lattice] Homeserver OK');
 
@@ -216,7 +216,6 @@ mixin AuthMixin on ChangeNotifier {
       if (hs.isEmpty) throw ArgumentError('Homeserver cannot be empty');
       if (!hs.startsWith('http')) hs = 'https://$hs';
 
-      client.homeserver = Uri.parse(hs);
       await client.checkHomeserver(Uri.parse(hs));
 
       debugPrint('[Lattice] Completing SSO login ...');
@@ -276,11 +275,11 @@ mixin AuthMixin on ChangeNotifier {
 
   // ── Post-login Background Sync ──────────────────────────────
 
-  Future<void>? _postLoginSyncFuture;
+  Completer<void>? _postLoginSyncCompleter;
 
   /// Exposed for tests so they can await background work reliably.
   @visibleForTesting
-  Future<void>? get postLoginSyncFuture => _postLoginSyncFuture;
+  Future<void>? get postLoginSyncFuture => _postLoginSyncCompleter?.future;
 
   String? _postLoginSyncError;
 
@@ -293,7 +292,12 @@ mixin AuthMixin on ChangeNotifier {
   /// Guards against writing session data after a concurrent logout.
   void _postLoginSync() {
     _postLoginSyncError = null;
-    _postLoginSyncFuture = _runPostLoginSync();
+    final completer = Completer<void>();
+    _postLoginSyncCompleter = completer;
+    _runPostLoginSync().whenComplete(() {
+      completer.complete();
+      _postLoginSyncCompleter = null;
+    });
   }
 
   Future<void> _runPostLoginSync() async {
@@ -311,8 +315,6 @@ mixin AuthMixin on ChangeNotifier {
         _postLoginSyncError = friendlyError(e);
         notifyListeners();
       }
-    } finally {
-      _postLoginSyncFuture = null;
     }
   }
 
@@ -341,7 +343,7 @@ mixin AuthMixin on ChangeNotifier {
     _loginStateSub?.cancel();
     cancelSyncSub();
     isLoggedIn = false;
-    await _postLoginSyncFuture;
+    await _postLoginSyncCompleter?.future;
 
     try {
       if (client.homeserver != null && client.accessToken != null) {
@@ -352,6 +354,7 @@ mixin AuthMixin on ChangeNotifier {
     }
     await clearSessionKeys();
     await SessionBackup.delete(clientName: clientName, storage: storage);
+    await deleteStoredRecoveryKey();
     clearCachedPassword();
     cancelUiaSub();
     resetSelection();
@@ -374,15 +377,20 @@ mixin AuthMixin on ChangeNotifier {
       debugPrint('[Lattice] Token refreshed successfully');
     } catch (e) {
       debugPrint('[Lattice] Token refresh failed: $e');
-      isLoggedIn = false;
+      // Cancel subscriptions first to prevent concurrent state changes.
       _loginStateSub?.cancel();
       cancelSyncSub();
-      clearCachedPassword();
+      isLoggedIn = false;
+      // Wait for any in-flight background sync to finish before clearing
+      // credentials to avoid write/delete interleaving.
+      await _postLoginSyncCompleter?.future;
       cancelUiaSub();
+      clearCachedPassword();
       resetSelection();
       resetChatBackupState();
       await clearSessionKeys();
       await SessionBackup.delete(clientName: clientName, storage: storage);
+      await deleteStoredRecoveryKey();
       try {
         // Call logout to clear SDK internal session state and stop sync
         // retries, even though the token may already be invalid.
@@ -406,12 +414,15 @@ mixin AuthMixin on ChangeNotifier {
     _loginStateSub = client.onLoginStateChanged.stream.listen((state) async {
       if (state == LoginState.loggedOut && isLoggedIn) {
         debugPrint('[Lattice] Server-side logout detected');
+        cancelSyncSub();
         isLoggedIn = false;
+        cancelUiaSub();
         clearCachedPassword();
         resetSelection();
         resetChatBackupState();
         await clearSessionKeys();
         await SessionBackup.delete(clientName: clientName, storage: storage);
+        await deleteStoredRecoveryKey();
         notifyListeners();
       }
     });
