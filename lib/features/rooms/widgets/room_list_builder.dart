@@ -156,9 +156,9 @@ void _addSpaceSection(
 
   final totalRooms = rooms.length + subspaceRoomIds.length;
 
-  // Skip entirely empty leaf sections, but always show subspace headers
-  // so users can see and manage newly created (empty) subspaces.
-  if (totalRooms == 0 && node.subspaces.isEmpty) return;
+  // Always show subspace headers so users can see and manage newly created
+  // (empty) subspaces. Only skip empty top-level space sections.
+  if (totalRooms == 0 && node.subspaces.isEmpty && depth == 0) return;
 
   items.add(HeaderItem(
     name: node.room.getLocalizedDisplayname(),
@@ -170,7 +170,11 @@ void _addSpaceSection(
 
   if (!collapsed.contains(node.room.id)) {
     for (final room in rooms) {
-      items.add(RoomItem(room: room, depth: depth));
+      items.add(RoomItem(
+        room: room,
+        depth: depth,
+        parentSpaceId: node.room.id,
+      ));
     }
     for (final sub in node.subspaces) {
       _addSpaceSection(
