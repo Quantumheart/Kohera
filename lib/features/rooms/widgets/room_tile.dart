@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -9,8 +12,12 @@ import 'package:lattice/core/services/preferences_service.dart';
 import 'package:lattice/core/utils/notification_filter.dart';
 import 'package:lattice/core/utils/reply_fallback.dart';
 import 'package:lattice/features/chat/widgets/typing_indicator.dart' show TypingIndicator;
+import 'package:lattice/features/spaces/widgets/space_reparent_controller.dart';
 import 'package:lattice/shared/widgets/room_avatar.dart';
 import 'room_context_menu.dart';
+
+bool get _isDesktop =>
+    !kIsWeb && (Platform.isLinux || Platform.isWindows || Platform.isMacOS);
 
 // ── Room tile ───────────────────────────────────────────────
 class RoomTile extends StatelessWidget {
@@ -20,12 +27,14 @@ class RoomTile extends StatelessWidget {
     required this.isSelected,
     required this.memberships,
     required this.hasContextMenu,
+    this.parentSpaceId,
   });
 
   final Room room;
   final bool isSelected;
   final Set<String> memberships;
   final bool hasContextMenu;
+  final String? parentSpaceId;
 
   void _openContextMenu(BuildContext context, RelativeRect position) {
     if (!hasContextMenu) return;
@@ -41,7 +50,7 @@ class RoomTile extends StatelessWidget {
     final lastEvent = room.lastEvent;
     final hasMenu = hasContextMenu;
 
-    return Padding(
+    Widget tile = Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Material(
         color: isSelected
@@ -65,7 +74,7 @@ class RoomTile extends StatelessWidget {
                   );
                 }
               : null,
-          onLongPress: hasMenu
+          onLongPress: hasMenu && !_isDesktop
               ? () {
                   final box = context.findRenderObject()! as RenderBox;
                   final overlay = Overlay.of(context).context
@@ -184,6 +193,52 @@ class RoomTile extends StatelessWidget {
         ),
       ),
     );
+
+    // On desktop, wrap in LongPressDraggable for reparenting.
+    if (_isDesktop && parentSpaceId != null) {
+      final dragData = RoomDragData(
+        roomId: room.id,
+        currentParentSpaceId: parentSpaceId,
+      );
+      tile = LongPressDraggable<ReparentDragData>(
+        data: dragData,
+        hapticFeedbackOnStart: true,
+        onDragStarted: () {
+          context.read<SpaceReparentController>().startDrag(dragData);
+        },
+        onDragEnd: (_) {
+          context.read<SpaceReparentController>().endDrag();
+        },
+        feedback: Material(
+          color: Colors.transparent,
+          elevation: 4,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainer,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: cs.primary, width: 1.5),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                RoomAvatarWidget(room: room, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  room.getLocalizedDisplayname(),
+                  style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+        ),
+        childWhenDragging: Opacity(opacity: 0.3, child: tile),
+        child: tile,
+      );
+    }
+
+    return tile;
   }
 
   Widget _buildSubtitle(

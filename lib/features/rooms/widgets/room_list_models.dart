@@ -24,8 +24,9 @@ class HeaderItem extends ListItem {
 class RoomItem extends ListItem {
   final Room room;
   final int depth;
+  final String? parentSpaceId;
 
-  RoomItem({required this.room, this.depth = 0});
+  RoomItem({required this.room, this.depth = 0, this.parentSpaceId});
 }
 
 class InviteItem extends ListItem {

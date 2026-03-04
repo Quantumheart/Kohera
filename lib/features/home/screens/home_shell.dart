@@ -7,6 +7,7 @@ import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/core/services/preferences_service.dart';
 import 'package:lattice/features/spaces/widgets/space_rail.dart';
+import 'package:lattice/features/spaces/widgets/space_reparent_controller.dart';
 import 'package:lattice/features/rooms/widgets/room_list.dart';
 import 'package:lattice/features/rooms/widgets/room_details_panel.dart';
 import 'package:lattice/features/chat/screens/chat_screen.dart';
@@ -109,11 +110,14 @@ class _HomeShellState extends State<HomeShell> {
         ? _buildWideLayout(width, matrix)
         : _buildNarrowLayout(matrix);
 
-    return CallbackShortcuts(
-      bindings: _buildKeyBindings(matrix),
-      child: Focus(
-        autofocus: true,
-        child: child,
+    return ChangeNotifierProvider<SpaceReparentController>(
+      create: (_) => SpaceReparentController(),
+      child: CallbackShortcuts(
+        bindings: _buildKeyBindings(matrix),
+        child: Focus(
+          autofocus: true,
+          child: child,
+        ),
       ),
     );
   }
