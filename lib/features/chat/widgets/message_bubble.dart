@@ -8,10 +8,12 @@ import 'package:lattice/core/utils/reply_fallback.dart';
 import 'package:lattice/core/utils/sender_color.dart';
 import 'package:lattice/shared/widgets/user_avatar.dart';
 import 'density_metrics.dart';
+import 'audio_bubble.dart';
 import 'file_bubble.dart';
 import 'hover_action_bar.dart';
 import 'html_message_text.dart';
 import 'image_bubble.dart';
+import 'video_bubble.dart';
 import 'inline_reply_preview.dart';
 import 'link_preview_card.dart';
 import 'linkable_text.dart';
@@ -561,13 +563,16 @@ class _MessageBubbleState extends State<MessageBubble> {
       return ImageBubble(event: widget.event);
     }
 
-    if (widget.event.messageType == MessageTypes.Video ||
-        widget.event.messageType == MessageTypes.Audio ||
-        widget.event.messageType == MessageTypes.File) {
-      return FileBubble(
-        event: widget.event,
-        isMe: widget.isMe,
-      );
+    if (widget.event.messageType == MessageTypes.Audio) {
+      return AudioBubble(event: widget.event, isMe: widget.isMe);
+    }
+
+    if (widget.event.messageType == MessageTypes.Video) {
+      return VideoBubble(event: widget.event, isMe: widget.isMe);
+    }
+
+    if (widget.event.messageType == MessageTypes.File) {
+      return FileBubble(event: widget.event, isMe: widget.isMe);
     }
 
     // Check for HTML formatted body.

@@ -35,6 +35,9 @@ dependencies:
   flutter_local_notifications: ^18.0.1
   desktop_notifications: ^0.6.3
   sqflite: ^2.4.2
+  media_kit: ^1.2.6
+  media_kit_video: ^2.0.1
+  media_kit_libs_video: ^1.0.7
 
 dev_dependencies:
   flutter_test:

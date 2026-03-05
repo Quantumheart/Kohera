@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:matrix/matrix.dart';
 
-// ── File bubble (video / audio / generic file) ───────────────
+import 'package:lattice/core/utils/format_file_size.dart';
+
+// ── File bubble (generic file attachment) ─────────────────────
 
 class FileBubble extends StatelessWidget {
   const FileBubble({super.key, required this.event, required this.isMe});
@@ -15,11 +17,7 @@ class FileBubble extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     final foreground = isMe ? cs.onPrimary : cs.onSurface;
 
-    final icon = switch (event.messageType) {
-      MessageTypes.Video => Icons.videocam_rounded,
-      MessageTypes.Audio => Icons.audiotrack_rounded,
-      _ => Icons.insert_drive_file_rounded,
-    };
+    const icon = Icons.insert_drive_file_rounded;
 
     final fileName = event.body;
     final infoMap = event.content.tryGet<Map<String, Object?>>('info');
@@ -47,7 +45,7 @@ class FileBubble extends StatelessWidget {
                 ),
                 if (fileSize != null)
                   Text(
-                    _formatFileSize(fileSize),
+                    formatFileSize(fileSize),
                     style: tt.bodySmall?.copyWith(
                       color: foreground.withValues(alpha: 0.6),
                     ),
@@ -60,12 +58,4 @@ class FileBubble extends StatelessWidget {
     );
   }
 
-  static String _formatFileSize(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    if (bytes < 1024 * 1024 * 1024) {
-      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-    }
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
-  }
 }
