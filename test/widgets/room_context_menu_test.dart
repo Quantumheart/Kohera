@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/space_child.dart';
 import 'package:provider/provider.dart';
 
 import 'package:lattice/core/services/matrix_service.dart';
@@ -46,7 +47,10 @@ void main() {
     when(mockMatrixService.spaces).thenReturn([mockSpace]);
   });
 
-  Widget buildTestWidget() {
+  Widget buildTestWidget({
+    String? parentSpaceId,
+    List<Room>? sectionRooms,
+  }) {
     return ChangeNotifierProvider<MatrixService>.value(
       value: mockMatrixService,
       child: MaterialApp(
@@ -58,6 +62,8 @@ void main() {
                   context,
                   const RelativeRect.fromLTRB(100, 100, 100, 100),
                   mockRoom,
+                  parentSpaceId: parentSpaceId,
+                  sectionRooms: sectionRooms,
                 );
               },
               child: const Text('Open Menu'),
@@ -173,6 +179,167 @@ void main() {
       await tester.pumpAndSettle();
 
       verifyNever(mockSpace.removeSpaceChild(any));
+    });
+  });
+
+  group('Move Up / Move Down', () {
+    late MockRoom mockRoom1;
+    late MockRoom mockRoom2;
+    late MockRoom mockRoom3;
+
+    setUp(() {
+      mockRoom1 = MockRoom();
+      mockRoom2 = MockRoom();
+      mockRoom3 = MockRoom();
+
+      when(mockRoom1.id).thenReturn('!r1:example.com');
+      when(mockRoom1.getLocalizedDisplayname()).thenReturn('Room A');
+      when(mockRoom2.id).thenReturn('!r2:example.com');
+      when(mockRoom2.getLocalizedDisplayname()).thenReturn('Room B');
+      when(mockRoom3.id).thenReturn('!r3:example.com');
+      when(mockRoom3.getLocalizedDisplayname()).thenReturn('Room C');
+
+      // Set up space children with order strings
+      when(mockSpace.spaceChildren).thenReturn([
+        SpaceChild.fromState(StrippedStateEvent(
+          type: EventTypes.SpaceChild,
+          content: {'via': ['example.com'], 'order': 'a'},
+          stateKey: '!r1:example.com',
+          senderId: '@admin:example.com',
+        )),
+        SpaceChild.fromState(StrippedStateEvent(
+          type: EventTypes.SpaceChild,
+          content: {'via': ['example.com'], 'order': 'm'},
+          stateKey: '!r2:example.com',
+          senderId: '@admin:example.com',
+        )),
+        SpaceChild.fromState(StrippedStateEvent(
+          type: EventTypes.SpaceChild,
+          content: {'via': ['example.com'], 'order': 'z'},
+          stateKey: '!r3:example.com',
+          senderId: '@admin:example.com',
+        )),
+      ]);
+
+      when(mockSpace.setSpaceChild(any, order: anyNamed('order')))
+          .thenAnswer((_) async {});
+
+      // Use mockRoom (= room B) as the target
+      when(mockRoom.id).thenReturn('!r2:example.com');
+      when(mockRoom.getLocalizedDisplayname()).thenReturn('Room B');
+    });
+
+    testWidgets('shows Move up and Move down for middle item', (tester) async {
+      await tester.pumpWidget(buildTestWidget(
+        parentSpaceId: '!space:example.com',
+        sectionRooms: [mockRoom1, mockRoom, mockRoom3],
+      ));
+      await tester.tap(find.text('Open Menu'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Move up'), findsOneWidget);
+      expect(find.text('Move down'), findsOneWidget);
+    });
+
+    testWidgets('hides Move up for first item', (tester) async {
+      when(mockRoom.id).thenReturn('!r1:example.com');
+      when(mockRoom.getLocalizedDisplayname()).thenReturn('Room A');
+
+      await tester.pumpWidget(buildTestWidget(
+        parentSpaceId: '!space:example.com',
+        sectionRooms: [mockRoom, mockRoom2, mockRoom3],
+      ));
+      await tester.tap(find.text('Open Menu'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Move up'), findsNothing);
+      expect(find.text('Move down'), findsOneWidget);
+    });
+
+    testWidgets('hides Move down for last item', (tester) async {
+      when(mockRoom.id).thenReturn('!r3:example.com');
+      when(mockRoom.getLocalizedDisplayname()).thenReturn('Room C');
+
+      await tester.pumpWidget(buildTestWidget(
+        parentSpaceId: '!space:example.com',
+        sectionRooms: [mockRoom1, mockRoom2, mockRoom],
+      ));
+      await tester.tap(find.text('Open Menu'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Move up'), findsOneWidget);
+      expect(find.text('Move down'), findsNothing);
+    });
+
+    testWidgets('Move up calls setSpaceChild with correct order',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget(
+        parentSpaceId: '!space:example.com',
+        sectionRooms: [mockRoom1, mockRoom, mockRoom3],
+      ));
+      await tester.tap(find.text('Open Menu'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Move up'));
+      await tester.pumpAndSettle();
+
+      // Should call setSpaceChild on the space with the room ID and a new
+      // order string that is between null (before first) and 'a' (first item).
+      final captured = verify(
+        mockSpace.setSpaceChild('!r2:example.com',
+            order: captureAnyNamed('order')),
+      ).captured;
+      expect(captured, hasLength(1));
+      final newOrder = captured.first as String;
+      // New order should be < 'a' (the order of the item we moved before).
+      expect(newOrder.compareTo('a'), lessThan(0));
+      verify(mockMatrixService.invalidateSpaceTree()).called(1);
+    });
+
+    testWidgets('Move down calls setSpaceChild with correct order',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget(
+        parentSpaceId: '!space:example.com',
+        sectionRooms: [mockRoom1, mockRoom, mockRoom3],
+      ));
+      await tester.tap(find.text('Open Menu'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Move down'));
+      await tester.pumpAndSettle();
+
+      final captured = verify(
+        mockSpace.setSpaceChild('!r2:example.com',
+            order: captureAnyNamed('order')),
+      ).captured;
+      expect(captured, hasLength(1));
+      final newOrder = captured.first as String;
+      // New order should be > 'z' (the order of the item we moved after).
+      expect(newOrder.compareTo('z'), greaterThan(0));
+      verify(mockMatrixService.invalidateSpaceTree()).called(1);
+    });
+
+    testWidgets('no Move items when user lacks permission', (tester) async {
+      when(mockSpace.canChangeStateEvent('m.space.child')).thenReturn(false);
+
+      await tester.pumpWidget(buildTestWidget(
+        parentSpaceId: '!space:example.com',
+        sectionRooms: [mockRoom1, mockRoom, mockRoom3],
+      ));
+      await tester.tap(find.text('Open Menu'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Move up'), findsNothing);
+      expect(find.text('Move down'), findsNothing);
+    });
+
+    testWidgets('no Move items when no parentSpaceId', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.tap(find.text('Open Menu'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Move up'), findsNothing);
+      expect(find.text('Move down'), findsNothing);
     });
   });
 }

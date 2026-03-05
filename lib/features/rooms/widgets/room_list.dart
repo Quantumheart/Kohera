@@ -276,6 +276,7 @@ class _RoomListState extends State<RoomList>
                                     hasContextMenu: selectedSpaceCanManage ||
                                         manageableSpaceIds.isNotEmpty,
                                     parentSpaceId: item.parentSpaceId,
+                                    sectionRooms: item.sectionRooms,
                                   );
                                 }),
                               ),
