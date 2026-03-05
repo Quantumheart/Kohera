@@ -27,27 +27,51 @@ class MediaCache {
 
   static Future<Media> _resolveEncrypted(Event event) async {
     final file = await event.downloadAndDecryptAttachment();
-    return _bytesToMedia(event.eventId, file.bytes);
+    final mimetype = event.content
+        .tryGet<Map<String, Object?>>('info')
+        ?.tryGet<String>('mimetype');
+    return _bytesToMedia(event.eventId, file.bytes, mimetype);
   }
 
   static Future<Media> _resolveUnencrypted(Event event) async {
-    final uri = await event.getAttachmentUri();
-    if (uri == null) throw Exception('Failed to resolve attachment URI');
-    return Media(uri.toString());
+    final file = await event.downloadAndDecryptAttachment();
+    final mimetype = event.content
+        .tryGet<Map<String, Object?>>('info')
+        ?.tryGet<String>('mimetype');
+    return _bytesToMedia(event.eventId, file.bytes, mimetype);
   }
 
-  static Future<Media> _bytesToMedia(String eventId, Uint8List bytes) async {
+  static Future<Media> _bytesToMedia(
+      String eventId, Uint8List bytes, String? mimetype) async {
     if (kIsWeb) {
       return Media.memory(bytes);
     }
     final dir = await getTemporaryDirectory();
     final sanitized = eventId.replaceAll(RegExp(r'[^\w]'), '_');
-    final path = '${dir.path}/lattice_media_$sanitized';
+    final ext = _extensionForMime(mimetype);
+    final path = '${dir.path}/lattice_media_$sanitized$ext';
     final file = File(path);
     await file.writeAsBytes(bytes);
     _tempFiles[eventId] = path;
     _evictOldest();
     return Media(path);
+  }
+
+  static String _extensionForMime(String? mime) {
+    if (mime == null) return '';
+    return switch (mime) {
+      'audio/ogg' => '.ogg',
+      'audio/opus' => '.opus',
+      'audio/mpeg' => '.mp3',
+      'audio/mp4' => '.m4a',
+      'audio/aac' => '.aac',
+      'audio/wav' => '.wav',
+      'audio/webm' => '.webm',
+      'video/mp4' => '.mp4',
+      'video/webm' => '.webm',
+      'video/quicktime' => '.mov',
+      _ => '',
+    };
   }
 
   static void _promote(String eventId) {
