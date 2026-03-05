@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter_vodozemac/flutter_vodozemac.dart' as vod;
 
 import 'package:lattice/core/routing/app_router.dart';
 import 'package:lattice/core/services/client_manager.dart';
+import 'package:lattice/features/chat/services/media_playback_service.dart';
 import 'package:lattice/features/notifications/services/inbox_controller.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/features/notifications/services/notification_service.dart';
@@ -15,6 +17,7 @@ import 'package:lattice/core/theme/lattice_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
   await vod.init();
   final clientManager = ClientManager();
   await clientManager.init();
@@ -58,6 +61,7 @@ class _LatticeAppState extends State<LatticeApp> {
         ChangeNotifierProvider<ClientManager>.value(
             value: widget.clientManager),
         ChangeNotifierProvider(create: (_) => PreferencesService()..init()),
+        ChangeNotifierProvider(create: (_) => MediaPlaybackService()),
         Provider(
           create: (_) => OpenGraphService(),
           dispose: (_, service) => service.dispose(),
