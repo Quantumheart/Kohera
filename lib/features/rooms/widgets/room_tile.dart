@@ -10,6 +10,7 @@ import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/core/services/preferences_service.dart';
 import 'package:lattice/core/utils/notification_filter.dart';
+import 'package:lattice/core/utils/order_utils.dart' as order_utils;
 import 'package:lattice/core/utils/reply_fallback.dart';
 import 'package:lattice/features/chat/widgets/typing_indicator.dart' show TypingIndicator;
 import 'package:lattice/features/spaces/widgets/space_reparent_controller.dart';
@@ -28,6 +29,7 @@ class RoomTile extends StatelessWidget {
     required this.memberships,
     required this.hasContextMenu,
     this.parentSpaceId,
+    this.sectionRooms,
   });
 
   final Room room;
@@ -35,10 +37,17 @@ class RoomTile extends StatelessWidget {
   final Set<String> memberships;
   final bool hasContextMenu;
   final String? parentSpaceId;
+  final List<Room>? sectionRooms;
 
   void _openContextMenu(BuildContext context, RelativeRect position) {
     if (!hasContextMenu) return;
-    showRoomContextMenu(context, position, room);
+    showRoomContextMenu(
+      context,
+      position,
+      room,
+      parentSpaceId: parentSpaceId,
+      sectionRooms: sectionRooms,
+    );
   }
 
   @override
@@ -238,6 +247,16 @@ class RoomTile extends StatelessWidget {
       );
     }
 
+    // Wrap in DragTarget for within-section reorder on desktop.
+    if (_isDesktop && parentSpaceId != null && sectionRooms != null) {
+      tile = _ReorderDragTarget(
+        room: room,
+        parentSpaceId: parentSpaceId!,
+        sectionRooms: sectionRooms!,
+        child: tile,
+      );
+    }
+
     return tile;
   }
 
@@ -318,5 +337,136 @@ class RoomTile extends StatelessWidget {
     if (diff.inHours < 24) return '${diff.inHours}h';
     if (diff.inDays < 7) return '${diff.inDays}d';
     return '${local.day.toString().padLeft(2, '0')}/${local.month.toString().padLeft(2, '0')}';
+  }
+}
+
+// ── Within-section reorder drag target ───────────────────────
+class _ReorderDragTarget extends StatefulWidget {
+  const _ReorderDragTarget({
+    required this.room,
+    required this.parentSpaceId,
+    required this.sectionRooms,
+    required this.child,
+  });
+
+  final Room room;
+  final String parentSpaceId;
+  final List<Room> sectionRooms;
+  final Widget child;
+
+  @override
+  State<_ReorderDragTarget> createState() => _ReorderDragTargetState();
+}
+
+class _ReorderDragTargetState extends State<_ReorderDragTarget> {
+  bool _showAbove = false;
+  bool _showBelow = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return DragTarget<ReparentDragData>(
+      onWillAcceptWithDetails: (details) {
+        final data = details.data;
+        if (data is! RoomDragData) return false;
+        // Only accept drops from the same space section.
+        if (data.currentParentSpaceId != widget.parentSpaceId) return false;
+        // Don't accept drop on self.
+        if (data.roomId == widget.room.id) return false;
+        return true;
+      },
+      onMove: (details) {
+        final box = context.findRenderObject() as RenderBox?;
+        if (box == null) return;
+        final local = box.globalToLocal(details.offset);
+        final half = box.size.height / 2;
+        setState(() {
+          _showAbove = local.dy < half;
+          _showBelow = local.dy >= half;
+        });
+      },
+      onAcceptWithDetails: (details) {
+        setState(() {
+          _showAbove = false;
+          _showBelow = false;
+        });
+        final data = details.data;
+        if (data is! RoomDragData) return;
+        _handleReorderDrop(context, data);
+      },
+      onLeave: (_) => setState(() {
+        _showAbove = false;
+        _showBelow = false;
+      }),
+      builder: (context, candidateData, rejectedData) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_showAbove)
+              Container(
+                height: 2,
+                margin: const EdgeInsets.symmetric(horizontal: 12),
+                color: cs.primary,
+              ),
+            widget.child,
+            if (_showBelow)
+              Container(
+                height: 2,
+                margin: const EdgeInsets.symmetric(horizontal: 12),
+                color: cs.primary,
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _handleReorderDrop(BuildContext context, RoomDragData data) async {
+    final matrix = context.read<MatrixService>();
+    final space = matrix.client.getRoomById(widget.parentSpaceId);
+    if (space == null) return;
+
+    try {
+      final rooms = widget.sectionRooms;
+      final targetIndex = rooms.indexWhere((r) => r.id == widget.room.id);
+      if (targetIndex < 0) return;
+
+      // Determine insertion position: above = before target, below = after.
+      final insertBefore = _showAbove;
+      final insertIndex = insertBefore ? targetIndex : targetIndex + 1;
+
+      // Build order map from space children.
+      final orderMap = <String, String>{};
+      for (final child in space.spaceChildren) {
+        final cid = child.roomId;
+        if (cid != null && child.order.isNotEmpty) {
+          orderMap[cid] = child.order;
+        }
+      }
+
+      final String? neighborBefore = insertIndex > 0
+          ? orderMap[rooms[insertIndex - 1].id]
+          : null;
+      final String? neighborAfter = insertIndex < rooms.length
+          ? orderMap[rooms[insertIndex].id]
+          : null;
+
+      final newOrder = order_utils.midpoint(neighborBefore, neighborAfter);
+      if (newOrder == null) {
+        debugPrint('[Lattice] Could not compute order midpoint for drag');
+        return;
+      }
+
+      await space.setSpaceChild(data.roomId, order: newOrder);
+      matrix.invalidateSpaceTree();
+    } catch (e) {
+      debugPrint('[Lattice] Drag reorder failed: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to reorder: $e')),
+        );
+      }
+    }
   }
 }

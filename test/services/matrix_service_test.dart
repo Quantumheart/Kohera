@@ -1069,6 +1069,31 @@ void main() {
       expect(roomsB[0].id, '!room3:example.com');
     });
 
+    test('roomsForSpace sorts by order field then alphabetically', () {
+      // Add display names for sorting
+      when(room1.getLocalizedDisplayname()).thenReturn('Zulu');
+      when(room3.getLocalizedDisplayname()).thenReturn('Alpha');
+
+      // Give room3 order 'a' and room1 order 'z', room2 has no order
+      when(spaceA.spaceChildren).thenReturn([
+        _fakeSpaceChildWithOrder('!room1:example.com', 'z'),
+        _fakeSpaceChildWithOrder('!room3:example.com', 'a'),
+        _fakeSpaceChild('!room2:example.com'),
+      ]);
+      // Make all rooms children of spaceA for this test
+      when(mockClient.rooms).thenReturn([spaceA, room1, room2, room3]);
+      when(mockClient.getRoomById('!room3:example.com')).thenReturn(room3);
+      service.invalidateSpaceTree();
+
+      final rooms = service.roomsForSpace('!spaceA:example.com');
+      expect(rooms, hasLength(3));
+      // Ordered rooms first by order string: room3 ('a') then room1 ('z')
+      expect(rooms[0].id, '!room3:example.com');
+      expect(rooms[1].id, '!room1:example.com');
+      // Unordered room last
+      expect(rooms[2].id, '!room2:example.com');
+    });
+
     test('spaceMemberships returns correct set', () {
       final memberships1 = service.spaceMemberships('!room1:example.com');
       expect(memberships1, {'!spaceA:example.com'});
@@ -1285,6 +1310,16 @@ SpaceChild _fakeSpaceChild(String roomId) {
   return SpaceChild.fromState(StrippedStateEvent(
     type: EventTypes.SpaceChild,
     content: {'via': ['example.com']},
+    senderId: '@admin:example.com',
+    stateKey: roomId,
+  ));
+}
+
+/// Creates a [SpaceChild] with a specific order string.
+SpaceChild _fakeSpaceChildWithOrder(String roomId, String order) {
+  return SpaceChild.fromState(StrippedStateEvent(
+    type: EventTypes.SpaceChild,
+    content: {'via': ['example.com'], 'order': order},
     senderId: '@admin:example.com',
     stateKey: roomId,
   ));

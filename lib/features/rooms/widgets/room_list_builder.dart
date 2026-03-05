@@ -174,6 +174,7 @@ void _addSpaceSection(
         room: room,
         depth: depth,
         parentSpaceId: node.room.id,
+        sectionRooms: rooms,
       ));
     }
     for (final sub in node.subspaces) {

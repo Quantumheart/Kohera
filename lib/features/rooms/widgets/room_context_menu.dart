@@ -3,17 +3,20 @@ import 'package:matrix/matrix.dart' hide Visibility;
 import 'package:provider/provider.dart';
 
 import 'package:lattice/core/services/matrix_service.dart';
+import 'package:lattice/core/utils/order_utils.dart' as order_utils;
 import 'add_room_to_space_dialog.dart';
 
 // ── Room Context Menu ───────────────────────────────────────────────
 
-enum _RoomContextAction { addToSpace, removeFromSpace }
+enum _RoomContextAction { addToSpace, removeFromSpace, moveUp, moveDown }
 
 Future<void> showRoomContextMenu(
   BuildContext context,
   RelativeRect position,
-  Room room,
-) async {
+  Room room, {
+  String? parentSpaceId,
+  List<Room>? sectionRooms,
+}) async {
   final matrix = context.read<MatrixService>();
   final cs = Theme.of(context).colorScheme;
 
@@ -38,7 +41,25 @@ Future<void> showRoomContextMenu(
       s.canChangeStateEvent('m.space.child') &&
       !memberships.contains(s.id));
 
-  if (!canAdd && !canRemove) return;
+  // Move Up / Move Down — when room is in a manageable space with known order.
+  Room? reorderSpace;
+  List<Room>? orderedRooms;
+  int roomIndex = -1;
+  if (parentSpaceId != null && sectionRooms != null) {
+    final space = matrix.client.getRoomById(parentSpaceId);
+    if (space != null && space.canChangeStateEvent('m.space.child')) {
+      reorderSpace = space;
+      orderedRooms = sectionRooms;
+      roomIndex = orderedRooms.indexWhere((r) => r.id == room.id);
+    }
+  }
+
+  final canMoveUp = reorderSpace != null && roomIndex > 0;
+  final canMoveDown =
+      reorderSpace != null && orderedRooms != null && roomIndex >= 0 &&
+      roomIndex < orderedRooms.length - 1;
+
+  if (!canAdd && !canRemove && !canMoveUp && !canMoveDown) return;
 
   final action = await showMenu<_RoomContextAction>(
     context: context,
@@ -46,6 +67,28 @@ Future<void> showRoomContextMenu(
     color: cs.surfaceContainer,
     constraints: const BoxConstraints(minWidth: 200, maxWidth: 320),
     items: [
+      if (canMoveUp)
+        const PopupMenuItem(
+          value: _RoomContextAction.moveUp,
+          child: Row(
+            children: [
+              Icon(Icons.arrow_upward_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('Move up'),
+            ],
+          ),
+        ),
+      if (canMoveDown)
+        const PopupMenuItem(
+          value: _RoomContextAction.moveDown,
+          child: Row(
+            children: [
+              Icon(Icons.arrow_downward_rounded, size: 18),
+              SizedBox(width: 8),
+              Text('Move down'),
+            ],
+          ),
+        ),
       if (canAdd)
         const PopupMenuItem(
           value: _RoomContextAction.addToSpace,
@@ -90,10 +133,73 @@ Future<void> showRoomContextMenu(
       if (activeSpace != null) {
         await _handleRemoveFromSpace(context, activeSpace, room);
       }
+    case _RoomContextAction.moveUp:
+      if (reorderSpace != null && orderedRooms != null && roomIndex > 0) {
+        await _handleReorder(
+          context, reorderSpace, orderedRooms, roomIndex, roomIndex - 1);
+      }
+    case _RoomContextAction.moveDown:
+      if (reorderSpace != null && orderedRooms != null &&
+          roomIndex < orderedRooms.length - 1) {
+        await _handleReorder(
+          context, reorderSpace, orderedRooms, roomIndex, roomIndex + 1);
+      }
   }
 }
 
 // ── Action Handlers ─────────────────────────────────────────────────
+
+Future<void> _handleReorder(
+  BuildContext context,
+  Room space,
+  List<Room> orderedRooms,
+  int fromIndex,
+  int toIndex,
+) async {
+  try {
+    final matrix = context.read<MatrixService>();
+    final roomId = orderedRooms[fromIndex].id;
+
+    // Build a map of current order strings.
+    final orderMap = <String, String>{};
+    for (final child in space.spaceChildren) {
+      final cid = child.roomId;
+      if (cid != null && child.order.isNotEmpty) {
+        orderMap[cid] = child.order;
+      }
+    }
+
+    // When moving up, place between (toIndex-1) and toIndex.
+    // When moving down, place between toIndex and (toIndex+1).
+    final String? neighborBefore;
+    final String? neighborAfter;
+    if (toIndex < fromIndex) {
+      neighborBefore = toIndex > 0 ? orderMap[orderedRooms[toIndex - 1].id] : null;
+      neighborAfter = orderMap[orderedRooms[toIndex].id];
+    } else {
+      neighborBefore = orderMap[orderedRooms[toIndex].id];
+      neighborAfter = toIndex + 1 < orderedRooms.length
+          ? orderMap[orderedRooms[toIndex + 1].id]
+          : null;
+    }
+
+    final newOrder = order_utils.midpoint(neighborBefore, neighborAfter);
+    if (newOrder == null) {
+      debugPrint('[Lattice] Could not compute order midpoint');
+      return;
+    }
+
+    await space.setSpaceChild(roomId, order: newOrder);
+    matrix.invalidateSpaceTree();
+  } catch (e) {
+    debugPrint('[Lattice] Reorder failed: $e');
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to reorder: $e')),
+      );
+    }
+  }
+}
 
 Future<void> _handleRemoveFromSpace(
   BuildContext context,

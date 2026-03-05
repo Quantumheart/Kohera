@@ -274,20 +274,38 @@ mixin SelectionMixin on ChangeNotifier {
   }
 
   /// Direct child rooms of a specific space (not recursive into subspaces).
+  ///
+  /// Rooms with an `order` field on their `m.space.child` state event are
+  /// sorted lexicographically first; rooms without an order follow
+  /// alphabetically by display name.
   List<Room> roomsForSpace(String spaceId) {
     _ensureTreeFresh();
     final space = client.getRoomById(spaceId);
     if (space == null) return [];
     final childIds = <String>{};
+    final orderMap = <String, String>{};
     for (final child in space.spaceChildren) {
       final childId = child.roomId;
       if (childId == null) continue;
       final childRoom = client.getRoomById(childId);
       if (childRoom != null && !childRoom.isSpace) {
         childIds.add(childId);
+        final order = child.order;
+        if (order.isNotEmpty) {
+          orderMap[childId] = order;
+        }
       }
     }
-    return rooms.where((r) => childIds.contains(r.id)).toList();
+    final result = rooms.where((r) => childIds.contains(r.id)).toList();
+    result.sort((a, b) {
+      final aOrder = orderMap[a.id];
+      final bOrder = orderMap[b.id];
+      if (aOrder != null && bOrder != null) return aOrder.compareTo(bOrder);
+      if (aOrder != null) return -1;
+      if (bOrder != null) return 1;
+      return a.getLocalizedDisplayname().compareTo(b.getLocalizedDisplayname());
+    });
+    return result;
   }
 
   /// Which spaces a room belongs to (O(1) map lookup).

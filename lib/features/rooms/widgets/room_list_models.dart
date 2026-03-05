@@ -25,8 +25,14 @@ class RoomItem extends ListItem {
   final Room room;
   final int depth;
   final String? parentSpaceId;
+  final List<Room>? sectionRooms;
 
-  RoomItem({required this.room, this.depth = 0, this.parentSpaceId});
+  RoomItem({
+    required this.room,
+    this.depth = 0,
+    this.parentSpaceId,
+    this.sectionRooms,
+  });
 }
 
 class InviteItem extends ListItem {
