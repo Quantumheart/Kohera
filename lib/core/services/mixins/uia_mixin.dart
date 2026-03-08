@@ -86,7 +86,7 @@ mixin UiaMixin on ChangeNotifier {
   void setCachedPassword(String password) {
     _cachedPassword = password;
     _passwordExpiryTimer?.cancel();
-    _passwordExpiryTimer = Timer(const Duration(minutes: 5), () {
+    _passwordExpiryTimer = Timer(const Duration(seconds: 30), () {
       _cachedPassword = null;
       _passwordExpiryTimer = null;
     });
