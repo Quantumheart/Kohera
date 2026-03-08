@@ -1,35 +1,25 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 
-import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:lattice/core/models/pending_attachment.dart';
 import 'package:lattice/core/models/upload_state.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/core/services/preferences_service.dart';
-import 'package:lattice/core/utils/reply_fallback.dart';
 import 'package:lattice/features/chat/services/chat_search_controller.dart';
-import 'package:lattice/features/chat/services/media_playback_service.dart';
+import 'package:lattice/features/chat/services/compose_state_controller.dart';
 import 'package:lattice/features/chat/services/typing_controller.dart';
 import 'package:lattice/features/chat/services/voice_recording_controller.dart';
+import 'package:lattice/features/chat/services/voice_recording_mixin.dart';
 import 'package:lattice/features/chat/widgets/chat_app_bar.dart';
-import 'package:lattice/features/chat/widgets/compose_bar.dart';
-import 'package:lattice/features/chat/widgets/delete_event_dialog.dart';
-import 'package:lattice/features/chat/widgets/drop_zone_overlay.dart';
-import 'package:lattice/features/chat/widgets/emoji_picker_sheet.dart';
+import 'package:lattice/features/chat/widgets/chat_message_item.dart';
+import 'package:lattice/features/chat/widgets/compose_bar_section.dart';
+import 'package:lattice/features/chat/widgets/desktop_drop_wrapper.dart';
 import 'package:lattice/features/chat/widgets/file_send_handler.dart';
-import 'package:lattice/features/chat/widgets/long_press_wrapper.dart';
-import 'package:lattice/features/chat/widgets/message_action_sheet.dart';
-import 'package:lattice/features/chat/widgets/message_bubble.dart' show MessageBubble;
-import 'package:lattice/features/chat/widgets/paste_image_handler.dart';
-import 'package:lattice/features/chat/widgets/reaction_chips.dart';
 import 'package:lattice/features/chat/widgets/read_receipts.dart';
 import 'package:lattice/features/chat/widgets/search_results_body.dart';
-import 'package:lattice/features/chat/widgets/swipeable_message.dart';
 import 'package:lattice/features/chat/widgets/typing_indicator.dart';
-import 'package:lattice/features/chat/widgets/voice_send_handler.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -53,12 +43,11 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends State<ChatScreen>
+    with VoiceRecordingMixin<ChatScreen> {
   static const _historyLoadThreshold = 15;
   static const _scrollAnimationDuration = Duration(milliseconds: 400);
   static const _readMarkerDelay = Duration(seconds: 1);
-  static const _maxAttachments = 10;
-  static const int _maxAttachmentBytes = 25 * 1024 * 1024;
 
   final _msgCtrl = TextEditingController();
   final _composeFocusNode = FocusNode();
@@ -70,17 +59,8 @@ class _ChatScreenState extends State<ChatScreen> {
   int _initGeneration = 0;
   List<Event>? _cachedVisibleEvents;
 
-  // ── Reply state ─────────────────────────────────────────
-  final _replyNotifier = ValueNotifier<Event?>(null);
-
-  // ── Edit state ──────────────────────────────────────────
-  final _editNotifier = ValueNotifier<Event?>(null);
-
-  // ── Upload state ────────────────────────────────────────
-  final _uploadNotifier = ValueNotifier<UploadState?>(null);
-
-  // ── Pending attachments ────────────────────────────────
-  final _pendingAttachments = ValueNotifier<List<PendingAttachment>>([]);
+  // ── Compose state ───────────────────────────────────────
+  final _compose = ComposeStateController();
 
   // ── Typing ─────────────────────────────────────────────
   TypingController? _typingCtrl;
@@ -88,8 +68,13 @@ class _ChatScreenState extends State<ChatScreen> {
   // ── Voice recording ─────────────────────────────────────
   VoiceRecordingController? _voiceCtrl;
 
-  // ── Drag-and-drop ──────────────────────────────────────
-  bool _isDragging = false;
+  @override
+  VoiceRecordingController? get voiceController => _voiceCtrl;
+  @override
+  ValueNotifier<UploadState?> get voiceUploadNotifier => _compose.uploadNotifier;
+  @override
+  String get voiceRoomId => widget.roomId;
+
   bool get _isDesktop =>
       !kIsWeb && (Platform.isLinux || Platform.isWindows || Platform.isMacOS);
 
@@ -113,10 +98,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (old.roomId != widget.roomId) {
       _timeline?.cancelSubscriptions();
       _readMarkerTimer?.cancel();
-      _replyNotifier.value = null;
-      _editNotifier.value = null;
-      _pendingAttachments.value = [];
-      _msgCtrl.clear();
+      _compose.reset(_msgCtrl);
       _cachedVisibleEvents = null;
       _typingCtrl?.dispose();
       _voiceCtrl?.dispose();
@@ -165,8 +147,6 @@ class _ChatScreenState extends State<ChatScreen> {
     _requestMissingKeys(room);
   }
 
-  /// Request decryption keys from the online backup for any BadEncrypted
-  /// events visible in the current timeline.
   void _requestMissingKeys(Room room) {
     final encryption = room.client.encryption;
     if (encryption == null) return;
@@ -237,10 +217,6 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     setState(() => _loadingHistory = true);
     try {
-      // Load batches in a loop: a single server batch may contain mostly
-      // state events that are filtered out of _visibleEvents, so keep
-      // fetching until we have enough visible messages past the viewport
-      // or the server has no more history.
       while (mounted && _timeline!.canRequestHistory) {
         await _timeline!.requestHistory();
         _cachedVisibleEvents = null;
@@ -257,32 +233,44 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // ── Reply ──────────────────────────────────────────────
+  // ── Reply / Edit helpers ────────────────────────────────
 
   void _setReplyTo(Event event) {
-    _replyNotifier.value = event;
+    _compose.setReplyTo(event);
     _composeFocusNode.requestFocus();
   }
 
-  void _cancelReply() {
-    _replyNotifier.value = null;
-  }
-
-  // ── Edit ───────────────────────────────────────────────
-
   void _setEditEvent(Event event) {
-    _replyNotifier.value = null;
-    _editNotifier.value = event;
-    final displayEvent =
-        _timeline != null ? event.getDisplayEvent(_timeline!) : event;
-    _msgCtrl.text = stripReplyFallback(displayEvent.body);
-    _msgCtrl.selection =
-        TextSelection.collapsed(offset: _msgCtrl.text.length);
+    _compose.setEditEvent(event, _timeline, _msgCtrl);
   }
 
-  void _cancelEdit() {
-    _editNotifier.value = null;
-    _msgCtrl.clear();
+  // ── Attachments ─────────────────────────────────────────
+
+  void _addAttachment(PendingAttachment attachment) {
+    final result = _compose.addAttachment(attachment);
+    if (result == AddAttachmentResult.tooMany) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Maximum ${ComposeStateController.maxAttachments} attachments allowed')),
+      );
+    } else if (result == AddAttachmentResult.tooLarge) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('File exceeds 25 MB limit')),
+      );
+    }
+  }
+
+  Future<void> _handlePasteImage() async {
+    final result = await _compose.handlePasteImage();
+    if (!mounted || result == null || result == AddAttachmentResult.ok) return;
+    if (result == AddAttachmentResult.tooMany) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Maximum ${ComposeStateController.maxAttachments} attachments allowed')),
+      );
+    } else if (result == AddAttachmentResult.tooLarge) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('File exceeds 25 MB limit')),
+      );
+    }
   }
 
   // ── Reactions ──────────────────────────────────────
@@ -292,7 +280,6 @@ class _ChatScreenState extends State<ChatScreen> {
     final matrix = context.read<MatrixService>();
     final myId = matrix.client.userID;
 
-    // Find user's existing reaction for this emoji.
     final existing = event
         .aggregatedEvents(_timeline!, RelationshipTypes.reaction)
         .where((e) =>
@@ -346,90 +333,21 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // ── Voice recording ────────────────────────────────────
-
-  Future<void> _startVoiceRecording() async {
-    context.read<MediaPlaybackService>().pauseActive();
-    final started = await _voiceCtrl!.startRecording();
-    if (!started && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Microphone permission denied')),
-      );
-    }
-  }
-
-  Future<void> _stopAndSendVoiceMessage() async {
-    final elapsed = _voiceCtrl!.elapsed;
-    final path = await _voiceCtrl!.stopRecording();
-    if (path != null && mounted) {
-      await sendVoiceMessage(
-        context,
-        widget.roomId,
-        _uploadNotifier,
-        path,
-        elapsed,
-      );
-    }
-  }
-
-  Future<void> _cancelVoiceRecording() async {
-    await _voiceCtrl?.cancelRecording();
-  }
-
-  // ── Clipboard paste ──────────────────────────────────────
-
-  Future<void> _handlePasteImage() async {
-    if (!await clipboardHasImage()) return;
-    final imageData = await readClipboardImage();
-    if (imageData == null || !mounted) return;
-
-    final name = generatePasteFilename(imageData.mimeType);
-    _addAttachment(PendingAttachment.fromBytes(bytes: imageData.bytes, name: name));
-  }
-
-  // ── Pending attachments ─────────────────────────────────
-
-  void _addAttachment(PendingAttachment attachment) {
-    if (_pendingAttachments.value.length >= _maxAttachments) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Maximum $_maxAttachments attachments allowed')),
-      );
-      return;
-    }
-    if (attachment.bytes.length > _maxAttachmentBytes) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('File exceeds 25 MB limit')),
-      );
-      return;
-    }
-    _pendingAttachments.value = [..._pendingAttachments.value, attachment];
-  }
-
-  void _removeAttachment(int index) {
-    final list = [..._pendingAttachments.value];
-    list.removeAt(index);
-    _pendingAttachments.value = list;
-  }
-
-  void _clearAttachments() {
-    _pendingAttachments.value = [];
-  }
-
   // ── Send ───────────────────────────────────────────────
 
   Future<void> _send() async {
     final text = _msgCtrl.text.trim();
-    final attachments = List<PendingAttachment>.from(_pendingAttachments.value);
+    final attachments = List<PendingAttachment>.from(_compose.pendingAttachments.value);
     if (text.isEmpty && attachments.isEmpty) return;
 
     _msgCtrl.clear();
-    _pendingAttachments.value = [];
+    _compose.pendingAttachments.value = [];
 
-    final replyEvent = _replyNotifier.value;
-    _replyNotifier.value = null;
+    final replyEvent = _compose.replyNotifier.value;
+    _compose.replyNotifier.value = null;
 
-    final editEvent = _editNotifier.value;
-    _editNotifier.value = null;
+    final editEvent = _compose.editNotifier.value;
+    _compose.editNotifier.value = null;
 
     final scaffold = ScaffoldMessenger.of(context);
     final matrix = context.read<MatrixService>();
@@ -442,14 +360,14 @@ class _ChatScreenState extends State<ChatScreen> {
         room: room,
         name: attachments[i].name,
         bytes: attachments[i].bytes,
-        uploadNotifier: _uploadNotifier,
+        uploadNotifier: _compose.uploadNotifier,
       );
       if (!ok) {
-        _pendingAttachments.value = attachments.sublist(i);
+        _compose.pendingAttachments.value = attachments.sublist(i);
         if (text.isNotEmpty) {
           _msgCtrl.text = text;
-          _replyNotifier.value = replyEvent;
-          _editNotifier.value = editEvent;
+          _compose.replyNotifier.value = replyEvent;
+          _compose.editNotifier.value = editEvent;
         }
         return;
       }
@@ -464,8 +382,8 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       } catch (e) {
         _msgCtrl.text = text;
-        _replyNotifier.value = replyEvent;
-        _editNotifier.value = editEvent;
+        _compose.replyNotifier.value = replyEvent;
+        _compose.editNotifier.value = editEvent;
         scaffold.showSnackBar(
           SnackBar(content: Text('Failed to send: ${MatrixService.friendlyAuthError(e)}')),
         );
@@ -528,10 +446,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _itemPosListener.itemPositions.removeListener(_onScroll);
     _msgCtrl.dispose();
-    _replyNotifier.dispose();
-    _editNotifier.dispose();
-    _uploadNotifier.dispose();
-    _pendingAttachments.dispose();
+    _compose.dispose();
     _searchCtrl.dispose();
     _searchFocusNode.dispose();
     _composeFocusNode.dispose();
@@ -616,81 +531,38 @@ class _ChatScreenState extends State<ChatScreen> {
           myUserId: matrix.client.userID,
           syncStream: matrix.client.onSync.stream,
         ),
-        ValueListenableBuilder<Event?>(
-          valueListenable: _replyNotifier,
-          builder: (context, replyEvent, _) {
-            return ValueListenableBuilder<Event?>(
-              valueListenable: _editNotifier,
-              builder: (context, editEvent, _) {
-                return ValueListenableBuilder<List<PendingAttachment>>(
-                  valueListenable: _pendingAttachments,
-                  builder: (context, attachments, _) {
-                    return ComposeBar(
-                      controller: _msgCtrl,
-                      onSend: _send,
-                      replyEvent: replyEvent,
-                      onCancelReply: _cancelReply,
-                      editEvent: editEvent,
-                      onCancelEdit: _cancelEdit,
-                      onAttach: () async {
-                        final attachment = await pickFileAsAttachment();
-                        if (attachment != null && mounted) _addAttachment(attachment);
-                      },
-                      onPasteImage: _isDesktop ? _handlePasteImage : null,
-                      uploadNotifier: _uploadNotifier,
-                      room: room,
-                      joinedRooms: matrix.rooms,
-                      typingController: _typingCtrl,
-                      focusNode: _composeFocusNode,
-                      voiceController: _voiceCtrl,
-                      onMicTap: _startVoiceRecording,
-                      onVoiceStop: _stopAndSendVoiceMessage,
-                      onVoiceCancel: _cancelVoiceRecording,
-                      pendingAttachments: attachments,
-                      onRemoveAttachment: _removeAttachment,
-                      onClearAttachments: _clearAttachments,
-                    );
-                  },
-                );
-              },
-            );
+        ComposeBarSection(
+          replyNotifier: _compose.replyNotifier,
+          editNotifier: _compose.editNotifier,
+          pendingAttachments: _compose.pendingAttachments,
+          controller: _msgCtrl,
+          onSend: _send,
+          onCancelReply: _compose.cancelReply,
+          onCancelEdit: () => _compose.cancelEdit(_msgCtrl),
+          onAttach: () async {
+            final attachment = await pickFileAsAttachment();
+            if (attachment != null && mounted) _addAttachment(attachment);
           },
+          onPasteImage: _isDesktop ? _handlePasteImage : null,
+          uploadNotifier: _compose.uploadNotifier,
+          room: room,
+          joinedRooms: matrix.rooms,
+          typingController: _typingCtrl,
+          focusNode: _composeFocusNode,
+          voiceController: _voiceCtrl,
+          onMicTap: startVoiceRecording,
+          onVoiceStop: stopAndSendVoiceMessage,
+          onVoiceCancel: cancelVoiceRecording,
+          onRemoveAttachment: _compose.removeAttachment,
+          onClearAttachments: _compose.clearAttachments,
         ),
       ],
     );
 
-    if (!_isDesktop) return column;
-
-    return DropTarget(
-      onDragEntered: (_) => setState(() => _isDragging = true),
-      onDragExited: (_) => setState(() => _isDragging = false),
-      onDragDone: (details) async {
-        setState(() => _isDragging = false);
-        final files = details.files;
-        if (files.isEmpty || !mounted) return;
-        for (final file in files) {
-          final bytes = await file.readAsBytes();
-          if (!mounted) return;
-          _addAttachment(PendingAttachment.fromBytes(bytes: bytes, name: file.name));
-        }
-      },
-      child: Stack(
-        children: [
-          column,
-          Positioned.fill(
-            child: IgnorePointer(
-              child: AnimatedOpacity(
-                opacity: _isDragging ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 200),
-                child: const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: DropZoneOverlay(),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+    return DesktopDropWrapper(
+      enabled: _isDesktop,
+      onFileDropped: _addAttachment,
+      child: column,
     );
   }
 
@@ -716,144 +588,24 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
           );
         }
-        return _buildMessageItem(events, i, matrix, isMobile, receiptMap);
+        final event = events[i];
+        final prevSender = i + 1 < events.length ? events[i + 1].senderId : null;
+        return ChatMessageItem(
+          event: event,
+          isMe: event.senderId == matrix.client.userID,
+          isFirst: event.senderId != prevSender,
+          isMobile: isMobile,
+          timeline: _timeline,
+          client: matrix.client,
+          highlightedEventId: _search.highlightedEventId,
+          receiptMap: receiptMap,
+          onReply: _setReplyTo,
+          onEdit: _setEditEvent,
+          onToggleReaction: _toggleReaction,
+          onPin: _togglePin,
+          onTapReply: _navigateToEvent,
+        );
       },
-    );
-  }
-
-  Widget _buildMessageItem(
-      List<Event> events, int i, MatrixService matrix, bool isMobile,
-      Map<String, List<Receipt>> receiptMap,) {
-    final event = events[i];
-    final isMe = event.senderId == matrix.client.userID;
-
-    // Group consecutive messages from same sender.
-    final prevSender = i + 1 < events.length ? events[i + 1].senderId : null;
-    final isFirst = event.senderId != prevSender;
-
-    final isRedacted = event.redacted;
-
-    final room = event.room;
-    final canPin = !isRedacted &&
-        room.canChangeStateEvent('m.room.pinned_events');
-
-    final hasReactions = _timeline != null &&
-        event.hasAggregatedEvents(_timeline!, RelationshipTypes.reaction);
-    final receipts = receiptMap[event.eventId]
-        ?.where((r) => r.user.id != event.senderId)
-        .toList();
-
-    Widget? reactionBubble;
-    if (hasReactions) {
-      reactionBubble = ReactionChips(
-        event: event,
-        timeline: _timeline!,
-        client: matrix.client,
-        isMe: isMe,
-        onToggle: (emoji) => _toggleReaction(event, emoji),
-      );
-    }
-
-    Widget? subBubble;
-    if (receipts != null && receipts.isNotEmpty) {
-      subBubble = ReadReceiptsRow(
-        receipts: receipts,
-        client: matrix.client,
-        isMe: isMe,
-      );
-    }
-
-    final Widget content = MessageBubble(
-      event: event,
-      isMe: isMe,
-      isFirst: isFirst,
-      highlighted: event.eventId == _search.highlightedEventId,
-      isPinned: room.pinnedEventIds.contains(event.eventId),
-      timeline: _timeline,
-      onTapReply: isRedacted ? null : _navigateToEvent,
-      onReply: isRedacted ? null : () => _setReplyTo(event),
-      onEdit: !isRedacted && isMe ? () => _setEditEvent(event) : null,
-      onDelete: !isRedacted && event.canRedact ? () => confirmAndDeleteEvent(context, event) : null,
-      onReact: isRedacted ? null : () => showEmojiPickerSheet(context, (emoji) => _toggleReaction(event, emoji)),
-      onQuickReact: isRedacted ? null : (emoji) => _toggleReaction(event, emoji),
-      onPin: canPin ? () => _togglePin(event) : null,
-      reactionBubble: reactionBubble,
-      subBubble: subBubble,
-    );
-
-    if (isMobile) {
-      return SwipeableMessage(
-        onReply: () => _setReplyTo(event),
-        child: LongPressWrapper(
-          onLongPress: (rect) => _showMobileActions(event, isMe, rect),
-          child: content,
-        ),
-      );
-    }
-    return content;
-  }
-
-  void _showMobileActions(Event event, bool isMe, Rect bubbleRect) {
-    if (event.redacted) return;
-
-    final cs = Theme.of(context).colorScheme;
-    final isPinned = event.room.pinnedEventIds.contains(event.eventId);
-    final actions = <MessageAction>[
-      MessageAction(
-        label: 'Reply',
-        icon: Icons.reply_rounded,
-        onTap: () => _setReplyTo(event),
-      ),
-      if (isMe)
-        MessageAction(
-          label: 'Edit',
-          icon: Icons.edit_rounded,
-          onTap: () => _setEditEvent(event),
-        ),
-      MessageAction(
-        label: 'React',
-        icon: Icons.add_reaction_outlined,
-        onTap: () => showEmojiPickerSheet(context, (emoji) => _toggleReaction(event, emoji)),
-      ),
-      if (event.room.canChangeStateEvent('m.room.pinned_events'))
-        MessageAction(
-          label: isPinned ? 'Unpin' : 'Pin',
-          icon: isPinned
-              ? Icons.push_pin_rounded
-              : Icons.push_pin_outlined,
-          onTap: () => _togglePin(event),
-        ),
-      MessageAction(
-        label: 'Copy',
-        icon: Icons.copy_rounded,
-        onTap: () {
-          final displayEvent = _timeline != null
-              ? event.getDisplayEvent(_timeline!)
-              : event;
-          unawaited(
-            Clipboard.setData(
-              ClipboardData(text: stripReplyFallback(displayEvent.body)),
-            ),
-          );
-        },
-      ),
-      if (event.canRedact)
-        MessageAction(
-          label: isMe ? 'Delete' : 'Remove',
-          icon: Icons.delete_outline_rounded,
-          onTap: () => confirmAndDeleteEvent(context, event),
-          color: cs.error,
-        ),
-    ];
-
-    showMessageActionSheet(
-      context: context,
-      event: event,
-      isMe: isMe,
-      bubbleRect: bubbleRect,
-      actions: actions,
-      timeline: _timeline,
-      onQuickReact: (emoji) => _toggleReaction(event, emoji),
     );
   }
 }
