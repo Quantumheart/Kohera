@@ -1,9 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lattice/core/services/matrix_service.dart';
-import 'package:lattice/core/services/mixins/call_mixin.dart';
+import 'package:lattice/core/services/call_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -11,35 +9,28 @@ import 'package:mockito/mockito.dart';
 @GenerateNiceMocks([
   MockSpec<Client>(),
   MockSpec<Room>(),
-  MockSpec<FlutterSecureStorage>(),
   MockSpec<VoIP>(),
   MockSpec<GroupCallSession>(),
 ])
-import 'call_mixin_test.mocks.dart';
+import 'call_service_test.mocks.dart';
 
 void main() {
   late MockClient mockClient;
-  late MockFlutterSecureStorage mockStorage;
-  late MatrixService service;
+  late CallService service;
   late MockVoIP mockVoip;
 
   setUp(() {
     mockClient = MockClient();
-    mockStorage = MockFlutterSecureStorage();
     mockVoip = MockVoIP();
     when(mockClient.rooms).thenReturn([]);
-    service = MatrixService(
-      client: mockClient,
-      storage: mockStorage,
-      clientName: 'test',
-    );
+    service = CallService(client: mockClient);
   });
 
   void injectVoip() {
     service.voipForTest = mockVoip;
   }
 
-  group('CallMixin initial state', () {
+  group('CallService initial state', () {
     test('callState starts as idle', () {
       expect(service.callState, LatticeCallState.idle);
     });
@@ -178,6 +169,27 @@ void main() {
       when(mockClient.getTurnServer()).thenThrow(Exception('no server'));
       final result = await service.fetchTurnServers();
       expect(result, isNull);
+    });
+  });
+
+  group('updateClient', () {
+    test('resets state when client changes', () {
+      injectVoip();
+      final newClient = MockClient();
+      when(newClient.rooms).thenReturn([]);
+
+      service.updateClient(newClient);
+
+      expect(service.voip, isNull);
+      expect(service.callState, LatticeCallState.idle);
+      expect(service.activeGroupCall, isNull);
+      expect(service.client, same(newClient));
+    });
+
+    test('does nothing when same client', () {
+      injectVoip();
+      service.updateClient(mockClient);
+      expect(service.voip, same(mockVoip));
     });
   });
 

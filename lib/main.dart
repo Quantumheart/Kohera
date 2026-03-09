@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_vodozemac/flutter_vodozemac.dart' as vod;
 import 'package:go_router/go_router.dart';
 import 'package:lattice/core/routing/app_router.dart';
+import 'package:lattice/core/services/call_service.dart';
 import 'package:lattice/core/services/client_manager.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/core/services/preferences_service.dart';
@@ -93,20 +94,28 @@ class _LatticeAppState extends State<LatticeApp> {
                       previous.updateClient(matrix.client);
                       return previous;
                     },
-                    child: Builder(
-                      builder: (context) {
-                        final theme = LatticeTheme.light(lightDynamic);
-                        final darkTheme = LatticeTheme.dark(darkDynamic);
-
-                        return MaterialApp.router(
-                          title: 'Lattice',
-                          debugShowCheckedModeBanner: false,
-                          theme: theme,
-                          darkTheme: darkTheme,
-                          themeMode: prefs.themeMode,
-                          routerConfig: router,
-                        );
+                    child: ChangeNotifierProxyProvider<MatrixService, CallService>(
+                      create: (ctx) => CallService(client: ctx.read<MatrixService>().client),
+                      update: (_, matrix, previous) {
+                        if (previous == null) return CallService(client: matrix.client);
+                        previous.updateClient(matrix.client);
+                        return previous;
                       },
+                      child: Builder(
+                        builder: (context) {
+                          final theme = LatticeTheme.light(lightDynamic);
+                          final darkTheme = LatticeTheme.dark(darkDynamic);
+
+                          return MaterialApp.router(
+                            title: 'Lattice',
+                            debugShowCheckedModeBanner: false,
+                            theme: theme,
+                            darkTheme: darkTheme,
+                            themeMode: prefs.themeMode,
+                            routerConfig: router,
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),

@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:lattice/core/services/client_manager.dart' show ClientManager;
 import 'package:lattice/core/services/mixins/auth_mixin.dart';
-import 'package:lattice/core/services/mixins/call_mixin.dart';
 import 'package:lattice/core/services/mixins/chat_backup_mixin.dart';
 import 'package:lattice/core/services/mixins/selection_mixin.dart';
 import 'package:lattice/core/services/mixins/sync_mixin.dart';
@@ -27,8 +26,7 @@ class MatrixService extends ChangeNotifier
         ChatBackupMixin,
         UiaMixin,
         SyncMixin,
-        AuthMixin,
-        CallMixin {
+        AuthMixin {
   /// Maps common network exceptions to user-friendly error messages.
   static String friendlyAuthError(Object e) {
     if (e is SocketException) return 'Could not reach server';
@@ -115,7 +113,6 @@ class MatrixService extends ChangeNotifier
   void dispose() {
     _disposed = true;
     _isLoggedIn = false;
-    disposeVoip();
     cancelSyncSub();
     cancelUiaSub();
     cancelLoginStateSub();
@@ -132,7 +129,6 @@ class MatrixService extends ChangeNotifier
   Future<void> _activateSession() async {
     listenForUia();
     listenForLoginState();
-    initVoip();
     _isLoggedIn = true;
     try {
       await startSync();
