@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lattice/core/routing/route_names.dart';
+import 'package:lattice/features/calling/services/call_navigator.dart';
 import 'package:lattice/features/chat/widgets/pinned_messages_popup.dart';
 import 'package:lattice/shared/widgets/room_avatar.dart';
 import 'package:matrix/matrix.dart';
@@ -85,10 +88,12 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
         IconButton(
           icon: const Icon(Icons.call_rounded),
           tooltip: 'Call',
-          onPressed: () => context.pushNamed(
-            Routes.call,
-            pathParameters: {'roomId': room.id},
-            extra: room.getLocalizedDisplayname(),
+          onPressed: () => unawaited(
+            CallNavigator.startCall(
+              context,
+              roomId: room.id,
+              displayName: room.getLocalizedDisplayname(),
+            ),
           ),
         ),
         IconButton(

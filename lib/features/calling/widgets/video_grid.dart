@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lattice/features/calling/models/call_participant.dart';
 import 'package:lattice/features/calling/widgets/participant_tile.dart';
+import 'package:lattice/features/calling/widgets/screen_share_layout.dart';
 
 class VideoGrid extends StatefulWidget {
   const VideoGrid({required this.participants, super.key});
@@ -81,6 +82,12 @@ class _VideoGridState extends State<VideoGrid> {
   @override
   Widget build(BuildContext context) {
     final participants = widget.participants;
+
+    final screenSharer = participants.where((p) => p.isScreenSharing).firstOrNull;
+    if (screenSharer != null) {
+      final others = participants.where((p) => !p.isScreenSharing).toList();
+      return ScreenShareLayout(screenSharer: screenSharer, others: others);
+    }
 
     if (participants.length <= _maxPerPage) {
       return LayoutBuilder(
