@@ -40,8 +40,6 @@ class _LatticeWebRTCDelegate implements WebRTCDelegate {
 
   final CallService _callService;
 
-  bool _inCall = false;
-
   @override
   webrtc.MediaDevices get mediaDevices => flutter_webrtc.navigator.mediaDevices;
 
@@ -67,13 +65,11 @@ class _LatticeWebRTCDelegate implements WebRTCDelegate {
 
   @override
   Future<void> handleNewCall(CallSession session) async {
-    _inCall = true;
     _callService._handleIncomingCall(session);
   }
 
   @override
   Future<void> handleCallEnded(CallSession session) async {
-    _inCall = false;
     _callService._handleCallEnded();
   }
 
@@ -84,13 +80,11 @@ class _LatticeWebRTCDelegate implements WebRTCDelegate {
 
   @override
   Future<void> handleNewGroupCall(GroupCallSession groupCall) async {
-    _inCall = true;
     _callService._handleIncomingGroupCall(groupCall);
   }
 
   @override
   Future<void> handleGroupCallEnded(GroupCallSession groupCall) async {
-    _inCall = false;
     _callService._handleCallEnded();
   }
 
@@ -98,7 +92,7 @@ class _LatticeWebRTCDelegate implements WebRTCDelegate {
   bool get isWeb => kIsWeb;
 
   @override
-  bool get canHandleNewCall => !_inCall;
+  bool get canHandleNewCall => _callService.callState == LatticeCallState.idle;
 
   @override
   EncryptionKeyProvider? get keyProvider => null;
@@ -136,6 +130,12 @@ class CallService extends ChangeNotifier {
   RingtoneService? _ringtoneService;
 
   set ringtoneService(RingtoneService? service) => _ringtoneService = service;
+
+  void _stopRinging() {
+    _ringingTimer?.cancel();
+    _ringingTimer = null;
+    unawaited(_ringtoneService?.stop());
+  }
 
   // ── State ───────────────────────────────────────────────
 
@@ -203,7 +203,12 @@ class CallService extends ChangeNotifier {
 
   // ── Participant Aggregation ─────────────────────────────
 
-  List<ui.CallParticipant> get allParticipants {
+  List<ui.CallParticipant>? _cachedParticipants;
+
+  List<ui.CallParticipant> get allParticipants =>
+      _cachedParticipants ??= _buildParticipantList();
+
+  List<ui.CallParticipant> _buildParticipantList() {
     final result = <ui.CallParticipant>[];
 
     if (_livekitRoom != null) {
@@ -337,10 +342,8 @@ class CallService extends ChangeNotifier {
     if (_callState == LatticeCallState.ringingIncoming ||
         _callState == LatticeCallState.ringingOutgoing) {
       _incomingCall = null;
-      _ringingTimer?.cancel();
-      _ringingTimer = null;
+      _stopRinging();
       _callState = LatticeCallState.idle;
-      unawaited(_ringtoneService?.stop());
       notifyListeners();
     }
   }
@@ -354,7 +357,7 @@ class CallService extends ChangeNotifier {
 
     _incomingCall = null;
     _callState = LatticeCallState.joining;
-    unawaited(_ringtoneService?.stop());
+    _stopRinging();
     notifyListeners();
 
     unawaited(joinCall(info.roomId));
@@ -364,16 +367,14 @@ class CallService extends ChangeNotifier {
     if (_callState != LatticeCallState.ringingIncoming) return;
     _incomingCall = null;
     _callState = LatticeCallState.idle;
-    unawaited(_ringtoneService?.stop());
+    _stopRinging();
     notifyListeners();
   }
 
   void cancelOutgoingCall() {
     if (_callState != LatticeCallState.ringingOutgoing) return;
-    _ringingTimer?.cancel();
-    _ringingTimer = null;
+    _stopRinging();
     _callState = LatticeCallState.idle;
-    unawaited(_ringtoneService?.stop());
     notifyListeners();
     unawaited(leaveCall());
   }
@@ -445,12 +446,10 @@ class CallService extends ChangeNotifier {
         await _connectLiveKit(resolvedBackend);
       }
 
-      _ringingTimer?.cancel();
-      _ringingTimer = null;
+      _stopRinging();
 
       _callStartTime = DateTime.now();
       _callState = LatticeCallState.connected;
-      unawaited(_ringtoneService?.stop());
       notifyListeners();
       debugPrint(
         '[Lattice] Joined call ${groupCall.groupCallId} in room $roomId',
@@ -460,12 +459,10 @@ class CallService extends ChangeNotifier {
       await _cleanupLiveKit();
       _callState = LatticeCallState.failed;
       _activeGroupCall = null;
-      _ringingTimer?.cancel();
-      _ringingTimer = null;
+      _stopRinging();
 
       unawaited(_callEventSub?.cancel());
       _callEventSub = null;
-      unawaited(_ringtoneService?.stop());
       notifyListeners();
     } finally {
       _joining = false;
@@ -499,70 +496,78 @@ class CallService extends ChangeNotifier {
 
   // ── Track Toggles ─────────────────────────────────────────
 
+  Future<void> _toggleTrack({
+    required bool currentValue,
+    required void Function(bool) updateField,
+    required Future<void> Function(bool enabled) apply,
+    required String label,
+  }) async {
+    updateField(!currentValue);
+    notifyListeners();
+
+    try {
+      await apply(!currentValue);
+    } catch (e) {
+      debugPrint('[Lattice] Failed to toggle $label: $e');
+      updateField(currentValue);
+      notifyListeners();
+    }
+  }
+
   Future<void> toggleMicrophone() async {
     final localParticipant = _livekitRoom?.localParticipant;
     if (localParticipant == null && _activeGroupCall == null) return;
 
-    _isMicEnabled = !_isMicEnabled;
-    notifyListeners();
-
-    try {
-      if (localParticipant != null) {
-        await localParticipant.setMicrophoneEnabled(_isMicEnabled);
-      } else {
-        await _activeGroupCall!.backend.setDeviceMuted(
-          _activeGroupCall!,
-          !_isMicEnabled,
-          MediaInputKind.audioinput,
-        );
-      }
-    } catch (e) {
-      debugPrint('[Lattice] Failed to toggle microphone: $e');
-      _isMicEnabled = !_isMicEnabled;
-      notifyListeners();
-    }
+    await _toggleTrack(
+      currentValue: _isMicEnabled,
+      updateField: (v) => _isMicEnabled = v,
+      label: 'microphone',
+      apply: (enabled) async {
+        if (localParticipant != null) {
+          await localParticipant.setMicrophoneEnabled(enabled);
+        } else {
+          await _activeGroupCall!.backend.setDeviceMuted(
+            _activeGroupCall!,
+            !enabled,
+            MediaInputKind.audioinput,
+          );
+        }
+      },
+    );
   }
 
   Future<void> toggleCamera() async {
     final localParticipant = _livekitRoom?.localParticipant;
     if (localParticipant == null && _activeGroupCall == null) return;
 
-    _isCameraEnabled = !_isCameraEnabled;
-    notifyListeners();
-
-    try {
-      if (localParticipant != null) {
-        await localParticipant.setCameraEnabled(_isCameraEnabled);
-      } else {
-        await _activeGroupCall!.backend.setDeviceMuted(
-          _activeGroupCall!,
-          !_isCameraEnabled,
-          MediaInputKind.videoinput,
-        );
-      }
-      notifyListeners();
-    } catch (e) {
-      debugPrint('[Lattice] Failed to toggle camera: $e');
-      _isCameraEnabled = !_isCameraEnabled;
-      notifyListeners();
-    }
+    await _toggleTrack(
+      currentValue: _isCameraEnabled,
+      updateField: (v) => _isCameraEnabled = v,
+      label: 'camera',
+      apply: (enabled) async {
+        if (localParticipant != null) {
+          await localParticipant.setCameraEnabled(enabled);
+        } else {
+          await _activeGroupCall!.backend.setDeviceMuted(
+            _activeGroupCall!,
+            !enabled,
+            MediaInputKind.videoinput,
+          );
+        }
+      },
+    );
   }
 
   Future<void> toggleScreenShare() async {
     final localParticipant = _livekitRoom?.localParticipant;
     if (localParticipant == null) return;
 
-    _isScreenShareEnabled = !_isScreenShareEnabled;
-    notifyListeners();
-
-    try {
-      await localParticipant.setScreenShareEnabled(_isScreenShareEnabled);
-      notifyListeners();
-    } catch (e) {
-      debugPrint('[Lattice] Failed to toggle screen share: $e');
-      _isScreenShareEnabled = !_isScreenShareEnabled;
-      notifyListeners();
-    }
+    await _toggleTrack(
+      currentValue: _isScreenShareEnabled,
+      updateField: (v) => _isScreenShareEnabled = v,
+      label: 'screen share',
+      apply: localParticipant.setScreenShareEnabled,
+    );
   }
 
   // ── TURN Server ─────────────────────────────────────────
@@ -585,10 +590,8 @@ class CallService extends ChangeNotifier {
     _voip = null;
     _webrtcDelegate = null;
     _incomingCall = null;
-    _ringingTimer?.cancel();
-    _ringingTimer = null;
+    _stopRinging();
     _callStartTime = null;
-    unawaited(_ringtoneService?.stop());
   }
 
   void updateClient(Client newClient) {
@@ -607,6 +610,7 @@ class CallService extends ChangeNotifier {
 
   @override
   void notifyListeners() {
+    _cachedParticipants = null;
     if (!_disposed) super.notifyListeners();
   }
 
