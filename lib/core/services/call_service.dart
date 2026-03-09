@@ -74,10 +74,15 @@ class _LatticeWebRTCDelegate implements WebRTCDelegate {
   EncryptionKeyProvider? get keyProvider => null;
 }
 
-// ── Call Mixin ──────────────────────────────────────────────
+// ── Call Service ────────────────────────────────────────────
 
-mixin CallMixin on ChangeNotifier {
-  Client get client;
+class CallService extends ChangeNotifier {
+  CallService({required Client client}) : _client = client;
+
+  Client _client;
+  Client get client => _client;
+
+  bool _disposed = false;
 
   // ── VoIP ────────────────────────────────────────────────
 
@@ -91,16 +96,21 @@ mixin CallMixin on ChangeNotifier {
 
   void initVoip() {
     _webrtcDelegate = _LatticeWebRTCDelegate(notifyListeners);
-    _voip = VoIP(client, _webrtcDelegate!);
+    _voip = VoIP(_client, _webrtcDelegate!);
     debugPrint('[Lattice] VoIP initialized');
   }
 
-  @protected
-  void disposeVoip() {
+  void _resetState() {
     _activeGroupCall = null;
     _callState = LatticeCallState.idle;
     _voip = null;
     _webrtcDelegate = null;
+  }
+
+  void updateClient(Client newClient) {
+    if (identical(_client, newClient)) return;
+    _resetState();
+    _client = newClient;
   }
 
   // ── State ───────────────────────────────────────────────
@@ -119,28 +129,28 @@ mixin CallMixin on ChangeNotifier {
 
   bool roomHasActiveCall(String roomId) {
     if (_voip == null) return false;
-    final room = client.getRoomById(roomId);
+    final room = _client.getRoomById(roomId);
     if (room == null) return false;
     return room.hasActiveGroupCall(_voip!);
   }
 
   List<String> activeCallIdsForRoom(String roomId) {
     if (_voip == null) return const [];
-    final room = client.getRoomById(roomId);
+    final room = _client.getRoomById(roomId);
     if (room == null) return const [];
     return room.activeGroupCallIds(_voip!);
   }
 
   int callParticipantCount(String roomId, String groupCallId) {
     if (_voip == null) return 0;
-    final room = client.getRoomById(roomId);
+    final room = _client.getRoomById(roomId);
     if (room == null) return 0;
     return room.groupCallParticipantCount(groupCallId, _voip!);
   }
 
   List<CallMembership> callMembershipsForRoom(String roomId) {
     if (_voip == null) return const [];
-    final room = client.getRoomById(roomId);
+    final room = _client.getRoomById(roomId);
     if (room == null) return const [];
     final memberships = room.getCallMembershipsFromRoom(_voip!);
     return memberships.values.expand((list) => list).toList();
@@ -159,7 +169,7 @@ mixin CallMixin on ChangeNotifier {
       return;
     }
 
-    final room = client.getRoomById(roomId);
+    final room = _client.getRoomById(roomId);
     if (room == null) {
       debugPrint('[Lattice] Cannot join call: room $roomId not found');
       return;
@@ -223,11 +233,25 @@ mixin CallMixin on ChangeNotifier {
 
   Future<TurnServerCredentials?> fetchTurnServers() async {
     try {
-      return await client.getTurnServer();
+      return await _client.getTurnServer();
     } catch (e) {
       debugPrint('[Lattice] Failed to fetch TURN servers: $e');
       return null;
     }
+  }
+
+  // ── Lifecycle ───────────────────────────────────────────
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _resetState();
+    super.dispose();
+  }
+
+  @override
+  void notifyListeners() {
+    if (!_disposed) super.notifyListeners();
   }
 
   // ── Private ─────────────────────────────────────────────
