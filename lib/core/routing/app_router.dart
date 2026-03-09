@@ -6,7 +6,7 @@ import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/features/auth/screens/homeserver_screen.dart';
 import 'package:lattice/features/auth/screens/login_screen.dart';
 import 'package:lattice/features/auth/screens/registration_screen.dart';
-import 'package:lattice/features/calling/screens/call_screen.dart';
+import 'package:lattice/features/calling/screens/call_pane.dart';
 import 'package:lattice/features/chat/screens/chat_screen.dart';
 import 'package:lattice/features/home/screens/home_shell.dart';
 import 'package:lattice/features/home/widgets/inbox_screen.dart';
@@ -65,17 +65,6 @@ GoRouter buildRouter(MatrixService matrixService) {
         },
       ),
 
-      // ── Call route ────────────────────────────────────────────
-      GoRoute(
-        path: '/call/:roomId',
-        name: Routes.call,
-        builder: (context, state) {
-          final roomId = state.pathParameters['roomId']!;
-          final displayName = state.extra as String? ?? 'Call';
-          return CallScreen(roomId: roomId, displayName: displayName);
-        },
-      ),
-
       // ── Main app shell ───────────────────────────────────────
       ShellRoute(
         builder: (context, state, child) =>
@@ -108,6 +97,11 @@ GoRouter buildRouter(MatrixService matrixService) {
                         key: ValueKey('details-$roomId'),
                       );
                     },
+                  ),
+                  GoRoute(
+                    path: 'call',
+                    name: Routes.call,
+                    builder: (context, state) => const CallPane(),
                   ),
                 ],
               ),

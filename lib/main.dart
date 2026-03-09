@@ -10,6 +10,7 @@ import 'package:lattice/core/services/client_manager.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/core/services/preferences_service.dart';
 import 'package:lattice/core/theme/lattice_theme.dart';
+import 'package:lattice/features/calling/services/call_service.dart';
 import 'package:lattice/features/chat/services/media_playback_service.dart';
 import 'package:lattice/features/chat/services/opengraph_service.dart';
 import 'package:lattice/features/notifications/services/inbox_controller.dart';
@@ -67,6 +68,7 @@ class _LatticeAppState extends State<LatticeApp> {
           unawaited(prefs.init());
           return prefs;
         },),
+        ChangeNotifierProvider(create: (_) => CallService()),
         ChangeNotifierProvider(create: (_) => MediaPlaybackService()),
         Provider(
           create: (_) => OpenGraphService(),

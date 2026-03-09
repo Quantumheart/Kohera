@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lattice/features/calling/services/call_controller.dart';
-import 'package:lattice/features/calling/services/call_permission_service.dart';
+import 'package:lattice/features/calling/services/call_navigator.dart';
+import 'package:lattice/features/calling/services/call_service.dart';
 import 'package:lattice/features/calling/widgets/call_control_bar.dart';
+import 'package:lattice/features/calling/widgets/pip_self_view.dart';
 import 'package:lattice/features/calling/widgets/video_grid.dart';
+import 'package:provider/provider.dart';
 
 class CallScreen extends StatefulWidget {
   const CallScreen({required this.roomId, required this.displayName, super.key});
@@ -18,48 +20,32 @@ class CallScreen extends StatefulWidget {
 }
 
 class _CallScreenState extends State<CallScreen> {
-  late final CallController _controller;
   Timer? _popTimer;
+
+  void _onControllerChanged() {
+    if (!mounted) return;
+    final callService = context.read<CallService>();
+    final controller = callService.activeCall;
+    if (controller == null || controller.state == CallState.ended) {
+      _popTimer ??= Timer(const Duration(seconds: 2), () {
+        if (mounted) unawaited(CallNavigator.endCall(context));
+      });
+    }
+    setState(() {});
+  }
 
   @override
   void initState() {
     super.initState();
-    _controller = CallController(
-      roomId: widget.roomId,
-      displayName: widget.displayName,
-    );
-    _controller.addListener(_onControllerChanged);
-    unawaited(_requestPermissionsAndJoin());
+    final callService = context.read<CallService>();
+    callService.addListener(_onControllerChanged);
   }
 
   @override
   void dispose() {
     _popTimer?.cancel();
-    _controller.removeListener(_onControllerChanged);
-    _controller.dispose();
+    context.read<CallService>().removeListener(_onControllerChanged);
     super.dispose();
-  }
-
-  Future<void> _requestPermissionsAndJoin() async {
-    final granted = await CallPermissionService.request();
-    if (!mounted) return;
-    if (granted) {
-      await _controller.join();
-    } else {
-      _controller.endWithError('Camera and microphone permissions are required');
-    }
-  }
-
-  void _onControllerChanged() {
-    if (!mounted) return;
-    if (_controller.state == CallState.ended) {
-      setState(() {});
-      _popTimer ??= Timer(const Duration(seconds: 2), () {
-        if (mounted) context.pop();
-      });
-      return;
-    }
-    setState(() {});
   }
 
   String _formatElapsed(Duration d) {
@@ -74,21 +60,26 @@ class _CallScreenState extends State<CallScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final callService = context.watch<CallService>();
+    final controller = callService.activeCall;
     final tt = Theme.of(context).textTheme;
 
     return PopScope(
-      canPop: _controller.state != CallState.connected &&
-          _controller.state != CallState.reconnecting,
+      canPop: controller == null ||
+          (controller.state != CallState.connected &&
+              controller.state != CallState.reconnecting),
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.displayName),
         ),
-        body: switch (_controller.state) {
-          CallState.joining => _buildJoining(tt),
-          CallState.connected => _buildConnected(tt),
-          CallState.reconnecting => _buildReconnecting(tt),
-          CallState.ended => _buildEnded(tt),
-        },
+        body: controller == null
+            ? _buildEnded(tt, null)
+            : switch (controller.state) {
+                CallState.joining => _buildJoining(tt),
+                CallState.connected => _buildConnected(tt, controller),
+                CallState.reconnecting => _buildReconnecting(tt),
+                CallState.ended => _buildEnded(tt, controller),
+              },
       ),
     );
   }
@@ -110,20 +101,33 @@ class _CallScreenState extends State<CallScreen> {
     );
   }
 
-  Widget _buildConnected(TextTheme tt) {
-    return Column(
+  Widget _buildConnected(TextTheme tt, CallController controller) {
+    final remoteParticipants = controller.participants
+        .where((p) => !p.isLocal)
+        .toList();
+    final localParticipant = controller.participants
+        .where((p) => p.isLocal)
+        .firstOrNull;
+
+    return Stack(
       children: [
-        Expanded(
-          child: VideoGrid(participants: _controller.participants),
+        Column(
+          children: [
+            Expanded(
+              child: VideoGrid(participants: remoteParticipants),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                _formatElapsed(controller.elapsed),
+                style: tt.titleMedium,
+              ),
+            ),
+            CallControlBar(controller: controller),
+          ],
         ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Text(
-            _formatElapsed(_controller.elapsed),
-            style: tt.titleMedium,
-          ),
-        ),
-        CallControlBar(controller: _controller),
+        if (localParticipant != null)
+          PipSelfView(participant: localParticipant),
       ],
     );
   }
@@ -141,7 +145,7 @@ class _CallScreenState extends State<CallScreen> {
     );
   }
 
-  Widget _buildEnded(TextTheme tt) {
+  Widget _buildEnded(TextTheme tt, CallController? controller) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -149,10 +153,10 @@ class _CallScreenState extends State<CallScreen> {
           const Icon(Icons.call_end, size: 48),
           const SizedBox(height: 16),
           Text('Call ended', style: tt.titleMedium),
-          if (_controller.error != null) ...[
+          if (controller?.error != null) ...[
             const SizedBox(height: 8),
             Text(
-              _controller.error!,
+              controller!.error!,
               style: tt.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.error,
               ),

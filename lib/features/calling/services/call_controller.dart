@@ -123,7 +123,9 @@ class CallController extends ChangeNotifier {
 
   void toggleScreenShare() {
     _isScreenSharing = !_isScreenSharing;
-    _notify();
+    _updateLocalParticipant(
+      (p) => p.copyWith(isScreenSharing: _isScreenSharing),
+    );
   }
 
   void _updateLocalParticipant(

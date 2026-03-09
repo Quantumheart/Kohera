@@ -6,6 +6,7 @@ class CallParticipant {
     this.isAudioOnly = false,
     this.isMuted = false,
     this.isSpeaking = false,
+    this.isScreenSharing = false,
     this.audioLevel = 0.0,
   });
 
@@ -15,6 +16,7 @@ class CallParticipant {
   final bool isAudioOnly;
   final bool isMuted;
   final bool isSpeaking;
+  final bool isScreenSharing;
   final double audioLevel;
 
   CallParticipant copyWith({
@@ -24,6 +26,7 @@ class CallParticipant {
     bool? isAudioOnly,
     bool? isMuted,
     bool? isSpeaking,
+    bool? isScreenSharing,
     double? audioLevel,
   }) {
     return CallParticipant(
@@ -33,6 +36,7 @@ class CallParticipant {
       isAudioOnly: isAudioOnly ?? this.isAudioOnly,
       isMuted: isMuted ?? this.isMuted,
       isSpeaking: isSpeaking ?? this.isSpeaking,
+      isScreenSharing: isScreenSharing ?? this.isScreenSharing,
       audioLevel: audioLevel ?? this.audioLevel,
     );
   }
