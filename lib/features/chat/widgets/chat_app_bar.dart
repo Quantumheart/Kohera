@@ -138,6 +138,12 @@ class _CallButtonState extends State<_CallButton> {
         roomId: widget.room.id,
         type: type,
       );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to start call')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _starting = false);
     }
