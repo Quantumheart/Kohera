@@ -54,32 +54,6 @@ class CallParticipant {
   final livekit.VideoTrack? videoTrack;
   final webrtc.MediaStream? mediaStream;
 
-  CallParticipant copyWith({
-    String? id,
-    String? displayName,
-    bool? isLocal,
-    bool? isAudioOnly,
-    bool? isMuted,
-    bool? isSpeaking,
-    bool? isScreenSharing,
-    double? audioLevel,
-    livekit.VideoTrack? videoTrack,
-    webrtc.MediaStream? mediaStream,
-  }) {
-    return CallParticipant(
-      id: id ?? this.id,
-      displayName: displayName ?? this.displayName,
-      isLocal: isLocal ?? this.isLocal,
-      isAudioOnly: isAudioOnly ?? this.isAudioOnly,
-      isMuted: isMuted ?? this.isMuted,
-      isSpeaking: isSpeaking ?? this.isSpeaking,
-      isScreenSharing: isScreenSharing ?? this.isScreenSharing,
-      audioLevel: audioLevel ?? this.audioLevel,
-      videoTrack: videoTrack ?? this.videoTrack,
-      mediaStream: mediaStream ?? this.mediaStream,
-    );
-  }
-
   bool get hasVideo => videoTrack != null || mediaStream != null;
 
   @override

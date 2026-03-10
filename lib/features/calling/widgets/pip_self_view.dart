@@ -17,12 +17,14 @@ class PipSelfView extends StatefulWidget {
 
 class _PipSelfViewState extends State<PipSelfView> {
   Offset? _position;
+  BoxConstraints? _lastConstraints;
 
   @override
   Widget build(BuildContext context) {
     return Positioned.fill(
       child: LayoutBuilder(
         builder: (context, constraints) {
+          _lastConstraints = constraints;
           final maxX = constraints.maxWidth - PipSelfView.width - PipSelfView._margin;
           final maxY = constraints.maxHeight - PipSelfView.height - PipSelfView._margin;
           final x = (_position?.dx ?? maxX).clamp(PipSelfView._margin, maxX);
@@ -45,6 +47,9 @@ class _PipSelfViewState extends State<PipSelfView> {
                     });
                   },
                   onPanEnd: (_) => _snapToCorner(constraints),
+                  onPanCancel: () {
+                    if (_lastConstraints != null) _snapToCorner(_lastConstraints!);
+                  },
                   child: SizedBox(
                     width: PipSelfView.width,
                     height: PipSelfView.height,
