@@ -7,6 +7,7 @@ class CallParticipant {
   const CallParticipant({
     required this.id,
     required this.displayName,
+    this.avatarUrl,
     this.isLocal = false,
     this.isAudioOnly = false,
     this.isMuted = false,
@@ -21,6 +22,7 @@ class CallParticipant {
     livekit.Participant p, {
     List<livekit.Participant> activeSpeakers = const [],
     bool isLocal = false,
+    Uri? avatarUrl,
   }) {
     final cameraPub = p.videoTrackPublications
         .where((pub) => pub.source != livekit.TrackSource.screenShareVideo)
@@ -35,6 +37,7 @@ class CallParticipant {
     return CallParticipant(
       id: p.identity,
       displayName: p.name.isNotEmpty ? p.name : _displayNameFromIdentity(p.identity),
+      avatarUrl: avatarUrl,
       isLocal: isLocal,
       isAudioOnly: !hasVideo,
       isMuted: p.isMuted,
@@ -52,6 +55,7 @@ class CallParticipant {
 
   final String id;
   final String displayName;
+  final Uri? avatarUrl;
   final bool isLocal;
   final bool isAudioOnly;
   final bool isMuted;
@@ -69,6 +73,7 @@ class CallParticipant {
       other is CallParticipant &&
           id == other.id &&
           displayName == other.displayName &&
+          avatarUrl == other.avatarUrl &&
           isLocal == other.isLocal &&
           isAudioOnly == other.isAudioOnly &&
           isMuted == other.isMuted &&
@@ -82,6 +87,7 @@ class CallParticipant {
   int get hashCode => Object.hash(
         id,
         displayName,
+        avatarUrl,
         isLocal,
         isAudioOnly,
         isMuted,

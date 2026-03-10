@@ -125,6 +125,11 @@ class LatticeTheme {
           mouseCursor: WidgetStateMouseCursor.clickable,
         ),
       ),
+      iconButtonTheme: const IconButtonThemeData(
+        style: ButtonStyle(
+          mouseCursor: WidgetStateMouseCursor.clickable,
+        ),
+      ),
 
       // Divider
       dividerTheme: DividerThemeData(

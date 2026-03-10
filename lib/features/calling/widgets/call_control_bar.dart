@@ -29,8 +29,10 @@ class CallControlBar extends StatelessWidget {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 12,
+          runSpacing: 8,
           children: [
             _ControlButton(
               icon: Icons.mic,
@@ -39,7 +41,6 @@ class CallControlBar extends StatelessWidget {
               onPressed: onToggleMic,
               tooltip: isMicMuted ? 'Unmute' : 'Mute',
             ),
-            const SizedBox(width: 12),
             _ControlButton(
               icon: Icons.videocam,
               activeIcon: Icons.videocam_off,
@@ -49,8 +50,7 @@ class CallControlBar extends StatelessWidget {
             ),
             if (onFlipCamera != null &&
                 (defaultTargetPlatform == TargetPlatform.android ||
-                    defaultTargetPlatform == TargetPlatform.iOS)) ...[
-              const SizedBox(width: 12),
+                    defaultTargetPlatform == TargetPlatform.iOS))
               _ControlButton(
                 icon: Icons.cameraswitch,
                 activeIcon: Icons.cameraswitch,
@@ -58,8 +58,6 @@ class CallControlBar extends StatelessWidget {
                 onPressed: onFlipCamera!,
                 tooltip: 'Flip camera',
               ),
-            ],
-            const SizedBox(width: 12),
             _ControlButton(
               icon: Icons.screen_share,
               activeIcon: Icons.stop_screen_share,
@@ -67,7 +65,6 @@ class CallControlBar extends StatelessWidget {
               onPressed: onToggleScreenShare,
               tooltip: isScreenSharing ? 'Stop sharing' : 'Share screen',
             ),
-            const SizedBox(width: 16),
             _HangUpButton(onPressed: onHangUp),
           ],
         ),

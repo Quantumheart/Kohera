@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/call_service.dart';
 import 'package:lattice/features/calling/services/call_navigator.dart';
 import 'package:lattice/features/calling/widgets/call_state_views.dart';
@@ -56,27 +58,30 @@ class _CallScreenState extends State<CallScreen> {
     final callService = context.watch<CallService>();
     final state = callService.callState;
 
-    return PopScope(
-      canPop: state != LatticeCallState.connected &&
-          state != LatticeCallState.reconnecting,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(widget.displayName),
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => context.goNamed(
+            Routes.room,
+            pathParameters: {'roomId': widget.roomId},
+          ),
         ),
-        body: switch (state) {
-          LatticeCallState.ringingOutgoing => CallRingingOutgoingView(
-              displayName: widget.displayName,
-              onCancel: callService.cancelOutgoingCall,
-            ),
-          LatticeCallState.ringingIncoming => CallJoiningView(displayName: widget.displayName),
-          LatticeCallState.joining => CallJoiningView(displayName: widget.displayName),
-          LatticeCallState.connected => const ConnectedCallView(),
-          LatticeCallState.reconnecting => const CallReconnectingView(),
-          LatticeCallState.disconnecting ||
-          LatticeCallState.idle ||
-          LatticeCallState.failed => const CallEndedView(),
-        },
+        title: Text(widget.displayName),
       ),
+      body: switch (state) {
+        LatticeCallState.ringingOutgoing => CallRingingOutgoingView(
+            displayName: widget.displayName,
+            onCancel: callService.cancelOutgoingCall,
+          ),
+        LatticeCallState.ringingIncoming => CallJoiningView(displayName: widget.displayName),
+        LatticeCallState.joining => CallJoiningView(displayName: widget.displayName),
+        LatticeCallState.connected => const ConnectedCallView(),
+        LatticeCallState.reconnecting => const CallReconnectingView(),
+        LatticeCallState.disconnecting ||
+        LatticeCallState.idle ||
+        LatticeCallState.failed => const CallEndedView(),
+      },
     );
   }
 
