@@ -37,37 +37,57 @@ mixin CallActionsMixin on ChangeNotifier {
   });
   Future<void> cleanupLiveKit();
 
+  // ── Teardown ─────────────────────────────────────────────────
+  Future<void> _teardownCall({String? roomId}) async {
+    await cleanupLiveKit();
+    cancelMembershipRenewal();
+    if (roomId != null) {
+      try {
+        await removeMembershipEvent(roomId);
+      } catch (e) {
+        debugPrint('[Lattice] Error removing membership: $e');
+      }
+    }
+    activeCallRoomId = null;
+    callStartTime = null;
+  }
+
   // ── Join / Leave ──────────────────────────────────────────────
-  Future<void> joinCall(String roomId) async {
+
+  bool _canJoin(String roomId) {
     if (!initialized) init();
+    if (joining) return false;
+    if (client.getRoomById(roomId) == null) return false;
+    return true;
+  }
 
-    const allowedStates = {
-      LatticeCallState.idle,
-      LatticeCallState.joining,
-      LatticeCallState.ringingOutgoing,
-      LatticeCallState.failed,
-    };
-    if (joining) return;
-    if (!allowedStates.contains(callState)) {
-      if (callState != LatticeCallState.idle) {
-        stopRinging();
-        callState = LatticeCallState.failed;
-        notifyListeners();
-      }
-      return;
+  Future<void> _connectToLiveKit(String roomId, Room room) async {
+    if (cachedLivekitServiceUrl == null) {
+      await fetchWellKnownLiveKit();
+    }
+    final livekitServiceUrl = cachedLivekitServiceUrl;
+    if (livekitServiceUrl == null) {
+      throw Exception('LiveKit service URL not found in well-known');
     }
 
-    final room = client.getRoomById(roomId);
-    if (room == null) {
-      if (callState == LatticeCallState.ringingOutgoing ||
-          callState == LatticeCallState.joining) {
-        stopRinging();
-        callState = LatticeCallState.failed;
-        notifyListeners();
-      }
-      return;
-    }
+    final livekitAlias =
+        room.canonicalAlias.isNotEmpty ? room.canonicalAlias : room.id;
 
+    activeCallRoomId = roomId;
+
+    await sendMembershipEvent(roomId, livekitAlias);
+    startMembershipRenewal(roomId, livekitAlias);
+
+    await connectLiveKit(
+      livekitServiceUrl: livekitServiceUrl,
+      livekitAlias: livekitAlias,
+    );
+  }
+
+  Future<void> joinCall(String roomId) async {
+    if (!_canJoin(roomId)) return;
+
+    final room = client.getRoomById(roomId)!;
     joining = true;
     if (callState != LatticeCallState.ringingOutgoing) {
       callState = LatticeCallState.joining;
@@ -75,63 +95,24 @@ mixin CallActionsMixin on ChangeNotifier {
     notifyListeners();
 
     try {
-      if (cachedLivekitServiceUrl == null) {
-        await fetchWellKnownLiveKit();
-      }
-      final livekitServiceUrl = cachedLivekitServiceUrl;
-      if (livekitServiceUrl == null) {
-        throw Exception('LiveKit service URL not found in well-known');
-      }
-
-      final livekitAlias = room.canonicalAlias.isNotEmpty
-          ? room.canonicalAlias
-          : room.id;
-
-      activeCallRoomId = roomId;
-
-      await sendMembershipEvent(roomId, livekitAlias);
-      startMembershipRenewal(roomId, livekitAlias);
-
-      await connectLiveKit(
-        livekitServiceUrl: livekitServiceUrl,
-        livekitAlias: livekitAlias,
-      );
-
+      await _connectToLiveKit(roomId, room);
       stopRinging();
 
       if (endedDuringJoin) {
         debugPrint('[Lattice] Call ended while joining, cleaning up');
-        await cleanupLiveKit();
-        await removeMembershipEvent(roomId);
-        cancelMembershipRenewal();
-        activeCallRoomId = null;
+        await _teardownCall(roomId: roomId);
         callState = LatticeCallState.idle;
-        notifyListeners();
         return;
       }
 
       callStartTime = DateTime.now();
       callState = LatticeCallState.connected;
-      notifyListeners();
       debugPrint('[Lattice] Joined call in room $roomId');
     } catch (e) {
       debugPrint('[Lattice] Failed to join call: $e');
-      await cleanupLiveKit();
-
-      if (activeCallRoomId != null) {
-        try {
-          await removeMembershipEvent(activeCallRoomId!);
-        } catch (leaveError) {
-          debugPrint('[Lattice] Error removing membership after failure: $leaveError');
-        }
-      }
-
-      cancelMembershipRenewal();
-      activeCallRoomId = null;
+      await _teardownCall(roomId: activeCallRoomId);
       stopRinging();
-
       callState = LatticeCallState.failed;
-      notifyListeners();
     } finally {
       joining = false;
       endedDuringJoin = false;
@@ -142,7 +123,6 @@ mixin CallActionsMixin on ChangeNotifier {
     if (activeCallRoomId == null) {
       if (callState != LatticeCallState.idle) {
         callState = LatticeCallState.idle;
-        notifyListeners();
       }
       return;
     }
@@ -152,21 +132,9 @@ mixin CallActionsMixin on ChangeNotifier {
 
     stopRinging();
     callState = LatticeCallState.disconnecting;
-    notifyListeners();
 
-    await cleanupLiveKit();
-    cancelMembershipRenewal();
-
-    try {
-      await removeMembershipEvent(roomId);
-    } catch (e) {
-      debugPrint('[Lattice] Error removing membership: $e');
-    }
-
-    activeCallRoomId = null;
-    callStartTime = null;
+    await _teardownCall(roomId: roomId);
     callState = LatticeCallState.idle;
-    notifyListeners();
   }
 
   // ── Queries ───────────────────────────────────────────────────

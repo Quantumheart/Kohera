@@ -316,8 +316,11 @@ void main() {
       await service.joinCall('!room:example.com');
       expect(service.callState, LatticeCallState.connected);
 
-      await service.joinCall('!room:example.com');
-      expect(service.callState, LatticeCallState.failed);
+      expect(
+        () => service.joinCall('!room:example.com'),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(service.callState, LatticeCallState.connected);
     });
 
     test('cleans up on LiveKit connect failure', () async {
