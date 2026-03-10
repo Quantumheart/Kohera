@@ -155,7 +155,10 @@ class _CallButtonState extends State<_CallButton> {
     final callState = callService.callState;
     final roomHasCall = callService.roomHasActiveCall(widget.room.id);
     final isInCall = callService.activeCallRoomId == widget.room.id;
-    final busy = _starting || (callState != LatticeCallState.idle && !roomHasCall);
+    final busy = _starting ||
+        (callState != LatticeCallState.idle &&
+            callState != LatticeCallState.failed &&
+            !roomHasCall);
 
     if (roomHasCall && !isInCall) {
       return TextButton.icon(

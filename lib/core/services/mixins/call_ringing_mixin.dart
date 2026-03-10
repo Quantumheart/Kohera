@@ -114,7 +114,7 @@ mixin CallRingingMixin on ChangeNotifier {
 
   Future<void> initiateCall(String roomId, {model.CallType type = model.CallType.voice}) async {
     if (!initialized) init();
-    if (callState != LatticeCallState.idle) return;
+    if (callState != LatticeCallState.idle && callState != LatticeCallState.failed) return;
 
     callState = LatticeCallState.ringingOutgoing;
     notifyListeners();

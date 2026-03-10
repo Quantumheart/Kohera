@@ -20,6 +20,10 @@ mixin CallLiveKitMixin on ChangeNotifier {
   DateTime? get callStartTime;
   @protected
   set callStartTime(DateTime? value);
+  bool get joining;
+  bool get endedDuringJoin;
+  @protected
+  set endedDuringJoin(bool value);
   void cancelMembershipRenewal();
   Future<void> removeMembershipEvent(String roomId);
 
@@ -190,9 +194,15 @@ mixin CallLiveKitMixin on ChangeNotifier {
     };
     final headers = {'Content-Type': 'application/json'};
 
+    final displayName = client.getRoomById(livekitAlias)
+            ?.unsafeGetUserFromMemoryOrFallback(client.userID!)
+            .calcDisplayname() ??
+        client.userID!;
+
     final newBody = jsonEncode({
       'room_id': livekitAlias,
       'slot_id': 'm.call#ROOM',
+      'display_name': displayName,
       'openid_token': openIdPayload,
       'member': {
         'id': '${client.userID}:${client.deviceID}',
@@ -274,6 +284,11 @@ mixin CallLiveKitMixin on ChangeNotifier {
     });
 
     listener.on<livekit.RoomDisconnectedEvent>((_) {
+      if (joining) {
+        debugPrint('[Lattice] LiveKit disconnected during join, deferring cleanup');
+        endedDuringJoin = true;
+        return;
+      }
       final roomId = activeCallRoomId;
       activeCallRoomId = null;
       cancelMembershipRenewal();

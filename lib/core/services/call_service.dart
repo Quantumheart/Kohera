@@ -123,6 +123,8 @@ class CallService extends ChangeNotifier
     _activeCallRoomId = null;
     _callState = LatticeCallState.idle;
     _initialized = false;
+    _joining = false;
+    _endedDuringJoin = false;
     resetIncomingCall();
     stopRinging();
     disposeRingtone();
