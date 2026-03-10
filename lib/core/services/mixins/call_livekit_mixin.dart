@@ -366,6 +366,14 @@ mixin CallLiveKitMixin on ChangeNotifier {
       _invalidateParticipants();
       notifyListeners();
     });
+    listener.on<livekit.LocalTrackPublishedEvent>((_) {
+      _invalidateParticipants();
+      notifyListeners();
+    });
+    listener.on<livekit.LocalTrackUnpublishedEvent>((_) {
+      _invalidateParticipants();
+      notifyListeners();
+    });
   }
 
   void _syncParticipants() {
