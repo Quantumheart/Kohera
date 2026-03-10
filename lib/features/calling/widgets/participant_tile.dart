@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
+import 'package:lattice/core/services/call_service.dart';
 import 'package:lattice/features/calling/models/call_participant.dart';
+import 'package:lattice/shared/widgets/user_avatar.dart';
 import 'package:livekit_client/livekit_client.dart' as livekit;
+import 'package:provider/provider.dart';
 
 class ParticipantTile extends StatefulWidget {
   const ParticipantTile({required this.participant, super.key});
@@ -21,11 +24,15 @@ class _ParticipantTileState extends State<ParticipantTile> {
 
   rtc.RTCVideoRenderer? _renderer;
   int _setupGeneration = 0;
+  Uri? _resolvedAvatarUrl;
+  late String _matrixUserId;
 
   @override
   void initState() {
     super.initState();
+    _matrixUserId = _extractMatrixId(widget.participant.id);
     unawaited(_setupRenderer());
+    unawaited(_resolveAvatar());
   }
 
   @override
@@ -33,6 +40,34 @@ class _ParticipantTileState extends State<ParticipantTile> {
     super.didUpdateWidget(oldWidget);
     if (widget.participant.mediaStream != oldWidget.participant.mediaStream) {
       unawaited(_setupRenderer());
+    }
+    if (widget.participant.id != oldWidget.participant.id) {
+      _matrixUserId = _extractMatrixId(widget.participant.id);
+      _resolvedAvatarUrl = null;
+      unawaited(_resolveAvatar());
+    }
+  }
+
+  static final _matrixIdPattern = RegExp('@[^:]+:[^:]+');
+
+  static String _extractMatrixId(String identity) {
+    final match = _matrixIdPattern.firstMatch(identity);
+    return match?.group(0) ?? identity;
+  }
+
+  Future<void> _resolveAvatar() async {
+    if (widget.participant.avatarUrl != null) {
+      _resolvedAvatarUrl = widget.participant.avatarUrl;
+      return;
+    }
+    try {
+      final client = context.read<CallService>().client;
+      final profile = await client.getProfileFromUserId(_matrixUserId);
+      if (mounted && profile.avatarUrl != null) {
+        setState(() => _resolvedAvatarUrl = profile.avatarUrl);
+      }
+    } catch (e) {
+      debugPrint('[Lattice] Failed to fetch participant avatar: $e');
     }
   }
 
@@ -122,22 +157,15 @@ class _ParticipantTileState extends State<ParticipantTile> {
       );
     }
 
+    final matrixClient = context.read<CallService>().client;
     return ColoredBox(
       color: cs.surfaceContainerHighest,
       child: Center(
-        child: CircleAvatar(
-          radius: 32,
-          backgroundColor: cs.primaryContainer,
-          child: Text(
-            widget.participant.displayName.isNotEmpty
-                ? widget.participant.displayName[0].toUpperCase()
-                : '?',
-            style: TextStyle(
-              fontSize: 28,
-              color: cs.onPrimaryContainer,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+        child: UserAvatar(
+          client: matrixClient,
+          avatarUrl: _resolvedAvatarUrl,
+          userId: _matrixUserId,
+          size: 64,
         ),
       ),
     );

@@ -98,16 +98,30 @@ mixin CallLiveKitMixin on ChangeNotifier {
     final result = <ui.CallParticipant>[];
     if (_livekitRoom == null) return result;
 
+    final room = activeCallRoomId != null
+        ? client.getRoomById(activeCallRoomId!)
+        : null;
+
+    Uri? avatarFor(String identity) {
+      if (room == null) return null;
+      return room.unsafeGetUserFromMemoryOrFallback(identity).avatarUrl;
+    }
+
     final local = _livekitRoom!.localParticipant;
     if (local != null) {
       result.add(ui.CallParticipant.fromLiveKit(
         local,
         activeSpeakers: _activeSpeakers,
         isLocal: true,
+        avatarUrl: avatarFor(local.identity),
       ),);
     }
     for (final p in _participants) {
-      result.add(ui.CallParticipant.fromLiveKit(p, activeSpeakers: _activeSpeakers),);
+      result.add(ui.CallParticipant.fromLiveKit(
+        p,
+        activeSpeakers: _activeSpeakers,
+        avatarUrl: avatarFor(p.identity),
+      ),);
     }
 
     return result;

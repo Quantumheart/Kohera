@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/call_service.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/features/calling/services/call_navigator.dart';
@@ -20,8 +22,9 @@ class CallPane extends StatelessWidget {
   Widget build(BuildContext context) {
     final callService = context.watch<CallService>();
     final state = callService.callState;
+    final roomId = callService.activeCallRoomId;
 
-    return switch (state) {
+    final body = switch (state) {
       LatticeCallState.ringingOutgoing => CallRingingOutgoingView(
           displayName: _resolveRoomName(context, callService),
           onCancel: callService.cancelOutgoingCall,
@@ -38,5 +41,24 @@ class CallPane extends StatelessWidget {
           onReturn: () => CallNavigator.endCall(context),
         ),
     };
+
+    return Column(
+      children: [
+        if (roomId != null &&
+            state != LatticeCallState.idle &&
+            state != LatticeCallState.failed)
+          AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_rounded),
+              onPressed: () => context.goNamed(
+                Routes.room,
+                pathParameters: {'roomId': roomId},
+              ),
+            ),
+            title: Text(_resolveRoomName(context, callService)),
+          ),
+        Expanded(child: body),
+      ],
+    );
   }
 }
