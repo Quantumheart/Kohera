@@ -34,7 +34,7 @@ class CallParticipant {
     );
     return CallParticipant(
       id: p.identity,
-      displayName: p.name.isNotEmpty ? p.name : p.identity,
+      displayName: p.name.isNotEmpty ? p.name : _displayNameFromIdentity(p.identity),
       isLocal: isLocal,
       isAudioOnly: !hasVideo,
       isMuted: p.isMuted,
@@ -43,6 +43,11 @@ class CallParticipant {
       audioLevel: p.audioLevel,
       videoTrack: videoTrack,
     );
+  }
+
+  static String _displayNameFromIdentity(String identity) {
+    final match = RegExp('@([^:]+)').firstMatch(identity);
+    return match?.group(1) ?? identity;
   }
 
   final String id;

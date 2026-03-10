@@ -139,7 +139,13 @@ mixin CallActionsMixin on ChangeNotifier {
   }
 
   Future<void> leaveCall() async {
-    if (activeCallRoomId == null) return;
+    if (activeCallRoomId == null) {
+      if (callState != LatticeCallState.idle) {
+        callState = LatticeCallState.idle;
+        notifyListeners();
+      }
+      return;
+    }
 
     final roomId = activeCallRoomId!;
     debugPrint('[Lattice] Leaving call in room $roomId');
