@@ -303,6 +303,12 @@ class RoomTile extends StatelessWidget {
   String _lastMessagePreview(Event? event, String? myUserId) {
     if (event == null) return 'No messages yet';
     if (event.type == kCallInvite) return 'Call in progress';
+    if (event.type == kCallMember ||
+        event.type == kCallMemberMsc ||
+        event.body.contains(kCallMember) ||
+        event.body.contains(kCallMemberMsc)) {
+      return event.senderId == myUserId ? 'You initiated a call' : 'Call';
+    }
     if (event.type == kCallHangup) {
       final reason = event.content.tryGet<String>('reason');
       if (reason == 'invite_timeout') return 'Missed call';

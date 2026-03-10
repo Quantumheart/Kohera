@@ -28,10 +28,10 @@ void main() {
     when(mockRoom.lastEvent).thenReturn(null);
   });
 
-  Widget buildWidget(Event event) {
+  Widget buildWidget(Event event, {Duration? duration, bool isMe = false}) {
     return MaterialApp(
       home: Scaffold(
-        body: Center(child: CallEventTile(event: event)),
+        body: Center(child: CallEventTile(event: event, isMe: isMe, duration: duration)),
       ),
     );
   }
@@ -61,6 +61,35 @@ void main() {
 
     expect(find.text('Missed call from Alice'), findsOneWidget);
     expect(find.byIcon(Icons.call_missed_rounded), findsOneWidget);
+  });
+
+  testWidgets('renders call duration when provided', (tester) async {
+    when(mockEvent.type).thenReturn('m.call.hangup');
+    when(mockEvent.content).thenReturn({});
+    await tester.pumpWidget(
+      buildWidget(mockEvent, duration: const Duration(minutes: 5, seconds: 32)),
+    );
+
+    expect(find.text('Call ended \u2014 5:32'), findsOneWidget);
+    expect(find.byIcon(Icons.call_end_rounded), findsOneWidget);
+  });
+
+  testWidgets('renders call hangup without duration when null', (tester) async {
+    when(mockEvent.type).thenReturn('m.call.hangup');
+    when(mockEvent.content).thenReturn({});
+    await tester.pumpWidget(buildWidget(mockEvent));
+
+    expect(find.text('Call ended'), findsOneWidget);
+  });
+
+  testWidgets('renders hour-long call duration', (tester) async {
+    when(mockEvent.type).thenReturn('m.call.hangup');
+    when(mockEvent.content).thenReturn({});
+    await tester.pumpWidget(
+      buildWidget(mockEvent, duration: const Duration(hours: 1, minutes: 2, seconds: 3)),
+    );
+
+    expect(find.text('Call ended \u2014 1:02:03'), findsOneWidget);
   });
 
   testWidgets('renders call reject', (tester) async {

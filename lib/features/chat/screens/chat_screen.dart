@@ -200,7 +200,8 @@ class _ChatScreenState extends State<ChatScreen>
     _cachedVisibleEvents = events
         .where((e) =>
             ((e.type == EventTypes.Message || e.type == EventTypes.Encrypted) &&
-                e.relationshipType != RelationshipTypes.edit) ||
+                e.relationshipType != RelationshipTypes.edit &&
+                !_isCallMemberEvent(e)) ||
             callEventTypes.contains(e.type),)
         .toList();
     return _cachedVisibleEvents!;
@@ -476,6 +477,40 @@ class _ChatScreenState extends State<ChatScreen>
 
   static bool _isCallEvent(Event event) => callEventTypes.contains(event.type);
 
+  static bool _isCallMemberEvent(Event event) =>
+      event.type == kCallMember ||
+      event.type == kCallMemberMsc ||
+      event.body.contains(kCallMember) ||
+      event.body.contains(kCallMemberMsc);
+
+  Duration? _callDuration(Event event) {
+    if (event.type != kCallHangup) return null;
+    final reason = event.content.tryGet<String>('reason');
+    if (reason == 'invite_timeout') return null;
+
+    final hangupCallId = event.content.tryGet<String>('call_id');
+    final events = _timeline?.events;
+    if (events == null) return null;
+
+    Event? matchedInvite;
+    for (final e in events) {
+      if (e.type != kCallInvite) continue;
+      if (!e.originServerTs.isBefore(event.originServerTs)) continue;
+      if (hangupCallId != null &&
+          hangupCallId.isNotEmpty &&
+          e.content.tryGet<String>('call_id') == hangupCallId) {
+        matchedInvite = e;
+        break;
+      }
+      matchedInvite ??= e;
+    }
+
+    if (matchedInvite == null) return null;
+    final d = event.originServerTs.difference(matchedInvite.originServerTs);
+    if (d.isNegative || d.inHours >= 24) return null;
+    return d;
+  }
+
   Widget _buildMessageList(
       List<Event> events, MatrixService matrix, Room room,) {
     final isMobile = MediaQuery.sizeOf(context).width < 720;
@@ -500,7 +535,11 @@ class _ChatScreenState extends State<ChatScreen>
         }
         final event = events[i];
         if (_isCallEvent(event)) {
-          return CallEventTile(event: event);
+          return CallEventTile(
+            event: event,
+            isMe: event.senderId == matrix.client.userID,
+            duration: _callDuration(event),
+          );
         }
         final prevSender = i + 1 < events.length ? events[i + 1].senderId : null;
         return ChatMessageItem(
