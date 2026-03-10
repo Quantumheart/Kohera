@@ -10,6 +10,9 @@ mixin CallRingingMixin on ChangeNotifier {
   LatticeCallState get callState;
   @protected
   set callState(LatticeCallState value);
+  String? get activeCallRoomId;
+  @protected
+  set activeCallRoomId(String? value);
   bool get initialized;
   void init();
   Future<void> joinCall(String roomId);
@@ -131,6 +134,7 @@ mixin CallRingingMixin on ChangeNotifier {
     }
 
     stopRinging();
+    activeCallRoomId = null;
     callState = LatticeCallState.idle;
   }
 
@@ -141,6 +145,7 @@ mixin CallRingingMixin on ChangeNotifier {
     if (callState != LatticeCallState.idle && callState != LatticeCallState.failed) return;
 
     _lastInitiatedRoomId = roomId;
+    activeCallRoomId = roomId;
     callState = LatticeCallState.ringingOutgoing;
 
     unawaited(_ringtoneService?.playDialtone());
