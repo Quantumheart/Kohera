@@ -40,7 +40,11 @@ const membershipRenewalInterval = Duration(minutes: 5);
 // ── Call Service ────────────────────────────────────────────
 
 class CallService extends ChangeNotifier
-    with CallRtcMembershipMixin, CallLiveKitMixin, CallRingingMixin, CallActionsMixin {
+    with
+        CallRtcMembershipMixin,
+        CallLiveKitMixin,
+        CallRingingMixin,
+        CallActionsMixin {
   CallService({required Client client}) : _client = client;
 
   Client _client;
@@ -56,6 +60,47 @@ class CallService extends ChangeNotifier
 
   // ── Shared State ─────────────────────────────────────────────
 
+  static const Map<LatticeCallState, Set<LatticeCallState>> _validTransitions =
+      {
+    LatticeCallState.idle: {
+      LatticeCallState.joining,
+      LatticeCallState.ringingOutgoing,
+      LatticeCallState.ringingIncoming,
+    },
+    LatticeCallState.ringingOutgoing: {
+      LatticeCallState.joining,
+      LatticeCallState.connected,
+      LatticeCallState.idle,
+      LatticeCallState.failed,
+    },
+    LatticeCallState.ringingIncoming: {
+      LatticeCallState.joining,
+      LatticeCallState.idle,
+    },
+    LatticeCallState.joining: {
+      LatticeCallState.connected,
+      LatticeCallState.idle,
+      LatticeCallState.failed,
+    },
+    LatticeCallState.connected: {
+      LatticeCallState.reconnecting,
+      LatticeCallState.disconnecting,
+      LatticeCallState.failed,
+    },
+    LatticeCallState.reconnecting: {
+      LatticeCallState.connected,
+      LatticeCallState.failed,
+    },
+    LatticeCallState.disconnecting: {
+      LatticeCallState.idle,
+    },
+    LatticeCallState.failed: {
+      LatticeCallState.idle,
+      LatticeCallState.joining,
+      LatticeCallState.ringingOutgoing,
+    },
+  };
+
   LatticeCallState _callState = LatticeCallState.idle;
 
   @override
@@ -63,7 +108,18 @@ class CallService extends ChangeNotifier
 
   @override
   @protected
-  set callState(LatticeCallState value) => _callState = value;
+  set callState(LatticeCallState next) {
+    if (_callState == next) return;
+    final allowed = _validTransitions[_callState];
+    if (allowed == null || !allowed.contains(next)) {
+      debugPrint(
+          '[Lattice] Invalid call state transition: $_callState → $next');
+      assert(false, 'Invalid call state transition: $_callState → $next');
+      return;
+    }
+    _callState = next;
+    notifyListeners();
+  }
 
   String? _activeCallRoomId;
 
@@ -104,8 +160,9 @@ class CallService extends ChangeNotifier
   @protected
   set callStartTime(DateTime? value) => _callStartTime = value;
 
-  Duration? get callElapsed =>
-      _callStartTime != null ? DateTime.now().difference(_callStartTime!) : null;
+  Duration? get callElapsed => _callStartTime != null
+      ? DateTime.now().difference(_callStartTime!)
+      : null;
 
   // ── Lifecycle ────────────────────────────────────────────────
 

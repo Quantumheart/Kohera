@@ -275,12 +275,10 @@ mixin CallLiveKitMixin on ChangeNotifier {
 
     listener.on<livekit.RoomReconnectingEvent>((_) {
       callState = LatticeCallState.reconnecting;
-      notifyListeners();
     });
 
     listener.on<livekit.RoomReconnectedEvent>((_) {
       callState = LatticeCallState.connected;
-      notifyListeners();
     });
 
     listener.on<livekit.RoomDisconnectedEvent>((_) {
@@ -294,7 +292,6 @@ mixin CallLiveKitMixin on ChangeNotifier {
       cancelMembershipRenewal();
       callStartTime = null;
       callState = LatticeCallState.failed;
-      notifyListeners();
       unawaited(cleanupLiveKit());
       if (roomId != null) {
         unawaited(

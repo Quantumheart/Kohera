@@ -69,7 +69,6 @@ mixin CallRingingMixin on ChangeNotifier {
       _incomingCall = null;
       stopRinging();
       callState = LatticeCallState.idle;
-      notifyListeners();
     }
   }
 
@@ -85,7 +84,6 @@ mixin CallRingingMixin on ChangeNotifier {
     _incomingCall = null;
     callState = LatticeCallState.joining;
     stopRinging();
-    notifyListeners();
 
     unawaited(joinCall(info.roomId));
   }
@@ -95,7 +93,6 @@ mixin CallRingingMixin on ChangeNotifier {
     _incomingCall = null;
     callState = LatticeCallState.idle;
     stopRinging();
-    notifyListeners();
   }
 
   void cancelOutgoingCall() {
@@ -104,10 +101,8 @@ mixin CallRingingMixin on ChangeNotifier {
     if (joining) {
       endedDuringJoin = true;
       callState = LatticeCallState.idle;
-      notifyListeners();
     } else {
       callState = LatticeCallState.idle;
-      notifyListeners();
       unawaited(leaveCall());
     }
   }
@@ -117,7 +112,6 @@ mixin CallRingingMixin on ChangeNotifier {
     if (callState != LatticeCallState.idle && callState != LatticeCallState.failed) return;
 
     callState = LatticeCallState.ringingOutgoing;
-    notifyListeners();
 
     unawaited(_ringtoneService?.playDialtone());
 
