@@ -34,7 +34,7 @@ void main() {
         'info': {
           'duration': 5000,
           'size': 1024 * 1024,
-        }
+        },
       });
       when(mockEvent.status).thenReturn(EventStatus.sent);
     });
@@ -51,7 +51,7 @@ void main() {
       when(mockEvent.content).thenReturn({
         'info': {
           'size': 200 * 1024 * 1024, // 200 MB > 100 MB limit
-        }
+        },
       });
 
       await tester.pumpWidget(_wrap(mockEvent));
@@ -80,7 +80,7 @@ void main() {
         downloadCallback: anyNamed('downloadCallback'),
         fromLocalStoreOnly: anyNamed('fromLocalStoreOnly'),
         onDownloadProgress: anyNamed('onDownloadProgress'),
-      )).thenAnswer((_) => completer.future);
+      ),).thenAnswer((_) => completer.future);
 
       await tester.pumpWidget(_wrap(mockEvent));
       await tester.tap(find.byIcon(Icons.play_arrow_rounded));

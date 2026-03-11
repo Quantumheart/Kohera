@@ -18,14 +18,14 @@ void main() {
     service.dispose();
   });
 
-  IncomingCallInfo _makeInfo({String roomId = '!r:x', String name = 'Alice'}) =>
+  IncomingCallInfo makeInfo({String roomId = '!r:x', String name = 'Alice'}) =>
       IncomingCallInfo(roomId: roomId, callerName: name, callId: 'c1');
 
   // ── pushIncomingCall ────────────────────────────────────────
 
   group('pushIncomingCall', () {
     test('stores info and emits on stream', () async {
-      final info = _makeInfo();
+      final info = makeInfo();
       final future = service.incomingCallStream.first;
       service.pushIncomingCall(info);
       expect(service.incomingCall, info);
@@ -33,8 +33,8 @@ void main() {
     });
 
     test('overwrites previous call', () {
-      final first = _makeInfo(name: 'Alice');
-      final second = _makeInfo(name: 'Bob');
+      final first = makeInfo();
+      final second = makeInfo(name: 'Bob');
       service.pushIncomingCall(first);
       service.pushIncomingCall(second);
       expect(service.incomingCall!.callerName, 'Bob');
@@ -45,7 +45,7 @@ void main() {
 
   group('resetIncomingCall', () {
     test('clears stored call', () {
-      service.pushIncomingCall(_makeInfo());
+      service.pushIncomingCall(makeInfo());
       service.resetIncomingCall();
       expect(service.incomingCall, isNull);
     });
@@ -67,7 +67,7 @@ void main() {
 
     test('handles null ringtone service', () {
       final bare = CallRingingService();
-      expect(() => bare.stopRinging(), returnsNormally);
+      expect(bare.stopRinging, returnsNormally);
       bare.dispose();
     });
   });
@@ -82,7 +82,7 @@ void main() {
 
     test('handles null ringtone service', () {
       final bare = CallRingingService();
-      expect(() => bare.playRingtone(), returnsNormally);
+      expect(bare.playRingtone, returnsNormally);
       bare.dispose();
     });
   });
@@ -95,7 +95,7 @@ void main() {
 
     test('handles null ringtone service', () {
       final bare = CallRingingService();
-      expect(() => bare.playDialtone(), returnsNormally);
+      expect(bare.playDialtone, returnsNormally);
       bare.dispose();
     });
   });

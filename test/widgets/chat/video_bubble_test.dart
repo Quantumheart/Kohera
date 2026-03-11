@@ -42,7 +42,7 @@ void main() {
         'info': {
           'duration': 10000,
           'size': 5 * 1024 * 1024,
-        }
+        },
       });
       when(mockEvent.status).thenReturn(EventStatus.sent);
       when(mockEvent.isAttachmentEncrypted).thenReturn(false);
@@ -56,7 +56,7 @@ void main() {
         getThumbnail: true,
         width: anyNamed('width'),
         height: anyNamed('height'),
-      )).thenAnswer((_) async => Uri.parse('https://example.com/thumb.jpg'));
+      ),).thenAnswer((_) async => Uri.parse('https://example.com/thumb.jpg'));
     });
 
     testWidgets('renders thumbnail correctly (unencrypted)', (tester) async {
@@ -80,8 +80,8 @@ void main() {
             0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00, 
             0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 
             0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 
-            0x42, 0x60, 0x82
-          ]), name: 'thumb.png'));
+            0x42, 0x60, 0x82,
+          ]), name: 'thumb.png',),);
 
       await tester.pumpWidget(_wrap(mockEvent));
       await tester.pump(); // allow thumbnail load to complete
@@ -94,7 +94,7 @@ void main() {
       when(mockEvent.content).thenReturn({
         'info': {
           'size': 200 * 1024 * 1024,
-        }
+        },
       });
 
       await tester.pumpWidget(_wrap(mockEvent));
@@ -112,7 +112,7 @@ void main() {
         downloadCallback: anyNamed('downloadCallback'),
         fromLocalStoreOnly: anyNamed('fromLocalStoreOnly'),
         onDownloadProgress: anyNamed('onDownloadProgress'),
-      )).thenAnswer((_) => completer.future);
+      ),).thenAnswer((_) => completer.future);
 
       await tester.pumpWidget(_wrap(mockEvent));
       await tester.pump(); // finish thumb load
@@ -143,7 +143,7 @@ void main() {
         getThumbnail: true,
         width: anyNamed('width'),
         height: anyNamed('height'),
-      )).thenThrow(Exception('Thumbnail load failed'));
+      ),).thenThrow(Exception('Thumbnail load failed'));
 
       await tester.pumpWidget(_wrap(mockEvent));
       await tester.pump();

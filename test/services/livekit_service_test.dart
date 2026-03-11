@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -10,9 +9,9 @@ import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
+import 'call_test_helpers.dart';
 @GenerateNiceMocks([MockSpec<Client>(), MockSpec<Room>()])
 import 'livekit_service_test.mocks.dart';
-import 'call_test_helpers.dart';
 
 void main() {
   late MockClient mockClient;
@@ -244,7 +243,7 @@ void main() {
           (e) => e.toString(),
           'message',
           contains('401'),
-        )),
+        ),),
       );
     });
 
@@ -297,7 +296,7 @@ void main() {
         requestCount++;
         if (requestCount == 1) {
           return http.Response('', 301,
-              headers: {'location': 'https://redirect.example.com/sfu/get'});
+              headers: {'location': 'https://redirect.example.com/sfu/get'},);
         }
         return http.Response(
           jsonEncode({'url': 'wss://lk.example.com', 'jwt': 'tok'}),
@@ -324,7 +323,7 @@ void main() {
         requestCount++;
         if (requestCount == 1) {
           return http.Response('', 302,
-              headers: {'location': 'https://other.example.com/sfu/get'});
+              headers: {'location': 'https://other.example.com/sfu/get'},);
         }
         return http.Response(
           jsonEncode({'url': 'wss://lk.example.com', 'jwt': 'tok'}),
@@ -350,7 +349,7 @@ void main() {
         requestCount++;
         if (requestCount == 1) {
           return http.Response('', 307,
-              headers: {'location': 'https://other.example.com/sfu/get'});
+              headers: {'location': 'https://other.example.com/sfu/get'},);
         }
         return http.Response(
           jsonEncode({'url': 'wss://lk.example.com', 'jwt': 'tok'}),
@@ -376,7 +375,7 @@ void main() {
         requestCount++;
         if (requestCount <= 3) {
           return http.Response('', 302,
-              headers: {'location': 'https://hop$requestCount.example.com/'});
+              headers: {'location': 'https://hop$requestCount.example.com/'},);
         }
         return http.Response(
           jsonEncode({'url': 'wss://lk.example.com', 'jwt': 'tok'}),
@@ -399,7 +398,7 @@ void main() {
     test('throws on more than 6 redirects', () async {
       service.httpPostForTest = (client, url, {headers, body}) async {
         return http.Response('', 302,
-            headers: {'location': 'https://loop.example.com/'});
+            headers: {'location': 'https://loop.example.com/'},);
       };
 
       expect(
@@ -412,7 +411,7 @@ void main() {
           (e) => e.toString(),
           'message',
           contains('Too many redirects'),
-        )),
+        ),),
       );
     });
 
@@ -431,7 +430,7 @@ void main() {
           (e) => e.toString(),
           'message',
           contains('302'),
-        )),
+        ),),
       );
     });
 
@@ -442,7 +441,7 @@ void main() {
         requestCount++;
         if (requestCount == 1) {
           return http.Response('', 302,
-              headers: {'location': '/new-path/sfu/get'});
+              headers: {'location': '/new-path/sfu/get'},);
         }
         secondUrl = url;
         return http.Response(
@@ -604,7 +603,7 @@ void main() {
 
       fakeRoom.listener!.fire(livekit.ParticipantConnectedEvent(
         participant: remote,
-      ));
+      ),);
 
       final participants = service.allParticipants(activeCallRoomId: null);
       expect(participants, hasLength(2));
@@ -627,7 +626,7 @@ void main() {
       fakeRoom.listener!.fire(livekit.TrackMutedEvent(
         participant: fakeRoom.localParticipantFake!,
         publication: FakeTrackPublication(),
-      ));
+      ),);
 
       final second = service.allParticipants(activeCallRoomId: null);
       expect(identical(first, second), isFalse);
@@ -732,7 +731,7 @@ void main() {
       when(mockClient.getWellknown()).thenAnswer((_) async =>
           DiscoveryInformation(
             mHomeserver: HomeserverInformation(
-                baseUrl: Uri.parse('https://example.com')),
+                baseUrl: Uri.parse('https://example.com'),),
             additionalProperties: {
               'org.matrix.msc4143.rtc_foci': [
                 {
@@ -741,7 +740,7 @@ void main() {
                 },
               ],
             },
-          ));
+          ),);
 
       await service.fetchWellKnownLiveKit();
 
@@ -752,7 +751,7 @@ void main() {
       when(mockClient.getWellknown()).thenAnswer((_) async =>
           DiscoveryInformation(
             mHomeserver: HomeserverInformation(
-                baseUrl: Uri.parse('https://example.com')),
+                baseUrl: Uri.parse('https://example.com'),),
             additionalProperties: {
               'org.matrix.msc4143.rtc_foci': [
                 {
@@ -761,7 +760,7 @@ void main() {
                 },
               ],
             },
-          ));
+          ),);
 
       await service.fetchWellKnownLiveKit();
       final first = service.cachedLivekitServiceUrl;
@@ -775,11 +774,11 @@ void main() {
       when(mockClient.getWellknown()).thenAnswer((_) async =>
           DiscoveryInformation(
             mHomeserver: HomeserverInformation(
-                baseUrl: Uri.parse('https://example.com')),
+                baseUrl: Uri.parse('https://example.com'),),
             additionalProperties: {
               'org.matrix.msc4143.rtc_foci': <dynamic>[],
             },
-          ));
+          ),);
 
       await service.fetchWellKnownLiveKit();
 
@@ -790,8 +789,8 @@ void main() {
       when(mockClient.getWellknown()).thenAnswer((_) async =>
           DiscoveryInformation(
             mHomeserver: HomeserverInformation(
-                baseUrl: Uri.parse('https://example.com')),
-          ));
+                baseUrl: Uri.parse('https://example.com'),),
+          ),);
 
       await service.fetchWellKnownLiveKit();
 
@@ -802,13 +801,13 @@ void main() {
       when(mockClient.getWellknown()).thenAnswer((_) async =>
           DiscoveryInformation(
             mHomeserver: HomeserverInformation(
-                baseUrl: Uri.parse('https://example.com')),
+                baseUrl: Uri.parse('https://example.com'),),
             additionalProperties: {
               'org.matrix.msc4143.rtc_foci': [
                 {'type': 'jitsi', 'url': 'https://jitsi.example.com'},
               ],
             },
-          ));
+          ),);
 
       await service.fetchWellKnownLiveKit();
 
@@ -827,7 +826,7 @@ void main() {
       when(mockClient.getWellknown()).thenAnswer((_) async =>
           DiscoveryInformation(
             mHomeserver: HomeserverInformation(
-                baseUrl: Uri.parse('https://example.com')),
+                baseUrl: Uri.parse('https://example.com'),),
             additionalProperties: {
               'org.matrix.msc4143.rtc_foci': [
                 {
@@ -840,7 +839,7 @@ void main() {
                 },
               ],
             },
-          ));
+          ),);
 
       await service.fetchWellKnownLiveKit();
 
@@ -851,7 +850,7 @@ void main() {
       when(mockClient.getWellknown()).thenAnswer((_) async =>
           DiscoveryInformation(
             mHomeserver: HomeserverInformation(
-                baseUrl: Uri.parse('https://example.com')),
+                baseUrl: Uri.parse('https://example.com'),),
             additionalProperties: {
               'org.matrix.msc4143.rtc_foci': [
                 {'type': 'livekit'},
@@ -861,7 +860,7 @@ void main() {
                 },
               ],
             },
-          ));
+          ),);
 
       await service.fetchWellKnownLiveKit();
 
@@ -926,7 +925,7 @@ void main() {
 
       fakeRoom.listener!.fire(livekit.ParticipantConnectedEvent(
         participant: remote,
-      ));
+      ),);
 
       expect(service.participants, hasLength(1));
       expect(changedCount, 1);
@@ -938,7 +937,7 @@ void main() {
 
       fakeRoom.listener!.fire(livekit.ParticipantDisconnectedEvent(
         participant: remote,
-      ));
+      ),);
 
       expect(changedCount, 1);
     });
@@ -948,7 +947,7 @@ void main() {
 
       fakeRoom.listener!.fire(livekit.ActiveSpeakersChangedEvent(
         speakers: [fakeRoom.localParticipantFake!],
-      ));
+      ),);
 
       expect(service.activeSpeakers, hasLength(1));
       expect(changedCount, 1);
@@ -960,7 +959,7 @@ void main() {
       fakeRoom.listener!.fire(livekit.TrackMutedEvent(
         participant: fakeRoom.localParticipantFake!,
         publication: FakeTrackPublication(),
-      ));
+      ),);
 
       expect(changedCount, 1);
     });
@@ -971,7 +970,7 @@ void main() {
       fakeRoom.listener!.fire(livekit.TrackUnmutedEvent(
         participant: fakeRoom.localParticipantFake!,
         publication: FakeTrackPublication(),
-      ));
+      ),);
 
       expect(changedCount, 1);
     });
@@ -984,7 +983,7 @@ void main() {
         participant: remote,
         publication: FakeRemoteTrackPublication(),
         track: FakeTrack(),
-      ));
+      ),);
 
       expect(changedCount, 1);
     });
@@ -997,7 +996,7 @@ void main() {
         participant: remote,
         publication: FakeRemoteTrackPublication(),
         track: FakeTrack(),
-      ));
+      ),);
 
       expect(changedCount, 1);
     });
@@ -1008,7 +1007,7 @@ void main() {
       fakeRoom.listener!.fire(livekit.LocalTrackPublishedEvent(
         participant: fakeRoom.localParticipantFake!,
         publication: FakeLocalTrackPublication(),
-      ));
+      ),);
 
       expect(changedCount, 1);
     });
@@ -1019,7 +1018,7 @@ void main() {
       fakeRoom.listener!.fire(livekit.LocalTrackUnpublishedEvent(
         participant: fakeRoom.localParticipantFake!,
         publication: FakeLocalTrackPublication(),
-      ));
+      ),);
 
       expect(changedCount, 1);
     });
