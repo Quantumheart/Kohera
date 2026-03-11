@@ -7,21 +7,32 @@ import 'package:flutter_callkit_incoming/entities/call_event.dart';
 import 'package:flutter_callkit_incoming/entities/call_kit_params.dart';
 import 'package:flutter_callkit_incoming/entities/ios_params.dart';
 import 'package:flutter_callkit_incoming/flutter_callkit_incoming.dart';
-import 'package:lattice/core/services/call_service.dart';
-import 'package:lattice/features/calling/models/incoming_call_info.dart' as model;
 
-mixin CallNativeUiMixin on ChangeNotifier {
-  // ── Cross-mixin dependencies ──────────────────────────────────
-  LatticeCallState get callState;
-  String? get activeCallRoomId;
-  void acceptCall({bool withVideo});
-  void declineCall();
-  Future<void> leaveCall();
+// ── Native Call Actions ────────────────────────────────────
 
-  // ── State ─────────────────────────────────────────────────────
+sealed class NativeCallAction {}
+
+class NativeCallAccepted extends NativeCallAction {
+  NativeCallAccepted({this.roomId, this.withVideo = false});
+  final String? roomId;
+  final bool withVideo;
+}
+
+class NativeCallDeclined extends NativeCallAction {}
+
+class NativeCallEnded extends NativeCallAction {}
+
+class NativeCallTimedOut extends NativeCallAction {}
+
+// ── Native Call UI Service ─────────────────────────────────
+
+class NativeCallUiService {
   String? _nativeCallId;
   StreamSubscription<CallEvent?>? _nativeEventSub;
   bool _endingFromFlutter = false;
+
+  final _actionController = StreamController<NativeCallAction>.broadcast();
+  Stream<NativeCallAction> get actions => _actionController.stream;
 
   final StreamController<String> _nativeAcceptedCallController =
       StreamController<String>.broadcast();
@@ -31,22 +42,16 @@ mixin CallNativeUiMixin on ChangeNotifier {
 
   bool get _isMobile => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
-  // ── Lifecycle ─────────────────────────────────────────────────
-  @protected
-  void initNativeCallUi() {
+  void init({
+    required String Function() getCallState,
+  }) {
     if (!_isMobile) return;
+    _getCallState = getCallState;
     _nativeEventSub = FlutterCallkitIncoming.onEvent.listen(_onNativeEvent);
     unawaited(_checkPendingAccept());
   }
 
-  @protected
-  void disposeNativeCallUi() {
-    if (!_isMobile) return;
-    unawaited(_nativeEventSub?.cancel());
-    _nativeEventSub = null;
-    unawaited(FlutterCallkitIncoming.endAllCalls());
-    _nativeCallId = null;
-  }
+  String Function() _getCallState = () => 'idle';
 
   Future<void> _checkPendingAccept() async {
     final activeCalls = await FlutterCallkitIncoming.activeCalls();
@@ -57,32 +62,37 @@ mixin CallNativeUiMixin on ChangeNotifier {
         final roomId = extra?['roomId'] as String?;
         final withVideo = extra?['withVideo'] == 'true';
         if (roomId != null) {
-          acceptCall(withVideo: withVideo);
+          _actionController.add(
+            NativeCallAccepted(roomId: roomId, withVideo: withVideo),
+          );
           _nativeAcceptedCallController.add(roomId);
         }
       }
     }
   }
 
-  // ── Native UI triggers ────────────────────────────────────────
-  @protected
-  void showNativeIncomingCall(model.IncomingCallInfo info) {
+  void showNativeIncomingCall({
+    required String? callId,
+    required String roomId,
+    required String callerName,
+    required Uri? callerAvatarUrl,
+    required bool isVideo,
+  }) {
     if (!_isMobile) return;
-    _nativeCallId = info.callId ?? info.roomId;
+    _nativeCallId = callId ?? roomId;
     final params = CallKitParams(
       id: _nativeCallId,
-      nameCaller: info.callerName,
-      avatar: info.callerAvatarUrl?.toString(),
-      type: info.isVideo ? 1 : 0,
+      nameCaller: callerName,
+      avatar: callerAvatarUrl?.toString(),
+      type: isVideo ? 1 : 0,
       duration: 60000,
-      extra: {'roomId': info.roomId, 'withVideo': info.isVideo.toString()},
+      extra: {'roomId': roomId, 'withVideo': isVideo.toString()},
       android: const AndroidParams(isShowFullLockedScreen: true),
       ios: const IOSParams(supportsVideo: true, configureAudioSession: false),
     );
     unawaited(FlutterCallkitIncoming.showCallkitIncoming(params));
   }
 
-  @protected
   void showNativeOutgoingCall(String roomId, String callerName, bool isVideo) {
     if (!_isMobile) return;
     _nativeCallId = roomId;
@@ -97,13 +107,11 @@ mixin CallNativeUiMixin on ChangeNotifier {
     unawaited(FlutterCallkitIncoming.startCall(params));
   }
 
-  @protected
   void updateNativeCallConnected() {
     if (!_isMobile || _nativeCallId == null) return;
     unawaited(FlutterCallkitIncoming.setCallConnected(_nativeCallId!));
   }
 
-  @protected
   void endNativeCall() {
     if (!_isMobile || _nativeCallId == null) return;
     _endingFromFlutter = true;
@@ -115,7 +123,6 @@ mixin CallNativeUiMixin on ChangeNotifier {
     _nativeCallId = null;
   }
 
-  // ── Native event handling ─────────────────────────────────────
   void _onNativeEvent(CallEvent? event) {
     if (event == null) return;
     final body = event.body as Map<String, dynamic>?;
@@ -123,16 +130,16 @@ mixin CallNativeUiMixin on ChangeNotifier {
       case Event.actionCallAccept:
         _onNativeAccept(body);
       case Event.actionCallDecline:
-        declineCall();
+        _actionController.add(NativeCallDeclined());
       case Event.actionCallEnded:
         if (!_endingFromFlutter) {
-          if (callState == LatticeCallState.connected ||
-              callState == LatticeCallState.reconnecting) {
-            unawaited(leaveCall());
+          final callState = _getCallState();
+          if (callState == 'connected' || callState == 'reconnecting') {
+            _actionController.add(NativeCallEnded());
           }
         }
       case Event.actionCallTimeout:
-        declineCall();
+        _actionController.add(NativeCallTimedOut());
       default:
         break;
     }
@@ -142,9 +149,22 @@ mixin CallNativeUiMixin on ChangeNotifier {
     final extra = body?['extra'] as Map<String, dynamic>?;
     final roomId = extra?['roomId'] as String?;
     final withVideo = extra?['withVideo'] == 'true';
-    acceptCall(withVideo: withVideo);
+    _actionController.add(
+      NativeCallAccepted(roomId: roomId, withVideo: withVideo),
+    );
     if (roomId != null) {
       _nativeAcceptedCallController.add(roomId);
     }
+  }
+
+  void dispose() {
+    if (_isMobile) {
+      unawaited(_nativeEventSub?.cancel());
+      _nativeEventSub = null;
+      unawaited(FlutterCallkitIncoming.endAllCalls());
+      _nativeCallId = null;
+    }
+    unawaited(_actionController.close());
+    unawaited(_nativeAcceptedCallController.close());
   }
 }

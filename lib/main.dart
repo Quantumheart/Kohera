@@ -98,15 +98,19 @@ class _LatticeAppState extends State<LatticeApp> {
                     },
                     child: ChangeNotifierProxyProvider<MatrixService, CallService>(
                       create: (ctx) {
-                        final cs = CallService(client: ctx.read<MatrixService>().client)
-                          ..ringtoneService = RingtoneService();
+                        final cs = CallService(
+                          client: ctx.read<MatrixService>().client,
+                          ringtoneService: RingtoneService(),
+                        );
                         if (ctx.read<MatrixService>().isLoggedIn) cs.init();
                         return cs;
                       },
                       update: (_, matrix, previous) {
                         if (previous == null) {
-                          final cs = CallService(client: matrix.client)
-                            ..ringtoneService = RingtoneService();
+                          final cs = CallService(
+                            client: matrix.client,
+                            ringtoneService: RingtoneService(),
+                          );
                           if (matrix.isLoggedIn) cs.init();
                           return cs;
                         }

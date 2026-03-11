@@ -487,6 +487,7 @@ void main() {
       await service.joinCall('!room:example.com');
 
       fakeRoom._listener!.fire(const livekit.RoomReconnectingEvent());
+      await Future<void>.delayed(Duration.zero);
 
       expect(service.callState, LatticeCallState.reconnecting);
     });
@@ -498,6 +499,7 @@ void main() {
       await service.joinCall('!room:example.com');
 
       fakeRoom._listener!.fire(const livekit.RoomReconnectedEvent());
+      await Future<void>.delayed(Duration.zero);
 
       expect(service.callState, LatticeCallState.connected);
     });
@@ -509,6 +511,7 @@ void main() {
       await service.joinCall('!room:example.com');
 
       fakeRoom._listener!.fire(livekit.RoomDisconnectedEvent());
+      await Future<void>.delayed(Duration.zero);
 
       expect(service.callState, LatticeCallState.failed);
       expect(service.activeCallRoomId, isNull);

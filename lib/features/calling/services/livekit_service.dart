@@ -8,26 +8,47 @@ import 'package:lattice/features/calling/models/call_participant.dart' as ui;
 import 'package:livekit_client/livekit_client.dart' as livekit;
 import 'package:matrix/matrix.dart';
 
-mixin CallLiveKitMixin on ChangeNotifier {
-  // ── Constants ───────────────────────────────────────────────────
+// ── LiveKit Connection Events ──────────────────────────────
+
+sealed class LiveKitConnectionEvent {}
+
+class LiveKitReconnecting extends LiveKitConnectionEvent {}
+
+class LiveKitReconnected extends LiveKitConnectionEvent {}
+
+class LiveKitDisconnected extends LiveKitConnectionEvent {}
+
+// ── LiveKit Service ────────────────────────────────────────
+
+class LiveKitService {
+  LiveKitService({
+    required Client client,
+    required VoidCallback onChanged,
+    LiveKitRoomFactory? roomFactory,
+    HttpPostFunction? httpPost,
+  })  : _client = client,
+        _onChanged = onChanged,
+        _roomFactory = roomFactory ?? livekit.Room.new,
+        _httpPost = httpPost ?? _sendNoAutoRedirect;
+
   static const _maxRedirects = 6;
   static const _wellKnownTtl = Duration(hours: 1);
 
-  // ── Cross-mixin dependencies ──────────────────────────────────
-  Client get client;
-  LatticeCallState get callState;
-  @protected
-  set callState(LatticeCallState value);
-  String? get activeCallRoomId;
-  @protected
-  set activeCallRoomId(String? value);
-  DateTime? get callStartTime;
-  @protected
-  set callStartTime(DateTime? value);
-  void cancelMembershipRenewal();
-  Future<void> removeMembershipEvent(String roomId);
+  Client _client;
+  final VoidCallback _onChanged;
+  LiveKitRoomFactory _roomFactory;
+  HttpPostFunction _httpPost;
 
-  // ── LiveKit State ─────────────────────────────────────────────
+  void updateClient(Client client) => _client = client;
+
+  set roomFactoryForTest(LiveKitRoomFactory factory) => _roomFactory = factory;
+
+  HttpPostFunction get httpPostForTest => _httpPost;
+
+  set httpPostForTest(HttpPostFunction fn) => _httpPost = fn;
+
+  // ── LiveKit State ──────────────────────────────────────────
+
   livekit.Room? _livekitRoom;
   livekit.Room? get livekitRoom => _livekitRoom;
 
@@ -53,40 +74,19 @@ mixin CallLiveKitMixin on ChangeNotifier {
   List<ui.CallParticipant>? _cachedParticipants;
   bool _participantsDirty = true;
 
-  LiveKitRoomFactory _roomFactory = livekit.Room.new;
+  final _connectionEventController =
+      StreamController<LiveKitConnectionEvent>.broadcast();
 
-  @visibleForTesting
-  set roomFactoryForTest(LiveKitRoomFactory factory) => _roomFactory = factory;
+  Stream<LiveKitConnectionEvent> get connectionEvents =>
+      _connectionEventController.stream;
 
-  HttpPostFunction _httpPost = _sendNoAutoRedirect;
+  // ── Participant Aggregation ────────────────────────────────
 
-  @visibleForTesting
-  HttpPostFunction get httpPostForTest => _httpPost;
-
-  @visibleForTesting
-  set httpPostForTest(HttpPostFunction fn) => _httpPost = fn;
-
-  static Future<http.Response> _sendNoAutoRedirect(
-    http.Client httpClient,
-    Uri url, {
-    Map<String, String>? headers,
-    Object? body,
-  }) async {
-    final request = http.Request('POST', url)
-      ..followRedirects = false;
-    if (headers != null) request.headers.addAll(headers);
-    if (body is List<int>) {
-      request.bodyBytes = body;
-    } else if (body is String) {
-      request.bodyBytes = utf8.encode(body);
-    }
-    return http.Response.fromStream(await httpClient.send(request));
-  }
-
-  // ── Participant Aggregation ───────────────────────────────────
-  List<ui.CallParticipant> get allParticipants {
+  List<ui.CallParticipant> allParticipants({
+    required String? activeCallRoomId,
+  }) {
     if (_participantsDirty || _cachedParticipants == null) {
-      _cachedParticipants = _buildParticipantList();
+      _cachedParticipants = _buildParticipantList(activeCallRoomId);
       _participantsDirty = false;
     }
     return _cachedParticipants!;
@@ -94,12 +94,12 @@ mixin CallLiveKitMixin on ChangeNotifier {
 
   void _invalidateParticipants() => _participantsDirty = true;
 
-  List<ui.CallParticipant> _buildParticipantList() {
+  List<ui.CallParticipant> _buildParticipantList(String? activeCallRoomId) {
     final result = <ui.CallParticipant>[];
     if (_livekitRoom == null) return result;
 
     final room = activeCallRoomId != null
-        ? client.getRoomById(activeCallRoomId!)
+        ? _client.getRoomById(activeCallRoomId)
         : null;
 
     Uri? avatarFor(String matrixId) {
@@ -129,7 +129,8 @@ mixin CallLiveKitMixin on ChangeNotifier {
     return result;
   }
 
-  // ── Track Toggles ─────────────────────────────────────────────
+  // ── Track Toggles ──────────────────────────────────────────
+
   Future<void> _toggleTrack({
     required bool currentValue,
     required void Function(bool) updateField,
@@ -137,14 +138,14 @@ mixin CallLiveKitMixin on ChangeNotifier {
     required String label,
   }) async {
     updateField(!currentValue);
-    notifyListeners();
+    _onChanged();
 
     try {
       await apply(!currentValue);
     } catch (e) {
       debugPrint('[Lattice] Failed to toggle $label: $e');
       updateField(currentValue);
-      notifyListeners();
+      _onChanged();
     }
   }
 
@@ -184,7 +185,24 @@ mixin CallLiveKitMixin on ChangeNotifier {
     );
   }
 
-  // ── HTTP Helpers ──────────────────────────────────────────────
+  // ── HTTP Helpers ───────────────────────────────────────────
+
+  static Future<http.Response> _sendNoAutoRedirect(
+    http.Client httpClient,
+    Uri url, {
+    Map<String, String>? headers,
+    Object? body,
+  }) async {
+    final request = http.Request('POST', url)..followRedirects = false;
+    if (headers != null) request.headers.addAll(headers);
+    if (body is List<int>) {
+      request.bodyBytes = body;
+    } else if (body is String) {
+      request.bodyBytes = utf8.encode(body);
+    }
+    return http.Response.fromStream(await httpClient.send(request));
+  }
+
   Future<http.Response> _postWithRedirects(
     Uri url, {
     required Map<String, String> headers,
@@ -226,8 +244,8 @@ mixin CallLiveKitMixin on ChangeNotifier {
     required String livekitServiceUrl,
     required String livekitAlias,
   }) async {
-    final openId = await client.requestOpenIdToken(
-      client.userID!,
+    final openId = await _client.requestOpenIdToken(
+      _client.userID!,
       {},
     );
 
@@ -248,7 +266,7 @@ mixin CallLiveKitMixin on ChangeNotifier {
       body: utf8.encode(jsonEncode({
         'room': livekitAlias,
         'openid_token': openIdPayload,
-        'device_id': client.deviceID,
+        'device_id': _client.deviceID,
       }),),
     );
 
@@ -265,24 +283,25 @@ mixin CallLiveKitMixin on ChangeNotifier {
     );
   }
 
-  // ── Connection ────────────────────────────────────────────────
-  @protected
+  // ── Connection ─────────────────────────────────────────────
+
   Future<void> connectLiveKit({
     required String livekitServiceUrl,
     required String livekitAlias,
+    required LatticeCallState Function() currentState,
   }) async {
     final credentials = await _fetchLiveKitToken(
       livekitServiceUrl: livekitServiceUrl,
       livekitAlias: livekitAlias,
     );
 
-    if (callState != LatticeCallState.joining) return;
+    if (currentState() != LatticeCallState.joining) return;
 
     _livekitRoom = _roomFactory();
 
     await _livekitRoom!.connect(credentials.url, credentials.token);
 
-    if (callState != LatticeCallState.joining) {
+    if (currentState() != LatticeCallState.joining) {
       await cleanupLiveKit();
       return;
     }
@@ -301,78 +320,58 @@ mixin CallLiveKitMixin on ChangeNotifier {
     final listener = _livekitListener!;
 
     listener.on<livekit.RoomReconnectingEvent>((_) {
-      callState = LatticeCallState.reconnecting;
+      _connectionEventController.add(LiveKitReconnecting());
     });
 
     listener.on<livekit.RoomReconnectedEvent>((_) {
-      callState = LatticeCallState.connected;
+      _connectionEventController.add(LiveKitReconnected());
     });
 
     listener.on<livekit.RoomDisconnectedEvent>((_) {
-      if (callState == LatticeCallState.disconnecting ||
-          callState == LatticeCallState.idle) {
-        return;
-      }
-      if (callState == LatticeCallState.joining) {
-        callState = LatticeCallState.idle;
-        return;
-      }
-      final roomId = activeCallRoomId;
-      activeCallRoomId = null;
-      cancelMembershipRenewal();
-      callStartTime = null;
-      callState = LatticeCallState.failed;
-      unawaited(cleanupLiveKit());
-      if (roomId != null) {
-        unawaited(
-          removeMembershipEvent(roomId).catchError(
-            (Object e) => debugPrint('[Lattice] Error removing membership after disconnect: $e'),
-          ),
-        );
-      }
+      _connectionEventController.add(LiveKitDisconnected());
     });
 
     listener.on<livekit.ParticipantConnectedEvent>((_) {
       _syncParticipants();
       _invalidateParticipants();
-      notifyListeners();
+      _onChanged();
     });
 
     listener.on<livekit.ParticipantDisconnectedEvent>((_) {
       _syncParticipants();
       _invalidateParticipants();
-      notifyListeners();
+      _onChanged();
     });
 
     listener.on<livekit.ActiveSpeakersChangedEvent>((event) {
       _activeSpeakers = event.speakers.toList();
       _invalidateParticipants();
-      notifyListeners();
+      _onChanged();
     });
 
     listener.on<livekit.TrackMutedEvent>((_) {
       _invalidateParticipants();
-      notifyListeners();
+      _onChanged();
     });
     listener.on<livekit.TrackUnmutedEvent>((_) {
       _invalidateParticipants();
-      notifyListeners();
+      _onChanged();
     });
     listener.on<livekit.TrackSubscribedEvent>((_) {
       _invalidateParticipants();
-      notifyListeners();
+      _onChanged();
     });
     listener.on<livekit.TrackUnsubscribedEvent>((_) {
       _invalidateParticipants();
-      notifyListeners();
+      _onChanged();
     });
     listener.on<livekit.LocalTrackPublishedEvent>((_) {
       _invalidateParticipants();
-      notifyListeners();
+      _onChanged();
     });
     listener.on<livekit.LocalTrackUnpublishedEvent>((_) {
       _invalidateParticipants();
-      notifyListeners();
+      _onChanged();
     });
   }
 
@@ -381,7 +380,6 @@ mixin CallLiveKitMixin on ChangeNotifier {
         _livekitRoom?.remoteParticipants.values.toList() ?? [];
   }
 
-  @protected
   Future<void> cleanupLiveKit() async {
     final listener = _livekitListener;
     final room = _livekitRoom;
@@ -412,7 +410,8 @@ mixin CallLiveKitMixin on ChangeNotifier {
     }
   }
 
-  // ── Well-Known ────────────────────────────────────────────────
+  // ── Well-Known ─────────────────────────────────────────────
+
   String? _cachedLivekitServiceUrl;
   DateTime? _wellKnownFetchedAt;
 
@@ -426,7 +425,6 @@ mixin CallLiveKitMixin on ChangeNotifier {
     return _cachedLivekitServiceUrl;
   }
 
-  @visibleForTesting
   set cachedLivekitServiceUrlForTest(String? url) {
     _cachedLivekitServiceUrl = url;
     _wellKnownFetchedAt = url != null ? DateTime.now() : null;
@@ -434,7 +432,7 @@ mixin CallLiveKitMixin on ChangeNotifier {
 
   Future<void> fetchWellKnownLiveKit() async {
     try {
-      final wellKnown = await client.getWellknown();
+      final wellKnown = await _client.getWellknown();
       final fociList =
           wellKnown.additionalProperties['org.matrix.msc4143.rtc_foci'] as List?;
       if (fociList == null || fociList.isEmpty) return;
@@ -453,5 +451,9 @@ mixin CallLiveKitMixin on ChangeNotifier {
     } catch (e) {
       debugPrint('[Lattice] Failed to fetch LiveKit well-known: $e');
     }
+  }
+
+  void dispose() {
+    unawaited(_connectionEventController.close());
   }
 }
