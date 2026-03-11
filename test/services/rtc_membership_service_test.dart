@@ -5,9 +5,9 @@ import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
+import 'call_test_helpers.dart';
 @GenerateNiceMocks([MockSpec<Client>(), MockSpec<Room>()])
 import 'rtc_membership_service_test.mocks.dart';
-import 'call_test_helpers.dart';
 
 void main() {
   late MockClient mockClient;
@@ -41,11 +41,12 @@ void main() {
       expect(content['scope'], 'm.room');
       expect(content['device_id'], 'DEV1');
       expect(content['expires'], membershipExpiresMs);
-      expect(content['focus_active'], isA<Map>());
-      expect(content['foci_preferred'], isA<List>());
-      final foci = content['foci_preferred'] as List;
-      expect(foci.first['livekit_service_url'], 'https://lk.example.com');
-      expect(foci.first['livekit_alias'], 'room-alias');
+      expect(content['focus_active'], isA<Map<String, dynamic>>());
+      expect(content['foci_preferred'], isA<List<dynamic>>());
+      final foci = content['foci_preferred'] as List<dynamic>;
+      final firstFoci = foci.first as Map<String, dynamic>;
+      expect(firstFoci['livekit_service_url'], 'https://lk.example.com');
+      expect(firstFoci['livekit_alias'], 'room-alias');
     });
   });
 
@@ -67,7 +68,7 @@ void main() {
         callMemberEventType,
         '_@alice:example.com_DEV1_m.call',
         argThat(isA<Map<String, dynamic>>()),
-      )).called(1);
+      ),).called(1);
     });
   });
 
@@ -85,7 +86,7 @@ void main() {
         callMemberEventType,
         '_@alice:example.com_DEV1_m.call',
         {},
-      )).called(1);
+      ),).called(1);
     });
   });
 
@@ -153,7 +154,7 @@ void main() {
           any,
           any,
           any,
-        )).captured;
+        ),).captured;
         expect(captured.last, '!room:y');
       });
     });

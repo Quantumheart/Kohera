@@ -1,4 +1,3 @@
-import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lattice/features/calling/models/call_constants.dart';
@@ -30,7 +29,7 @@ void main() {
     service.dispose();
   });
 
-  MockRoom _setupRoom(String roomId, {bool direct = true, bool encrypted = false}) {
+  MockRoom setupRoom(String roomId, {bool direct = true, bool encrypted = false}) {
     final room = MockRoom();
     when(mockClient.getRoomById(roomId)).thenReturn(room);
     when(room.isDirectChat).thenReturn(direct);
@@ -40,7 +39,7 @@ void main() {
     return room;
   }
 
-  FakeEvent _makeInviteEvent({
+  FakeEvent makeInviteEvent({
     String callId = 'call1',
     String roomId = '!r:x',
     String senderId = '@bob:example.com',
@@ -84,14 +83,14 @@ void main() {
 
   group('sendCallInvite', () {
     test('sends correct type and content', () async {
-      final room = _setupRoom('!r:x');
+      final room = setupRoom('!r:x');
 
       await service.sendCallInvite('!r:x', 'c1');
 
       final captured = verify(room.sendEvent(
         captureAny,
         type: captureAnyNamed('type'),
-      )).captured;
+      ),).captured;
       final content = captured[0] as Map<String, dynamic>;
       final type = captured[1] as String;
       expect(type, kCallInvite);
@@ -107,19 +106,19 @@ void main() {
     });
 
     test('isVideo flag', () async {
-      final room = _setupRoom('!r:x');
+      final room = setupRoom('!r:x');
 
       await service.sendCallInvite('!r:x', 'c1', isVideo: true);
 
       final captured = verify(room.sendEvent(
         captureAny,
         type: anyNamed('type'),
-      )).captured;
+      ),).captured;
       expect((captured[0] as Map)['is_video'], true);
     });
 
     test('prepares encryption for encrypted room', () async {
-      final room = _setupRoom('!r:x', encrypted: true);
+      final room = setupRoom('!r:x', encrypted: true);
       when(room.encrypted).thenReturn(true);
 
       await service.sendCallInvite('!r:x', 'c1');
@@ -132,14 +131,14 @@ void main() {
 
   group('sendCallAnswer', () {
     test('sends correct type and content', () async {
-      final room = _setupRoom('!r:x');
+      final room = setupRoom('!r:x');
 
       await service.sendCallAnswer('!r:x', 'c1');
 
       final captured = verify(room.sendEvent(
         captureAny,
         type: captureAnyNamed('type'),
-      )).captured;
+      ),).captured;
       expect(captured[1], kCallAnswer);
       expect((captured[0] as Map)['call_id'], 'c1');
     });
@@ -154,14 +153,14 @@ void main() {
 
   group('sendCallReject', () {
     test('sends correct type and content', () async {
-      final room = _setupRoom('!r:x');
+      final room = setupRoom('!r:x');
 
       await service.sendCallReject('!r:x', 'c1');
 
       final captured = verify(room.sendEvent(
         captureAny,
         type: captureAnyNamed('type'),
-      )).captured;
+      ),).captured;
       expect(captured[1], kCallReject);
       expect((captured[0] as Map)['call_id'], 'c1');
     });
@@ -176,14 +175,14 @@ void main() {
 
   group('sendCallHangup', () {
     test('sends correct type and content', () async {
-      final room = _setupRoom('!r:x');
+      final room = setupRoom('!r:x');
 
       await service.sendCallHangup('!r:x', 'c1');
 
       final captured = verify(room.sendEvent(
         captureAny,
         type: captureAnyNamed('type'),
-      )).captured;
+      ),).captured;
       expect(captured[1], kCallHangup);
       final content = captured[0] as Map;
       expect(content['call_id'], 'c1');
@@ -191,14 +190,14 @@ void main() {
     });
 
     test('custom reason', () async {
-      final room = _setupRoom('!r:x');
+      final room = setupRoom('!r:x');
 
       await service.sendCallHangup('!r:x', 'c1', reason: 'glare');
 
       final captured = verify(room.sendEvent(
         captureAny,
         type: anyNamed('type'),
-      )).captured;
+      ),).captured;
       expect((captured[0] as Map)['reason'], 'glare');
     });
 
@@ -234,7 +233,7 @@ void main() {
     late MockRoom mockRoom;
 
     setUp(() {
-      mockRoom = _setupRoom('!r:x');
+      mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => null,
         getCallState: () => 'idle',
@@ -252,9 +251,9 @@ void main() {
         content: {},
         originServerTs: DateTime.now().millisecondsSinceEpoch,
         room: mockRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events, isEmpty);
     });
 
@@ -264,14 +263,13 @@ void main() {
 
       timelineController.add(FakeEvent(
         type: kCallInvite,
-        roomId: null,
         senderId: '@bob:example.com',
         content: {'call_id': 'c1'},
         originServerTs: DateTime.now().millisecondsSinceEpoch,
         room: mockRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events, isEmpty);
     });
 
@@ -290,9 +288,9 @@ void main() {
         content: {'call_id': 'c1'},
         originServerTs: DateTime.now().millisecondsSinceEpoch,
         room: nonDirectRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events, isEmpty);
     });
 
@@ -307,9 +305,9 @@ void main() {
         content: {'call_id': 'c1'},
         originServerTs: DateTime.now().millisecondsSinceEpoch,
         room: mockRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events, isEmpty);
     });
   });
@@ -320,7 +318,7 @@ void main() {
     late MockRoom mockRoom;
 
     setUp(() {
-      mockRoom = _setupRoom('!r:x');
+      mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => null,
         getCallState: () => 'idle',
@@ -331,9 +329,9 @@ void main() {
       final events = <SignalingEvent>[];
       service.events.listen(events.add);
 
-      timelineController.add(_makeInviteEvent(room: mockRoom));
+      timelineController.add(makeInviteEvent(room: mockRoom));
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events.length, 1);
       expect(events.first, isA<IncomingInvite>());
     });
@@ -342,13 +340,13 @@ void main() {
       final events = <SignalingEvent>[];
       service.events.listen(events.add);
 
-      timelineController.add(_makeInviteEvent(
+      timelineController.add(makeInviteEvent(
         callId: 'test-call',
         isVideo: true,
         room: mockRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       final invite = events.first as IncomingInvite;
       expect(invite.callId, 'test-call');
       expect(invite.info.roomId, '!r:x');
@@ -361,7 +359,7 @@ void main() {
 
   group('incoming invite (non-idle)', () {
     test('ignored when connected', () async {
-      final mockRoom = _setupRoom('!r:x');
+      final mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => 'c1',
         getCallState: () => 'connected',
@@ -370,14 +368,14 @@ void main() {
       final events = <SignalingEvent>[];
       service.events.listen(events.add);
 
-      timelineController.add(_makeInviteEvent(room: mockRoom));
+      timelineController.add(makeInviteEvent(room: mockRoom));
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events, isEmpty);
     });
 
     test('ignored when joining', () async {
-      final mockRoom = _setupRoom('!r:x');
+      final mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => 'c1',
         getCallState: () => 'joining',
@@ -386,9 +384,9 @@ void main() {
       final events = <SignalingEvent>[];
       service.events.listen(events.add);
 
-      timelineController.add(_makeInviteEvent(room: mockRoom));
+      timelineController.add(makeInviteEvent(room: mockRoom));
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events, isEmpty);
     });
   });
@@ -397,7 +395,7 @@ void main() {
 
   group('stale invite', () {
     test('ignored when lifetime expired', () async {
-      final mockRoom = _setupRoom('!r:x');
+      final mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => null,
         getCallState: () => 'idle',
@@ -407,13 +405,12 @@ void main() {
       service.events.listen(events.add);
 
       final staleTs = DateTime.now().millisecondsSinceEpoch - 120000;
-      timelineController.add(_makeInviteEvent(
+      timelineController.add(makeInviteEvent(
         originServerTs: staleTs,
-        lifetime: 60000,
         room: mockRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events, isEmpty);
     });
   });
@@ -422,7 +419,7 @@ void main() {
 
   group('missing call_id', () {
     test('no event emitted', () async {
-      final mockRoom = _setupRoom('!r:x');
+      final mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => null,
         getCallState: () => 'idle',
@@ -439,9 +436,9 @@ void main() {
         originServerTs: DateTime.now().millisecondsSinceEpoch,
         room: mockRoom,
         senderFromMemoryOrFallback: FakeUser(displayName: 'Bob'),
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events, isEmpty);
     });
   });
@@ -450,7 +447,7 @@ void main() {
 
   group('glare resolution', () {
     test('local wins (lower userId) → ignored', () async {
-      final mockRoom = _setupRoom('!r:x');
+      final mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => 'my-call',
         getCallState: () => 'ringingOutgoing',
@@ -459,17 +456,17 @@ void main() {
       final events = <SignalingEvent>[];
       service.events.listen(events.add);
 
-      timelineController.add(_makeInviteEvent(
+      timelineController.add(makeInviteEvent(
         senderId: '@zara:example.com',
         room: mockRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events, isEmpty);
     });
 
     test('remote wins → GlareResolved + hangup sent', () async {
-      final mockRoom = _setupRoom('!r:x');
+      final mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => 'my-call',
         getCallState: () => 'ringingOutgoing',
@@ -478,12 +475,12 @@ void main() {
       final events = <SignalingEvent>[];
       service.events.listen(events.add);
 
-      timelineController.add(_makeInviteEvent(
+      timelineController.add(makeInviteEvent(
         senderId: '@aaa:example.com',
         room: mockRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events.length, 1);
       expect(events.first, isA<GlareResolved>());
       final glare = events.first as GlareResolved;
@@ -492,11 +489,11 @@ void main() {
       verify(mockRoom.sendEvent(
         argThat(containsPair('reason', 'glare')),
         type: kCallHangup,
-      )).called(1);
+      ),).called(1);
     });
 
     test('null myCallId handled (no hangup sent)', () async {
-      final mockRoom = _setupRoom('!r:x');
+      final mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => null,
         getCallState: () => 'ringingOutgoing',
@@ -505,12 +502,12 @@ void main() {
       final events = <SignalingEvent>[];
       service.events.listen(events.add);
 
-      timelineController.add(_makeInviteEvent(
+      timelineController.add(makeInviteEvent(
         senderId: '@aaa:example.com',
         room: mockRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events.length, 1);
       final glare = events.first as GlareResolved;
       expect(glare.myCallId, isNull);
@@ -518,7 +515,7 @@ void main() {
       verifyNever(mockRoom.sendEvent(
         argThat(containsPair('reason', 'glare')),
         type: kCallHangup,
-      ));
+      ),);
     });
   });
 
@@ -526,7 +523,7 @@ void main() {
 
   group('answer handling', () {
     test('emits AnswerReceived when id matches + ringingOutgoing', () async {
-      final mockRoom = _setupRoom('!r:x');
+      final mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => 'c1',
         getCallState: () => 'ringingOutgoing',
@@ -542,16 +539,16 @@ void main() {
         content: {'call_id': 'c1', 'version': 1},
         originServerTs: DateTime.now().millisecondsSinceEpoch,
         room: mockRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events.length, 1);
       expect(events.first, isA<AnswerReceived>());
       expect((events.first as AnswerReceived).callId, 'c1');
     });
 
     test('ignored when call id does not match', () async {
-      final mockRoom = _setupRoom('!r:x');
+      final mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => 'c1',
         getCallState: () => 'ringingOutgoing',
@@ -567,14 +564,14 @@ void main() {
         content: {'call_id': 'wrong', 'version': 1},
         originServerTs: DateTime.now().millisecondsSinceEpoch,
         room: mockRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events, isEmpty);
     });
 
     test('ignored when not ringingOutgoing', () async {
-      final mockRoom = _setupRoom('!r:x');
+      final mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => 'c1',
         getCallState: () => 'connected',
@@ -590,9 +587,9 @@ void main() {
         content: {'call_id': 'c1', 'version': 1},
         originServerTs: DateTime.now().millisecondsSinceEpoch,
         room: mockRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events, isEmpty);
     });
   });
@@ -601,7 +598,7 @@ void main() {
 
   group('reject handling', () {
     test('emits RejectReceived when id matches + ringingOutgoing', () async {
-      final mockRoom = _setupRoom('!r:x');
+      final mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => 'c1',
         getCallState: () => 'ringingOutgoing',
@@ -617,15 +614,15 @@ void main() {
         content: {'call_id': 'c1', 'version': 1},
         originServerTs: DateTime.now().millisecondsSinceEpoch,
         room: mockRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events.length, 1);
       expect(events.first, isA<RejectReceived>());
     });
 
     test('ignored when not ringingOutgoing', () async {
-      final mockRoom = _setupRoom('!r:x');
+      final mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => 'c1',
         getCallState: () => 'idle',
@@ -641,9 +638,9 @@ void main() {
         content: {'call_id': 'c1', 'version': 1},
         originServerTs: DateTime.now().millisecondsSinceEpoch,
         room: mockRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events, isEmpty);
     });
   });
@@ -652,7 +649,7 @@ void main() {
 
   group('hangup handling', () {
     test('emits HangupReceived when id matches (any state)', () async {
-      final mockRoom = _setupRoom('!r:x');
+      final mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => 'c1',
         getCallState: () => 'connected',
@@ -668,15 +665,15 @@ void main() {
         content: {'call_id': 'c1', 'version': 1},
         originServerTs: DateTime.now().millisecondsSinceEpoch,
         room: mockRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events.length, 1);
       expect(events.first, isA<HangupReceived>());
     });
 
     test('ignored when call id does not match', () async {
-      final mockRoom = _setupRoom('!r:x');
+      final mockRoom = setupRoom('!r:x');
       service.startSignalingListener(
         getActiveCallId: () => 'c1',
         getCallState: () => 'connected',
@@ -692,9 +689,9 @@ void main() {
         content: {'call_id': 'wrong', 'version': 1},
         originServerTs: DateTime.now().millisecondsSinceEpoch,
         room: mockRoom,
-      ));
+      ),);
 
-      await Future.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
       expect(events, isEmpty);
     });
   });
