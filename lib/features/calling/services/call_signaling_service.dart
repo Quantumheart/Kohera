@@ -65,6 +65,17 @@ class CallSignalingService {
 
   String generateCallId() => _generateCallId();
 
+  Future<void> _prepareEncryption(String roomId) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null || !room.encrypted) return;
+    try {
+      await _client.encryption?.keyManager
+          .prepareOutboundGroupSession(roomId);
+    } catch (e) {
+      debugPrint('[Lattice] Failed to prepare encryption for call: $e');
+    }
+  }
+
   Future<void> sendCallInvite(
     String roomId,
     String callId, {
@@ -72,6 +83,7 @@ class CallSignalingService {
   }) async {
     final room = _client.getRoomById(roomId);
     if (room == null) return;
+    await _prepareEncryption(roomId);
     await room.sendEvent({
       'call_id': callId,
       'version': 1,
@@ -85,6 +97,7 @@ class CallSignalingService {
   Future<void> sendCallAnswer(String roomId, String callId) async {
     final room = _client.getRoomById(roomId);
     if (room == null) return;
+    await _prepareEncryption(roomId);
     await room.sendEvent({
       'call_id': callId,
       'version': 1,
