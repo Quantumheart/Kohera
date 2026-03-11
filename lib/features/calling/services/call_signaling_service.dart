@@ -63,10 +63,15 @@ class CallSignalingService {
 
   // ── Event Senders ──────────────────────────────────────────
 
-  Future<String> sendCallInvite(String roomId, {bool isVideo = false}) async {
-    final callId = _generateCallId();
+  String generateCallId() => _generateCallId();
+
+  Future<void> sendCallInvite(
+    String roomId,
+    String callId, {
+    bool isVideo = false,
+  }) async {
     final room = _client.getRoomById(roomId);
-    if (room == null) return callId;
+    if (room == null) return;
     await room.sendEvent({
       'call_id': callId,
       'version': 1,
@@ -75,7 +80,6 @@ class CallSignalingService {
       'is_video': isVideo,
     }, type: kCallInvite,);
     debugPrint('[Lattice] Sent m.call.invite for call $callId in $roomId');
-    return callId;
   }
 
   Future<void> sendCallAnswer(String roomId, String callId) async {
@@ -136,6 +140,7 @@ class CallSignalingService {
 
   void _onTimelineEvent(Event event) {
     if (!callEventTypes.contains(event.type)) return;
+    if (event.roomId == null) return;
 
     final room = event.room;
     if (!room.isDirectChat) return;

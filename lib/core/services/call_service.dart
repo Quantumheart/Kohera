@@ -305,6 +305,8 @@ class CallService extends ChangeNotifier {
   Future<void> leaveCall() async {
     if (_callState == LatticeCallState.joining) {
       await _teardownCall(roomId: _activeCallRoomId);
+      _activeCallId = null;
+      _lastInitiatedRoomId = null;
       _setCallState(LatticeCallState.idle);
       return;
     }
@@ -325,6 +327,8 @@ class CallService extends ChangeNotifier {
       unawaited(_signaling.sendCallHangup(roomId, callId));
     }
 
+    _activeCallId = null;
+    _lastInitiatedRoomId = null;
     _ringing.stopRinging();
     _setCallState(LatticeCallState.disconnecting);
 
@@ -334,7 +338,7 @@ class CallService extends ChangeNotifier {
 
   // ── Ringing Actions ────────────────────────────────────────
 
-  void acceptCall({bool withVideo = false}) {
+  Future<void> acceptCall({bool withVideo = false}) async {
     if (_callState != LatticeCallState.ringingIncoming) return;
     final info = _ringing.incomingCall;
     if (info == null) return;
@@ -346,7 +350,7 @@ class CallService extends ChangeNotifier {
       unawaited(_signaling.sendCallAnswer(info.roomId, info.callId!));
     }
 
-    unawaited(joinCall(info.roomId));
+    await joinCall(info.roomId);
   }
 
   void declineCall() {
@@ -381,8 +385,10 @@ class CallService extends ChangeNotifier {
     }
 
     _ringing.stopRinging();
-    _activeCallRoomId = null;
+    _activeCallId = null;
+    _lastInitiatedRoomId = null;
     _setCallState(LatticeCallState.idle);
+    _activeCallRoomId = null;
   }
 
   Future<void> initiateCall(
@@ -395,6 +401,8 @@ class CallService extends ChangeNotifier {
       return;
     }
 
+    final callId = _signaling.generateCallId();
+    _activeCallId = callId;
     _lastInitiatedRoomId = roomId;
     _activeCallRoomId = roomId;
     _setCallState(LatticeCallState.ringingOutgoing);
@@ -413,11 +421,11 @@ class CallService extends ChangeNotifier {
       () => cancelOutgoingCall(isTimeout: true),
     );
 
-    final callId = await _signaling.sendCallInvite(
+    await _signaling.sendCallInvite(
       roomId,
+      callId,
       isVideo: type == model.CallType.video,
     );
-    _activeCallId = callId;
   }
 
   // ── Queries ────────────────────────────────────────────────
@@ -441,6 +449,8 @@ class CallService extends ChangeNotifier {
         unawaited(joinCall(event.roomId));
       case RejectReceived():
         _activeCallId = null;
+        _activeCallRoomId = null;
+        _lastInitiatedRoomId = null;
         _ringing.stopRinging();
         _setCallState(LatticeCallState.idle);
       case HangupReceived():
@@ -453,6 +463,8 @@ class CallService extends ChangeNotifier {
         }
       case GlareResolved():
         _activeCallId = null;
+        _activeCallRoomId = null;
+        _lastInitiatedRoomId = null;
         _ringing.stopRinging();
         _setCallState(LatticeCallState.idle);
         _handleSignalingIncomingInvite(event.incomingInvite);
@@ -476,14 +488,12 @@ class CallService extends ChangeNotifier {
   }
 
   void _handleCallEnded() {
-    if (_callState == LatticeCallState.joining) {
-      _setCallState(LatticeCallState.idle);
-      return;
-    }
-    if (_callState == LatticeCallState.ringingIncoming ||
-        _callState == LatticeCallState.ringingOutgoing) {
-      _ringing.resetIncomingCall();
-      _ringing.stopRinging();
+    _ringing.resetIncomingCall();
+    _ringing.stopRinging();
+    _activeCallRoomId = null;
+    _lastInitiatedRoomId = null;
+    if (_callState != LatticeCallState.idle &&
+        _callState != LatticeCallState.disconnecting) {
       _setCallState(LatticeCallState.idle);
     }
   }
@@ -491,13 +501,31 @@ class CallService extends ChangeNotifier {
   void _onNativeAction(NativeCallAction action) {
     switch (action) {
       case NativeCallAccepted():
-        acceptCall(withVideo: action.withVideo);
+        unawaited(acceptCall(withVideo: action.withVideo));
       case NativeCallDeclined():
         declineCall();
       case NativeCallEnded():
         unawaited(leaveCall());
       case NativeCallTimedOut():
-        declineCall();
+        if (_callState == LatticeCallState.ringingIncoming) {
+          final info = _ringing.incomingCall;
+          _ringing.stopRinging();
+          _ringing.resetIncomingCall();
+          if (info?.callId != null) {
+            unawaited(
+              _signaling.sendCallHangup(
+                info!.roomId,
+                info.callId!,
+                reason: 'invite_timeout',
+              ),
+            );
+          }
+          _activeCallId = null;
+          _activeCallRoomId = null;
+          _setCallState(LatticeCallState.idle);
+        } else {
+          cancelOutgoingCall(isTimeout: true);
+        }
     }
   }
 

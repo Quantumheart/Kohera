@@ -27,7 +27,7 @@ abstract class CallNavigator {
     final isDm = room?.isDirectChat ?? false;
 
     if (isDm) {
-      unawaited(callService.initiateCall(roomId, type: type));
+      await callService.initiateCall(roomId, type: type);
     } else {
       unawaited(callService.joinCall(roomId));
     }
