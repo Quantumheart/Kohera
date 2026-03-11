@@ -55,6 +55,8 @@ class CallService extends ChangeNotifier {
   StreamSubscription<SignalingEvent>? _signalingEventSub;
   StreamSubscription<NativeCallAction>? _nativeActionSub;
   StreamSubscription<LiveKitConnectionEvent>? _liveKitConnectionSub;
+  StreamSubscription<({String roomId, StrippedStateEvent state})>?
+      _membershipWatcherSub;
 
   // ── Ringtone Injection ─────────────────────────────────────
 
@@ -148,6 +150,26 @@ class CallService extends ChangeNotifier {
   String? _activeCallId;
   String? _lastInitiatedRoomId;
 
+  // ── Membership Watcher ──────────────────────────────────────
+
+  void _startMembershipWatcher(String roomId) {
+    _stopMembershipWatcher();
+    _membershipWatcherSub = _client.onRoomState.stream.listen((update) {
+      if (update.roomId != roomId) return;
+      if (update.state.type != callMemberEventType) return;
+      if (_callState != LatticeCallState.ringingOutgoing) return;
+      if (!RtcMembershipService.roomHasActiveCall(_client, roomId)) return;
+      debugPrint('[Lattice] Detected RTC membership join, treating as answer');
+      _stopMembershipWatcher();
+      unawaited(joinCall(roomId));
+    });
+  }
+
+  void _stopMembershipWatcher() {
+    unawaited(_membershipWatcherSub?.cancel());
+    _membershipWatcherSub = null;
+  }
+
   // ── Lifecycle ──────────────────────────────────────────────
 
   void init() {
@@ -186,6 +208,7 @@ class CallService extends ChangeNotifier {
     _nativeActionSub = null;
     unawaited(_liveKitConnectionSub?.cancel());
     _liveKitConnectionSub = null;
+    _stopMembershipWatcher();
   }
 
   void updateClient(Client newClient) {
@@ -384,6 +407,7 @@ class CallService extends ChangeNotifier {
       unawaited(_teardownCall(roomId: _activeCallRoomId));
     }
 
+    _stopMembershipWatcher();
     _ringing.stopRinging();
     _activeCallId = null;
     _lastInitiatedRoomId = null;
@@ -421,6 +445,8 @@ class CallService extends ChangeNotifier {
       () => cancelOutgoingCall(isTimeout: true),
     );
 
+    _startMembershipWatcher(roomId);
+
     await _signaling.sendCallInvite(
       roomId,
       callId,
@@ -446,8 +472,10 @@ class CallService extends ChangeNotifier {
       case IncomingInvite():
         _handleSignalingIncomingInvite(event);
       case AnswerReceived():
+        _stopMembershipWatcher();
         unawaited(joinCall(event.roomId));
       case RejectReceived():
+        _stopMembershipWatcher();
         _activeCallId = null;
         _activeCallRoomId = null;
         _lastInitiatedRoomId = null;
