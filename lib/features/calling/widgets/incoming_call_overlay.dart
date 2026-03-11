@@ -87,7 +87,7 @@ class _IncomingCallOverlayState extends State<IncomingCallOverlay> {
 
   void _accept({required bool withVideo}) {
     final roomId = _incoming?.roomId;
-    _callService?.acceptCall(withVideo: withVideo);
+    unawaited(_callService?.acceptCall(withVideo: withVideo));
     setState(() => _incoming = null);
     if (roomId != null) {
       widget.router.goNamed(

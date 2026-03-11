@@ -82,6 +82,7 @@ class LiveKitService {
       List.unmodifiable(_activeSpeakers);
 
   List<ui.CallParticipant>? _cachedParticipants;
+  String? _cachedParticipantsRoomId;
   bool _participantsDirty = true;
 
   final _connectionEventController =
@@ -95,8 +96,11 @@ class LiveKitService {
   List<ui.CallParticipant> allParticipants({
     required String? activeCallRoomId,
   }) {
-    if (_participantsDirty || _cachedParticipants == null) {
+    if (_participantsDirty ||
+        _cachedParticipants == null ||
+        _cachedParticipantsRoomId != activeCallRoomId) {
       _cachedParticipants = _buildParticipantList(activeCallRoomId);
+      _cachedParticipantsRoomId = activeCallRoomId;
       _participantsDirty = false;
     }
     return _cachedParticipants!;
@@ -398,6 +402,7 @@ class LiveKitService {
     _participants = [];
     _activeSpeakers = [];
     _cachedParticipants = null;
+    _cachedParticipantsRoomId = null;
     _participantsDirty = true;
     _isMicEnabled = false;
     _isCameraEnabled = false;
