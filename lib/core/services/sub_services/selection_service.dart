@@ -3,16 +3,20 @@ import 'package:lattice/core/models/space_node.dart';
 import 'package:lattice/core/utils/order_utils.dart' as order_utils;
 import 'package:matrix/matrix.dart';
 
-/// Room/space selection state, space tree, and filtered-room helpers.
-mixin SelectionMixin on ChangeNotifier {
-  Client get client;
+class SelectionService {
+  SelectionService({
+    required Client client,
+    required VoidCallback onChanged,
+  })  : _client = client,
+        _onChanged = onChanged;
+
+  final Client _client;
+  final VoidCallback _onChanged;
 
   // ── Space multi-select ──────────────────────────────────────
   final Set<String> _selectedSpaceIds = {};
   Set<String> get selectedSpaceIds => Set.unmodifiable(_selectedSpaceIds);
 
-  /// Replace selection with a single space, or clear if [spaceId] is null
-  /// or already the only selected space.
   void selectSpace(String? spaceId) {
     if (spaceId == null) {
       _selectedSpaceIds.clear();
@@ -25,23 +29,21 @@ mixin SelectionMixin on ChangeNotifier {
         ..add(spaceId);
     }
     _spaceTreeDirty = true;
-    notifyListeners();
+    _onChanged();
   }
 
-  /// Toggle a space in/out of the multi-select set.
   void toggleSpaceSelection(String spaceId) {
     if (!_selectedSpaceIds.remove(spaceId)) {
       _selectedSpaceIds.add(spaceId);
     }
     _spaceTreeDirty = true;
-    notifyListeners();
+    _onChanged();
   }
 
-  /// Clear all space selections (show all rooms).
   void clearSpaceSelection() {
     _selectedSpaceIds.clear();
     _spaceTreeDirty = true;
-    notifyListeners();
+    _onChanged();
   }
 
   // ── Room selection ──────────────────────────────────────────
@@ -49,15 +51,13 @@ mixin SelectionMixin on ChangeNotifier {
   String? get selectedRoomId => _selectedRoomId;
 
   Room? get selectedRoom =>
-      _selectedRoomId != null ? client.getRoomById(_selectedRoomId!) : null;
+      _selectedRoomId != null ? _client.getRoomById(_selectedRoomId!) : null;
 
   void selectRoom(String? roomId) {
     _selectedRoomId = roomId;
-    notifyListeners();
+    _onChanged();
   }
 
-  /// Reset selection state (e.g. on logout).
-  @protected
   void resetSelection() {
     _selectedSpaceIds.clear();
     _selectedRoomId = null;
@@ -66,19 +66,13 @@ mixin SelectionMixin on ChangeNotifier {
   // ── Custom space ordering ──────────────────────────────────
   List<String> _customSpaceOrder = [];
 
-  /// Update the custom ordering for top-level spaces.
-  /// No-op if the list is identical to the current order.
   void updateSpaceOrder(List<String> order) {
     if (listEquals(_customSpaceOrder, order)) return;
     _customSpaceOrder = order;
     _spaceTreeDirty = true;
-    notifyListeners();
+    _onChanged();
   }
 
-
-  /// Sort [items] by `_customSpaceOrder`: items whose ID appears in the
-  /// custom order come first (in that order); remaining items are appended
-  /// alphabetically by display name.
   List<T> _sortByCustomOrder<T>(
     List<T> items,
     String Function(T) getId,
@@ -113,19 +107,15 @@ mixin SelectionMixin on ChangeNotifier {
   List<Room>? _cachedRooms;
   bool _spaceTreeDirty = true;
 
-  /// Mark the space tree cache as stale. Call this when the underlying
-  /// room list may have changed (e.g. after a sync).
-  @protected
   void invalidateSpaceTree() {
     _spaceTreeDirty = true;
   }
 
   void _rebuildSpaceTree() {
-    final allSpaces = client.rooms
+    final allSpaces = _client.rooms
         .where((r) => r.isSpace && r.membership == Membership.join)
         .toList();
 
-    // Build a map: spaceId → SpaceNode (flat, no nesting yet)
     final nodeMap = <String, _MutableNode>{};
     for (final space in allSpaces) {
       final subspaceIds = <String>[];
@@ -133,7 +123,7 @@ mixin SelectionMixin on ChangeNotifier {
       for (final child in space.spaceChildren) {
         final childId = child.roomId;
         if (childId == null) continue;
-        final childRoom = client.getRoomById(childId);
+        final childRoom = _client.getRoomById(childId);
         if (childRoom == null || childRoom.membership != Membership.join) {
           continue;
         }
@@ -150,13 +140,11 @@ mixin SelectionMixin on ChangeNotifier {
       );
     }
 
-    // Determine which spaces are children of another space.
     final childSpaceIds = <String>{};
     for (final node in nodeMap.values) {
       childSpaceIds.addAll(node.subspaceIds);
     }
 
-    // Recursively build SpaceNode tree.
     SpaceNode buildNode(String spaceId) {
       final mutable = nodeMap[spaceId]!;
       return SpaceNode(
@@ -172,7 +160,6 @@ mixin SelectionMixin on ChangeNotifier {
       );
     }
 
-    // Top-level = spaces not a child of any other joined space.
     final topLevel = _sortByCustomOrder(
       nodeMap.keys
           .where((id) => !childSpaceIds.contains(id))
@@ -182,7 +169,6 @@ mixin SelectionMixin on ChangeNotifier {
       (n) => n.room.getLocalizedDisplayname(),
     );
 
-    // Build allSpaceRoomIds and roomToSpaces in a single tree walk.
     final allRoomIds = <String>{};
     final roomToSpaces = <String, Set<String>>{};
 
@@ -200,7 +186,6 @@ mixin SelectionMixin on ChangeNotifier {
       walkTree(node);
     }
 
-    // Build flat node-by-id map for O(1) lookups.
     final flatNodeMap = <String, SpaceNode>{};
     void indexNodes(List<SpaceNode> nodes) {
       for (final node in nodes) {
@@ -210,8 +195,7 @@ mixin SelectionMixin on ChangeNotifier {
     }
     indexNodes(topLevel);
 
-    // Cache sorted non-space rooms.
-    final sortedRooms = client.rooms
+    final sortedRooms = _client.rooms
         .where((r) => !r.isSpace && r.membership == Membership.join)
         .toList()
       ..sort((a, b) {
@@ -232,7 +216,6 @@ mixin SelectionMixin on ChangeNotifier {
     if (_spaceTreeDirty) _rebuildSpaceTree();
   }
 
-  /// The space tree rooted at top-level spaces.
   List<SpaceNode> get spaceTree {
     _ensureTreeFresh();
     return _cachedSpaceTree!;
@@ -240,42 +223,35 @@ mixin SelectionMixin on ChangeNotifier {
 
   // ── Helpers ──────────────────────────────────────────────────
 
-  /// Returns joined spaces, sorted by custom order.
   List<Room> get spaces => _sortByCustomOrder(
-        client.rooms
+        _client.rooms
             .where((r) => r.isSpace && r.membership == Membership.join)
             .toList(),
         (r) => r.id,
         (r) => r.getLocalizedDisplayname(),
       );
 
-  /// Returns only top-level spaces (not children of another space).
   List<Room> get topLevelSpaces => spaceTree.map((n) => n.room).toList();
 
-  /// Returns all joined non-space rooms sorted by recency.
   List<Room> get rooms {
     _ensureTreeFresh();
     return _cachedRooms!;
   }
 
-  /// Returns invited non-space rooms sorted alphabetically.
-  List<Room> get invitedRooms => client.rooms
+  List<Room> get invitedRooms => _client.rooms
       .where((r) => !r.isSpace && r.membership == Membership.invite)
       .toList()
     ..sort((a, b) => a.getLocalizedDisplayname().compareTo(
         b.getLocalizedDisplayname(),),);
 
-  /// Returns invited spaces sorted alphabetically.
-  List<Room> get invitedSpaces => client.rooms
+  List<Room> get invitedSpaces => _client.rooms
       .where((r) => r.isSpace && r.membership == Membership.invite)
       .toList()
     ..sort((a, b) => a.getLocalizedDisplayname().compareTo(
         b.getLocalizedDisplayname(),),);
 
-  /// Returns the display name of the user who invited us to [room],
-  /// or null if not found.
   String? inviterDisplayName(Room room) {
-    final userId = client.userID;
+    final userId = _client.userID;
     if (userId == null) return null;
     final inviteState = room.getState(EventTypes.RoomMember, userId);
     if (inviteState == null) return null;
@@ -283,7 +259,6 @@ mixin SelectionMixin on ChangeNotifier {
     return room.unsafeGetUserFromMemoryOrFallback(senderId).calcDisplayname();
   }
 
-  /// Rooms that don't belong to any space.
   List<Room> get orphanRooms {
     _ensureTreeFresh();
     final spaceRoomIds = _cachedAllSpaceRoomIds!;
@@ -292,13 +267,13 @@ mixin SelectionMixin on ChangeNotifier {
 
   List<Room> roomsForSpace(String spaceId) {
     _ensureTreeFresh();
-    final space = client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     if (space == null) return [];
     final childIds = <String>{};
     for (final child in space.spaceChildren) {
       final childId = child.roomId;
       if (childId == null) continue;
-      final childRoom = client.getRoomById(childId);
+      final childRoom = _client.getRoomById(childId);
       if (childRoom != null && !childRoom.isSpace) {
         childIds.add(childId);
       }
@@ -316,13 +291,11 @@ mixin SelectionMixin on ChangeNotifier {
     return result;
   }
 
-  /// Which spaces a room belongs to (O(1) map lookup).
   Set<String> spaceMemberships(String roomId) {
     _ensureTreeFresh();
     return _cachedRoomToSpaces?[roomId] ?? const {};
   }
 
-  /// Aggregate unread count for a space (including subspace children).
   int unreadCountForSpace(String spaceId) {
     _ensureTreeFresh();
     final node = _cachedNodeById![spaceId];
@@ -331,7 +304,7 @@ mixin SelectionMixin on ChangeNotifier {
     var count = 0;
     void walk(SpaceNode n) {
       for (final roomId in n.directChildRoomIds) {
-        final room = client.getRoomById(roomId);
+        final room = _client.getRoomById(roomId);
         if (room != null) count += room.notificationCount;
       }
       for (final sub in n.subspaces) {
@@ -344,7 +317,6 @@ mixin SelectionMixin on ChangeNotifier {
   }
 }
 
-/// Internal mutable helper used only during tree construction.
 class _MutableNode {
   final Room room;
   final List<String> subspaceIds;
