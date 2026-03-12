@@ -61,5 +61,7 @@ class SyncService {
 
   void cancelSyncSub() {
     unawaited(_syncSub?.cancel());
+    _syncSub = null;
+    _syncing = false;
   }
 }

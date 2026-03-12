@@ -18,7 +18,6 @@ void main() {
       client: mockClient,
       storage: mockStorage,
       clientName: 'test',
-      friendlyError: (e) => e.toString(),
     );
   });
 
@@ -176,8 +175,7 @@ void main() {
         client: mockClient,
         storage: mockStorage,
         clientName: 'default',
-        friendlyError: (e) => e.toString(),
-      );
+        );
 
       when(mockStorage.read(key: 'lattice_access_token'))
           .thenAnswer((_) async => 'old_token');
