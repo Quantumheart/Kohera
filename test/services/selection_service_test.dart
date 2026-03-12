@@ -10,7 +10,9 @@ SpaceChild _fakeSpaceChild(String roomId) {
   return SpaceChild.fromState(
     StrippedStateEvent(
       type: EventTypes.SpaceChild,
-      content: {'via': ['example.com']},
+      content: {
+        'via': ['example.com'],
+      },
       senderId: '@admin:example.com',
       stateKey: roomId,
     ),
@@ -162,10 +164,8 @@ void main() {
       when(childRoom.membership).thenReturn(Membership.join);
       when(childRoom.getLocalizedDisplayname()).thenReturn('Room');
 
-      when(mockClient.rooms)
-          .thenReturn([parentSpace, childSpace, childRoom]);
-      when(mockClient.getRoomById('!child_space:e.com'))
-          .thenReturn(childSpace);
+      when(mockClient.rooms).thenReturn([parentSpace, childSpace, childRoom]);
+      when(mockClient.getRoomById('!child_space:e.com')).thenReturn(childSpace);
       when(mockClient.getRoomById('!room:e.com')).thenReturn(childRoom);
 
       service.invalidateSpaceTree();
@@ -187,27 +187,31 @@ void main() {
       when(room1.isSpace).thenReturn(false);
       when(room1.membership).thenReturn(Membership.join);
       when(room1.getLocalizedDisplayname()).thenReturn('Room 1');
-      when(room1.lastEvent).thenReturn(Event(
-        type: 'm.room.message',
-        content: {'body': 'old'},
-        senderId: '@a:e.com',
-        eventId: r'$1',
-        originServerTs: DateTime(2024, 1, 1),
-        room: room1,
-      ),);
+      when(room1.lastEvent).thenReturn(
+        Event(
+          type: 'm.room.message',
+          content: {'body': 'old'},
+          senderId: '@a:e.com',
+          eventId: r'$1',
+          originServerTs: DateTime(2024),
+          room: room1,
+        ),
+      );
 
       when(room2.id).thenReturn('!r2:e.com');
       when(room2.isSpace).thenReturn(false);
       when(room2.membership).thenReturn(Membership.join);
       when(room2.getLocalizedDisplayname()).thenReturn('Room 2');
-      when(room2.lastEvent).thenReturn(Event(
-        type: 'm.room.message',
-        content: {'body': 'new'},
-        senderId: '@a:e.com',
-        eventId: r'$2',
-        originServerTs: DateTime(2024, 6, 1),
-        room: room2,
-      ),);
+      when(room2.lastEvent).thenReturn(
+        Event(
+          type: 'm.room.message',
+          content: {'body': 'new'},
+          senderId: '@a:e.com',
+          eventId: r'$2',
+          originServerTs: DateTime(2024, 6),
+          room: room2,
+        ),
+      );
 
       when(mockClient.rooms).thenReturn([room1, room2]);
       service.invalidateSpaceTree();
@@ -285,8 +289,7 @@ void main() {
       when(orphan.lastEvent).thenReturn(null);
 
       when(mockClient.rooms).thenReturn([space, roomInSpace, orphan]);
-      when(mockClient.getRoomById('!in_space:e.com'))
-          .thenReturn(roomInSpace);
+      when(mockClient.getRoomById('!in_space:e.com')).thenReturn(roomInSpace);
 
       service.invalidateSpaceTree();
 
@@ -303,8 +306,7 @@ void main() {
       when(space.isSpace).thenReturn(true);
       when(space.membership).thenReturn(Membership.join);
       when(space.getLocalizedDisplayname()).thenReturn('Space');
-      when(space.spaceChildren)
-          .thenReturn([_fakeSpaceChild('!room:e.com')]);
+      when(space.spaceChildren).thenReturn([_fakeSpaceChild('!room:e.com')]);
 
       when(room.id).thenReturn('!room:e.com');
       when(room.isSpace).thenReturn(false);
@@ -341,8 +343,7 @@ void main() {
       when(childSpace.isSpace).thenReturn(true);
       when(childSpace.membership).thenReturn(Membership.join);
       when(childSpace.getLocalizedDisplayname()).thenReturn('Child');
-      when(childSpace.spaceChildren)
-          .thenReturn([_fakeSpaceChild('!r2:e.com')]);
+      when(childSpace.spaceChildren).thenReturn([_fakeSpaceChild('!r2:e.com')]);
 
       when(room1.id).thenReturn('!r1:e.com');
       when(room1.isSpace).thenReturn(false);
