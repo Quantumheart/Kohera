@@ -57,7 +57,6 @@ class MatrixService extends ChangeNotifier {
       client: _client,
       storage: _storage,
       clientName: clientName,
-      friendlyError: friendlyAuthError,
     );
   }
 
@@ -77,6 +76,12 @@ class MatrixService extends ChangeNotifier {
 
   bool _disposed = false;
   bool get disposed => _disposed;
+
+  @override
+  void notifyListeners() {
+    if (_disposed) return;
+    super.notifyListeners();
+  }
 
   // ── Sub-services ────────────────────────────────────────────────
 
@@ -360,9 +365,7 @@ class MatrixService extends ChangeNotifier {
       await _chatBackup.deleteStoredRecoveryKey();
       try {
         await _client.logout();
-      } catch (_) {
-        // Expected — the token is likely already revoked.
-      }
+      } catch (_) {}
       notifyListeners();
     }
   }
@@ -374,6 +377,8 @@ class MatrixService extends ChangeNotifier {
     _loginStateSub = _client.onLoginStateChanged.stream.listen((state) async {
       if (state == LoginState.loggedOut && _isLoggedIn) {
         debugPrint('[Lattice] Server-side logout detected');
+        unawaited(_loginStateSub?.cancel());
+        _loginStateSub = null;
         _sync.cancelSyncSub();
         _isLoggedIn = false;
         _uia.cancelUiaSub();

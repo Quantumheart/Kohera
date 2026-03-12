@@ -30,12 +30,12 @@ class ChatBackupService {
   Future<void> checkChatBackupStatus() async {
     try {
       final state = await _client.getCryptoIdentityState();
-      debugPrint('[BackupStatus] initialized=${state.initialized}, '
+      debugPrint('[Lattice] Backup status: initialized=${state.initialized}, '
           'connected=${state.connected}');
       _chatBackupNeeded = !state.initialized || !state.connected;
       _onChanged();
     } catch (e) {
-      debugPrint('checkChatBackupStatus error: $e');
+      debugPrint('[Lattice] checkChatBackupStatus error: $e');
       _chatBackupNeeded = true;
       _onChanged();
     }
@@ -47,22 +47,22 @@ class ChatBackupService {
     final storedKey = await getStoredRecoveryKey();
     if (storedKey == null) return;
 
-    debugPrint('[AutoUnlock] Attempting auto-unlock with stored key');
+    debugPrint('[Lattice] Attempting auto-unlock with stored key');
 
     try {
       final state = await _client.getCryptoIdentityState();
       if (state.connected) {
-        debugPrint('[AutoUnlock] Skip restore: already connected');
+        debugPrint('[Lattice] Skip restore: already connected');
       } else {
         await _client.restoreCryptoIdentity(storedKey);
       }
       await _restoreRoomKeys();
     } catch (e) {
-      debugPrint('[AutoUnlock] Failed: $e');
+      debugPrint('[Lattice] Failed: $e');
     }
 
     await checkChatBackupStatus();
-    debugPrint('[AutoUnlock] Complete, chatBackupNeeded=$_chatBackupNeeded');
+    debugPrint('[Lattice] Complete, chatBackupNeeded=$_chatBackupNeeded');
   }
 
   Future<void> _restoreRoomKeys() async {
@@ -71,9 +71,9 @@ class ChatBackupService {
 
     try {
       await encryption.keyManager.loadAllKeys();
-      debugPrint('[AutoUnlock] Room keys restored from online backup');
+      debugPrint('[Lattice] Room keys restored from online backup');
     } catch (e) {
-      debugPrint('[AutoUnlock] Failed to load keys from backup: $e');
+      debugPrint('[Lattice] Failed to load keys from backup: $e');
     }
 
     requestMissingRoomKeys();
@@ -99,7 +99,7 @@ class ChatBackupService {
               senderKey,
             );
           } catch (e) {
-            debugPrint('[AutoUnlock] Key request failed for ${room.id}: $e');
+            debugPrint('[Lattice] Key request failed for ${room.id}: $e');
           }
         }
       }

@@ -13,16 +13,13 @@ class AuthService {
     required Client client,
     required FlutterSecureStorage storage,
     required String clientName,
-    required String Function(Object) friendlyError,
   })  : _client = client,
         _storage = storage,
-        _clientName = clientName,
-        _friendlyError = friendlyError;
+        _clientName = clientName;
 
   final Client _client;
   final FlutterSecureStorage _storage;
   final String _clientName;
-  final String Function(Object) _friendlyError;
 
   // ── Auth state ────────────────────────────────────────────────
   String? loginError;
@@ -31,8 +28,6 @@ class AuthService {
   Completer<void>? _postLoginSyncCompleter;
 
   Future<void>? get postLoginSyncFuture => _postLoginSyncCompleter?.future;
-
-  String Function(Object) get friendlyError => _friendlyError;
 
   Completer<void>? _capabilitiesLock;
 
@@ -110,9 +105,7 @@ class AuthService {
             registrationStages = allStages.toList();
           }
         }
-      } catch (_) {
-        // Registration not supported or server error.
-      }
+      } catch (_) {}
 
       final resolvedHomeserver = _client.homeserver;
 
@@ -214,7 +207,4 @@ class AuthService {
     await _postLoginSyncCompleter?.future;
   }
 
-  void cancelLoginStateSub(StreamSubscription<LoginState>? sub) {
-    unawaited(sub?.cancel());
-  }
 }
