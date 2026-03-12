@@ -3,43 +3,40 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:matrix/matrix.dart';
 
-/// Client sync lifecycle management.
-mixin SyncMixin on ChangeNotifier {
-  Client get client;
+class SyncService {
+  SyncService({
+    required Client client,
+    required VoidCallback onChanged,
+    required VoidCallback onSyncEvent,
+    required Future<void> Function() onPostSyncBackup,
+  })  : _client = client,
+        _onChanged = onChanged,
+        _onSyncEvent = onSyncEvent,
+        _onPostSyncBackup = onPostSyncBackup;
 
-  // Cross-mixin dependencies (satisfied by ChatBackupMixin).
-  Future<void> checkChatBackupStatus();
-  bool? get chatBackupNeeded;
-  Future<void> tryAutoUnlockBackup();
-
-  // Cross-mixin dependency (satisfied by SelectionMixin).
-  void invalidateSpaceTree();
+  final Client _client;
+  final VoidCallback _onChanged;
+  final VoidCallback _onSyncEvent;
+  final Future<void> Function() _onPostSyncBackup;
 
   // ── Sync ─────────────────────────────────────────────────────
   bool _syncing = false;
   bool get syncing => _syncing;
 
   String? _autoUnlockError;
-
-  /// Non-null when the background E2EE auto-unlock failed.
-  /// UI can observe this to hint that messages may be undecryptable.
   String? get autoUnlockError => _autoUnlockError;
 
   StreamSubscription<SyncUpdate>? _syncSub;
 
-  @protected
   Future<void> startSync({Duration? timeout = const Duration(seconds: 30)}) async {
     _syncing = true;
-    notifyListeners();
+    _onChanged();
 
-    // Wait for the first sync so account data & device keys are available,
-    // then keep notifying on subsequent syncs.
     final firstSync = Completer<void>();
     unawaited(_syncSub?.cancel());
-    _syncSub = client.onSync.stream.listen((_) {
+    _syncSub = _client.onSync.stream.listen((_) {
       if (!firstSync.isCompleted) firstSync.complete();
-      invalidateSpaceTree();
-      notifyListeners();
+      _onSyncEvent();
     });
 
     if (timeout != null) {
@@ -54,21 +51,14 @@ mixin SyncMixin on ChangeNotifier {
       await firstSync.future;
     }
 
-    // Run E2EE auto-unlock in background — don't block sync return.
     _autoUnlockError = null;
-    unawaited(checkChatBackupStatus().then((_) {
-      if (chatBackupNeeded == true) {
-        return tryAutoUnlockBackup();
-      }
-    }).catchError((Object e) {
+    unawaited(_onPostSyncBackup().catchError((Object e) {
       debugPrint('[Lattice] Background E2EE auto-unlock error: $e');
       _autoUnlockError = e.toString();
-      notifyListeners();
+      _onChanged();
     },),);
   }
 
-  /// Cancel sync subscription (e.g. on dispose).
-  @protected
   void cancelSyncSub() {
     unawaited(_syncSub?.cancel());
   }

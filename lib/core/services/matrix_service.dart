@@ -3,31 +3,22 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:lattice/core/services/client_manager.dart' show ClientManager;
-import 'package:lattice/core/services/mixins/auth_mixin.dart';
-import 'package:lattice/core/services/mixins/chat_backup_mixin.dart';
-import 'package:lattice/core/services/mixins/selection_mixin.dart';
-import 'package:lattice/core/services/mixins/sync_mixin.dart';
-import 'package:lattice/core/services/mixins/uia_mixin.dart';
+import 'package:lattice/core/models/server_auth_capabilities.dart';
+import 'package:lattice/core/models/space_node.dart';
 import 'package:lattice/core/services/session_backup.dart';
+import 'package:lattice/core/services/sub_services/auth_service.dart';
+import 'package:lattice/core/services/sub_services/chat_backup_service.dart';
+import 'package:lattice/core/services/sub_services/selection_service.dart';
+import 'package:lattice/core/services/sub_services/sync_service.dart';
+import 'package:lattice/core/services/sub_services/uia_service.dart';
 import 'package:matrix/matrix.dart';
 // ignore: implementation_imports, no public API for ClientInitException
 import 'package:matrix/src/utils/client_init_exception.dart';
 
-/// Storage key helper shared across mixins.
 String latticeKey(String clientName, String suffix) =>
     'lattice_${clientName}_$suffix';
 
-/// Central service that owns the [Client] instance and exposes
-/// reactive state to the widget tree via [ChangeNotifier].
-class MatrixService extends ChangeNotifier
-    with
-        SelectionMixin,
-        ChatBackupMixin,
-        UiaMixin,
-        SyncMixin,
-        AuthMixin {
-  /// Maps common network exceptions to user-friendly error messages.
+class MatrixService extends ChangeNotifier {
   static String friendlyAuthError(Object e) {
     if (e is SocketException) return 'Could not reach server';
     if (e is TimeoutException) return 'Connection timed out';
@@ -40,58 +31,142 @@ class MatrixService extends ChangeNotifier
     FlutterSecureStorage? storage,
     this.clientName = 'default',
   })  : _client = client,
-        _storage = storage ?? const FlutterSecureStorage();
+        _storage = storage ?? const FlutterSecureStorage() {
+    _uia = UiaService(client: _client);
+    _chatBackup = ChatBackupService(
+      client: _client,
+      storage: _storage,
+      onChanged: notifyListeners,
+    );
+    _selection = SelectionService(client: _client, onChanged: notifyListeners);
+    _sync = SyncService(
+      client: _client,
+      onChanged: notifyListeners,
+      onSyncEvent: () {
+        _selection.invalidateSpaceTree();
+        notifyListeners();
+      },
+      onPostSyncBackup: () async {
+        await _chatBackup.checkChatBackupStatus();
+        if (_chatBackup.chatBackupNeeded == true) {
+          await _chatBackup.tryAutoUnlockBackup();
+        }
+      },
+    );
+    _auth = AuthService(
+      client: _client,
+      storage: _storage,
+      clientName: clientName,
+      friendlyError: friendlyAuthError,
+    );
+  }
 
   // ── Fields ──────────────────────────────────────────────────────
 
   final FlutterSecureStorage _storage;
-
-  @override
   final String clientName;
 
   final Client _client;
-  @override
   Client get client => _client;
 
-  @override
-  FlutterSecureStorage get storage => _storage;
-
   bool _isLoggedIn = false;
-  @override
   bool get isLoggedIn => _isLoggedIn;
 
-  @protected
-  @override
-  set isLoggedIn(bool value) => _isLoggedIn = value;
-
-  @override
-  String Function(Object e) get friendlyError => friendlyAuthError;
-
-  /// Sets the logged-in state directly. Only for testing.
   @visibleForTesting
   set isLoggedInForTest(bool value) => _isLoggedIn = value;
 
   bool _disposed = false;
-
-  /// Whether this service has been disposed.
   bool get disposed => _disposed;
+
+  // ── Sub-services ────────────────────────────────────────────────
+
+  late final UiaService _uia;
+  late final ChatBackupService _chatBackup;
+  late final SelectionService _selection;
+  late final SyncService _sync;
+  late final AuthService _auth;
+
+  StreamSubscription<LoginState>? _loginStateSub;
+
+  // ── UiaService delegates ────────────────────────────────────────
+
+  Stream<UiaRequest<dynamic>> get onUiaRequest => _uia.onUiaRequest;
+  void completeUiaWithPassword(UiaRequest<dynamic> request, String password) =>
+      _uia.completeUiaWithPassword(request, password);
+  void clearCachedPassword() => _uia.clearCachedPassword();
+
+  // ── ChatBackupService delegates ─────────────────────────────────
+
+  bool? get chatBackupNeeded => _chatBackup.chatBackupNeeded;
+  bool get chatBackupEnabled => _chatBackup.chatBackupEnabled;
+  bool get chatBackupLoading => _chatBackup.chatBackupLoading;
+  String? get chatBackupError => _chatBackup.chatBackupError;
+  Future<void> checkChatBackupStatus() => _chatBackup.checkChatBackupStatus();
+  void requestMissingRoomKeys() => _chatBackup.requestMissingRoomKeys();
+  Future<String?> getStoredRecoveryKey() => _chatBackup.getStoredRecoveryKey();
+  Future<void> storeRecoveryKey(String key) =>
+      _chatBackup.storeRecoveryKey(key);
+  Future<void> deleteStoredRecoveryKey() =>
+      _chatBackup.deleteStoredRecoveryKey();
+  Future<void> disableChatBackup() => _chatBackup.disableChatBackup();
+  Future<void> tryAutoUnlockBackup() => _chatBackup.tryAutoUnlockBackup();
+
+  // ── SelectionService delegates ──────────────────────────────────
+
+  Set<String> get selectedSpaceIds => _selection.selectedSpaceIds;
+  String? get selectedRoomId => _selection.selectedRoomId;
+  Room? get selectedRoom => _selection.selectedRoom;
+  void selectSpace(String? spaceId) => _selection.selectSpace(spaceId);
+  void toggleSpaceSelection(String spaceId) =>
+      _selection.toggleSpaceSelection(spaceId);
+  void clearSpaceSelection() => _selection.clearSpaceSelection();
+  void selectRoom(String? roomId) => _selection.selectRoom(roomId);
+  void updateSpaceOrder(List<String> order) =>
+      _selection.updateSpaceOrder(order);
+  List<SpaceNode> get spaceTree => _selection.spaceTree;
+  List<Room> get spaces => _selection.spaces;
+  List<Room> get topLevelSpaces => _selection.topLevelSpaces;
+  List<Room> get rooms => _selection.rooms;
+  List<Room> get invitedRooms => _selection.invitedRooms;
+  List<Room> get invitedSpaces => _selection.invitedSpaces;
+  String? inviterDisplayName(Room room) => _selection.inviterDisplayName(room);
+  List<Room> get orphanRooms => _selection.orphanRooms;
+  List<Room> roomsForSpace(String spaceId) =>
+      _selection.roomsForSpace(spaceId);
+  Set<String> spaceMemberships(String roomId) =>
+      _selection.spaceMemberships(roomId);
+  int unreadCountForSpace(String spaceId) =>
+      _selection.unreadCountForSpace(spaceId);
+  void invalidateSpaceTree() => _selection.invalidateSpaceTree();
+
+  // ── SyncService delegates ───────────────────────────────────────
+
+  bool get syncing => _sync.syncing;
+  String? get autoUnlockError => _sync.autoUnlockError;
+
+  // ── AuthService delegates ───────────────────────────────────────
+
+  String? get loginError => _auth.loginError;
+  String? get postLoginSyncError => _auth.postLoginSyncError;
+
+  @visibleForTesting
+  Future<void>? get postLoginSyncFuture => _auth.postLoginSyncFuture;
+
+  Future<ServerAuthCapabilities> getServerAuthCapabilities(
+    String homeserver,
+  ) =>
+      _auth.getServerAuthCapabilities(homeserver, isLoggedIn: _isLoggedIn);
 
   // ── Public API ──────────────────────────────────────────────────
 
-  /// Initializes the service, optionally restoring a saved session.
-  ///
-  /// When [restoreSession] is true (default), migrates storage keys and
-  /// attempts to restore a session from secure storage. When false, only
-  /// skips restore (used by [ClientManager] for login flows).
   Future<void> init({bool restoreSession = true}) async {
-    if (restoreSession) await migrateStorageKeys();
+    if (restoreSession) await _auth.migrateStorageKeys();
     if (restoreSession) {
       await _restoreSession();
       notifyListeners();
     }
   }
 
-  @override
   Future<void> saveSessionBackup() async {
     final backup = SessionBackup(
       accessToken: _client.accessToken!,
@@ -113,25 +188,236 @@ class MatrixService extends ChangeNotifier
   void dispose() {
     _disposed = true;
     _isLoggedIn = false;
-    cancelSyncSub();
-    cancelUiaSub();
-    cancelLoginStateSub();
-    disposeUiaController();
+    _sync.cancelSyncSub();
+    _uia.dispose();
+    unawaited(_loginStateSub?.cancel());
     super.dispose();
+  }
+
+  // ── Login ──────────────────────────────────────────────────────
+
+  Future<bool> login({
+    required String homeserver,
+    required String username,
+    required String password,
+  }) async {
+    _auth.loginError = null;
+    notifyListeners();
+
+    try {
+      var hs = homeserver.trim();
+      if (hs.isEmpty) throw ArgumentError('Homeserver cannot be empty');
+      if (!hs.startsWith('http')) hs = 'https://$hs';
+
+      debugPrint('[Lattice] Checking homeserver: $hs');
+      await _client.checkHomeserver(Uri.parse(hs));
+      debugPrint('[Lattice] Homeserver OK');
+
+      debugPrint('[Lattice] Logging in as $username ...');
+      await _client.login(
+        LoginType.mLoginPassword,
+        identifier: AuthenticationUserIdentifier(user: username.trim()),
+        password: password,
+        initialDeviceDisplayName: 'Lattice Flutter',
+      );
+      debugPrint('[Lattice] Login complete – '
+          'deviceId=${_client.deviceID}, '
+          'userId=${_client.userID}, '
+          'encryption=${_client.encryption != null ? "available" : "null"}, '
+          'encryptionEnabled=${_client.encryptionEnabled}');
+
+      _uia.setCachedPassword(password);
+      _uia.listenForUia();
+      _listenForLoginState();
+      _isLoggedIn = true;
+      notifyListeners();
+
+      _postLoginSync();
+
+      return true;
+    } catch (e, s) {
+      debugPrint('[Lattice] Login failed: $e');
+      debugPrint('[Lattice] Stack trace:\n$s');
+      _auth.loginError = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ── SSO Login ──────────────────────────────────────────────────
+
+  Future<bool> completeSsoLogin({
+    required String homeserver,
+    required String loginToken,
+  }) async {
+    _auth.loginError = null;
+    notifyListeners();
+
+    try {
+      var hs = homeserver.trim();
+      if (hs.isEmpty) throw ArgumentError('Homeserver cannot be empty');
+      if (!hs.startsWith('http')) hs = 'https://$hs';
+
+      await _client.checkHomeserver(Uri.parse(hs));
+
+      debugPrint('[Lattice] Completing SSO login ...');
+      await _client.login(
+        LoginType.mLoginToken,
+        token: loginToken,
+        initialDeviceDisplayName: 'Lattice Flutter',
+      );
+      debugPrint('[Lattice] SSO login complete – '
+          'deviceId=${_client.deviceID}, '
+          'userId=${_client.userID}');
+
+      _uia.listenForUia();
+      _listenForLoginState();
+      _isLoggedIn = true;
+      notifyListeners();
+
+      _postLoginSync();
+
+      return true;
+    } catch (e, s) {
+      debugPrint('[Lattice] SSO login failed: $e');
+      debugPrint('[Lattice] Stack trace:\n$s');
+      _auth.loginError = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ── Registration ──────────────────────────────────────────────
+
+  Future<void> completeRegistration(
+    RegisterResponse response, {
+    String? password,
+  }) async {
+    debugPrint('[Lattice] Registration complete – userId=${response.userId}');
+
+    if (_client.accessToken == null || _client.userID == null) {
+      throw StateError('Client was not initialized after register(). '
+          'accessToken=${_client.accessToken}, userID=${_client.userID}');
+    }
+
+    if (password != null) _uia.setCachedPassword(password);
+    _uia.listenForUia();
+    _listenForLoginState();
+    _isLoggedIn = true;
+    notifyListeners();
+
+    _postLoginSync();
+  }
+
+  // ── Logout ────────────────────────────────────────────────────
+
+  Future<void> logout() async {
+    unawaited(_loginStateSub?.cancel());
+    _sync.cancelSyncSub();
+    _isLoggedIn = false;
+    await _auth.awaitPostLoginSync();
+
+    try {
+      if (_client.homeserver != null && _client.accessToken != null) {
+        await _client.logout();
+      }
+    } catch (e) {
+      debugPrint('[Lattice] Logout error: $e');
+    }
+    await _auth.clearSessionKeys();
+    await SessionBackup.delete(clientName: clientName, storage: _storage);
+    await _chatBackup.deleteStoredRecoveryKey();
+    _uia.clearCachedPassword();
+    _uia.cancelUiaSub();
+    _selection.resetSelection();
+    _chatBackup.resetChatBackupState();
+    notifyListeners();
+  }
+
+  // ── Soft Logout ──────────────────────────────────────────────
+
+  Future<void> handleSoftLogout() async {
+    debugPrint('[Lattice] Soft logout detected, attempting token refresh...');
+    try {
+      await _client.refreshAccessToken();
+      await _storage.write(
+          key: latticeKey(clientName, 'access_token'),
+          value: _client.accessToken,);
+      await saveSessionBackup();
+      debugPrint('[Lattice] Token refreshed successfully');
+    } catch (e) {
+      debugPrint('[Lattice] Token refresh failed: $e');
+      unawaited(_loginStateSub?.cancel());
+      _sync.cancelSyncSub();
+      _isLoggedIn = false;
+      await _auth.awaitPostLoginSync();
+      _uia.cancelUiaSub();
+      _uia.clearCachedPassword();
+      _selection.resetSelection();
+      _chatBackup.resetChatBackupState();
+      await _auth.clearSessionKeys();
+      await SessionBackup.delete(clientName: clientName, storage: _storage);
+      await _chatBackup.deleteStoredRecoveryKey();
+      try {
+        await _client.logout();
+      } catch (_) {
+        // Expected — the token is likely already revoked.
+      }
+      notifyListeners();
+    }
+  }
+
+  // ── Private: Login State Stream ─────────────────────────────────
+
+  void _listenForLoginState() {
+    unawaited(_loginStateSub?.cancel());
+    _loginStateSub = _client.onLoginStateChanged.stream.listen((state) async {
+      if (state == LoginState.loggedOut && _isLoggedIn) {
+        debugPrint('[Lattice] Server-side logout detected');
+        _sync.cancelSyncSub();
+        _isLoggedIn = false;
+        _uia.cancelUiaSub();
+        _uia.clearCachedPassword();
+        _selection.resetSelection();
+        _chatBackup.resetChatBackupState();
+        await _auth.clearSessionKeys();
+        await SessionBackup.delete(clientName: clientName, storage: _storage);
+        await _chatBackup.deleteStoredRecoveryKey();
+        notifyListeners();
+      }
+    });
+  }
+
+  // ── Private: Post-login Background Sync ─────────────────────────
+
+  void _postLoginSync() {
+    _auth.startPostLoginSync(_runPostLoginSync);
+  }
+
+  Future<void> _runPostLoginSync() async {
+    try {
+      await _auth.persistCredentials();
+      if (!_isLoggedIn) return;
+      await _sync.startSync(timeout: const Duration(minutes: 5));
+      if (!_isLoggedIn) return;
+      await saveSessionBackup();
+    } catch (e) {
+      debugPrint('[Lattice] Post-login sync error: $e');
+      if (_isLoggedIn) {
+        _auth.postLoginSyncError = friendlyAuthError(e);
+        notifyListeners();
+      }
+    }
   }
 
   // ── Private: Initialization ─────────────────────────────────────
 
-  /// Wires up listeners and starts syncing after a successful session restore.
-  ///
-  /// A sync timeout is not treated as a session failure — the SDK client is
-  /// already initialized and the background sync loop will keep running.
   Future<void> _activateSession() async {
-    listenForUia();
-    listenForLoginState();
+    _uia.listenForUia();
+    _listenForLoginState();
     _isLoggedIn = true;
     try {
-      await startSync();
+      await _sync.startSync();
     } on TimeoutException {
       debugPrint('[Lattice] Initial sync timed out during session restore – '
           'continuing in background');
@@ -140,13 +426,11 @@ class MatrixService extends ChangeNotifier
 
   // ── Private: Session Keys ──────────────────────────────────────
 
-  /// Clears both the stored session keys and the session backup.
   Future<void> _clearSessionAndBackup() async {
-    await clearSessionKeys();
+    await _auth.clearSessionKeys();
     await SessionBackup.delete(clientName: clientName, storage: _storage);
   }
 
-  /// Reads stored session credentials from secure storage.
   Future<
       ({
         String? token,
@@ -170,18 +454,6 @@ class MatrixService extends ChangeNotifier
 
   // ── Private: Session Restore ───────────────────────────────────
 
-  /// Attempts to restore a session from secure storage.
-  ///
-  /// The strategy is to make one well-prepared [Client.init] call with
-  /// the best available data. The session backup's OLM account is always
-  /// included (when available) because the SDK database copy can become
-  /// stale after an unclean shutdown. A failed [Client.init] calls
-  /// [Client.clear] internally which wipes the SDK database, so retrying
-  /// init on the same client is unreliable and avoided here.
-  ///
-  /// The one exception is expired tokens: the SDK database may contain a
-  /// refresh token that [Client.init] (without credential overrides) can
-  /// use to obtain a fresh access token automatically.
   Future<void> _restoreSession() async {
     final keys = await _readSessionKeys();
 
@@ -191,9 +463,6 @@ class MatrixService extends ChangeNotifier
       return;
     }
 
-    // Pre-load the session backup. Its pickled OLM account may be fresher
-    // than the SDK database copy, which can become stale if the app is
-    // killed before the database is flushed.
     final backup = await SessionBackup.load(
       clientName: clientName,
       storage: _storage,
@@ -223,35 +492,25 @@ class MatrixService extends ChangeNotifier
       debugPrint('[Lattice] Session restore failed: $e');
       debugPrint('[Lattice] Stack trace:\n$s');
 
-      // Unwrap ClientInitException — the SDK wraps the real error.
       final cause = _unwrapInitException(e);
 
-      // Expired token: the SDK database may hold a refresh token. A bare
-      // init() (no credential overrides) lets the SDK use it. This is the
-      // only retry we attempt because the first failure already called
-      // Client.clear() which wiped the database — providing credentials
-      // again won't help since the OLM/device state is gone.
       if (_isExpiredTokenError(cause)) {
         final refreshed = await _tryDatabaseRestore();
         if (refreshed) return;
       }
 
       _isLoggedIn = false;
-      if (isPermanentAuthFailure(cause)) {
+      if (_auth.isPermanentAuthFailure(cause)) {
         await _clearSessionAndBackup();
       }
     }
   }
 
-  /// Tries to initialize the client from the SDK database without overriding
-  /// the access token. The database may contain a refresh token that lets the
-  /// SDK obtain a fresh access token automatically.
   Future<bool> _tryDatabaseRestore() async {
     debugPrint('[Lattice] Attempting database-only restore (token refresh)...');
     try {
       await _client.init();
       if (_client.isLogged()) {
-        // Persist the refreshed token so future startups use it.
         if (_client.accessToken != null) {
           await _storage.write(
             key: latticeKey(clientName, 'access_token'),
@@ -272,18 +531,13 @@ class MatrixService extends ChangeNotifier
 
   // ── Private: Error Classification ──────────────────────────────
 
-  /// Unwraps a [ClientInitException] to get the original error.
-  /// The SDK wraps all init failures in this type, but our classifiers
-  /// need the underlying [MatrixException].
   static Object _unwrapInitException(Object e) =>
       e is ClientInitException ? e.originalException : e;
 
-  /// Whether the error is specifically an expired token (not revoked/unknown).
   static bool _isExpiredTokenError(Object e) {
     if (e is MatrixException && e.errcode == 'M_UNKNOWN_TOKEN') {
       return e.errorMessage.toLowerCase().contains('expired');
     }
     return false;
   }
-
 }

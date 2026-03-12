@@ -1,29 +1,27 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:matrix/matrix.dart';
 
-/// User-Interactive Authentication (UIA) handling: cached password,
-/// stream controller, and automatic stage completion.
-mixin UiaMixin on ChangeNotifier {
-  Client get client;
+class UiaService {
+  UiaService({
+    required Client client,
+  })  : _client = client;
+
+  final Client _client;
 
   // ── UIA (User-Interactive Authentication) ──────────────────────
   String? _cachedPassword;
   Timer? _passwordExpiryTimer;
 
-  /// Expose UIA requests that need user interaction (e.g. password prompt).
-  /// The UI should listen to this and call [completeUiaWithPassword].
   final _uiaController = StreamController<UiaRequest<dynamic>>.broadcast();
   Stream<UiaRequest<dynamic>> get onUiaRequest => _uiaController.stream;
 
   StreamSubscription<UiaRequest<dynamic>>? _uiaSub;
 
-  /// Start listening for UIA requests from the client.
-  @protected
   void listenForUia() {
     unawaited(_uiaSub?.cancel());
-    _uiaSub = client.onUiaRequest.stream.listen(_handleUiaRequest);
+    _uiaSub = _client.onUiaRequest.stream.listen(_handleUiaRequest);
   }
 
   Future<void> _handleUiaRequest(UiaRequest<dynamic> uiaRequest) async {
@@ -38,7 +36,7 @@ mixin UiaMixin on ChangeNotifier {
     switch (stage) {
       case AuthenticationTypes.password:
         final password = _cachedPassword;
-        final userId = client.userID;
+        final userId = _client.userID;
         if (password != null && userId != null) {
           debugPrint('[Lattice] UIA: completing with cached password');
           return uiaRequest.completeStage(
@@ -49,7 +47,6 @@ mixin UiaMixin on ChangeNotifier {
             ),
           );
         }
-        // No cached password — forward to UI for prompting.
         debugPrint('[Lattice] UIA: no cached password, forwarding to UI');
         _uiaController.add(uiaRequest);
       case AuthenticationTypes.dummy:
@@ -65,10 +62,8 @@ mixin UiaMixin on ChangeNotifier {
     }
   }
 
-  /// Complete a UIA request with the user's password.
-  /// Also caches the password so subsequent UIA stages auto-complete.
   void completeUiaWithPassword(UiaRequest<dynamic> request, String password) {
-    final userId = client.userID;
+    final userId = _client.userID;
     if (userId == null) return;
     setCachedPassword(password);
     unawaited(
@@ -82,9 +77,6 @@ mixin UiaMixin on ChangeNotifier {
     );
   }
 
-  /// Cache the password with an auto-expiry so it doesn't linger in memory
-  /// indefinitely if the user never runs bootstrap.
-  @protected
   void setCachedPassword(String password) {
     _cachedPassword = password;
     _passwordExpiryTimer?.cancel();
@@ -94,24 +86,19 @@ mixin UiaMixin on ChangeNotifier {
     });
   }
 
-  /// Clear the cached login password from memory.
-  /// Should be called after bootstrap completes to minimize exposure.
   void clearCachedPassword() {
     _cachedPassword = null;
     _passwordExpiryTimer?.cancel();
     _passwordExpiryTimer = null;
   }
 
-  /// Cancel UIA subscription (e.g. on logout or dispose).
-  @protected
   void cancelUiaSub() {
     unawaited(_uiaSub?.cancel());
   }
 
-  /// Close the UIA stream controller (on dispose).
-  @protected
-  void disposeUiaController() {
+  void dispose() {
     unawaited(_uiaController.close());
     _passwordExpiryTimer?.cancel();
+    cancelUiaSub();
   }
 }
