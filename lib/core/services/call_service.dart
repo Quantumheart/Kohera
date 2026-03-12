@@ -370,6 +370,7 @@ class CallService extends ChangeNotifier {
 
     final roomId = _activeCallRoomId!;
     debugPrint('[Lattice] Leaving call in room $roomId');
+    _stopMembershipWatcher();
 
     final callId = _activeCallId;
     final room = _client.getRoomById(roomId);
@@ -600,6 +601,7 @@ class CallService extends ChangeNotifier {
           return;
         }
         final roomId = _activeCallRoomId;
+        _stopMembershipWatcher();
         _activeCallRoomId = null;
         _rtcMembership.cancelMembershipRenewal();
         _callStartTime = null;
