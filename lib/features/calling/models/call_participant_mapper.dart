@@ -42,7 +42,6 @@ class CallParticipantMapper {
         ? screenShareRawTrack
         : null;
 
-    final hasScreenShare = screenShareTrack != null;
     final matrixId = extractMatrixId(p.identity);
 
     return CallParticipant(
@@ -53,7 +52,6 @@ class CallParticipantMapper {
       isAudioOnly: !hasVideo,
       isMuted: p.isMuted,
       isSpeaking: activeSpeakers.any((s) => s.identity == p.identity),
-      isScreenSharing: hasScreenShare,
       audioLevel: p.audioLevel,
       videoTrack: videoTrack,
       screenShareTrack: screenShareTrack,

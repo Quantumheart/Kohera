@@ -12,7 +12,6 @@ class CallParticipant {
     this.isAudioOnly = false,
     this.isMuted = false,
     this.isSpeaking = false,
-    this.isScreenSharing = false,
     this.audioLevel = 0.0,
     this.videoTrack,
     this.screenShareTrack,
@@ -26,7 +25,6 @@ class CallParticipant {
   final bool isAudioOnly;
   final bool isMuted;
   final bool isSpeaking;
-  final bool isScreenSharing;
   final double audioLevel;
   final livekit.VideoTrack? videoTrack;
   final livekit.VideoTrack? screenShareTrack;
@@ -45,7 +43,6 @@ class CallParticipant {
           isAudioOnly == other.isAudioOnly &&
           isMuted == other.isMuted &&
           isSpeaking == other.isSpeaking &&
-          isScreenSharing == other.isScreenSharing &&
           audioLevel == other.audioLevel &&
           videoTrack == other.videoTrack &&
           screenShareTrack == other.screenShareTrack &&
@@ -60,7 +57,6 @@ class CallParticipant {
         isAudioOnly,
         isMuted,
         isSpeaking,
-        isScreenSharing,
         audioLevel,
         videoTrack,
         screenShareTrack,

@@ -241,10 +241,11 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused &&
-        !kIsWeb &&
-        (Platform.isAndroid || Platform.isIOS) &&
+        _activeCallRoomId != null &&
         _liveKit.isScreenShareEnabled) {
-      unawaited(toggleScreenShare());
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+        unawaited(toggleScreenShare());
+      }
     }
   }
 
