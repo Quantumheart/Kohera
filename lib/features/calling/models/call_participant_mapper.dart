@@ -34,7 +34,7 @@ class CallParticipantMapper {
         .where(
           (pub) =>
               pub.source == livekit.TrackSource.screenShareVideo &&
-              pub.subscribed,
+              !pub.muted,
         )
         .firstOrNull;
     final screenShareRawTrack = screenSharePub?.track;
