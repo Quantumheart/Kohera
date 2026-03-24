@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_background/flutter_background.dart';
 import 'package:http/http.dart' as http;
 import 'package:lattice/features/calling/models/call_participant.dart' as ui;
 import 'package:lattice/features/calling/models/call_participant_mapper.dart';
@@ -191,6 +193,12 @@ class LiveKitService {
     final localParticipant = _livekitRoom?.localParticipant;
     if (localParticipant == null) return;
 
+    final willEnable = !_isScreenShareEnabled;
+
+    if (!kIsWeb && Platform.isAndroid && willEnable) {
+      await _startAndroidMediaProjectionService();
+    }
+
     final options = sourceId != null
         ? livekit.ScreenShareCaptureOptions(sourceId: sourceId)
         : null;
@@ -204,6 +212,35 @@ class LiveKitService {
         screenShareCaptureOptions: options,
       ),
     );
+
+    if (!kIsWeb && Platform.isAndroid && !_isScreenShareEnabled) {
+      await _stopAndroidMediaProjectionService();
+    }
+  }
+
+  static const _androidBgConfig = FlutterBackgroundAndroidConfig(
+    notificationTitle: 'Lattice',
+    notificationText: 'Sharing screen',
+    notificationImportance: AndroidNotificationImportance.normal,
+  );
+
+  Future<void> _startAndroidMediaProjectionService() async {
+    try {
+      await FlutterBackground.initialize(androidConfig: _androidBgConfig);
+      await FlutterBackground.enableBackgroundExecution();
+    } catch (e) {
+      debugPrint('[Lattice] Failed to start media projection service: $e');
+    }
+  }
+
+  Future<void> _stopAndroidMediaProjectionService() async {
+    try {
+      if (FlutterBackground.isBackgroundExecutionEnabled) {
+        await FlutterBackground.disableBackgroundExecution();
+      }
+    } catch (e) {
+      debugPrint('[Lattice] Failed to stop media projection service: $e');
+    }
   }
 
   // ── HTTP Helpers ───────────────────────────────────────────

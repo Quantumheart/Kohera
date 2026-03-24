@@ -27,7 +27,8 @@ class ConnectedCallView extends StatelessWidget {
         ? allParticipants.where((p) => p.isLocal).firstOrNull
         : null;
 
-    final gridParticipants = localParticipant != null
+    final localIsSharing = localParticipant?.screenShareTrack != null;
+    final gridParticipants = localParticipant != null && !localIsSharing
         ? allParticipants.where((p) => !p.isLocal).toList()
         : allParticipants;
 
