@@ -82,7 +82,7 @@ class NotificationService {
 
     const windowsSettings = WindowsInitializationSettings(
       appName: 'Lattice',
-      appUserModelId: 'com.lattice.app',
+      appUserModelId: 'io.github.quantumheart.lattice',
       guid: 'ef82b5e7-fd65-431d-bcbb-9c7fa9acb761',
     );
 
