@@ -1,5 +1,5 @@
 [Setup]
-AppId={{com.example.lattice}
+AppId={{io.github.quantumheart.lattice}
 AppName=Lattice
 AppVersion={#AppVersion}
 AppPublisher=Lattice
@@ -26,8 +26,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "..\..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\Lattice"; Filename: "{app}\lattice.exe"
-Name: "{autodesktop}\Lattice"; Filename: "{app}\lattice.exe"; Tasks: desktopicon
+Name: "{group}\Lattice"; Filename: "{app}\lattice.exe"; AppUserModelID: "io.github.quantumheart.lattice"
+Name: "{autodesktop}\Lattice"; Filename: "{app}\lattice.exe"; Tasks: desktopicon; AppUserModelID: "io.github.quantumheart.lattice"
 
 [Run]
 Filename: "{app}\lattice.exe"; Description: "{cm:LaunchProgram,Lattice}"; Flags: nowait postinstall skipifsilent
