@@ -57,7 +57,8 @@ class CallSignalingService {
 
   static String _generateCallId() {
     final timestamp = DateTime.now().millisecondsSinceEpoch.toRadixString(36);
-    final suffix = _random.nextInt(0xFFFF).toRadixString(36).padLeft(3, '0');
+    final suffix =
+        _random.nextInt(0xFFFFFFFF).toRadixString(36).padLeft(6, '0');
     return '$timestamp$suffix';
   }
 
