@@ -474,7 +474,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ? update.errorMessage ?? 'Check failed'
                               : hasUpdate
                                   ? 'v${update.latestVersion} available'
-                                  : 'You\'re up to date',
+                                  : "You're up to date",
                       onTap: update.status == UpdateStatus.checking
                           ? () {}
                           : () => unawaited(update.checkForUpdate()),

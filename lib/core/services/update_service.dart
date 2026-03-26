@@ -10,9 +10,12 @@ import 'package:package_info_plus/package_info_plus.dart';
 enum UpdateStatus { idle, checking, updateAvailable, error }
 
 class UpdateService extends ChangeNotifier {
-  UpdateService({required PreferencesService prefs}) : _prefs = prefs;
+  UpdateService({required PreferencesService prefs, http.Client? httpClient})
+      : _prefs = prefs,
+        _httpClient = httpClient;
 
   PreferencesService _prefs;
+  final http.Client? _httpClient;
   bool _disposed = false;
   Timer? _periodicTimer;
 
@@ -33,6 +36,9 @@ class UpdateService extends ChangeNotifier {
   bool get isDesktop =>
       !kIsWeb && (Platform.isLinux || Platform.isWindows || Platform.isMacOS);
 
+  @visibleForTesting
+  set currentVersion(String? v) => _currentVersion = v;
+
   // ── Lifecycle ───────────────────────────────────────────────
 
   Future<void> init() async {
@@ -52,7 +58,7 @@ class UpdateService extends ChangeNotifier {
     _periodicTimer = Timer.periodic(
       const Duration(hours: 24),
       (_) {
-        if (_prefs.autoUpdateEnabled) checkForUpdate();
+        if (_prefs.autoUpdateEnabled) unawaited(checkForUpdate());
       },
     );
   }
@@ -74,6 +80,9 @@ class UpdateService extends ChangeNotifier {
 
   // ── Update check ────────────────────────────────────────────
 
+  static const _releaseUrl_ =
+      'https://api.github.com/repos/Quantumheart/Lattice/releases/latest';
+
   Future<void> checkForUpdate() async {
     if (!isDesktop) return;
     if (_status == UpdateStatus.checking) return;
@@ -83,12 +92,11 @@ class UpdateService extends ChangeNotifier {
     _notify();
 
     try {
-      final response = await http.get(
-        Uri.parse(
-          'https://api.github.com/repos/Quantumheart/Lattice/releases/latest',
-        ),
-        headers: {'Accept': 'application/vnd.github+json'},
-      );
+      final uri = Uri.parse(_releaseUrl_);
+      final headers = {'Accept': 'application/vnd.github+json'};
+      final response = _httpClient != null
+          ? await _httpClient!.get(uri, headers: headers)
+          : await http.get(uri, headers: headers);
 
       if (response.statusCode == 403) {
         _status = UpdateStatus.error;
@@ -125,7 +133,7 @@ class UpdateService extends ChangeNotifier {
 
       final remoteVersion = tagName.startsWith('v') ? tagName.substring(1) : tagName;
 
-      if (_isNewer(remoteVersion, _currentVersion ?? '0.0.0')) {
+      if (isNewer(remoteVersion, _currentVersion ?? '0.0.0')) {
         _latestVersion = remoteVersion;
         _releaseUrl = json['html_url'] as String?;
         _status = UpdateStatus.updateAvailable;
@@ -153,7 +161,8 @@ class UpdateService extends ChangeNotifier {
 
   // ── Version comparison ──────────────────────────────────────
 
-  static bool _isNewer(String latest, String current) {
+  @visibleForTesting
+  static bool isNewer(String latest, String current) {
     final latestParts = latest.split('.').map(int.tryParse).toList();
     final currentParts = current.split('.').map(int.tryParse).toList();
     final length =
