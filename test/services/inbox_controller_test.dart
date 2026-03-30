@@ -259,7 +259,7 @@ void main() {
   // ── markRoomAsRead() ────────────────────────────────────────
 
   group('markRoomAsRead()', () {
-    test('calls setReadMarker with correct eventId and refreshes', () async {
+    test('calls setReadMarker with latest eventId and refreshes', () async {
       final mockRoom = MockRoom();
       when(mockRoom.lastEvent).thenReturn(null);
       when(mockRoom.setReadMarker(any)).thenAnswer((_) async {});
@@ -270,12 +270,37 @@ void main() {
         only: anyNamed('only'),
       ),).thenAnswer((_) async => _makeResponse([
             _makeNotification(eventId: 'e1', roomId: '!r1:x'),
+            _makeNotification(eventId: 'e2', roomId: '!r1:x'),
           ]),);
 
       await controller.fetch();
       await controller.markRoomAsRead('!r1:x');
 
-      verify(mockRoom.setReadMarker('e1')).called(1);
+      verify(mockRoom.setReadMarker('e2')).called(1);
+    });
+
+    test('optimistically removes group before server call', () async {
+      final mockRoom = MockRoom();
+      when(mockRoom.lastEvent).thenReturn(null);
+      when(mockRoom.setReadMarker(any)).thenAnswer((_) async {});
+      when(mockClient.getRoomById('!r1:x')).thenReturn(mockRoom);
+
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(eventId: 'e1', roomId: '!r1:x'),
+            _makeNotification(eventId: 'e2', roomId: '!r2:x'),
+          ]),);
+
+      await controller.fetch();
+      expect(controller.grouped, hasLength(2));
+
+      final future = controller.markRoomAsRead('!r1:x');
+      expect(controller.grouped, hasLength(1));
+      expect(controller.grouped[0].roomId, '!r2:x');
+
+      await future;
     });
   });
 

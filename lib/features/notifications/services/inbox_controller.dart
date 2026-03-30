@@ -40,6 +40,7 @@ class InboxController extends ChangeNotifier {
 
   Timer? _pollTimer;
   int _pollingRefCount = 0;
+  bool _markingAsRead = false;
 
   int _fetchGeneration = 0;
   int _cachedUnreadCount = 0;
@@ -167,7 +168,7 @@ class InboxController extends ChangeNotifier {
   }
 
   Future<void> _pollOnce() async {
-    if (_isLoading) return;
+    if (_isLoading || _markingAsRead) return;
     try {
       final response = await _client.getNotifications(
         limit: 30,
@@ -207,25 +208,32 @@ class InboxController extends ChangeNotifier {
     final room = _client.getRoomById(roomId);
     if (room == null) return;
 
-    // Prefer the latest notification event ID (always available on the
-    // inbox screen) over room.lastEvent which may be null when the
-    // room timeline hasn't been loaded.
     String? eventId;
     for (final group in _grouped) {
       if (group.roomId == roomId && group.notifications.isNotEmpty) {
-        eventId = group.notifications.first.event.eventId;
+        eventId = group.notifications.last.event.eventId;
         break;
       }
     }
     eventId ??= room.lastEvent?.eventId;
     if (eventId == null) return;
 
+    _markingAsRead = true;
+    _grouped = [
+      for (final g in _grouped)
+        if (g.roomId != roomId) g,
+    ];
+    _updateUnreadCount();
+    if (!_disposed) notifyListeners();
+
     try {
       await room.setReadMarker(eventId);
-      // Re-fetch to update state
       await fetch();
     } catch (e) {
       debugPrint('[Lattice] Inbox markRoomAsRead error: $e');
+      await fetch();
+    } finally {
+      _markingAsRead = false;
     }
   }
 
