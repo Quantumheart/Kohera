@@ -11,11 +11,9 @@ import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/core/services/preferences_service.dart';
 import 'package:lattice/core/utils/media_auth.dart';
 import 'package:lattice/core/utils/notification_filter.dart';
+import 'package:lattice/features/notifications/models/notification_constants.dart';
 import 'package:matrix/matrix.dart';
 import 'package:path_provider/path_provider.dart';
-
-const _windowsAumid = 'io.github.quantumheart.lattice';
-const _windowsGuid = 'ef82b5e7-fd65-431d-bcbb-9c7fa9acb761';
 
 bool get _isLinux => !kIsWeb && Platform.isLinux;
 
@@ -84,9 +82,9 @@ class NotificationService {
     );
 
     const windowsSettings = WindowsInitializationSettings(
-      appName: 'Lattice',
-      appUserModelId: _windowsAumid,
-      guid: _windowsGuid,
+      appName: NotificationChannel.appName,
+      appUserModelId: NotificationChannel.appId,
+      guid: NotificationChannel.windowsGuid,
     );
 
     const settings = InitializationSettings(
@@ -123,7 +121,7 @@ class NotificationService {
 
   Future<void> _registerWindowsComServer() async {
     const keyPath =
-        r'HKCU\Software\Classes\CLSID\{' + _windowsGuid + r'}\LocalServer32';
+        r'HKCU\Software\Classes\CLSID\{' + NotificationChannel.windowsGuid + r'}\LocalServer32';
     final exe = Platform.resolvedExecutable;
     final result =
         await Process.run('reg', ['add', keyPath, '/ve', '/d', exe, '/f']);
@@ -225,7 +223,7 @@ class NotificationService {
       final roomName = room?.getLocalizedDisplayname() ?? roomId;
 
       // Find who sent the invite from the invite state.
-      var inviterName = 'Someone';
+      var inviterName = NotificationText.fallbackInviterName;
       Uri? inviterAvatarUrl;
       final inviteEvents = update.inviteState;
       if (inviteEvents != null) {
@@ -249,7 +247,7 @@ class NotificationService {
         roomId: roomId,
         title: roomName,
         senderName: inviterName,
-        body: 'invited you to join',
+        body: NotificationText.inviteBody,
         avatarPath: avatarPath,
       );
       _notifiedInvites.add(roomId);
@@ -368,14 +366,14 @@ class NotificationService {
     } else {
       final lines = <String>[];
       for (final (name, body, _) in notifiable.take(3)) {
-        lines.add('$name: $body');
+        lines.add(NotificationText.senderBody(name, body));
       }
       if (notifiable.length > 3) {
-        lines.add('... and ${notifiable.length - 3} more');
+        lines.add(NotificationText.moreMessages(notifiable.length - 3));
       }
       await _showNotification(
         roomId: roomId,
-        title: '$roomName · ${notifiable.length} messages',
+        title: NotificationText.groupTitle(roomName, notifiable.length),
         senderName: '',
         body: lines.join('\n'),
         avatarPath: avatarPath,
@@ -391,10 +389,10 @@ class NotificationService {
       final decrypted = await room.client.encryption
           ?.decryptRoomEvent(event)
           .timeout(const Duration(seconds: 3));
-      return decrypted?.body ?? 'Encrypted message';
+      return decrypted?.body ?? NotificationText.encryptedMessage;
     } catch (e) {
       debugPrint('[Lattice] Decryption failed for notification: $e');
-      return 'Encrypted message';
+      return NotificationText.encryptedMessage;
     }
   }
 
@@ -410,7 +408,7 @@ class NotificationService {
     try {
       final tempDir = await getTemporaryDirectory();
       final sanitized = userId.replaceAll(RegExp('[^a-zA-Z0-9]'), '_');
-      final path = '${tempDir.path}/lattice_avatar_$sanitized.png';
+      final path = '${tempDir.path}/${NotificationChannel.avatarTempPrefix}$sanitized.png';
       final file = File(path);
       if (file.existsSync()) return path;
 
@@ -458,14 +456,14 @@ class NotificationService {
     final notificationId = _stableNotificationId(roomId);
 
     final androidDetails = AndroidNotificationDetails(
-      'lattice_messages',
-      'Messages',
-      channelDescription: 'Chat message notifications',
+      NotificationChannel.androidChannelId,
+      NotificationChannel.androidChannelName,
+      channelDescription: NotificationChannel.androidChannelDescription,
       importance: Importance.high,
       priority: Priority.high,
       playSound: preferencesService.notificationSoundEnabled,
       enableVibration: preferencesService.notificationVibrationEnabled,
-      groupKey: 'io.github.quantumheart.lattice.MESSAGES',
+      groupKey: NotificationChannel.androidGroupKey,
     );
 
     final darwinDetails = DarwinNotificationDetails(
@@ -489,7 +487,8 @@ class NotificationService {
       windows: windowsDetails,
     );
 
-    final displayBody = isGrouped ? body : '$senderName: $body';
+    final displayBody =
+        isGrouped ? body : NotificationText.senderBody(senderName, body);
 
     await _plugin.show(
       id: notificationId,
@@ -512,25 +511,26 @@ class NotificationService {
   }) async {
     try {
       final hints = <dn.NotificationHint>[
-        dn.NotificationHint.soundName('message-new-instant'),
-        dn.NotificationHint.desktopEntry('lattice'),
+        dn.NotificationHint.soundName(NotificationChannel.linuxSoundName),
+        dn.NotificationHint.desktopEntry(NotificationChannel.linuxDesktopEntry),
         dn.NotificationHint.category(dn.NotificationCategory.im()),
         if (avatarPath != null) dn.NotificationHint.imagePath(avatarPath),
       ];
 
-      final displayBody = isGrouped ? body : '$senderName: $body';
+      final displayBody =
+          isGrouped ? body : NotificationText.senderBody(senderName, body);
 
       final notification = await _linuxClient!.notify(
         title,
         body: displayBody,
         replacesId: _linuxNotifications[roomId]?.id ?? 0,
-        appName: 'Lattice',
-        appIcon: 'lattice',
+        appName: NotificationChannel.appName,
+        appIcon: NotificationChannel.linuxAppIcon,
         hints: hints,
-        actions: const [
-          dn.NotificationAction('default', ''),
-          dn.NotificationAction('reply', 'Reply'),
-          dn.NotificationAction('mark_read', 'Mark as Read'),
+        actions: [
+          const dn.NotificationAction('default', ''),
+          const dn.NotificationAction('reply', NotificationText.replyAction),
+          const dn.NotificationAction('mark_read', NotificationText.markAsReadAction),
         ],
       );
       unawaited(notification.action.then((actionKey) {

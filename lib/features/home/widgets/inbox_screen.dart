@@ -6,6 +6,7 @@ import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/core/utils/reply_fallback.dart';
 import 'package:lattice/core/utils/time_format.dart';
+import 'package:lattice/features/notifications/models/notification_constants.dart';
 import 'package:lattice/features/notifications/services/inbox_controller.dart';
 import 'package:lattice/features/rooms/widgets/invite_tile.dart';
 import 'package:lattice/shared/widgets/room_avatar.dart';
@@ -48,7 +49,7 @@ class _InboxScreenState extends State<InboxScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Inbox'),
+        title: const Text(InboxText.title),
       ),
       body: Column(
         children: [
@@ -58,13 +59,13 @@ class _InboxScreenState extends State<InboxScreen> {
             child: Row(
               children: [
                 FilterChip(
-                  label: const Text('All'),
+                  label: const Text(InboxText.filterAll),
                   selected: controller.filter == InboxFilter.all,
                   onSelected: (_) => controller.setFilter(InboxFilter.all),
                 ),
                 const SizedBox(width: 8),
                 FilterChip(
-                  label: const Text('Mentions'),
+                  label: const Text(InboxText.filterMentions),
                   selected: controller.filter == InboxFilter.mentions,
                   onSelected: (_) => controller.setFilter(InboxFilter.mentions),
                 ),
@@ -72,8 +73,10 @@ class _InboxScreenState extends State<InboxScreen> {
                 FilterChip(
                   label: Text(
                     controller.invitationCount > 0
-                        ? 'Invitations (${controller.invitationCount})'
-                        : 'Invitations',
+                        ? InboxText.invitationsWithCount(
+                            controller.invitationCount,
+                          )
+                        : InboxText.filterInvitations,
                   ),
                   selected: controller.filter == InboxFilter.invitations,
                   onSelected: (_) =>
@@ -99,7 +102,7 @@ class _InboxScreenState extends State<InboxScreen> {
                                     color: cs.error.withValues(alpha: 0.6),),
                                 const SizedBox(height: 12),
                                 Text(
-                                  'Failed to load notifications',
+                                  InboxText.failedToLoad,
                                   style: tt.bodyMedium?.copyWith(
                                     color: cs.onSurfaceVariant,
                                   ),
@@ -107,7 +110,7 @@ class _InboxScreenState extends State<InboxScreen> {
                                 const SizedBox(height: 8),
                                 FilledButton.tonal(
                                   onPressed: controller.fetch,
-                                  child: const Text('Retry'),
+                                  child: const Text(InboxText.retry),
                                 ),
                               ],
                             ),
@@ -123,7 +126,7 @@ class _InboxScreenState extends State<InboxScreen> {
                                             .withValues(alpha: 0.3),),
                                     const SizedBox(height: 16),
                                     Text(
-                                      'No notifications',
+                                      InboxText.noNotifications,
                                       style: tt.titleMedium?.copyWith(
                                         color: cs.onSurfaceVariant
                                             .withValues(alpha: 0.5),
@@ -210,13 +213,13 @@ class _NotificationGroupTile extends StatelessWidget {
                   ),
                   IconButton(
                     icon: const Icon(Icons.done_all_rounded, size: 20),
-                    tooltip: 'Mark as read',
+                    tooltip: InboxText.tooltipMarkAsRead,
                     onPressed: () => controller.markRoomAsRead(group.roomId),
                     visualDensity: VisualDensity.compact,
                   ),
                   IconButton(
                     icon: const Icon(Icons.open_in_new_rounded, size: 20),
-                    tooltip: 'Open',
+                    tooltip: InboxText.tooltipOpen,
                     onPressed: () => context.goNamed(
                       Routes.room,
                       pathParameters: {'roomId': group.roomId},
@@ -337,10 +340,10 @@ class _NotificationTile extends StatelessWidget {
     final msgtype = content['msgtype'];
 
     // Check media types first — their body is just a filename.
-    if (msgtype == matrix_sdk.MessageTypes.Image) return '📷 Image';
-    if (msgtype == matrix_sdk.MessageTypes.Video) return '🎥 Video';
-    if (msgtype == matrix_sdk.MessageTypes.Audio) return '🎵 Audio';
-    if (msgtype == matrix_sdk.MessageTypes.File) return '📎 File';
+    if (msgtype == matrix_sdk.MessageTypes.Image) return InboxText.mediaImage;
+    if (msgtype == matrix_sdk.MessageTypes.Video) return InboxText.mediaVideo;
+    if (msgtype == matrix_sdk.MessageTypes.Audio) return InboxText.mediaAudio;
+    if (msgtype == matrix_sdk.MessageTypes.File) return InboxText.mediaFile;
 
     final body = content['body'];
     if (body is String) return stripReplyFallback(body);
@@ -373,7 +376,7 @@ class _InvitationsView extends StatelessWidget {
                 color: cs.onSurfaceVariant.withValues(alpha: 0.3),),
             const SizedBox(height: 16),
             Text(
-              'No pending invitations',
+              InboxText.noPendingInvitations,
               style: tt.titleMedium?.copyWith(
                 color: cs.onSurfaceVariant.withValues(alpha: 0.5),
               ),
@@ -390,7 +393,7 @@ class _InvitationsView extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
             child: Text(
-              'Spaces',
+              InboxText.sectionSpaces,
               style: tt.labelLarge?.copyWith(
                 color: cs.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
@@ -403,7 +406,7 @@ class _InvitationsView extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
             child: Text(
-              'Rooms',
+              InboxText.sectionRooms,
               style: tt.labelLarge?.copyWith(
                 color: cs.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
@@ -443,7 +446,7 @@ class _LoadMoreButton extends StatelessWidget {
               )
             : TextButton(
                 onPressed: onPressed,
-                child: const Text('Load more'),
+                child: const Text(InboxText.loadMore),
               ),
       ),
     );

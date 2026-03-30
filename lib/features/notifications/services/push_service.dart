@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:lattice/core/services/call_service.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/core/services/preferences_service.dart';
+import 'package:lattice/features/notifications/models/notification_constants.dart';
 import 'package:lattice/features/notifications/services/notification_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:unifiedpush/unifiedpush.dart';
@@ -27,9 +28,9 @@ class PushService {
   bool _initialized = false;
   bool _disposed = false;
 
-  static const _appId = 'io.github.quantumheart.lattice';
-  static const _defaultGatewayUrl =
-      'https://matrix.gateway.unifiedpush.org/_matrix/push/v1/notify';
+  static const String _appId = NotificationChannel.appId;
+  static const String _defaultGatewayUrl =
+      NotificationChannel.defaultGatewayUrl;
 
   // ── Initialization ───────────────────────────────────────────
 
@@ -120,10 +121,11 @@ class PushService {
       Pusher(
         appId: _appId,
         pushkey: endpoint,
-        appDisplayName: 'Lattice',
-        deviceDisplayName: client.deviceName ?? 'Android',
+        appDisplayName: NotificationChannel.appName,
+        deviceDisplayName:
+            client.deviceName ?? NotificationChannel.defaultDeviceName,
         kind: 'http',
-        lang: 'en',
+        lang: NotificationChannel.defaultLang,
         data: PusherData(
           url: Uri.parse(gatewayUrl),
           format: 'event_id_only',
@@ -167,8 +169,9 @@ class PushService {
       if (eventId == null) {
         await notificationService.showPushNotification(
           roomId: roomId,
-          title: room?.getLocalizedDisplayname() ?? 'New message',
-          body: 'You have a new message',
+          title: room?.getLocalizedDisplayname() ??
+              NotificationText.newMessageTitle,
+          body: NotificationText.newMessageBody,
         );
         return;
       }
@@ -180,8 +183,9 @@ class PushService {
         debugPrint('[Lattice] Failed to fetch push event: $e');
         await notificationService.showPushNotification(
           roomId: roomId,
-          title: room?.getLocalizedDisplayname() ?? 'New message',
-          body: 'You have a new message',
+          title: room?.getLocalizedDisplayname() ??
+              NotificationText.newMessageTitle,
+          body: NotificationText.newMessageBody,
         );
         return;
       }
@@ -195,8 +199,8 @@ class PushService {
       if (room == null) {
         await notificationService.showPushNotification(
           roomId: roomId,
-          title: 'New message',
-          body: 'You have a new message',
+          title: NotificationText.newMessageTitle,
+          body: NotificationText.newMessageBody,
         );
         return;
       }
@@ -257,10 +261,10 @@ class PushService {
       final decrypted = await room.client.encryption
           ?.decryptRoomEvent(event)
           .timeout(const Duration(seconds: 3));
-      return decrypted?.body ?? 'Encrypted message';
+      return decrypted?.body ?? NotificationText.encryptedMessage;
     } catch (e) {
       debugPrint('[Lattice] Push decryption failed: $e');
-      return 'Encrypted message';
+      return NotificationText.encryptedMessage;
     }
   }
 
