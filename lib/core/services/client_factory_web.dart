@@ -1,7 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:lattice/core/services/client_factory_shared.dart';
 import 'package:matrix/matrix.dart';
-import 'package:vodozemac/vodozemac.dart' as vod;
 
 // coverage:ignore-start
 Future<Client> createDefaultClient(
@@ -12,7 +10,10 @@ Future<Client> createDefaultClient(
   return buildClient(
     clientName,
     database,
-    NativeImplementationsIsolate(compute, vodozemacInit: vod.init),
+    NativeImplementationsWebWorker(
+      Uri.parse('native_executor.js'),
+      timeout: const Duration(minutes: 1),
+    ),
     onSoftLogout,
   );
 }
