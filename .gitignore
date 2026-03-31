@@ -52,6 +52,10 @@ android/key.properties
 .claude/settings.json
 lattice.code-workspace
 
+# Web build artifacts
+web/native_executor.js*
+.vodozemac/
+
 # Flatpak
 flatpak/.flatpak-builder-build/
 .flatpak-builder/
