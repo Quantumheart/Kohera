@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_vodozemac/flutter_vodozemac.dart' as vod;
 import 'package:go_router/go_router.dart';
 import 'package:lattice/core/routing/app_router.dart';
 import 'package:lattice/core/services/call_service.dart';
@@ -10,6 +9,7 @@ import 'package:lattice/core/services/client_manager.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/core/services/preferences_service.dart';
 import 'package:lattice/core/theme/lattice_theme.dart';
+import 'package:lattice/core/utils/vodozemac_init.dart';
 import 'package:lattice/features/auth/services/sso_web_init.dart';
 import 'package:lattice/features/calling/services/ringtone_service.dart';
 import 'package:lattice/features/calling/widgets/incoming_call_overlay.dart';
@@ -23,7 +23,7 @@ import 'package:provider/provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
-  await vod.init();
+  await initVodozemac();
   final clientManager = ClientManager();
   await clientManager.init();
 
