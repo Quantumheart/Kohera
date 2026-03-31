@@ -1,7 +1,8 @@
 import 'dart:collection';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:lattice/core/utils/media_cache_io.dart'
+    if (dart.library.js_interop) 'package:lattice/core/utils/media_cache_web.dart';
 import 'package:matrix/matrix.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';

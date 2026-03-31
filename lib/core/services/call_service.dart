@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
@@ -245,7 +244,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
         _callState == LatticeCallState.connected &&
         _activeCallRoomId != null &&
         _liveKit.isScreenShareEnabled) {
-      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)) {
         unawaited(toggleScreenShare());
       }
     }
@@ -480,7 +479,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     final isVideo = type == model.CallType.video;
     _nativeUi.showNativeOutgoingCall(roomId, callerName, isVideo);
 
-    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
+    if (kIsWeb || (defaultTargetPlatform != TargetPlatform.android && defaultTargetPlatform != TargetPlatform.iOS)) {
       _ringing.playDialtone();
     }
 
@@ -534,7 +533,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
       callerAvatarUrl: null,
       isVideo: isVideo,
     );
-    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
+    if (kIsWeb || (defaultTargetPlatform != TargetPlatform.android && defaultTargetPlatform != TargetPlatform.iOS)) {
       _ringing.playRingtone();
     }
   }
@@ -584,7 +583,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
       callerAvatarUrl: event.info.callerAvatarUrl,
       isVideo: event.info.isVideo,
     );
-    if (kIsWeb || (!Platform.isAndroid && !Platform.isIOS)) {
+    if (kIsWeb || (defaultTargetPlatform != TargetPlatform.android && defaultTargetPlatform != TargetPlatform.iOS)) {
       _ringing.playRingtone();
     }
   }
