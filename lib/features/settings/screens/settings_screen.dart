@@ -427,6 +427,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: 'Manage your devices',
                   onTap: () => context.goNamed(Routes.settingsDevices),
                 ),
+                const Divider(height: 1, indent: 56),
+                _SettingsTile(
+                  icon: Icons.no_accounts_rounded,
+                  title: 'Deactivate account',
+                  subtitle: 'Permanently delete your account',
+                  titleColor: cs.error,
+                  onTap: () => _confirmDeactivateAccount(context),
+                ),
               ],
             ),
           ),
@@ -471,22 +479,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             child: const Text('Sign Out'),
-          ),
-
-          const SizedBox(height: 12),
-
-          // ── Deactivate Account ──
-          FilledButton.tonal(
-            onPressed: () => _confirmDeactivateAccount(context),
-            style: FilledButton.styleFrom(
-              backgroundColor: cs.error,
-              foregroundColor: cs.onError,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-            ),
-            child: const Text('Deactivate Account'),
           ),
 
           const SizedBox(height: 32),
@@ -754,19 +746,22 @@ class _SettingsTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.titleColor,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+  final Color? titleColor;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return ListTile(
-      leading: Icon(icon, color: cs.onSurfaceVariant),
-      title: Text(title),
+      leading: Icon(icon, color: titleColor ?? cs.onSurfaceVariant),
+      title: Text(title, style: titleColor != null
+          ? TextStyle(color: titleColor) : null),
       subtitle: Text(subtitle),
       trailing: Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
       mouseCursor: SystemMouseCursors.click,
