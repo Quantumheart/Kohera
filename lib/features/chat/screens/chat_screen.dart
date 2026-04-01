@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:lattice/core/models/pending_attachment.dart';
 import 'package:lattice/core/models/upload_state.dart';
@@ -451,7 +452,7 @@ class _ChatScreenState extends State<ChatScreen>
             final attachment = await pickFileAsAttachment();
             if (attachment != null && mounted) _addAttachment(attachment);
           },
-          onPasteImage: _isDesktop ? _handlePasteImage : null,
+          onPasteImage: (_isDesktop || kIsWeb) ? _handlePasteImage : null,
           uploadNotifier: _compose.uploadNotifier,
           room: room,
           joinedRooms: matrix.rooms,
