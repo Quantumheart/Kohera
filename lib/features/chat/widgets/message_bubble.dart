@@ -11,6 +11,7 @@ import 'package:lattice/features/chat/widgets/file_bubble.dart';
 import 'package:lattice/features/chat/widgets/hover_action_bar.dart';
 import 'package:lattice/features/chat/widgets/html_message_text.dart';
 import 'package:lattice/features/chat/widgets/image_bubble.dart';
+import 'package:lattice/features/chat/widgets/inline_image_preview.dart';
 import 'package:lattice/features/chat/widgets/inline_reply_preview.dart';
 import 'package:lattice/features/chat/widgets/link_preview_card.dart';
 import 'package:lattice/features/chat/widgets/linkable_text.dart';
@@ -616,14 +617,26 @@ class _MessageBubbleState extends State<MessageBubble> {
     return null;
   }
 
+  static bool _isDirectImageUrl(String url) {
+    final path = Uri.tryParse(url)?.path.toLowerCase() ?? '';
+    return path.endsWith('.gif') ||
+        path.endsWith('.png') ||
+        path.endsWith('.jpg') ||
+        path.endsWith('.jpeg') ||
+        path.endsWith('.webp');
+  }
+
   Widget _buildLinkPreview(String bodyText) {
-    // Cache the extracted URL to avoid re-running the regex on every build.
     if (_previewUrlBody != bodyText) {
       _previewUrlBody = bodyText;
       _cachedPreviewUrl = _extractFirstUrl(bodyText);
     }
     final url = _cachedPreviewUrl;
     if (url == null) return const SizedBox.shrink();
+
+    if (_isDirectImageUrl(url)) {
+      return InlineImagePreview(url: url, isMe: widget.isMe);
+    }
     return LinkPreviewCard(url: url, isMe: widget.isMe);
   }
 
