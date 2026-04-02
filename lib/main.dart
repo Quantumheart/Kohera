@@ -9,6 +9,7 @@ import 'package:lattice/core/services/client_manager.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/core/services/preferences_service.dart';
 import 'package:lattice/core/theme/lattice_theme.dart';
+import 'package:lattice/core/theme/theme_presets.dart';
 import 'package:lattice/core/utils/vodozemac_init.dart';
 import 'package:lattice/features/auth/services/sso_web_init.dart';
 import 'package:lattice/features/calling/services/ringtone_service.dart';
@@ -137,14 +138,14 @@ class _LatticeAppState extends State<LatticeApp> {
                     child: Builder(
                       builder: (context) {
                         final callService = context.read<CallService>();
-                        final accent = prefs.accentColor;
+                        final preset = getPreset(prefs.themePreset);
                         final theme = LatticeTheme.light(
                           dynamic: lightDynamic,
-                          accent: accent,
+                          preset: preset,
                         );
                         final darkTheme = LatticeTheme.dark(
                           dynamic: darkDynamic,
-                          accent: accent,
+                          preset: preset,
                         );
 
                         return NotificationLifecycleObserver(
@@ -157,7 +158,7 @@ class _LatticeAppState extends State<LatticeApp> {
                             debugShowCheckedModeBanner: false,
                             theme: theme,
                             darkTheme: darkTheme,
-                            themeMode: prefs.themeMode,
+                            themeMode: preset?.forcedMode ?? prefs.themeMode,
                             routerConfig: router,
                             builder: (context, child) => IncomingCallOverlay(
                               router: router,
