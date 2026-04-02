@@ -446,7 +446,7 @@ class _TrailingTimeBadge extends StatelessWidget {
                 constraints: const BoxConstraints(),
                 tooltip: 'Start call',
                 style: IconButton.styleFrom(
-                  foregroundColor: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                  foregroundColor: cs.onSurfaceVariant,
                 ),
               ),
             ),
