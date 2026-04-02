@@ -36,7 +36,11 @@ class ThemePresetPicker extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         const spacing = 8.0;
-        const columns = 6;
+        const minChipWidth = 72.0;
+        final columns =
+            ((constraints.maxWidth + spacing) / (minChipWidth + spacing))
+                .floor()
+                .clamp(3, 6);
         final chipWidth =
             (constraints.maxWidth - spacing * (columns - 1)) / columns;
 
@@ -89,6 +93,9 @@ class _PresetChip extends StatelessWidget {
           ),
           child: Text(
             label,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
             style: TextStyle(
               fontSize: 13,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
