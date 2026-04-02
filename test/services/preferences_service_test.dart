@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lattice/core/services/preferences_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -130,28 +128,26 @@ void main() {
     });
   });
 
-  group('accent color', () {
+  group('theme preset', () {
     test('defaults to null', () {
-      expect(prefs.accentColor, isNull);
+      expect(prefs.themePreset, isNull);
     });
 
-    test('round-trips a color value', () async {
-      const blue = Color(0xFF1976D2);
-      await prefs.setAccentColor(blue);
-      expect(prefs.accentColor, blue);
+    test('round-trips a preset id', () async {
+      await prefs.setThemePreset('ocean');
+      expect(prefs.themePreset, 'ocean');
     });
 
     test('clears to null', () async {
-      const blue = Color(0xFF1976D2);
-      await prefs.setAccentColor(blue);
-      await prefs.setAccentColor(null);
-      expect(prefs.accentColor, isNull);
+      await prefs.setThemePreset('ocean');
+      await prefs.setThemePreset(null);
+      expect(prefs.themePreset, isNull);
     });
 
     test('notifies listeners on change', () async {
       var notified = false;
       prefs.addListener(() => notified = true);
-      await prefs.setAccentColor(const Color(0xFFF44336));
+      await prefs.setThemePreset('purple');
       expect(notified, isTrue);
     });
   });

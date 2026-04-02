@@ -1,32 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:lattice/core/theme/theme_presets.dart';
 
-/// Lattice theme: Material You-inspired with expressive typography
-/// and elevation layers. Falls back to a neutral blue seed color
-/// when the platform does not supply a dynamic palette.
 class LatticeTheme {
   LatticeTheme._();
 
-  static const Color _seedColor = Color(0xFF1976D2);
+  static const Color _fallbackSeed = Color(0xFF1976D2);
 
   // ── Light ──────────────────────────────────────────────────────
-  static ThemeData light({ColorScheme? dynamic, Color? accent}) {
-    final colorScheme = accent != null
-        ? ColorScheme.fromSeed(seedColor: accent)
-        : dynamic ?? ColorScheme.fromSeed(seedColor: _seedColor);
-
+  static ThemeData light({ColorScheme? dynamic, ThemePreset? preset}) {
+    final colorScheme = preset?.light() ??
+        dynamic ??
+        ColorScheme.fromSeed(seedColor: _fallbackSeed);
     return _build(colorScheme, Brightness.light);
   }
 
   // ── Dark ───────────────────────────────────────────────────────
-  static ThemeData dark({ColorScheme? dynamic, Color? accent}) {
-    final colorScheme = accent != null
-        ? ColorScheme.fromSeed(seedColor: accent, brightness: Brightness.dark)
-        : dynamic ??
-            ColorScheme.fromSeed(
-              seedColor: _seedColor,
-              brightness: Brightness.dark,
-            );
-
+  static ThemeData dark({ColorScheme? dynamic, ThemePreset? preset}) {
+    final colorScheme = preset?.dark() ??
+        dynamic ??
+        ColorScheme.fromSeed(
+            seedColor: _fallbackSeed, brightness: Brightness.dark,);
     return _build(colorScheme, Brightness.dark);
   }
 

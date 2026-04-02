@@ -37,7 +37,7 @@ class PreferencesService extends ChangeNotifier {
   SharedPreferences? _prefs;
   static const _densityKey = 'message_density';
   static const _themeModeKey = 'theme_mode';
-  static const _accentColorKey = 'accent_color';
+  static const _themePresetKey = 'theme_preset';
 
   /// Initialise the underlying [SharedPreferences] instance.
   /// Must be called (and awaited) before reading any values.
@@ -87,20 +87,17 @@ class PreferencesService extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Accent color ─────────────────────────────────────────
+  // ── Theme preset ─────────────────────────────────────────
 
-  Color? get accentColor {
-    final value = _prefs?.getInt(_accentColorKey);
-    return value != null ? Color(value) : null;
-  }
+  String? get themePreset => _prefs?.getString(_themePresetKey);
 
-  Future<void> setAccentColor(Color? color) async {
-    if (color == null) {
-      await _prefs?.remove(_accentColorKey);
+  Future<void> setThemePreset(String? id) async {
+    if (id == null) {
+      await _prefs?.remove(_themePresetKey);
     } else {
-      await _prefs?.setInt(_accentColorKey, color.toARGB32());
+      await _prefs?.setString(_themePresetKey, id);
     }
-    debugPrint('[Lattice] Accent color set to $color');
+    debugPrint('[Lattice] Theme preset set to $id');
     notifyListeners();
   }
 

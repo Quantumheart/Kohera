@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/preferences_service.dart';
-import 'package:lattice/features/settings/widgets/accent_color_picker.dart';
+import 'package:lattice/features/settings/widgets/theme_preset_picker.dart';
 import 'package:lattice/shared/widgets/section_header.dart';
 import 'package:provider/provider.dart';
 
@@ -24,26 +24,20 @@ class AppearanceScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // ── Theme mode ──────────────────────────────────────
+          // ── Theme ──────────────────────────────────────────
           const SectionHeader(label: 'THEME'),
           Card(
-            child: RadioGroup<ThemeMode>(
-              groupValue: prefs.themeMode,
-              onChanged: (v) => prefs.setThemeMode(v!),
-              child: const Column(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  RadioListTile<ThemeMode>(
-                    title: Text('System default'),
-                    value: ThemeMode.system,
+                  Text(
+                    'Choose your preferred color scheme.',
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
-                  RadioListTile<ThemeMode>(
-                    title: Text('Light'),
-                    value: ThemeMode.light,
-                  ),
-                  RadioListTile<ThemeMode>(
-                    title: Text('Dark'),
-                    value: ThemeMode.dark,
-                  ),
+                  const SizedBox(height: 16),
+                  const ThemePresetPicker(),
                 ],
               ),
             ),
@@ -64,27 +58,6 @@ class AppearanceScreen extends StatelessWidget {
                     value: density,
                   );
                 }).toList(),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // ── Accent color ────────────────────────────────────
-          const SectionHeader(label: 'ACCENT COLOR'),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Choose a color or let your system decide.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 16),
-                  const AccentColorPicker(),
-                ],
               ),
             ),
           ),
