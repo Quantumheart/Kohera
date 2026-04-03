@@ -7,6 +7,7 @@ import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/call_service.dart';
 import 'package:lattice/core/utils/platform_info.dart';
 import 'package:lattice/features/calling/models/incoming_call_info.dart';
+import 'package:lattice/features/calling/services/call_permission_service.dart';
 import 'package:lattice/shared/widgets/pulsing_avatar.dart';
 import 'package:provider/provider.dart';
 
@@ -85,7 +86,10 @@ class _IncomingCallOverlayState extends State<IncomingCallOverlay> {
     );
   }
 
-  void _accept({required bool withVideo}) {
+  Future<void> _accept({required bool withVideo}) async {
+    final granted = await CallPermissionService.request();
+    if (!granted || !mounted) return;
+
     final roomId = _incoming?.roomId;
     unawaited(_callService?.acceptCall(withVideo: withVideo));
     setState(() => _incoming = null);
