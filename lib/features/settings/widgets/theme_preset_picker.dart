@@ -36,7 +36,9 @@ class ThemePresetPicker extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         const spacing = 8.0;
-        const columns = 6;
+        const minChipWidth = 80.0;
+        final columns =
+            (constraints.maxWidth / (minChipWidth + spacing)).floor().clamp(3, 6);
         final chipWidth =
             (constraints.maxWidth - spacing * (columns - 1)) / columns;
 
