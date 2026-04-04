@@ -140,7 +140,6 @@ class WebPushService {
         lang: NotificationChannel.defaultLang,
         data: PusherData(
           url: Uri.parse(gatewayUrl),
-          format: 'event_id_only',
         ),
         profileTag: client.deviceID,
       ),
