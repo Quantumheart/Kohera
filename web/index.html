@@ -31,16 +31,42 @@
 
   <title>lattice</title>
   <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #fafafa;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body { background-color: #1c1b1f; }
+      .loader { border-color: rgba(255,255,255,.12); border-top-color: #90caf9; }
+    }
+
+    .loader {
+      width: 36px;
+      height: 36px;
+      border: 3.5px solid rgba(0,0,0,.12);
+      border-top-color: #1976D2;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+  <div id="loading" class="loader"></div>
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var el = document.getElementById('loading');
+      if (el) el.remove();
+    });
+  </script>
 </body>
 </html>
