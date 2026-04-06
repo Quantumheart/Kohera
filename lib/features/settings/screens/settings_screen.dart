@@ -521,11 +521,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   )
                 : null,
             onPressed: () async {
-              final nav = Navigator.of(context);
               Navigator.pop(ctx);
               await matrix.logout();
               await manager.removeService(matrix);
-              if (nav.canPop()) nav.pop();
             },
             child: const Text('Sign Out'),
           ),
