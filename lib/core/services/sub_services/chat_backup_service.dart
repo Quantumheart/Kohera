@@ -31,6 +31,7 @@ class ChatBackupService {
 
   Future<void> checkChatBackupStatus() async {
     try {
+      await _ensureBackupVersionExists();
       final state = await _client.getCryptoIdentityState();
       debugPrint('[Lattice] Backup status: initialized=${state.initialized}, '
           'connected=${state.connected}');
@@ -46,8 +47,6 @@ class ChatBackupService {
   // ── Auto-unlock Backup ──────────────────────────────────────
 
   Future<void> tryAutoUnlockBackup() async {
-    await _ensureBackupVersionExists();
-
     final storedKey = await getStoredRecoveryKey();
     if (storedKey == null) return;
 
