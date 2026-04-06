@@ -87,7 +87,7 @@ void main() {
 
         expect(success, isTrue);
         expect(controller.state, LoginState.done);
-        verify(mockClientManager.addService(mockMatrixService)).called(1);
+        verify(mockClientManager.commitPendingService()).called(1);
         controller.dispose();
       });
 

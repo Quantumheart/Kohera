@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lattice/core/models/server_auth_capabilities.dart';
 import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/app_config.dart';
+import 'package:lattice/core/services/client_manager.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/core/services/preferences_service.dart';
 import 'package:lattice/features/auth/screens/homeserver_screen.dart';
@@ -35,13 +36,15 @@ GoRouter buildRouter(MatrixService matrixService) {
       final onAuthRoute =
           loc.startsWith('/login') || loc.startsWith('/register');
       final onSetupRoute = loc == '/e2ee-setup';
+      final onAddAccountRoute = loc.startsWith('/add-account');
 
       if (!loggedIn && !onAuthRoute) return '/login';
-      if (loggedIn && onAuthRoute) return '/';
+      if (loggedIn && onAuthRoute && !onAddAccountRoute) return '/';
 
       if (loggedIn &&
           !onSetupRoute &&
           !onAuthRoute &&
+          !onAddAccountRoute &&
           matrixService.chatBackupNeeded != false &&
           !matrixService.hasSkippedSetup) {
         return '/e2ee-setup';
@@ -81,6 +84,46 @@ GoRouter buildRouter(MatrixService matrixService) {
               AppConfig.instance.defaultHomeserver;
           return RegistrationScreen(initialHomeserver: homeserver);
         },
+      ),
+
+      // ── Add-account login flow (outside shell) ──────────────
+      GoRoute(
+        path: '/add-account',
+        name: Routes.addAccount,
+        builder: (context, state) {
+          final manager = context.read<ClientManager>();
+          return _AddAccountGuard(
+            manager: manager,
+            child: ChangeNotifierProvider<MatrixService>.value(
+              value: manager.pendingService!,
+              child: const HomeserverScreen(isAddAccount: true),
+            ),
+          );
+        },
+        routes: [
+          GoRoute(
+            path: ':homeserver',
+            name: Routes.addAccountServer,
+            builder: (context, state) {
+              final homeserver = state.pathParameters['homeserver']!;
+              final capabilities =
+                  state.extra as ServerAuthCapabilities? ??
+                      const ServerAuthCapabilities(supportsPassword: true);
+              final manager = context.read<ClientManager>();
+              return _AddAccountGuard(
+                manager: manager,
+                child: ChangeNotifierProvider<MatrixService>.value(
+                  value: manager.pendingService!,
+                  child: LoginScreen(
+                    homeserver: homeserver,
+                    capabilities: capabilities,
+                    isAddAccount: true,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
 
       // ── E2EE setup (full-page, outside shell) ────────────────
@@ -182,4 +225,25 @@ GoRouter buildRouter(MatrixService matrixService) {
       ),
     ],
   );
+}
+
+class _AddAccountGuard extends StatefulWidget {
+  const _AddAccountGuard({required this.manager, required this.child});
+
+  final ClientManager manager;
+  final Widget child;
+
+  @override
+  State<_AddAccountGuard> createState() => _AddAccountGuardState();
+}
+
+class _AddAccountGuardState extends State<_AddAccountGuard> {
+  @override
+  void dispose() {
+    widget.manager.cancelPendingService();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

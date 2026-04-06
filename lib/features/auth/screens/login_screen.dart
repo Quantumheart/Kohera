@@ -10,11 +10,15 @@ import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
-    required this.homeserver, required this.capabilities, super.key,
+    required this.homeserver,
+    required this.capabilities,
+    this.isAddAccount = false,
+    super.key,
   });
 
   final String homeserver;
   final ServerAuthCapabilities capabilities;
+  final bool isAddAccount;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();

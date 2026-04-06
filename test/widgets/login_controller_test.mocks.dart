@@ -1348,6 +1348,24 @@ class MockClientManager extends _i1.Mock implements _i12.ClientManager {
       ) as _i7.Future<_i4.MatrixService>);
 
   @override
+  void commitPendingService() => super.noSuchMethod(
+        Invocation.method(
+          #commitPendingService,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void cancelPendingService() => super.noSuchMethod(
+        Invocation.method(
+          #cancelPendingService,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
   _i7.Future<void> addService(_i4.MatrixService? service) =>
       (super.noSuchMethod(
         Invocation.method(
