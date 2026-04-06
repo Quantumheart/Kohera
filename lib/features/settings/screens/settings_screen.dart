@@ -459,9 +459,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _addAccount(BuildContext context, ClientManager manager) async {
-    final service = await manager.createLoginService();
-    await manager.addService(service);
-    if (context.mounted) Navigator.pop(context);
+    await manager.createLoginService();
+    if (context.mounted) context.go('/add-account');
   }
 
   void _confirmLogout(BuildContext context) {

@@ -11,7 +11,9 @@ import 'package:lattice/features/auth/widgets/homeserver_controller.dart';
 import 'package:provider/provider.dart';
 
 class HomeserverScreen extends StatefulWidget {
-  const HomeserverScreen({super.key});
+  const HomeserverScreen({this.isAddAccount = false, super.key});
+
+  final bool isAddAccount;
 
   @override
   State<HomeserverScreen> createState() => _HomeserverScreenState();
@@ -73,7 +75,7 @@ class _HomeserverScreenState extends State<HomeserverScreen>
       _prefs.setDefaultHomeserver(_setAsDefault ? text : null),
     );
     context.goNamed(
-      Routes.loginServer,
+      widget.isAddAccount ? Routes.addAccountServer : Routes.loginServer,
       pathParameters: {'homeserver': text},
       extra: caps,
     );
@@ -95,6 +97,15 @@ class _HomeserverScreenState extends State<HomeserverScreen>
     final hasError = _controller.state == HomeserverState.error;
 
     return Scaffold(
+      appBar: widget.isAddAccount
+          ? AppBar(
+              forceMaterialTransparency: true,
+              leading: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => context.go('/'),
+              ),
+            )
+          : null,
       body: Center(
         child: FadeTransition(
           opacity: _fadeAnim,

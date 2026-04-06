@@ -15,4 +15,6 @@ abstract class Routes {
   static const spaceDetails = 'space-details';
   static const call = 'call';
   static const e2eeSetup = 'e2ee-setup';
+  static const addAccount = 'add-account';
+  static const addAccountServer = 'add-account-server';
 }

@@ -45,11 +45,14 @@ class ClientManager extends ChangeNotifier {
   final List<MatrixService> _services = [];
   final Map<MatrixService, Client> _clientMap = {};
   int _activeIndex = 0;
+  MatrixService? _pendingService;
 
   List<MatrixService> get services => List.unmodifiable(_services);
   int get activeIndex => _activeIndex;
 
   MatrixService get activeService => _services[_activeIndex];
+
+  MatrixService? get pendingService => _pendingService;
 
   bool get hasMultipleAccounts => _services.length > 1;
 
@@ -103,16 +106,38 @@ class ClientManager extends ChangeNotifier {
   // ── Adding Accounts ───────────────────────────────────────────
 
   /// Creates a fresh [MatrixService] for a login flow (client created but
-  /// no session restore). The caller should call [addService] after a
-  /// successful login.
+  /// no session restore). Stores it as [pendingService] — call
+  /// [commitPendingService] after successful login to activate it, or
+  /// [cancelPendingService] to clean up if the user cancels.
   Future<MatrixService> createLoginService() async {
+    cancelPendingService();
     final name = _generateClientName();
     final (client, service) =
         await _createServicePair(clientName: name);
-    // Track the client now; the service is added to _services via addService.
     _clientMap[service] = client;
     await service.init(restoreSession: false);
+    _pendingService = service;
     return service;
+  }
+
+  /// Activates the pending service after a successful login.
+  void commitPendingService() {
+    if (_pendingService == null) return;
+    _services.add(_pendingService!);
+    _activeIndex = _services.length - 1;
+    _pendingService = null;
+    unawaited(_persistClientNames());
+    notifyListeners();
+  }
+
+  /// Disposes a pending service that was never committed (user cancelled).
+  void cancelPendingService() {
+    if (_pendingService == null) return;
+    final service = _pendingService!;
+    _pendingService = null;
+    final client = _clientMap.remove(service);
+    service.dispose();
+    unawaited(client?.dispose());
   }
 
   /// Adds a service (after successful login) and makes it active.

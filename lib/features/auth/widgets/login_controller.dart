@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:lattice/core/models/server_auth_capabilities.dart';
 import 'package:lattice/core/services/client_manager.dart';
@@ -77,8 +75,7 @@ class LoginController extends ChangeNotifier {
 
     if (success) {
       if (!clientManager.services.contains(matrixService)) {
-        // Don't await — persist account list in background.
-        unawaited(clientManager.addService(matrixService));
+        clientManager.commitPendingService();
       }
       _state = LoginState.done;
       _notify();
@@ -146,8 +143,7 @@ class LoginController extends ChangeNotifier {
 
       if (success) {
         if (!clientManager.services.contains(matrixService)) {
-          // Don't await — persist account list in background.
-          unawaited(clientManager.addService(matrixService));
+          clientManager.commitPendingService();
         }
         _state = LoginState.done;
       } else {
