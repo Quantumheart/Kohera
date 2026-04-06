@@ -29,6 +29,7 @@ void main() {
     testWidgets('hidden when chatBackupNeeded is null', (tester) async {
       when(mockMatrix.chatBackupNeeded).thenReturn(null);
       await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
 
       expect(find.text('Protect your messages'), findsNothing);
     });
@@ -36,19 +37,31 @@ void main() {
     testWidgets('visible when chatBackupNeeded is true', (tester) async {
       when(mockMatrix.chatBackupNeeded).thenReturn(true);
       await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
 
       expect(find.text('Protect your messages'), findsOneWidget);
       expect(
-        find.text('Set up key backup to keep your encrypted messages safe'),
+        find.text(
+          'Without key backup, you may lose message history '
+          'and some features will not work',
+        ),
         findsOneWidget,
       );
       expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
       expect(find.widgetWithText(TextButton, 'Set up'), findsOneWidget);
+      expect(
+        find.ancestor(
+          of: find.byIcon(Icons.shield_outlined),
+          matching: find.byType(InkWell),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('hidden when chatBackupNeeded is false', (tester) async {
       when(mockMatrix.chatBackupNeeded).thenReturn(false);
       await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
 
       expect(find.text('Protect your messages'), findsNothing);
     });
@@ -64,13 +77,35 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
 
       expect(find.text('Protect your messages'), findsOneWidget);
 
       fake.chatBackupNeeded = false;
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.text('Protect your messages'), findsNothing);
+    });
+
+    testWidgets('appears when backup status changes to needed',
+        (tester) async {
+      final fake = _FakeMatrixService(chatBackupNeeded: false);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<MatrixService>.value(
+            value: fake,
+            child: const Scaffold(body: KeyBackupBanner()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Protect your messages'), findsNothing);
+
+      fake.chatBackupNeeded = true;
+      await tester.pumpAndSettle();
+
+      expect(find.text('Protect your messages'), findsOneWidget);
     });
   });
 }
