@@ -182,6 +182,7 @@ class BootstrapController extends ChangeNotifier {
       }
     }
 
+    if (_isDisposed) return;
     _verification = null;
     await _onDone();
   }

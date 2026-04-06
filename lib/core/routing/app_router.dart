@@ -42,7 +42,7 @@ GoRouter buildRouter(MatrixService matrixService) {
       if (loggedIn &&
           !onSetupRoute &&
           !onAuthRoute &&
-          matrixService.chatBackupNeeded == true &&
+          matrixService.chatBackupNeeded != false &&
           !matrixService.hasSkippedSetup) {
         return '/e2ee-setup';
       }

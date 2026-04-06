@@ -153,8 +153,21 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isBlocking = !_matrixService.hasSkippedSetup &&
-        _matrixService.chatBackupNeeded == true;
+    final backupNeeded = context.select<MatrixService, bool?>(
+      (m) => m.chatBackupNeeded,
+    );
+
+    if (backupNeeded == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (!backupNeeded && _localStep == _ScreenStep.explainer) {
+      _localStep = _ScreenStep.management;
+    }
+
+    final isBlocking = !_matrixService.hasSkippedSetup && backupNeeded;
 
     return PopScope(
       canPop: !isBlocking,
