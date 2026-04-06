@@ -132,7 +132,7 @@ class ClientManager extends ChangeNotifier {
     _services.removeAt(index);
     final client = _clientMap.remove(service);
     service.dispose();
-    unawaited(client?.dispose());
+    await client?.dispose();
 
     if (_services.isEmpty) {
       // Last account removed — create a fresh default for login screen.

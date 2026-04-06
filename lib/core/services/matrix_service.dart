@@ -32,12 +32,12 @@ class MatrixService extends ChangeNotifier {
     this.clientName = 'default',
   })  : _client = client,
         _storage = storage ??
-              const FlutterSecureStorage(
-                webOptions: WebOptions(
-                  dbName: 'LatticeEncryptedStorage',
-                  publicKey: 'LatticeSecureStorage',
-                ),
-              ) {
+            const FlutterSecureStorage(
+              webOptions: WebOptions(
+                dbName: 'LatticeEncryptedStorage',
+                publicKey: 'LatticeSecureStorage',
+              ),
+            ) {
     _uia = UiaService(client: _client);
     _chatBackup = ChatBackupService(
       client: _client,
@@ -149,8 +149,7 @@ class MatrixService extends ChangeNotifier {
   List<Room> get invitedSpaces => _selection.invitedSpaces;
   String? inviterDisplayName(Room room) => _selection.inviterDisplayName(room);
   List<Room> get orphanRooms => _selection.orphanRooms;
-  List<Room> roomsForSpace(String spaceId) =>
-      _selection.roomsForSpace(spaceId);
+  List<Room> roomsForSpace(String spaceId) => _selection.roomsForSpace(spaceId);
   Set<String> spaceMemberships(String roomId) =>
       _selection.spaceMemberships(roomId);
   int unreadCountForSpace(String spaceId) =>
@@ -370,11 +369,13 @@ class MatrixService extends ChangeNotifier {
       final refreshToken = await _readRefreshToken();
       await Future.wait([
         _storage.write(
-            key: latticeKey(clientName, 'access_token'),
-            value: _client.accessToken,),
+          key: latticeKey(clientName, 'access_token'),
+          value: _client.accessToken,
+        ),
         _storage.write(
-            key: latticeKey(clientName, 'refresh_token'),
-            value: refreshToken,),
+          key: latticeKey(clientName, 'refresh_token'),
+          value: refreshToken,
+        ),
       ]);
       await saveSessionBackup();
       debugPrint('[Lattice] Token refreshed successfully');
@@ -388,7 +389,7 @@ class MatrixService extends ChangeNotifier {
       _uia.clearCachedPassword();
       _selection.resetSelection();
       _chatBackup.resetChatBackupState();
-    _hasSkippedSetup = false;
+      _hasSkippedSetup = false;
       await _auth.clearSessionKeys();
       await SessionBackup.delete(clientName: clientName, storage: _storage);
       await _chatBackup.deleteStoredRecoveryKey();
@@ -414,7 +415,7 @@ class MatrixService extends ChangeNotifier {
         _uia.clearCachedPassword();
         _selection.resetSelection();
         _chatBackup.resetChatBackupState();
-    _hasSkippedSetup = false;
+        _hasSkippedSetup = false;
         await _auth.clearSessionKeys();
         await SessionBackup.delete(clientName: clientName, storage: _storage);
         await _chatBackup.deleteStoredRecoveryKey();
@@ -493,7 +494,13 @@ class MatrixService extends ChangeNotifier {
   // ── Private: Session Restore ───────────────────────────────────
 
   Future<void> _restoreSession() async {
-    final ({String? token, String? refreshToken, String? userId, String? homeserver, String? deviceId}) keys;
+    final ({
+      String? token,
+      String? refreshToken,
+      String? userId,
+      String? homeserver,
+      String? deviceId
+    }) keys;
     try {
       keys = await _readSessionKeys();
     } catch (e) {
@@ -501,9 +508,7 @@ class MatrixService extends ChangeNotifier {
       return;
     }
 
-    if (keys.token == null ||
-        keys.userId == null ||
-        keys.homeserver == null) {
+    if (keys.token == null || keys.userId == null || keys.homeserver == null) {
       await _tryDatabaseRestore();
       return;
     }
