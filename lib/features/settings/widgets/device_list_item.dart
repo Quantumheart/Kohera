@@ -36,7 +36,10 @@ class DeviceListItem extends StatelessWidget {
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(device.lastActiveString),
+          Text([
+            device.lastActiveString,
+            if (device.platformLabel != null) device.platformLabel!,
+          ].join(' · '),),
           const SizedBox(height: 2),
           _VerificationBadge(
             isVerified: deviceKeys?.verified ?? false,

@@ -6,6 +6,26 @@ extension DeviceExtension on Device {
   /// Returns a user-friendly display name, falling back to the device ID.
   String get displayNameOrId => displayName ?? deviceId;
 
+  /// Returns a platform label inferred from the display name, or null.
+  String? get platformLabel {
+    final name = (displayName ?? '').toLowerCase();
+    if (name.contains('android')) return 'Android';
+    if (name.contains('iphone') || name.contains('ios')) return 'iOS';
+    if (name.contains('ipad')) return 'iPadOS';
+    if (name.contains('linux')) return 'Linux';
+    if (name.contains('windows')) return 'Windows';
+    if (name.contains('macos') || name.contains('mac os')) return 'macOS';
+    if (name.contains('firefox')) return 'Web (Firefox)';
+    if (name.contains('chrome')) return 'Web (Chrome)';
+    if (name.contains('safari')) return 'Web (Safari)';
+    if (name.contains('edge')) return 'Web (Edge)';
+    if (name.contains('brave')) return 'Web (Brave)';
+    if (name.contains('opera')) return 'Web (Opera)';
+    if (name.contains('web')) return 'Web';
+    if (name.contains('electron') || name.contains('desktop')) return 'Desktop';
+    return null;
+  }
+
   /// Returns an appropriate icon based on the device display name.
   IconData get deviceIcon {
     final name = (displayName ?? '').toLowerCase();
