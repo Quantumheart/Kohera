@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lattice/core/services/call_service.dart';
+import 'package:lattice/core/services/preferences_service.dart';
 import 'package:lattice/core/utils/platform_info.dart';
+import 'package:lattice/features/calling/services/push_to_talk_service.dart';
 import 'package:lattice/features/calling/widgets/call_control_bar.dart';
 import 'package:lattice/features/calling/widgets/pip_self_view.dart';
 import 'package:lattice/features/calling/widgets/screen_source_picker.dart';
@@ -65,14 +67,27 @@ class ConnectedCallView extends StatelessWidget {
             style: tt.titleMedium,
           ),
         ),
-        CallControlBar(
-          isMicMuted: !callService.isMicEnabled,
-          isCameraOff: !callService.isCameraEnabled,
-          isScreenSharing: callService.isScreenShareEnabled,
-          onToggleMic: callService.toggleMicrophone,
-          onToggleCamera: callService.toggleCamera,
-          onToggleScreenShare: () => _toggleScreenShare(context, callService),
-          onHangUp: callService.leaveCall,
+        Builder(
+          builder: (ctx) {
+            final prefs = ctx.watch<PreferencesService>();
+            final ptt = ctx.watch<PushToTalkService>();
+
+            return CallControlBar(
+              isMicMuted: !callService.isMicEnabled,
+              isCameraOff: !callService.isCameraEnabled,
+              isScreenSharing: callService.isScreenShareEnabled,
+              onToggleMic: callService.toggleMicrophone,
+              onToggleCamera: callService.toggleCamera,
+              onToggleScreenShare: () =>
+                  _toggleScreenShare(context, callService),
+              onHangUp: callService.leaveCall,
+              isPTTActive: prefs.pushToTalkEnabled,
+              isPTTKeyHeld: ptt.isKeyHeld,
+              isSpeakerOn: isNativeMobile ? callService.isSpeakerOn : null,
+              onToggleSpeaker:
+                  isNativeMobile ? callService.toggleSpeaker : null,
+            );
+          },
         ),
       ],
     );

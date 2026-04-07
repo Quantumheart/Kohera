@@ -13,6 +13,10 @@ class CallControlBar extends StatelessWidget {
     required this.onToggleScreenShare,
     required this.onHangUp,
     this.onFlipCamera,
+    this.isPTTActive = false,
+    this.isPTTKeyHeld = false,
+    this.isSpeakerOn,
+    this.onToggleSpeaker,
     super.key,
   });
 
@@ -24,6 +28,10 @@ class CallControlBar extends StatelessWidget {
   final VoidCallback onToggleScreenShare;
   final VoidCallback onHangUp;
   final VoidCallback? onFlipCamera;
+  final bool isPTTActive;
+  final bool isPTTKeyHeld;
+  final bool? isSpeakerOn;
+  final VoidCallback? onToggleSpeaker;
 
   @override
   Widget build(BuildContext context) {
@@ -36,12 +44,11 @@ class CallControlBar extends StatelessWidget {
           spacing: 12,
           runSpacing: 8,
           children: [
-            _ControlButton(
-              icon: Icons.mic,
-              activeIcon: Icons.mic_off,
-              isActive: isMicMuted,
+            _MicButton(
+              isMuted: isMicMuted,
+              isPTTActive: isPTTActive,
+              isPTTKeyHeld: isPTTKeyHeld,
               onPressed: onToggleMic,
-              tooltip: isMicMuted ? 'Unmute' : 'Mute',
             ),
             _ControlButton(
               icon: Icons.videocam,
@@ -67,11 +74,65 @@ class CallControlBar extends StatelessWidget {
               onPressed: onToggleScreenShare,
               tooltip: isScreenSharing ? 'Stop sharing' : 'Share screen',
             ),
+            if (onToggleSpeaker != null && isSpeakerOn != null)
+              _ControlButton(
+                icon: Icons.volume_up_rounded,
+                activeIcon: Icons.volume_off_rounded,
+                isActive: !isSpeakerOn!,
+                onPressed: onToggleSpeaker!,
+                tooltip: isSpeakerOn! ? 'Speaker off' : 'Speaker on',
+              ),
             _HangUpButton(onPressed: onHangUp),
           ],
         ),
       ),
     );
+  }
+}
+
+class _MicButton extends StatelessWidget {
+  const _MicButton({
+    required this.isMuted,
+    required this.isPTTActive,
+    required this.isPTTKeyHeld,
+    required this.onPressed,
+  });
+
+  final bool isMuted;
+  final bool isPTTActive;
+  final bool isPTTKeyHeld;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    Widget button = _ControlButton(
+      icon: Icons.mic,
+      activeIcon: Icons.mic_off,
+      isActive: isMuted,
+      onPressed: onPressed,
+      tooltip: isPTTActive
+          ? (isPTTKeyHeld ? 'PTT active' : 'Hold key to talk')
+          : (isMuted ? 'Unmute' : 'Mute'),
+    );
+
+    if (isPTTActive) {
+      button = Badge(
+        label: Text(
+          'PTT',
+          style: TextStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            color: isPTTKeyHeld ? cs.onPrimary : cs.onSurfaceVariant,
+          ),
+        ),
+        backgroundColor: isPTTKeyHeld ? cs.primary : cs.surfaceContainerHighest,
+        child: button,
+      );
+    }
+
+    return button;
   }
 }
 
