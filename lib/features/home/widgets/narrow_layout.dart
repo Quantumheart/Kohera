@@ -1,13 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lattice/core/routing/route_names.dart';
-import 'package:lattice/core/services/matrix_service.dart';
-import 'package:lattice/features/calling/screens/call_screen.dart';
-import 'package:lattice/features/chat/screens/chat_screen.dart';
-import 'package:lattice/features/rooms/widgets/room_list.dart';
-import 'package:lattice/features/settings/screens/settings_screen.dart';
 import 'package:lattice/features/spaces/widgets/space_rail.dart';
-import 'package:provider/provider.dart';
 
 // coverage:ignore-start
 
@@ -25,29 +18,7 @@ class NarrowLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget content;
     final name = routeName;
-
-    if (name == Routes.call && roomId != null) {
-      final matrix = context.read<MatrixService>();
-      final room = matrix.client.getRoomById(roomId!);
-      content = CallScreen(
-        roomId: roomId!,
-        displayName: room?.getLocalizedDisplayname() ?? 'Call',
-      );
-    } else if (name == Routes.room && roomId != null) {
-      content = ChatScreen(
-        roomId: roomId!,
-        key: ValueKey(roomId),
-        onBack: () => context.goNamed(Routes.home),
-      );
-    } else if (name == Routes.settings) {
-      content = const SettingsScreen();
-    } else if (name == Routes.home || name == null) {
-      content = const RoomList();
-    } else {
-      content = routerChild;
-    }
 
     final hideRail =
         ((name == Routes.room || name == Routes.call || name == Routes.roomDetails) && roomId != null) ||
@@ -56,15 +27,16 @@ class NarrowLayout extends StatelessWidget {
         name == Routes.settingsNotifications ||
         name == Routes.settingsDevices ||
         name == Routes.spaceDetails;
+
     if (hideRail) {
-      return content;
+      return routerChild;
     }
 
     return Scaffold(
       body: Row(
         children: [
           const SpaceRail(),
-          Expanded(child: content),
+          Expanded(child: routerChild),
         ],
       ),
     );

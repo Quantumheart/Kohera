@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lattice/core/services/preferences_service.dart';
+import 'package:lattice/core/utils/platform_info.dart';
 import 'package:lattice/core/utils/reply_fallback.dart';
 import 'package:lattice/core/utils/sender_color.dart';
 import 'package:lattice/features/chat/widgets/audio_bubble.dart';
@@ -97,7 +98,7 @@ class _MessageBubbleState extends State<MessageBubble> {
     final maxWidth = screenWidth * 0.72;
     final density = context.watch<PreferencesService>().messageDensity;
     final metrics = DensityMetrics.of(density);
-    final isDesktop = screenWidth >= 720;
+    final isDesktop = isNativeDesktop;
 
     final isRedacted = widget.event.redacted;
 

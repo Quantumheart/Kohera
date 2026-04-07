@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:lattice/core/routing/nav_helper.dart';
 import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/call_service.dart';
 import 'package:lattice/features/calling/services/call_navigator.dart';
@@ -64,7 +64,7 @@ class _CallScreenState extends State<CallScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.goNamed(
+          onPressed: () => context.popOrGo(
             Routes.room,
             pathParameters: {'roomId': widget.roomId},
           ),

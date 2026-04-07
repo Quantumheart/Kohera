@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lattice/core/routing/nav_helper.dart';
 import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/call_service.dart';
 import 'package:lattice/features/calling/models/incoming_call_info.dart' as model;
 import 'package:lattice/features/calling/services/call_navigator.dart';
 import 'package:lattice/features/chat/widgets/pinned_messages_popup.dart';
+import 'package:lattice/features/home/screens/home_shell.dart';
 import 'package:lattice/shared/widgets/room_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -31,16 +33,20 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final tt = Theme.of(context).textTheme;
+    final isNarrow =
+        MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
+    final effectiveOnBack =
+        onBack ?? (isNarrow ? () => context.goNamed(Routes.home) : null);
 
     return AppBar(
-      leading: onBack != null
+      leading: effectiveOnBack != null
           ? IconButton(
               icon: const Icon(Icons.arrow_back_rounded),
-              onPressed: onBack,
+              onPressed: effectiveOnBack,
             )
           : null,
       automaticallyImplyLeading: false,
-      titleSpacing: onBack != null ? 0 : 16,
+      titleSpacing: effectiveOnBack != null ? 0 : 16,
       title: LayoutBuilder(
         builder: (context, constraints) {
           final showAvatar = constraints.maxWidth > 100;
@@ -101,7 +107,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
             if (onShowDetails != null) {
               onShowDetails!();
             } else {
-              context.goNamed(
+              context.pushOrGo(
                 Routes.roomDetails,
                 pathParameters: {'roomId': room.id},
               );
@@ -183,7 +189,7 @@ class _CallButtonState extends State<_CallButton> {
         tooltip: 'In call',
         onSelected: (value) {
           if (value == 'go') {
-            context.goNamed(
+            context.pushOrGo(
               Routes.call,
               pathParameters: {'roomId': widget.room.id},
             );

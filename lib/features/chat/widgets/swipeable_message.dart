@@ -21,9 +21,12 @@ class _SwipeableMessageState extends State<SwipeableMessage>
   late Animation<double> _snapBack;
   double _dragExtent = 0;
   bool _triggered = false;
+  bool _tracking = false;
+  Offset? _startPosition;
 
   static const _triggerThreshold = 64.0;
   static const _maxDrag = 77.0;
+  static const _slopThreshold = 8.0;
 
   @override
   void initState() {
@@ -46,9 +49,28 @@ class _SwipeableMessageState extends State<SwipeableMessage>
     super.dispose();
   }
 
-  void _onDragUpdate(DragUpdateDetails details) {
+  void _onPointerDown(PointerDownEvent event) {
+    _startPosition = event.position;
+    _tracking = false;
+    _triggered = false;
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    if (_startPosition == null) return;
+    final delta = event.position - _startPosition!;
+
+    if (!_tracking) {
+      if (delta.distance < _slopThreshold) return;
+      if (delta.dx.abs() > delta.dy.abs() && delta.dx > 0) {
+        _tracking = true;
+      } else {
+        _startPosition = null;
+        return;
+      }
+    }
+
     setState(() {
-      _dragExtent = (_dragExtent + details.delta.dx).clamp(0, _maxDrag);
+      _dragExtent = delta.dx.clamp(0, _maxDrag);
     });
     if (!_triggered && _dragExtent >= _triggerThreshold) {
       _triggered = true;
@@ -56,10 +78,21 @@ class _SwipeableMessageState extends State<SwipeableMessage>
     }
   }
 
-  void _onDragEnd(DragEndDetails details) {
-    if (_triggered) {
+  void _onPointerUp(PointerUpEvent event) {
+    if (_tracking && _triggered) {
       widget.onReply();
     }
+    _finishDrag();
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    _finishDrag();
+  }
+
+  void _finishDrag() {
+    _startPosition = null;
+    if (!_tracking) return;
+    _tracking = false;
     _triggered = false;
     _snapBack = Tween<double>(begin: _dragExtent, end: 0)
         .animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut));
@@ -71,12 +104,13 @@ class _SwipeableMessageState extends State<SwipeableMessage>
     final cs = Theme.of(context).colorScheme;
     final progress = (_dragExtent / _triggerThreshold).clamp(0.0, 1.0);
 
-    return GestureDetector(
-      onHorizontalDragUpdate: _onDragUpdate,
-      onHorizontalDragEnd: _onDragEnd,
+    return Listener(
+      onPointerDown: _onPointerDown,
+      onPointerMove: _onPointerMove,
+      onPointerUp: _onPointerUp,
+      onPointerCancel: _onPointerCancel,
       child: Stack(
         children: [
-          // Reply icon behind the message
           Positioned.fill(
             child: Align(
               alignment: Alignment.centerLeft,
@@ -93,7 +127,6 @@ class _SwipeableMessageState extends State<SwipeableMessage>
               ),
             ),
           ),
-          // The message itself
           Transform.translate(
             offset: Offset(_dragExtent, 0),
             child: widget.child,
