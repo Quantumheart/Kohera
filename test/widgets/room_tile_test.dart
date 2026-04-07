@@ -79,6 +79,7 @@ void main() {
     when(mockRoom.typingUsers).thenReturn([]);
 
     when(mockCallService.roomHasActiveCall(any)).thenReturn(false);
+    when(mockCallService.isCallingAvailable).thenReturn(true);
   });
 
   Widget buildTestWidget({
