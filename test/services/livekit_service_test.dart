@@ -57,7 +57,7 @@ void main() {
     };
 
     final fakeRoom = FakeLiveKitRoom();
-    service.roomFactoryForTest = () => fakeRoom;
+    service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
 
     await service.connectLiveKit(
       livekitServiceUrl: serviceUrl,
@@ -130,7 +130,7 @@ void main() {
       };
 
       final fakeRoom = FakeLiveKitRoom();
-      service.roomFactoryForTest = () => fakeRoom;
+      service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
 
       var callCount = 0;
       await service.connectLiveKit(
@@ -160,7 +160,7 @@ void main() {
       };
 
       final fakeRoom = FakeLiveKitRoom();
-      service.roomFactoryForTest = () => fakeRoom;
+      service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
 
       var callCount = 0;
       await service.connectLiveKit(
@@ -191,7 +191,7 @@ void main() {
       };
 
       final fakeRoom = FakeLiveKitRoom();
-      service.roomFactoryForTest = () => fakeRoom;
+      service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
 
       await service.connectLiveKit(
         livekitServiceUrl: 'https://lk.example.com',
@@ -214,7 +214,7 @@ void main() {
       };
 
       final fakeRoom = FakeLiveKitRoom();
-      service.roomFactoryForTest = () => fakeRoom;
+      service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
 
       await service.connectLiveKit(
         livekitServiceUrl: 'https://lk.example.com',
@@ -263,7 +263,7 @@ void main() {
       };
 
       final fakeRoom = FakeLiveKitRoom();
-      service.roomFactoryForTest = () => fakeRoom;
+      service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
 
       await service.connectLiveKit(
         livekitServiceUrl: 'https://lk.example.com',
@@ -305,7 +305,7 @@ void main() {
       };
 
       final fakeRoom = FakeLiveKitRoom();
-      service.roomFactoryForTest = () => fakeRoom;
+      service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
 
       await service.connectLiveKit(
         livekitServiceUrl: 'https://lk.example.com',
@@ -332,7 +332,7 @@ void main() {
       };
 
       final fakeRoom = FakeLiveKitRoom();
-      service.roomFactoryForTest = () => fakeRoom;
+      service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
 
       await service.connectLiveKit(
         livekitServiceUrl: 'https://lk.example.com',
@@ -358,7 +358,7 @@ void main() {
       };
 
       final fakeRoom = FakeLiveKitRoom();
-      service.roomFactoryForTest = () => fakeRoom;
+      service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
 
       await service.connectLiveKit(
         livekitServiceUrl: 'https://lk.example.com',
@@ -384,7 +384,7 @@ void main() {
       };
 
       final fakeRoom = FakeLiveKitRoom();
-      service.roomFactoryForTest = () => fakeRoom;
+      service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
 
       await service.connectLiveKit(
         livekitServiceUrl: 'https://lk.example.com',
@@ -451,7 +451,7 @@ void main() {
       };
 
       final fakeRoom = FakeLiveKitRoom();
-      service.roomFactoryForTest = () => fakeRoom;
+      service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
 
       await service.connectLiveKit(
         livekitServiceUrl: 'https://lk.example.com',
@@ -1043,7 +1043,7 @@ void main() {
       };
 
       final fakeRoom = FakeLiveKitRoom();
-      service.roomFactoryForTest = () => fakeRoom;
+      service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
 
       await service.connectLiveKit(
         livekitServiceUrl: 'https://lk.example.com/',
@@ -1066,7 +1066,7 @@ void main() {
       };
 
       final fakeRoom = FakeLiveKitRoom();
-      service.roomFactoryForTest = () => fakeRoom;
+      service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
 
       await service.connectLiveKit(
         livekitServiceUrl: 'https://lk.example.com',
@@ -1102,7 +1102,7 @@ void main() {
       };
 
       final fakeRoom = FakeLiveKitRoom();
-      service.roomFactoryForTest = () => fakeRoom;
+      service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
 
       await service.connectLiveKit(
         livekitServiceUrl: 'https://lk.example.com',

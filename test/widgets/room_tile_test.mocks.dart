@@ -7,20 +7,21 @@ import 'dart:async' as _i6;
 import 'dart:typed_data' as _i15;
 import 'dart:ui' as _i11;
 
-import 'package:flutter/services.dart' as _i23;
-import 'package:flutter/widgets.dart' as _i24;
+import 'package:flutter/services.dart' as _i24;
+import 'package:flutter/widgets.dart' as _i25;
 import 'package:http/http.dart' as _i5;
 import 'package:lattice/core/models/server_auth_capabilities.dart' as _i3;
 import 'package:lattice/core/models/space_node.dart' as _i10;
 import 'package:lattice/core/services/call_service.dart' as _i16;
 import 'package:lattice/core/services/matrix_service.dart' as _i8;
+import 'package:lattice/core/services/preferences_service.dart' as _i22;
 import 'package:lattice/features/calling/models/call_participant.dart' as _i19;
 import 'package:lattice/features/calling/models/call_state.dart' as _i21;
 import 'package:lattice/features/calling/models/incoming_call_info.dart'
     as _i20;
 import 'package:lattice/features/calling/services/livekit_service.dart' as _i17;
 import 'package:lattice/features/calling/services/ringtone_service.dart'
-    as _i22;
+    as _i23;
 import 'package:livekit_client/livekit_client.dart' as _i18;
 import 'package:matrix/encryption.dart' as _i14;
 import 'package:matrix/matrix.dart' as _i2;
@@ -11224,6 +11225,13 @@ class MockCallService extends _i1.Mock implements _i16.CallService {
           ) as List<_i18.Participant<_i18.TrackPublication<_i18.Track>>>);
 
   @override
+  bool get isCallingAvailable => (super.noSuchMethod(
+        Invocation.getter(#isCallingAvailable),
+        returnValue: false,
+        returnValueForMissingStub: false,
+      ) as bool);
+
+  @override
   List<_i19.CallParticipant> get allParticipants => (super.noSuchMethod(
         Invocation.getter(#allParticipants),
         returnValue: <_i19.CallParticipant>[],
@@ -11253,7 +11261,16 @@ class MockCallService extends _i1.Mock implements _i16.CallService {
       ) as _i21.LatticeCallState);
 
   @override
-  set ringtoneService(_i22.RingtoneService? service) => super.noSuchMethod(
+  set preferencesService(_i22.PreferencesService? prefs) => super.noSuchMethod(
+        Invocation.setter(
+          #preferencesService,
+          prefs,
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  set ringtoneService(_i23.RingtoneService? service) => super.noSuchMethod(
         Invocation.setter(
           #ringtoneService,
           service,
@@ -11544,7 +11561,7 @@ class MockCallService extends _i1.Mock implements _i16.CallService {
       ) as _i6.Future<bool>);
 
   @override
-  bool handleStartBackGesture(_i23.PredictiveBackEvent? backEvent) =>
+  bool handleStartBackGesture(_i24.PredictiveBackEvent? backEvent) =>
       (super.noSuchMethod(
         Invocation.method(
           #handleStartBackGesture,
@@ -11555,7 +11572,7 @@ class MockCallService extends _i1.Mock implements _i16.CallService {
       ) as bool);
 
   @override
-  void handleUpdateBackGestureProgress(_i23.PredictiveBackEvent? backEvent) =>
+  void handleUpdateBackGestureProgress(_i24.PredictiveBackEvent? backEvent) =>
       super.noSuchMethod(
         Invocation.method(
           #handleUpdateBackGestureProgress,
@@ -11603,7 +11620,7 @@ class MockCallService extends _i1.Mock implements _i16.CallService {
 
   @override
   _i6.Future<bool> didPushRouteInformation(
-          _i24.RouteInformation? routeInformation) =>
+          _i25.RouteInformation? routeInformation) =>
       (super.noSuchMethod(
         Invocation.method(
           #didPushRouteInformation,

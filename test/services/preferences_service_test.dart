@@ -227,4 +227,161 @@ void main() {
       expect(notified, isTrue);
     });
   });
+
+  group('voice & video settings', () {
+    test('autoMuteOnJoin defaults to false', () {
+      expect(prefs.autoMuteOnJoin, isFalse);
+    });
+
+    test('noiseSuppression defaults to true', () {
+      expect(prefs.noiseSuppression, isTrue);
+    });
+
+    test('echoCancellation defaults to true', () {
+      expect(prefs.echoCancellation, isTrue);
+    });
+
+    test('pushToTalkEnabled defaults to false', () {
+      expect(prefs.pushToTalkEnabled, isFalse);
+    });
+
+    test('inputDeviceId defaults to null', () {
+      expect(prefs.inputDeviceId, isNull);
+    });
+
+    test('outputDeviceId defaults to null', () {
+      expect(prefs.outputDeviceId, isNull);
+    });
+
+    test('inputVolume defaults to 1.0', () {
+      expect(prefs.inputVolume, 1.0);
+    });
+
+    test('outputVolume defaults to 1.0', () {
+      expect(prefs.outputVolume, 1.0);
+    });
+
+    test('round-trips autoMuteOnJoin', () async {
+      await prefs.setAutoMuteOnJoin(true);
+      expect(prefs.autoMuteOnJoin, isTrue);
+    });
+
+    test('round-trips noiseSuppression', () async {
+      await prefs.setNoiseSuppression(false);
+      expect(prefs.noiseSuppression, isFalse);
+    });
+
+    test('round-trips echoCancellation', () async {
+      await prefs.setEchoCancellation(false);
+      expect(prefs.echoCancellation, isFalse);
+    });
+
+    test('round-trips pushToTalkEnabled', () async {
+      await prefs.setPushToTalkEnabled(true);
+      expect(prefs.pushToTalkEnabled, isTrue);
+    });
+
+    test('round-trips pushToTalkKeyId', () async {
+      await prefs.setPushToTalkKeyId(42);
+      expect(prefs.pushToTalkKeyId, 42);
+    });
+
+    test('round-trips inputDeviceId', () async {
+      await prefs.setInputDeviceId('mic-1');
+      expect(prefs.inputDeviceId, 'mic-1');
+    });
+
+    test('round-trips outputDeviceId', () async {
+      await prefs.setOutputDeviceId('speaker-1');
+      expect(prefs.outputDeviceId, 'speaker-1');
+    });
+
+    test('clears inputDeviceId with null', () async {
+      await prefs.setInputDeviceId('mic-1');
+      await prefs.setInputDeviceId(null);
+      expect(prefs.inputDeviceId, isNull);
+    });
+
+    test('clears outputDeviceId with null', () async {
+      await prefs.setOutputDeviceId('speaker-1');
+      await prefs.setOutputDeviceId(null);
+      expect(prefs.outputDeviceId, isNull);
+    });
+
+    test('round-trips inputVolume', () async {
+      await prefs.setInputVolume(0.5);
+      expect(prefs.inputVolume, 0.5);
+    });
+
+    test('round-trips outputVolume', () async {
+      await prefs.setOutputVolume(0.75);
+      expect(prefs.outputVolume, 0.75);
+    });
+
+    test('clamps inputVolume to 0-1 range', () async {
+      await prefs.setInputVolume(1.5);
+      expect(prefs.inputVolume, 1.0);
+      await prefs.setInputVolume(-0.5);
+      expect(prefs.inputVolume, 0.0);
+    });
+
+    test('notifies listeners on voice setting changes', () async {
+      var count = 0;
+      prefs.addListener(() => count++);
+
+      await prefs.setAutoMuteOnJoin(true);
+      await prefs.setNoiseSuppression(false);
+      await prefs.setEchoCancellation(false);
+      await prefs.setPushToTalkEnabled(true);
+      await prefs.setPushToTalkKeyId(99);
+      await prefs.setInputDeviceId('mic-1');
+      await prefs.setOutputDeviceId('speaker-1');
+      await prefs.setInputVolume(0.5);
+      await prefs.setOutputVolume(0.75);
+      await prefs.setAutoGainControl(false);
+      await prefs.setVoiceIsolation(false);
+      await prefs.setTypingNoiseDetection(false);
+      await prefs.setAudioQuality(AudioQuality.high);
+
+      expect(count, 13);
+    });
+
+    test('autoGainControl defaults to true', () {
+      expect(prefs.autoGainControl, isTrue);
+    });
+
+    test('voiceIsolation defaults to true', () {
+      expect(prefs.voiceIsolation, isTrue);
+    });
+
+    test('typingNoiseDetection defaults to true', () {
+      expect(prefs.typingNoiseDetection, isTrue);
+    });
+
+    test('audioQuality defaults to music', () {
+      expect(prefs.audioQuality, AudioQuality.music);
+    });
+
+    test('round-trips autoGainControl', () async {
+      await prefs.setAutoGainControl(false);
+      expect(prefs.autoGainControl, isFalse);
+    });
+
+    test('round-trips voiceIsolation', () async {
+      await prefs.setVoiceIsolation(false);
+      expect(prefs.voiceIsolation, isFalse);
+    });
+
+    test('round-trips typingNoiseDetection', () async {
+      await prefs.setTypingNoiseDetection(false);
+      expect(prefs.typingNoiseDetection, isFalse);
+    });
+
+    test('round-trips audioQuality', () async {
+      await prefs.setAudioQuality(AudioQuality.high);
+      expect(prefs.audioQuality, AudioQuality.high);
+      await prefs.setAudioQuality(AudioQuality.speech);
+      expect(prefs.audioQuality, AudioQuality.speech);
+    });
+  });
 }

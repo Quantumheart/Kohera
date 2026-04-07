@@ -37,7 +37,7 @@ void main() {
 
   FakeLiveKitRoom setupLiveKitMocks() {
     final fakeRoom = FakeLiveKitRoom();
-    service.roomFactoryForTest = () => fakeRoom;
+    service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
 
     when(mockClient.requestOpenIdToken(any, any)).thenAnswer(
       (_) async => OpenIdCredentials(
@@ -631,7 +631,7 @@ void main() {
 
       fakeRoom.throwOnConnect = false;
       final freshRoom = FakeLiveKitRoom();
-      service.roomFactoryForTest = () => freshRoom;
+      service.roomFactoryForTest = ({roomOptions}) => freshRoom;
 
       await service.joinCall('!room:example.com');
       expect(service.callState, LatticeCallState.connected);
