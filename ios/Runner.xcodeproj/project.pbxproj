@@ -203,6 +203,7 @@
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				FF69C73ECCFBF47E825EBB8C /* [CP] Embed Pods Frameworks */,
 				FEDA5A37E57CA570D03EFBC1 /* [CP] Copy Pods Resources */,
+				B1F7D2A41CF9048500538489 /* Sign Embedded Frameworks */,
 			);
 			buildRules = (
 			);
@@ -382,6 +383,20 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		B1F7D2A41CF9048500538489 /* Sign Embedded Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Sign Embedded Frameworks";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Re-sign any embedded frameworks not handled by CocoaPods.\n# Fixes \"invalid signature\" for Dart native asset frameworks\n# such as objective_c.framework.\nif [ \"$CODE_SIGNING_ALLOWED\" != \"NO\" ] && [ -n \"$EXPANDED_CODE_SIGN_IDENTITY\" ]; then\n  find \"${CODESIGNING_FOLDER_PATH}/Frameworks\" -name '*.framework' -print0 | while IFS= read -r -d '' framework; do\n    /usr/bin/codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --preserve-metadata=identifier,entitlements --timestamp=none \"$framework\"\n  done\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
