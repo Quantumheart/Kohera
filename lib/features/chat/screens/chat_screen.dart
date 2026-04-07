@@ -513,7 +513,7 @@ class _ChatScreenState extends State<ChatScreen>
 
   Widget _buildMessageList(
       List<Event> events, MatrixService matrix, Room room,) {
-    final isMobile = MediaQuery.sizeOf(context).width < 720;
+    final isMobile = !isNativeDesktop;
     final showReceipts = context.watch<PreferencesService>().readReceipts;
     final receiptMap = showReceipts
         ? buildReceiptMap(room, matrix.client.userID)

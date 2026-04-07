@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lattice/core/routing/nav_helper.dart';
 import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/client_manager.dart';
 import 'package:lattice/core/services/matrix_service.dart';
@@ -338,14 +339,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.palette_outlined,
                   title: 'Appearance',
                   subtitle: prefs.themeModeLabel,
-                  onTap: () => context.goNamed(Routes.settingsAppearance),
+                  onTap: () => context.pushOrGo(Routes.settingsAppearance),
                 ),
                 const Divider(height: 1, indent: 56),
                 _SettingsTile(
                   icon: Icons.notifications_outlined,
                   title: 'Notifications',
                   subtitle: prefs.notificationLevelLabel,
-                  onTap: () => context.goNamed(Routes.settingsNotifications),
+                  onTap: () => context.pushOrGo(Routes.settingsNotifications),
                 ),
                 const Divider(height: 1, indent: 56),
                 SwitchListTile(
@@ -404,7 +405,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   icon: Icons.devices_rounded,
                   title: 'Devices',
                   subtitle: 'Manage your devices',
-                  onTap: () => context.goNamed(Routes.settingsDevices),
+                  onTap: () => context.pushOrGo(Routes.settingsDevices),
                 ),
               ],
             ),

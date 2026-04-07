@@ -10,11 +10,13 @@ import 'package:lattice/features/auth/screens/homeserver_screen.dart';
 import 'package:lattice/features/auth/screens/login_screen.dart';
 import 'package:lattice/features/auth/screens/registration_screen.dart';
 import 'package:lattice/features/calling/screens/call_pane.dart';
+import 'package:lattice/features/calling/screens/call_screen.dart';
 import 'package:lattice/features/chat/screens/chat_screen.dart';
 import 'package:lattice/features/e2ee/screens/e2ee_setup_screen.dart';
 import 'package:lattice/features/home/screens/home_shell.dart';
 import 'package:lattice/features/home/widgets/inbox_screen.dart';
 import 'package:lattice/features/rooms/widgets/room_details_panel.dart';
+import 'package:lattice/features/rooms/widgets/room_list.dart';
 import 'package:lattice/features/settings/screens/appearance_screen.dart';
 import 'package:lattice/features/settings/screens/devices_screen.dart';
 import 'package:lattice/features/settings/screens/notification_settings_screen.dart';
@@ -45,7 +47,7 @@ GoRouter buildRouter(MatrixService matrixService) {
           !onSetupRoute &&
           !onAuthRoute &&
           !onAddAccountRoute &&
-          matrixService.chatBackupNeeded != false &&
+          matrixService.chatBackupNeeded == true &&
           !matrixService.hasSkippedSetup) {
         return '/e2ee-setup';
       }
@@ -141,7 +143,7 @@ GoRouter buildRouter(MatrixService matrixService) {
           GoRoute(
             path: '/',
             name: Routes.home,
-            builder: (context, state) => const SizedBox.shrink(),
+            builder: (context, state) => const RoomList(),
             routes: [
               GoRoute(
                 path: 'rooms/:roomId',
@@ -169,7 +171,21 @@ GoRouter buildRouter(MatrixService matrixService) {
                   GoRoute(
                     path: 'call',
                     name: Routes.call,
-                    builder: (context, state) => const CallPane(),
+                    builder: (context, state) {
+                      final roomId = state.pathParameters['roomId']!;
+                      final isWide = MediaQuery.sizeOf(context).width >=
+                          HomeShell.wideBreakpoint;
+                      if (isWide) return const CallPane();
+                      final room = context
+                          .read<MatrixService>()
+                          .client
+                          .getRoomById(roomId);
+                      return CallScreen(
+                        roomId: roomId,
+                        displayName:
+                            room?.getLocalizedDisplayname() ?? 'Call',
+                      );
+                    },
                   ),
                 ],
               ),

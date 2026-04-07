@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:lattice/core/routing/nav_helper.dart';
 import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/preferences_service.dart';
 import 'package:lattice/features/settings/widgets/custom_theme_editor.dart';
@@ -18,7 +18,7 @@ class AppearanceScreen extends StatelessWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.goNamed(Routes.settings),
+          onPressed: () => context.popOrGo(Routes.settings),
         ),
         title: const Text('Appearance'),
       ),

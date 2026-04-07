@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:lattice/core/routing/nav_helper.dart';
 import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/features/e2ee/widgets/key_verification_dialog.dart';
@@ -172,7 +172,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.goNamed(
+            onPressed: () => context.popOrGo(
               Routes.room,
               pathParameters: {'roomId': widget.roomId},
             ),

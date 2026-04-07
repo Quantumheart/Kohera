@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:lattice/core/routing/nav_helper.dart';
 import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/app_config.dart';
 import 'package:lattice/core/services/preferences_service.dart';
@@ -144,7 +144,7 @@ class _NotificationSettingsScreenState
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.goNamed(Routes.settings),
+          onPressed: () => context.popOrGo(Routes.settings),
         ),
         title: const Text('Notifications'),
       ),

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lattice/core/routing/nav_helper.dart';
 import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/call_service.dart';
 import 'package:lattice/features/calling/models/incoming_call_info.dart' as model;
@@ -34,7 +35,7 @@ abstract class CallNavigator {
     }
 
     if (context.mounted) {
-      context.goNamed(
+      context.pushOrGo(
         Routes.call,
         pathParameters: {'roomId': roomId},
       );
@@ -44,7 +45,7 @@ abstract class CallNavigator {
   static void acceptIncoming(BuildContext context, {String? roomId}) {
     final id = roomId ?? context.read<CallService>().activeCallRoomId;
     if (id != null && context.mounted) {
-      context.goNamed(
+      context.pushOrGo(
         Routes.call,
         pathParameters: {'roomId': id},
       );
