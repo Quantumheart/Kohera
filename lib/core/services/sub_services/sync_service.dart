@@ -32,6 +32,15 @@ class SyncService extends ChangeNotifier {
       if (!firstSync.isCompleted) firstSync.complete();
     });
 
+    unawaited(firstSync.future.then((_) {
+      _autoUnlockError = null;
+      return _onPostSyncBackup();
+    }).catchError((Object e) {
+      debugPrint('[Lattice] Background E2EE auto-unlock error: $e');
+      _autoUnlockError = e.toString();
+      notifyListeners();
+    },),);
+
     if (timeout != null) {
       await firstSync.future.timeout(
         timeout,
@@ -43,13 +52,6 @@ class SyncService extends ChangeNotifier {
     } else {
       await firstSync.future;
     }
-
-    _autoUnlockError = null;
-    unawaited(_onPostSyncBackup().catchError((Object e) {
-      debugPrint('[Lattice] Background E2EE auto-unlock error: $e');
-      _autoUnlockError = e.toString();
-      notifyListeners();
-    },),);
   }
 
   void cancelSyncSub() {

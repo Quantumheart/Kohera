@@ -273,6 +273,13 @@ class InboxController extends ChangeNotifier {
   // ── Helpers ────────────────────────────────────────────────
 
   bool _isMention(matrix_sdk.Notification n) {
+    for (final action in n.actions) {
+      if (action is Map && action['set_tweak'] == 'highlight') {
+        final value = action['value'];
+        if (value == null || value == true) return true;
+      }
+    }
+
     final userId = _client.userID;
     if (userId == null) return false;
     final content = n.event.content;
