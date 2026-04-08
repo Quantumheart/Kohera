@@ -12,7 +12,6 @@ void main() {
   late MockClient mockClient;
   late CachedStreamController<SyncUpdate> syncController;
   late int changeCount;
-  late int syncEventCount;
   late int postSyncBackupCount;
   late bool postSyncBackupThrows;
 
@@ -23,23 +22,21 @@ void main() {
     syncController = CachedStreamController<SyncUpdate>();
     when(mockClient.onSync).thenReturn(syncController);
     changeCount = 0;
-    syncEventCount = 0;
     postSyncBackupCount = 0;
     postSyncBackupThrows = false;
 
     service = SyncService(
       client: mockClient,
-      onChanged: () => changeCount++,
-      onSyncEvent: () => syncEventCount++,
       onPostSyncBackup: () async {
         postSyncBackupCount++;
         if (postSyncBackupThrows) throw Exception('backup failed');
       },
     );
+    service.addListener(() => changeCount++);
   });
 
   group('startSync', () {
-    test('sets syncing true and calls onChanged', () async {
+    test('sets syncing true and notifies listeners', () async {
       Future<void>.delayed(
         Duration.zero,
         () => syncController.add(SyncUpdate(nextBatch: 'b1')),
@@ -59,22 +56,6 @@ void main() {
       syncController.add(SyncUpdate(nextBatch: 'b1'));
 
       await future;
-    });
-
-    test('calls onSyncEvent on each sync update', () async {
-      Future<void>.delayed(
-        Duration.zero,
-        () => syncController.add(SyncUpdate(nextBatch: 'b1')),
-      );
-
-      await service.startSync();
-
-      expect(syncEventCount, 1);
-
-      syncController.add(SyncUpdate(nextBatch: 'b2'));
-      await Future<void>.delayed(Duration.zero);
-
-      expect(syncEventCount, 2);
     });
 
     test('calls onPostSyncBackup after first sync', () async {
@@ -125,10 +106,7 @@ void main() {
 
       service.cancelSyncSub();
 
-      syncController.add(SyncUpdate(nextBatch: 'b2'));
-      await Future<void>.delayed(Duration.zero);
-
-      expect(syncEventCount, 1);
+      expect(service.syncing, isFalse);
     });
   });
 }

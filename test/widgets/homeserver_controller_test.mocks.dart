@@ -3,18 +3,19 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i8;
-import 'dart:ui' as _i9;
+import 'dart:async' as _i9;
+import 'dart:ui' as _i10;
 
-import 'package:lattice/core/models/server_auth_capabilities.dart' as _i5;
-import 'package:lattice/core/services/matrix_service.dart' as _i6;
+import 'package:lattice/core/models/server_auth_capabilities.dart' as _i6;
+import 'package:lattice/core/services/matrix_service.dart' as _i7;
 import 'package:lattice/core/services/sub_services/chat_backup_service.dart'
     as _i3;
 import 'package:lattice/core/services/sub_services/selection_service.dart'
     as _i4;
+import 'package:lattice/core/services/sub_services/sync_service.dart' as _i5;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i7;
+import 'package:mockito/src/dummies.dart' as _i8;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -63,9 +64,19 @@ class _FakeSelectionService_2 extends _i1.SmartFake
         );
 }
 
-class _FakeServerAuthCapabilities_3 extends _i1.SmartFake
-    implements _i5.ServerAuthCapabilities {
-  _FakeServerAuthCapabilities_3(
+class _FakeSyncService_3 extends _i1.SmartFake implements _i5.SyncService {
+  _FakeSyncService_3(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeServerAuthCapabilities_4 extends _i1.SmartFake
+    implements _i6.ServerAuthCapabilities {
+  _FakeServerAuthCapabilities_4(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -77,15 +88,15 @@ class _FakeServerAuthCapabilities_3 extends _i1.SmartFake
 /// A class which mocks [MatrixService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockMatrixService extends _i1.Mock implements _i6.MatrixService {
+class MockMatrixService extends _i1.Mock implements _i7.MatrixService {
   @override
   String get clientName => (super.noSuchMethod(
         Invocation.getter(#clientName),
-        returnValue: _i7.dummyValue<String>(
+        returnValue: _i8.dummyValue<String>(
           this,
           Invocation.getter(#clientName),
         ),
-        returnValueForMissingStub: _i7.dummyValue<String>(
+        returnValueForMissingStub: _i8.dummyValue<String>(
           this,
           Invocation.getter(#clientName),
         ),
@@ -145,22 +156,28 @@ class MockMatrixService extends _i1.Mock implements _i6.MatrixService {
       ) as _i4.SelectionService);
 
   @override
-  _i8.Stream<_i2.UiaRequest<dynamic>> get onUiaRequest => (super.noSuchMethod(
+  _i5.SyncService get sync => (super.noSuchMethod(
+        Invocation.getter(#sync),
+        returnValue: _FakeSyncService_3(
+          this,
+          Invocation.getter(#sync),
+        ),
+        returnValueForMissingStub: _FakeSyncService_3(
+          this,
+          Invocation.getter(#sync),
+        ),
+      ) as _i5.SyncService);
+
+  @override
+  _i9.Stream<_i2.UiaRequest<dynamic>> get onUiaRequest => (super.noSuchMethod(
         Invocation.getter(#onUiaRequest),
-        returnValue: _i8.Stream<_i2.UiaRequest<dynamic>>.empty(),
-        returnValueForMissingStub: _i8.Stream<_i2.UiaRequest<dynamic>>.empty(),
-      ) as _i8.Stream<_i2.UiaRequest<dynamic>>);
+        returnValue: _i9.Stream<_i2.UiaRequest<dynamic>>.empty(),
+        returnValueForMissingStub: _i9.Stream<_i2.UiaRequest<dynamic>>.empty(),
+      ) as _i9.Stream<_i2.UiaRequest<dynamic>>);
 
   @override
   bool get hasSkippedSetup => (super.noSuchMethod(
         Invocation.getter(#hasSkippedSetup),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
-
-  @override
-  bool get syncing => (super.noSuchMethod(
-        Invocation.getter(#syncing),
         returnValue: false,
         returnValueForMissingStub: false,
       ) as bool);
@@ -187,6 +204,15 @@ class MockMatrixService extends _i1.Mock implements _i6.MatrixService {
   set selection(_i4.SelectionService? value) => super.noSuchMethod(
         Invocation.setter(
           #selection,
+          value,
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  set sync(_i5.SyncService? value) => super.noSuchMethod(
+        Invocation.setter(
+          #sync,
           value,
         ),
         returnValueForMissingStub: null,
@@ -243,51 +269,51 @@ class MockMatrixService extends _i1.Mock implements _i6.MatrixService {
       );
 
   @override
-  _i8.Future<_i5.ServerAuthCapabilities> getServerAuthCapabilities(
+  _i9.Future<_i6.ServerAuthCapabilities> getServerAuthCapabilities(
           String? homeserver) =>
       (super.noSuchMethod(
         Invocation.method(
           #getServerAuthCapabilities,
           [homeserver],
         ),
-        returnValue: _i8.Future<_i5.ServerAuthCapabilities>.value(
-            _FakeServerAuthCapabilities_3(
+        returnValue: _i9.Future<_i6.ServerAuthCapabilities>.value(
+            _FakeServerAuthCapabilities_4(
           this,
           Invocation.method(
             #getServerAuthCapabilities,
             [homeserver],
           ),
         )),
-        returnValueForMissingStub: _i8.Future<_i5.ServerAuthCapabilities>.value(
-            _FakeServerAuthCapabilities_3(
+        returnValueForMissingStub: _i9.Future<_i6.ServerAuthCapabilities>.value(
+            _FakeServerAuthCapabilities_4(
           this,
           Invocation.method(
             #getServerAuthCapabilities,
             [homeserver],
           ),
         )),
-      ) as _i8.Future<_i5.ServerAuthCapabilities>);
+      ) as _i9.Future<_i6.ServerAuthCapabilities>);
 
   @override
-  _i8.Future<void> init({bool? restoreSession = true}) => (super.noSuchMethod(
+  _i9.Future<void> init({bool? restoreSession = true}) => (super.noSuchMethod(
         Invocation.method(
           #init,
           [],
           {#restoreSession: restoreSession},
         ),
-        returnValue: _i8.Future<void>.value(),
-        returnValueForMissingStub: _i8.Future<void>.value(),
-      ) as _i8.Future<void>);
+        returnValue: _i9.Future<void>.value(),
+        returnValueForMissingStub: _i9.Future<void>.value(),
+      ) as _i9.Future<void>);
 
   @override
-  _i8.Future<void> saveSessionBackup() => (super.noSuchMethod(
+  _i9.Future<void> saveSessionBackup() => (super.noSuchMethod(
         Invocation.method(
           #saveSessionBackup,
           [],
         ),
-        returnValue: _i8.Future<void>.value(),
-        returnValueForMissingStub: _i8.Future<void>.value(),
-      ) as _i8.Future<void>);
+        returnValue: _i9.Future<void>.value(),
+        returnValueForMissingStub: _i9.Future<void>.value(),
+      ) as _i9.Future<void>);
 
   @override
   void dispose() => super.noSuchMethod(
@@ -299,7 +325,7 @@ class MockMatrixService extends _i1.Mock implements _i6.MatrixService {
       );
 
   @override
-  _i8.Future<bool> login({
+  _i9.Future<bool> login({
     required String? homeserver,
     required String? username,
     required String? password,
@@ -314,12 +340,12 @@ class MockMatrixService extends _i1.Mock implements _i6.MatrixService {
             #password: password,
           },
         ),
-        returnValue: _i8.Future<bool>.value(false),
-        returnValueForMissingStub: _i8.Future<bool>.value(false),
-      ) as _i8.Future<bool>);
+        returnValue: _i9.Future<bool>.value(false),
+        returnValueForMissingStub: _i9.Future<bool>.value(false),
+      ) as _i9.Future<bool>);
 
   @override
-  _i8.Future<bool> completeSsoLogin({
+  _i9.Future<bool> completeSsoLogin({
     required String? homeserver,
     required String? loginToken,
   }) =>
@@ -332,12 +358,12 @@ class MockMatrixService extends _i1.Mock implements _i6.MatrixService {
             #loginToken: loginToken,
           },
         ),
-        returnValue: _i8.Future<bool>.value(false),
-        returnValueForMissingStub: _i8.Future<bool>.value(false),
-      ) as _i8.Future<bool>);
+        returnValue: _i9.Future<bool>.value(false),
+        returnValueForMissingStub: _i9.Future<bool>.value(false),
+      ) as _i9.Future<bool>);
 
   @override
-  _i8.Future<void> completeRegistration(
+  _i9.Future<void> completeRegistration(
     _i2.RegisterResponse? response, {
     String? password,
   }) =>
@@ -347,32 +373,32 @@ class MockMatrixService extends _i1.Mock implements _i6.MatrixService {
           [response],
           {#password: password},
         ),
-        returnValue: _i8.Future<void>.value(),
-        returnValueForMissingStub: _i8.Future<void>.value(),
-      ) as _i8.Future<void>);
+        returnValue: _i9.Future<void>.value(),
+        returnValueForMissingStub: _i9.Future<void>.value(),
+      ) as _i9.Future<void>);
 
   @override
-  _i8.Future<void> logout() => (super.noSuchMethod(
+  _i9.Future<void> logout() => (super.noSuchMethod(
         Invocation.method(
           #logout,
           [],
         ),
-        returnValue: _i8.Future<void>.value(),
-        returnValueForMissingStub: _i8.Future<void>.value(),
-      ) as _i8.Future<void>);
+        returnValue: _i9.Future<void>.value(),
+        returnValueForMissingStub: _i9.Future<void>.value(),
+      ) as _i9.Future<void>);
 
   @override
-  _i8.Future<void> handleSoftLogout() => (super.noSuchMethod(
+  _i9.Future<void> handleSoftLogout() => (super.noSuchMethod(
         Invocation.method(
           #handleSoftLogout,
           [],
         ),
-        returnValue: _i8.Future<void>.value(),
-        returnValueForMissingStub: _i8.Future<void>.value(),
-      ) as _i8.Future<void>);
+        returnValue: _i9.Future<void>.value(),
+        returnValueForMissingStub: _i9.Future<void>.value(),
+      ) as _i9.Future<void>);
 
   @override
-  void addListener(_i9.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i10.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #addListener,
           [listener],
@@ -381,7 +407,7 @@ class MockMatrixService extends _i1.Mock implements _i6.MatrixService {
       );
 
   @override
-  void removeListener(_i9.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i10.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #removeListener,
           [listener],
