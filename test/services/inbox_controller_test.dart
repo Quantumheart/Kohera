@@ -10,22 +10,26 @@ import 'package:mockito/mockito.dart';
 @GenerateNiceMocks([
   MockSpec<Client>(),
   MockSpec<Room>(),
+  MockSpec<User>(),
 ])
 import 'inbox_controller_test.mocks.dart';
 
 // ── Helpers ──────────────────────────────────────────────────
+
+const _ownUserId = '@bob:example.com';
 
 Notification _makeNotification({
   required String eventId,
   required String roomId,
   bool read = false,
   int ts = 1000,
+  Map<String, Object?>? content,
 }) {
   return Notification(
     actions: [],
     event: MatrixEvent(
       type: 'm.room.message',
-      content: {'body': 'hello', 'msgtype': 'm.text'},
+      content: content ?? {'body': 'hello', 'msgtype': 'm.text'},
       senderId: '@alice:example.com',
       eventId: eventId,
       originServerTs: DateTime.fromMillisecondsSinceEpoch(ts),
@@ -57,7 +61,12 @@ void main() {
     mockClient = MockClient();
     defaultRoom = MockRoom();
     when(defaultRoom.membership).thenReturn(Membership.join);
+    final defaultUser = MockUser();
+    when(defaultUser.calcDisplayname()).thenReturn('Bob');
+    when(defaultRoom.unsafeGetUserFromMemoryOrFallback(any))
+        .thenReturn(defaultUser);
     when(mockClient.getRoomById(any)).thenReturn(defaultRoom);
+    when(mockClient.userID).thenReturn(_ownUserId);
     controller = InboxController(client: mockClient);
   });
 
@@ -110,9 +119,16 @@ void main() {
       // Start second fetch (via setFilter), which increments generation
       controller.setFilter(InboxFilter.mentions);
 
-      // Complete second fetch first with new data
+      // Complete second fetch first with new data (includes mention)
       completer2.complete(_makeResponse([
-        _makeNotification(eventId: 'new1', roomId: '!new:x'),
+        _makeNotification(
+          eventId: 'new1',
+          roomId: '!new:x',
+          content: {
+            'body': 'hey $_ownUserId',
+            'msgtype': 'm.text',
+          },
+        ),
       ]),);
 
       // Wait for second fetch to finish
@@ -159,12 +175,20 @@ void main() {
       await controller.fetch();
       expect(controller.grouped, hasLength(1));
 
-      // Now change filter
+      // Now change filter — mentions filter is client-side,
+      // so server still returns all notifications.
       when(mockClient.getNotifications(
         limit: anyNamed('limit'),
-        only: 'highlight',
+        only: anyNamed('only'),
       ),).thenAnswer((_) async => _makeResponse([
-            _makeNotification(eventId: 'e2', roomId: '!r2:x'),
+            _makeNotification(
+              eventId: 'e2',
+              roomId: '!r2:x',
+              content: {
+                'body': 'hey $_ownUserId check this',
+                'msgtype': 'm.text',
+              },
+            ),
           ]),);
 
       controller.setFilter(InboxFilter.mentions);
@@ -240,9 +264,16 @@ void main() {
       // Change filter while loadMore is in-flight
       when(mockClient.getNotifications(
         limit: anyNamed('limit'),
-        only: 'highlight',
+        only: anyNamed('only'),
       ),).thenAnswer((_) async => _makeResponse([
-            _makeNotification(eventId: 'new1', roomId: '!new:x'),
+            _makeNotification(
+              eventId: 'new1',
+              roomId: '!new:x',
+              content: {
+                'body': 'hey $_ownUserId',
+                'msgtype': 'm.text',
+              },
+            ),
           ]),);
       controller.setFilter(InboxFilter.mentions);
       await Future<void>.delayed(Duration.zero);
@@ -652,6 +683,7 @@ void main() {
             _makeNotification(eventId: 'new1', roomId: '!new:x'),
           ]),);
 
+      when(newClient.userID).thenReturn(_ownUserId);
       controller.updateClient(newClient);
 
       // Wait for async fetch
@@ -660,6 +692,116 @@ void main() {
 
       expect(controller.grouped, hasLength(1));
       expect(controller.grouped[0].roomId, '!new:x');
+    });
+  });
+
+  // ── Client-side mention filtering ─────────────────────────
+
+  group('mention filtering', () {
+    test('mentions filter shows only notifications containing own user ID in body', () async {
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(
+              eventId: 'e1',
+              roomId: '!r1:x',
+              content: {'body': 'hey $_ownUserId check this', 'msgtype': 'm.text'},
+            ),
+            _makeNotification(
+              eventId: 'e2',
+              roomId: '!r2:x',
+              content: {'body': 'hello world', 'msgtype': 'm.text'},
+            ),
+          ]),);
+
+      controller.setFilter(InboxFilter.mentions);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.grouped, hasLength(1));
+      expect(controller.grouped[0].roomId, '!r1:x');
+    });
+
+    test('mentions filter detects m.mentions.user_ids', () async {
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(
+              eventId: 'e1',
+              roomId: '!r1:x',
+              content: {
+                'body': 'check this',
+                'msgtype': 'm.text',
+                'm.mentions': {
+                  'user_ids': [_ownUserId],
+                },
+              },
+            ),
+            _makeNotification(
+              eventId: 'e2',
+              roomId: '!r2:x',
+              content: {
+                'body': 'no mention here',
+                'msgtype': 'm.text',
+                'm.mentions': {
+                  'user_ids': ['@someone:else.com'],
+                },
+              },
+            ),
+          ]),);
+
+      controller.setFilter(InboxFilter.mentions);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.grouped, hasLength(1));
+      expect(controller.grouped[0].roomId, '!r1:x');
+    });
+
+    test('all filter shows all notifications regardless of mention', () async {
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(
+              eventId: 'e1',
+              roomId: '!r1:x',
+              content: {'body': 'hey $_ownUserId', 'msgtype': 'm.text'},
+            ),
+            _makeNotification(
+              eventId: 'e2',
+              roomId: '!r2:x',
+              content: {'body': 'hello world', 'msgtype': 'm.text'},
+            ),
+          ]),);
+
+      await controller.fetch();
+
+      expect(controller.grouped, hasLength(2));
+    });
+
+    test('mention detection is case-insensitive', () async {
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(
+              eventId: 'e1',
+              roomId: '!r1:x',
+              content: {
+                'body': 'hey ${_ownUserId.toUpperCase()} check this',
+                'msgtype': 'm.text',
+              },
+            ),
+          ]),);
+
+      controller.setFilter(InboxFilter.mentions);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.grouped, hasLength(1));
     });
   });
 }
