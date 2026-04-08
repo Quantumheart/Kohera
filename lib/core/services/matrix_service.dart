@@ -43,10 +43,8 @@ class MatrixService extends ChangeNotifier {
       storage: _storage,
     );
     selection = SelectionService(client: _client);
-    _sync = SyncService(
+    sync = SyncService(
       client: _client,
-      onChanged: notifyListeners,
-      onSyncEvent: notifyListeners,
       onPostSyncBackup: () async {
         await chatBackup.checkChatBackupStatus();
         if (chatBackup.chatBackupNeeded == true) {
@@ -89,7 +87,7 @@ class MatrixService extends ChangeNotifier {
   late final UiaService _uia;
   late final ChatBackupService chatBackup;
   late final SelectionService selection;
-  late final SyncService _sync;
+  late final SyncService sync;
   late final AuthService _auth;
 
   StreamSubscription<LoginState>? _loginStateSub;
@@ -107,11 +105,6 @@ class MatrixService extends ChangeNotifier {
     _hasSkippedSetup = true;
     notifyListeners();
   }
-
-  // ── SyncService delegates ───────────────────────────────────────
-
-  bool get syncing => _sync.syncing;
-  String? get autoUnlockError => _sync.autoUnlockError;
 
   // ── AuthService delegates ───────────────────────────────────────
 
@@ -163,10 +156,11 @@ class MatrixService extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _isLoggedIn = false;
-    _sync.cancelSyncSub();
+    sync.cancelSyncSub();
     _uia.dispose();
     selection.dispose();
     chatBackup.dispose();
+    sync.dispose();
     unawaited(_loginStateSub?.cancel());
     super.dispose();
   }
@@ -292,7 +286,7 @@ class MatrixService extends ChangeNotifier {
 
   Future<void> logout() async {
     unawaited(_loginStateSub?.cancel());
-    _sync.cancelSyncSub();
+    sync.cancelSyncSub();
     _isLoggedIn = false;
     await _auth.awaitPostLoginSync();
 
@@ -336,7 +330,7 @@ class MatrixService extends ChangeNotifier {
     } catch (e) {
       debugPrint('[Lattice] Token refresh failed: $e');
       unawaited(_loginStateSub?.cancel());
-      _sync.cancelSyncSub();
+      sync.cancelSyncSub();
       _isLoggedIn = false;
       await _auth.awaitPostLoginSync();
       _uia.cancelUiaSub();
@@ -363,7 +357,7 @@ class MatrixService extends ChangeNotifier {
         debugPrint('[Lattice] Server-side logout detected');
         unawaited(_loginStateSub?.cancel());
         _loginStateSub = null;
-        _sync.cancelSyncSub();
+        sync.cancelSyncSub();
         _isLoggedIn = false;
         _uia.cancelUiaSub();
         _uia.clearCachedPassword();
@@ -392,7 +386,7 @@ class MatrixService extends ChangeNotifier {
         debugPrint('[Lattice] Credential persistence failed (non-fatal): $e');
       }
       if (!_isLoggedIn) return;
-      await _sync.startSync(timeout: const Duration(minutes: 5));
+      await sync.startSync(timeout: const Duration(minutes: 5));
       if (!_isLoggedIn) return;
       await saveSessionBackup();
     } catch (e) {
@@ -411,7 +405,7 @@ class MatrixService extends ChangeNotifier {
     _listenForLoginState();
     _isLoggedIn = true;
     try {
-      await _sync.startSync();
+      await sync.startSync();
     } on TimeoutException {
       debugPrint('[Lattice] Initial sync timed out during session restore – '
           'continuing in background');
