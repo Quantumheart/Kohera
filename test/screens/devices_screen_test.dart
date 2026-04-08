@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lattice/core/services/matrix_service.dart';
+import 'package:lattice/core/services/sub_services/chat_backup_service.dart';
 import 'package:lattice/features/settings/screens/devices_screen.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
@@ -12,23 +13,27 @@ import 'package:provider/provider.dart';
 @GenerateNiceMocks([
   MockSpec<Client>(),
   MockSpec<MatrixService>(),
+  MockSpec<ChatBackupService>(),
 ])
 import 'devices_screen_test.mocks.dart';
 
 void main() {
   late MockClient mockClient;
   late MockMatrixService mockMatrix;
+  late MockChatBackupService mockChatBackup;
 
   setUp(() {
     mockClient = MockClient();
     mockMatrix = MockMatrixService();
+    mockChatBackup = MockChatBackupService();
     when(mockMatrix.client).thenReturn(mockClient);
     when(mockClient.deviceID).thenReturn('THISDEVICE');
     when(mockClient.userID).thenReturn('@alice:example.com');
     when(mockMatrix.onUiaRequest).thenAnswer(
       (_) => const Stream<UiaRequest<dynamic>>.empty(),
     );
-    when(mockMatrix.chatBackupNeeded).thenReturn(false);
+    when(mockMatrix.chatBackup).thenReturn(mockChatBackup);
+    when(mockChatBackup.chatBackupNeeded).thenReturn(false);
     when(mockClient.userDeviceKeys).thenReturn({});
   });
 
@@ -110,7 +115,7 @@ void main() {
     });
 
     testWidgets('shows backup warning when backup needed', (tester) async {
-      when(mockMatrix.chatBackupNeeded).thenReturn(true);
+      when(mockChatBackup.chatBackupNeeded).thenReturn(true);
       when(mockClient.getDevices()).thenAnswer((_) async => [
             Device(deviceId: 'THISDEVICE', displayName: 'Lattice Flutter'),
           ],);

@@ -31,7 +31,7 @@ import 'package:provider/provider.dart';
 /// login/logout automatically triggers a redirect evaluation.
 GoRouter buildRouter(MatrixService matrixService) {
   return GoRouter(
-    refreshListenable: matrixService,
+    refreshListenable: Listenable.merge([matrixService, matrixService.chatBackup]),
     initialLocation: '/',
     redirect: (context, state) {
       final loggedIn = matrixService.isLoggedIn;
@@ -48,7 +48,7 @@ GoRouter buildRouter(MatrixService matrixService) {
           !onSetupRoute &&
           !onAuthRoute &&
           !onAddAccountRoute &&
-          matrixService.chatBackupNeeded == true &&
+          matrixService.chatBackup.chatBackupNeeded != false &&
           !matrixService.hasSkippedSetup) {
         return '/e2ee-setup';
       }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lattice/core/services/matrix_service.dart';
+import 'package:lattice/core/services/sub_services/chat_backup_service.dart';
 import 'package:provider/provider.dart';
 
 class KeyBackupBanner extends StatelessWidget {
@@ -8,8 +8,8 @@ class KeyBackupBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final needed = context.select<MatrixService, bool?>(
-      (m) => m.chatBackupNeeded,
+    final needed = context.select<ChatBackupService, bool?>(
+      (s) => s.chatBackupNeeded,
     );
 
     return AnimatedSize(

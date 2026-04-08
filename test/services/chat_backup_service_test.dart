@@ -40,8 +40,8 @@ void main() {
     service = ChatBackupService(
       client: mockClient,
       storage: mockStorage,
-      onChanged: () => changeCount++,
     );
+    service.addListener(() => changeCount++);
   });
 
   group('checkChatBackupStatus', () {

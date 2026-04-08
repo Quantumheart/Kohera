@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lattice/core/services/matrix_service.dart';
+import 'package:lattice/core/services/sub_services/chat_backup_service.dart';
 import 'package:lattice/features/e2ee/widgets/key_backup_banner.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
-@GenerateNiceMocks([MockSpec<MatrixService>()])
+@GenerateNiceMocks([MockSpec<ChatBackupService>()])
 import 'key_backup_banner_test.mocks.dart';
 
 void main() {
-  late MockMatrixService mockMatrix;
+  late MockChatBackupService mockChatBackup;
 
   setUp(() {
-    mockMatrix = MockMatrixService();
+    mockChatBackup = MockChatBackupService();
   });
 
   Widget buildTestWidget() {
     return MaterialApp(
-      home: ChangeNotifierProvider<MatrixService>.value(
-        value: mockMatrix,
+      home: ChangeNotifierProvider<ChatBackupService>.value(
+        value: mockChatBackup,
         child: const Scaffold(body: KeyBackupBanner()),
       ),
     );
@@ -27,7 +27,7 @@ void main() {
 
   group('KeyBackupBanner', () {
     testWidgets('hidden when chatBackupNeeded is null', (tester) async {
-      when(mockMatrix.chatBackupNeeded).thenReturn(null);
+      when(mockChatBackup.chatBackupNeeded).thenReturn(null);
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
@@ -35,7 +35,7 @@ void main() {
     });
 
     testWidgets('visible when chatBackupNeeded is true', (tester) async {
-      when(mockMatrix.chatBackupNeeded).thenReturn(true);
+      when(mockChatBackup.chatBackupNeeded).thenReturn(true);
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
@@ -59,7 +59,7 @@ void main() {
     });
 
     testWidgets('hidden when chatBackupNeeded is false', (tester) async {
-      when(mockMatrix.chatBackupNeeded).thenReturn(false);
+      when(mockChatBackup.chatBackupNeeded).thenReturn(false);
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
@@ -68,10 +68,10 @@ void main() {
 
     testWidgets('disappears when backup status changes to enabled',
         (tester) async {
-      final fake = _FakeMatrixService(chatBackupNeeded: true);
+      final fake = _FakeChatBackupService(chatBackupNeeded: true);
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<MatrixService>.value(
+          home: ChangeNotifierProvider<ChatBackupService>.value(
             value: fake,
             child: const Scaffold(body: KeyBackupBanner()),
           ),
@@ -89,10 +89,10 @@ void main() {
 
     testWidgets('appears when backup status changes to needed',
         (tester) async {
-      final fake = _FakeMatrixService(chatBackupNeeded: false);
+      final fake = _FakeChatBackupService(chatBackupNeeded: false);
       await tester.pumpWidget(
         MaterialApp(
-          home: ChangeNotifierProvider<MatrixService>.value(
+          home: ChangeNotifierProvider<ChatBackupService>.value(
             value: fake,
             child: const Scaffold(body: KeyBackupBanner()),
           ),
@@ -110,10 +110,11 @@ void main() {
   });
 }
 
-class _FakeMatrixService extends ChangeNotifier implements MatrixService {
+class _FakeChatBackupService extends ChangeNotifier
+    implements ChatBackupService {
   bool? _chatBackupNeeded;
 
-  _FakeMatrixService({required bool? chatBackupNeeded})
+  _FakeChatBackupService({required bool? chatBackupNeeded})
       : _chatBackupNeeded = chatBackupNeeded;
 
   @override

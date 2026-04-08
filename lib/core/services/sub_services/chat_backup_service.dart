@@ -5,18 +5,15 @@ import 'package:matrix/encryption/utils/base64_unpadded.dart';
 import 'package:matrix/matrix.dart';
 import 'package:vodozemac/vodozemac.dart' as vod;
 
-class ChatBackupService {
+class ChatBackupService extends ChangeNotifier {
   ChatBackupService({
     required Client client,
     required FlutterSecureStorage storage,
-    required VoidCallback onChanged,
   })  : _client = client,
-        _storage = storage,
-        _onChanged = onChanged;
+        _storage = storage;
 
   final Client _client;
   final FlutterSecureStorage _storage;
-  final VoidCallback _onChanged;
 
   // ── Chat Backup ─────────────────────────────────────────────
   bool? _chatBackupNeeded;
@@ -36,11 +33,11 @@ class ChatBackupService {
       debugPrint('[Lattice] Backup status: initialized=${state.initialized}, '
           'connected=${state.connected}');
       _chatBackupNeeded = !state.initialized || !state.connected;
-      _onChanged();
+      notifyListeners();
     } catch (e) {
       debugPrint('[Lattice] checkChatBackupStatus error: $e');
       _chatBackupNeeded = true;
-      _onChanged();
+      notifyListeners();
     }
   }
 
@@ -166,7 +163,7 @@ class ChatBackupService {
   Future<void> disableChatBackup() async {
     _chatBackupError = null;
     _chatBackupLoading = true;
-    _onChanged();
+    notifyListeners();
 
     try {
       final encryption = _client.encryption;
@@ -187,7 +184,7 @@ class ChatBackupService {
       _chatBackupError = 'Failed to disable chat backup. Please try again.';
     } finally {
       _chatBackupLoading = false;
-      _onChanged();
+      notifyListeners();
     }
   }
 
