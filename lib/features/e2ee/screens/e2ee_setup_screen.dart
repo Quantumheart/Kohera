@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lattice/core/services/matrix_service.dart';
+import 'package:lattice/core/services/sub_services/chat_backup_service.dart';
 import 'package:lattice/features/e2ee/widgets/bootstrap_controller.dart';
 import 'package:lattice/features/e2ee/widgets/key_verification_inline.dart';
 import 'package:matrix/matrix.dart';
@@ -34,7 +35,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
     _matrixService = context.read<MatrixService>();
     _uiaSub = _matrixService.onUiaRequest.listen(_showUiaPasswordPrompt);
 
-    if (_matrixService.chatBackupEnabled) {
+    if (_matrixService.chatBackup.chatBackupEnabled) {
       _localStep = _ScreenStep.management;
     }
   }
@@ -153,8 +154,8 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final backupNeeded = context.select<MatrixService, bool?>(
-      (m) => m.chatBackupNeeded,
+    final backupNeeded = context.select<ChatBackupService, bool?>(
+      (s) => s.chatBackupNeeded,
     );
 
     if (backupNeeded == null) {
@@ -297,7 +298,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
               ),
               FilledButton(
                 onPressed: () async {
-                  await _matrixService.disableChatBackup();
+                  await _matrixService.chatBackup.disableChatBackup();
                   _matrixService.skipSetup();
                   if (mounted) context.go('/');
                 },

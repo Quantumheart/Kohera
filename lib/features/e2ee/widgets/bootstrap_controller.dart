@@ -237,8 +237,8 @@ class BootstrapController extends ChangeNotifier {
       debugPrint('[Bootstrap] Failed to load keys from backup: $e');
     }
 
-    matrixService.requestMissingRoomKeys();
-    await matrixService.checkChatBackupStatus();
+    matrixService.chatBackup.requestMissingRoomKeys();
+    await matrixService.chatBackup.checkChatBackupStatus();
     matrixService.clearCachedPassword();
 
     _phase = SetupPhase.done;

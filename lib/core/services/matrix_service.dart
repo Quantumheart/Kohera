@@ -38,10 +38,9 @@ class MatrixService extends ChangeNotifier {
               ),
             ) {
     _uia = UiaService(client: _client);
-    _chatBackup = ChatBackupService(
+    chatBackup = ChatBackupService(
       client: _client,
       storage: _storage,
-      onChanged: notifyListeners,
     );
     selection = SelectionService(client: _client);
     _sync = SyncService(
@@ -49,9 +48,9 @@ class MatrixService extends ChangeNotifier {
       onChanged: notifyListeners,
       onSyncEvent: notifyListeners,
       onPostSyncBackup: () async {
-        await _chatBackup.checkChatBackupStatus();
-        if (_chatBackup.chatBackupNeeded == true) {
-          await _chatBackup.tryAutoUnlockBackup();
+        await chatBackup.checkChatBackupStatus();
+        if (chatBackup.chatBackupNeeded == true) {
+          await chatBackup.tryAutoUnlockBackup();
         }
       },
     );
@@ -88,7 +87,7 @@ class MatrixService extends ChangeNotifier {
   // ── Sub-services ────────────────────────────────────────────────
 
   late final UiaService _uia;
-  late final ChatBackupService _chatBackup;
+  late final ChatBackupService chatBackup;
   late final SelectionService selection;
   late final SyncService _sync;
   late final AuthService _auth;
@@ -101,22 +100,6 @@ class MatrixService extends ChangeNotifier {
   void completeUiaWithPassword(UiaRequest<dynamic> request, String password) =>
       _uia.completeUiaWithPassword(request, password);
   void clearCachedPassword() => _uia.clearCachedPassword();
-
-  // ── ChatBackupService delegates ─────────────────────────────────
-
-  bool? get chatBackupNeeded => _chatBackup.chatBackupNeeded;
-  bool get chatBackupEnabled => _chatBackup.chatBackupEnabled;
-  bool get chatBackupLoading => _chatBackup.chatBackupLoading;
-  String? get chatBackupError => _chatBackup.chatBackupError;
-  Future<void> checkChatBackupStatus() => _chatBackup.checkChatBackupStatus();
-  void requestMissingRoomKeys() => _chatBackup.requestMissingRoomKeys();
-  Future<String?> getStoredRecoveryKey() => _chatBackup.getStoredRecoveryKey();
-  Future<void> storeRecoveryKey(String key) =>
-      _chatBackup.storeRecoveryKey(key);
-  Future<void> deleteStoredRecoveryKey() =>
-      _chatBackup.deleteStoredRecoveryKey();
-  Future<void> disableChatBackup() => _chatBackup.disableChatBackup();
-  Future<void> tryAutoUnlockBackup() => _chatBackup.tryAutoUnlockBackup();
 
   bool _hasSkippedSetup = false;
   bool get hasSkippedSetup => _hasSkippedSetup;
@@ -183,6 +166,7 @@ class MatrixService extends ChangeNotifier {
     _sync.cancelSyncSub();
     _uia.dispose();
     selection.dispose();
+    chatBackup.dispose();
     unawaited(_loginStateSub?.cancel());
     super.dispose();
   }
@@ -321,11 +305,11 @@ class MatrixService extends ChangeNotifier {
     }
     await _auth.clearSessionKeys();
     await SessionBackup.delete(clientName: clientName, storage: _storage);
-    await _chatBackup.deleteStoredRecoveryKey();
+    await chatBackup.deleteStoredRecoveryKey();
     _uia.clearCachedPassword();
     _uia.cancelUiaSub();
     selection.resetSelection();
-    _chatBackup.resetChatBackupState();
+    chatBackup.resetChatBackupState();
     _hasSkippedSetup = false;
     notifyListeners();
   }
@@ -358,11 +342,11 @@ class MatrixService extends ChangeNotifier {
       _uia.cancelUiaSub();
       _uia.clearCachedPassword();
       selection.resetSelection();
-      _chatBackup.resetChatBackupState();
+      chatBackup.resetChatBackupState();
       _hasSkippedSetup = false;
       await _auth.clearSessionKeys();
       await SessionBackup.delete(clientName: clientName, storage: _storage);
-      await _chatBackup.deleteStoredRecoveryKey();
+      await chatBackup.deleteStoredRecoveryKey();
       try {
         await _client.logout();
       } catch (_) {}
@@ -384,11 +368,11 @@ class MatrixService extends ChangeNotifier {
         _uia.cancelUiaSub();
         _uia.clearCachedPassword();
         selection.resetSelection();
-        _chatBackup.resetChatBackupState();
+        chatBackup.resetChatBackupState();
         _hasSkippedSetup = false;
         await _auth.clearSessionKeys();
         await SessionBackup.delete(clientName: clientName, storage: _storage);
-        await _chatBackup.deleteStoredRecoveryKey();
+        await chatBackup.deleteStoredRecoveryKey();
         notifyListeners();
       }
     });

@@ -1,6 +1,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lattice/core/services/matrix_service.dart';
+import 'package:lattice/core/services/sub_services/chat_backup_service.dart';
 import 'package:lattice/features/e2ee/widgets/bootstrap_controller.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
@@ -10,6 +11,7 @@ import 'package:mockito/mockito.dart';
 @GenerateNiceMocks([
   MockSpec<Client>(),
   MockSpec<MatrixService>(),
+  MockSpec<ChatBackupService>(),
   MockSpec<Encryption>(),
   MockSpec<Bootstrap>(),
   MockSpec<OpenSSSS>(),
@@ -19,13 +21,16 @@ import 'bootstrap_controller_test.mocks.dart';
 void main() {
   late MockClient mockClient;
   late MockMatrixService mockMatrixService;
+  late MockChatBackupService mockChatBackup;
   late MockEncryption mockEncryption;
 
   setUp(() {
     mockClient = MockClient();
     mockMatrixService = MockMatrixService();
+    mockChatBackup = MockChatBackupService();
     mockEncryption = MockEncryption();
     when(mockMatrixService.client).thenReturn(mockClient);
+    when(mockMatrixService.chatBackup).thenReturn(mockChatBackup);
     when(mockClient.encryption).thenReturn(mockEncryption);
 
     when(mockClient.roomsLoading).thenAnswer((_) async {});
@@ -62,7 +67,7 @@ void main() {
             as void Function(Bootstrap);
         return MockBootstrap();
       });
-      when(mockMatrixService.checkChatBackupStatus())
+      when(mockChatBackup.checkChatBackupStatus())
           .thenAnswer((_) async {});
 
       final controller = createController();
@@ -118,7 +123,7 @@ void main() {
 
       final mockBootstrap = MockBootstrap();
       when(mockBootstrap.state).thenReturn(BootstrapState.openExistingSsss);
-      when(mockMatrixService.getStoredRecoveryKey())
+      when(mockChatBackup.getStoredRecoveryKey())
           .thenAnswer((_) async => null);
       onUpdateCb(mockBootstrap);
       await Future<void>.delayed(Duration.zero);

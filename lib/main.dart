@@ -9,6 +9,7 @@ import 'package:lattice/core/services/call_service.dart';
 import 'package:lattice/core/services/client_manager.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/core/services/preferences_service.dart';
+import 'package:lattice/core/services/sub_services/chat_backup_service.dart';
 import 'package:lattice/core/services/sub_services/selection_service.dart';
 import 'package:lattice/core/theme/lattice_theme.dart';
 import 'package:lattice/core/theme/theme_presets.dart';
@@ -105,6 +106,8 @@ class _LatticeAppState extends State<LatticeApp> {
 
               return ChangeNotifierProvider<MatrixService>.value(
                 value: matrix,
+                child: ChangeNotifierProvider<ChatBackupService>.value(
+                value: matrix.chatBackup,
                 child: ChangeNotifierProvider<SelectionService>.value(
                 value: matrix.selection,
                 child:
@@ -213,6 +216,7 @@ class _LatticeAppState extends State<LatticeApp> {
                     ),
                   ),
                 ),
+              ),
               ),
               );
             },

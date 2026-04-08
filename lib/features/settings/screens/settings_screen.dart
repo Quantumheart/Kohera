@@ -9,6 +9,7 @@ import 'package:lattice/core/services/call_service.dart';
 import 'package:lattice/core/services/client_manager.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/core/services/preferences_service.dart';
+import 'package:lattice/core/services/sub_services/chat_backup_service.dart';
 import 'package:lattice/shared/widgets/section_header.dart';
 import 'package:lattice/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
@@ -133,6 +134,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final matrix = context.watch<MatrixService>();
+    context.watch<ChatBackupService>();
     final manager = context.watch<ClientManager>();
     final prefs = context.watch<PreferencesService>();
     final cs = Theme.of(context).colorScheme;
@@ -140,7 +142,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final client = matrix.client;
 
     // Surface backup errors via SnackBar.
-    final error = matrix.chatBackupError;
+    final error = matrix.chatBackup.chatBackupError;
     if (error != null && error != _lastShownError) {
       _lastShownError = error;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -411,14 +413,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _SettingsTile(
                   icon: Icons.cloud_outlined,
                   title: 'Chat backup',
-                  subtitle: matrix.chatBackupLoading
+                  subtitle: matrix.chatBackup.chatBackupLoading
                       ? 'Setting up…'
-                      : matrix.chatBackupNeeded == null
+                      : matrix.chatBackup.chatBackupNeeded == null
                           ? 'Checking...'
-                          : matrix.chatBackupEnabled
+                          : matrix.chatBackup.chatBackupEnabled
                               ? 'Your keys are backed up'
                               : 'Not set up',
-                  onTap: matrix.chatBackupLoading
+                  onTap: matrix.chatBackup.chatBackupLoading
                       ? () {}
                       : () => context.go('/e2ee-setup'),
                 ),
@@ -489,7 +491,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _confirmLogout(BuildContext context) {
     final matrix = context.read<MatrixService>();
     final manager = context.read<ClientManager>();
-    final backupMissing = !matrix.chatBackupEnabled;
+    final backupMissing = !matrix.chatBackup.chatBackupEnabled;
 
     unawaited(showDialog(
       context: context,

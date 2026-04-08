@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lattice/core/services/matrix_service.dart';
+import 'package:lattice/core/services/sub_services/chat_backup_service.dart';
 import 'package:lattice/features/e2ee/widgets/recovery_key_handler.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/encryption/cross_signing.dart';
@@ -9,6 +10,7 @@ import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
   MockSpec<MatrixService>(),
+  MockSpec<ChatBackupService>(),
   MockSpec<Bootstrap>(),
   MockSpec<OpenSSSS>(),
   MockSpec<Client>(),
@@ -19,10 +21,13 @@ import 'recovery_key_handler_test.mocks.dart';
 
 void main() {
   late MockMatrixService mockMatrixService;
+  late MockChatBackupService mockChatBackup;
   late RecoveryKeyHandler handler;
 
   setUp(() {
     mockMatrixService = MockMatrixService();
+    mockChatBackup = MockChatBackupService();
+    when(mockMatrixService.chatBackup).thenReturn(mockChatBackup);
     handler = RecoveryKeyHandler(matrixService: mockMatrixService);
   });
 
@@ -71,7 +76,7 @@ void main() {
       when(mockSsssKey.unlock(keyOrPassphrase: anyNamed('keyOrPassphrase')))
           .thenAnswer((_) async {});
       when(mockBootstrap.openExistingSsss()).thenAnswer((_) async {});
-      when(mockMatrixService.storeRecoveryKey(any)).thenAnswer((_) async {});
+      when(mockChatBackup.storeRecoveryKey(any)).thenAnswer((_) async {});
       final mockClient = MockClient();
       when(mockMatrixService.client).thenReturn(mockClient);
       when(mockClient.encryption).thenReturn(null);
@@ -80,7 +85,7 @@ void main() {
       final result = await handler.unlockExisting(mockBootstrap, 'valid-key');
 
       expect(result, isTrue);
-      verify(mockMatrixService.storeRecoveryKey('valid-key')).called(1);
+      verify(mockChatBackup.storeRecoveryKey('valid-key')).called(1);
       expect(handler.unlockedSsssKey, mockSsssKey);
     });
 
@@ -100,13 +105,13 @@ void main() {
       final mockSsssKey = MockOpenSSSS();
       when(mockBootstrap.newSsssKey).thenReturn(mockSsssKey);
       when(mockSsssKey.recoveryKey).thenReturn('KEY');
-      when(mockMatrixService.storeRecoveryKey(any)).thenAnswer((_) async {});
+      when(mockChatBackup.storeRecoveryKey(any)).thenAnswer((_) async {});
 
       await handler.generateNewKey(mockBootstrap);
       handler.setSaveToDevice(true);
       await handler.storeIfNeeded();
 
-      verify(mockMatrixService.storeRecoveryKey('KEY')).called(1);
+      verify(mockChatBackup.storeRecoveryKey('KEY')).called(1);
     });
 
     test('storeIfNeeded is no-op when saveToDevice is false', () async {
@@ -119,7 +124,7 @@ void main() {
       await handler.generateNewKey(mockBootstrap);
       await handler.storeIfNeeded();
 
-      verifyNever(mockMatrixService.storeRecoveryKey(any));
+      verifyNever(mockChatBackup.storeRecoveryKey(any));
     });
 
     test('reset clears all state', () async {
@@ -143,7 +148,7 @@ void main() {
     });
 
     test('consumeStoredRecoveryKey returns and clears key', () async {
-      when(mockMatrixService.getStoredRecoveryKey())
+      when(mockChatBackup.getStoredRecoveryKey())
           .thenAnswer((_) async => 'stored-key');
 
       await handler.loadStoredKey();

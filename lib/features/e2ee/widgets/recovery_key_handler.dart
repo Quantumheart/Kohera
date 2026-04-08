@@ -50,7 +50,7 @@ class RecoveryKeyHandler {
   }
 
   Future<void> loadStoredKey() async {
-    final storedKey = await matrixService.getStoredRecoveryKey();
+    final storedKey = await matrixService.chatBackup.getStoredRecoveryKey();
     if (storedKey != null) {
       _storedRecoveryKey = storedKey;
     }
@@ -81,7 +81,7 @@ class RecoveryKeyHandler {
 
     _recoveryKeyError = null;
     if (_saveToDevice) {
-      await matrixService.storeRecoveryKey(key);
+      await matrixService.chatBackup.storeRecoveryKey(key);
     }
 
     try {
@@ -101,7 +101,7 @@ class RecoveryKeyHandler {
 
   Future<void> storeIfNeeded() async {
     if (_saveToDevice && _newRecoveryKey != null) {
-      await matrixService.storeRecoveryKey(_newRecoveryKey!);
+      await matrixService.chatBackup.storeRecoveryKey(_newRecoveryKey!);
     }
   }
 
