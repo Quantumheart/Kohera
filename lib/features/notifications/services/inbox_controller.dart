@@ -71,7 +71,10 @@ class InboxController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
 
     try {
-      final response = await _client.getNotifications(limit: 30);
+      final response = await _client.getNotifications(
+        limit: 30,
+        only: _filter == InboxFilter.mentions ? 'highlight' : null,
+      );
       if (_disposed || gen != _fetchGeneration) return;
       _nextToken = response.nextToken;
       _grouped = _groupByRoom(response.notifications);
@@ -105,6 +108,7 @@ class InboxController extends ChangeNotifier {
       final response = await _client.getNotifications(
         limit: 30,
         from: _nextToken,
+        only: _filter == InboxFilter.mentions ? 'highlight' : null,
       );
       if (_disposed || gen != _fetchGeneration) return;
       _nextToken = response.nextToken;
@@ -172,7 +176,10 @@ class InboxController extends ChangeNotifier {
   Future<void> _pollOnce() async {
     if (_isLoading || _markingAsRead || _tokenExpired) return;
     try {
-      final response = await _client.getNotifications(limit: 30);
+      final response = await _client.getNotifications(
+        limit: 30,
+        only: _filter == InboxFilter.mentions ? 'highlight' : null,
+      );
       if (_disposed) return;
 
       final freshIds = <String>{};
@@ -272,53 +279,13 @@ class InboxController extends ChangeNotifier {
 
   // ── Helpers ────────────────────────────────────────────────
 
-  bool _isMention(matrix_sdk.Notification n) {
-    for (final action in n.actions) {
-      if (action is Map && action['set_tweak'] == 'highlight') {
-        final value = action['value'];
-        if (value == null || value == true) return true;
-      }
-    }
-
-    final userId = _client.userID;
-    if (userId == null) return false;
-    final content = n.event.content;
-
-    final mentions = content['m.mentions'];
-    if (mentions is Map) {
-      final userIds = mentions['user_ids'];
-      if (userIds is List && userIds.contains(userId)) return true;
-    }
-
-    final body = content['body'];
-    if (body is String) {
-      final lower = body.toLowerCase();
-      final lowerUserId = userId.toLowerCase();
-      if (lower.contains(lowerUserId)) return true;
-      final displayName = _client
-          .getRoomById(n.roomId)
-          ?.unsafeGetUserFromMemoryOrFallback(userId)
-          .calcDisplayname()
-          .toLowerCase();
-      if (displayName != null &&
-          displayName != lowerUserId &&
-          lower.contains(displayName)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
   List<NotificationGroup> _groupByRoom(
       List<matrix_sdk.Notification> notifications,) {
     final map = <String, List<matrix_sdk.Notification>>{};
     final order = <String>[];
-    final filterMentions = _filter == InboxFilter.mentions;
 
     for (final n in notifications) {
       if (n.read) continue;
-      if (filterMentions && !_isMention(n)) continue;
       final room = _client.getRoomById(n.roomId);
       if (room == null || room.membership != Membership.join) continue;
       map.putIfAbsent(n.roomId, () {
