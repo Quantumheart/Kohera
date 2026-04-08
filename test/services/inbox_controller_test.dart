@@ -24,9 +24,10 @@ Notification _makeNotification({
   bool read = false,
   int ts = 1000,
   Map<String, Object?>? content,
+  List<Object?> actions = const [],
 }) {
   return Notification(
-    actions: [],
+    actions: actions,
     event: MatrixEvent(
       type: 'm.room.message',
       content: content ?? {'body': 'hello', 'msgtype': 'm.text'},
@@ -780,6 +781,41 @@ void main() {
       await controller.fetch();
 
       expect(controller.grouped, hasLength(2));
+    });
+
+    test('mentions filter detects highlight tweak in actions (encrypted rooms)', () async {
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(
+              eventId: 'e1',
+              roomId: '!r1:x',
+              content: {
+                'algorithm': 'm.megolm.v1.aes-sha2',
+                'ciphertext': 'encrypted...',
+              },
+              actions: [
+                'notify',
+                {'set_tweak': 'highlight'},
+              ],
+            ),
+            _makeNotification(
+              eventId: 'e2',
+              roomId: '!r2:x',
+              content: {
+                'algorithm': 'm.megolm.v1.aes-sha2',
+                'ciphertext': 'encrypted...',
+              },
+            ),
+          ]),);
+
+      controller.setFilter(InboxFilter.mentions);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.grouped, hasLength(1));
+      expect(controller.grouped[0].roomId, '!r1:x');
     });
 
     test('mention detection is case-insensitive', () async {
