@@ -1,54 +1,32 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## What is Lattice?
 
-## Project Overview
+Lattice is a Flutter Matrix chat client. It uses the `matrix` Dart SDK for the Matrix protocol, Provider (ChangeNotifier) for state management, GoRouter for navigation, and Material You dynamic color theming. It supports E2EE, voice/video calling (LiveKit), multi-account, and runs on Linux, macOS, and web.
 
-Lattice is a Flutter Matrix chat client built with Dart 3.1+ and Flutter 3.16+. It uses the `matrix` Dart SDK for the Matrix protocol, Provider (ChangeNotifier) for state management, and Material You dynamic color theming.
-
-## Common Commands
+## How to work with this project
 
 ```bash
 flutter pub get                                          # Install dependencies
-flutter analyze                                          # Lint (uses flutter_lints + custom rules)
+flutter analyze                                          # Lint
 dart run build_runner build --delete-conflicting-outputs  # Generate mocks (required before tests)
 flutter test                                             # Run all tests
-flutter test test/services/matrix_service_test.dart      # Run a single test file
-flutter run                                              # Run on default device
+flutter test test/path/to_test.dart                      # Run a single test file
 flutter run -d linux                                     # Run on Linux
-flutter build linux --release                            # Release build
 ```
 
-Mock generation (`build_runner`) must run before `flutter test` whenever `@GenerateMocks` annotations change.
+Mock generation (`build_runner`) must run before `flutter test` whenever `@GenerateNiceMocks` annotations change.
 
-## Architecture
+## Architecture overview
 
-**Directory structure:** Feature-based organization under `lib/`:
-- `core/` — extensions, models, routing, services (MatrixService + mixins), theme, utils
-- `features/` — feature modules: `auth/`, `chat/`, `e2ee/`, `home/`, `notifications/`, `rooms/`, `settings/`, `spaces/`
-- `shared/widgets/` — reusable UI components (avatars, section header, image viewer, speed dial)
+Feature-based organization under `lib/`: `core/` (services, routing, theme, utils), `features/` (auth, calling, chat, e2ee, home, notifications, rooms, settings, spaces), `shared/widgets/`.
 
-Each feature module contains `screens/`, `services/`, and/or `widgets/` subdirectories as needed.
+State is managed via multiple ChangeNotifiers provided at the root. `MatrixService` wraps the Matrix SDK client. Extracted sub-services live in `core/services/sub_services/` (AuthService, SyncService, SelectionService, ChatBackupService, UiaService). Other top-level providers include ClientManager, CallService, PreferencesService, and InboxController.
 
-**State management:** Single `MatrixService` (ChangeNotifier) provided at the root via Provider (`core/services/`). It wraps the Matrix SDK client and manages login, sync, room/space selection, E2EE bootstrap, and UIA flows.
-
-**Responsive layouts:** Three breakpoints in `HomeShell` (`features/home/screens/`) — mobile (<720px, bottom nav), tablet (720–1100px, rail+list), desktop (≥1100px, rail+list+chat). The space rail is Discord/Slack-style vertical icons.
-
-**E2EE architecture:** Separated into three layers (`features/e2ee/widgets/`):
-- `BootstrapController` (ChangeNotifier) — state machine for key backup/cross-signing setup
-- `BootstrapDialog` — modal orchestration
-- `BootstrapViews` — stateless UI components
-- Auto-unlock recovers keys from `FlutterSecureStorage` on startup
-- UIA uses cached password with 5-minute TTL
-
-See `docs/e2ee-flow.md` for detailed state machine diagrams.
-
-**Testing:** Mockito with generated mocks (`*.mocks.dart`). Tests cover MatrixService state, BootstrapController transitions, dialog flows, and key verification.
+See `agent_docs/architecture.md` for detailed architecture, routing, responsive layout, and E2EE docs. See `docs/e2ee-flow.md` for E2EE state machine diagrams.
 
 ## Conventions
 
-- **Commits:** Semantic format — `feat:`, `fix:`, `refactor:`, `style:`, `docs:`, `test:`, `chore:`
+- **Commits:** `feat:`, `fix:`, `refactor:`, `style:`, `docs:`, `test:`, `chore:`
 - **Logging:** `debugPrint('[Lattice] ...')` prefix for all log messages
-- **Code sections:** Organized with `// ── Section Name ──────` markers
-- **Linting:** `avoid_print: false` is intentional (uses `debugPrint` instead of `print`)
-- **Comments:** Avoid comments — code should be self-descriptive. Comments lead to misdirection and increase bugs. Section markers (`// ── Section Name ──────`) are the exception.
+- **No comments** -- code should be self-descriptive. Section markers (`// ── Section Name ──────`) are the exception.
