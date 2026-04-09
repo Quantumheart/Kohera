@@ -400,7 +400,7 @@ class _ComposeBarState extends State<ComposeBar> {
 
   Widget _buildGifButton(ColorScheme cs) {
     return IconButton(
-      icon: Icon(Icons.gif_box_outlined, color: cs.onSurfaceVariant),
+      icon: Icon(Icons.gif_outlined, color: cs.onSurfaceVariant),
       onPressed: widget.onGif,
       tooltip: 'Send GIF',
     );
