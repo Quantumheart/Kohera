@@ -2,34 +2,45 @@
 
 // ── Push event ────────────────────────────────────────────────
 self.addEventListener('push', function (event) {
-  if (!event.data) return;
+  var roomName = 'New message';
+  var body = 'You have a new message';
+  var tag = 'lattice-push';
+  var data = {};
 
-  var payload;
-  try {
-    payload = event.data.json();
-  } catch (e) {
-    return;
+  if (event.data) {
+    try {
+      var payload = event.data.json();
+      var notification = payload.notification || {};
+      var roomId = notification.room_id;
+      var senderName = notification.sender_display_name;
+      var counts = notification.counts || {};
+
+      if (notification.room_name) roomName = notification.room_name;
+      if (senderName) body = senderName + ': New message';
+      if (roomId) tag = roomId;
+      data = { roomId: roomId || null, unreadCount: counts.unread || 0 };
+    } catch (e) {
+      // Parse failed — fall through to show a generic notification.
+    }
   }
-
-  var notification = payload.notification || {};
-  var roomId = notification.room_id;
-  var roomName = notification.room_name || 'New message';
-  var senderName = notification.sender_display_name;
-  var body = senderName ? senderName + ': New message' : 'You have a new message';
-  var counts = notification.counts || {};
 
   event.waitUntil(
     self.registration.showNotification(roomName, {
       body: body,
       icon: 'icons/Icon-192.png',
-      badge: 'icons/Icon-maskable-192.png',
-      tag: roomId || 'lattice-push',
-      renotify: !!roomId,
-      data: { roomId: roomId, unreadCount: counts.unread || 0 },
+      tag: tag,
+      data: data,
     }).then(function () {
-      if (navigator.setAppBadge) {
-        navigator.setAppBadge(counts.unread || 0);
+      try {
+        if (self.navigator && self.navigator.setAppBadge && data.unreadCount) {
+          self.navigator.setAppBadge(data.unreadCount);
+        }
+      } catch (e) {
+        // Badge API not supported — ignore.
       }
+    }).catch(function (e) {
+      // showNotification failed — log for debugging.
+      console.error('[Lattice SW] showNotification failed:', e);
     })
   );
 });
@@ -37,8 +48,12 @@ self.addEventListener('push', function (event) {
 // ── Notification click ────────────────────────────────────────
 self.addEventListener('notificationclick', function (event) {
   event.notification.close();
-  if (navigator.clearAppBadge) {
-    navigator.clearAppBadge();
+  try {
+    if (self.navigator && self.navigator.clearAppBadge) {
+      self.navigator.clearAppBadge();
+    }
+  } catch (e) {
+    // Badge API not supported — ignore.
   }
 
   var roomId = (event.notification.data || {}).roomId;
