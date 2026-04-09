@@ -26,6 +26,7 @@ Widget _wrap({
   List<Room>? joinedRooms,
   PreferencesService? prefs,
   TypingController? typingController,
+  VoidCallback? onGif,
 }) {
   return ChangeNotifierProvider<PreferencesService>.value(
     value: prefs ?? PreferencesService(),
@@ -41,6 +42,7 @@ Widget _wrap({
           typingController: typingController,
           onRemoveAttachment: (_) {},
           onClearAttachments: () {},
+          onGif: onGif,
         ),
       ),
     ),
@@ -208,6 +210,18 @@ void main() {
             (a.meta || a.control),
       );
       expect(hasDownBinding, isTrue);
+    });
+
+    testWidgets('GIF button uses Text widget not Icon', (tester) async {
+      await tester.pumpWidget(_wrap(
+        controller: controller,
+        onSend: () {},
+        onGif: () {},
+      ),);
+
+      expect(find.text('GIF'), findsOneWidget);
+      expect(find.byIcon(Icons.gif_outlined), findsNothing);
+      expect(find.byIcon(Icons.gif_box_outlined), findsNothing);
     });
 
     testWidgets('TextField uses newline text input action', (tester) async {
