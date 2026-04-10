@@ -185,11 +185,13 @@ class _ChatScreenState extends State<ChatScreen>
     final events = _timeline?.events;
     if (events == null) return;
 
+    final requested = <String>{};
     for (final event in events) {
       if (event.type == EventTypes.Encrypted &&
           event.messageType == MessageTypes.BadEncrypted) {
         final sessionId = event.content.tryGet<String>('session_id');
-        if (sessionId != null) {
+        final senderKey = event.content.tryGet<String>('sender_key');
+        if (sessionId != null && requested.add(sessionId)) {
           unawaited(
             encryption.keyManager.loadSingleKey(room.id, sessionId).catchError(
               (Object e) {
@@ -197,6 +199,17 @@ class _ChatScreenState extends State<ChatScreen>
               },
             ),
           );
+          if (senderKey != null) {
+            try {
+              encryption.keyManager.maybeAutoRequest(
+                room.id,
+                sessionId,
+                senderKey,
+              );
+            } catch (e) {
+              debugPrint('[Lattice] P2P key request failed for $sessionId: $e');
+            }
+          }
         }
       }
     }
