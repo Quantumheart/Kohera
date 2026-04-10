@@ -70,7 +70,10 @@ class MatrixService extends ChangeNotifier {
   bool get isLoggedIn => auth.isLoggedIn;
 
   @visibleForTesting
-  set isLoggedInForTest(bool value) => auth.isLoggedIn = value;
+  set isLoggedInForTest(bool value) {
+    auth.isLoggedIn = value;
+    auth.notifyListeners();
+  }
 
   bool _disposed = false;
   bool get disposed => _disposed;
@@ -228,7 +231,7 @@ class MatrixService extends ChangeNotifier {
   // ── Private: Login State Stream ─────────────────────────────────
 
   void _listenForLoginState() {
-    unawaited(_loginStateSub?.cancel());
+    if (_loginStateSub != null) return;
     _loginStateSub = _client.onLoginStateChanged.stream.listen((state) async {
       if (state == LoginState.loggedOut && auth.isLoggedIn) {
         debugPrint('[Lattice] Server-side logout detected');
