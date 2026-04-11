@@ -170,13 +170,41 @@ class WebPushService {
         if (data == null) return;
         final obj = data as JSObject;
         final type = obj.getProperty<JSString>('type'.toJS).toDart;
-        if (type != 'pushsubscriptionchange') return;
 
-        final newSubJs =
-            obj.getProperty<JSObject>('newSubscription'.toJS);
-        final newPushkey = _jsonStringify(newSubJs).toDart;
-        unawaited(_registerPusher(newPushkey, gatewayUrl));
-        debugPrint('[Lattice] Web push subscription renewed');
+        switch (type) {
+          case 'pushsubscriptionchange':
+            final newSubJs = obj.getProperty<JSObject>('newSubscription'.toJS);
+            final newPushkey = _jsonStringify(newSubJs).toDart;
+            unawaited(_registerPusher(newPushkey, gatewayUrl));
+            debugPrint('[Lattice] Web push subscription renewed');
+
+          case 'pushsubscriptionfailed':
+            final error = obj.getProperty<JSString>('error'.toJS).toDart;
+            debugPrint('[Lattice] Web push subscription renewal failed: $error');
+            unawaited(register());
+
+          case 'notification_click':
+            final roomId = obj.getProperty<JSString>('roomId'.toJS).toDart;
+            if (roomId.isNotEmpty) {
+              matrixService.selection.selectRoom(roomId);
+              debugPrint('[Lattice] Web push notification tapped, selecting room $roomId');
+            }
+
+          case 'mark_read':
+            final roomId = obj.getProperty<JSString>('roomId'.toJS).toDart;
+            if (roomId.isNotEmpty) {
+              final room = matrixService.client.getRoomById(roomId);
+              final lastEventId = room?.lastEvent?.eventId;
+              if (room != null && lastEventId != null) {
+                unawaited(
+                  room.setReadMarker(lastEventId, mRead: lastEventId).catchError((Object e) {
+                    debugPrint('[Lattice] Failed to mark room as read: $e');
+                  }),
+                );
+              }
+              debugPrint('[Lattice] Web push mark_read for room $roomId');
+            }
+        }
       } catch (e) {
         debugPrint('[Lattice] Error handling service worker message: $e');
       }
