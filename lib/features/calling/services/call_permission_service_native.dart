@@ -1,13 +1,13 @@
+import 'package:lattice/core/services/macos_permissions.dart';
 import 'package:lattice/core/utils/platform_info.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 // coverage:ignore-start
 abstract class CallPermissionService {
-  static bool get _needsPermissionRequest =>
-      isNativeAndroid || isNativeIOS || isNativeMacOS;
-
   static Future<bool> request() async {
-    if (!_needsPermissionRequest) return true;
+    if (isNativeMacOS) return MacOsPermissions.requestCameraAndMicrophone();
+    if (!(isNativeAndroid || isNativeIOS)) return true;
+
     final statuses = await [
       Permission.camera,
       Permission.microphone,
@@ -25,7 +25,13 @@ abstract class CallPermissionService {
   }
 
   static Future<bool> check() async {
-    if (!_needsPermissionRequest) return true;
+    if (isNativeMacOS) {
+      final camera = await MacOsPermissions.checkMedia('camera');
+      final mic = await MacOsPermissions.checkMedia('microphone');
+      return camera && mic;
+    }
+    if (!(isNativeAndroid || isNativeIOS)) return true;
+
     final camera = await Permission.camera.isGranted;
     final microphone = await Permission.microphone.isGranted;
     return camera && microphone;

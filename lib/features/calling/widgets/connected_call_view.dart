@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lattice/core/services/call_service.dart';
+import 'package:lattice/core/services/macos_permissions.dart';
 import 'package:lattice/core/services/preferences_service.dart';
 import 'package:lattice/core/utils/platform_info.dart';
 import 'package:lattice/features/calling/services/push_to_talk_service.dart';
@@ -23,8 +24,17 @@ class ConnectedCallView extends StatelessWidget {
       return;
     }
 
-    final needsSourcePicker =
-        isNativeMacOS || isNativeWindows;
+    if (isNativeMacOS) {
+      final hasPermission = await MacOsPermissions.checkScreenCapture() ||
+          await MacOsPermissions.requestScreenCapture();
+      if (!hasPermission) {
+        if (context.mounted) await _showScreenCapturePermissionDialog(context);
+        return;
+      }
+    }
+
+    if (!context.mounted) return;
+    final needsSourcePicker = isNativeMacOS || isNativeWindows;
     if (needsSourcePicker) {
       final source = await showScreenSourcePicker(context);
       if (source == null) return;
@@ -32,6 +42,26 @@ class ConnectedCallView extends StatelessWidget {
     } else {
       await callService.toggleScreenShare();
     }
+  }
+
+  Future<void> _showScreenCapturePermissionDialog(BuildContext context) {
+    return showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Screen Recording Permission Required'),
+        content: const Text(
+          'Lattice needs screen recording permission to share your screen. '
+          'Please enable it in System Settings > Privacy & Security > '
+          'Screen Recording, then try again.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
