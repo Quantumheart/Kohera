@@ -167,6 +167,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
 
   String? _activeCallId;
   String? _lastInitiatedRoomId;
+  bool _hadRemoteParticipant = false;
 
   // ── Membership Watcher ──────────────────────────────────────
 
@@ -189,9 +190,14 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
+    if (hasRemote) {
+      _hadRemoteParticipant = true;
+    }
+
     if ((_callState == LatticeCallState.connected ||
             _callState == LatticeCallState.reconnecting) &&
-        !hasRemote) {
+        !hasRemote &&
+        _hadRemoteParticipant) {
       debugPrint('[Lattice] All remote members left, ending call');
       unawaited(leaveCall());
       return;
@@ -238,6 +244,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     _ringing.disposeRingtone();
     _activeCallId = null;
     _callStartTime = null;
+    _hadRemoteParticipant = false;
     unawaited(_signalingEventSub?.cancel());
     _signalingEventSub = null;
     unawaited(_nativeActionSub?.cancel());
@@ -299,6 +306,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     }
     _activeCallRoomId = null;
     _callStartTime = null;
+    _hadRemoteParticipant = false;
   }
 
   // ── Join / Leave ───────────────────────────────────────────
