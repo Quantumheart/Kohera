@@ -48,6 +48,7 @@ class MentionAutocompleteController extends ChangeNotifier {
   final TextEditingController textController;
   final Room room;
   final List<Room> joinedRooms;
+  @visibleForTesting
   final Duration debounceDuration;
 
   static final _specialCharsRegex = RegExp(r'[^\w.-]');

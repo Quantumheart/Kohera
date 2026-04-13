@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:giphy_get/giphy_get.dart';
@@ -246,9 +244,12 @@ class _ChatScreenState extends State<ChatScreen>
         children: [
           _buildChatBody(matrix, room),
           if (_search.isSearching)
-            SearchResultsBody(
-              search: _search,
-              onTapResult: _scrollToEvent,
+            ColoredBox(
+              color: Theme.of(context).colorScheme.surface,
+              child: SearchResultsBody(
+                search: _search,
+                onTapResult: _scrollToEvent,
+              ),
             ),
         ],
       ),
