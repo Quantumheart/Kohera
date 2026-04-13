@@ -291,7 +291,7 @@ void main() {
       ),);
 
       await tester.enterText(find.byType(TextField), '@');
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
 
       expect(find.byType(MentionSuggestionList), findsOneWidget);
     });
@@ -331,7 +331,7 @@ void main() {
       ),);
 
       await tester.enterText(find.byType(TextField), '@ali');
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
 
       expect(find.byType(MentionSuggestionList), findsOneWidget);
 
@@ -352,7 +352,7 @@ void main() {
       ),);
 
       await tester.enterText(find.byType(TextField), '@');
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
 
       // Tap on Alice suggestion.
       await tester.tap(find.text('Alice'));
@@ -370,7 +370,7 @@ void main() {
       ),);
 
       await tester.enterText(find.byType(TextField), '@');
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
 
       expect(find.byType(MentionSuggestionList), findsOneWidget);
 

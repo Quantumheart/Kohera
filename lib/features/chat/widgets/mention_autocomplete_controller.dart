@@ -40,6 +40,7 @@ class MentionAutocompleteController extends ChangeNotifier {
     required this.textController,
     required this.room,
     required this.joinedRooms,
+    this.debounceDuration = const Duration(milliseconds: 150),
   }) {
     textController.addListener(_onTextChanged);
   }
@@ -47,9 +48,11 @@ class MentionAutocompleteController extends ChangeNotifier {
   final TextEditingController textController;
   final Room room;
   final List<Room> joinedRooms;
+  final Duration debounceDuration;
 
   static final _specialCharsRegex = RegExp(r'[^\w.-]');
 
+  Timer? _debounce;
   bool _isActive = false;
   bool _disposed = false;
   MentionTriggerType? _triggerType;
@@ -128,7 +131,12 @@ class MentionAutocompleteController extends ChangeNotifier {
     _isActive = true;
     _selectedIndex = 0;
 
-    _updateSuggestions();
+    _debounce?.cancel();
+    if (debounceDuration == Duration.zero) {
+      _updateSuggestions();
+    } else {
+      _debounce = Timer(debounceDuration, _updateSuggestions);
+    }
   }
 
   // ── Filtering ──────────────────────────────────────────────
@@ -263,6 +271,7 @@ class MentionAutocompleteController extends ChangeNotifier {
   void dismiss() => _dismiss();
 
   void _dismiss() {
+    _debounce?.cancel();
     if (!_isActive) return;
     _isActive = false;
     _triggerType = null;
@@ -275,6 +284,7 @@ class MentionAutocompleteController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _disposed = true;
     textController.removeListener(_onTextChanged);
     super.dispose();
