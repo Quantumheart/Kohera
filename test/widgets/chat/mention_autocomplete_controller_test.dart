@@ -75,6 +75,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -94,6 +95,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -112,6 +114,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -129,6 +132,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -146,6 +150,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -163,6 +168,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -182,6 +188,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -203,6 +210,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -222,6 +230,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -239,6 +248,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -258,6 +268,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -279,6 +290,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -304,6 +316,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -325,6 +338,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -344,6 +358,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -366,6 +381,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -387,6 +403,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -409,6 +426,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -429,6 +447,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -447,6 +466,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -468,6 +488,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -491,6 +512,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       expect(ctrl.hasSuggestions, isFalse);
@@ -522,6 +544,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -554,6 +577,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(
@@ -575,6 +599,7 @@ void main() {
         textController: textCtrl,
         room: mockRoom,
         joinedRooms: joinedRooms,
+        debounceDuration: Duration.zero,
       );
 
       textCtrl.value = const TextEditingValue(

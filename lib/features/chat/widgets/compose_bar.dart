@@ -100,7 +100,6 @@ class _ComposeBarState extends State<ComposeBar> {
   void didUpdateWidget(ComposeBar old) {
     super.didUpdateWidget(old);
     if (old.room?.id != widget.room?.id) {
-      _mentionController?.removeListener(_onMentionChanged);
       _mentionController?.dispose();
       _initMentionController();
     }
@@ -117,14 +116,9 @@ class _ComposeBarState extends State<ComposeBar> {
         room: widget.room!,
         joinedRooms: widget.joinedRooms!,
       );
-      _mentionController!.addListener(_onMentionChanged);
     } else {
       _mentionController = null;
     }
-  }
-
-  void _onMentionChanged() {
-    if (mounted) setState(() {});
   }
 
   void _onTextChangedForTyping() {
@@ -142,7 +136,6 @@ class _ComposeBarState extends State<ComposeBar> {
   void dispose() {
     widget.controller.removeListener(_onTextChangedForTyping);
     _focusNode.removeListener(_onFocusChanged);
-    _mentionController?.removeListener(_onMentionChanged);
     _mentionController?.dispose();
     _ownedFocusNode?.dispose();
     super.dispose();
@@ -212,10 +205,6 @@ class _ComposeBarState extends State<ComposeBar> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final showSuggestions = _mentionController != null &&
-        _mentionController!.isActive &&
-        _mentionController!.suggestions.isNotEmpty;
-
     return Container(
       padding: EdgeInsets.only(
         left: 12,
@@ -233,10 +222,19 @@ class _ComposeBarState extends State<ComposeBar> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (showSuggestions)
-            MentionSuggestionList(
-              controller: _mentionController!,
-              client: widget.room!.client,
+          if (_mentionController != null)
+            ListenableBuilder(
+              listenable: _mentionController!,
+              builder: (context, _) {
+                if (!_mentionController!.isActive ||
+                    _mentionController!.suggestions.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return MentionSuggestionList(
+                  controller: _mentionController!,
+                  client: widget.room!.client,
+                );
+              },
             ),
           if (widget.editEvent != null)
             EditPreviewBanner(
