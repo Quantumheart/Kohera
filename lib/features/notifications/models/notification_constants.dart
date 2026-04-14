@@ -17,6 +17,7 @@ abstract class NotificationChannel {
   static const defaultGatewayUrl =
       'https://matrix.gateway.unifiedpush.org/_matrix/push/v1/notify';
   static const defaultDeviceName = 'Android';
+  static const iosDefaultDeviceName = 'iOS';
   static const defaultLang = 'en';
 
   static const webPushAppId = 'io.github.quantumheart.lattice.web';

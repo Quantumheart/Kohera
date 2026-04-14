@@ -7,6 +7,7 @@ import 'package:lattice/core/routing/route_names.dart';
 import 'package:lattice/core/services/app_config.dart';
 import 'package:lattice/core/services/preferences_service.dart';
 import 'package:lattice/core/utils/platform_info.dart';
+import 'package:lattice/features/notifications/services/apns_push_service.dart';
 import 'package:lattice/features/notifications/services/push_service.dart';
 import 'package:lattice/features/notifications/services/web_push_service_export.dart';
 import 'package:lattice/shared/widgets/section_header.dart';
@@ -328,6 +329,33 @@ class _NotificationSettingsScreenState
                       onTap: _setupDistributor,
                     ),
                 ],
+              ),
+            ),
+          ],
+
+          // ── APNs push notifications (iOS only) ─────────────────
+          if (!kIsWeb && isNativeIOS && AppConfig.instance.apnsPushConfigured) ...[
+            const SizedBox(height: 24),
+            const SectionHeader(label: 'BACKGROUND PUSH'),
+            Card(
+              child: SwitchListTile(
+                title: const Text('Push notifications'),
+                subtitle: Text(
+                  prefs.apnsPushEnabled
+                      ? 'Receiving push notifications via APNs'
+                      : 'Receive notifications when the app is closed',
+                ),
+                value: prefs.apnsPushEnabled,
+                onChanged: (value) async {
+                  unawaited(prefs.setApnsPushEnabled(value));
+                  if (!context.mounted) return;
+                  final apnsPushService = context.read<ApnsPushService>();
+                  if (value) {
+                    unawaited(apnsPushService.register());
+                  } else {
+                    unawaited(apnsPushService.unregister());
+                  }
+                },
               ),
             ),
           ],

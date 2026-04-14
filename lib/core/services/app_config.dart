@@ -8,16 +8,20 @@ class AppConfig {
     required this.defaultHomeserver,
     this.webPushGatewayUrl,
     this.vapidPublicKey,
+    this.apnsPushGatewayUrl,
     this.giphyApiKey,
   });
 
   final String defaultHomeserver;
   final String? webPushGatewayUrl;
   final String? vapidPublicKey;
+  final String? apnsPushGatewayUrl;
   final String? giphyApiKey;
 
   bool get webPushConfigured =>
       webPushGatewayUrl != null && vapidPublicKey != null;
+
+  bool get apnsPushConfigured => apnsPushGatewayUrl != null;
 
   bool get giphyEnabled =>
       giphyApiKey != null && giphyApiKey!.isNotEmpty;
@@ -40,12 +44,14 @@ class AppConfig {
     String defaultHomeserver = _fallbackHomeserver,
     String? webPushGatewayUrl,
     String? vapidPublicKey,
+    String? apnsPushGatewayUrl,
     String? giphyApiKey,
   }) {
     return AppConfig._(
       defaultHomeserver: defaultHomeserver,
       webPushGatewayUrl: webPushGatewayUrl,
       vapidPublicKey: vapidPublicKey,
+      apnsPushGatewayUrl: apnsPushGatewayUrl,
       giphyApiKey: giphyApiKey,
     );
   }
@@ -65,6 +71,7 @@ class AppConfig {
             json['defaultHomeserver'] as String? ?? _fallbackHomeserver,
         webPushGatewayUrl: json['webPushGatewayUrl'] as String?,
         vapidPublicKey: json['vapidPublicKey'] as String?,
+        apnsPushGatewayUrl: json['apnsPushGatewayUrl'] as String?,
         giphyApiKey: const String.fromEnvironment('GIPHY_API_KEY').isNotEmpty
             ? const String.fromEnvironment('GIPHY_API_KEY')
             : json['giphyApiKey'] as String?,

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lattice/core/services/call_service.dart';
 import 'package:lattice/core/services/matrix_service.dart';
 import 'package:lattice/core/services/preferences_service.dart';
+import 'package:lattice/features/notifications/services/apns_push_service.dart';
 import 'package:lattice/features/notifications/services/notification_service.dart';
 import 'package:lattice/features/notifications/services/push_service.dart';
 import 'package:lattice/features/notifications/services/web_focus_listener.dart';
@@ -37,6 +38,7 @@ class _NotificationLifecycleObserverState
     extends State<NotificationLifecycleObserver> with WidgetsBindingObserver {
   NotificationService? _notificationService;
   PushService? _pushService;
+  ApnsPushService? _apnsPushService;
   WebPushService? _webPushService;
   bool _wasLoggedIn = false;
   String? _lastSelectedRoomId;
@@ -72,6 +74,14 @@ class _NotificationLifecycleObserverState
     );
     await pushService.init();
 
+    final apnsPushService = ApnsPushService(
+      matrixService: widget.matrixService,
+      preferencesService: widget.preferencesService,
+      notificationService: notificationService,
+      callService: widget.callService,
+    );
+    await apnsPushService.init();
+
     final webPushService = WebPushService(
       matrixService: widget.matrixService,
       preferencesService: widget.preferencesService,
@@ -82,6 +92,9 @@ class _NotificationLifecycleObserverState
     if (loggedIn) {
       notificationService.startListening();
       unawaited(pushService.register());
+      if (!kIsWeb) {
+        unawaited(apnsPushService.register());
+      }
       if (kIsWeb) {
         unawaited(_registerWebPush(webPushService));
         webPushService.listenForSubscriptionChanges();
@@ -92,6 +105,7 @@ class _NotificationLifecycleObserverState
       setState(() {
         _notificationService = notificationService;
         _pushService = pushService;
+        _apnsPushService = apnsPushService;
         _webPushService = webPushService;
         _wasLoggedIn = loggedIn;
       });
@@ -132,6 +146,8 @@ class _NotificationLifecycleObserverState
       _notificationService = null;
       _pushService?.dispose();
       _pushService = null;
+      _apnsPushService?.dispose();
+      _apnsPushService = null;
       _webPushService?.dispose();
       _webPushService = null;
       unawaited(_initServices());
@@ -143,6 +159,9 @@ class _NotificationLifecycleObserverState
       if (loggedIn) {
         _notificationService?.startListening();
         unawaited(_pushService?.register());
+        if (!kIsWeb) {
+          unawaited(_apnsPushService?.register());
+        }
         if (kIsWeb && _webPushService != null) {
           unawaited(_registerWebPush(_webPushService!));
         }
@@ -150,6 +169,7 @@ class _NotificationLifecycleObserverState
         _notificationService?.stopListening();
         unawaited(_notificationService?.cancelAll());
         unawaited(_pushService?.unregister());
+        unawaited(_apnsPushService?.unregister());
         unawaited(_webPushService?.unregister());
       }
     }
@@ -162,6 +182,7 @@ class _NotificationLifecycleObserverState
     unregisterWindowFocusListeners(_focusListenerHandle);
     _notificationService?.dispose();
     _pushService?.dispose();
+    _apnsPushService?.dispose();
     _webPushService?.dispose();
     super.dispose();
   }
@@ -173,6 +194,13 @@ class _NotificationLifecycleObserverState
     if (webPush != null) {
       child = Provider<WebPushService>.value(
         value: webPush,
+        child: child,
+      );
+    }
+    final apnsPush = _apnsPushService;
+    if (apnsPush != null) {
+      child = Provider<ApnsPushService>.value(
+        value: apnsPush,
         child: child,
       );
     }
