@@ -103,7 +103,7 @@ Future<String?> resolveWebAvatarUrl(
     final init = web.RequestInit(method: 'GET');
     if (headers != null && headers.isNotEmpty) {
       final h = web.Headers();
-      headers.forEach(h.set);
+      headers.forEach((k, v) => h.set(k, v));
       init.headers = h;
     }
     final response = await web.window.fetch(url.toJS, init).toDart;
