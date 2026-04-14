@@ -401,6 +401,20 @@ class PreferencesService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── APNs push notifications ───────────────────────────────────
+
+  static const _apnsPushEnabledKey = 'apns_push_enabled';
+
+  bool get apnsPushEnabled => _prefs?.getBool(_apnsPushEnabledKey) ?? false;
+
+  Future<void> setApnsPushEnabled(bool value) async {
+    await _prefs?.setBool(_apnsPushEnabledKey, value);
+    debugPrint(
+      '[Lattice] APNs push notifications ${value ? "enabled" : "disabled"}',
+    );
+    notifyListeners();
+  }
+
   // ── Voice & video ─────────────────────────────────────────────
 
   static const _autoMuteOnJoinKey = 'auto_mute_on_join';
