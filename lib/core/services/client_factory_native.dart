@@ -1,21 +1,19 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_vodozemac/flutter_vodozemac.dart' as vod;
 import 'package:kohera/core/services/client_factory_shared.dart';
+import 'package:kohera/features/notifications/services/apns_push_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart' as sqflite_native;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
-const _apnsChannel = MethodChannel('kohera/apns');
-
 Future<String> _getIosDatabasePath(String clientName) async {
   try {
     final appGroupPath =
-        await _apnsChannel.invokeMethod<String>('getAppGroupPath');
+        await apnsMethodChannel.invokeMethod<String>('getAppGroupPath');
     if (appGroupPath != null) {
       final sharedPath = p.join(appGroupPath, 'kohera_$clientName.db');
       debugPrint('[Kohera] iOS database path: $sharedPath');

@@ -28,8 +28,12 @@ class NotificationService: UNNotificationServiceExtension {
         content.threadIdentifier = roomId
         content.categoryIdentifier = "MESSAGE"
 
-        Task {
-            await processNotification(content: content, eventId: eventId, roomId: roomId)
+        let clientName = resolveClientName(userInfo: request.content.userInfo)
+
+        Task { @MainActor in
+            await self.processNotification(
+                content: content, eventId: eventId, roomId: roomId, clientName: clientName
+            )
             contentHandler(content)
         }
     }
@@ -40,17 +44,32 @@ class NotificationService: UNNotificationServiceExtension {
         }
     }
 
+    // ── Client resolution ────────────────────────────────────────
+
+    private func resolveClientName(userInfo: [AnyHashable: Any]) -> String {
+        if let notification = userInfo["notification"] as? [String: Any],
+           let userId = notification["user_id"] as? String,
+           !userId.isEmpty {
+            let safe = userId
+                .replacingOccurrences(of: "@", with: "")
+                .replacingOccurrences(of: ":", with: "_")
+            return safe
+        }
+        return "default"
+    }
+
     // ── Processing ───────────────────────────────────────────────
 
     private func processNotification(
         content: UNMutableNotificationContent,
         eventId: String,
-        roomId: String
+        roomId: String,
+        clientName: String
     ) async {
-        guard let accessToken = SharedKeychainReader.read(key: "kohera_default_access_token"),
-              let homeserver = SharedKeychainReader.read(key: "kohera_default_homeserver"),
-              let userId = SharedKeychainReader.read(key: "kohera_default_user_id") else {
-            NSLog("[KoheraNSE] Missing credentials in shared keychain")
+        guard let accessToken = SharedKeychainReader.read(key: "kohera_\(clientName)_access_token"),
+              let homeserver = SharedKeychainReader.read(key: "kohera_\(clientName)_homeserver"),
+              let userId = SharedKeychainReader.read(key: "kohera_\(clientName)_user_id") else {
+            NSLog("[KoheraNSE] Missing credentials in shared keychain for client %@", clientName)
             return
         }
 
@@ -68,7 +87,10 @@ class NotificationService: UNNotificationServiceExtension {
         let eventType = event["type"] as? String ?? ""
 
         if eventType == "m.room.encrypted" {
-            decryptAndUpdate(content: content, event: event, userId: userId, senderName: senderName)
+            decryptAndUpdate(
+                content: content, event: event, userId: userId,
+                clientName: clientName, senderName: senderName
+            )
         } else {
             let msgContent = event["content"] as? [String: Any]
             let body = msgContent?["body"] as? String ?? "New message"
@@ -80,6 +102,7 @@ class NotificationService: UNNotificationServiceExtension {
         content: UNMutableNotificationContent,
         event: [String: Any],
         userId: String,
+        clientName: String,
         senderName: String?
     ) {
         guard let encContent = event["content"] as? [String: Any],
@@ -92,7 +115,8 @@ class NotificationService: UNNotificationServiceExtension {
         if let body = MegolmDecryptor.decrypt(
             sessionId: sessionId,
             ciphertext: ciphertext,
-            userId: userId
+            userId: userId,
+            clientName: clientName
         ) {
             updateContent(content: content, senderName: senderName, body: body)
         } else {
@@ -109,10 +133,6 @@ class NotificationService: UNNotificationServiceExtension {
     }
 
     private func extractSenderName(from event: [String: Any]) -> String? {
-        if let unsigned = event["unsigned"] as? [String: Any],
-           let displayName = unsigned["displayname"] as? String {
-            return displayName
-        }
         if let sender = event["sender"] as? String {
             let withoutSigil = sender.dropFirst()
             let localpart = withoutSigil.prefix(while: { $0 != ":" })

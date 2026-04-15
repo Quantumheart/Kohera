@@ -11,6 +11,8 @@ import 'package:kohera/features/notifications/models/notification_constants.dart
 import 'package:kohera/features/notifications/services/notification_service.dart';
 import 'package:matrix/matrix.dart';
 
+const apnsMethodChannel = MethodChannel('kohera/apns');
+
 class ApnsPushService {
   ApnsPushService({
     required this.matrixService,
@@ -28,7 +30,7 @@ class ApnsPushService {
   bool _initialized = false;
   bool _disposed = false;
 
-  static const _channel = MethodChannel('kohera/apns');
+  static const MethodChannel _channel = apnsMethodChannel;
   static const String _appId = NotificationChannel.appId;
 
   // ── Initialization ───────────────────────────────────────────
