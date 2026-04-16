@@ -94,4 +94,45 @@ void main() {
     expect(result, isNull);
     verifyNever(mockClient.postRoomKeysVersion(any, any));
   });
+
+  group('hasVersion', () {
+    test('returns true when server responds with a version', () async {
+      when(mockKeyManager.getRoomKeysBackupInfo(any))
+          .thenAnswer((_) async => fakeInfo());
+
+      expect(await manager.hasVersion(), isTrue);
+    });
+
+    test('returns false on M_NOT_FOUND', () async {
+      when(mockKeyManager.getRoomKeysBackupInfo(any)).thenThrow(
+        MatrixException.fromJson({
+          'errcode': 'M_NOT_FOUND',
+          'error': 'Unknown backup version',
+        }),
+      );
+
+      expect(await manager.hasVersion(), isFalse);
+    });
+
+    test('returns false when encryption is unavailable', () async {
+      when(mockClient.encryption).thenReturn(null);
+
+      expect(await manager.hasVersion(), isFalse);
+    });
+
+    test('does not attempt to recreate the version', () async {
+      when(mockKeyManager.getRoomKeysBackupInfo(any)).thenThrow(
+        MatrixException.fromJson({
+          'errcode': 'M_NOT_FOUND',
+          'error': 'Unknown backup version',
+        }),
+      );
+      when(mockSsss.getCached(EventTypes.MegolmBackup))
+          .thenAnswer((_) async => 'cached-secret');
+
+      await manager.hasVersion();
+
+      verifyNever(mockClient.postRoomKeysVersion(any, any));
+    });
+  });
 }

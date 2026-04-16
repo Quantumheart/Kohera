@@ -34,11 +34,14 @@ class ChatBackupService extends ChangeNotifier {
 
   Future<void> checkChatBackupStatus() async {
     try {
-      await _backupVersion.ensureExists();
+      final hasBackupVersion = await _backupVersion.hasVersion();
       final state = await _client.getCryptoIdentityState();
-      debugPrint('[Kohera] Backup status: initialized=${state.initialized}, '
-          'connected=${state.connected}');
-      _chatBackupNeeded = !state.initialized || !state.connected;
+      debugPrint(
+        '[Kohera] Backup status: initialized=${state.initialized}, '
+        'connected=${state.connected}, hasBackupVersion=$hasBackupVersion',
+      );
+      _chatBackupNeeded =
+          !state.initialized || !state.connected || !hasBackupVersion;
       notifyListeners();
     } catch (e) {
       debugPrint('[Kohera] checkChatBackupStatus error: $e');
