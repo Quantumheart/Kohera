@@ -43,7 +43,7 @@ void main() {
       await KeyBackupSigner.signWithCrossSigning(
         mockClient,
         mockEncryption,
-        mockSsssKey,
+        ssssKey: mockSsssKey,
       );
 
       verifyNever(mockClient.putRoomKeysVersion(any, any, any));
@@ -68,7 +68,7 @@ void main() {
       await KeyBackupSigner.signWithCrossSigning(
         mockClient,
         mockEncryption,
-        mockSsssKey,
+        ssssKey: mockSsssKey,
       );
 
       verifyNever(mockClient.putRoomKeysVersion(any, any, any));

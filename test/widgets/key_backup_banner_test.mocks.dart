@@ -4,10 +4,11 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i3;
-import 'dart:ui' as _i4;
+import 'dart:ui' as _i5;
 
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart'
     as _i2;
+import 'package:matrix/encryption.dart' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
 
 // ignore_for_file: type=lint
@@ -90,6 +91,18 @@ class MockChatBackupService extends _i1.Mock implements _i2.ChatBackupService {
       ) as _i3.Future<void>);
 
   @override
+  _i3.Future<void> runKeyRecovery({_i4.OpenSSSS? ssssKey}) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #runKeyRecovery,
+          [],
+          {#ssssKey: ssssKey},
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
   _i3.Future<void> requestMissingRoomKeys() => (super.noSuchMethod(
         Invocation.method(
           #requestMissingRoomKeys,
@@ -130,7 +143,7 @@ class MockChatBackupService extends _i1.Mock implements _i2.ChatBackupService {
       ) as _i3.Future<void>);
 
   @override
-  void addListener(_i4.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i5.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #addListener,
           [listener],
@@ -139,7 +152,7 @@ class MockChatBackupService extends _i1.Mock implements _i2.ChatBackupService {
       );
 
   @override
-  void removeListener(_i4.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i5.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #removeListener,
           [listener],

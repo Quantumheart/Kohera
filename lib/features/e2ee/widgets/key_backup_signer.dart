@@ -10,10 +10,18 @@ import 'package:vodozemac/vodozemac.dart' as vod;
 class KeyBackupSigner {
   static Future<void> signWithCrossSigning(
     Client client,
-    Encryption encryption,
-    OpenSSSS ssssKey,
-  ) async {
+    Encryption encryption, {
+    OpenSSSS? ssssKey,
+  }) async {
     try {
+      final masterKeySecret = await _readMasterKeySecret(encryption, ssssKey);
+      if (masterKeySecret == null) {
+        debugPrint(
+          '[Bootstrap] No cross-signing master key available to sign backup',
+        );
+        return;
+      }
+
       final backupInfo =
           await encryption.keyManager.getRoomKeysBackupInfo(false);
       final authData = Map<String, Object?>.from(backupInfo.authData);
@@ -41,8 +49,6 @@ class KeyBackupSigner {
       final deviceSignature = encryption.olmManager.signString(canonical);
       userSigs['ed25519:${client.deviceID}'] = deviceSignature;
 
-      final masterKeySecret =
-          await ssssKey.getStored(EventTypes.CrossSigningMasterKey);
       final masterKeyBytes = base64decodeUnpadded(masterKeySecret);
       final masterSigning =
           vod.PkSigning.fromSecretKey(base64Encode(masterKeyBytes));
@@ -60,6 +66,26 @@ class KeyBackupSigner {
       debugPrint('[Bootstrap] Key backup signed with master cross-signing key');
     } catch (e) {
       debugPrint('[Bootstrap] Failed to sign key backup: $e');
+    }
+  }
+
+  static Future<String?> _readMasterKeySecret(
+    Encryption encryption,
+    OpenSSSS? ssssKey,
+  ) async {
+    if (ssssKey != null) {
+      try {
+        return await ssssKey.getStored(EventTypes.CrossSigningMasterKey);
+      } catch (e) {
+        debugPrint('[Bootstrap] ssssKey.getStored failed: $e');
+        return null;
+      }
+    }
+    try {
+      return await encryption.ssss.getCached(EventTypes.CrossSigningMasterKey);
+    } catch (e) {
+      debugPrint('[Bootstrap] ssss.getCached failed: $e');
+      return null;
     }
   }
 }

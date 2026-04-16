@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:kohera/features/e2ee/widgets/key_backup_signer.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/encryption/utils/base64_unpadded.dart';
 import 'package:matrix/matrix.dart';
@@ -81,7 +82,6 @@ class ChatBackupService extends ChangeNotifier {
     final storedKey = await getStoredRecoveryKey();
     if (storedKey != null) {
       debugPrint('[Kohera] Attempting auto-unlock with stored key');
-
       try {
         final state = await _client.getCryptoIdentityState();
         if (state.connected && await _storedKeyMatchesServer(storedKey)) {
@@ -89,7 +89,7 @@ class ChatBackupService extends ChangeNotifier {
         } else {
           await _client.restoreCryptoIdentity(storedKey);
         }
-        await _restoreRoomKeys();
+        await runKeyRecovery();
       } catch (e) {
         debugPrint('[Kohera] Failed: $e');
         await _handleStaleStoredKey();
@@ -100,6 +100,32 @@ class ChatBackupService extends ChangeNotifier {
 
     await checkChatBackupStatus();
     debugPrint('[Kohera] Complete, chatBackupNeeded=$_chatBackupNeeded');
+  }
+
+  Future<void> runKeyRecovery({OpenSSSS? ssssKey}) async {
+    final encryption = _client.encryption;
+    if (encryption == null) {
+      await checkChatBackupStatus();
+      return;
+    }
+
+    await _ensureBackupVersionExists();
+
+    await KeyBackupSigner.signWithCrossSigning(
+      _client,
+      encryption,
+      ssssKey: ssssKey,
+    );
+
+    try {
+      await encryption.keyManager.loadAllKeys();
+      debugPrint('[Kohera] Room keys restored from online backup');
+    } catch (e) {
+      debugPrint('[Kohera] Failed to load keys from backup: $e');
+    }
+
+    await requestMissingRoomKeys();
+    await checkChatBackupStatus();
   }
 
   Future<bool> _storedKeyMatchesServer(String storedKey) async {
@@ -229,17 +255,4 @@ class ChatBackupService extends ChangeNotifier {
     await _client.database.markInboundGroupSessionsAsNeedingUpload();
   }
 
-  Future<void> _restoreRoomKeys() async {
-    final encryption = _client.encryption;
-    if (encryption == null) return;
-
-    try {
-      await encryption.keyManager.loadAllKeys();
-      debugPrint('[Kohera] Room keys restored from online backup');
-    } catch (e) {
-      debugPrint('[Kohera] Failed to load keys from backup: $e');
-    }
-
-    await requestMissingRoomKeys();
-  }
 }
