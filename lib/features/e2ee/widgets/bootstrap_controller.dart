@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/e2ee/widgets/bootstrap_driver.dart';
-import 'package:kohera/features/e2ee/widgets/key_backup_signer.dart';
 import 'package:kohera/features/e2ee/widgets/recovery_key_handler.dart';
 import 'package:matrix/encryption.dart';
 
@@ -216,7 +215,6 @@ class BootstrapController extends ChangeNotifier {
         debugPrint('[Bootstrap] Post-bootstrap caching/signing failed: $e');
       }
       await client.updateUserDeviceKeys();
-      await KeyBackupSigner.signWithCrossSigning(client, encryption, ssssKey);
     } else if (encryption != null) {
       try {
         if (encryption.crossSigning.enabled &&
@@ -239,15 +237,7 @@ class BootstrapController extends ChangeNotifier {
       }
     }
 
-    try {
-      await encryption?.keyManager.loadAllKeys();
-      debugPrint('[Bootstrap] Room keys restored from online backup');
-    } catch (e) {
-      debugPrint('[Bootstrap] Failed to load keys from backup: $e');
-    }
-
-    await matrixService.chatBackup.requestMissingRoomKeys();
-    await matrixService.chatBackup.checkChatBackupStatus();
+    await matrixService.chatBackup.runKeyRecovery(ssssKey: ssssKey);
     matrixService.uia.clearCachedPassword();
 
     _phase = SetupPhase.done;

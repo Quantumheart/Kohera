@@ -354,4 +354,94 @@ void main() {
       ),).called(1);
     });
   });
+
+  group('runKeyRecovery', () {
+    test('ensures backup version before loadAllKeys', () async {
+      when(mockClient.userID).thenReturn('@user:example.com');
+
+      await service.runKeyRecovery();
+
+      verifyInOrder([
+        mockKeyManager.getRoomKeysBackupInfo(false),
+        mockKeyManager.loadAllKeys(),
+      ]);
+    });
+
+    test(
+        'skips loadAllKeys recreate path gracefully when M_NOT_FOUND and no '
+        'cached megolm secret',
+        () async {
+      when(mockClient.userID).thenReturn('@user:example.com');
+      when(mockKeyManager.getRoomKeysBackupInfo(any)).thenThrow(
+        MatrixException.fromJson({
+          'errcode': 'M_NOT_FOUND',
+          'error': 'Unknown backup version',
+        }),
+      );
+      when(mockSsss.getCached(EventTypes.MegolmBackup))
+          .thenAnswer((_) async => null);
+
+      await service.runKeyRecovery();
+
+      verifyNever(mockClient.postRoomKeysVersion(any, any));
+      verify(mockKeyManager.loadAllKeys()).called(1);
+    });
+
+    test('skips postRoomKeysVersion when server version already exists',
+        () async {
+      when(mockClient.userID).thenReturn('@user:example.com');
+
+      await service.runKeyRecovery();
+
+      verifyNever(mockClient.postRoomKeysVersion(any, any));
+      verify(mockKeyManager.loadAllKeys()).called(1);
+    });
+
+    test('loadAllKeys failure does not skip requestMissingRoomKeys',
+        () async {
+      when(mockClient.userID).thenReturn('@user:example.com');
+      when(mockKeyManager.loadAllKeys())
+          .thenThrow(Exception('network error'));
+
+      final room = MockRoom();
+      when(room.id).thenReturn('!room:example.com');
+      when(mockClient.rooms).thenReturn([room]);
+      when(mockDatabase.getEventList(room,
+              start: anyNamed('start'),
+              onlySending: anyNamed('onlySending'),
+              limit: anyNamed('limit'),),)
+          .thenAnswer((_) async => [
+                Event(
+                  type: EventTypes.Encrypted,
+                  content: {
+                    'msgtype': MessageTypes.BadEncrypted,
+                    'can_request_session': true,
+                    'session_id': 'sess',
+                    'sender_key': 'key',
+                  },
+                  senderId: '@user:example.com',
+                  eventId: r'$e',
+                  originServerTs: DateTime.now(),
+                  room: room,
+                ),
+              ],);
+
+      await service.runKeyRecovery();
+
+      verify(mockKeyManager.maybeAutoRequest(
+        '!room:example.com',
+        'sess',
+        'key',
+      ),).called(1);
+    });
+
+    test('no-ops when encryption is null', () async {
+      when(mockClient.encryption).thenReturn(null);
+
+      await service.runKeyRecovery();
+
+      verifyNever(mockClient.postRoomKeysVersion(any, any));
+      verifyNever(mockKeyManager.loadAllKeys());
+    });
+  });
 }
