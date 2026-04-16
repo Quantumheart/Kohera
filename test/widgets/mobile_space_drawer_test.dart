@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/home/widgets/mobile_space_drawer.dart';
@@ -40,16 +42,29 @@ void main() {
   });
 
   Widget buildTestWidget() {
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          name: Routes.home,
+          builder: (_, __) => Scaffold(
+            drawer: const MobileSpaceDrawer(),
+            body: Builder(
+              builder: (ctx) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => Scaffold.of(ctx).openDrawer(),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: fakeMatrix),
         ChangeNotifierProvider<SelectionService>.value(value: selection),
       ],
-      child: const MaterialApp(
-        home: Scaffold(
-          body: MobileSpaceDrawer(),
-        ),
-      ),
+      child: MaterialApp.router(routerConfig: router),
     );
   }
 
@@ -57,6 +72,7 @@ void main() {
     testWidgets('renders Home and action tiles with no spaces',
         (tester) async {
       await tester.pumpWidget(buildTestWidget());
+      await tester.tap(find.byIcon(Icons.menu));
       await tester.pumpAndSettle();
 
       expect(find.text('Home'), findsOneWidget);
@@ -66,10 +82,11 @@ void main() {
 
     testWidgets('Home tile tap clears space selection', (tester) async {
       await tester.pumpWidget(buildTestWidget());
+      await tester.tap(find.byIcon(Icons.menu));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Home'));
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(selection.selectedSpaceIds, isEmpty);
     });
