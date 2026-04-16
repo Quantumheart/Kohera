@@ -53,6 +53,7 @@ void main() {
         .thenAnswer((_) async => fakeBackupInfo());
     when(mockBackupVersion.cachedSecretMatchesServer())
         .thenAnswer((_) async => true);
+    when(mockBackupVersion.hasVersion()).thenAnswer((_) async => true);
     service = ChatBackupService(
       client: mockClient,
       storage: mockStorage,
@@ -94,6 +95,21 @@ void main() {
 
       expect(service.chatBackupNeeded, isTrue);
       expect(changeCount, greaterThan(0));
+    });
+
+    test(
+        'sets chatBackupNeeded true when identity is initialized+connected '
+        'but server has no backup version',
+        () async {
+      when(mockCrossSigning.enabled).thenReturn(true);
+      when(mockKeyManager.enabled).thenReturn(true);
+      when(mockCrossSigning.isCached()).thenAnswer((_) async => true);
+      when(mockKeyManager.isCached()).thenAnswer((_) async => true);
+      when(mockBackupVersion.hasVersion()).thenAnswer((_) async => false);
+
+      await service.checkChatBackupStatus();
+
+      expect(service.chatBackupNeeded, isTrue);
     });
   });
 

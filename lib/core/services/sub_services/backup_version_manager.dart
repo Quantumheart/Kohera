@@ -8,6 +8,22 @@ class BackupVersionManager {
 
   final Client _client;
 
+  Future<bool> hasVersion() async {
+    final encryption = _client.encryption;
+    if (encryption == null) return false;
+    try {
+      await encryption.keyManager.getRoomKeysBackupInfo(false);
+      return true;
+    } on MatrixException catch (e) {
+      if (e.errcode == 'M_NOT_FOUND') return false;
+      debugPrint('[Kohera] hasVersion MatrixException: $e');
+      return false;
+    } catch (e) {
+      debugPrint('[Kohera] hasVersion error: $e');
+      return false;
+    }
+  }
+
   Future<GetRoomKeysVersionCurrentResponse?> ensureExists() async {
     final encryption = _client.encryption;
     if (encryption == null) return null;
