@@ -43,21 +43,6 @@ class _InboxScreenState extends State<InboxScreen> {
     super.dispose();
   }
 
-  List<NotificationGroup> _filterBySelection(
-    List<NotificationGroup> groups,
-    SelectionService selection,
-  ) {
-    final selected = selection.selectedSpaceIds;
-    if (selected.isEmpty) return groups;
-    final allowed = <String>{};
-    for (final id in selected) {
-      for (final room in selection.roomsForSpace(id)) {
-        allowed.add(room.id);
-      }
-    }
-    return groups.where((g) => allowed.contains(g.roomId)).toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<InboxController>();
@@ -66,7 +51,6 @@ class _InboxScreenState extends State<InboxScreen> {
         selection.invitedRooms.length + selection.invitedSpaces.length;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final visibleGroups = _filterBySelection(controller.grouped, selection);
     final isNarrow =
         MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
 
@@ -144,7 +128,7 @@ class _InboxScreenState extends State<InboxScreen> {
                               ],
                             ),
                           )
-                        : visibleGroups.isEmpty
+                        : controller.grouped.isEmpty
                             ? Center(
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
@@ -169,17 +153,17 @@ class _InboxScreenState extends State<InboxScreen> {
                                 child: ListView.builder(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 4,),
-                                  itemCount: visibleGroups.length +
+                                  itemCount: controller.grouped.length +
                                       (controller.hasMore ? 1 : 0),
                                   itemBuilder: (context, i) {
-                                    if (i == visibleGroups.length) {
+                                    if (i == controller.grouped.length) {
                                       return _LoadMoreButton(
                                         isLoading: controller.isLoading,
                                         onPressed: controller.loadMore,
                                       );
                                     }
                                     return _NotificationGroupTile(
-                                      group: visibleGroups[i],
+                                      group: controller.grouped[i],
                                       controller: controller,
                                     );
                                   },
