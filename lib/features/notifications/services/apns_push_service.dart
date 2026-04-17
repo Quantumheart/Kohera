@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:kohera/core/services/app_config.dart';
-import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
@@ -18,13 +17,11 @@ class ApnsPushService {
     required this.matrixService,
     required this.preferencesService,
     required this.notificationService,
-    required this.callService,
   });
 
   final MatrixService matrixService;
   final PreferencesService preferencesService;
   final NotificationService notificationService;
-  final CallService callService;
 
   String? _currentToken;
   bool _initialized = false;
@@ -161,55 +158,10 @@ class ApnsPushService {
     if (_disposed) return;
 
     try {
-      final notification =
-          payload['notification'] as Map<String, dynamic>?;
-      if (notification == null) return;
-
-      final eventId = notification['event_id'] as String?;
-      final roomId = notification['room_id'] as String?;
-      if (roomId == null) return;
-
-      final client = matrixService.client;
-      final room = client.getRoomById(roomId);
-
-      if (eventId == null) return;
-
-      MatrixEvent matrixEvent;
-      try {
-        matrixEvent = await client.getOneRoomEvent(roomId, eventId);
-      } catch (e) {
-        debugPrint('[Kohera] Failed to fetch push event: $e');
-        return;
-      }
-
-      if (matrixEvent.type == 'm.call.invite' ||
-          matrixEvent.type == 'm.call.member') {
-        _handleCallEvent(roomId, matrixEvent, room);
-      }
-
-      await client.oneShotSync();
+      await matrixService.client.oneShotSync();
     } catch (e) {
       debugPrint('[Kohera] APNs push message processing error: $e');
     }
-  }
-
-  void _handleCallEvent(String roomId, MatrixEvent event, Room? room) {
-    final content = event.content;
-    final callId = content['call_id'] as String?;
-    final callerName = room?.getLocalizedDisplayname() ?? roomId;
-    final isVideo =
-        (content['offer'] as Map?)
-            ?['sdp']
-            ?.toString()
-            .contains('m=video') ??
-        false;
-
-    callService.handlePushCallInvite(
-      roomId: roomId,
-      callId: callId,
-      callerName: callerName,
-      isVideo: isVideo,
-    );
   }
 
   // ── Notification actions ─────────────────────────────────────

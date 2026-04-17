@@ -81,7 +81,6 @@ class _NotificationLifecycleObserverState
       matrixService: widget.matrixService,
       preferencesService: widget.preferencesService,
       notificationService: notificationService,
-      callService: widget.callService,
     );
     await apnsPushService.init();
 
