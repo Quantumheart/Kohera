@@ -179,7 +179,6 @@ class IosVoipPushService {
           lang: NotificationChannel.defaultLang,
           data: PusherData(
             url: Uri.parse(gatewayUrl),
-            format: 'event_id_only',
           ),
           profileTag: client.deviceID,
         ),
@@ -212,14 +211,18 @@ class IosVoipPushService {
 
     try {
       final timeline = await room.getTimeline(limit: 20);
-      for (final event in timeline.events) {
-        if (event.type == kCallHangup &&
-            event.content['call_id'] == callId) {
-          if (callService.callState == KoheraCallState.ringingIncoming) {
-            callService.endCallFromPushKit();
+      try {
+        for (final event in timeline.events) {
+          if (event.type == kCallHangup &&
+              event.content['call_id'] == callId) {
+            if (callService.callState == KoheraCallState.ringingIncoming) {
+              callService.endCallFromPushKit();
+            }
+            return;
           }
-          return;
         }
+      } finally {
+        timeline.cancelSubscriptions();
       }
     } catch (e) {
       debugPrint('[Kohera] VoIP hangup scan failed: $e');
