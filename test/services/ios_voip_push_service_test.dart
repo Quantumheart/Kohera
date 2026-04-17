@@ -138,7 +138,7 @@ void main() {
       expect(pusher.appDisplayName, NotificationChannel.appName);
       expect(pusher.kind, 'http');
       expect(pusher.lang, 'en');
-      expect(pusher.data.format, 'event_id_only');
+      expect(pusher.data.format, isNull);
       expect(pusher.data.url.toString(), gatewayUrl);
       expect(pusher.profileTag, 'DEV1');
       expect(append, isTrue);
