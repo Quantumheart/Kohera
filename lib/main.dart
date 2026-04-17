@@ -42,6 +42,7 @@ class _KoheraAppState extends State<KoheraApp> {
   ClientManager? _clientManager;
   PreferencesService? _preferencesService;
   GoRouter? _router;
+  Object? _initError;
   final _ringtoneService = RingtoneService();
 
   @override
@@ -51,28 +52,34 @@ class _KoheraAppState extends State<KoheraApp> {
   }
 
   Future<void> _init() async {
-    MediaKit.ensureInitialized();
+    try {
+      MediaKit.ensureInitialized();
 
-    final prefs = PreferencesService();
-    await Future.wait([initVodozemac(), AppConfig.load(), prefs.init()]);
+      final prefs = PreferencesService();
+      await Future.wait([initVodozemac(), AppConfig.load(), prefs.init()]);
 
-    final clientManager = ClientManager();
-    await clientManager.init();
+      final clientManager = ClientManager();
+      await clientManager.init();
 
-    final pendingSso = await checkPendingSsoLogin();
-    if (pendingSso != null) {
-      await clientManager.activeService.completeSsoLogin(
-        homeserver: pendingSso.homeserver,
-        loginToken: pendingSso.loginToken,
-      );
+      final pendingSso = await checkPendingSsoLogin();
+      if (pendingSso != null) {
+        await clientManager.activeService.completeSsoLogin(
+          homeserver: pendingSso.homeserver,
+          loginToken: pendingSso.loginToken,
+        );
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _clientManager = clientManager;
+        _preferencesService = prefs;
+        _router = buildRouter(clientManager);
+      });
+    } catch (e) {
+      debugPrint('[Kohera] Initialization failed: $e');
+      if (!mounted) return;
+      setState(() => _initError = e);
     }
-
-    if (!mounted) return;
-    setState(() {
-      _clientManager = clientManager;
-      _preferencesService = prefs;
-      _router = buildRouter(clientManager);
-    });
   }
 
   @override
@@ -90,9 +97,30 @@ class _KoheraAppState extends State<KoheraApp> {
         debugShowCheckedModeBanner: false,
         theme: ThemeData.light(),
         darkTheme: ThemeData.dark(),
-        home: const Scaffold(
+        home: Scaffold(
           body: Center(
-            child: CircularProgressIndicator.adaptive(),
+            child: _initError != null
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Failed to start Kohera',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      FilledButton.tonalIcon(
+                        onPressed: () {
+                          setState(() => _initError = null);
+                          unawaited(_init());
+                        },
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Retry'),
+                      ),
+                    ],
+                  )
+                : const CircularProgressIndicator.adaptive(),
           ),
         ),
       );
