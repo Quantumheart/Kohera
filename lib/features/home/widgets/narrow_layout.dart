@@ -67,17 +67,19 @@ class _NarrowLayoutState extends State<NarrowLayout> {
       return widget.routerChild;
     }
 
+    MobileTab currentTab;
     if (!_initialTabApplied && name == Routes.home) {
       _initialTabApplied = true;
       final remembered = context.read<PreferencesService>().lastMobileTab;
+      currentTab = remembered;
       if (remembered != MobileTab.chats) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) context.goNamed(_routeForTab(remembered));
         });
       }
+    } else {
+      currentTab = _tabForRoute(name);
     }
-
-    final currentTab = _tabForRoute(name);
     final unread = context.select<InboxController, int>((c) => c.unreadCount);
 
     return Column(
