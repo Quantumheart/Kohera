@@ -133,6 +133,18 @@ class NativeCallUiService {
     unawaited(FlutterCallkitIncoming.setCallConnected(_nativeCallId!));
   }
 
+  void dismissCallKitSilently() {
+    if (!_isMobile || _nativeCallId == null) return;
+    final id = _nativeCallId!;
+    _nativeCallId = null;
+    _endingFromFlutter = true;
+    unawaited(FlutterCallkitIncoming.endCall(id));
+  }
+
+  void resetEndingGuard() {
+    _endingFromFlutter = false;
+  }
+
   void endNativeCall() {
     if (!_isMobile || _nativeCallId == null) return;
     _endingFromFlutter = true;

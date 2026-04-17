@@ -154,15 +154,26 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
     switch (next) {
       case KoheraCallState.connected:
-        _nativeUi.updateNativeCallConnected();
+        if (_currentCallFromPushKit) {
+          _nativeUi.dismissCallKitSilently();
+        } else {
+          _nativeUi.updateNativeCallConnected();
+        }
       case KoheraCallState.idle:
       case KoheraCallState.disconnecting:
       case KoheraCallState.failed:
+        _nativeUi.resetEndingGuard();
         _nativeUi.endNativeCall();
       default:
         break;
     }
   }
+
+  bool _voipPushHandlesCallKit = false;
+  void setVoipPushHandlesCallKit(bool value) =>
+      _voipPushHandlesCallKit = value;
+
+  bool _currentCallFromPushKit = false;
 
   String? _activeCallRoomId;
   String? get activeCallRoomId => _activeCallRoomId;
@@ -254,6 +265,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     _ringing.stopRinging();
     _ringing.disposeRingtone();
     _activeCallId = null;
+    _currentCallFromPushKit = false;
     _callStartTime = null;
     _hadRemoteParticipant = false;
     unawaited(_signalingEventSub?.cancel());
@@ -588,6 +600,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
     _activeCallId = callId;
+    _currentCallFromPushKit = callKitAlreadyShown;
     final info = model.IncomingCallInfo(
       roomId: roomId,
       callId: callId,
@@ -664,15 +677,18 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
     _activeCallId = event.callId;
+    _currentCallFromPushKit = _voipPushHandlesCallKit;
     _ringing.pushIncomingCall(event.info);
     _setCallState(KoheraCallState.ringingIncoming);
-    _nativeUi.showNativeIncomingCall(
-      callId: event.info.callId,
-      roomId: event.info.roomId,
-      callerName: event.info.callerName,
-      callerAvatarUrl: event.info.callerAvatarUrl,
-      isVideo: event.info.isVideo,
-    );
+    if (!_voipPushHandlesCallKit) {
+      _nativeUi.showNativeIncomingCall(
+        callId: event.info.callId,
+        roomId: event.info.roomId,
+        callerName: event.info.callerName,
+        callerAvatarUrl: event.info.callerAvatarUrl,
+        isVideo: event.info.isVideo,
+      );
+    }
     if (kIsWeb || isNativeDesktop) {
       _ringing.playRingtone();
     }

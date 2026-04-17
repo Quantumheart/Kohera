@@ -293,6 +293,14 @@ class FakeNativeCallUiService extends Fake implements NativeCallUiService {
   }
 
   @override
+  void dismissCallKitSilently() {
+    endNativeCalls++;
+  }
+
+  @override
+  void resetEndingGuard() {}
+
+  @override
   void dispose() {
     unawaited(_actions.close());
     unawaited(_nativeAccepted.close());
