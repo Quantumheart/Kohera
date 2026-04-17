@@ -130,6 +130,17 @@ void main() {
   }
 
   group('HomeserverScreen', () {
+    testWidgets('shows loader during fade-in then removes it', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pump();
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    });
+
     testWidgets('shows subtitle and Continue button', (tester) async {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();

@@ -44,6 +44,7 @@ class _HomeserverScreenState extends State<HomeserverScreen>
       duration: const Duration(milliseconds: 800),
     );
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
+    _fadeCtrl.addStatusListener(_onFadeStatus);
     unawaited(_fadeCtrl.forward());
 
     _controller = HomeserverController(
@@ -56,9 +57,14 @@ class _HomeserverScreenState extends State<HomeserverScreen>
   void dispose() {
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
+    _fadeCtrl.removeStatusListener(_onFadeStatus);
     _fadeCtrl.dispose();
     _homeserverCtrl.dispose();
     super.dispose();
+  }
+
+  void _onFadeStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed && mounted) setState(() {});
   }
 
   void _onControllerChanged() {
@@ -109,10 +115,11 @@ class _HomeserverScreenState extends State<HomeserverScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          FadeTransition(
-            opacity: ReverseAnimation(_fadeAnim),
-            child: const Center(child: CircularProgressIndicator()),
-          ),
+          if (!_fadeCtrl.isCompleted)
+            FadeTransition(
+              opacity: ReverseAnimation(_fadeAnim),
+              child: const Center(child: CircularProgressIndicator()),
+            ),
           Center(
             child: FadeTransition(
               opacity: _fadeAnim,
