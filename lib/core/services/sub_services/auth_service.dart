@@ -138,7 +138,8 @@ class AuthService extends ChangeNotifier {
 
     if (_client.accessToken == null || _client.userID == null) {
       throw StateError('Client was not initialized after register(). '
-          'accessToken=${_client.accessToken}, userID=${_client.userID}');
+          'accessToken=${_client.accessToken != null ? '***' : 'null'}, '
+          'userID=${_client.userID}');
     }
 
     isLoggedIn = true;
