@@ -12,6 +12,7 @@ abstract class Routes {
   static const settingsNotifications = 'settings-notifications';
   static const settingsDevices = 'settings-devices';
   static const settingsVoiceVideo = 'settings-voice-video';
+  static const settingsAdmin = 'settings-admin';
   static const inbox = 'inbox';
   static const spaceDetails = 'space-details';
   static const call = 'call';
