@@ -21,6 +21,7 @@ import 'package:kohera/features/settings/screens/appearance_screen.dart';
 import 'package:kohera/features/settings/screens/devices_screen.dart';
 import 'package:kohera/features/settings/screens/notification_settings_screen.dart';
 import 'package:kohera/features/settings/screens/settings_screen.dart';
+import 'package:kohera/features/settings/screens/share_invite_screen.dart';
 import 'package:kohera/features/settings/screens/voice_video_settings_screen.dart';
 import 'package:kohera/features/spaces/widgets/space_details_panel.dart';
 import 'package:provider/provider.dart';
@@ -277,6 +278,12 @@ GoRouter buildRouter(ClientManager manager) {
                     name: Routes.settingsVoiceVideo,
                     builder: (context, state) =>
                         const VoiceVideoSettingsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'share-invite',
+                    name: Routes.settingsShareInvite,
+                    builder: (context, state) =>
+                        const ShareInviteScreen(),
                   ),
                 ],
               ),

@@ -442,6 +442,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 16),
 
+          // ── Invites ──
+          const SectionHeader(label: 'INVITES'),
+          Card(
+            child: Column(
+              children: [
+                _SettingsTile(
+                  icon: Icons.qr_code_2_rounded,
+                  title: 'Share an invite',
+                  subtitle:
+                      'Turn a registration token into a link or QR code',
+                  onTap: () => context.pushOrGo(Routes.settingsShareInvite),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
           // ── About ──
           const SectionHeader(label: 'ABOUT'),
           Card(

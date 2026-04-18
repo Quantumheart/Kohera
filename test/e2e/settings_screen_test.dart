@@ -233,7 +233,12 @@ void main() {
         (tester) async {
       await tester.pumpWidget(buildSettingsApp());
       await tester.pumpAndSettle();
-      await scrollToBottom(tester);
+
+      await tester.dragUntilVisible(
+        find.text('SECURITY'),
+        find.byType(ListView),
+        const Offset(0, -200),
+      );
 
       expect(find.text('SECURITY'), findsOneWidget);
       expect(find.text('Devices'), findsOneWidget);
