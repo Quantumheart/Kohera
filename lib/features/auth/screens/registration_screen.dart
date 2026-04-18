@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/services/app_config.dart';
+import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/auth/widgets/app_logo_header.dart';
 import 'package:kohera/features/auth/widgets/registration_controller.dart';
@@ -10,12 +11,17 @@ import 'package:kohera/features/auth/widgets/registration_views.dart';
 import 'package:provider/provider.dart';
 
 class RegistrationScreen extends StatefulWidget {
-  RegistrationScreen({super.key, String? initialHomeserver, this.initialToken})
-      : initialHomeserver =
+  RegistrationScreen({
+    super.key,
+    String? initialHomeserver,
+    this.initialToken,
+    this.isAddAccount = false,
+  }) : initialHomeserver =
             initialHomeserver ?? AppConfig.instance.defaultHomeserver;
 
   final String initialHomeserver;
   final String? initialToken;
+  final bool isAddAccount;
 
   @override
   State<RegistrationScreen> createState() => _RegistrationScreenState();
@@ -83,8 +89,9 @@ class _RegistrationScreenState extends State<RegistrationScreen>
   void _onControllerChanged() {
     if (!mounted) return;
     if (_controller.state == RegistrationState.done) {
-      // Registration complete — the router's redirect will send us
-      // to '/' once MatrixService.isLoggedIn becomes true.
+      if (widget.isAddAccount) {
+        context.read<ClientManager>().commitPendingService();
+      }
       context.go('/');
       return;
     }
@@ -314,7 +321,13 @@ class _RegistrationScreenState extends State<RegistrationScreen>
                   ),
                   const SizedBox(height: 16),
                   TextButton(
-                    onPressed: () => context.pop(),
+                    onPressed: () {
+                      if (widget.isAddAccount) {
+                        context.go('/add-account');
+                      } else {
+                        context.pop();
+                      }
+                    },
                     child: Text(
                       'Already have an account? Sign in',
                       style: TextStyle(color: cs.primary),

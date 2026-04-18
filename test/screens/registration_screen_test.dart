@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -13,6 +14,7 @@ import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
 import '../services/matrix_service_test.mocks.dart';
+import '../widgets/login_controller_test.mocks.dart' as login_mocks;
 
 class _FixedServiceFactory extends MatrixServiceFactory {
   _FixedServiceFactory(this._service);
@@ -439,6 +441,52 @@ void main() {
         find.widgetWithText(TextField, 'Registration token'),
       );
       expect(field.controller?.text, 'overwrite');
+    });
+
+    // ── isAddAccount ──────────────────────────────────────────
+
+    testWidgets('Sign in link goes to /add-account when isAddAccount=true',
+        (tester) async {
+      final mockManager = login_mocks.MockClientManager();
+      stubServerSupportsRegistration();
+
+      final router = GoRouter(
+        initialLocation: '/register',
+        routes: [
+          GoRoute(
+            path: '/add-account',
+            builder: (_, __) =>
+                const Scaffold(body: Center(child: Text('add-account'))),
+          ),
+          GoRoute(
+            path: '/register',
+            builder: (_, __) => RegistrationScreen(
+              initialHomeserver: 'matrix.org',
+              isAddAccount: true,
+            ),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(MultiProvider(
+        providers: [
+          ChangeNotifierProvider<MatrixService>.value(value: matrixService),
+          ChangeNotifierProvider(
+              create: (ctx) =>
+                  CallService(client: ctx.read<MatrixService>().client),),
+          ChangeNotifierProvider<ClientManager>.value(value: mockManager),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),);
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.text('Already have an account? Sign in'),
+      );
+      await tester.tap(find.text('Already have an account? Sign in'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('add-account'), findsOneWidget);
     });
   });
 }

@@ -14,7 +14,9 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/theme/kohera_theme.dart';
 import 'package:kohera/core/theme/theme_presets.dart';
 import 'package:kohera/core/utils/vodozemac_init.dart';
+import 'package:kohera/features/auth/services/deep_link_service.dart';
 import 'package:kohera/features/auth/services/sso_web_init.dart';
+import 'package:kohera/features/auth/widgets/deep_link_listener.dart';
 import 'package:kohera/features/calling/services/push_to_talk_service.dart';
 import 'package:kohera/features/calling/services/ringtone_service.dart';
 import 'package:kohera/features/calling/widgets/incoming_call_overlay.dart';
@@ -42,6 +44,7 @@ class _KoheraAppState extends State<KoheraApp> {
   ClientManager? _clientManager;
   PreferencesService? _preferencesService;
   GoRouter? _router;
+  DeepLinkService? _deepLinkService;
   Object? _initError;
   final _ringtoneService = RingtoneService();
 
@@ -74,6 +77,7 @@ class _KoheraAppState extends State<KoheraApp> {
         _clientManager = clientManager;
         _preferencesService = prefs;
         _router = buildRouter(clientManager);
+        _deepLinkService = DeepLinkService();
       });
     } catch (e) {
       debugPrint('[Kohera] Initialization failed: $e');
@@ -133,6 +137,9 @@ class _KoheraAppState extends State<KoheraApp> {
         ),
         ChangeNotifierProvider<PreferencesService>.value(
           value: _preferencesService!,
+        ),
+        ChangeNotifierProvider<DeepLinkService>.value(
+          value: _deepLinkService!,
         ),
         ChangeNotifierProvider(create: (_) => MediaPlaybackService()),
         Provider(
@@ -250,12 +257,15 @@ class _KoheraAppState extends State<KoheraApp> {
                           darkTheme: darkTheme,
                           themeMode: themeMode,
                           routerConfig: router,
-                          builder: (context, child) =>
-                              VerificationRequestListener(
+                          builder: (context, child) => DeepLinkListener(
+                            service: context.read<DeepLinkService>(),
                             router: router,
-                            child: IncomingCallOverlay(
+                            child: VerificationRequestListener(
                               router: router,
-                              child: child ?? const SizedBox.shrink(),
+                              child: IncomingCallOverlay(
+                                router: router,
+                                child: child ?? const SizedBox.shrink(),
+                              ),
                             ),
                           ),
                         ),

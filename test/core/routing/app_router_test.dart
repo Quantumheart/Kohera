@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/call_service.dart';
+import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/auth/screens/registration_screen.dart';
@@ -14,6 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../services/matrix_service_test.mocks.dart';
+import '../../widgets/login_controller_test.mocks.dart' as login_mocks;
 
 void main() {
   late MockClient mockClient;
@@ -272,6 +274,90 @@ void main() {
         find.widgetWithText(TextField, 'Registration token'),
       );
       expect(tokenField.controller?.text, 't2');
+    });
+  });
+
+  group('/add-account/register query params', () {
+    testWidgets('server + token pre-fill with pendingService wrap',
+        (tester) async {
+      final mockManager = login_mocks.MockClientManager();
+      when(mockManager.pendingService).thenReturn(matrixService);
+
+      when(mockClient.getLoginFlows()).thenAnswer((_) async => [
+            LoginFlow(type: AuthenticationTypes.password),
+          ],);
+      when(mockClient.request(
+        RequestType.POST,
+        '/client/v3/register',
+        data: anyNamed('data'),
+      ),).thenThrow(MatrixException.fromJson({
+        'errcode': 'M_FORBIDDEN',
+        'error': 'UIA required',
+        'flows': [
+          {'stages': ['m.login.registration_token', 'm.login.dummy']},
+        ],
+        'params': <String, dynamic>{},
+        'session': 'test-session',
+      }),);
+
+      final router = GoRouter(
+        initialLocation:
+            '/add-account/register?server=addacct.example&token=tok9',
+        routes: [
+          GoRoute(
+            path: '/add-account/register',
+            builder: (context, state) {
+              final manager = context.read<ClientManager>();
+              final queryServer =
+                  state.uri.queryParameters['server']?.trim();
+              final queryToken =
+                  state.uri.queryParameters['token']?.trim();
+              final homeserver = (state.extra as String?) ??
+                  (queryServer != null && queryServer.isNotEmpty
+                      ? queryServer
+                      : null) ??
+                  context.read<PreferencesService>().defaultHomeserver ??
+                  AppConfig.instance.defaultHomeserver;
+              final token = queryToken != null && queryToken.isNotEmpty
+                  ? queryToken
+                  : null;
+              return ChangeNotifierProvider<MatrixService>.value(
+                value: manager.pendingService!,
+                child: RegistrationScreen(
+                  key: ValueKey(
+                      'add-account-register|$homeserver|$token',),
+                  initialHomeserver: homeserver,
+                  initialToken: token,
+                  isAddAccount: true,
+                ),
+              );
+            },
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(MultiProvider(
+        providers: [
+          ChangeNotifierProvider<ClientManager>.value(value: mockManager),
+          ChangeNotifierProvider<PreferencesService>.value(value: prefs),
+          ChangeNotifierProvider(
+            create: (ctx) =>
+                CallService(client: ctx.read<MatrixService>().client),
+          ),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),);
+      await tester.pumpAndSettle();
+
+      final hsField = tester.widget<TextField>(
+        find.widgetWithText(TextField, 'Homeserver'),
+      );
+      expect(hsField.controller?.text, 'addacct.example');
+
+      final tokenField = tester.widget<TextField>(
+        find.widgetWithText(TextField, 'Registration token'),
+      );
+      expect(tokenField.controller?.text, 'tok9');
     });
   });
 }

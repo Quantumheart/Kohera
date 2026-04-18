@@ -140,6 +140,37 @@ GoRouter buildRouter(ClientManager manager) {
               );
             },
           ),
+          GoRoute(
+            path: 'register',
+            name: Routes.addAccountRegister,
+            builder: (context, state) {
+              final manager = context.read<ClientManager>();
+              final queryServer =
+                  state.uri.queryParameters['server']?.trim();
+              final queryToken = state.uri.queryParameters['token']?.trim();
+              final homeserver = (state.extra as String?) ??
+                  (queryServer != null && queryServer.isNotEmpty
+                      ? queryServer
+                      : null) ??
+                  context.read<PreferencesService>().defaultHomeserver ??
+                  AppConfig.instance.defaultHomeserver;
+              final token = queryToken != null && queryToken.isNotEmpty
+                  ? queryToken
+                  : null;
+              return _AddAccountGuard(
+                manager: manager,
+                child: ChangeNotifierProvider<MatrixService>.value(
+                  value: manager.pendingService!,
+                  child: RegistrationScreen(
+                    key: ValueKey('add-account-register|$homeserver|$token'),
+                    initialHomeserver: homeserver,
+                    initialToken: token,
+                    isAddAccount: true,
+                  ),
+                ),
+              );
+            },
+          ),
         ],
       ),
 

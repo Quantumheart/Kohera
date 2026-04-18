@@ -8,4 +8,4 @@ Terminal=false
 Type=Application
 Categories=Network;InstantMessaging;Chat;
 StartupWMClass=io.github.quantumheart.kohera
-MimeType=x-scheme-handler/matrix;
+MimeType=x-scheme-handler/matrix;x-scheme-handler/kohera;
