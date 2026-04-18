@@ -20,7 +20,7 @@ class AppLogoHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Icon(
-            Icons.hub_rounded,
+            Icons.network_node,
             size: 36,
             color: cs.onPrimaryContainer,
           ),
