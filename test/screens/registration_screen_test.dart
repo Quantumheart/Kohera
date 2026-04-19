@@ -488,5 +488,48 @@ void main() {
 
       expect(find.text('add-account'), findsOneWidget);
     });
+
+    testWidgets(
+        'Sign in link falls back to /login when stack is empty',
+        (tester) async {
+      final mockManager = login_mocks.MockClientManager();
+      stubServerSupportsRegistration();
+
+      final router = GoRouter(
+        initialLocation: '/register',
+        routes: [
+          GoRoute(
+            path: '/login',
+            builder: (_, __) =>
+                const Scaffold(body: Center(child: Text('login'))),
+          ),
+          GoRoute(
+            path: '/register',
+            builder: (_, __) =>
+                RegistrationScreen(initialHomeserver: 'matrix.org'),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(MultiProvider(
+        providers: [
+          ChangeNotifierProvider<MatrixService>.value(value: matrixService),
+          ChangeNotifierProvider(
+              create: (ctx) =>
+                  CallService(client: ctx.read<MatrixService>().client),),
+          ChangeNotifierProvider<ClientManager>.value(value: mockManager),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),);
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.text('Already have an account? Sign in'),
+      );
+      await tester.tap(find.text('Already have an account? Sign in'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('login'), findsOneWidget);
+    });
   });
 }

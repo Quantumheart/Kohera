@@ -324,8 +324,10 @@ class _RegistrationScreenState extends State<RegistrationScreen>
                     onPressed: () {
                       if (widget.isAddAccount) {
                         context.go('/add-account');
-                      } else {
+                      } else if (context.canPop()) {
                         context.pop();
+                      } else {
+                        context.go('/login');
                       }
                     },
                     child: Text(
