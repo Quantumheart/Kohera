@@ -1,138 +1,120 @@
 import 'dart:async';
 
+import 'package:app_links/app_links.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kohera/core/routing/app_router.dart';
-import 'package:kohera/core/services/app_config.dart';
-import 'package:kohera/core/services/call_service.dart';
-import 'package:kohera/core/services/client_manager.dart';
-import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
-import 'package:kohera/core/theme/kohera_theme.dart';
-import 'package:kohera/core/theme/theme_presets.dart';
-import 'package:kohera/core/utils/vodozemac_init.dart';
-import 'package:kohera/features/auth/services/sso_web_init.dart';
-import 'package:kohera/features/calling/services/push_to_talk_service.dart';
-import 'package:kohera/features/calling/services/ringtone_service.dart';
-import 'package:kohera/features/calling/widgets/incoming_call_overlay.dart';
-import 'package:kohera/features/chat/services/media_playback_service.dart';
-import 'package:kohera/features/chat/services/opengraph_service.dart';
-import 'package:kohera/features/e2ee/widgets/verification_request_listener.dart';
-import 'package:kohera/features/notifications/services/inbox_controller.dart';
-import 'package:kohera/features/notifications/widgets/notification_lifecycle_observer.dart';
+import 'package:lattice/core/routing/app_router.dart';
+import 'package:lattice/core/services/app_config.dart';
+import 'package:lattice/core/services/call_service.dart';
+import 'package:lattice/core/services/client_manager.dart';
+import 'package:lattice/core/services/matrix_service.dart';
+import 'package:lattice/core/services/preferences_service.dart';
+import 'package:lattice/core/services/sub_services/chat_backup_service.dart';
+import 'package:lattice/core/services/sub_services/selection_service.dart';
+import 'package:lattice/core/theme/lattice_theme.dart';
+import 'package:lattice/core/theme/theme_presets.dart';
+import 'package:lattice/core/utils/vodozemac_init.dart';
+import 'package:lattice/features/auth/services/sso_web_init.dart';
+import 'package:lattice/features/calling/services/push_to_talk_service.dart';
+import 'package:lattice/features/calling/services/ringtone_service.dart';
+import 'package:lattice/features/calling/widgets/incoming_call_overlay.dart';
+import 'package:lattice/features/chat/services/media_playback_service.dart';
+import 'package:lattice/features/chat/services/opengraph_service.dart';
+import 'package:lattice/features/e2ee/widgets/verification_request_listener.dart';
+import 'package:lattice/features/notifications/services/inbox_controller.dart';
+import 'package:lattice/features/notifications/widgets/notification_lifecycle_observer.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const KoheraApp());
+  MediaKit.ensureInitialized();
+  await initVodozemac();
+  await AppConfig.load();
+  final clientManager = ClientManager();
+  await clientManager.init();
+
+  final pendingSso = await checkPendingSsoLogin();
+  if (pendingSso != null) {
+    await clientManager.activeService.completeSsoLogin(
+      homeserver: pendingSso.homeserver,
+      loginToken: pendingSso.loginToken,
+    );
+  }
+
+  runApp(LatticeApp(clientManager: clientManager));
 }
 
-class KoheraApp extends StatefulWidget {
-  const KoheraApp({super.key});
+class LatticeApp extends StatefulWidget {
+  const LatticeApp({required this.clientManager, super.key});
+
+  final ClientManager clientManager;
 
   @override
-  State<KoheraApp> createState() => _KoheraAppState();
+  State<LatticeApp> createState() => _LatticeAppState();
 }
 
-class _KoheraAppState extends State<KoheraApp> {
-  ClientManager? _clientManager;
-  PreferencesService? _preferencesService;
+class _LatticeAppState extends State<LatticeApp> {
   GoRouter? _router;
-  Object? _initError;
-  final _ringtoneService = RingtoneService();
+  MatrixService? _routerMatrixService;
+  final ringtoneService = RingtoneService();
+  late final AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSub;
 
   @override
   void initState() {
     super.initState();
-    unawaited(_init());
+    _appLinks = AppLinks();
+    _appLinks.getInitialLink().then((uri) {
+      if (uri != null) _handleDeepLink(uri);
+    });
+    _linkSub = _appLinks.uriLinkStream.listen(_handleDeepLink);
   }
 
-  Future<void> _init() async {
-    try {
-      MediaKit.ensureInitialized();
+  void _handleDeepLink(Uri uri) {
+    if (uri.scheme != 'lattice' || uri.host != 'register') return;
+    final server = uri.queryParameters['server'];
+    final token = uri.queryParameters['token'];
+    if (server == null || token == null) return;
+    _router?.go('/register', extra: <String, String>{
+      'server': server,
+      'token': token,
+    });
+  }
 
-      final prefs = PreferencesService();
-      await Future.wait([initVodozemac(), AppConfig.load(), prefs.init()]);
-
-      final clientManager = ClientManager();
-      await clientManager.init();
-
-      final pendingSso = await checkPendingSsoLogin();
-      if (pendingSso != null) {
-        await clientManager.activeService.completeSsoLogin(
-          homeserver: pendingSso.homeserver,
-          loginToken: pendingSso.loginToken,
-        );
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _clientManager = clientManager;
-        _preferencesService = prefs;
-        _router = buildRouter(clientManager);
-      });
-    } catch (e) {
-      debugPrint('[Kohera] Initialization failed: $e');
-      if (!mounted) return;
-      setState(() => _initError = e);
+  /// Rebuild the router when the active [MatrixService] changes (account
+  /// switch) so that `refreshListenable` points at the right instance.
+  GoRouter _ensureRouter(MatrixService matrix) {
+    if (_routerMatrixService != matrix) {
+      _router?.dispose();
+      _router = buildRouter(matrix);
+      _routerMatrixService = matrix;
     }
+    return _router!;
   }
 
   @override
   void dispose() {
+    unawaited(_linkSub?.cancel());
     _router?.dispose();
-    unawaited(_ringtoneService.dispose());
+    unawaited(ringtoneService.dispose());
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final clientManager = _clientManager;
-    if (clientManager == null) {
-      return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData.light(),
-        darkTheme: ThemeData.dark(),
-        home: Scaffold(
-          body: Center(
-            child: _initError != null
-                ? Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Failed to start Kohera',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      FilledButton.tonalIcon(
-                        onPressed: () {
-                          setState(() => _initError = null);
-                          unawaited(_init());
-                        },
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retry'),
-                      ),
-                    ],
-                  )
-                : const CircularProgressIndicator.adaptive(),
-          ),
-        ),
-      );
-    }
-
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<ClientManager>.value(
-          value: clientManager,
+          value: widget.clientManager,
         ),
-        ChangeNotifierProvider<PreferencesService>.value(
-          value: _preferencesService!,
+        ChangeNotifierProvider(
+          create: (_) {
+            final prefs = PreferencesService();
+            unawaited(prefs.init());
+            return prefs;
+          },
         ),
         ChangeNotifierProvider(create: (_) => MediaPlaybackService()),
         Provider(
@@ -145,7 +127,7 @@ class _KoheraAppState extends State<KoheraApp> {
           return Consumer2<ClientManager, PreferencesService>(
             builder: (context, manager, prefs, _) {
               final matrix = manager.activeService;
-              final router = _router!;
+              final router = _ensureRouter(matrix);
 
               return MultiProvider(
                 providers: [
@@ -174,7 +156,7 @@ class _KoheraAppState extends State<KoheraApp> {
                     create: (ctx) {
                       final cs = CallService(
                         client: ctx.read<MatrixService>().client,
-                        ringtoneService: _ringtoneService,
+                        ringtoneService: ringtoneService,
                       )..preferencesService = prefs;
                       if (ctx.read<MatrixService>().isLoggedIn) cs.init();
                       return cs;
@@ -183,7 +165,7 @@ class _KoheraAppState extends State<KoheraApp> {
                       if (previous == null) {
                         final cs = CallService(
                           client: matrix.client,
-                          ringtoneService: _ringtoneService,
+                          ringtoneService: ringtoneService,
                         )..preferencesService = prefs;
                         if (matrix.isLoggedIn) cs.init();
                         return cs;
@@ -202,7 +184,7 @@ class _KoheraAppState extends State<KoheraApp> {
                   create: (ctx) => PushToTalkService(
                     callService: ctx.read<CallService>(),
                     prefs: prefs,
-                    ringtoneService: _ringtoneService,
+                    ringtoneService: ringtoneService,
                   ),
                   child: Builder(
                     builder: (context) {
@@ -214,22 +196,22 @@ class _KoheraAppState extends State<KoheraApp> {
                           isCustom ? prefs.customTheme : null;
 
                       final theme = customScheme != null
-                          ? KoheraTheme.light(
+                          ? LatticeTheme.light(
                               dynamic: customScheme.toColorScheme(
                                 Brightness.light,
                               ),
                             )
-                          : KoheraTheme.light(
+                          : LatticeTheme.light(
                               dynamic: lightDynamic,
                               preset: preset,
                             );
                       final darkTheme = customScheme != null
-                          ? KoheraTheme.dark(
+                          ? LatticeTheme.dark(
                               dynamic: customScheme.toColorScheme(
                                 Brightness.dark,
                               ),
                             )
-                          : KoheraTheme.dark(
+                          : LatticeTheme.dark(
                               dynamic: darkDynamic,
                               preset: preset,
                             );
@@ -244,7 +226,7 @@ class _KoheraAppState extends State<KoheraApp> {
                         callService: callService,
                         router: router,
                         child: MaterialApp.router(
-                          title: 'Kohera',
+                          title: 'Lattice',
                           debugShowCheckedModeBanner: false,
                           theme: theme,
                           darkTheme: darkTheme,
