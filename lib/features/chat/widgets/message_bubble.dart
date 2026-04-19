@@ -1,24 +1,16 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/core/utils/sender_color.dart';
-import 'package:kohera/core/utils/time_format.dart';
-import 'package:kohera/features/chat/widgets/audio_bubble.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
-import 'package:kohera/features/chat/widgets/file_bubble.dart';
 import 'package:kohera/features/chat/widgets/hover_action_bar.dart';
-import 'package:kohera/features/chat/widgets/html_message_text.dart';
-import 'package:kohera/features/chat/widgets/image_bubble.dart';
-import 'package:kohera/features/chat/widgets/inline_image_preview.dart';
 import 'package:kohera/features/chat/widgets/inline_reply_preview.dart';
-import 'package:kohera/features/chat/widgets/link_preview_card.dart';
-import 'package:kohera/features/chat/widgets/linkable_text.dart';
-import 'package:kohera/features/chat/widgets/verification_request_tile.dart';
-import 'package:kohera/features/chat/widgets/video_bubble.dart';
+import 'package:kohera/features/chat/widgets/message_bubble_body.dart';
+import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
+import 'package:kohera/features/chat/widgets/message_bubble_link_preview.dart';
+import 'package:kohera/features/chat/widgets/message_bubble_skin.dart';
+import 'package:kohera/features/chat/widgets/message_bubble_timestamp.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -89,15 +81,11 @@ class MessageBubble extends StatefulWidget {
 class _MessageBubbleState extends State<MessageBubble> {
   bool _hovering = false;
   bool _quickReactOpen = false;
-  String? _cachedPreviewUrl;
-  String? _previewUrlBody;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final maxWidth = screenWidth * 0.72;
     final density = context.watch<PreferencesService>().messageDensity;
     final metrics = DensityMetrics.of(density);
     final isDesktop = !isTouchDevice;
@@ -118,10 +106,58 @@ class _MessageBubbleState extends State<MessageBubble> {
             ?.tryGet<Map<String, Object?>>('m.in_reply_to')
             ?.tryGet<String>('event_id');
 
-    // Strip reply fallback from body text for events that are replies.
     final bodyText = replyEventId != null
         ? stripReplyFallback(displayEvent.body)
         : displayEvent.body;
+
+    final senderName =
+        widget.event.senderFromMemoryOrFallback.displayName ??
+            widget.event.senderId;
+
+    final bubbleContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (replyEventId != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: InlineReplyPreview(
+              event: widget.event,
+              timeline: widget.timeline,
+              isMe: widget.isMe,
+              onTap: widget.onTapReply,
+            ),
+          ),
+        if (!widget.isMe && widget.isFirst)
+          Padding(
+            padding: EdgeInsets.only(bottom: metrics.senderNameBottomPad),
+            child: Text(
+              senderName,
+              style: tt.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                fontSize: metrics.senderNameFontSize,
+                color: senderColor(widget.event.senderId, cs),
+              ),
+            ),
+          ),
+        MessageBubbleBody(
+          event: widget.event,
+          displayEvent: displayEvent,
+          bodyText: bodyText,
+          isMe: widget.isMe,
+          metrics: metrics,
+        ),
+        if (_isTextMessage &&
+            context.select<PreferencesService, bool>((p) => p.showLinkPreviews))
+          MessageBubbleLinkPreview(bodyText: bodyText, isMe: widget.isMe),
+        MessageBubbleTimestamp(
+          event: widget.event,
+          isMe: widget.isMe,
+          isPinned: widget.isPinned,
+          isEdited: isEdited,
+          metrics: metrics,
+        ),
+      ],
+    );
 
     Widget bubble = AnimatedContainer(
       duration: const Duration(milliseconds: 500),
@@ -142,22 +178,7 @@ class _MessageBubbleState extends State<MessageBubble> {
             widget.isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // Sender avatar (only for first in group)
-          if (!widget.isMe && widget.isFirst)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: UserAvatar(
-                client: widget.event.room.client,
-                avatarUrl:
-                    widget.event.senderFromMemoryOrFallback.avatarUrl,
-                userId: widget.event.senderId,
-                size: metrics.avatarRadius * 2,
-              ),
-            )
-          else if (!widget.isMe)
-            SizedBox(width: metrics.avatarRadius * 2 + 8),
-
-          // Bubble + overlapping reactions + sub-bubble (receipts)
+          if (!widget.isMe) _avatarSlot(showAvatar: widget.isFirst, padLeft: false, metrics: metrics),
           Flexible(
             child: Column(
               crossAxisAlignment: widget.isMe
@@ -167,220 +188,24 @@ class _MessageBubbleState extends State<MessageBubble> {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Hover action bar (before bubble for isMe)
                     if (isDesktop && _hovering && widget.isMe)
-                      HoverActionBar(
-                        cs: cs,
-                        onReact: widget.onReact,
-                        onQuickReact: widget.onQuickReact,
-                        onReply: widget.onReply,
-                        onMore: (pos) => _showContextMenu(context, pos),
-                        onQuickReactOpenChanged: (open) {
-                          if (mounted) setState(() => _quickReactOpen = open);
-                        },
-                      ),
+                      _buildHoverBar(cs),
                     Flexible(
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        alignment: widget.isMe
-                            ? AlignmentDirectional.topEnd
-                            : AlignmentDirectional.topStart,
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.only(
-                              bottom:
-                                  widget.reactionBubble != null ? 22 : 0,
-                            ),
-                            child: Container(
-                              constraints:
-                                  BoxConstraints(maxWidth: maxWidth),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: metrics.bubbleHorizontalPad,
-                                vertical: metrics.bubbleVerticalPad,
-                              ),
-                              decoration: BoxDecoration(
-                                color: widget.isMe
-                                    ? cs.primary
-                                    : cs.primaryContainer
-                                        .withValues(alpha: 0.6),
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(
-                                      metrics.bubbleRadius,),
-                                  topRight: Radius.circular(
-                                      metrics.bubbleRadius,),
-                                  bottomLeft: Radius.circular(widget.isMe
-                                      ? metrics.bubbleRadius
-                                      : (widget.isFirst
-                                          ? 4
-                                          : metrics.bubbleRadius),),
-                                  bottomRight: Radius.circular(widget.isMe
-                                      ? (widget.isFirst
-                                          ? 4
-                                          : metrics.bubbleRadius)
-                                      : metrics.bubbleRadius,),
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  // Inline reply preview
-                                  if (replyEventId != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                          bottom: 4,),
-                                      child: InlineReplyPreview(
-                                        event: widget.event,
-                                        timeline: widget.timeline,
-                                        isMe: widget.isMe,
-                                        onTap: widget.onTapReply,
-                                      ),
-                                    ),
-
-                                  // Sender name (first in group, non-me)
-                                  if (!widget.isMe && widget.isFirst)
-                                    Padding(
-                                      padding: EdgeInsets.only(
-                                          bottom:
-                                              metrics.senderNameBottomPad,),
-                                      child: Text(
-                                        widget.event
-                                                .senderFromMemoryOrFallback
-                                                .displayName ??
-                                            widget.event.senderId,
-                                        style: tt.bodyMedium?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize:
-                                              metrics.senderNameFontSize,
-                                          color: senderColor(
-                                              widget.event.senderId, cs,),
-                                        ),
-                                      ),
-                                    ),
-
-                                  // Body
-                                  _buildBody(context, metrics, bodyText),
-
-                                  // Link preview
-                                  if (_isTextMessage &&
-                                      context.select<PreferencesService, bool>((p) => p.showLinkPreviews))
-                                    _buildLinkPreview(bodyText),
-
-                                  // Timestamp
-                                  Padding(
-                                    padding: EdgeInsets.only(
-                                        top: metrics.timestampTopPad,),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        if (widget.isPinned)
-                                          Padding(
-                                            padding:
-                                                const EdgeInsets.only(
-                                                    right: 4,),
-                                            child: Icon(
-                                              Icons.push_pin_rounded,
-                                              size:
-                                                  metrics.timestampFontSize +
-                                                      2,
-                                              color: widget.isMe
-                                                  ? cs.onPrimary.withValues(
-                                                      alpha: 0.6,)
-                                                  : cs.onSurfaceVariant
-                                                      .withValues(
-                                                          alpha: 0.5,),
-                                            ),
-                                          ),
-                                        if (isEdited)
-                                          Padding(
-                                            padding:
-                                                const EdgeInsets.only(
-                                                    right: 4,),
-                                            child: Text(
-                                              '(edited)',
-                                              style:
-                                                  tt.bodyMedium?.copyWith(
-                                                fontSize: metrics
-                                                    .timestampFontSize,
-                                                color: widget.isMe
-                                                    ? cs.onPrimary
-                                                        .withValues(
-                                                            alpha: 0.6,)
-                                                    : cs.onSurfaceVariant
-                                                        .withValues(
-                                                            alpha: 0.5,),
-                                              ),
-                                            ),
-                                          ),
-                                        Text(
-                                          formatMessageTime(widget
-                                              .event.originServerTs,),
-                                          style: tt.bodyMedium?.copyWith(
-                                            fontSize:
-                                                metrics.timestampFontSize,
-                                            color: widget.isMe
-                                                ? cs.onPrimary.withValues(
-                                                    alpha: 0.6,)
-                                                : cs.onSurfaceVariant
-                                                    .withValues(
-                                                        alpha: 0.5,),
-                                          ),
-                                        ),
-                                        if (widget.isMe) ...[
-                                          const SizedBox(width: 4),
-                                          Icon(
-                                            widget.event.status.isSent
-                                                ? Icons.done_all_rounded
-                                                : Icons.done_rounded,
-                                            size: metrics.statusIconSize,
-                                            color: cs.onPrimary
-                                                .withValues(alpha: 0.6),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          if (widget.reactionBubble != null)
-                            Positioned(
-                              bottom: 0,
-                              left: widget.isMe ? null : 12,
-                              right: widget.isMe ? 12 : null,
-                              child: widget.reactionBubble!,
-                            ),
-                        ],
+                      child: MessageBubbleSkin(
+                        isMe: widget.isMe,
+                        isFirst: widget.isFirst,
+                        metrics: metrics,
+                        reactionBubble: widget.reactionBubble,
+                        child: bubbleContent,
                       ),
                     ),
-                    // Hover action bar (after bubble for non-me)
                     if (isDesktop && _hovering && !widget.isMe)
-                      HoverActionBar(
-                        cs: cs,
-                        onReact: widget.onReact,
-                        onQuickReact: widget.onQuickReact,
-                        onReply: widget.onReply,
-                        onMore: (pos) => _showContextMenu(context, pos),
-                        onQuickReactOpenChanged: (open) {
-                          if (mounted) setState(() => _quickReactOpen = open);
-                        },
-                      ),
-                    // Sender avatar (isMe, inside bubble Row to avoid
-                    // overlapping read receipts below)
-                    if (widget.isMe && widget.isFirst)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: UserAvatar(
-                          client: widget.event.room.client,
-                          avatarUrl: widget.event
-                              .senderFromMemoryOrFallback.avatarUrl,
-                          userId: widget.event.senderId,
-                          size: metrics.avatarRadius * 2,
-                        ),
-                      )
-                    else if (widget.isMe)
-                      SizedBox(width: metrics.avatarRadius * 2 + 8),
+                      _buildHoverBar(cs),
+                    if (widget.isMe)
+                      _avatarSlot(
+                          showAvatar: widget.isFirst,
+                          padLeft: true,
+                          metrics: metrics,),
                   ],
                 ),
                 if (widget.subBubble != null) widget.subBubble!,
@@ -391,7 +216,6 @@ class _MessageBubbleState extends State<MessageBubble> {
       ),
     );
 
-    // Desktop: hover detection + right-click context menu
     if (isDesktop) {
       bubble = MouseRegion(
         onEnter: (_) => setState(() => _hovering = true),
@@ -399,8 +223,19 @@ class _MessageBubbleState extends State<MessageBubble> {
           if (!_quickReactOpen) setState(() => _hovering = false);
         },
         child: GestureDetector(
-          onSecondaryTapUp: (details) =>
-              _showContextMenu(context, details.globalPosition),
+          onSecondaryTapUp: (details) => showMessageContextMenu(
+            context,
+            event: widget.event,
+            isMe: widget.isMe,
+            isPinned: widget.isPinned,
+            timeline: widget.timeline,
+            position: details.globalPosition,
+            onReply: widget.onReply,
+            onEdit: widget.onEdit,
+            onReact: widget.onReact,
+            onPin: widget.onPin,
+            onDelete: widget.onDelete,
+          ),
           child: bubble,
         ),
       );
@@ -409,254 +244,47 @@ class _MessageBubbleState extends State<MessageBubble> {
     return bubble;
   }
 
-  Future<void> _showContextMenu(BuildContext context, Offset position) async {
-    final cs = Theme.of(context).colorScheme;
-    final value = await showMenu<String>(
-      context: context,
-      position: RelativeRect.fromLTRB(
-          position.dx, position.dy, position.dx, position.dy,),
-      color: cs.surfaceContainer,
-      items: [
-        if (widget.onReply != null)
-          const PopupMenuItem(
-            value: 'reply',
-            child: Row(
-              children: [
-                Icon(Icons.reply_rounded, size: 18),
-                SizedBox(width: 8),
-                Text('Reply'),
-              ],
-            ),
-          ),
-        if (widget.onEdit != null)
-          const PopupMenuItem(
-            value: 'edit',
-            child: Row(
-              children: [
-                Icon(Icons.edit_rounded, size: 18),
-                SizedBox(width: 8),
-                Text('Edit'),
-              ],
-            ),
-          ),
-        if (widget.onReact != null)
-          const PopupMenuItem(
-            value: 'react',
-            child: Row(
-              children: [
-                Icon(Icons.add_reaction_outlined, size: 18),
-                SizedBox(width: 8),
-                Text('React'),
-              ],
-            ),
-          ),
-        const PopupMenuItem(
-          value: 'copy',
-          child: Row(
-            children: [
-              Icon(Icons.copy_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('Copy'),
-            ],
-          ),
+  Widget _avatarSlot({
+    required bool showAvatar,
+    required bool padLeft,
+    required DensityMetrics metrics,
+  }) {
+    if (showAvatar) {
+      return Padding(
+        padding: EdgeInsets.only(left: padLeft ? 8 : 0, right: padLeft ? 0 : 8),
+        child: UserAvatar(
+          client: widget.event.room.client,
+          avatarUrl: widget.event.senderFromMemoryOrFallback.avatarUrl,
+          userId: widget.event.senderId,
+          size: metrics.avatarRadius * 2,
         ),
-        if (widget.onPin != null)
-          PopupMenuItem(
-            value: 'pin',
-            child: Row(
-              children: [
-                Icon(
-                  widget.isPinned
-                      ? Icons.push_pin_rounded
-                      : Icons.push_pin_outlined,
-                  size: 18,
-                ),
-                const SizedBox(width: 8),
-                Text(widget.isPinned ? 'Unpin' : 'Pin'),
-              ],
-            ),
-          ),
-        if (widget.onDelete != null)
-          PopupMenuItem(
-            value: 'delete',
-            child: Row(
-              children: [
-                Icon(Icons.delete_outline_rounded, size: 18, color: cs.error),
-                const SizedBox(width: 8),
-                Text(widget.isMe ? 'Delete' : 'Remove', style: TextStyle(color: cs.error)),
-              ],
-            ),
-          ),
-      ],
-    );
-    if (!mounted) return;
-    if (value == 'reply') widget.onReply?.call();
-    if (value == 'react') widget.onReact?.call();
-    if (value == 'edit') widget.onEdit?.call();
-    if (value == 'pin') widget.onPin?.call();
-    if (value == 'copy') {
-      final displayEvent = widget.timeline != null
-          ? widget.event.getDisplayEvent(widget.timeline!)
-          : widget.event;
-      await Clipboard.setData(ClipboardData(text: stripReplyFallback(displayEvent.body)));
+      );
     }
-    if (value == 'delete') widget.onDelete?.call();
+    return SizedBox(width: metrics.avatarRadius * 2 + 8);
   }
 
-  Widget _buildBody(
-      BuildContext context, DensityMetrics metrics, String bodyText,) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
-    if (widget.event.redacted) {
-      final redactor = widget.event.redactedBecause?.senderId;
-      final isSelfRedact = redactor == widget.event.senderId;
-      String label;
-      if (widget.isMe) {
-        label = 'You deleted this message';
-      } else if (isSelfRedact) {
-        label = 'This message was deleted';
-      } else if (redactor != null) {
-        final redactorUser =
-            widget.event.room.unsafeGetUserFromMemoryOrFallback(redactor);
-        final displayName = redactorUser.displayName ?? redactor;
-        label = 'Deleted by $displayName';
-      } else {
-        label = 'This message was deleted';
-      }
-      return Text(
-        label,
-        style: tt.bodyMedium?.copyWith(
-          fontStyle: FontStyle.italic,
-          color: widget.isMe
-              ? cs.onPrimary.withValues(alpha: 0.5)
-              : cs.onSurfaceVariant.withValues(alpha: 0.5),
-        ),
-      );
-    }
-
-    if (widget.event.messageType == MessageTypes.BadEncrypted) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.lock_outline,
-            size: 16,
-            color: widget.isMe
-                ? cs.onPrimary.withValues(alpha: 0.5)
-                : cs.onSurfaceVariant.withValues(alpha: 0.5),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            'Unable to decrypt this message',
-            style: tt.bodyMedium?.copyWith(
-              fontStyle: FontStyle.italic,
-              color: widget.isMe
-                  ? cs.onPrimary.withValues(alpha: 0.5)
-                  : cs.onSurfaceVariant.withValues(alpha: 0.5),
-            ),
-          ),
-        ],
-      );
-    }
-
-    if (widget.event.messageType == MessageTypes.Image) {
-      return ImageBubble(event: widget.event);
-    }
-
-    if (widget.event.messageType == MessageTypes.Audio) {
-      return AudioBubble(event: widget.event, isMe: widget.isMe);
-    }
-
-    if (widget.event.messageType == MessageTypes.Video) {
-      return VideoBubble(event: widget.event, isMe: widget.isMe);
-    }
-
-    if (widget.event.messageType == MessageTypes.File) {
-      return FileBubble(event: widget.event, isMe: widget.isMe);
-    }
-
-    if (widget.event.messageType == EventTypes.KeyVerificationRequest) {
-      return VerificationRequestTile(event: widget.event);
-    }
-
-    // Check for HTML formatted body.
-    final formattedBody = widget.event.formattedText;
-    final hasHtml = formattedBody.isNotEmpty &&
-        widget.event.content['format'] == 'org.matrix.custom.html';
-
-    final isEmote = widget.event.messageType == MessageTypes.Emote;
-    final isServerNotice = widget.event.messageType == 'm.server_notice';
-
-    var textStyle = tt.bodyLarge?.copyWith(
-      color: widget.isMe ? cs.onPrimary : cs.onSurface,
-      fontSize: metrics.bodyFontSize,
-      height: metrics.bodyLineHeight,
-    );
-
-    if (isEmote) {
-      textStyle = textStyle?.copyWith(fontStyle: FontStyle.italic);
-    }
-    if (isServerNotice) {
-      textStyle = textStyle?.copyWith(
-        color: widget.isMe
-            ? cs.onPrimary.withValues(alpha: 0.8)
-            : cs.onSurfaceVariant,
-      );
-    }
-
-    if (hasHtml) {
-      final html = isEmote
-          ? '* ${_escapeHtml(widget.event.senderFromMemoryOrFallback.calcDisplayname())} '
-              '$formattedBody'
-          : formattedBody;
-      final htmlWidget = HtmlMessageText(
-        html: html,
-        style: textStyle,
+  Widget _buildHoverBar(ColorScheme cs) {
+    return HoverActionBar(
+      cs: cs,
+      onReact: widget.onReact,
+      onQuickReact: widget.onQuickReact,
+      onReply: widget.onReply,
+      onMore: (pos) => showMessageContextMenu(
+        context,
+        event: widget.event,
         isMe: widget.isMe,
-        room: widget.event.room,
-      );
-      if (isServerNotice) return _wrapWithServerNoticeIcon(htmlWidget, cs);
-      return htmlWidget;
-    }
-
-    final displayText = isEmote
-        ? '* ${widget.event.senderFromMemoryOrFallback.calcDisplayname()} '
-            '$bodyText'
-        : bodyText;
-    final textWidget = LinkableText(
-      text: displayText,
-      style: textStyle,
-      isMe: widget.isMe,
-    );
-    if (isServerNotice) return _wrapWithServerNoticeIcon(textWidget, cs);
-    return textWidget;
-  }
-
-  static String _escapeHtml(String input) => input
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-
-  Widget _wrapWithServerNoticeIcon(Widget child, ColorScheme cs) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 2, right: 6),
-          child: Icon(
-            Icons.campaign_outlined,
-            size: 16,
-            color: widget.isMe
-                ? cs.onPrimary.withValues(alpha: 0.8)
-                : cs.onSurfaceVariant,
-          ),
-        ),
-        Flexible(child: child),
-      ],
+        isPinned: widget.isPinned,
+        timeline: widget.timeline,
+        position: pos,
+        onReply: widget.onReply,
+        onEdit: widget.onEdit,
+        onReact: widget.onReact,
+        onPin: widget.onPin,
+        onDelete: widget.onDelete,
+      ),
+      onQuickReactOpenChanged: (open) {
+        if (mounted) setState(() => _quickReactOpen = open);
+      },
     );
   }
 
@@ -666,38 +294,4 @@ class _MessageBubbleState extends State<MessageBubble> {
     return !widget.event.redacted &&
         (type == MessageTypes.Text || type == MessageTypes.Notice);
   }
-
-  /// Extract the first http(s) URL from [body], skipping matrix.to links.
-  static String? _extractFirstUrl(String body) {
-    for (final match in LinkableText.urlRegex.allMatches(body)) {
-      final url = LinkableText.cleanUrl(match.group(0)!);
-      final uri = Uri.tryParse(url);
-      if (uri != null && uri.host != 'matrix.to') return url;
-    }
-    return null;
-  }
-
-  static bool _isDirectImageUrl(String url) {
-    final path = Uri.tryParse(url)?.path.toLowerCase() ?? '';
-    return path.endsWith('.gif') ||
-        path.endsWith('.png') ||
-        path.endsWith('.jpg') ||
-        path.endsWith('.jpeg') ||
-        path.endsWith('.webp');
-  }
-
-  Widget _buildLinkPreview(String bodyText) {
-    if (_previewUrlBody != bodyText) {
-      _previewUrlBody = bodyText;
-      _cachedPreviewUrl = _extractFirstUrl(bodyText);
-    }
-    final url = _cachedPreviewUrl;
-    if (url == null) return const SizedBox.shrink();
-
-    if (_isDirectImageUrl(url)) {
-      return InlineImagePreview(url: url, isMe: widget.isMe);
-    }
-    return LinkPreviewCard(url: url, isMe: widget.isMe);
-  }
-
 }
