@@ -56,6 +56,7 @@ class _NarrowLayoutState extends State<NarrowLayout> {
         name == Routes.settingsNotifications ||
         name == Routes.settingsDevices ||
         name == Routes.settingsVoiceVideo ||
+        name == Routes.settingsShareInvite ||
         name == Routes.spaceDetails;
   }
 

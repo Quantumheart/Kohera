@@ -123,6 +123,7 @@ class _WideLayoutState extends State<WideLayout> {
         name == Routes.settingsNotifications ||
         name == Routes.settingsDevices ||
         name == Routes.settingsVoiceVideo ||
+        name == Routes.settingsShareInvite ||
         name == Routes.spaces ||
         name == Routes.spaceDetails ||
         name == Routes.inbox) {
