@@ -371,14 +371,31 @@ class InboxController extends ChangeNotifier {
       map[n.roomId]!.add(n);
     }
 
-    return order.map((roomId) {
+    final groups = <NotificationGroup>[];
+    for (final roomId in order) {
       final room = _client.getRoomById(roomId);
-      return NotificationGroup(
+      groups.add(NotificationGroup(
         roomId: roomId,
         roomName: room?.getLocalizedDisplayname() ?? roomId,
         notifications: map[roomId]!,
-      );
-    }).toList();
+      ),);
+    }
+
+    final indexed = <(int, NotificationGroup)>[
+      for (var i = 0; i < groups.length; i++) (i, groups[i]),
+    ];
+    indexed.sort((a, b) {
+      final aMax = a.$2.notifications
+          .map((n) => n.ts)
+          .reduce((x, y) => x > y ? x : y);
+      final bMax = b.$2.notifications
+          .map((n) => n.ts)
+          .reduce((x, y) => x > y ? x : y);
+      final cmp = bMax.compareTo(aMax);
+      if (cmp != 0) return cmp;
+      return a.$1.compareTo(b.$1);
+    });
+    return [for (final entry in indexed) entry.$2];
   }
 
   @override
