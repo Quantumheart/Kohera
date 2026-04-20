@@ -153,6 +153,24 @@ void main() {
       expect(controller.error, contains('network'));
       expect(controller.grouped, isEmpty);
     });
+
+    test('orders groups by most-recent notification descending', () async {
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(eventId: 'e1', roomId: '!old:x', ts: 1000),
+            _makeNotification(eventId: 'e2', roomId: '!new:x', ts: 3000),
+            _makeNotification(eventId: 'e3', roomId: '!mid:x', ts: 2000),
+          ]),);
+
+      await controller.fetch();
+
+      expect(
+        controller.grouped.map((g) => g.roomId).toList(),
+        ['!new:x', '!mid:x', '!old:x'],
+      );
+    });
   });
 
   // ── setFilter() ─────────────────────────────────────────────
