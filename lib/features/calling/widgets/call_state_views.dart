@@ -4,6 +4,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/shared/widgets/pulsing_avatar.dart';
+import 'package:kohera/shared/widgets/room_avatar.dart';
+import 'package:matrix/matrix.dart';
 
 // coverage:ignore-start
 
@@ -42,9 +44,15 @@ const _connectingMediaPhrases = [
 ];
 
 class CallJoiningView extends StatefulWidget {
-  const CallJoiningView({required this.displayName, this.phase, super.key});
+  const CallJoiningView({
+    required this.displayName,
+    this.room,
+    this.phase,
+    super.key,
+  });
 
   final String displayName;
+  final Room? room;
   final JoinPhase? phase;
 
   @override
@@ -80,7 +88,12 @@ class _CallJoiningViewState extends State<CallJoiningView> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          PulsingAvatar(displayName: widget.displayName),
+          PulsingAvatar(
+            displayName: widget.displayName,
+            child: widget.room != null
+                ? RoomAvatarWidget(room: widget.room!, size: 96)
+                : null,
+          ),
           const SizedBox(height: 24),
           Text(widget.displayName, style: tt.titleMedium),
           const SizedBox(height: 8),
