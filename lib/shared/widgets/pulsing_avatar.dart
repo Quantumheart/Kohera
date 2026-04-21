@@ -7,12 +7,14 @@ class PulsingAvatar extends StatefulWidget {
     required this.displayName,
     this.radius = 48,
     this.endScale = 1.1,
+    this.child,
     super.key,
   });
 
   final String displayName;
   final double radius;
   final double endScale;
+  final Widget? child;
 
   @override
   State<PulsingAvatar> createState() => _PulsingAvatarState();
@@ -56,15 +58,16 @@ class _PulsingAvatarState extends State<PulsingAvatar>
     final tt = Theme.of(context).textTheme;
     return ScaleTransition(
       scale: _animation,
-      child: CircleAvatar(
-        radius: widget.radius,
-        child: Text(
-          widget.displayName.isNotEmpty
-              ? widget.displayName[0].toUpperCase()
-              : '?',
-          style: tt.headlineLarge,
-        ),
-      ),
+      child: widget.child ??
+          CircleAvatar(
+            radius: widget.radius,
+            child: Text(
+              widget.displayName.isNotEmpty
+                  ? widget.displayName[0].toUpperCase()
+                  : '?',
+              style: tt.headlineLarge,
+            ),
+          ),
     );
   }
 }

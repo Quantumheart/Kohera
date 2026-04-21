@@ -34,6 +34,9 @@ class CallPane extends StatelessWidget {
       KoheraCallState.ringingIncoming ||
       KoheraCallState.joining => CallJoiningView(
           displayName: _resolveRoomName(context, callService),
+          room: roomId != null
+              ? context.read<MatrixService>().client.getRoomById(roomId)
+              : null,
           phase: callService.joinPhase,
         ),
       KoheraCallState.connected => const ConnectedCallView(),
