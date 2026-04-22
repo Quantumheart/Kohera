@@ -120,20 +120,54 @@ jobs:
           channel: stable
           flutter-version: '3.41.x'
           cache: true
-      - run: flutter pub get
-      - run: flutter build ios --release --no-codesign --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
-      - name: Archive build
+      - name: Install distribution certificate
+        env:
+          IOS_CERTIFICATE_P12: ${{ secrets.IOS_CERTIFICATE_P12 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
         run: |
-          cd build/ios/iphoneos
-          zip -r ../../../kohera-ios-arm64.zip Runner.app
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          CERT_PATH=$RUNNER_TEMP/certificate.p12
+          echo -n "$IOS_CERTIFICATE_P12" | base64 --decode -o "$CERT_PATH"
+          security create-keychain -p "" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$IOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+      - name: Install provisioning profiles
+        env:
+          IOS_RUNNER_PROVISION_PROFILE: ${{ secrets.IOS_RUNNER_PROVISION_PROFILE }}
+          IOS_NSE_PROVISION_PROFILE: ${{ secrets.IOS_NSE_PROVISION_PROFILE }}
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo -n "$IOS_RUNNER_PROVISION_PROFILE" | base64 --decode -o ~/Library/MobileDevice/Provisioning\ Profiles/runner.mobileprovision
+          echo -n "$IOS_NSE_PROVISION_PROFILE" | base64 --decode -o ~/Library/MobileDevice/Provisioning\ Profiles/nse.mobileprovision
+      - run: flutter pub get
+      - run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
+      - name: Upload to TestFlight
+        env:
+          APPSTORE_CONNECT_API_KEY: ${{ secrets.APPSTORE_CONNECT_API_KEY }}
+          APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+          APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
+        run: |
+          API_KEY_PATH=$RUNNER_TEMP/AuthKey.p8
+          echo -n "$APPSTORE_CONNECT_API_KEY" | base64 --decode -o "$API_KEY_PATH"
+          xcrun altool --upload-app \
+            -f build/ios/ipa/kohera.ipa \
+            -t ios \
+            --apiKey "$APPSTORE_CONNECT_KEY_ID" \
+            --apiIssuer "$APPSTORE_CONNECT_ISSUER_ID"
       - name: Generate checksum
-        run: shasum -a 256 kohera-ios-arm64.zip > kohera-ios-arm64.zip.sha256
+        run: shasum -a 256 build/ios/ipa/kohera.ipa > kohera-ios-arm64.ipa.sha256
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ios-release
           path: |
-            kohera-ios-arm64.zip
-            kohera-ios-arm64.zip.sha256
+            build/ios/ipa/kohera.ipa
+            kohera-ios-arm64.ipa.sha256
+      - name: Clean up keychain
+        if: always()
+        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
 
   publish-release:
     needs: [build-linux, build-windows, build-macos, build-ios]
@@ -163,6 +197,6 @@ jobs:
             kohera-windows-x64-setup.exe.sha256
             kohera-macos-universal.zip
             kohera-macos-universal.zip.sha256
-            kohera-ios-arm64.zip
-            kohera-ios-arm64.zip.sha256
+            kohera.ipa
+            kohera-ios-arm64.ipa.sha256
           generate_release_notes: true
