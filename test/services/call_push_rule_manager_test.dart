@@ -18,7 +18,7 @@ void main() {
   });
 
   PushRule makeDesiredRule() => PushRule(
-        ruleId: '.io.kohera.call_member',
+        ruleId: 'io.kohera.call_member',
         default$: false,
         enabled: true,
         conditions: [
@@ -55,7 +55,7 @@ void main() {
     verify(
       mockClient.setPushRule(
         PushRuleKind.override,
-        '.io.kohera.call_member',
+        'io.kohera.call_member',
         any,
         conditions: anyNamed('conditions'),
       ),
@@ -83,7 +83,7 @@ void main() {
 
   test('rewrites rule when actions differ', () async {
     final stale = PushRule(
-      ruleId: '.io.kohera.call_member',
+      ruleId: 'io.kohera.call_member',
       default$: false,
       enabled: true,
       actions: ['dont_notify'],
@@ -107,7 +107,7 @@ void main() {
     verify(
       mockClient.setPushRule(
         PushRuleKind.override,
-        '.io.kohera.call_member',
+        'io.kohera.call_member',
         any,
         conditions: anyNamed('conditions'),
       ),
