@@ -222,6 +222,7 @@ class _RoomTileState extends State<RoomTile> {
                         unread: unread,
                         callService: callService,
                         roomId: room.id,
+                        isDirectChat: room.isDirectChat,
                       ),
                   ],
                 ),
@@ -382,12 +383,14 @@ class _TrailingTimeBadge extends StatelessWidget {
     required this.unread,
     required this.callService,
     required this.roomId,
+    required this.isDirectChat,
   });
 
   final Event? lastEvent;
   final int unread;
   final CallService callService;
   final String roomId;
+  final bool isDirectChat;
 
   String _formatTime(DateTime? ts) {
     if (ts == null) return '';
@@ -437,7 +440,7 @@ class _TrailingTimeBadge extends StatelessWidget {
                 ),
               ),
             )
-          else if (callService.isCallingAvailable)
+          else if (callService.isCallingAvailable && !isDirectChat)
             SizedBox(
               height: 24,
               child: IconButton(
