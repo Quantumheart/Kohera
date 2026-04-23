@@ -59,7 +59,7 @@ class StateEventTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [content],
+        children: [Flexible(child: content)],
       ),
     );
   }
@@ -149,11 +149,16 @@ class StateEventTile extends StatelessWidget {
           final prevDisplay = event.prevContent?.tryGet<String>('displayname');
           final newDisplay = event.content.tryGet<String>('displayname');
           if (prevDisplay != newDisplay) {
+            final subject = (prevDisplay != null && prevDisplay.isNotEmpty)
+                ? prevDisplay
+                : (target != null
+                      ? target.replaceFirst('@', '').split(':').first
+                      : targetName);
             return (
               Icons.badge_outlined,
               newDisplay == null || newDisplay.isEmpty
-                  ? '$targetName removed their display name'
-                  : "$targetName changed their display name to '$newDisplay'",
+                  ? '$subject removed their display name'
+                  : "$subject changed their display name to '$newDisplay'",
             );
           }
           final prevAvatar = event.prevContent?.tryGet<String>('avatar_url');
