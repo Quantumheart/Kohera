@@ -698,6 +698,7 @@ class LiveKitService {
         DateTime.now().difference(_wellKnownFetchedAt!) > _wellKnownTtl) {
       _cachedLivekitServiceUrl = null;
       _wellKnownFetchedAt = null;
+      unawaited(fetchWellKnownLiveKit());
     }
     return _cachedLivekitServiceUrl;
   }
@@ -705,6 +706,11 @@ class LiveKitService {
   set cachedLivekitServiceUrlForTest(String? url) {
     _cachedLivekitServiceUrl = url;
     _wellKnownFetchedAt = url != null ? DateTime.now() : null;
+  }
+
+  @visibleForTesting
+  set wellKnownFetchedAtForTest(DateTime? when) {
+    _wellKnownFetchedAt = when;
   }
 
   Future<void> fetchWellKnownLiveKit() async {

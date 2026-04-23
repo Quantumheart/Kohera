@@ -874,6 +874,38 @@ void main() {
       service.cachedLivekitServiceUrlForTest = null;
       expect(service.cachedLivekitServiceUrl, isNull);
     });
+
+    test(
+        'expired cache triggers background re-fetch (regression for #347)',
+        () async {
+      when(mockClient.getWellknown()).thenAnswer((_) async =>
+          DiscoveryInformation(
+            mHomeserver: HomeserverInformation(
+                baseUrl: Uri.parse('https://example.com'),),
+            additionalProperties: {
+              'org.matrix.msc4143.rtc_foci': [
+                {
+                  'type': 'livekit',
+                  'livekit_service_url': 'https://lk.example.com',
+                },
+              ],
+            },
+          ),);
+
+      service.cachedLivekitServiceUrlForTest = 'https://stale.example.com';
+      service.wellKnownFetchedAtForTest =
+          DateTime.now().subtract(const Duration(hours: 2));
+
+      final readback = service.cachedLivekitServiceUrl;
+      expect(readback, isNull,
+          reason: 'expired cache should null out on read',);
+
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      verify(mockClient.getWellknown()).called(1);
+      expect(service.cachedLivekitServiceUrl, 'https://lk.example.com');
+    });
   });
 
   // ── LiveKit events ─────────────────────────────────────────
