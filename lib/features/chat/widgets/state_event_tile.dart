@@ -59,7 +59,7 @@ class StateEventTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [content],
+        children: [Flexible(child: content)],
       ),
     );
   }
