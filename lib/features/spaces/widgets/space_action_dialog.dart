@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
@@ -404,6 +405,8 @@ class SpaceDiscoveryDialog extends StatefulWidget {
 class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
   List<PublishedRoomsChunk>? _results;
   String? _error;
+  String? _joiningRoomId;
+  String? _joinError;
 
   @override
   void initState() {
@@ -428,9 +431,55 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
     }
   }
 
+  List<String>? _viaFor(PublishedRoomsChunk chunk) {
+    final alias = chunk.canonicalAlias;
+    if (alias != null) {
+      final idx = alias.indexOf(':');
+      if (idx != -1 && idx < alias.length - 1) {
+        return [alias.substring(idx + 1)];
+      }
+    }
+    return null;
+  }
+
+  Future<void> _join(PublishedRoomsChunk chunk) async {
+    if (_joiningRoomId != null) return;
+    final client = widget.matrixService.client;
+    final target = chunk.canonicalAlias ?? chunk.roomId;
+    final via = _viaFor(chunk);
+
+    setState(() {
+      _joiningRoomId = chunk.roomId;
+      _joinError = null;
+    });
+
+    try {
+      final roomId = await client.joinRoom(target, via: via);
+      await client
+          .waitForRoomInSync(roomId, join: true)
+          .timeout(const Duration(seconds: 30));
+
+      if (!mounted) return;
+      final room = client.getRoomById(roomId);
+      if (room != null && room.isSpace) {
+        context.read<SelectionService>().selectSpace(roomId);
+      }
+      Navigator.pop(context);
+    } catch (e) {
+      debugPrint('[Kohera] Space discovery join failed: $e');
+      if (!mounted) return;
+      setState(() {
+        _joinError = MatrixService.friendlyAuthError(e);
+        _joiningRoomId = null;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final size = MediaQuery.sizeOf(context);
+    final isWide = size.width >= HomeShell.wideBreakpoint;
 
     Widget body;
     if (_error != null) {
@@ -467,27 +516,54 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
         ),
       );
     } else {
-      body = ListView.builder(
+      final list = ListView.builder(
         itemCount: _results!.length,
         itemBuilder: (context, i) {
           final chunk = _results![i];
           final title = chunk.name ??
               chunk.canonicalAlias ??
               chunk.roomId;
+          final isJoining = _joiningRoomId == chunk.roomId;
           return ListTile(
+            enabled: _joiningRoomId == null,
             title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: Text('${chunk.numJoinedMembers} members'),
-            onTap: () => Navigator.pop(context),
+            trailing: isJoining
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : null,
+            onTap: () => _join(chunk),
           );
         },
+      );
+
+      body = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_joinError != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                _joinError!,
+                style: TextStyle(color: cs.error),
+              ),
+            ),
+          Expanded(child: list),
+        ],
       );
     }
 
     return AlertDialog(
       title: const Text('Explore spaces'),
+      insetPadding: isWide
+          ? const EdgeInsets.symmetric(horizontal: 40, vertical: 24)
+          : const EdgeInsets.all(12),
       content: SizedBox(
-        width: 480,
-        height: 520,
+        width: isWide ? 480 : size.width,
+        height: isWide ? 520 : size.height * 0.75,
         child: body,
       ),
       actions: [
