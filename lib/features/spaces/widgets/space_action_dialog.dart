@@ -525,7 +525,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
               chunk.roomId;
           final isJoining = _joiningRoomId == chunk.roomId;
           return ListTile(
-            enabled: _joiningRoomId == null,
+            enabled: _joiningRoomId == null || isJoining,
             title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: Text('${chunk.numJoinedMembers} members'),
             trailing: isJoining
