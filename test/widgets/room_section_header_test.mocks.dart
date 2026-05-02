@@ -8096,6 +8096,13 @@ class MockPreferencesService extends _i1.Mock
       ) as List<String>);
 
   @override
+  List<String> get browseServers => (super.noSuchMethod(
+        Invocation.getter(#browseServers),
+        returnValue: <String>[],
+        returnValueForMissingStub: <String>[],
+      ) as List<String>);
+
+  @override
   double get panelWidth => (super.noSuchMethod(
         Invocation.getter(#panelWidth),
         returnValue: 0.0,
@@ -8396,6 +8403,16 @@ class MockPreferencesService extends _i1.Mock
         Invocation.method(
           #setSpaceOrder,
           [order],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> setBrowseServers(List<String>? hosts) => (super.noSuchMethod(
+        Invocation.method(
+          #setBrowseServers,
+          [hosts],
         ),
         returnValue: _i5.Future<void>.value(),
         returnValueForMissingStub: _i5.Future<void>.value(),
