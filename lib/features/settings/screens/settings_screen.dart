@@ -431,6 +431,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 56),
                 _SettingsTile(
+                  icon: Icons.vpn_key_outlined,
+                  title: 'Show recovery key',
+                  subtitle: 'View the copy stored on this device',
+                  onTap: () =>
+                      context.pushOrGo(Routes.settingsRecoveryKey),
+                ),
+                const Divider(height: 1, indent: 56),
+                _SettingsTile(
                   icon: Icons.devices_rounded,
                   title: 'Devices',
                   subtitle: 'Manage your devices',

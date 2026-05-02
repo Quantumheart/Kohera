@@ -9,6 +9,10 @@ import 'package:kohera/features/e2ee/widgets/bootstrap_controller.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_inline.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+const String _recoveryKeyDocsUrl =
+    'https://github.com/Quantumheart/Kohera/blob/main/docs/recovery-key-storage.md';
 
 // ── Screen-local steps (outside bootstrap lifecycle) ───────────
 
@@ -118,6 +122,38 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
       _matrixService.uia.completeUiaWithPassword(request, password);
     } else {
       request.cancel();
+    }
+  }
+
+  // ── Confirm key saved ─────────────────────────────────────────
+
+  Future<void> _confirmKeyStoredAndAdvance() async {
+    final controller = _controller;
+    if (controller == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Have you saved your recovery key?'),
+        content: const Text(
+          'If you lose this key, your encrypted messages cannot be '
+          "recovered. Make sure it's stored somewhere you'll still have "
+          'access to if you lose this device.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Not yet'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text("I've saved it"),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      controller.confirmNewSsss();
     }
   }
 
@@ -326,7 +362,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
             ),
             FilledButton(
               onPressed: !controller.generatingKey && controller.canConfirmNewKey
-                  ? controller.confirmNewSsss
+                  ? _confirmKeyStoredAndAdvance
                   : null,
               child: const Text('Next'),
             ),
@@ -450,8 +486,34 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
           ),
           const SizedBox(height: 16),
           const Text(
-            'Store this key somewhere safe \u2014 a password manager, '
-            'printed copy, or secure note.',
+            'Save this key in a password manager, or print it and store '
+            'the paper somewhere safe.',
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "Don't save it in screenshots, unencrypted notes apps, or chat "
+            'messages. If you lose this key, your message history is gone '
+            "\u2014 we can't recover it for you.",
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: cs.error,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => unawaited(launchUrl(
+                Uri.parse(_recoveryKeyDocsUrl),
+                mode: LaunchMode.externalApplication,
+              ),),
+              icon: const Icon(Icons.open_in_new, size: 16),
+              label: const Text('Learn more about safe storage'),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           Container(
@@ -489,7 +551,12 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
           CheckboxListTile(
             value: controller.saveToDevice,
             onChanged: (v) => controller.setSaveToDevice(v ?? false),
-            title: const Text('Save to device'),
+            title: const Text('Also keep a copy on this device'),
+            subtitle: Text(
+              'Convenient for unlocking on this device. This is not a '
+              'backup — if you lose the device, this copy is gone too.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
             mouseCursor: SystemMouseCursors.click,
@@ -525,7 +592,12 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
           CheckboxListTile(
             value: controller?.saveToDevice ?? false,
             onChanged: (v) => controller?.setSaveToDevice(v ?? false),
-            title: const Text('Save to device'),
+            title: const Text('Also keep a copy on this device'),
+            subtitle: Text(
+              'Convenient for unlocking on this device. This is not a '
+              'backup — if you lose the device, this copy is gone too.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             controlAffinity: ListTileControlAffinity.leading,
             contentPadding: EdgeInsets.zero,
             mouseCursor: SystemMouseCursors.click,
