@@ -2,7 +2,7 @@
 
 Your recovery key is the only thing that can restore your encrypted message
 history on a new device, after a reinstall, or if you lose the device you set
-backup up on. Treat it like the master password for your messages.
+up backup on. Treat it like the master password for your messages.
 
 ## What it does
 

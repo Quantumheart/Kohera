@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const String _recoveryKeyDocsUrl =
-    'https://github.com/Quantumheart/Kohera/blob/main/docs/recovery-key-storage.md';
+    'https://github.com/Quantumheart/Kohera/blob/master/docs/recovery-key-storage.md';
 
 class ShowRecoveryKeyScreen extends StatefulWidget {
   const ShowRecoveryKeyScreen({super.key});
@@ -20,12 +20,19 @@ class ShowRecoveryKeyScreen extends StatefulWidget {
 class _ShowRecoveryKeyScreenState extends State<ShowRecoveryKeyScreen> {
   Future<String?>? _keyFuture;
   bool _copied = false;
+  Timer? _copiedResetTimer;
 
   @override
   void initState() {
     super.initState();
     _keyFuture =
         context.read<MatrixService>().chatBackup.getStoredRecoveryKey();
+  }
+
+  @override
+  void dispose() {
+    _copiedResetTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _openDocs() async {
@@ -120,14 +127,16 @@ class _ShowRecoveryKeyScreenState extends State<ShowRecoveryKeyScreen> {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
-              onPressed: _copied
-                  ? null
-                  : () {
-                      unawaited(
-                        Clipboard.setData(ClipboardData(text: key)),
-                      );
-                      setState(() => _copied = true);
-                    },
+              onPressed: () {
+                unawaited(
+                  Clipboard.setData(ClipboardData(text: key)),
+                );
+                setState(() => _copied = true);
+                _copiedResetTimer?.cancel();
+                _copiedResetTimer = Timer(const Duration(seconds: 2), () {
+                  if (mounted) setState(() => _copied = false);
+                });
+              },
               icon: Icon(_copied ? Icons.check : Icons.copy, size: 18),
               label: Text(_copied ? 'Copied' : 'Copy'),
             ),

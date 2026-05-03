@@ -12,7 +12,33 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 const String _recoveryKeyDocsUrl =
-    'https://github.com/Quantumheart/Kohera/blob/main/docs/recovery-key-storage.md';
+    'https://github.com/Quantumheart/Kohera/blob/master/docs/recovery-key-storage.md';
+
+Future<bool> showRecoveryKeySavedConfirmation(BuildContext context) async {
+  final result = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Have you saved your recovery key?'),
+      content: const Text(
+        'If you lose this key, your encrypted messages cannot be '
+        "recovered. Make sure it's stored somewhere you'll still have "
+        'access to if you lose this device.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Not yet'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text("I've saved it"),
+        ),
+      ],
+    ),
+  );
+  return result ?? false;
+}
 
 // ── Screen-local steps (outside bootstrap lifecycle) ───────────
 
@@ -130,29 +156,8 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
   Future<void> _confirmKeyStoredAndAdvance() async {
     final controller = _controller;
     if (controller == null) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Have you saved your recovery key?'),
-        content: const Text(
-          'If you lose this key, your encrypted messages cannot be '
-          "recovered. Make sure it's stored somewhere you'll still have "
-          'access to if you lose this device.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Not yet'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("I've saved it"),
-          ),
-        ],
-      ),
-    );
-    if (confirmed == true) {
+    final confirmed = await showRecoveryKeySavedConfirmation(context);
+    if (confirmed) {
       controller.confirmNewSsss();
     }
   }
@@ -727,6 +732,11 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
+          OutlinedButton(
+            onPressed: () => context.go('/settings/recovery-key'),
+            child: const Text('Show recovery key'),
+          ),
+          const SizedBox(height: 8),
           OutlinedButton(
             onPressed: () => _startBootstrap(wipeExisting: true),
             child: const Text('Create new key'),
