@@ -13,6 +13,7 @@ import 'package:kohera/features/calling/screens/call_pane.dart';
 import 'package:kohera/features/calling/screens/call_screen.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/features/e2ee/screens/e2ee_setup_screen.dart';
+import 'package:kohera/features/e2ee/screens/show_recovery_key_screen.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/home/widgets/inbox_screen.dart';
 import 'package:kohera/features/rooms/widgets/room_details_panel.dart';
@@ -235,6 +236,12 @@ GoRouter buildRouter(ClientManager manager) {
                     name: Routes.settingsVoiceVideo,
                     builder: (context, state) =>
                         const VoiceVideoSettingsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'recovery-key',
+                    name: Routes.settingsRecoveryKey,
+                    builder: (context, state) =>
+                        const ShowRecoveryKeyScreen(),
                   ),
                 ],
               ),
