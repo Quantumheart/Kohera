@@ -2,7 +2,7 @@
 
 ## What is Kohera?
 
-Kohera is a Flutter Matrix chat client. It uses the `matrix` Dart SDK for the Matrix protocol, Provider (ChangeNotifier) for state management, GoRouter for navigation, and Material You dynamic color theming. It supports E2EE, voice/video calling (LiveKit), multi-account, and runs on Linux, macOS, and web.
+Kohera is a Flutter Matrix chat client. It uses the `matrix` Dart SDK for the Matrix protocol, Provider (ChangeNotifier) for state management, GoRouter for navigation, and Material You dynamic color theming. It supports E2EE, voice/video calling (LiveKit), multi-account, and runs on Linux, macOS, Windows, web, Android, and iOS.
 
 ## How to work with this project
 
