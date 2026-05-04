@@ -95,7 +95,11 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
   });
 
   Future<void> _toggleFavourite(Room room) => _run('favourite', () async {
-    await room.setFavourite(!room.isFavourite);
+    final target = !room.isFavourite;
+    await room.setFavourite(target);
+    await room.client.onSync.stream
+        .firstWhere((_) => room.isFavourite == target)
+        .timeout(const Duration(seconds: 5), onTimeout: () => SyncUpdate(nextBatch: ''));
   });
 
   Future<void> _showInviteDialog(Room room) async {
