@@ -31,131 +31,201 @@ void main() {
     when(mockMatrixService.selection).thenReturn(selectionService);
   });
 
-  group('CreateSpaceDialog', () {
-    Widget buildTestWidget() {
-      return MultiProvider(
-        providers: [
-          ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
-          ChangeNotifierProvider<SelectionService>.value(value: selectionService),
-        ],
-        child: MaterialApp(
-          home: Builder(
-            builder: (context) => Scaffold(
-              body: ElevatedButton(
-                onPressed: () => CreateSpaceDialog.show(
-                  context,
-                  matrixService: mockMatrixService,
-                ),
-                child: const Text('Open'),
+  Widget buildTestWidget({Size size = const Size(900, 800)}) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
+        ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+      ],
+      child: MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQueryData(size: size),
+          child: child!,
+        ),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: ElevatedButton(
+              onPressed: () => CreateSpaceDialog.show(
+                context,
+                matrixService: mockMatrixService,
               ),
+              child: const Text('Open'),
             ),
           ),
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    testWidgets('shows name and topic fields', (tester) async {
-      await tester.pumpWidget(buildTestWidget());
-      await tester.tap(find.text('Open'));
-      await tester.pumpAndSettle();
+  Future<void> openWizard(WidgetTester tester, {Size? size}) async {
+    final effective = size ?? const Size(900, 900);
+    await tester.pumpWidget(buildTestWidget(size: effective));
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> advanceToStep3(WidgetTester tester, {String name = 'My Space'}) async {
+    await tester.enterText(find.widgetWithText(TextField, 'Name'), name);
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+    await tester.pumpAndSettle();
+  }
+
+  void stubCreateRoom(String roomId) {
+    when(mockClient.createRoom(
+      name: anyNamed('name'),
+      topic: anyNamed('topic'),
+      creationContent: anyNamed('creationContent'),
+      visibility: anyNamed('visibility'),
+      powerLevelContentOverride: anyNamed('powerLevelContentOverride'),
+    ),).thenAnswer((_) async => roomId);
+    when(mockClient.waitForRoomInSync(any, join: anyNamed('join')))
+        .thenAnswer((_) async => SyncUpdate(nextBatch: ''));
+  }
+
+  group('CreateSpaceDialog wizard', () {
+    testWidgets('step 1 shows name, topic, avatar picker', (tester) async {
+      await openWizard(tester);
 
       expect(find.text('Create Space'), findsOneWidget);
       expect(find.widgetWithText(TextField, 'Name'), findsOneWidget);
       expect(find.widgetWithText(TextField, 'Topic (optional)'), findsOneWidget);
+      expect(find.byIcon(Icons.add_photo_alternate_outlined), findsOneWidget);
     });
 
-    testWidgets('shows toggle switches', (tester) async {
-      await tester.pumpWidget(buildTestWidget());
-      await tester.tap(find.text('Open'));
+    testWidgets('Next disabled until name entered', (tester) async {
+      await openWizard(tester);
+
+      final nextBtn = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Next'),
+      );
+      expect(nextBtn.onPressed, isNull);
+
+      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Hi');
+      await tester.pump();
+
+      final enabled = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Next'),
+      );
+      expect(enabled.onPressed, isNotNull);
+    });
+
+    testWidgets('step 2 has visibility + federation, no encryption switch',
+        (tester) async {
+      await openWizard(tester);
+      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'X');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Next'));
       await tester.pumpAndSettle();
 
       expect(find.text('Public space'), findsOneWidget);
-      expect(find.text('Enable encryption'), findsOneWidget);
       expect(find.text('Allow federation'), findsOneWidget);
+      expect(find.text('Enable encryption'), findsNothing);
     });
 
-    testWidgets('validates empty name', (tester) async {
-      await tester.pumpWidget(buildTestWidget());
-      await tester.tap(find.text('Open'));
+    testWidgets('step 3 shows placeholder + Create button', (tester) async {
+      await openWizard(tester);
+      await advanceToStep3(tester);
+
+      expect(find.textContaining('Coming in the next release'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'Create'), findsOneWidget);
+    });
+
+    testWidgets('step state preserved across Back/Next', (tester) async {
+      await openWizard(tester);
+      await tester.enterText(
+          find.widgetWithText(TextField, 'Name'), 'Persisted',);
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Back'));
       await tester.pumpAndSettle();
 
+      final field = tester.widget<TextField>(
+        find.widgetWithText(TextField, 'Name'),
+      );
+      expect(field.controller!.text, 'Persisted');
+    });
+
+    testWidgets(
+        'create with federation off sends m.federate:false, no encryption',
+        (tester) async {
+      stubCreateRoom('!new:example.com');
+
+      await openWizard(tester);
+      await advanceToStep3(tester);
       await tester.tap(find.widgetWithText(FilledButton, 'Create'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Name is required'), findsOneWidget);
-    });
-
-    testWidgets('submitting calls client.createRoom and selects space', (tester) async {
-      when(mockClient.createRoom(
-        name: anyNamed('name'),
-        topic: anyNamed('topic'),
-        creationContent: anyNamed('creationContent'),
-        initialState: anyNamed('initialState'),
-        visibility: anyNamed('visibility'),
-        powerLevelContentOverride: anyNamed('powerLevelContentOverride'),
-      ),).thenAnswer((_) async => '!newspace:example.com');
-
-      when(mockClient.waitForRoomInSync(any, join: anyNamed('join')))
-          .thenAnswer((_) async => SyncUpdate(nextBatch: ''));
-
-      await tester.pumpWidget(buildTestWidget());
-      await tester.tap(find.text('Open'));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'My Space');
-      await tester.tap(find.widgetWithText(FilledButton, 'Create'));
-      await tester.pumpAndSettle();
-
-      verify(mockClient.createRoom(
+      final captured = verify(mockClient.createRoom(
         name: 'My Space',
         topic: anyNamed('topic'),
-        creationContent: anyNamed('creationContent'),
-        initialState: anyNamed('initialState'),
+        creationContent: captureAnyNamed('creationContent'),
         visibility: anyNamed('visibility'),
         powerLevelContentOverride: anyNamed('powerLevelContentOverride'),
-      ),).called(1);
+      ),).captured.single as Map<String, dynamic>;
+      expect(captured['type'], 'm.space');
+      expect(captured['m.federate'], false);
 
-      expect(selectionService.selectedSpaceIds, contains('!newspace:example.com'));
-    });
-
-    testWidgets('shows error on failure', (tester) async {
-      when(mockClient.createRoom(
+      verifyNever(mockClient.createRoom(
         name: anyNamed('name'),
         topic: anyNamed('topic'),
         creationContent: anyNamed('creationContent'),
         initialState: anyNamed('initialState'),
+        visibility: anyNamed('visibility'),
+        powerLevelContentOverride: anyNamed('powerLevelContentOverride'),
+      ),);
+      expect(selectionService.selectedSpaceIds, contains('!new:example.com'));
+    });
+
+    testWidgets('create with federation on omits m.federate key',
+        (tester) async {
+      stubCreateRoom('!new2:example.com');
+
+      await openWizard(tester);
+      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'F');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(SwitchListTile, 'Allow federation'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+      await tester.pumpAndSettle();
+
+      final captured = verify(mockClient.createRoom(
+        name: anyNamed('name'),
+        topic: anyNamed('topic'),
+        creationContent: captureAnyNamed('creationContent'),
+        visibility: anyNamed('visibility'),
+        powerLevelContentOverride: anyNamed('powerLevelContentOverride'),
+      ),).captured.single as Map<String, dynamic>;
+      expect(captured.containsKey('m.federate'), isFalse);
+    });
+
+    testWidgets('shows error on createRoom failure', (tester) async {
+      when(mockClient.createRoom(
+        name: anyNamed('name'),
+        topic: anyNamed('topic'),
+        creationContent: anyNamed('creationContent'),
         visibility: anyNamed('visibility'),
         powerLevelContentOverride: anyNamed('powerLevelContentOverride'),
       ),).thenThrow(Exception('Server error'));
 
-      await tester.pumpWidget(buildTestWidget());
-      await tester.tap(find.text('Open'));
-      await tester.pumpAndSettle();
-
-      await tester.enterText(find.widgetWithText(TextField, 'Name'), 'Bad Space');
+      await openWizard(tester);
+      await advanceToStep3(tester, name: 'Bad');
       await tester.tap(find.widgetWithText(FilledButton, 'Create'));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Server error'), findsOneWidget);
-    });
-
-    testWidgets('toggling public disables encryption', (tester) async {
-      await tester.pumpWidget(buildTestWidget());
-      await tester.tap(find.text('Open'));
-      await tester.pumpAndSettle();
-
-      // Toggle public space on
-      await tester.tap(find.widgetWithText(SwitchListTile, 'Public space'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Not available for public spaces'), findsOneWidget);
+      expect(find.text('Create Space'), findsOneWidget);
     });
 
     testWidgets('cancel closes dialog', (tester) async {
-      await tester.pumpWidget(buildTestWidget());
-      await tester.tap(find.text('Open'));
-      await tester.pumpAndSettle();
-
+      await openWizard(tester);
       expect(find.text('Create Space'), findsOneWidget);
 
       await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
@@ -163,10 +233,23 @@ void main() {
 
       expect(find.text('Create Space'), findsNothing);
     });
+
+    testWidgets('narrow surface uses fullscreen Dialog', (tester) async {
+      await openWizard(tester, size: const Size(500, 800));
+
+      expect(find.byType(Dialog), findsOneWidget);
+      expect(find.byIcon(Icons.close), findsOneWidget);
+    });
+
+    testWidgets('wide surface uses AlertDialog', (tester) async {
+      await openWizard(tester, size: const Size(900, 800));
+
+      expect(find.byType(AlertDialog), findsOneWidget);
+    });
   });
 
   group('JoinSpaceDialog', () {
-    Widget buildTestWidget() {
+    Widget buildJoinTestWidget() {
       return MultiProvider(
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
@@ -189,7 +272,7 @@ void main() {
     }
 
     testWidgets('shows address field', (tester) async {
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildJoinTestWidget());
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
@@ -198,7 +281,7 @@ void main() {
     });
 
     testWidgets('validates empty address', (tester) async {
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildJoinTestWidget());
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
@@ -218,7 +301,7 @@ void main() {
           .thenAnswer((_) async => SyncUpdate(nextBatch: ''));
       when(mockClient.getRoomById('!space:example.com')).thenReturn(mockSpace);
 
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildJoinTestWidget());
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
@@ -236,7 +319,7 @@ void main() {
     testWidgets('shows error on join failure', (tester) async {
       when(mockClient.joinRoom(any)).thenThrow(Exception('Room not found'));
 
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildJoinTestWidget());
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
@@ -251,7 +334,7 @@ void main() {
     });
 
     testWidgets('cancel closes dialog', (tester) async {
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildJoinTestWidget());
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 

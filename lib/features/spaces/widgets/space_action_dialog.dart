@@ -6,6 +6,7 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
+import 'package:kohera/features/spaces/widgets/space_wizard.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -71,191 +72,14 @@ Future<void> showSpaceActionMenu(
 
 // ── Create Space dialog ─────────────────────────────────────────
 
-class CreateSpaceDialog extends StatefulWidget {
-  const CreateSpaceDialog._({required this.matrixService});
-
-  final MatrixService matrixService;
+class CreateSpaceDialog {
+  const CreateSpaceDialog._();
 
   static Future<void> show(
     BuildContext context, {
     required MatrixService matrixService,
   }) {
-    return showDialog(
-      context: context,
-      builder: (_) => CreateSpaceDialog._(matrixService: matrixService),
-    );
-  }
-
-  @override
-  State<CreateSpaceDialog> createState() => _CreateSpaceDialogState();
-}
-
-class _CreateSpaceDialogState extends State<CreateSpaceDialog> {
-  final _nameController = TextEditingController();
-  final _topicController = TextEditingController();
-  bool _isPublic = false;
-  bool _enableEncryption = true;
-  bool _enableFederation = false;
-  bool _loading = false;
-  String? _nameError;
-  String? _networkError;
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _topicController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    final name = _nameController.text.trim();
-    if (name.isEmpty) {
-      setState(() {
-        _nameError = 'Name is required';
-        _networkError = null;
-      });
-      return;
-    }
-
-    setState(() {
-      _loading = true;
-      _nameError = null;
-      _networkError = null;
-    });
-
-    try {
-      final client = widget.matrixService.client;
-      final topic = _topicController.text.trim();
-
-      final roomId = await client.createRoom(
-        name: name,
-        topic: topic.isNotEmpty ? topic : null,
-        creationContent: {
-          'type': 'm.space',
-          if (!_enableFederation) 'm.federate': false,
-        },
-        initialState: [
-          if (_enableEncryption)
-            StateEvent(
-              content: {
-                'algorithm':
-                    Client.supportedGroupEncryptionAlgorithms.first,
-              },
-              type: EventTypes.Encryption,
-            ),
-        ],
-        visibility: _isPublic ? Visibility.public : Visibility.private,
-        powerLevelContentOverride: {'events_default': 100},
-      );
-
-      await client
-          .waitForRoomInSync(roomId, join: true)
-          .timeout(const Duration(seconds: 30));
-
-      if (!mounted) return;
-      context.read<SelectionService>().selectSpace(roomId);
-      Navigator.pop(context);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _networkError = MatrixService.friendlyAuthError(e));
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-
-    return AlertDialog(
-      title: const Text('Create Space'),
-      content: SizedBox(
-        width: 400,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _nameController,
-              autofocus: true,
-              enabled: !_loading,
-              decoration: InputDecoration(
-                labelText: 'Name',
-                border: const OutlineInputBorder(),
-                errorText: _nameError,
-              ),
-              onSubmitted: (_) => _submit(),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _topicController,
-              enabled: !_loading,
-              decoration: const InputDecoration(
-                labelText: 'Topic (optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              title: const Text('Public space'),
-              value: _isPublic,
-              onChanged: _loading
-                  ? null
-                  : (v) => setState(() {
-                        _isPublic = v;
-                        if (v) _enableEncryption = false;
-                      }),
-              contentPadding: EdgeInsets.zero,
-            ),
-            SwitchListTile(
-              title: const Text('Enable encryption'),
-              subtitle: Text(
-                _isPublic
-                    ? 'Not available for public spaces'
-                    : 'Cannot be disabled later',
-                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
-              ),
-              value: _enableEncryption,
-              onChanged: _loading || _isPublic
-                  ? null
-                  : (v) => setState(() => _enableEncryption = v),
-              contentPadding: EdgeInsets.zero,
-            ),
-            SwitchListTile(
-              title: const Text('Allow federation'),
-              value: _enableFederation,
-              onChanged: _loading
-                  ? null
-                  : (v) => setState(() => _enableFederation = v),
-              contentPadding: EdgeInsets.zero,
-            ),
-            if (_networkError != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  _networkError!,
-                  style: TextStyle(color: cs.error, fontSize: 13),
-                ),
-              ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _loading ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _loading ? null : _submit,
-          child: _loading
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2.5),
-                )
-              : const Text('Create'),
-        ),
-      ],
-    );
+    return SpaceWizard.show(context, matrixService: matrixService);
   }
 }
 

@@ -39,6 +39,10 @@ void main() {
 
   Widget buildTestWidget() {
     return MaterialApp(
+      builder: (context, child) => MediaQuery(
+        data: const MediaQueryData(size: Size(900, 900)),
+        child: child!,
+      ),
       home: Scaffold(
         body: Builder(
           builder: (context) => ElevatedButton(
@@ -60,27 +64,43 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('shows name and topic fields with parent space context',
-      (tester) async {
-    await openDialog(tester);
+  Future<void> advanceToStep3(WidgetTester tester, String name) async {
+    await tester.enterText(find.widgetWithText(TextField, 'Name'), name);
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+    await tester.pumpAndSettle();
+  }
 
-    expect(find.text('Create subspace'), findsOneWidget);
-    expect(find.widgetWithText(TextField, 'Name'), findsOneWidget);
-    expect(
-        find.widgetWithText(TextField, 'Topic (optional)'), findsOneWidget,);
+  testWidgets('title shows parent space name', (tester) async {
+    await openDialog(tester);
     expect(find.textContaining('Parent Space'), findsOneWidget);
   });
 
-  testWidgets('validates empty name', (tester) async {
+  testWidgets('federation defaults on for subspace', (tester) async {
     await openDialog(tester);
-
-    await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+    await tester.enterText(find.widgetWithText(TextField, 'Name'), 'X');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, 'Next'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Name is required'), findsOneWidget);
+    final fedSwitch = tester.widget<SwitchListTile>(
+      find.widgetWithText(SwitchListTile, 'Allow federation'),
+    );
+    expect(fedSwitch.value, isTrue);
   });
 
-  testWidgets('submitting calls createRoom and setSpaceChild', (tester) async {
+  testWidgets('Next disabled until name entered', (tester) async {
+    await openDialog(tester);
+    final nextBtn = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Next'),
+    );
+    expect(nextBtn.onPressed, isNull);
+  });
+
+  testWidgets('create calls createRoom + setSpaceChild, no selectSpace',
+      (tester) async {
     when(mockClient.createRoom(
       name: anyNamed('name'),
       topic: anyNamed('topic'),
@@ -88,34 +108,49 @@ void main() {
       visibility: anyNamed('visibility'),
       powerLevelContentOverride: anyNamed('powerLevelContentOverride'),
     ),).thenAnswer((_) async => '!subspace:example.com');
-
     when(mockClient.waitForRoomInSync(any, join: anyNamed('join')))
         .thenAnswer((_) async => SyncUpdate(nextBatch: ''));
 
     await openDialog(tester);
-
-    await tester.enterText(
-        find.widgetWithText(TextField, 'Name'), 'My Subspace',);
-    await tester.enterText(
-        find.widgetWithText(TextField, 'Topic (optional)'), 'A topic',);
+    await advanceToStep3(tester, 'My Subspace');
     await tester.tap(find.widgetWithText(FilledButton, 'Create'));
     await tester.pumpAndSettle();
 
     verify(mockClient.createRoom(
       name: 'My Subspace',
-      topic: 'A topic',
+      topic: anyNamed('topic'),
       creationContent: anyNamed('creationContent'),
       visibility: anyNamed('visibility'),
       powerLevelContentOverride: anyNamed('powerLevelContentOverride'),
     ),).called(1);
-
     verify(mockParentSpace.setSpaceChild('!subspace:example.com')).called(1);
-
-    // Dialog should close on success.
-    expect(find.text('Create subspace'), findsNothing);
+    expect(selectionService.selectedSpaceIds,
+        isNot(contains('!subspace:example.com')),);
   });
 
-  testWidgets('shows error on failure', (tester) async {
+  testWidgets('child-link failure shows snackbar, space still created',
+      (tester) async {
+    when(mockClient.createRoom(
+      name: anyNamed('name'),
+      topic: anyNamed('topic'),
+      creationContent: anyNamed('creationContent'),
+      visibility: anyNamed('visibility'),
+      powerLevelContentOverride: anyNamed('powerLevelContentOverride'),
+    ),).thenAnswer((_) async => '!sub:example.com');
+    when(mockClient.waitForRoomInSync(any, join: anyNamed('join')))
+        .thenAnswer((_) async => SyncUpdate(nextBatch: ''));
+    when(mockParentSpace.setSpaceChild(any))
+        .thenThrow(Exception('forbidden'));
+
+    await openDialog(tester);
+    await advanceToStep3(tester, 'X');
+    await tester.tap(find.widgetWithText(FilledButton, 'Create'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Failed to add to parent space'), findsOneWidget);
+  });
+
+  testWidgets('shows error on createRoom failure', (tester) async {
     when(mockClient.createRoom(
       name: anyNamed('name'),
       topic: anyNamed('topic'),
@@ -125,25 +160,20 @@ void main() {
     ),).thenThrow(Exception('Server error'));
 
     await openDialog(tester);
-
-    await tester.enterText(
-        find.widgetWithText(TextField, 'Name'), 'Bad Subspace',);
+    await advanceToStep3(tester, 'Bad');
     await tester.tap(find.widgetWithText(FilledButton, 'Create'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Server error'), findsOneWidget);
-    // Dialog should remain open.
-    expect(find.text('Create subspace'), findsOneWidget);
   });
 
   testWidgets('cancel closes dialog', (tester) async {
     await openDialog(tester);
-
-    expect(find.text('Create subspace'), findsOneWidget);
+    expect(find.textContaining('Parent Space'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Create subspace'), findsNothing);
+    expect(find.textContaining('Parent Space'), findsNothing);
   });
 }
