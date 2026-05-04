@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:giphy_get/giphy_get.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
@@ -14,6 +15,7 @@ import 'package:kohera/features/chat/services/compose_state_controller.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_mixin.dart';
+import 'package:kohera/features/chat/widgets/attachment_source_sheet.dart';
 import 'package:kohera/features/chat/widgets/chat_app_bar.dart';
 import 'package:kohera/features/chat/widgets/compose_bar_section.dart';
 import 'package:kohera/features/chat/widgets/desktop_drop_wrapper.dart';
@@ -21,6 +23,7 @@ import 'package:kohera/features/chat/widgets/file_send_handler.dart';
 import 'package:kohera/features/chat/widgets/gif_send_handler.dart';
 import 'package:kohera/features/chat/widgets/join_call_banner.dart';
 import 'package:kohera/features/chat/widgets/message_list_view.dart';
+import 'package:kohera/features/chat/widgets/photo_send_handler.dart';
 import 'package:kohera/features/chat/widgets/search_results_body.dart';
 import 'package:kohera/features/chat/widgets/typing_indicator.dart';
 import 'package:matrix/matrix.dart';
@@ -164,6 +167,46 @@ class _ChatScreenState extends State<ChatScreen>
 
   void _addAttachment(PendingAttachment attachment) {
     _showAttachmentError(_compose.addAttachment(attachment));
+  }
+
+  Future<void> _handleAttachPressed() async {
+    final isMobileTouch = !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.android);
+
+    if (!isMobileTouch) {
+      final attachment = await pickFileAsAttachment();
+      if (attachment != null && mounted) _addAttachment(attachment);
+      return;
+    }
+
+    final source = await showAttachmentSourceSheet(context);
+    if (source == null || !mounted) return;
+
+    switch (source) {
+      case AttachmentSource.file:
+        final attachment = await pickFileAsAttachment();
+        if (attachment != null && mounted) _addAttachment(attachment);
+      case AttachmentSource.camera:
+        final attachment = await takePhotoWithCamera();
+        if (attachment != null && mounted) _addAttachment(attachment);
+      case AttachmentSource.gallery:
+        final remaining = ComposeStateController.maxAttachments -
+            _compose.pendingAttachments.value.length;
+        if (remaining <= 0) {
+          _showAttachmentError(AddAttachmentResult.tooMany);
+          return;
+        }
+        final picked = await pickMediaFromGallery(limit: remaining);
+        if (!mounted) return;
+        for (final attachment in picked) {
+          final result = _compose.addAttachment(attachment);
+          if (result != AddAttachmentResult.ok) {
+            _showAttachmentError(result);
+            break;
+          }
+        }
+    }
   }
 
   Future<void> _handlePasteImage() async {
@@ -312,10 +355,7 @@ class _ChatScreenState extends State<ChatScreen>
           onSend: _actions.send,
           onCancelReply: _compose.cancelReply,
           onCancelEdit: () => _compose.cancelEdit(_msgCtrl),
-          onAttach: () async {
-            final attachment = await pickFileAsAttachment();
-            if (attachment != null && mounted) _addAttachment(attachment);
-          },
+          onAttach: _handleAttachPressed,
           onGif: AppConfig.isInitialized && AppConfig.instance.giphyEnabled
               ? () async {
                   final gif = await GiphyGet.getGif(
