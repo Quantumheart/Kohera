@@ -79,6 +79,17 @@ class InboxController extends ChangeNotifier {
   Map<String, Object?>? decryptedContentFor(String eventId) =>
       _decryptedContent[eventId];
 
+  String? threadRootIdFor(matrix_sdk.Notification n) {
+    final content = _decryptedContent[n.event.eventId] ?? n.event.content;
+    final relatesTo = content['m.relates_to'];
+    if (relatesTo is Map &&
+        relatesTo['rel_type'] == matrix_sdk.RelationshipTypes.thread) {
+      final id = relatesTo['event_id'];
+      if (id is String) return id;
+    }
+    return null;
+  }
+
   // ── Unread count cache helper ──────────────────────────────
 
   void _updateUnreadCount() {
@@ -236,21 +247,27 @@ class InboxController extends ChangeNotifier {
     final room = _client.getRoomById(roomId);
     if (room == null) return;
 
-    String? eventId;
-    var latestTs = -1;
+    String? mainEventId;
+    var mainTs = -1;
+    final perThread = <String, ({String eventId, int ts})>{};
     for (final group in _grouped) {
-      if (group.roomId == roomId) {
-        for (final n in group.notifications) {
-          if (n.ts > latestTs) {
-            latestTs = n.ts;
-            eventId = n.event.eventId;
+      if (group.roomId != roomId) continue;
+      for (final n in group.notifications) {
+        final threadId = threadRootIdFor(n);
+        if (threadId != null) {
+          final cur = perThread[threadId];
+          if (cur == null || n.ts > cur.ts) {
+            perThread[threadId] = (eventId: n.event.eventId, ts: n.ts);
           }
+        } else if (n.ts > mainTs) {
+          mainTs = n.ts;
+          mainEventId = n.event.eventId;
         }
-        break;
       }
+      break;
     }
-    eventId ??= room.lastEvent?.eventId;
-    if (eventId == null) return;
+    mainEventId ??= room.lastEvent?.eventId;
+    if (mainEventId == null && perThread.isEmpty) return;
 
     _markingAsRead = true;
     _grouped = [
@@ -262,7 +279,17 @@ class InboxController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
 
     try {
-      await room.setReadMarker(eventId, mRead: eventId);
+      if (mainEventId != null) {
+        await room.setReadMarker(mainEventId, mRead: mainEventId);
+      }
+      for (final entry in perThread.entries) {
+        await _client.postReceipt(
+          roomId,
+          matrix_sdk.ReceiptType.mRead,
+          entry.value.eventId,
+          threadId: entry.key,
+        );
+      }
       await fetch();
     } catch (e) {
       if (_isTokenExpired(e)) {
