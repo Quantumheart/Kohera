@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -33,6 +35,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
 
   late ChatMessageActions _actions;
   bool _loadingRoot = true;
+  bool _focusReady = false;
 
   @override
   void initState() {
@@ -47,7 +50,11 @@ class _ThreadScreenState extends State<ThreadScreen> {
       getScaffold: () => ScaffoldMessenger.of(context),
       getMatrixService: () => context.read<MatrixService>(),
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadRoot());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      setState(() => _focusReady = true);
+      unawaited(_loadRoot());
+    });
   }
 
   Future<void> _loadRoot() async {
@@ -132,7 +139,9 @@ class _ThreadScreenState extends State<ThreadScreen> {
             : null,
         title: const Text('Thread'),
       ),
-      body: Column(
+      body: ExcludeFocus(
+        excluding: !_focusReady,
+        child: Column(
         children: [
           Expanded(
             child: MessageListView(
@@ -166,6 +175,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
             onClearAttachments: _compose.clearAttachments,
           ),
         ],
+      ),
       ),
     );
   }
