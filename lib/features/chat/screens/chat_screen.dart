@@ -164,13 +164,17 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _openThread(Event rootEvent) {
-    unawaited(context.pushNamed(
-      Routes.roomThread,
-      pathParameters: {
-        'roomId': widget.roomId,
-        'eventId': rootEvent.eventId,
-      },
-    ),);
+    if (_composeFocusNode.hasFocus) _composeFocusNode.unfocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(context.pushNamed(
+        Routes.roomThread,
+        pathParameters: {
+          'roomId': widget.roomId,
+          'eventId': rootEvent.eventId,
+        },
+      ),);
+    });
   }
 
   void _replyInThread(Event event) {
