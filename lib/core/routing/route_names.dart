@@ -7,6 +7,7 @@ abstract class Routes {
   static const room = 'room';
   static const roomDetails = 'room-details';
   static const roomThread = 'room-thread';
+  static const roomThreads = 'room-threads';
   static const spaces = 'spaces';
   static const settings = 'settings';
   static const settingsAppearance = 'settings-appearance';

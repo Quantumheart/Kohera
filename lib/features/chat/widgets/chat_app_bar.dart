@@ -18,6 +18,8 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.onBack,
     this.onShowDetails,
     this.onPinnedEvent,
+    this.onShowThreads,
+    this.threadUnreadCount = 0,
   });
 
   final Room room;
@@ -25,6 +27,8 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onShowDetails;
   final VoidCallback onSearch;
   final void Function(Event event)? onPinnedEvent;
+  final VoidCallback? onShowThreads;
+  final int threadUnreadCount;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -95,6 +99,18 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         if (context.select<CallService, bool>((s) => s.isCallingAvailable))
           _CallButton(room: room),
+        if (onShowThreads != null)
+          IconButton(
+            mouseCursor: SystemMouseCursors.click,
+            tooltip: 'Threads',
+            icon: threadUnreadCount > 0
+                ? Badge.count(
+                    count: threadUnreadCount,
+                    child: const Icon(Icons.forum_outlined),
+                  )
+                : const Icon(Icons.forum_outlined),
+            onPressed: onShowThreads,
+          ),
         IconButton(
           mouseCursor: SystemMouseCursors.click,
           icon: const Icon(Icons.search_rounded),

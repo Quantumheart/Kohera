@@ -51,7 +51,8 @@ class _NarrowLayoutState extends State<NarrowLayout> {
     if ((name == Routes.room ||
             name == Routes.call ||
             name == Routes.roomDetails ||
-            name == Routes.roomThread) &&
+            name == Routes.roomThread ||
+            name == Routes.roomThreads) &&
         widget.roomId != null) {
       return true;
     }

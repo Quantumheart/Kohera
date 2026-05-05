@@ -13,10 +13,12 @@ import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
+import 'package:kohera/features/chat/screens/thread_list_screen.dart';
 import 'package:kohera/features/chat/screens/thread_screen.dart';
 import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/chat_search_controller.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
+import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_mixin.dart';
@@ -85,6 +87,7 @@ class _ChatScreenState extends State<ChatScreen>
 
   // ── Thread side pane (desktop) ─────────────────────────
   String? _activeThreadEventId;
+  bool _showThreadList = false;
 
   // ── Search ─────────────────────────────────────────────
   late ChatSearchController _search;
@@ -169,7 +172,10 @@ class _ChatScreenState extends State<ChatScreen>
 
   void _openThread(Event rootEvent) {
     if (_isDesktop) {
-      setState(() => _activeThreadEventId = rootEvent.eventId);
+      setState(() {
+        _activeThreadEventId = rootEvent.eventId;
+        _showThreadList = false;
+      });
       return;
     }
     unawaited(context.pushNamed(
@@ -183,6 +189,24 @@ class _ChatScreenState extends State<ChatScreen>
 
   void _closeThread() {
     setState(() => _activeThreadEventId = null);
+  }
+
+  void _openThreadList() {
+    if (_isDesktop) {
+      setState(() {
+        _showThreadList = true;
+        _activeThreadEventId = null;
+      });
+      return;
+    }
+    unawaited(context.pushNamed(
+      Routes.roomThreads,
+      pathParameters: {'roomId': widget.roomId},
+    ),);
+  }
+
+  void _closeThreadList() {
+    setState(() => _showThreadList = false);
   }
 
   void _replyInThread(Event event) {
@@ -325,6 +349,14 @@ class _ChatScreenState extends State<ChatScreen>
         onClose: _closeSearch,
       );
     } else {
+      final timeline = _messageListKey.currentState?.timeline;
+      final summaries = timeline == null
+          ? const <ThreadSummary>[]
+          : deriveThreadSummaries(
+              timeline: timeline,
+              room: room,
+              myUserId: matrix.client.userID ?? '',
+            );
       appBar = ChatAppBar(
         room: room,
         onBack: widget.onBack,
@@ -332,6 +364,8 @@ class _ChatScreenState extends State<ChatScreen>
         onSearch: _openSearch,
         onPinnedEvent: (event) =>
             _messageListKey.currentState?.navigateToEvent(event),
+        onShowThreads: summaries.isEmpty ? null : _openThreadList,
+        threadUnreadCount: totalThreadUnread(summaries),
       );
     }
 
@@ -439,22 +473,33 @@ class _ChatScreenState extends State<ChatScreen>
     );
 
     final threadId = _activeThreadEventId;
-    if (_isDesktop && threadId != null) {
+    if (_isDesktop && (threadId != null || _showThreadList)) {
       final cs = Theme.of(context).colorScheme;
+      final Widget pane;
+      if (threadId != null) {
+        pane = ThreadScreen(
+          roomId: widget.roomId,
+          threadRootEventId: threadId,
+          onClose: _closeThread,
+          key: ValueKey('thread-${widget.roomId}-$threadId'),
+        );
+      } else {
+        pane = ThreadListScreen(
+          roomId: widget.roomId,
+          onOpenThread: (id) => setState(() {
+            _activeThreadEventId = id;
+            _showThreadList = false;
+          }),
+          onClose: _closeThreadList,
+          key: ValueKey('threads-${widget.roomId}'),
+        );
+      }
       return Row(
         children: [
           Expanded(child: body),
           VerticalDivider(
               width: 1, color: cs.outlineVariant.withValues(alpha: 0.3),),
-          SizedBox(
-            width: 380,
-            child: ThreadScreen(
-              roomId: widget.roomId,
-              threadRootEventId: threadId,
-              onClose: _closeThread,
-              key: ValueKey('thread-${widget.roomId}-$threadId'),
-            ),
-          ),
+          SizedBox(width: 380, child: pane),
         ],
       );
     }
