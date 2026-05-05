@@ -280,8 +280,28 @@ class _NotificationTile extends StatelessWidget {
 
     final body = _extractBody(context, event);
     final ts = DateTime.fromMillisecondsSinceEpoch(notification.ts);
+    final threadRootId =
+        context.read<InboxController>().threadRootIdFor(notification);
 
-    return Padding(
+    return InkWell(
+      mouseCursor: SystemMouseCursors.click,
+      onTap: () {
+        if (threadRootId != null) {
+          context.goNamed(
+            Routes.roomThread,
+            pathParameters: {
+              'roomId': notification.roomId,
+              'eventId': threadRootId,
+            },
+          );
+        } else {
+          context.goNamed(
+            Routes.room,
+            pathParameters: {'roomId': notification.roomId},
+          );
+        }
+      },
+      child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,6 +339,19 @@ class _NotificationTile extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (threadRootId != null) ...[
+                      Icon(Icons.forum_outlined,
+                          size: 12, color: cs.primary,),
+                      const SizedBox(width: 4),
+                      Text(
+                        InboxText.inThread,
+                        style: tt.labelSmall?.copyWith(
+                          color: cs.primary,
+                          fontSize: 10,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
                     Text(
                       formatRelativeTimestamp(ts),
                       style: tt.bodySmall?.copyWith(
@@ -344,6 +377,7 @@ class _NotificationTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

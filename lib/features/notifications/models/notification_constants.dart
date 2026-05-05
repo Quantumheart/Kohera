@@ -67,6 +67,7 @@ abstract class InboxText {
   static const mediaAudio = '🎵 Audio';
   static const mediaFile = '📎 File';
   static const loadMore = 'Load more';
+  static const inThread = 'in thread';
 
   static String invitationsWithCount(int count) => 'Invites ($count)';
 }
