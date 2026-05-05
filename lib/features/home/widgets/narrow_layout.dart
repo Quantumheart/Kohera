@@ -48,7 +48,10 @@ class _NarrowLayoutState extends State<NarrowLayout> {
 
   bool _isHideChromeRoute(String? name) {
     if (name == null) return false;
-    if ((name == Routes.room || name == Routes.call || name == Routes.roomDetails) &&
+    if ((name == Routes.room ||
+            name == Routes.call ||
+            name == Routes.roomDetails ||
+            name == Routes.roomThread) &&
         widget.roomId != null) {
       return true;
     }
