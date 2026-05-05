@@ -32,7 +32,12 @@ class ThreadIndicatorChip extends StatelessWidget {
         left: isMe ? 0 : 4,
         right: isMe ? 4 : 0,
       ),
-      child: MouseRegion(
+      child: Semantics(
+        button: true,
+        label: unreadCount > 0
+            ? 'View thread, $label, $unreadCount unread'
+            : 'View thread, $label',
+        child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: InkWell(
         onTap: onTap,
@@ -72,6 +77,7 @@ class ThreadIndicatorChip extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
       ),
     );

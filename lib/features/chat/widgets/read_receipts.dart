@@ -11,7 +11,11 @@ import 'package:matrix/matrix.dart';
 /// Iterates [room.receiptState.global.otherUsers] (and optionally
 /// mainThread) once, so cost is O(N) where N = number of users with
 /// receipts, rather than O(N×M) if we queried per-event.
-Map<String, List<Receipt>> buildReceiptMap(Room room, String? myUserId) {
+Map<String, List<Receipt>> buildReceiptMap(
+  Room room,
+  String? myUserId, {
+  String? threadRootId,
+}) {
   final map = <String, List<Receipt>>{};
   final seen = <String>{};
 
@@ -26,6 +30,12 @@ Map<String, List<Receipt>> buildReceiptMap(Room room, String? myUserId) {
       final receipt = Receipt(user, data.timestamp);
       (map[data.eventId] ??= []).add(receipt);
     }
+  }
+
+  if (threadRootId != null) {
+    final threadState = room.receiptState.byThread[threadRootId];
+    if (threadState != null) addReceipts(threadState.otherUsers);
+    return map;
   }
 
   addReceipts(room.receiptState.global.otherUsers);
