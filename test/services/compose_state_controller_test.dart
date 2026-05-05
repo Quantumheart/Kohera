@@ -152,6 +152,23 @@ void main() {
     });
   });
 
+  group('thread', () {
+    test('setThreadRoot sets notifier and clears reply', () {
+      controller.setReplyTo(MockEvent());
+      final root = MockEvent();
+      controller.setThreadRoot(root);
+
+      expect(controller.threadRootNotifier.value, root);
+      expect(controller.replyNotifier.value, isNull);
+    });
+
+    test('clearThreadRoot clears notifier', () {
+      controller.setThreadRoot(MockEvent());
+      controller.clearThreadRoot();
+      expect(controller.threadRootNotifier.value, isNull);
+    });
+  });
+
   group('reset', () {
     test('clears all state and msgCtrl', () {
       controller.setReplyTo(MockEvent());
@@ -159,6 +176,7 @@ void main() {
       when(editEvent.getDisplayEvent(any)).thenReturn(editEvent);
       when(editEvent.body).thenReturn('text');
       controller.setEditEvent(editEvent, MockTimeline(), msgCtrl);
+      controller.setThreadRoot(MockEvent());
       controller.addAttachment(
         PendingAttachment(
           bytes: Uint8List(1),
@@ -171,6 +189,7 @@ void main() {
 
       expect(controller.replyNotifier.value, isNull);
       expect(controller.editNotifier.value, isNull);
+      expect(controller.threadRootNotifier.value, isNull);
       expect(controller.pendingAttachments.value, isEmpty);
       expect(msgCtrl.text, isEmpty);
     });

@@ -12,8 +12,10 @@ Future<void> sendVoiceMessage(
   String roomId,
   ValueNotifier<UploadState?> uploadNotifier,
   String filePath,
-  Duration duration,
-) async {
+  Duration duration, {
+  String? threadRootEventId,
+  String? threadLastEventId,
+}) async {
   final scaffold = ScaffoldMessenger.of(context);
   final matrix = context.read<MatrixService>();
   final room = matrix.client.getRoomById(roomId);
@@ -31,6 +33,8 @@ Future<void> sendVoiceMessage(
     final matrixFile = MatrixAudioFile(bytes: bytes, name: name);
     await room.sendFileEvent(
       matrixFile,
+      threadRootEventId: threadRootEventId,
+      threadLastEventId: threadLastEventId,
       extraContent: {
         'info': {
           'duration': duration.inMilliseconds,

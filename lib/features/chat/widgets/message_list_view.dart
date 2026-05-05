@@ -27,6 +27,9 @@ class MessageListView extends StatefulWidget {
     this.initialEventId,
     this.highlightedEventId,
     this.onScrollBack,
+    this.threadRootEventId,
+    this.onReplyInThread,
+    this.onOpenThread,
     super.key,
   });
 
@@ -34,12 +37,15 @@ class MessageListView extends StatefulWidget {
   final MatrixService matrix;
   final String? initialEventId;
   final String? highlightedEventId;
+  final String? threadRootEventId;
   final void Function(Event event) onReply;
   final void Function(Event event, Timeline? timeline) onEdit;
   final Future<void> Function(Event event, String emoji) onToggleReaction;
   final Future<void> Function(Event event) onPin;
   final void Function(String eventId) onHighlight;
   final VoidCallback? onScrollBack;
+  final void Function(Event event)? onReplyInThread;
+  final void Function(Event event)? onOpenThread;
 
   @override
   State<MessageListView> createState() => MessageListViewState();
@@ -81,6 +87,8 @@ class MessageListViewState extends State<MessageListView> {
       _readMarkerTimer?.cancel();
       _cachedVisibleEvents = null;
       unawaited(_initTimeline());
+    } else if (oldWidget.threadRootEventId != widget.threadRootEventId) {
+      _cachedVisibleEvents = null;
     }
   }
 
@@ -164,19 +172,32 @@ class MessageListViewState extends State<MessageListView> {
     if (_cachedVisibleEvents != null) return _cachedVisibleEvents!;
     final events = _timeline?.events;
     if (events == null) return [];
+    final threadRootId = widget.threadRootEventId;
     _cachedVisibleEvents = events
         .where((e) =>
-            ((e.type == EventTypes.Message || e.type == EventTypes.Encrypted) &&
-                e.relationshipType != RelationshipTypes.edit &&
-                !_isCallMemberEvent(e)) ||
-            callEventTypes.contains(e.type) ||
-            _isStateEvent(e) ||
-            e.type == EventTypes.Sticker,)
+            (((e.type == EventTypes.Message ||
+                            e.type == EventTypes.Encrypted) &&
+                        e.relationshipType != RelationshipTypes.edit &&
+                        !_isCallMemberEvent(e)) ||
+                    callEventTypes.contains(e.type) ||
+                    _isStateEvent(e) ||
+                    e.type == EventTypes.Sticker) &&
+            _matchesThread(e, threadRootId),)
         .toList();
     return _cachedVisibleEvents!;
   }
 
+  static bool _matchesThread(Event event, String? threadRootId) {
+    if (threadRootId == null) {
+      return event.relationshipType != RelationshipTypes.thread;
+    }
+    if (event.eventId == threadRootId) return true;
+    if (event.relationshipType != RelationshipTypes.thread) return false;
+    return event.relationshipEventId == threadRootId;
+  }
+
   void _markAsRead() {
+    if (widget.threadRootEventId != null) return;
     _readMarkerTimer?.cancel();
     _readMarkerTimer = Timer(_readMarkerDelay, () async {
       if (!mounted) return;
@@ -472,6 +493,9 @@ class MessageListViewState extends State<MessageListView> {
               onToggleReaction: widget.onToggleReaction,
               onPin: widget.onPin,
               onTapReply: _navigateToEvent,
+              onReplyInThread: widget.onReplyInThread,
+              onOpenThread: widget.onOpenThread,
+              inThread: widget.threadRootEventId != null,
             );
           }
 

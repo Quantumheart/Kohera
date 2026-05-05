@@ -12,6 +12,8 @@ Future<void> sendGifFromUrl({
   required String url,
   required String title,
   required ValueNotifier<UploadState?> uploadNotifier,
+  String? threadRootEventId,
+  String? threadLastEventId,
 }) async {
   final name = '${title.replaceAll(RegExp(r'[^\w\s-]'), '')}.gif';
   uploadNotifier.value = UploadState(
@@ -26,7 +28,11 @@ Future<void> sendGifFromUrl({
     }
 
     final file = MatrixFile.fromMimeType(bytes: response.bodyBytes, name: name);
-    await room.sendFileEvent(file);
+    await room.sendFileEvent(
+      file,
+      threadRootEventId: threadRootEventId,
+      threadLastEventId: threadLastEventId,
+    );
     uploadNotifier.value = null;
   } on FileTooBigMatrixException {
     uploadNotifier.value = null;

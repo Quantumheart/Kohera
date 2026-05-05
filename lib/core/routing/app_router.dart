@@ -12,6 +12,7 @@ import 'package:kohera/features/auth/screens/registration_screen.dart';
 import 'package:kohera/features/calling/screens/call_pane.dart';
 import 'package:kohera/features/calling/screens/call_screen.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
+import 'package:kohera/features/chat/screens/thread_screen.dart';
 import 'package:kohera/features/e2ee/screens/e2ee_setup_screen.dart';
 import 'package:kohera/features/e2ee/screens/show_recovery_key_screen.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
@@ -183,6 +184,19 @@ GoRouter buildRouter(ClientManager manager) {
                     builder: (context, state) {
                       final roomId = state.pathParameters['roomId']!;
                       return _AdaptiveCallScreen(roomId: roomId);
+                    },
+                  ),
+                  GoRoute(
+                    path: 'thread/:eventId',
+                    name: Routes.roomThread,
+                    builder: (context, state) {
+                      final roomId = state.pathParameters['roomId']!;
+                      final eventId = state.pathParameters['eventId']!;
+                      return ThreadScreen(
+                        roomId: roomId,
+                        threadRootEventId: eventId,
+                        key: ValueKey('thread-$roomId-$eventId'),
+                      );
                     },
                   ),
                 ],

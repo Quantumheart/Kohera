@@ -17,6 +17,9 @@ class ComposeStateController {
   // ── Edit state ──────────────────────────────────────────
   final editNotifier = ValueNotifier<Event?>(null);
 
+  // ── Thread state ────────────────────────────────────────
+  final threadRootNotifier = ValueNotifier<Event?>(null);
+
   // ── Upload state ────────────────────────────────────────
   final uploadNotifier = ValueNotifier<UploadState?>(null);
 
@@ -30,6 +33,18 @@ class ComposeStateController {
   }
 
   void cancelReply() {
+    replyNotifier.value = null;
+  }
+
+  // ── Thread ──────────────────────────────────────────────
+
+  void setThreadRoot(Event event) {
+    threadRootNotifier.value = event;
+    replyNotifier.value = null;
+  }
+
+  void clearThreadRoot() {
+    threadRootNotifier.value = null;
     replyNotifier.value = null;
   }
 
@@ -94,6 +109,7 @@ class ComposeStateController {
   void reset(TextEditingController msgCtrl) {
     replyNotifier.value = null;
     editNotifier.value = null;
+    threadRootNotifier.value = null;
     pendingAttachments.value = [];
     msgCtrl.clear();
   }
@@ -103,6 +119,7 @@ class ComposeStateController {
   void dispose() {
     replyNotifier.dispose();
     editNotifier.dispose();
+    threadRootNotifier.dispose();
     uploadNotifier.dispose();
     pendingAttachments.dispose();
   }

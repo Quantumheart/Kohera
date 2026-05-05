@@ -1273,6 +1273,16 @@ class MockClientManager extends _i1.Mock implements _i17.ClientManager {
       ) as _i12.Future<void>);
 
   @override
+  _i12.Future<void> signOut(_i9.MatrixService? service) => (super.noSuchMethod(
+        Invocation.method(
+          #signOut,
+          [service],
+        ),
+        returnValue: _i12.Future<void>.value(),
+        returnValueForMissingStub: _i12.Future<void>.value(),
+      ) as _i12.Future<void>);
+
+  @override
   _i12.Future<void> removeService(_i9.MatrixService? service) =>
       (super.noSuchMethod(
         Invocation.method(

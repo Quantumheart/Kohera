@@ -11,6 +11,7 @@ import 'package:kohera/features/chat/widgets/message_bubble.dart' show MessageBu
 import 'package:kohera/features/chat/widgets/reaction_chips.dart';
 import 'package:kohera/features/chat/widgets/read_receipts.dart';
 import 'package:kohera/features/chat/widgets/swipeable_message.dart';
+import 'package:kohera/features/chat/widgets/thread_indicator_chip.dart';
 import 'package:matrix/matrix.dart';
 
 class ChatMessageItem extends StatelessWidget {
@@ -28,6 +29,9 @@ class ChatMessageItem extends StatelessWidget {
     this.onEdit,
     this.onPin,
     this.onTapReply,
+    this.onReplyInThread,
+    this.onOpenThread,
+    this.inThread = false,
     super.key,
   });
 
@@ -43,6 +47,9 @@ class ChatMessageItem extends StatelessWidget {
   final void Function(Event event)? onEdit;
   final Future<void> Function(Event event)? onPin;
   final void Function(Event event)? onTapReply;
+  final void Function(Event event)? onReplyInThread;
+  final void Function(Event event)? onOpenThread;
+  final bool inThread;
   final Future<void> Function(Event event, String emoji) onToggleReaction;
 
   @override
@@ -55,6 +62,9 @@ class ChatMessageItem extends StatelessWidget {
 
     final hasReactions = timeline != null &&
         event.hasAggregatedEvents(timeline!, RelationshipTypes.reaction);
+    final hasThread = !inThread &&
+        timeline != null &&
+        event.hasAggregatedEvents(timeline!, RelationshipTypes.thread);
     final receipts = receiptMap[event.eventId]
         ?.where((r) => r.user.id != event.senderId)
         .toList();
@@ -102,8 +112,18 @@ class ChatMessageItem extends StatelessWidget {
           ? null
           : (emoji) => onToggleReaction(event, emoji),
       onPin: canPin ? () => onPin?.call(event) : null,
+      onReplyInThread:
+          isRedacted || inThread ? null : () => onReplyInThread?.call(event),
       reactionBubble: reactionBubble,
       subBubble: subBubble,
+      threadIndicator: hasThread
+          ? ThreadIndicatorChip(
+              event: event,
+              timeline: timeline!,
+              isMe: isMe,
+              onTap: () => onOpenThread?.call(event),
+            )
+          : null,
     );
 
     if (isMobile) {
@@ -134,6 +154,12 @@ class ChatMessageItem extends StatelessWidget {
         icon: Icons.reply_rounded,
         onTap: () => onReply?.call(event),
       ),
+      if (!inThread && onReplyInThread != null)
+        MessageAction(
+          label: 'Reply in thread',
+          icon: Icons.forum_outlined,
+          onTap: () => onReplyInThread?.call(event),
+        ),
       if (isMe)
         MessageAction(
           label: 'Edit',
