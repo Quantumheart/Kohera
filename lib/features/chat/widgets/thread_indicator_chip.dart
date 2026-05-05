@@ -30,7 +30,9 @@ class ThreadIndicatorChip extends StatelessWidget {
         left: isMe ? 0 : 4,
         right: isMe ? 4 : 0,
       ),
-      child: InkWell(
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
@@ -57,6 +59,7 @@ class ThreadIndicatorChip extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }
