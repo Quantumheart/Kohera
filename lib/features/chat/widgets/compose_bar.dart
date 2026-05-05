@@ -311,6 +311,8 @@ class _ComposeBarState extends State<ComposeBar> {
                     meta: _isMacOS, control: !_isMacOS,): _jumpToEnd,
               },
               child: Focus(
+                canRequestFocus: false,
+                descendantsAreFocusable: true,
                 onKeyEvent: _handleKeyEvent,
                 child: TextField(
                   controller: widget.controller,
