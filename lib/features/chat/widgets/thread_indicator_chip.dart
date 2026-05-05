@@ -7,6 +7,7 @@ class ThreadIndicatorChip extends StatelessWidget {
     required this.timeline,
     required this.isMe,
     required this.onTap,
+    this.unreadCount = 0,
     super.key,
   });
 
@@ -14,6 +15,7 @@ class ThreadIndicatorChip extends StatelessWidget {
   final Timeline timeline;
   final bool isMe;
   final VoidCallback onTap;
+  final int unreadCount;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +58,17 @@ class ThreadIndicatorChip extends StatelessWidget {
                 'View thread',
                 style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
               ),
+              if (unreadCount > 0) ...[
+                const SizedBox(width: 6),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: cs.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
             ],
           ),
         ),

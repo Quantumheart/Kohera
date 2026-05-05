@@ -10,6 +10,7 @@ import 'package:kohera/features/chat/widgets/message_action_sheet.dart';
 import 'package:kohera/features/chat/widgets/message_bubble.dart' show MessageBubble;
 import 'package:kohera/features/chat/widgets/reaction_chips.dart';
 import 'package:kohera/features/chat/widgets/read_receipts.dart';
+import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/widgets/swipeable_message.dart';
 import 'package:kohera/features/chat/widgets/thread_indicator_chip.dart';
 import 'package:matrix/matrix.dart';
@@ -121,6 +122,12 @@ class ChatMessageItem extends StatelessWidget {
               event: event,
               timeline: timeline!,
               isMe: isMe,
+              unreadCount: threadUnreadCountFor(
+                root: event,
+                timeline: timeline!,
+                room: room,
+                myUserId: client.userID ?? '',
+              ),
               onTap: () => onOpenThread?.call(event),
             )
           : null,
