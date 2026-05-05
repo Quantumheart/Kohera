@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
-import 'package:matrix/matrix.dart';
 
 class ThreadListTile extends StatelessWidget {
   const ThreadListTile({

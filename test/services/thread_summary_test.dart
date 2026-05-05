@@ -119,11 +119,11 @@ void main() {
     test('unreadCount counts other-user replies newer than thread receipt', () {
       final root = _event(id: r'$root', sender: _other, ts: 1000);
       final r1 = _event(
-          id: r'$r1', sender: _other, ts: 2000, threadRootId: r'$root');
+          id: r'$r1', sender: _other, ts: 2000, threadRootId: r'$root',);
       final r2 = _event(
-          id: r'$r2', sender: _me, ts: 3000, threadRootId: r'$root');
+          id: r'$r2', sender: _me, ts: 3000, threadRootId: r'$root',);
       final r3 = _event(
-          id: r'$r3', sender: _other, ts: 4000, threadRootId: r'$root');
+          id: r'$r3', sender: _other, ts: 4000, threadRootId: r'$root',);
       _wireThreadAggregation(
           root: root, timeline: timeline, children: {r1, r2, r3},);
       when(timeline.events).thenReturn([root, r1, r2, r3]);
@@ -140,9 +140,9 @@ void main() {
     test('unreadCount = all other-user replies when receipt absent', () {
       final root = _event(id: r'$root', sender: _other, ts: 1000);
       final r1 = _event(
-          id: r'$r1', sender: _other, ts: 2000, threadRootId: r'$root');
+          id: r'$r1', sender: _other, ts: 2000, threadRootId: r'$root',);
       final r2 = _event(
-          id: r'$r2', sender: _other, ts: 3000, threadRootId: r'$root');
+          id: r'$r2', sender: _other, ts: 3000, threadRootId: r'$root',);
       _wireThreadAggregation(
           root: root, timeline: timeline, children: {r1, r2},);
       when(timeline.events).thenReturn([root, r1, r2]);
@@ -159,7 +159,7 @@ void main() {
     test('unreadCount ignores own replies regardless of timestamp', () {
       final root = _event(id: r'$root', sender: _me, ts: 1000);
       final r1 = _event(
-          id: r'$r1', sender: _me, ts: 5000, threadRootId: r'$root');
+          id: r'$r1', sender: _me, ts: 5000, threadRootId: r'$root',);
       _wireThreadAggregation(
           root: root, timeline: timeline, children: {r1},);
       when(timeline.events).thenReturn([root, r1]);

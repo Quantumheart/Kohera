@@ -55,7 +55,7 @@ class _ThreadListScreenState extends State<ThreadListScreen> {
 
   @override
   void dispose() {
-    _syncSub?.cancel();
+    unawaited(_syncSub?.cancel() ?? Future.value());
     _timeline?.cancelSubscriptions();
     super.dispose();
   }
