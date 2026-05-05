@@ -125,7 +125,7 @@ class RtcMembershipService {
       final originTs = entry.value is Event
           ? (entry.value as Event).originServerTs.millisecondsSinceEpoch
           : now;
-      if (_isMembershipActive(content, originTs, now)) return true;
+      if (isMembershipActive(content, originTs, now)) return true;
     }
     return false;
   }
@@ -160,10 +160,10 @@ class RtcMembershipService {
         hasActive = memberships.any(
           (m) =>
               m is Map<String, dynamic> &&
-              _isMembershipActive(m, originTs, now),
+              isMembershipActive(m, originTs, now),
         );
       } else {
-        hasActive = _isMembershipActive(content, originTs, now);
+        hasActive = isMembershipActive(content, originTs, now);
       }
 
       if (hasActive) {
@@ -218,12 +218,12 @@ class RtcMembershipService {
       if (memberships is List) {
         for (final mem in memberships) {
           if (mem is Map<String, dynamic> &&
-              _isMembershipActive(mem, originTs, now)) {
+              isMembershipActive(mem, originTs, now)) {
             result.add(mem);
           }
         }
       } else {
-        if (_isMembershipActive(content, originTs, now)) {
+        if (isMembershipActive(content, originTs, now)) {
           result.add(Map<String, dynamic>.from(content));
         }
       }
@@ -231,7 +231,7 @@ class RtcMembershipService {
     return result;
   }
 
-  static bool _isMembershipActive(
+  static bool isMembershipActive(
     Map<String, dynamic> mem,
     int originTs,
     int nowMs,
