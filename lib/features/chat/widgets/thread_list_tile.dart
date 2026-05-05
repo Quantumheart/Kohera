@@ -32,7 +32,15 @@ class ThreadListTile extends StatelessWidget {
             : stripReplyFallback(lastReply.body).trim());
     final hasUnread = summary.unreadCount > 0;
 
-    return MouseRegion(
+    final previewLabel = preview.isEmpty ? 'Thread' : preview;
+    final semanticsLabel = hasUnread
+        ? 'Open thread: $previewLabel, ${summary.unreadCount} unread'
+        : 'Open thread: $previewLabel';
+
+    return Semantics(
+      button: true,
+      label: semanticsLabel,
+      child: MouseRegion(
       cursor: SystemMouseCursors.click,
       child: InkWell(
         mouseCursor: SystemMouseCursors.click,
@@ -118,6 +126,7 @@ class ThreadListTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

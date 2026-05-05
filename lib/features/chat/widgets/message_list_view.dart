@@ -30,6 +30,7 @@ class MessageListView extends StatefulWidget {
     this.threadRootEventId,
     this.onReplyInThread,
     this.onOpenThread,
+    this.emptyText,
     super.key,
   });
 
@@ -46,6 +47,7 @@ class MessageListView extends StatefulWidget {
   final VoidCallback? onScrollBack;
   final void Function(Event event)? onReplyInThread;
   final void Function(Event event)? onOpenThread;
+  final String? emptyText;
 
   @override
   State<MessageListView> createState() => MessageListViewState();
@@ -197,21 +199,45 @@ class MessageListViewState extends State<MessageListView> {
   }
 
   void _markAsRead() {
-    if (widget.threadRootEventId != null) return;
     _readMarkerTimer?.cancel();
     _readMarkerTimer = Timer(_readMarkerDelay, () async {
       if (!mounted) return;
-      final lastEvent = widget.room.lastEvent;
-      if (lastEvent != null && widget.room.notificationCount > 0) {
+      final client = widget.matrix.client;
+      final threadRootId = widget.threadRootEventId;
+
+      if (threadRootId != null) {
+        final visible = _visibleEvents;
+        if (visible.isEmpty) return;
+        final lastThreadEvent = visible.first;
         try {
-          final sendPublic = context.read<PreferencesService>().readReceipts;
-          await widget.room.setReadMarker(
-            lastEvent.eventId,
-            mRead: sendPublic ? lastEvent.eventId : null,
+          await client.postReceipt(
+            widget.room.id,
+            ReceiptType.mRead,
+            lastThreadEvent.eventId,
+            threadId: threadRootId,
           );
         } catch (e) {
-          debugPrint('[Kohera] Failed to mark as read: $e');
+          debugPrint('[Kohera] Failed to mark thread as read: $e');
         }
+        return;
+      }
+
+      final lastEvent = widget.room.lastEvent;
+      if (lastEvent == null || widget.room.notificationCount == 0) return;
+      try {
+        final sendPublic = context.read<PreferencesService>().readReceipts;
+        await widget.room.setReadMarker(
+          lastEvent.eventId,
+          mRead: sendPublic ? lastEvent.eventId : null,
+        );
+        await client.postReceipt(
+          widget.room.id,
+          ReceiptType.mRead,
+          lastEvent.eventId,
+          threadId: 'main',
+        );
+      } catch (e) {
+        debugPrint('[Kohera] Failed to mark as read: $e');
       }
     });
   }
@@ -430,7 +456,7 @@ class MessageListViewState extends State<MessageListView> {
       final tt = Theme.of(context).textTheme;
       return Center(
         child: Text(
-          'No messages yet.\nSay hello!',
+          widget.emptyText ?? 'No messages yet.\nSay hello!',
           textAlign: TextAlign.center,
           style: tt.bodyMedium?.copyWith(
             color: cs.onSurfaceVariant.withValues(alpha: 0.5),
@@ -442,7 +468,11 @@ class MessageListViewState extends State<MessageListView> {
     final isMobile = isTouchDevice;
     final showReceipts = context.watch<PreferencesService>().readReceipts;
     final receiptMap = showReceipts
-        ? buildReceiptMap(widget.room, widget.matrix.client.userID)
+        ? buildReceiptMap(
+            widget.room,
+            widget.matrix.client.userID,
+            threadRootId: widget.threadRootEventId,
+          )
         : <String, List<Receipt>>{};
     final hasLoadingIndicator = _loadingHistory;
     final totalCount = events.length + (hasLoadingIndicator ? 1 : 0);

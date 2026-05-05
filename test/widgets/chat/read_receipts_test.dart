@@ -29,6 +29,7 @@ MockUser _makeUser(String id, String? displayName, {Uri? avatarUrl}) {
 MockRoom _makeRoom({
   required Map<String, LatestReceiptStateData> globalOtherUsers,
   required Map<String, MockUser> userMap, Map<String, LatestReceiptStateData>? mainThreadOtherUsers,
+  Map<String, Map<String, LatestReceiptStateData>>? byThreadOtherUsers,
 }) {
   final room = MockRoom();
 
@@ -49,9 +50,22 @@ MockRoom _makeRoom({
     );
   }
 
+  final byThread = <String, LatestReceiptStateForTimeline>{};
+  if (byThreadOtherUsers != null) {
+    for (final entry in byThreadOtherUsers.entries) {
+      byThread[entry.key] = LatestReceiptStateForTimeline(
+        ownPrivate: null,
+        ownPublic: null,
+        latestOwnReceipt: null,
+        otherUsers: entry.value,
+      );
+    }
+  }
+
   when(room.receiptState).thenReturn(LatestReceiptState(
     global: global,
     mainThread: mainThread,
+    byThread: byThread,
   ),);
 
   for (final entry in userMap.entries) {
@@ -132,6 +146,59 @@ void main() {
         allReceipts.where((r) => r.user.id == '@alice:example.com').length,
         1,
       );
+    });
+
+    test('threadRootId scopes receipts to byThread only', () {
+      final alice = _makeUser('@alice:example.com', 'Alice');
+      final bob = _makeUser('@bob:example.com', 'Bob');
+
+      final room = _makeRoom(
+        globalOtherUsers: {
+          '@alice:example.com': LatestReceiptStateData(r'$global1', 1000),
+        },
+        mainThreadOtherUsers: {
+          '@alice:example.com': LatestReceiptStateData(r'$main1', 1500),
+        },
+        byThreadOtherUsers: {
+          r'$root': {
+            '@bob:example.com': LatestReceiptStateData(r'$thread1', 2000),
+          },
+        },
+        userMap: {
+          '@alice:example.com': alice,
+          '@bob:example.com': bob,
+        },
+      );
+
+      final map = buildReceiptMap(
+        room,
+        '@me:example.com',
+        threadRootId: r'$root',
+      );
+
+      expect(map.containsKey(r'$thread1'), isTrue);
+      expect(map[r'$thread1']!.single.user.id, '@bob:example.com');
+      expect(map.containsKey(r'$global1'), isFalse);
+      expect(map.containsKey(r'$main1'), isFalse);
+    });
+
+    test('threadRootId with no matching thread returns empty', () {
+      final room = _makeRoom(
+        globalOtherUsers: {
+          '@alice:example.com': LatestReceiptStateData(r'$evt1', 1000),
+        },
+        userMap: {
+          '@alice:example.com': _makeUser('@alice:example.com', 'Alice'),
+        },
+      );
+
+      final map = buildReceiptMap(
+        room,
+        '@me:example.com',
+        threadRootId: r'$missing',
+      );
+
+      expect(map, isEmpty);
     });
 
     test('returns empty map for room with no receipts', () {

@@ -75,7 +75,11 @@ class _ThreadScreenState extends State<ThreadScreen> {
       });
     } catch (e) {
       debugPrint('[Kohera] Thread root load failed: $e');
-      if (mounted) setState(() => _loadingRoot = false);
+      if (!mounted) return;
+      setState(() => _loadingRoot = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not load thread')),
+      );
     }
   }
 
@@ -134,6 +138,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
         leading: widget.onClose != null
             ? IconButton(
                 icon: const Icon(Icons.close),
+                tooltip: 'Close thread',
                 onPressed: widget.onClose,
               )
             : null,
@@ -150,6 +155,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
               matrix: matrix,
               threadRootEventId: widget.threadRootEventId,
               initialEventId: widget.threadRootEventId,
+              emptyText: 'No replies yet.\nStart the conversation.',
               onReply: _compose.setReplyTo,
               onEdit: (event, timeline) =>
                   _compose.setEditEvent(event, timeline, _msgCtrl),
