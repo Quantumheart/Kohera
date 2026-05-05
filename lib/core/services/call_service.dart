@@ -300,6 +300,23 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     final isActive = content.isNotEmpty;
 
     if (isActive) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final expiresTs = content['expires_ts'];
+      if (expiresTs is int && expiresTs <= now) {
+        debugPrint('[Kohera]   skip: membership expired (expires_ts)');
+        return;
+      }
+      final expires = content['expires'];
+      if (expiresTs is! int && expires is int) {
+        final stateEvent = room.states[callMemberEventType]?[stateKey];
+        final originTs = stateEvent is Event
+            ? stateEvent.originServerTs.millisecondsSinceEpoch
+            : now;
+        if ((originTs + expires) <= now) {
+          debugPrint('[Kohera]   skip: membership expired (expires+originTs)');
+          return;
+        }
+      }
       _handleRemoteMembershipJoined(
         roomId: update.roomId,
         stateKey: stateKey,
