@@ -219,6 +219,7 @@ class MessageListViewState extends State<MessageListView> {
   // ── Scroll & history ───────────────────────────────────
 
   void _onScroll() {
+    if (widget.threadRootEventId != null) return;
     final positions = _itemPosListener.itemPositions.value;
     if (positions.isEmpty) return;
     final maxIndex = positions.map((p) => p.index).reduce((a, b) => a > b ? a : b);
@@ -244,6 +245,7 @@ class MessageListViewState extends State<MessageListView> {
   }
 
   Future<void> _loadMore() async {
+    if (widget.threadRootEventId != null) return;
     if (_timeline == null || !_timeline!.canRequestHistory || _loadingHistory) {
       return;
     }
