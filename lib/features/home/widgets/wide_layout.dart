@@ -145,13 +145,7 @@ class _WideLayoutState extends State<WideLayout> {
             onShowDetails: widget.onToggleDetails,
           ),
         ),
-        if (name == Routes.roomThread) ...[
-          VerticalDivider(width: 1, color: cs.outlineVariant.withValues(alpha: 0.3)),
-          SizedBox(
-            width: 380,
-            child: widget.routerChild,
-          ),
-        ] else if (widget.showRoomDetails) ...[
+        if (widget.showRoomDetails) ...[
           VerticalDivider(width: 1, color: cs.outlineVariant.withValues(alpha: 0.3)),
           SizedBox(
             width: 320,
