@@ -478,9 +478,9 @@ void main() {
       ),);
       await tester.pumpAndSettle();
 
-      // Right-click → Pin
+      // Right-click near the top so the popup has room below.
       await tester.tapAt(
-        tester.getCenter(find.text('Pin me')),
+        tester.getTopLeft(find.text('Pin me')) + const Offset(8, 8),
         buttons: kSecondaryButton,
       );
       await tester.pumpAndSettle();
@@ -521,9 +521,9 @@ void main() {
       ),);
       await tester.pumpAndSettle();
 
-      // Right-click → Unpin
+      // Right-click near the top so the popup has room below.
       await tester.tapAt(
-        tester.getCenter(find.text('Unpin me')),
+        tester.getTopLeft(find.text('Unpin me')) + const Offset(8, 8),
         buttons: kSecondaryButton,
       );
       await tester.pumpAndSettle();

@@ -59,6 +59,8 @@ Future<bool> sendFileBytes({
   required String name,
   required Uint8List bytes,
   required ValueNotifier<UploadState?> uploadNotifier,
+  String? threadRootEventId,
+  String? threadLastEventId,
 }) async {
   uploadNotifier.value = UploadState(
     status: UploadStatus.uploading,
@@ -67,7 +69,11 @@ Future<bool> sendFileBytes({
 
   try {
     final file = MatrixFile.fromMimeType(bytes: bytes, name: name);
-    await room.sendFileEvent(file);
+    await room.sendFileEvent(
+      file,
+      threadRootEventId: threadRootEventId,
+      threadLastEventId: threadLastEventId,
+    );
     uploadNotifier.value = null;
     return true;
   } on FileTooBigMatrixException {

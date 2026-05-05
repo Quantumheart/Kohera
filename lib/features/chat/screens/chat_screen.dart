@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:giphy_get/giphy_get.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -157,6 +161,29 @@ class _ChatScreenState extends State<ChatScreen>
   void _setReplyTo(Event event) {
     _compose.setReplyTo(event);
     _composeFocusNode.requestFocus();
+  }
+
+  void _openThread(Event rootEvent) {
+    unawaited(context.pushNamed(
+      Routes.roomThread,
+      pathParameters: {
+        'roomId': widget.roomId,
+        'eventId': rootEvent.eventId,
+      },
+    ),);
+  }
+
+  void _replyInThread(Event event) {
+    final timeline = _messageListKey.currentState?.timeline;
+    final rootId = event.relationshipType == RelationshipTypes.thread
+        ? (event.relationshipEventId ?? event.eventId)
+        : event.eventId;
+    final root = timeline?.events.firstWhere(
+          (e) => e.eventId == rootId,
+          orElse: () => event,
+        ) ??
+        event;
+    _openThread(root);
   }
 
   void _dismissKeyboard() {
@@ -340,6 +367,8 @@ class _ChatScreenState extends State<ChatScreen>
             onPin: _actions.togglePin,
             onHighlight: _search.setHighlight,
             onScrollBack: isTouchDevice ? _dismissKeyboard : null,
+            onOpenThread: _openThread,
+            onReplyInThread: _replyInThread,
           ),
         ),
         TypingIndicator(

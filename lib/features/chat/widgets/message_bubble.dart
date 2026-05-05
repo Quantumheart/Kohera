@@ -26,8 +26,10 @@ class MessageBubble extends StatefulWidget {
     this.onReact,
     this.onQuickReact,
     this.onPin,
+    this.onReplyInThread,
     this.reactionBubble,
     this.subBubble,
+    this.threadIndicator,
   });
 
   final Event event;
@@ -66,11 +68,17 @@ class MessageBubble extends StatefulWidget {
   /// Called to pin or unpin this message.
   final VoidCallback? onPin;
 
+  /// Called to start a thread reply rooted at this event.
+  final VoidCallback? onReplyInThread;
+
   /// Reaction chips overlapping the bottom edge of the bubble (Signal-style).
   final Widget? reactionBubble;
 
   /// Widget displayed below the bubble (e.g. read receipts).
   final Widget? subBubble;
+
+  /// Optional thread indicator chip (shown below the bubble).
+  final Widget? threadIndicator;
 
   @override
   State<MessageBubble> createState() => _MessageBubbleState();
@@ -100,6 +108,7 @@ class _MessageBubbleState extends State<MessageBubble> {
       onReact: widget.onReact,
       onPin: widget.onPin,
       onDelete: widget.onDelete,
+      onReplyInThread: widget.onReplyInThread,
     ),);
   }
 
@@ -182,6 +191,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                       _avatarSlot(showAvatar: widget.isFirst, metrics: metrics),
                   ],
                 ),
+                if (widget.threadIndicator != null) widget.threadIndicator!,
                 if (widget.subBubble != null) widget.subBubble!,
               ],
             ),

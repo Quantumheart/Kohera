@@ -98,6 +98,12 @@ class ChatMessageActions {
     final editEvent = compose.editNotifier.value;
     compose.editNotifier.value = null;
 
+    final threadRoot = compose.threadRootNotifier.value;
+    final threadRootId = threadRoot?.eventId;
+    final threadLastId = threadRootId == null
+        ? null
+        : _latestThreadEventId(threadRoot!) ?? threadRootId;
+
     final scaffold = getScaffold();
     final room = getRoom();
     if (room == null) return;
@@ -109,6 +115,8 @@ class ChatMessageActions {
         name: attachments[i].name,
         bytes: attachments[i].bytes,
         uploadNotifier: compose.uploadNotifier,
+        threadRootEventId: threadRootId,
+        threadLastEventId: threadLastId,
       );
       if (!ok) {
         compose.pendingAttachments.value = attachments.sublist(i);
@@ -127,6 +135,8 @@ class ChatMessageActions {
           text,
           inReplyTo: editEvent == null ? replyEvent : null,
           editEventId: editEvent?.eventId,
+          threadRootEventId: threadRootId,
+          threadLastEventId: threadLastId,
         );
       } catch (e) {
         msgCtrl.text = text;
@@ -137,5 +147,15 @@ class ChatMessageActions {
         );
       }
     }
+  }
+
+  String? _latestThreadEventId(Event root) {
+    final timeline = getTimeline();
+    if (timeline == null) return null;
+    final children = root.aggregatedEvents(timeline, RelationshipTypes.thread);
+    if (children.isEmpty) return null;
+    return children
+        .reduce((a, b) => a.originServerTs.isAfter(b.originServerTs) ? a : b)
+        .eventId;
   }
 }

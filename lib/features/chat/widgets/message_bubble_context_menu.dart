@@ -15,10 +15,13 @@ Future<void> showMessageContextMenu(
   VoidCallback? onReact,
   VoidCallback? onPin,
   VoidCallback? onDelete,
+  VoidCallback? onReplyInThread,
 }) async {
   final cs = Theme.of(context).colorScheme;
   final items = <PopupMenuItem<String>>[
     if (onReply != null) _menuItem(Icons.reply_rounded, 'Reply', 'reply'),
+    if (onReplyInThread != null)
+      _menuItem(Icons.forum_outlined, 'Reply in thread', 'reply_in_thread'),
     if (onEdit != null) _menuItem(Icons.edit_rounded, 'Edit', 'edit'),
     if (onReact != null)
       _menuItem(Icons.add_reaction_outlined, 'React', 'react'),
@@ -47,6 +50,7 @@ Future<void> showMessageContextMenu(
   );
   if (!context.mounted) return;
   if (value == 'reply') onReply?.call();
+  if (value == 'reply_in_thread') onReplyInThread?.call();
   if (value == 'react') onReact?.call();
   if (value == 'edit') onEdit?.call();
   if (value == 'pin') onPin?.call();
