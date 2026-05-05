@@ -13,6 +13,7 @@ import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
+import 'package:kohera/features/chat/screens/thread_screen.dart';
 import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/chat_search_controller.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
@@ -81,6 +82,9 @@ class _ChatScreenState extends State<ChatScreen>
 
   // ── Message actions ──────────────────────────────────────
   late ChatMessageActions _actions;
+
+  // ── Thread side pane (desktop) ─────────────────────────
+  String? _activeThreadEventId;
 
   // ── Search ─────────────────────────────────────────────
   late ChatSearchController _search;
@@ -164,17 +168,21 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _openThread(Event rootEvent) {
-    if (_composeFocusNode.hasFocus) _composeFocusNode.unfocus();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      unawaited(context.pushNamed(
-        Routes.roomThread,
-        pathParameters: {
-          'roomId': widget.roomId,
-          'eventId': rootEvent.eventId,
-        },
-      ),);
-    });
+    if (_isDesktop) {
+      setState(() => _activeThreadEventId = rootEvent.eventId);
+      return;
+    }
+    unawaited(context.pushNamed(
+      Routes.roomThread,
+      pathParameters: {
+        'roomId': widget.roomId,
+        'eventId': rootEvent.eventId,
+      },
+    ),);
+  }
+
+  void _closeThread() {
+    setState(() => _activeThreadEventId = null);
   }
 
   void _replyInThread(Event event) {
@@ -424,10 +432,32 @@ class _ChatScreenState extends State<ChatScreen>
       ],
     );
 
-    return DesktopDropWrapper(
+    final body = DesktopDropWrapper(
       enabled: _isDesktop || kIsWeb,
       onFileDropped: _addAttachment,
       child: column,
     );
+
+    final threadId = _activeThreadEventId;
+    if (_isDesktop && threadId != null) {
+      final cs = Theme.of(context).colorScheme;
+      return Row(
+        children: [
+          Expanded(child: body),
+          VerticalDivider(
+              width: 1, color: cs.outlineVariant.withValues(alpha: 0.3),),
+          SizedBox(
+            width: 380,
+            child: ThreadScreen(
+              roomId: widget.roomId,
+              threadRootEventId: threadId,
+              onClose: _closeThread,
+              key: ValueKey('thread-${widget.roomId}-$threadId'),
+            ),
+          ),
+        ],
+      );
+    }
+    return body;
   }
 }
