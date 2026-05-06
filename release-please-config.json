@@ -1,0 +1,28 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "packages": {
+    ".": {
+      "release-type": "dart",
+      "package-name": "kohera",
+      "include-component-in-tag": false,
+      "include-v-in-tag": true,
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": false,
+      "draft": false,
+      "prerelease": false,
+      "changelog-sections": [
+        { "type": "feat",     "section": "✨ What's new" },
+        { "type": "fix",      "section": "🐛 Fixes" },
+        { "type": "perf",     "section": "⚡ Performance" },
+        { "type": "revert",   "section": "Reverts" },
+        { "type": "chore",    "hidden": true },
+        { "type": "refactor", "hidden": true },
+        { "type": "test",     "hidden": true },
+        { "type": "docs",     "hidden": true },
+        { "type": "style",    "hidden": true },
+        { "type": "build",    "hidden": true },
+        { "type": "ci",       "hidden": true }
+      ]
+    }
+  }
+}
