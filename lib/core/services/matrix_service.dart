@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/services/session_backup.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
@@ -17,7 +17,7 @@ import 'package:matrix/src/utils/client_init_exception.dart';
 String koheraKey(String clientName, String suffix) =>
     'kohera_${clientName}_$suffix';
 
-class MatrixService extends ChangeNotifier {
+class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   static String friendlyAuthError(Object e) {
     if (isNetworkError(e)) return 'Could not reach server';
     if (e is TimeoutException) return 'Connection timed out';
@@ -80,6 +80,9 @@ class MatrixService extends ChangeNotifier {
     auth.notifyListeners();
   }
 
+  @visibleForTesting
+  Future<void> activateSessionForTest() => _activateSession();
+
   bool _disposed = false;
   bool get disposed => _disposed;
 
@@ -99,6 +102,9 @@ class MatrixService extends ChangeNotifier {
 
   StreamSubscription<LoginState>? _loginStateSub;
 
+  bool _foregroundSyncStarted = false;
+  bool _lifecycleObserverRegistered = false;
+
   bool _hasSkippedSetup = false;
   bool get hasSkippedSetup => _hasSkippedSetup;
   void skipSetup() {
@@ -109,6 +115,10 @@ class MatrixService extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    if (_lifecycleObserverRegistered) {
+      WidgetsBinding.instance.removeObserver(this);
+      _lifecycleObserverRegistered = false;
+    }
     auth.removeListener(_onAuthChanged);
     auth.isLoggedIn = false;
     sync.cancelSyncSub();
@@ -118,6 +128,19 @@ class MatrixService extends ChangeNotifier {
     sync.dispose();
     unawaited(_loginStateSub?.cancel());
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _startForegroundSync();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        break;
+    }
   }
 
   // ── Public API ──────────────────────────────────────────────────
@@ -230,6 +253,11 @@ class MatrixService extends ChangeNotifier {
       selection.resetSelection();
       chatBackup.resetChatBackupState();
       _hasSkippedSetup = false;
+      _foregroundSyncStarted = false;
+      if (_lifecycleObserverRegistered) {
+        WidgetsBinding.instance.removeObserver(this);
+        _lifecycleObserverRegistered = false;
+      }
     }
     notifyListeners();
   }
@@ -251,6 +279,31 @@ class MatrixService extends ChangeNotifier {
 
   Future<void> _activateSession() async {
     auth.activateRestoredSession();
+    if (!_lifecycleObserverRegistered) {
+      WidgetsBinding.instance.addObserver(this);
+      _lifecycleObserverRegistered = true;
+    }
+    if (_isAppForegrounded()) {
+      _startForegroundSync();
+    } else {
+      debugPrint(
+        '[Kohera] Session activated in background — deferring sync until '
+        'app is resumed (lifecycleState='
+        '${WidgetsBinding.instance.lifecycleState})',
+      );
+    }
+  }
+
+  bool _isAppForegrounded() =>
+      WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+
+  void _startForegroundSync() {
+    if (_foregroundSyncStarted || _disposed) return;
+    _foregroundSyncStarted = true;
+    if (_lifecycleObserverRegistered) {
+      WidgetsBinding.instance.removeObserver(this);
+      _lifecycleObserverRegistered = false;
+    }
     unawaited(
       sync.startSync().catchError((Object e) {
         if (e is! TimeoutException) {

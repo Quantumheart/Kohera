@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -1481,6 +1482,83 @@ void main() {
 
       // Should not throw
       service.dispose();
+    });
+  });
+
+  group('_activateSession lifecycle gate', () {
+    setUpAll(TestWidgetsFlutterBinding.ensureInitialized);
+
+    test('does not start sync when app is paused', () async {
+      WidgetsBinding.instance
+          .handleAppLifecycleStateChanged(AppLifecycleState.paused);
+
+      await service.activateSessionForTest();
+
+      expect(service.sync.syncing, isFalse);
+    });
+
+    test('does not start sync when app is detached', () async {
+      WidgetsBinding.instance
+          .handleAppLifecycleStateChanged(AppLifecycleState.detached);
+
+      await service.activateSessionForTest();
+
+      expect(service.sync.syncing, isFalse);
+    });
+
+    test('starts sync when app is resumed at activation time', () async {
+      WidgetsBinding.instance
+          .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+
+      await service.activateSessionForTest();
+
+      expect(service.sync.syncing, isTrue);
+    });
+
+    test('defers sync at boot then starts when app transitions to resumed',
+        () async {
+      WidgetsBinding.instance
+          .handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await service.activateSessionForTest();
+      expect(
+        service.sync.syncing,
+        isFalse,
+        reason: 'sync should be deferred while in background',
+      );
+
+      WidgetsBinding.instance
+          .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+
+      expect(
+        service.sync.syncing,
+        isTrue,
+        reason: 'sync should start once app reaches foreground',
+      );
+    });
+
+    test('does not double-start across paused→resumed cycles', () async {
+      WidgetsBinding.instance
+          .handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await service.activateSessionForTest();
+      WidgetsBinding.instance
+          .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      expect(service.sync.syncing, isTrue);
+
+      var notifyCount = 0;
+      service.sync.addListener(() => notifyCount++);
+
+      WidgetsBinding.instance
+          .handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      WidgetsBinding.instance
+          .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+
+      expect(
+        notifyCount,
+        0,
+        reason: 'observer should be unregistered after first foreground sync; '
+            'subsequent transitions must not re-trigger startSync',
+      );
+      expect(service.sync.syncing, isTrue);
     });
   });
 }

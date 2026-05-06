@@ -55,7 +55,7 @@ class ApnsPushService {
         debugPrint('[Kohera] APNs registration error: $error');
       case 'onRemoteMessage':
         final payload = Map<String, dynamic>.from(call.arguments as Map);
-        unawaited(_processPushMessage(payload));
+        await _processPushMessage(payload);
       case 'onNotificationTap':
         final roomId = call.arguments as String;
         debugPrint('[Kohera] APNs notification tapped for room $roomId');
@@ -158,7 +158,11 @@ class ApnsPushService {
     if (_disposed) return;
 
     try {
-      await matrixService.client.oneShotSync();
+      await matrixService.client
+          .oneShotSync()
+          .timeout(const Duration(seconds: 20));
+    } on TimeoutException {
+      debugPrint('[Kohera] APNs oneShotSync timed out after 20s');
     } catch (e) {
       debugPrint('[Kohera] APNs push message processing error: $e');
     }
