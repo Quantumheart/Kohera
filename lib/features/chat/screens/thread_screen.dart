@@ -31,7 +31,7 @@ class ThreadScreen extends StatefulWidget {
 
 class _ThreadScreenState extends State<ThreadScreen> {
   final _msgCtrl = TextEditingController();
-  final _focusNode = FocusNode();
+  final _focusNode = FocusNode(canRequestFocus: false);
   final _messageListKey = GlobalKey<MessageListViewState>();
   final _compose = ComposeStateController();
 
@@ -136,6 +136,10 @@ class _ThreadScreenState extends State<ThreadScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || _focusReady) return;
       setState(() => _focusReady = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _focusNode.canRequestFocus = true;
+      });
     });
   }
 
