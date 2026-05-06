@@ -52,7 +52,6 @@ class _ThreadScreenState extends State<ThreadScreen> {
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      setState(() => _focusReady = true);
       unawaited(_loadRoot());
     });
   }
@@ -64,6 +63,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
         .getRoomById(widget.roomId);
     if (room == null) {
       if (mounted) setState(() => _loadingRoot = false);
+      _scheduleFocusReady();
       return;
     }
     try {
@@ -73,14 +73,23 @@ class _ThreadScreenState extends State<ThreadScreen> {
         _loadingRoot = false;
         if (root != null) _compose.setThreadRoot(root);
       });
+      _scheduleFocusReady();
     } catch (e) {
       debugPrint('[Kohera] Thread root load failed: $e');
       if (!mounted) return;
       setState(() => _loadingRoot = false);
+      _scheduleFocusReady();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not load thread')),
       );
     }
+  }
+
+  void _scheduleFocusReady() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _focusReady) return;
+      setState(() => _focusReady = true);
+    });
   }
 
   void _addAttachment(PendingAttachment attachment) {
