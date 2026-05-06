@@ -193,9 +193,11 @@ GoRouter buildRouter(ClientManager manager) {
                     builder: (context, state) {
                       final roomId = state.pathParameters['roomId']!;
                       final eventId = state.pathParameters['eventId']!;
+                      final initialReplyEventId = state.extra as String?;
                       return ThreadScreen(
                         roomId: roomId,
                         threadRootEventId: eventId,
+                        initialReplyEventId: initialReplyEventId,
                         key: ValueKey('thread-$roomId-$eventId'),
                       );
                     },
