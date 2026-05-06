@@ -7,6 +7,8 @@ import 'dart:async' as _i5;
 import 'dart:typed_data' as _i16;
 import 'dart:ui' as _i18;
 
+import 'package:flutter/services.dart' as _i19;
+import 'package:flutter/widgets.dart' as _i20;
 import 'package:http/http.dart' as _i4;
 import 'package:kohera/core/services/matrix_service.dart' as _i17;
 import 'package:kohera/core/services/sub_services/auth_service.dart' as _i12;
@@ -23,7 +25,7 @@ import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;
 import 'package:matrix/src/models/timeline_chunk.dart' as _i13;
 import 'package:matrix/src/utils/cached_stream_controller.dart' as _i3;
-import 'package:matrix/src/utils/space_child.dart' as _i19;
+import 'package:matrix/src/utils/space_child.dart' as _i21;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i15;
 
@@ -7901,6 +7903,16 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
       ) as bool);
 
   @override
+  _i5.Future<void> activateSessionForTest() => (super.noSuchMethod(
+        Invocation.method(
+          #activateSessionForTest,
+          [],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
   void notifyListeners() => super.noSuchMethod(
         Invocation.method(
           #notifyListeners,
@@ -7923,6 +7935,16 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
         Invocation.method(
           #dispose,
           [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeAppLifecycleState(_i18.AppLifecycleState? state) =>
+      super.noSuchMethod(
+        Invocation.method(
+          #didChangeAppLifecycleState,
+          [state],
         ),
         returnValueForMissingStub: null,
       );
@@ -8025,6 +8047,161 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
         Invocation.method(
           #removeListener,
           [listener],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  _i5.Future<bool> didPopRoute() => (super.noSuchMethod(
+        Invocation.method(
+          #didPopRoute,
+          [],
+        ),
+        returnValue: _i5.Future<bool>.value(false),
+        returnValueForMissingStub: _i5.Future<bool>.value(false),
+      ) as _i5.Future<bool>);
+
+  @override
+  bool handleStartBackGesture(_i19.PredictiveBackEvent? backEvent) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #handleStartBackGesture,
+          [backEvent],
+        ),
+        returnValue: false,
+        returnValueForMissingStub: false,
+      ) as bool);
+
+  @override
+  void handleUpdateBackGestureProgress(_i19.PredictiveBackEvent? backEvent) =>
+      super.noSuchMethod(
+        Invocation.method(
+          #handleUpdateBackGestureProgress,
+          [backEvent],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void handleCommitBackGesture() => super.noSuchMethod(
+        Invocation.method(
+          #handleCommitBackGesture,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void handleCancelBackGesture() => super.noSuchMethod(
+        Invocation.method(
+          #handleCancelBackGesture,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void handleStatusBarTap() => super.noSuchMethod(
+        Invocation.method(
+          #handleStatusBarTap,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  _i5.Future<bool> didPushRoute(String? route) => (super.noSuchMethod(
+        Invocation.method(
+          #didPushRoute,
+          [route],
+        ),
+        returnValue: _i5.Future<bool>.value(false),
+        returnValueForMissingStub: _i5.Future<bool>.value(false),
+      ) as _i5.Future<bool>);
+
+  @override
+  _i5.Future<bool> didPushRouteInformation(
+          _i20.RouteInformation? routeInformation) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #didPushRouteInformation,
+          [routeInformation],
+        ),
+        returnValue: _i5.Future<bool>.value(false),
+        returnValueForMissingStub: _i5.Future<bool>.value(false),
+      ) as _i5.Future<bool>);
+
+  @override
+  void didChangeMetrics() => super.noSuchMethod(
+        Invocation.method(
+          #didChangeMetrics,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeTextScaleFactor() => super.noSuchMethod(
+        Invocation.method(
+          #didChangeTextScaleFactor,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangePlatformBrightness() => super.noSuchMethod(
+        Invocation.method(
+          #didChangePlatformBrightness,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeLocales(List<_i18.Locale>? locales) => super.noSuchMethod(
+        Invocation.method(
+          #didChangeLocales,
+          [locales],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeViewFocus(_i18.ViewFocusEvent? event) => super.noSuchMethod(
+        Invocation.method(
+          #didChangeViewFocus,
+          [event],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  _i5.Future<_i18.AppExitResponse> didRequestAppExit() => (super.noSuchMethod(
+        Invocation.method(
+          #didRequestAppExit,
+          [],
+        ),
+        returnValue:
+            _i5.Future<_i18.AppExitResponse>.value(_i18.AppExitResponse.exit),
+        returnValueForMissingStub:
+            _i5.Future<_i18.AppExitResponse>.value(_i18.AppExitResponse.exit),
+      ) as _i5.Future<_i18.AppExitResponse>);
+
+  @override
+  void didHaveMemoryPressure() => super.noSuchMethod(
+        Invocation.method(
+          #didHaveMemoryPressure,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeAccessibilityFeatures() => super.noSuchMethod(
+        Invocation.method(
+          #didChangeAccessibilityFeatures,
+          [],
         ),
         returnValueForMissingStub: null,
       );
@@ -8511,18 +8688,18 @@ class MockRoom extends _i1.Mock implements _i2.Room {
       ) as bool);
 
   @override
-  List<_i19.SpaceParent> get spaceParents => (super.noSuchMethod(
+  List<_i21.SpaceParent> get spaceParents => (super.noSuchMethod(
         Invocation.getter(#spaceParents),
-        returnValue: <_i19.SpaceParent>[],
-        returnValueForMissingStub: <_i19.SpaceParent>[],
-      ) as List<_i19.SpaceParent>);
+        returnValue: <_i21.SpaceParent>[],
+        returnValueForMissingStub: <_i21.SpaceParent>[],
+      ) as List<_i21.SpaceParent>);
 
   @override
-  List<_i19.SpaceChild> get spaceChildren => (super.noSuchMethod(
+  List<_i21.SpaceChild> get spaceChildren => (super.noSuchMethod(
         Invocation.getter(#spaceChildren),
-        returnValue: <_i19.SpaceChild>[],
-        returnValueForMissingStub: <_i19.SpaceChild>[],
-      ) as List<_i19.SpaceChild>);
+        returnValue: <_i21.SpaceChild>[],
+        returnValueForMissingStub: <_i21.SpaceChild>[],
+      ) as List<_i21.SpaceChild>);
 
   @override
   set membership(_i2.Membership? value) => super.noSuchMethod(

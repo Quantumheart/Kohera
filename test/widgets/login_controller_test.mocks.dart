@@ -4,12 +4,14 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i12;
-import 'dart:typed_data' as _i19;
+import 'dart:typed_data' as _i21;
 import 'dart:ui' as _i16;
 
+import 'package:flutter/services.dart' as _i17;
+import 'package:flutter/widgets.dart' as _i18;
 import 'package:http/http.dart' as _i11;
 import 'package:kohera/core/models/server_auth_capabilities.dart' as _i14;
-import 'package:kohera/core/services/client_manager.dart' as _i17;
+import 'package:kohera/core/services/client_manager.dart' as _i19;
 import 'package:kohera/core/services/matrix_service.dart' as _i9;
 import 'package:kohera/core/services/sub_services/auth_service.dart' as _i8;
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart'
@@ -20,7 +22,7 @@ import 'package:kohera/core/services/sub_services/sync_service.dart' as _i7;
 import 'package:kohera/core/services/sub_services/uia_service.dart' as _i4;
 import 'package:kohera/features/notifications/services/call_push_rule_manager.dart'
     as _i2;
-import 'package:matrix/encryption.dart' as _i18;
+import 'package:matrix/encryption.dart' as _i20;
 import 'package:matrix/matrix.dart' as _i3;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i13;
 import 'package:matrix/src/utils/cached_stream_controller.dart' as _i10;
@@ -1027,6 +1029,16 @@ class MockMatrixService extends _i1.Mock implements _i9.MatrixService {
       ) as bool);
 
   @override
+  _i12.Future<void> activateSessionForTest() => (super.noSuchMethod(
+        Invocation.method(
+          #activateSessionForTest,
+          [],
+        ),
+        returnValue: _i12.Future<void>.value(),
+        returnValueForMissingStub: _i12.Future<void>.value(),
+      ) as _i12.Future<void>);
+
+  @override
   void notifyListeners() => super.noSuchMethod(
         Invocation.method(
           #notifyListeners,
@@ -1049,6 +1061,16 @@ class MockMatrixService extends _i1.Mock implements _i9.MatrixService {
         Invocation.method(
           #dispose,
           [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeAppLifecycleState(_i16.AppLifecycleState? state) =>
+      super.noSuchMethod(
+        Invocation.method(
+          #didChangeAppLifecycleState,
+          [state],
         ),
         returnValueForMissingStub: null,
       );
@@ -1154,12 +1176,167 @@ class MockMatrixService extends _i1.Mock implements _i9.MatrixService {
         ),
         returnValueForMissingStub: null,
       );
+
+  @override
+  _i12.Future<bool> didPopRoute() => (super.noSuchMethod(
+        Invocation.method(
+          #didPopRoute,
+          [],
+        ),
+        returnValue: _i12.Future<bool>.value(false),
+        returnValueForMissingStub: _i12.Future<bool>.value(false),
+      ) as _i12.Future<bool>);
+
+  @override
+  bool handleStartBackGesture(_i17.PredictiveBackEvent? backEvent) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #handleStartBackGesture,
+          [backEvent],
+        ),
+        returnValue: false,
+        returnValueForMissingStub: false,
+      ) as bool);
+
+  @override
+  void handleUpdateBackGestureProgress(_i17.PredictiveBackEvent? backEvent) =>
+      super.noSuchMethod(
+        Invocation.method(
+          #handleUpdateBackGestureProgress,
+          [backEvent],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void handleCommitBackGesture() => super.noSuchMethod(
+        Invocation.method(
+          #handleCommitBackGesture,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void handleCancelBackGesture() => super.noSuchMethod(
+        Invocation.method(
+          #handleCancelBackGesture,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void handleStatusBarTap() => super.noSuchMethod(
+        Invocation.method(
+          #handleStatusBarTap,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  _i12.Future<bool> didPushRoute(String? route) => (super.noSuchMethod(
+        Invocation.method(
+          #didPushRoute,
+          [route],
+        ),
+        returnValue: _i12.Future<bool>.value(false),
+        returnValueForMissingStub: _i12.Future<bool>.value(false),
+      ) as _i12.Future<bool>);
+
+  @override
+  _i12.Future<bool> didPushRouteInformation(
+          _i18.RouteInformation? routeInformation) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #didPushRouteInformation,
+          [routeInformation],
+        ),
+        returnValue: _i12.Future<bool>.value(false),
+        returnValueForMissingStub: _i12.Future<bool>.value(false),
+      ) as _i12.Future<bool>);
+
+  @override
+  void didChangeMetrics() => super.noSuchMethod(
+        Invocation.method(
+          #didChangeMetrics,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeTextScaleFactor() => super.noSuchMethod(
+        Invocation.method(
+          #didChangeTextScaleFactor,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangePlatformBrightness() => super.noSuchMethod(
+        Invocation.method(
+          #didChangePlatformBrightness,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeLocales(List<_i16.Locale>? locales) => super.noSuchMethod(
+        Invocation.method(
+          #didChangeLocales,
+          [locales],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeViewFocus(_i16.ViewFocusEvent? event) => super.noSuchMethod(
+        Invocation.method(
+          #didChangeViewFocus,
+          [event],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  _i12.Future<_i16.AppExitResponse> didRequestAppExit() => (super.noSuchMethod(
+        Invocation.method(
+          #didRequestAppExit,
+          [],
+        ),
+        returnValue:
+            _i12.Future<_i16.AppExitResponse>.value(_i16.AppExitResponse.exit),
+        returnValueForMissingStub:
+            _i12.Future<_i16.AppExitResponse>.value(_i16.AppExitResponse.exit),
+      ) as _i12.Future<_i16.AppExitResponse>);
+
+  @override
+  void didHaveMemoryPressure() => super.noSuchMethod(
+        Invocation.method(
+          #didHaveMemoryPressure,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeAccessibilityFeatures() => super.noSuchMethod(
+        Invocation.method(
+          #didChangeAccessibilityFeatures,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
 }
 
 /// A class which mocks [ClientManager].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockClientManager extends _i1.Mock implements _i17.ClientManager {
+class MockClientManager extends _i1.Mock implements _i19.ClientManager {
   @override
   List<_i9.MatrixService> get services => (super.noSuchMethod(
         Invocation.getter(#services),
@@ -1348,12 +1525,12 @@ class MockClient extends _i1.Mock implements _i3.Client {
       ) as _i3.DatabaseApi);
 
   @override
-  Set<_i18.KeyVerificationMethod> get verificationMethods =>
+  Set<_i20.KeyVerificationMethod> get verificationMethods =>
       (super.noSuchMethod(
         Invocation.getter(#verificationMethods),
-        returnValue: <_i18.KeyVerificationMethod>{},
-        returnValueForMissingStub: <_i18.KeyVerificationMethod>{},
-      ) as Set<_i18.KeyVerificationMethod>);
+        returnValue: <_i20.KeyVerificationMethod>{},
+        returnValueForMissingStub: <_i20.KeyVerificationMethod>{},
+      ) as Set<_i20.KeyVerificationMethod>);
 
   @override
   Set<String> get importantStateEvents => (super.noSuchMethod(
@@ -1852,34 +2029,34 @@ class MockClient extends _i1.Mock implements _i3.Client {
       ) as _i10.CachedStreamController<_i3.BasicEvent>);
 
   @override
-  _i10.CachedStreamController<_i18.RoomKeyRequest> get onRoomKeyRequest =>
+  _i10.CachedStreamController<_i20.RoomKeyRequest> get onRoomKeyRequest =>
       (super.noSuchMethod(
         Invocation.getter(#onRoomKeyRequest),
-        returnValue: _FakeCachedStreamController_14<_i18.RoomKeyRequest>(
+        returnValue: _FakeCachedStreamController_14<_i20.RoomKeyRequest>(
           this,
           Invocation.getter(#onRoomKeyRequest),
         ),
         returnValueForMissingStub:
-            _FakeCachedStreamController_14<_i18.RoomKeyRequest>(
+            _FakeCachedStreamController_14<_i20.RoomKeyRequest>(
           this,
           Invocation.getter(#onRoomKeyRequest),
         ),
-      ) as _i10.CachedStreamController<_i18.RoomKeyRequest>);
+      ) as _i10.CachedStreamController<_i20.RoomKeyRequest>);
 
   @override
-  _i10.CachedStreamController<_i18.KeyVerification>
+  _i10.CachedStreamController<_i20.KeyVerification>
       get onKeyVerificationRequest => (super.noSuchMethod(
             Invocation.getter(#onKeyVerificationRequest),
-            returnValue: _FakeCachedStreamController_14<_i18.KeyVerification>(
+            returnValue: _FakeCachedStreamController_14<_i20.KeyVerification>(
               this,
               Invocation.getter(#onKeyVerificationRequest),
             ),
             returnValueForMissingStub:
-                _FakeCachedStreamController_14<_i18.KeyVerification>(
+                _FakeCachedStreamController_14<_i20.KeyVerification>(
               this,
               Invocation.getter(#onKeyVerificationRequest),
             ),
-          ) as _i10.CachedStreamController<_i18.KeyVerification>);
+          ) as _i10.CachedStreamController<_i20.KeyVerification>);
 
   @override
   _i10.CachedStreamController<_i3.UiaRequest<dynamic>> get onUiaRequest =>
@@ -2035,7 +2212,7 @@ class MockClient extends _i1.Mock implements _i3.Client {
       );
 
   @override
-  set verificationMethods(Set<_i18.KeyVerificationMethod>? value) =>
+  set verificationMethods(Set<_i20.KeyVerificationMethod>? value) =>
       super.noSuchMethod(
         Invocation.setter(
           #verificationMethods,
@@ -3508,7 +3685,7 @@ class MockClient extends _i1.Mock implements _i3.Client {
 
   @override
   _i12.Future<Uri> uploadContent(
-    _i19.Uint8List? file, {
+    _i21.Uint8List? file, {
     String? filename,
     String? contentType,
   }) =>
@@ -4026,7 +4203,7 @@ class MockClient extends _i1.Mock implements _i3.Client {
   @override
   Never unexpectedResponse(
     _i11.BaseResponse? response,
-    _i19.Uint8List? body,
+    _i21.Uint8List? body,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -8154,7 +8331,7 @@ class MockClient extends _i1.Mock implements _i3.Client {
   _i12.Future<Map<String, Object?>> uploadContentToMXC(
     String? serverName,
     String? mediaId,
-    _i19.Uint8List? body, {
+    _i21.Uint8List? body, {
     String? filename,
     String? contentType,
   }) =>
