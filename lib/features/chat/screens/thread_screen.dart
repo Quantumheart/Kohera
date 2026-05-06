@@ -153,9 +153,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
             : null,
         title: const Text('Thread'),
       ),
-      body: ExcludeFocus(
-        excluding: !_focusReady,
-        child: Column(
+      body: Column(
         children: [
           Expanded(
             child: MessageListView(
@@ -173,24 +171,24 @@ class _ThreadScreenState extends State<ThreadScreen> {
               onHighlight: (_) {},
             ),
           ),
-          ComposeBarSection(
-            replyNotifier: _compose.replyNotifier,
-            editNotifier: _compose.editNotifier,
-            pendingAttachments: _compose.pendingAttachments,
-            controller: _msgCtrl,
-            onSend: _actions.send,
-            onCancelReply: _compose.cancelReply,
-            onCancelEdit: () => _compose.cancelEdit(_msgCtrl),
-            onAttach: _handleAttach,
-            uploadNotifier: _compose.uploadNotifier,
-            room: room,
-            joinedRooms: context.read<SelectionService>().rooms,
-            focusNode: _focusNode,
-            onRemoveAttachment: _compose.removeAttachment,
-            onClearAttachments: _compose.clearAttachments,
-          ),
+          if (_focusReady)
+            ComposeBarSection(
+              replyNotifier: _compose.replyNotifier,
+              editNotifier: _compose.editNotifier,
+              pendingAttachments: _compose.pendingAttachments,
+              controller: _msgCtrl,
+              onSend: _actions.send,
+              onCancelReply: _compose.cancelReply,
+              onCancelEdit: () => _compose.cancelEdit(_msgCtrl),
+              onAttach: _handleAttach,
+              uploadNotifier: _compose.uploadNotifier,
+              room: room,
+              joinedRooms: context.read<SelectionService>().rooms,
+              focusNode: _focusNode,
+              onRemoveAttachment: _compose.removeAttachment,
+              onClearAttachments: _compose.clearAttachments,
+            ),
         ],
-      ),
       ),
     );
   }
