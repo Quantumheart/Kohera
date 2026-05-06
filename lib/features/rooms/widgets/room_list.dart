@@ -28,7 +28,7 @@ class RoomList extends StatefulWidget {
 class _RoomListState extends State<RoomList>
     with TickerProviderStateMixin {
   final _searchCtrl = TextEditingController();
-  final _searchFocus = FocusNode();
+  final _searchFocus = FocusNode(debugLabel: 'roomlist-search');
   String _query = '';
   bool _searchOpen = false;
   late final AnimationController _searchAnimCtrl;

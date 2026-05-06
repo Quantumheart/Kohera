@@ -60,7 +60,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen>
     with VoiceRecordingMixin<ChatScreen> {
   final _msgCtrl = TextEditingController();
-  final _composeFocusNode = FocusNode();
+  final _composeFocusNode = FocusNode(debugLabel: 'chat-compose');
   final _messageListKey = GlobalKey<MessageListViewState>();
 
   // ── Compose state ───────────────────────────────────────
@@ -92,7 +92,7 @@ class _ChatScreenState extends State<ChatScreen>
   // ── Search ─────────────────────────────────────────────
   late ChatSearchController _search;
   final _searchCtrl = TextEditingController();
-  final _searchFocusNode = FocusNode();
+  final _searchFocusNode = FocusNode(debugLabel: 'chat-search');
 
   @override
   void initState() {
@@ -100,13 +100,6 @@ class _ChatScreenState extends State<ChatScreen>
     _actions = _createActions();
     _search = _createSearchController();
     _initControllers();
-    if (!isTouchDevice) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _composeFocusNode.canRequestFocus) {
-          _composeFocusNode.requestFocus();
-        }
-      });
-    }
   }
 
   @override
@@ -122,13 +115,6 @@ class _ChatScreenState extends State<ChatScreen>
       _search.dispose();
       _actions = _createActions();
       _search = _createSearchController();
-      if (!isTouchDevice) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _composeFocusNode.canRequestFocus) {
-            _composeFocusNode.requestFocus();
-          }
-        });
-      }
     }
   }
 
