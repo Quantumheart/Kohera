@@ -11,7 +11,10 @@ Future<List<ThreadSummary>> fetchThreadSummaries({
 
   final summaries = <ThreadSummary>[];
   for (final raw in response.chunk) {
-    final root = Event.fromMatrixEvent(raw, room);
+    final root = await _decryptIfNeeded(
+      client,
+      Event.fromMatrixEvent(raw, room),
+    );
     final children = await _fetchChildren(client, room, root.eventId);
     summaries.add(
       ThreadSummary(
@@ -40,8 +43,26 @@ Future<List<Event>> _fetchChildren(
     RelationshipTypes.thread,
     limit: 100,
   );
-  return relations.chunk
-      .map((m) => Event.fromMatrixEvent(m, room))
-      .toList()
-    ..sort((a, b) => a.originServerTs.compareTo(b.originServerTs));
+  final events = <Event>[];
+  for (final raw in relations.chunk) {
+    events.add(
+      await _decryptIfNeeded(client, Event.fromMatrixEvent(raw, room)),
+    );
+  }
+  events.sort((a, b) => a.originServerTs.compareTo(b.originServerTs));
+  return events;
+}
+
+Future<Event> _decryptIfNeeded(Client client, Event event) async {
+  if (event.type != EventTypes.Encrypted) return event;
+  final encryption = client.encryption;
+  if (encryption == null) return event;
+  try {
+    final decrypted = await encryption
+        .decryptRoomEvent(event)
+        .timeout(const Duration(seconds: 3));
+    return decrypted;
+  } catch (_) {
+    return event;
+  }
 }
