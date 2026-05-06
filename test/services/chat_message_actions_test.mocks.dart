@@ -9,9 +9,10 @@ import 'dart:ui' as _i23;
 
 import 'package:flutter/foundation.dart' as _i15;
 import 'package:flutter/scheduler.dart' as _i17;
-import 'package:flutter/src/material/banner.dart' as _i25;
+import 'package:flutter/services.dart' as _i24;
+import 'package:flutter/src/material/banner.dart' as _i26;
 import 'package:flutter/src/material/scaffold.dart' as _i14;
-import 'package:flutter/src/material/snack_bar.dart' as _i24;
+import 'package:flutter/src/material/snack_bar.dart' as _i25;
 import 'package:flutter/widgets.dart' as _i16;
 import 'package:http/http.dart' as _i5;
 import 'package:kohera/core/services/matrix_service.dart' as _i22;
@@ -10999,6 +11000,16 @@ class MockMatrixService extends _i1.Mock implements _i22.MatrixService {
       ) as bool);
 
   @override
+  _i6.Future<void> activateSessionForTest() => (super.noSuchMethod(
+        Invocation.method(
+          #activateSessionForTest,
+          [],
+        ),
+        returnValue: _i6.Future<void>.value(),
+        returnValueForMissingStub: _i6.Future<void>.value(),
+      ) as _i6.Future<void>);
+
+  @override
   void notifyListeners() => super.noSuchMethod(
         Invocation.method(
           #notifyListeners,
@@ -11021,6 +11032,16 @@ class MockMatrixService extends _i1.Mock implements _i22.MatrixService {
         Invocation.method(
           #dispose,
           [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeAppLifecycleState(_i23.AppLifecycleState? state) =>
+      super.noSuchMethod(
+        Invocation.method(
+          #didChangeAppLifecycleState,
+          [state],
         ),
         returnValueForMissingStub: null,
       );
@@ -11126,6 +11147,161 @@ class MockMatrixService extends _i1.Mock implements _i22.MatrixService {
         ),
         returnValueForMissingStub: null,
       );
+
+  @override
+  _i6.Future<bool> didPopRoute() => (super.noSuchMethod(
+        Invocation.method(
+          #didPopRoute,
+          [],
+        ),
+        returnValue: _i6.Future<bool>.value(false),
+        returnValueForMissingStub: _i6.Future<bool>.value(false),
+      ) as _i6.Future<bool>);
+
+  @override
+  bool handleStartBackGesture(_i24.PredictiveBackEvent? backEvent) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #handleStartBackGesture,
+          [backEvent],
+        ),
+        returnValue: false,
+        returnValueForMissingStub: false,
+      ) as bool);
+
+  @override
+  void handleUpdateBackGestureProgress(_i24.PredictiveBackEvent? backEvent) =>
+      super.noSuchMethod(
+        Invocation.method(
+          #handleUpdateBackGestureProgress,
+          [backEvent],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void handleCommitBackGesture() => super.noSuchMethod(
+        Invocation.method(
+          #handleCommitBackGesture,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void handleCancelBackGesture() => super.noSuchMethod(
+        Invocation.method(
+          #handleCancelBackGesture,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void handleStatusBarTap() => super.noSuchMethod(
+        Invocation.method(
+          #handleStatusBarTap,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  _i6.Future<bool> didPushRoute(String? route) => (super.noSuchMethod(
+        Invocation.method(
+          #didPushRoute,
+          [route],
+        ),
+        returnValue: _i6.Future<bool>.value(false),
+        returnValueForMissingStub: _i6.Future<bool>.value(false),
+      ) as _i6.Future<bool>);
+
+  @override
+  _i6.Future<bool> didPushRouteInformation(
+          _i16.RouteInformation? routeInformation) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #didPushRouteInformation,
+          [routeInformation],
+        ),
+        returnValue: _i6.Future<bool>.value(false),
+        returnValueForMissingStub: _i6.Future<bool>.value(false),
+      ) as _i6.Future<bool>);
+
+  @override
+  void didChangeMetrics() => super.noSuchMethod(
+        Invocation.method(
+          #didChangeMetrics,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeTextScaleFactor() => super.noSuchMethod(
+        Invocation.method(
+          #didChangeTextScaleFactor,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangePlatformBrightness() => super.noSuchMethod(
+        Invocation.method(
+          #didChangePlatformBrightness,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeLocales(List<_i23.Locale>? locales) => super.noSuchMethod(
+        Invocation.method(
+          #didChangeLocales,
+          [locales],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeViewFocus(_i23.ViewFocusEvent? event) => super.noSuchMethod(
+        Invocation.method(
+          #didChangeViewFocus,
+          [event],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  _i6.Future<_i23.AppExitResponse> didRequestAppExit() => (super.noSuchMethod(
+        Invocation.method(
+          #didRequestAppExit,
+          [],
+        ),
+        returnValue:
+            _i6.Future<_i23.AppExitResponse>.value(_i23.AppExitResponse.exit),
+        returnValueForMissingStub:
+            _i6.Future<_i23.AppExitResponse>.value(_i23.AppExitResponse.exit),
+      ) as _i6.Future<_i23.AppExitResponse>);
+
+  @override
+  void didHaveMemoryPressure() => super.noSuchMethod(
+        Invocation.method(
+          #didHaveMemoryPressure,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeAccessibilityFeatures() => super.noSuchMethod(
+        Invocation.method(
+          #didChangeAccessibilityFeatures,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
 }
 
 /// A class which mocks [ScaffoldMessengerState].
@@ -11176,9 +11352,9 @@ class MockScaffoldMessengerState extends _i1.Mock
       );
 
   @override
-  _i14.ScaffoldFeatureController<_i24.SnackBar, _i24.SnackBarClosedReason>
+  _i14.ScaffoldFeatureController<_i25.SnackBar, _i25.SnackBarClosedReason>
       showSnackBar(
-    _i24.SnackBar? snackBar, {
+    _i25.SnackBar? snackBar, {
     _i16.AnimationStyle? snackBarAnimationStyle,
   }) =>
           (super.noSuchMethod(
@@ -11187,8 +11363,8 @@ class MockScaffoldMessengerState extends _i1.Mock
               [snackBar],
               {#snackBarAnimationStyle: snackBarAnimationStyle},
             ),
-            returnValue: _FakeScaffoldFeatureController_82<_i24.SnackBar,
-                _i24.SnackBarClosedReason>(
+            returnValue: _FakeScaffoldFeatureController_82<_i25.SnackBar,
+                _i25.SnackBarClosedReason>(
               this,
               Invocation.method(
                 #showSnackBar,
@@ -11197,7 +11373,7 @@ class MockScaffoldMessengerState extends _i1.Mock
               ),
             ),
             returnValueForMissingStub: _FakeScaffoldFeatureController_82<
-                _i24.SnackBar, _i24.SnackBarClosedReason>(
+                _i25.SnackBar, _i25.SnackBarClosedReason>(
               this,
               Invocation.method(
                 #showSnackBar,
@@ -11205,13 +11381,13 @@ class MockScaffoldMessengerState extends _i1.Mock
                 {#snackBarAnimationStyle: snackBarAnimationStyle},
               ),
             ),
-          ) as _i14.ScaffoldFeatureController<_i24.SnackBar,
-              _i24.SnackBarClosedReason>);
+          ) as _i14.ScaffoldFeatureController<_i25.SnackBar,
+              _i25.SnackBarClosedReason>);
 
   @override
   void removeCurrentSnackBar(
-          {_i24.SnackBarClosedReason? reason =
-              _i24.SnackBarClosedReason.remove}) =>
+          {_i25.SnackBarClosedReason? reason =
+              _i25.SnackBarClosedReason.remove}) =>
       super.noSuchMethod(
         Invocation.method(
           #removeCurrentSnackBar,
@@ -11223,8 +11399,8 @@ class MockScaffoldMessengerState extends _i1.Mock
 
   @override
   void hideCurrentSnackBar(
-          {_i24.SnackBarClosedReason? reason =
-              _i24.SnackBarClosedReason.hide}) =>
+          {_i25.SnackBarClosedReason? reason =
+              _i25.SnackBarClosedReason.hide}) =>
       super.noSuchMethod(
         Invocation.method(
           #hideCurrentSnackBar,
@@ -11244,16 +11420,16 @@ class MockScaffoldMessengerState extends _i1.Mock
       );
 
   @override
-  _i14.ScaffoldFeatureController<_i25.MaterialBanner,
-      _i25.MaterialBannerClosedReason> showMaterialBanner(
-          _i25.MaterialBanner? materialBanner) =>
+  _i14.ScaffoldFeatureController<_i26.MaterialBanner,
+      _i26.MaterialBannerClosedReason> showMaterialBanner(
+          _i26.MaterialBanner? materialBanner) =>
       (super.noSuchMethod(
         Invocation.method(
           #showMaterialBanner,
           [materialBanner],
         ),
-        returnValue: _FakeScaffoldFeatureController_82<_i25.MaterialBanner,
-            _i25.MaterialBannerClosedReason>(
+        returnValue: _FakeScaffoldFeatureController_82<_i26.MaterialBanner,
+            _i26.MaterialBannerClosedReason>(
           this,
           Invocation.method(
             #showMaterialBanner,
@@ -11261,20 +11437,20 @@ class MockScaffoldMessengerState extends _i1.Mock
           ),
         ),
         returnValueForMissingStub: _FakeScaffoldFeatureController_82<
-            _i25.MaterialBanner, _i25.MaterialBannerClosedReason>(
+            _i26.MaterialBanner, _i26.MaterialBannerClosedReason>(
           this,
           Invocation.method(
             #showMaterialBanner,
             [materialBanner],
           ),
         ),
-      ) as _i14.ScaffoldFeatureController<_i25.MaterialBanner,
-          _i25.MaterialBannerClosedReason>);
+      ) as _i14.ScaffoldFeatureController<_i26.MaterialBanner,
+          _i26.MaterialBannerClosedReason>);
 
   @override
   void removeCurrentMaterialBanner(
-          {_i25.MaterialBannerClosedReason? reason =
-              _i25.MaterialBannerClosedReason.remove}) =>
+          {_i26.MaterialBannerClosedReason? reason =
+              _i26.MaterialBannerClosedReason.remove}) =>
       super.noSuchMethod(
         Invocation.method(
           #removeCurrentMaterialBanner,
@@ -11286,8 +11462,8 @@ class MockScaffoldMessengerState extends _i1.Mock
 
   @override
   void hideCurrentMaterialBanner(
-          {_i25.MaterialBannerClosedReason? reason =
-              _i25.MaterialBannerClosedReason.hide}) =>
+          {_i26.MaterialBannerClosedReason? reason =
+              _i26.MaterialBannerClosedReason.hide}) =>
       super.noSuchMethod(
         Invocation.method(
           #hideCurrentMaterialBanner,

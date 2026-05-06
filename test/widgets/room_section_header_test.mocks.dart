@@ -7,10 +7,12 @@ import 'dart:async' as _i5;
 import 'dart:typed_data' as _i16;
 import 'dart:ui' as _i18;
 
-import 'package:flutter/material.dart' as _i20;
+import 'package:flutter/material.dart' as _i22;
+import 'package:flutter/services.dart' as _i19;
+import 'package:flutter/widgets.dart' as _i20;
 import 'package:http/http.dart' as _i4;
 import 'package:kohera/core/services/matrix_service.dart' as _i17;
-import 'package:kohera/core/services/preferences_service.dart' as _i19;
+import 'package:kohera/core/services/preferences_service.dart' as _i21;
 import 'package:kohera/core/services/sub_services/auth_service.dart' as _i12;
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart'
     as _i9;
@@ -24,9 +26,9 @@ import 'package:kohera/features/notifications/services/call_push_rule_manager.da
 import 'package:matrix/encryption.dart' as _i14;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;
-import 'package:matrix/src/models/timeline_chunk.dart' as _i22;
+import 'package:matrix/src/models/timeline_chunk.dart' as _i24;
 import 'package:matrix/src/utils/cached_stream_controller.dart' as _i3;
-import 'package:matrix/src/utils/space_child.dart' as _i21;
+import 'package:matrix/src/utils/space_child.dart' as _i23;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i15;
 
@@ -7893,6 +7895,16 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
       ) as bool);
 
   @override
+  _i5.Future<void> activateSessionForTest() => (super.noSuchMethod(
+        Invocation.method(
+          #activateSessionForTest,
+          [],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
   void notifyListeners() => super.noSuchMethod(
         Invocation.method(
           #notifyListeners,
@@ -7915,6 +7927,16 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
         Invocation.method(
           #dispose,
           [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeAppLifecycleState(_i18.AppLifecycleState? state) =>
+      super.noSuchMethod(
+        Invocation.method(
+          #didChangeAppLifecycleState,
+          [state],
         ),
         returnValueForMissingStub: null,
       );
@@ -8020,33 +8042,188 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
         ),
         returnValueForMissingStub: null,
       );
+
+  @override
+  _i5.Future<bool> didPopRoute() => (super.noSuchMethod(
+        Invocation.method(
+          #didPopRoute,
+          [],
+        ),
+        returnValue: _i5.Future<bool>.value(false),
+        returnValueForMissingStub: _i5.Future<bool>.value(false),
+      ) as _i5.Future<bool>);
+
+  @override
+  bool handleStartBackGesture(_i19.PredictiveBackEvent? backEvent) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #handleStartBackGesture,
+          [backEvent],
+        ),
+        returnValue: false,
+        returnValueForMissingStub: false,
+      ) as bool);
+
+  @override
+  void handleUpdateBackGestureProgress(_i19.PredictiveBackEvent? backEvent) =>
+      super.noSuchMethod(
+        Invocation.method(
+          #handleUpdateBackGestureProgress,
+          [backEvent],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void handleCommitBackGesture() => super.noSuchMethod(
+        Invocation.method(
+          #handleCommitBackGesture,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void handleCancelBackGesture() => super.noSuchMethod(
+        Invocation.method(
+          #handleCancelBackGesture,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void handleStatusBarTap() => super.noSuchMethod(
+        Invocation.method(
+          #handleStatusBarTap,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  _i5.Future<bool> didPushRoute(String? route) => (super.noSuchMethod(
+        Invocation.method(
+          #didPushRoute,
+          [route],
+        ),
+        returnValue: _i5.Future<bool>.value(false),
+        returnValueForMissingStub: _i5.Future<bool>.value(false),
+      ) as _i5.Future<bool>);
+
+  @override
+  _i5.Future<bool> didPushRouteInformation(
+          _i20.RouteInformation? routeInformation) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #didPushRouteInformation,
+          [routeInformation],
+        ),
+        returnValue: _i5.Future<bool>.value(false),
+        returnValueForMissingStub: _i5.Future<bool>.value(false),
+      ) as _i5.Future<bool>);
+
+  @override
+  void didChangeMetrics() => super.noSuchMethod(
+        Invocation.method(
+          #didChangeMetrics,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeTextScaleFactor() => super.noSuchMethod(
+        Invocation.method(
+          #didChangeTextScaleFactor,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangePlatformBrightness() => super.noSuchMethod(
+        Invocation.method(
+          #didChangePlatformBrightness,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeLocales(List<_i18.Locale>? locales) => super.noSuchMethod(
+        Invocation.method(
+          #didChangeLocales,
+          [locales],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeViewFocus(_i18.ViewFocusEvent? event) => super.noSuchMethod(
+        Invocation.method(
+          #didChangeViewFocus,
+          [event],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  _i5.Future<_i18.AppExitResponse> didRequestAppExit() => (super.noSuchMethod(
+        Invocation.method(
+          #didRequestAppExit,
+          [],
+        ),
+        returnValue:
+            _i5.Future<_i18.AppExitResponse>.value(_i18.AppExitResponse.exit),
+        returnValueForMissingStub:
+            _i5.Future<_i18.AppExitResponse>.value(_i18.AppExitResponse.exit),
+      ) as _i5.Future<_i18.AppExitResponse>);
+
+  @override
+  void didHaveMemoryPressure() => super.noSuchMethod(
+        Invocation.method(
+          #didHaveMemoryPressure,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void didChangeAccessibilityFeatures() => super.noSuchMethod(
+        Invocation.method(
+          #didChangeAccessibilityFeatures,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
 }
 
 /// A class which mocks [PreferencesService].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockPreferencesService extends _i1.Mock
-    implements _i19.PreferencesService {
+    implements _i21.PreferencesService {
   @override
-  _i19.MessageDensity get messageDensity => (super.noSuchMethod(
+  _i21.MessageDensity get messageDensity => (super.noSuchMethod(
         Invocation.getter(#messageDensity),
-        returnValue: _i19.MessageDensity.compact,
-        returnValueForMissingStub: _i19.MessageDensity.compact,
-      ) as _i19.MessageDensity);
+        returnValue: _i21.MessageDensity.compact,
+        returnValueForMissingStub: _i21.MessageDensity.compact,
+      ) as _i21.MessageDensity);
 
   @override
-  _i19.MobileTab get lastMobileTab => (super.noSuchMethod(
+  _i21.MobileTab get lastMobileTab => (super.noSuchMethod(
         Invocation.getter(#lastMobileTab),
-        returnValue: _i19.MobileTab.inbox,
-        returnValueForMissingStub: _i19.MobileTab.inbox,
-      ) as _i19.MobileTab);
+        returnValue: _i21.MobileTab.inbox,
+        returnValueForMissingStub: _i21.MobileTab.inbox,
+      ) as _i21.MobileTab);
 
   @override
-  _i20.ThemeMode get themeMode => (super.noSuchMethod(
+  _i22.ThemeMode get themeMode => (super.noSuchMethod(
         Invocation.getter(#themeMode),
-        returnValue: _i20.ThemeMode.system,
-        returnValueForMissingStub: _i20.ThemeMode.system,
-      ) as _i20.ThemeMode);
+        returnValue: _i22.ThemeMode.system,
+        returnValueForMissingStub: _i22.ThemeMode.system,
+      ) as _i22.ThemeMode);
 
   @override
   String get themeModeLabel => (super.noSuchMethod(
@@ -8075,11 +8252,11 @@ class MockPreferencesService extends _i1.Mock
       ) as _i13.CustomTheme);
 
   @override
-  _i20.ThemeMode get customThemeMode => (super.noSuchMethod(
+  _i22.ThemeMode get customThemeMode => (super.noSuchMethod(
         Invocation.getter(#customThemeMode),
-        returnValue: _i20.ThemeMode.system,
-        returnValueForMissingStub: _i20.ThemeMode.system,
-      ) as _i20.ThemeMode);
+        returnValue: _i22.ThemeMode.system,
+        returnValueForMissingStub: _i22.ThemeMode.system,
+      ) as _i22.ThemeMode);
 
   @override
   Set<String> get collapsedSpaceSections => (super.noSuchMethod(
@@ -8110,11 +8287,11 @@ class MockPreferencesService extends _i1.Mock
       ) as double);
 
   @override
-  _i19.NotificationLevel get notificationLevel => (super.noSuchMethod(
+  _i21.NotificationLevel get notificationLevel => (super.noSuchMethod(
         Invocation.getter(#notificationLevel),
-        returnValue: _i19.NotificationLevel.all,
-        returnValueForMissingStub: _i19.NotificationLevel.all,
-      ) as _i19.NotificationLevel);
+        returnValue: _i21.NotificationLevel.all,
+        returnValueForMissingStub: _i21.NotificationLevel.all,
+      ) as _i21.NotificationLevel);
 
   @override
   String get notificationLevelLabel => (super.noSuchMethod(
@@ -8277,11 +8454,11 @@ class MockPreferencesService extends _i1.Mock
       ) as bool);
 
   @override
-  _i19.AudioQuality get audioQuality => (super.noSuchMethod(
+  _i21.AudioQuality get audioQuality => (super.noSuchMethod(
         Invocation.getter(#audioQuality),
-        returnValue: _i19.AudioQuality.speech,
-        returnValueForMissingStub: _i19.AudioQuality.speech,
-      ) as _i19.AudioQuality);
+        returnValue: _i21.AudioQuality.speech,
+        returnValueForMissingStub: _i21.AudioQuality.speech,
+      ) as _i21.AudioQuality);
 
   @override
   bool get highPassFilter => (super.noSuchMethod(
@@ -8325,7 +8502,7 @@ class MockPreferencesService extends _i1.Mock
       ) as _i5.Future<void>);
 
   @override
-  _i5.Future<void> setMessageDensity(_i19.MessageDensity? density) =>
+  _i5.Future<void> setMessageDensity(_i21.MessageDensity? density) =>
       (super.noSuchMethod(
         Invocation.method(
           #setMessageDensity,
@@ -8336,7 +8513,7 @@ class MockPreferencesService extends _i1.Mock
       ) as _i5.Future<void>);
 
   @override
-  _i5.Future<void> setLastMobileTab(_i19.MobileTab? tab) => (super.noSuchMethod(
+  _i5.Future<void> setLastMobileTab(_i21.MobileTab? tab) => (super.noSuchMethod(
         Invocation.method(
           #setLastMobileTab,
           [tab],
@@ -8346,7 +8523,7 @@ class MockPreferencesService extends _i1.Mock
       ) as _i5.Future<void>);
 
   @override
-  _i5.Future<void> setThemeMode(_i20.ThemeMode? mode) => (super.noSuchMethod(
+  _i5.Future<void> setThemeMode(_i22.ThemeMode? mode) => (super.noSuchMethod(
         Invocation.method(
           #setThemeMode,
           [mode],
@@ -8377,7 +8554,7 @@ class MockPreferencesService extends _i1.Mock
       ) as _i5.Future<void>);
 
   @override
-  _i5.Future<void> setCustomThemeMode(_i20.ThemeMode? mode) =>
+  _i5.Future<void> setCustomThemeMode(_i22.ThemeMode? mode) =>
       (super.noSuchMethod(
         Invocation.method(
           #setCustomThemeMode,
@@ -8429,7 +8606,7 @@ class MockPreferencesService extends _i1.Mock
       ) as _i5.Future<void>);
 
   @override
-  _i5.Future<void> setNotificationLevel(_i19.NotificationLevel? level) =>
+  _i5.Future<void> setNotificationLevel(_i21.NotificationLevel? level) =>
       (super.noSuchMethod(
         Invocation.method(
           #setNotificationLevel,
@@ -8708,7 +8885,7 @@ class MockPreferencesService extends _i1.Mock
       ) as _i5.Future<void>);
 
   @override
-  _i5.Future<void> setAudioQuality(_i19.AudioQuality? quality) =>
+  _i5.Future<void> setAudioQuality(_i21.AudioQuality? quality) =>
       (super.noSuchMethod(
         Invocation.method(
           #setAudioQuality,
@@ -9256,18 +9433,18 @@ class MockRoom extends _i1.Mock implements _i2.Room {
       ) as bool);
 
   @override
-  List<_i21.SpaceParent> get spaceParents => (super.noSuchMethod(
+  List<_i23.SpaceParent> get spaceParents => (super.noSuchMethod(
         Invocation.getter(#spaceParents),
-        returnValue: <_i21.SpaceParent>[],
-        returnValueForMissingStub: <_i21.SpaceParent>[],
-      ) as List<_i21.SpaceParent>);
+        returnValue: <_i23.SpaceParent>[],
+        returnValueForMissingStub: <_i23.SpaceParent>[],
+      ) as List<_i23.SpaceParent>);
 
   @override
-  List<_i21.SpaceChild> get spaceChildren => (super.noSuchMethod(
+  List<_i23.SpaceChild> get spaceChildren => (super.noSuchMethod(
         Invocation.getter(#spaceChildren),
-        returnValue: <_i21.SpaceChild>[],
-        returnValueForMissingStub: <_i21.SpaceChild>[],
-      ) as List<_i21.SpaceChild>);
+        returnValue: <_i23.SpaceChild>[],
+        returnValueForMissingStub: <_i23.SpaceChild>[],
+      ) as List<_i23.SpaceChild>);
 
   @override
   set membership(_i2.Membership? value) => super.noSuchMethod(
@@ -9954,15 +10131,15 @@ class MockRoom extends _i1.Mock implements _i2.Room {
       ) as _i5.Future<void>);
 
   @override
-  _i5.Future<_i22.TimelineChunk?> getEventContext(String? eventId) =>
+  _i5.Future<_i24.TimelineChunk?> getEventContext(String? eventId) =>
       (super.noSuchMethod(
         Invocation.method(
           #getEventContext,
           [eventId],
         ),
-        returnValue: _i5.Future<_i22.TimelineChunk?>.value(),
-        returnValueForMissingStub: _i5.Future<_i22.TimelineChunk?>.value(),
-      ) as _i5.Future<_i22.TimelineChunk?>);
+        returnValue: _i5.Future<_i24.TimelineChunk?>.value(),
+        returnValueForMissingStub: _i5.Future<_i24.TimelineChunk?>.value(),
+      ) as _i5.Future<_i24.TimelineChunk?>);
 
   @override
   _i5.Future<void> postReceipt(
