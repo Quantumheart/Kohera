@@ -238,7 +238,6 @@ class _NotificationGroupTile extends StatelessWidget {
                     icon: const Icon(Icons.open_in_new_rounded, size: 20),
                     tooltip: InboxText.tooltipOpen,
                     onPressed: () {
-                      FocusManager.instance.primaryFocus?.unfocus();
                       final singleThread = group.subGroups.length == 1
                           ? group.subGroups.first.threadRootId
                           : null;
@@ -402,8 +401,8 @@ class _NotificationTile extends StatelessWidget {
 
     return InkWell(
       mouseCursor: SystemMouseCursors.click,
+      canRequestFocus: false,
       onTap: () {
-        FocusManager.instance.primaryFocus?.unfocus();
         final tid = threadRootId;
         if (tid != null) {
           context.goNamed(
