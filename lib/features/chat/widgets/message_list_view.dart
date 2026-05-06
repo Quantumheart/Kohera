@@ -250,18 +250,20 @@ class MessageListViewState extends State<MessageListView> {
         return;
       }
 
-      final lastEvent = widget.room.lastEvent;
-      if (lastEvent == null || widget.room.notificationCount == 0) return;
+      if (widget.room.notificationCount == 0) return;
+      final visible = _visibleEvents;
+      final lastMainEvent = visible.isNotEmpty ? visible.first : null;
+      if (lastMainEvent == null) return;
       try {
         final sendPublic = context.read<PreferencesService>().readReceipts;
         await widget.room.setReadMarker(
-          lastEvent.eventId,
-          mRead: sendPublic ? lastEvent.eventId : null,
+          lastMainEvent.eventId,
+          mRead: sendPublic ? lastMainEvent.eventId : null,
         );
         await client.postReceipt(
           widget.room.id,
           ReceiptType.mRead,
-          lastEvent.eventId,
+          lastMainEvent.eventId,
           threadId: 'main',
         );
       } catch (e) {
