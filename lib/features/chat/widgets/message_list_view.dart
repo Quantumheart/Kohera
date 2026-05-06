@@ -32,6 +32,9 @@ class MessageListView extends StatefulWidget {
     this.onOpenThread,
     this.emptyText,
     this.onTimelineChanged,
+    this.extraEvents,
+    this.onLoadMoreExtra,
+    this.extraLoading = false,
     super.key,
   });
 
@@ -50,6 +53,9 @@ class MessageListView extends StatefulWidget {
   final void Function(Event event)? onOpenThread;
   final String? emptyText;
   final VoidCallback? onTimelineChanged;
+  final List<Event>? extraEvents;
+  final VoidCallback? onLoadMoreExtra;
+  final bool extraLoading;
 
   @override
   State<MessageListView> createState() => MessageListViewState();
@@ -92,6 +98,8 @@ class MessageListViewState extends State<MessageListView> {
       _cachedVisibleEvents = null;
       unawaited(_initTimeline());
     } else if (oldWidget.threadRootEventId != widget.threadRootEventId) {
+      _cachedVisibleEvents = null;
+    } else if (!identical(oldWidget.extraEvents, widget.extraEvents)) {
       _cachedVisibleEvents = null;
     }
   }
@@ -176,10 +184,26 @@ class MessageListViewState extends State<MessageListView> {
 
   List<Event> get _visibleEvents {
     if (_cachedVisibleEvents != null) return _cachedVisibleEvents!;
-    final events = _timeline?.events;
-    if (events == null) return [];
+    final timelineEvents = _timeline?.events;
+    if (timelineEvents == null) return [];
     final threadRootId = widget.threadRootEventId;
-    _cachedVisibleEvents = events
+    final extra = widget.extraEvents;
+    final Iterable<Event> source;
+    if (extra != null && extra.isNotEmpty) {
+      final seen = <String>{};
+      final merged = <Event>[];
+      for (final e in timelineEvents) {
+        if (seen.add(e.eventId)) merged.add(e);
+      }
+      for (final e in extra) {
+        if (seen.add(e.eventId)) merged.add(e);
+      }
+      merged.sort((a, b) => b.originServerTs.compareTo(a.originServerTs));
+      source = merged;
+    } else {
+      source = timelineEvents;
+    }
+    _cachedVisibleEvents = source
         .where((e) =>
             (((e.type == EventTypes.Message ||
                             e.type == EventTypes.Encrypted) &&
@@ -249,13 +273,15 @@ class MessageListViewState extends State<MessageListView> {
   // ── Scroll & history ───────────────────────────────────
 
   void _onScroll() {
-    if (widget.threadRootEventId != null) return;
     final positions = _itemPosListener.itemPositions.value;
     if (positions.isEmpty) return;
     final maxIndex = positions.map((p) => p.index).reduce((a, b) => a > b ? a : b);
-    if (maxIndex >= _visibleEvents.length - _historyLoadThreshold && !_loadingHistory) {
-      unawaited(_loadMore());
+    if (maxIndex < _visibleEvents.length - _historyLoadThreshold) return;
+    if (widget.threadRootEventId != null) {
+      if (!widget.extraLoading) widget.onLoadMoreExtra?.call();
+      return;
     }
+    if (!_loadingHistory) unawaited(_loadMore());
   }
 
   bool _handleScrollNotification(ScrollNotification notification) {
@@ -478,7 +504,7 @@ class MessageListViewState extends State<MessageListView> {
             threadRootId: widget.threadRootEventId,
           )
         : <String, List<Receipt>>{};
-    final hasLoadingIndicator = _loadingHistory;
+    final hasLoadingIndicator = _loadingHistory || widget.extraLoading;
     final totalCount = events.length + (hasLoadingIndicator ? 1 : 0);
 
     return NotificationListener<ScrollNotification>(
