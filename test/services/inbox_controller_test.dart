@@ -4,6 +4,7 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
@@ -55,11 +56,15 @@ void main() {
 
   late MockRoom defaultRoom;
 
+  late CachedStreamController<SyncUpdate> syncCtl;
+
   setUp(() {
     mockClient = MockClient();
     defaultRoom = MockRoom();
+    syncCtl = CachedStreamController<SyncUpdate>();
     when(defaultRoom.membership).thenReturn(Membership.join);
     when(mockClient.getRoomById(any)).thenReturn(defaultRoom);
+    when(mockClient.onSync).thenReturn(syncCtl);
     controller = InboxController(client: mockClient);
   });
 
@@ -351,10 +356,46 @@ void main() {
     });
   });
 
-  // ── Polling ────────────────────────────────────────────────
+  // ── Sync-stream invalidation ──────────────────────────────
 
-  group('startPolling / stopPolling', () {
-    test('_pollOnce fires at 7s intervals', () {
+  SyncUpdate _syncWithTimelineEvent(String roomId) {
+    final ev = MatrixEvent(
+      type: 'm.room.message',
+      content: const {'body': 'hi', 'msgtype': 'm.text'},
+      senderId: '@bob:example.com',
+      eventId: 'sync-evt',
+      originServerTs: DateTime.fromMillisecondsSinceEpoch(1000),
+      roomId: roomId,
+    );
+    return SyncUpdate(
+      nextBatch: 'tok',
+      rooms: RoomsUpdate(
+        join: {
+          roomId: JoinedRoomUpdate(
+            timeline: TimelineUpdate(events: [ev]),
+          ),
+        },
+      ),
+    );
+  }
+
+  SyncUpdate _syncTypingOnly(String roomId) {
+    return SyncUpdate(
+      nextBatch: 'tok',
+      rooms: RoomsUpdate(
+        join: {
+          roomId: JoinedRoomUpdate(
+            ephemeral: [
+              BasicEvent(type: 'm.typing', content: const {'user_ids': []}),
+            ],
+          ),
+        },
+      ),
+    );
+  }
+
+  group('startPolling / stopPolling (sync-driven)', () {
+    test('sync timeline event triggers debounced fetch', () {
       fakeAsync((async) {
         when(mockClient.getNotifications(
           limit: anyNamed('limit'),
@@ -362,32 +403,100 @@ void main() {
         ),).thenAnswer((_) async => _makeResponse([]));
 
         controller.startPolling();
+        async.flushMicrotasks();
+        // Initial fetch is NOT triggered by startPolling (caller does it).
+        clearInteractions(mockClient);
 
-        // No calls at t=0
+        syncCtl.add(_syncWithTimelineEvent('!r1:x'));
+
+        // Before debounce expires: no fetch yet.
+        async.elapse(const Duration(milliseconds: 500));
         verifyNever(mockClient.getNotifications(
           limit: anyNamed('limit'),
           only: anyNamed('only'),
         ),);
 
-        // Advance to 7s
-        async.elapse(const Duration(seconds: 7));
-        verify(mockClient.getNotifications(
-          limit: anyNamed('limit'),
-          only: anyNamed('only'),
-        ),).called(1);
-
-        // Advance to 14s
-        async.elapse(const Duration(seconds: 7));
+        // After debounce: one fetch.
+        async.elapse(const Duration(milliseconds: 300));
+        async.flushMicrotasks();
         verify(mockClient.getNotifications(
           limit: anyNamed('limit'),
           only: anyNamed('only'),
         ),).called(1);
 
         controller.stopPolling();
+      });
+    });
 
-        // Reset interaction count, then verify no more calls
+    test('burst of sync updates coalesces to one fetch', () {
+      fakeAsync((async) {
+        when(mockClient.getNotifications(
+          limit: anyNamed('limit'),
+          only: anyNamed('only'),
+        ),).thenAnswer((_) async => _makeResponse([]));
+
+        controller.startPolling();
+        async.flushMicrotasks();
         clearInteractions(mockClient);
-        async.elapse(const Duration(seconds: 14));
+
+        syncCtl.add(_syncWithTimelineEvent('!r1:x'));
+        async.elapse(const Duration(milliseconds: 200));
+        syncCtl.add(_syncWithTimelineEvent('!r2:x'));
+        async.elapse(const Duration(milliseconds: 200));
+        syncCtl.add(_syncWithTimelineEvent('!r3:x'));
+        async.elapse(const Duration(seconds: 1));
+        async.flushMicrotasks();
+
+        verify(mockClient.getNotifications(
+          limit: anyNamed('limit'),
+          only: anyNamed('only'),
+        ),).called(1);
+
+        controller.stopPolling();
+      });
+    });
+
+    test('typing-only sync does not trigger fetch', () {
+      fakeAsync((async) {
+        when(mockClient.getNotifications(
+          limit: anyNamed('limit'),
+          only: anyNamed('only'),
+        ),).thenAnswer((_) async => _makeResponse([]));
+
+        controller.startPolling();
+        async.flushMicrotasks();
+        clearInteractions(mockClient);
+
+        syncCtl.add(_syncTypingOnly('!r1:x'));
+        async.elapse(const Duration(seconds: 5));
+        async.flushMicrotasks();
+
+        verifyNever(mockClient.getNotifications(
+          limit: anyNamed('limit'),
+          only: anyNamed('only'),
+        ),);
+
+        controller.stopPolling();
+      });
+    });
+
+    test('stopPolling cancels pending debounce', () {
+      fakeAsync((async) {
+        when(mockClient.getNotifications(
+          limit: anyNamed('limit'),
+          only: anyNamed('only'),
+        ),).thenAnswer((_) async => _makeResponse([]));
+
+        controller.startPolling();
+        async.flushMicrotasks();
+        clearInteractions(mockClient);
+
+        syncCtl.add(_syncWithTimelineEvent('!r1:x'));
+        async.elapse(const Duration(milliseconds: 200));
+        controller.stopPolling();
+        async.elapse(const Duration(seconds: 5));
+        async.flushMicrotasks();
+
         verifyNever(mockClient.getNotifications(
           limit: anyNamed('limit'),
           only: anyNamed('only'),
@@ -486,7 +595,7 @@ void main() {
       expect(controller.grouped[0].notifications, hasLength(1));
     });
 
-    test('polling updates stale local read state from server', () {
+    test('sync-triggered refetch updates stale local read state', () {
       fakeAsync((async) {
         when(mockClient.getNotifications(
           limit: anyNamed('limit'),
@@ -509,7 +618,21 @@ void main() {
             ]),);
 
         controller.startPolling();
-        async.elapse(const Duration(seconds: 7));
+        async.flushMicrotasks();
+        // Simulate a receipt from another device clearing 'e1'.
+        syncCtl.add(SyncUpdate(
+          nextBatch: 'tok',
+          rooms: RoomsUpdate(
+            join: {
+              '!r1:x': JoinedRoomUpdate(
+                ephemeral: [
+                  BasicEvent(type: 'm.receipt', content: const {}),
+                ],
+              ),
+            },
+          ),
+        ),);
+        async.elapse(const Duration(seconds: 1));
         async.flushMicrotasks();
         controller.stopPolling();
 
@@ -597,7 +720,7 @@ void main() {
       expect(controller.error, isNull);
     });
 
-    test('polling stops after M_UNKNOWN_TOKEN', () {
+    test('sync subscription stops after M_UNKNOWN_TOKEN', () {
       fakeAsync((async) {
         var callCount = 0;
         when(mockClient.getNotifications(
@@ -612,10 +735,32 @@ void main() {
         });
 
         controller.startPolling();
-        async.elapse(const Duration(seconds: 7));
+        unawaited(controller.fetch());
+        async.flushMicrotasks();
         expect(callCount, 1);
 
-        async.elapse(const Duration(seconds: 7));
+        // After token expiry, further sync events must not trigger fetch.
+        syncCtl.add(SyncUpdate(
+          nextBatch: 'tok',
+          rooms: RoomsUpdate(
+            join: {
+              '!r1:x': JoinedRoomUpdate(
+                timeline: TimelineUpdate(events: [
+                  MatrixEvent(
+                    type: 'm.room.message',
+                    content: const {'body': 'hi', 'msgtype': 'm.text'},
+                    senderId: '@b:x',
+                    eventId: 'e1',
+                    originServerTs: DateTime.fromMillisecondsSinceEpoch(1),
+                    roomId: '!r1:x',
+                  ),
+                ],),
+              ),
+            },
+          ),
+        ),);
+        async.elapse(const Duration(seconds: 5));
+        async.flushMicrotasks();
         expect(callCount, 1);
 
         controller.stopPolling();

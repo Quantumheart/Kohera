@@ -72,10 +72,12 @@ class InboxController extends ChangeNotifier {
   InboxFilter _filter = InboxFilter.all;
   InboxFilter get filter => _filter;
 
-  Timer? _pollTimer;
+  StreamSubscription<matrix_sdk.SyncUpdate>? _syncSub;
+  Timer? _debounce;
   int _pollingRefCount = 0;
   bool _markingAsRead = false;
   bool _tokenExpired = false;
+  static const _debounceDelay = Duration(milliseconds: 750);
 
   int _fetchGeneration = 0;
   int _cachedUnreadCount = 0;
@@ -131,6 +133,7 @@ class InboxController extends ChangeNotifier {
       if (_isTokenExpired(e)) {
         _tokenExpired = true;
         _isLoading = false;
+        _unbindSync();
         return;
       }
       _error = e.toString();
@@ -198,58 +201,65 @@ class InboxController extends ChangeNotifier {
     unawaited(fetch().catchError((Object e) => debugPrint('[Kohera] Inbox fetch error: $e')));
   }
 
-  // ── Polling ────────────────────────────────────────────────
+  // ── Sync-driven invalidation ───────────────────────────────
 
   void startPolling() {
     _pollingRefCount++;
     if (_pollingRefCount == 1) {
-      _pollTimer?.cancel();
-      _pollTimer = Timer.periodic(
-        const Duration(seconds: 7),
-        (_) => _pollOnce(),
-      );
+      _bindSync();
     }
   }
 
   void stopPolling() {
     _pollingRefCount = (_pollingRefCount - 1).clamp(0, 999);
     if (_pollingRefCount == 0) {
-      _pollTimer?.cancel();
-      _pollTimer = null;
+      _unbindSync();
     }
   }
 
-  Future<void> _pollOnce() async {
-    if (_isLoading || _markingAsRead || _tokenExpired) return;
-    try {
-      final response = await _client.getNotifications(limit: 30);
-      if (_disposed) return;
+  void _bindSync() {
+    final existing = _syncSub;
+    if (existing != null) unawaited(existing.cancel());
+    _syncSub = _client.onSync.stream.listen(_onSync);
+  }
 
-      final freshIds = <String>{};
-      for (final n in response.notifications) {
-        freshIds.add(n.event.eventId);
-      }
+  void _unbindSync() {
+    unawaited(_syncSub?.cancel() ?? Future.value());
+    _syncSub = null;
+    _debounce?.cancel();
+    _debounce = null;
+  }
 
-      final all = <matrix_sdk.Notification>[...response.notifications];
-      for (final group in _grouped) {
-        for (final n in group.notifications) {
-          if (!freshIds.contains(n.event.eventId)) {
-            all.add(n);
+  void _onSync(matrix_sdk.SyncUpdate update) {
+    if (_disposed || _tokenExpired) return;
+    if (!_shouldInvalidate(update)) return;
+    _debounce?.cancel();
+    _debounce = Timer(_debounceDelay, () {
+      if (_disposed || _tokenExpired) return;
+      if (_isLoading || _markingAsRead) return;
+      unawaited(fetch());
+    });
+  }
+
+  bool _shouldInvalidate(matrix_sdk.SyncUpdate update) {
+    final rooms = update.rooms;
+    if (rooms == null) return false;
+    final joins = rooms.join;
+    if (joins != null) {
+      for (final entry in joins.values) {
+        final timelineEvents = entry.timeline?.events;
+        if (timelineEvents != null && timelineEvents.isNotEmpty) return true;
+        final ephemeral = entry.ephemeral;
+        if (ephemeral != null) {
+          for (final ev in ephemeral) {
+            if (ev.type == 'm.receipt') return true;
           }
         }
       }
-      _grouped = await _groupByRoom(all);
-      _updateUnreadCount();
-      _error = null;
-      _nextToken ??= response.nextToken;
-      if (!_disposed) notifyListeners();
-    } catch (e) {
-      if (_isTokenExpired(e)) {
-        _tokenExpired = true;
-        return;
-      }
-      debugPrint('[Kohera] Inbox poll error: $e');
     }
+    if (rooms.invite != null && rooms.invite!.isNotEmpty) return true;
+    if (rooms.leave != null && rooms.leave!.isNotEmpty) return true;
+    return false;
   }
 
   // ── Mark as read ───────────────────────────────────────────
@@ -308,10 +318,10 @@ class InboxController extends ChangeNotifier {
             threadId: entry.key,
           ),
       ]);
-      await fetch();
     } catch (e) {
       if (_isTokenExpired(e)) {
         _tokenExpired = true;
+        _unbindSync();
         _markingAsRead = false;
         return;
       }
@@ -327,6 +337,8 @@ class InboxController extends ChangeNotifier {
   void updateClient(Client newClient) {
     _tokenExpired = false;
     if (identical(_client, newClient)) return;
+    final wasActive = _pollingRefCount > 0;
+    _unbindSync();
     _client = newClient;
     _grouped = [];
     _decryptedContent.clear();
@@ -334,7 +346,7 @@ class InboxController extends ChangeNotifier {
     _isLoading = false;
     _error = null;
     _updateUnreadCount();
-    stopPolling();
+    if (wasActive) _bindSync();
     if (!_disposed) notifyListeners();
     unawaited(fetch().catchError((Object e) => debugPrint('[Kohera] Inbox fetch error: $e')));
   }
@@ -468,7 +480,7 @@ class InboxController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    stopPolling();
+    _unbindSync();
     super.dispose();
   }
 }
