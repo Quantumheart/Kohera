@@ -53,6 +53,7 @@ abstract class InboxText {
   static const title = 'Inbox';
   static const filterAll = 'All';
   static const filterMentions = 'Mentions';
+  static const filterThreads = 'Threads';
   static const filterInvitations = 'Invites';
   static const noNotifications = 'No notifications';
   static const failedToLoad = 'Failed to load notifications';
@@ -68,6 +69,12 @@ abstract class InboxText {
   static const mediaFile = '📎 File';
   static const loadMore = 'Load more';
   static const inThread = 'in thread';
+  static const mentionInThread = '@you in thread';
+  static const mention = '@you';
+
+  static String inReplyTo(String body) => 'In reply to "$body"';
+  static String threadCount(int count) =>
+      count == 1 ? '1 reply' : '$count replies';
 
   static String invitationsWithCount(int count) => 'Invites ($count)';
 }

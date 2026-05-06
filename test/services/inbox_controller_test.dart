@@ -825,4 +825,215 @@ void main() {
       expect(controller.grouped, hasLength(2));
     });
   });
+
+  // ── Thread sub-grouping ───────────────────────────────────
+  Map<String, Object?> threadContent(String rootId) => {
+        'body': 'reply',
+        'msgtype': 'm.text',
+        'm.relates_to': {
+          'rel_type': 'm.thread',
+          'event_id': rootId,
+        },
+      };
+
+  group('thread sub-grouping', () {
+    test('two threads in one room produce two sub-groups + main', () async {
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(eventId: 'm1', roomId: '!r1:x'),
+            _makeNotification(
+              eventId: 't1a',
+              roomId: '!r1:x',
+              ts: 2000,
+              content: threadContent(r'$rootA'),
+            ),
+            _makeNotification(
+              eventId: 't1b',
+              roomId: '!r1:x',
+              ts: 2500,
+              content: threadContent(r'$rootA'),
+            ),
+            _makeNotification(
+              eventId: 't2',
+              roomId: '!r1:x',
+              ts: 3000,
+              content: threadContent(r'$rootB'),
+            ),
+          ]),);
+
+      await controller.fetch();
+
+      expect(controller.grouped, hasLength(1));
+      final subs = controller.grouped[0].subGroups;
+      expect(subs, hasLength(3));
+      expect(subs[0].threadRootId, r'$rootB');
+      expect(subs[0].notifications, hasLength(1));
+      expect(subs[1].threadRootId, r'$rootA');
+      expect(subs[1].notifications, hasLength(2));
+      expect(subs[2].threadRootId, isNull);
+      expect(subs[2].notifications, hasLength(1));
+    });
+
+    test('main-only room yields single null-keyed sub-group', () async {
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(eventId: 'e1', roomId: '!r1:x'),
+            _makeNotification(eventId: 'e2', roomId: '!r1:x', ts: 2000),
+          ]),);
+
+      await controller.fetch();
+
+      final subs = controller.grouped[0].subGroups;
+      expect(subs, hasLength(1));
+      expect(subs[0].threadRootId, isNull);
+      expect(subs[0].notifications, hasLength(2));
+    });
+  });
+
+  // ── threads filter ────────────────────────────────────────
+  group('threads filter', () {
+    test('excludes non-thread notifications', () async {
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(eventId: 'm1', roomId: '!r1:x'),
+            _makeNotification(
+              eventId: 't1',
+              roomId: '!r1:x',
+              ts: 2000,
+              content: threadContent(r'$root'),
+            ),
+            _makeNotification(eventId: 'm2', roomId: '!r2:x'),
+          ]),);
+
+      controller.setFilter(InboxFilter.threads);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.grouped, hasLength(1));
+      expect(controller.grouped[0].roomId, '!r1:x');
+      expect(controller.grouped[0].notifications, hasLength(1));
+      expect(controller.grouped[0].notifications[0].event.eventId, 't1');
+    });
+  });
+
+  // ── markRoomAsRead parallel + stale main ─────────────────
+  group('markRoomAsRead() parallelization', () {
+    test('per-thread receipts dispatched in parallel (not sequential)',
+        () async {
+      final mockRoom = MockRoom();
+      when(mockRoom.membership).thenReturn(Membership.join);
+      when(mockRoom.lastEvent).thenReturn(null);
+      when(mockRoom.setReadMarker(any, mRead: anyNamed('mRead')))
+          .thenAnswer((_) async {});
+      when(mockClient.getRoomById('!r1:x')).thenReturn(mockRoom);
+
+      final completers = <String, Completer<void>>{
+        r'$rA': Completer<void>(),
+        r'$rB': Completer<void>(),
+      };
+      when(mockClient.postReceipt(
+        any,
+        any,
+        any,
+        threadId: anyNamed('threadId'),
+      ),).thenAnswer((inv) {
+        final tid = inv.namedArguments[#threadId] as String;
+        return completers[tid]!.future;
+      });
+
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(
+              eventId: 'tA',
+              roomId: '!r1:x',
+              ts: 2000,
+              content: threadContent(r'$rA'),
+            ),
+            _makeNotification(
+              eventId: 'tB',
+              roomId: '!r1:x',
+              ts: 3000,
+              content: threadContent(r'$rB'),
+            ),
+          ]),);
+
+      await controller.fetch();
+      final markFuture = controller.markRoomAsRead('!r1:x');
+
+      // Let microtasks drain so both postReceipt calls are issued.
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      // Both receipts in flight before either completes => parallel.
+      verify(mockClient.postReceipt('!r1:x', any, 'tA',
+              threadId: r'$rA',),).called(1);
+      verify(mockClient.postReceipt('!r1:x', any, 'tB',
+              threadId: r'$rB',),).called(1);
+
+      completers[r'$rA']!.complete();
+      completers[r'$rB']!.complete();
+      await markFuture;
+    });
+
+    test('skips main receipt when thread reply is newer', () async {
+      final mockRoom = MockRoom();
+      when(mockRoom.membership).thenReturn(Membership.join);
+      when(mockRoom.lastEvent).thenReturn(null);
+      when(mockRoom.setReadMarker(any, mRead: anyNamed('mRead')))
+          .thenAnswer((_) async {});
+      when(mockClient.postReceipt(any, any, any,
+              threadId: anyNamed('threadId'),),)
+          .thenAnswer((_) async {});
+      when(mockClient.getRoomById('!r1:x')).thenReturn(mockRoom);
+
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(eventId: 'm-old', roomId: '!r1:x'),
+            _makeNotification(
+              eventId: 't-new',
+              roomId: '!r1:x',
+              ts: 5000,
+              content: threadContent(r'$root'),
+            ),
+          ]),);
+
+      await controller.fetch();
+      await controller.markRoomAsRead('!r1:x');
+
+      verifyNever(mockRoom.setReadMarker(any, mRead: anyNamed('mRead')));
+      verify(mockClient.postReceipt('!r1:x', any, 't-new',
+              threadId: r'$root',),).called(1);
+    });
+
+    test('posts main receipt when no threads present', () async {
+      final mockRoom = MockRoom();
+      when(mockRoom.membership).thenReturn(Membership.join);
+      when(mockRoom.lastEvent).thenReturn(null);
+      when(mockRoom.setReadMarker(any, mRead: anyNamed('mRead')))
+          .thenAnswer((_) async {});
+      when(mockClient.getRoomById('!r1:x')).thenReturn(mockRoom);
+
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(eventId: 'e1', roomId: '!r1:x'),
+          ]),);
+
+      await controller.fetch();
+      await controller.markRoomAsRead('!r1:x');
+
+      verify(mockRoom.setReadMarker('e1', mRead: 'e1')).called(1);
+    });
+  });
 }
