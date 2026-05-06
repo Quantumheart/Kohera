@@ -81,7 +81,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
         },
       ),
       actions: [
-        if (room.pinnedEventIds.isNotEmpty && onPinnedEvent != null)
+        if (!isNarrow && room.pinnedEventIds.isNotEmpty && onPinnedEvent != null)
           Builder(
             builder: (buttonContext) => IconButton(
               mouseCursor: SystemMouseCursors.click,
@@ -99,7 +99,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         if (context.select<CallService, bool>((s) => s.isCallingAvailable))
           _CallButton(room: room),
-        if (onShowThreads != null)
+        if (!isNarrow && onShowThreads != null)
           IconButton(
             mouseCursor: SystemMouseCursors.click,
             tooltip: 'Threads',
@@ -116,19 +116,72 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
           icon: const Icon(Icons.search_rounded),
           onPressed: onSearch,
         ),
-        IconButton(
-          mouseCursor: SystemMouseCursors.click,
-          icon: const Icon(Icons.more_vert_rounded),
-          onPressed: () {
-            if (onShowDetails != null) {
-              onShowDetails!();
-            } else {
-              context.pushOrGo(
-                Routes.roomDetails,
-                pathParameters: {'roomId': room.id},
-              );
-            }
-          },
+        Builder(
+          builder: (buttonContext) => PopupMenuButton<_ChatMenuAction>(
+            icon: const Icon(Icons.more_vert_rounded),
+            tooltip: 'More',
+            onSelected: (action) {
+              switch (action) {
+                case _ChatMenuAction.pinned:
+                  if (onPinnedEvent != null) {
+                    showPinnedMessagesPopup(
+                      buttonContext,
+                      room,
+                      onTap: onPinnedEvent!,
+                    );
+                  }
+                case _ChatMenuAction.threads:
+                  onShowThreads?.call();
+                case _ChatMenuAction.details:
+                  if (onShowDetails != null) {
+                    onShowDetails!();
+                  } else {
+                    context.pushOrGo(
+                      Routes.roomDetails,
+                      pathParameters: {'roomId': room.id},
+                    );
+                  }
+              }
+            },
+            itemBuilder: (context) => [
+              if (isNarrow &&
+                  room.pinnedEventIds.isNotEmpty &&
+                  onPinnedEvent != null)
+                PopupMenuItem(
+                  value: _ChatMenuAction.pinned,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Badge.count(
+                      count: room.pinnedEventIds.length,
+                      child: const Icon(Icons.push_pin_rounded),
+                    ),
+                    title: const Text('Pinned messages'),
+                  ),
+                ),
+              if (isNarrow && onShowThreads != null)
+                PopupMenuItem(
+                  value: _ChatMenuAction.threads,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: threadUnreadCount > 0
+                        ? Badge.count(
+                            count: threadUnreadCount,
+                            child: const Icon(Icons.forum_outlined),
+                          )
+                        : const Icon(Icons.forum_outlined),
+                    title: const Text('Threads'),
+                  ),
+                ),
+              const PopupMenuItem(
+                value: _ChatMenuAction.details,
+                child: ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.info_outline_rounded),
+                  title: Text('Room details'),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -297,3 +350,5 @@ class ChatSearchAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 }
+
+enum _ChatMenuAction { pinned, threads, details }
