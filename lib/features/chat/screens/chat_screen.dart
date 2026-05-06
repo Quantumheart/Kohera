@@ -191,6 +191,10 @@ class _ChatScreenState extends State<ChatScreen>
     setState(() => _activeThreadEventId = null);
   }
 
+  void _onTimelineChanged() {
+    if (mounted) setState(() {});
+  }
+
   void _openThreadList() {
     if (_isDesktop) {
       setState(() {
@@ -415,6 +419,7 @@ class _ChatScreenState extends State<ChatScreen>
             onScrollBack: isTouchDevice ? _dismissKeyboard : null,
             onOpenThread: _openThread,
             onReplyInThread: _replyInThread,
+            onTimelineChanged: _onTimelineChanged,
           ),
         ),
         TypingIndicator(
