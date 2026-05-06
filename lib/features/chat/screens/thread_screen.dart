@@ -17,11 +17,13 @@ class ThreadScreen extends StatefulWidget {
     required this.threadRootEventId,
     super.key,
     this.onClose,
+    this.initialReplyEventId,
   });
 
   final String roomId;
   final String threadRootEventId;
   final VoidCallback? onClose;
+  final String? initialReplyEventId;
 
   @override
   State<ThreadScreen> createState() => _ThreadScreenState();
@@ -161,7 +163,8 @@ class _ThreadScreenState extends State<ThreadScreen> {
               room: room,
               matrix: matrix,
               threadRootEventId: widget.threadRootEventId,
-              initialEventId: widget.threadRootEventId,
+              initialEventId:
+                  widget.initialReplyEventId ?? widget.threadRootEventId,
               emptyText: 'No replies yet.\nStart the conversation.',
               onReply: _compose.setReplyTo,
               onEdit: (event, timeline) =>
