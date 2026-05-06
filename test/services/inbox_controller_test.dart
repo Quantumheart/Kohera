@@ -358,7 +358,7 @@ void main() {
 
   // ── Sync-stream invalidation ──────────────────────────────
 
-  SyncUpdate _syncWithTimelineEvent(String roomId) {
+  SyncUpdate syncWithTimelineEvent(String roomId) {
     final ev = MatrixEvent(
       type: 'm.room.message',
       content: const {'body': 'hi', 'msgtype': 'm.text'},
@@ -379,7 +379,7 @@ void main() {
     );
   }
 
-  SyncUpdate _syncTypingOnly(String roomId) {
+  SyncUpdate syncTypingOnly(String roomId) {
     return SyncUpdate(
       nextBatch: 'tok',
       rooms: RoomsUpdate(
@@ -407,7 +407,7 @@ void main() {
         // Initial fetch is NOT triggered by startPolling (caller does it).
         clearInteractions(mockClient);
 
-        syncCtl.add(_syncWithTimelineEvent('!r1:x'));
+        syncCtl.add(syncWithTimelineEvent('!r1:x'));
 
         // Before debounce expires: no fetch yet.
         async.elapse(const Duration(milliseconds: 500));
@@ -439,11 +439,11 @@ void main() {
         async.flushMicrotasks();
         clearInteractions(mockClient);
 
-        syncCtl.add(_syncWithTimelineEvent('!r1:x'));
+        syncCtl.add(syncWithTimelineEvent('!r1:x'));
         async.elapse(const Duration(milliseconds: 200));
-        syncCtl.add(_syncWithTimelineEvent('!r2:x'));
+        syncCtl.add(syncWithTimelineEvent('!r2:x'));
         async.elapse(const Duration(milliseconds: 200));
-        syncCtl.add(_syncWithTimelineEvent('!r3:x'));
+        syncCtl.add(syncWithTimelineEvent('!r3:x'));
         async.elapse(const Duration(seconds: 1));
         async.flushMicrotasks();
 
@@ -467,7 +467,7 @@ void main() {
         async.flushMicrotasks();
         clearInteractions(mockClient);
 
-        syncCtl.add(_syncTypingOnly('!r1:x'));
+        syncCtl.add(syncTypingOnly('!r1:x'));
         async.elapse(const Duration(seconds: 5));
         async.flushMicrotasks();
 
@@ -491,7 +491,7 @@ void main() {
         async.flushMicrotasks();
         clearInteractions(mockClient);
 
-        syncCtl.add(_syncWithTimelineEvent('!r1:x'));
+        syncCtl.add(syncWithTimelineEvent('!r1:x'));
         async.elapse(const Duration(milliseconds: 200));
         controller.stopPolling();
         async.elapse(const Duration(seconds: 5));
