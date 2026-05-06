@@ -317,13 +317,28 @@ class _RoomTileState extends State<RoomTile> {
         ),
       );
     }
-    return Text(
+    final isThreadReply =
+        lastEvent?.relationshipType == RelationshipTypes.thread;
+    final previewText = Text(
       _lastMessagePreview(lastEvent, userId),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: tt.bodyMedium?.copyWith(
         color: cs.onSurfaceVariant.withValues(alpha: 0.7),
       ),
+    );
+    if (!isThreadReply) return previewText;
+    return Row(
+      children: [
+        Icon(Icons.forum_outlined, size: 12, color: cs.primary),
+        const SizedBox(width: 4),
+        Text(
+          'in thread',
+          style: tt.labelSmall?.copyWith(color: cs.primary, fontSize: 10),
+        ),
+        const SizedBox(width: 6),
+        Expanded(child: previewText),
+      ],
     );
   }
 
