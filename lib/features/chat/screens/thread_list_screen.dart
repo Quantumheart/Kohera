@@ -26,6 +26,7 @@ class ThreadListScreen extends StatefulWidget {
 class _ThreadListScreenState extends State<ThreadListScreen> {
   Timeline? _timeline;
   StreamSubscription<dynamic>? _syncSub;
+  bool _backfilling = false;
 
   @override
   void initState() {
@@ -51,6 +52,35 @@ class _ThreadListScreenState extends State<ThreadListScreen> {
     _syncSub = matrix.client.onSync.stream.listen((_) {
       if (mounted) setState(() {});
     });
+    unawaited(_backfillUntilThreadsFound(timeline, room, matrix));
+  }
+
+  Future<void> _backfillUntilThreadsFound(
+    Timeline timeline,
+    Room room,
+    MatrixService matrix,
+  ) async {
+    if (_backfilling) return;
+    _backfilling = true;
+    try {
+      const maxRounds = 10;
+      var rounds = 0;
+      while (mounted && rounds < maxRounds && timeline.canRequestHistory) {
+        final summaries = deriveThreadSummaries(
+          timeline: timeline,
+          room: room,
+          myUserId: matrix.client.userID ?? '',
+        );
+        if (summaries.isNotEmpty) break;
+        rounds++;
+        await timeline.requestHistory();
+      }
+    } catch (e) {
+      debugPrint('[Kohera] Thread list backfill error: $e');
+    } finally {
+      _backfilling = false;
+      if (mounted) setState(() {});
+    }
   }
 
   @override
@@ -98,7 +128,9 @@ class _ThreadListScreenState extends State<ThreadListScreen> {
         title: const Text('Threads'),
       ),
       body: summaries.isEmpty
-          ? _buildEmpty(context)
+          ? (_backfilling
+              ? const Center(child: CircularProgressIndicator())
+              : _buildEmpty(context))
           : ListView.separated(
               itemCount: summaries.length,
               separatorBuilder: (_, __) => const Divider(height: 1),
