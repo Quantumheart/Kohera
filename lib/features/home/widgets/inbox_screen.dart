@@ -411,7 +411,6 @@ class _NotificationTile extends StatelessWidget {
               'roomId': notification.roomId,
               'eventId': tid,
             },
-            extra: notification.event.eventId,
           );
         } else {
           context.goNamed(
