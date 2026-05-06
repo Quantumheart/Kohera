@@ -182,7 +182,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
       );
     }
 
-    if (_loadingRoot) {
+    if (_loadingRoot || !_focusReady) {
       return Scaffold(
         appBar: AppBar(title: const Text('Thread')),
         body: const Center(child: CircularProgressIndicator()),
@@ -221,8 +221,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
               onHighlight: (_) {},
             ),
           ),
-          if (_focusReady)
-            ComposeBarSection(
+          ComposeBarSection(
               replyNotifier: _compose.replyNotifier,
               editNotifier: _compose.editNotifier,
               pendingAttachments: _compose.pendingAttachments,
