@@ -38,7 +38,7 @@ List<ThreadSummary> deriveThreadSummaries({
       ThreadSummary(
         root: event,
         children: children,
-        unreadCount: _unreadCountFor(
+        unreadCount: unreadCountFromChildren(
           rootEventId: event.eventId,
           children: children,
           room: room,
@@ -51,7 +51,7 @@ List<ThreadSummary> deriveThreadSummaries({
   return summaries;
 }
 
-int _unreadCountFor({
+int unreadCountFromChildren({
   required String rootEventId,
   required List<Event> children,
   required Room room,
@@ -81,7 +81,7 @@ int threadUnreadCountFor({
   }
   final children =
       root.aggregatedEvents(timeline, RelationshipTypes.thread).toList();
-  return _unreadCountFor(
+  return unreadCountFromChildren(
     rootEventId: root.eventId,
     children: children,
     room: room,
