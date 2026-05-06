@@ -27,18 +27,30 @@ bool _isLetter(int c) =>
     (c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A);
 
 // ── Filter enum ──────────────────────────────────────────────
-enum InboxFilter { all, mentions, invitations }
+enum InboxFilter { all, mentions, threads, invitations }
 
 // ── Grouped notification model ───────────────────────────────
+class ThreadSubGroup {
+  final String? threadRootId;
+  final List<matrix_sdk.Notification> notifications;
+
+  const ThreadSubGroup({
+    required this.threadRootId,
+    required this.notifications,
+  });
+}
+
 class NotificationGroup {
   final String roomId;
   final String roomName;
   final List<matrix_sdk.Notification> notifications;
+  final List<ThreadSubGroup> subGroups;
 
   const NotificationGroup({
     required this.roomId,
     required this.roomName,
     required this.notifications,
+    required this.subGroups,
   });
 }
 
@@ -278,18 +290,24 @@ class InboxController extends ChangeNotifier {
     unawaited(ApnsPushService.clearBadge());
     if (!_disposed) notifyListeners();
 
+    final maxThreadTs = perThread.values.fold<int>(
+      -1,
+      (acc, e) => e.ts > acc ? e.ts : acc,
+    );
+    final shouldPostMain = mainEventId != null && mainTs >= maxThreadTs;
+
     try {
-      if (mainEventId != null) {
-        await room.setReadMarker(mainEventId, mRead: mainEventId);
-      }
-      for (final entry in perThread.entries) {
-        await _client.postReceipt(
-          roomId,
-          matrix_sdk.ReceiptType.mRead,
-          entry.value.eventId,
-          threadId: entry.key,
-        );
-      }
+      await Future.wait([
+        if (shouldPostMain)
+          room.setReadMarker(mainEventId, mRead: mainEventId),
+        for (final entry in perThread.entries)
+          _client.postReceipt(
+            roomId,
+            matrix_sdk.ReceiptType.mRead,
+            entry.value.eventId,
+            threadId: entry.key,
+          ),
+      ]);
       await fetch();
     } catch (e) {
       if (_isTokenExpired(e)) {
@@ -328,7 +346,7 @@ class InboxController extends ChangeNotifier {
 
   // ── Mention detection ──────────────────────────────────────
 
-  bool _isMention(matrix_sdk.Notification n) {
+  bool isMention(matrix_sdk.Notification n) {
     final userId = _client.userID;
     if (userId == null) return false;
 
@@ -390,7 +408,10 @@ class InboxController extends ChangeNotifier {
       final room = _client.getRoomById(n.roomId);
       if (room == null || room.membership != Membership.join) continue;
       await _tryDecrypt(n);
-      if (_filter == InboxFilter.mentions && !_isMention(n)) continue;
+      if (_filter == InboxFilter.mentions && !isMention(n)) continue;
+      if (_filter == InboxFilter.threads && threadRootIdFor(n) == null) {
+        continue;
+      }
       map.putIfAbsent(n.roomId, () {
         order.add(n.roomId);
         return [];
@@ -411,12 +432,37 @@ class InboxController extends ChangeNotifier {
 
     return order.map((roomId) {
       final room = _client.getRoomById(roomId);
+      final notifications = map[roomId]!;
       return NotificationGroup(
         roomId: roomId,
         roomName: room?.getLocalizedDisplayname() ?? roomId,
-        notifications: map[roomId]!,
+        notifications: notifications,
+        subGroups: _buildSubGroups(notifications),
       );
     }).toList();
+  }
+
+  List<ThreadSubGroup> _buildSubGroups(
+    List<matrix_sdk.Notification> notifications,
+  ) {
+    const mainKey = '__main__';
+    final buckets = <String, List<matrix_sdk.Notification>>{};
+    final order = <String>[];
+    for (final n in notifications) {
+      final key = threadRootIdFor(n) ?? mainKey;
+      if (!buckets.containsKey(key)) order.add(key);
+      buckets.putIfAbsent(key, () => []).add(n);
+    }
+    int maxTs(String k) =>
+        buckets[k]!.map((n) => n.ts).reduce((a, b) => a > b ? a : b);
+    order.sort((a, b) => maxTs(b).compareTo(maxTs(a)));
+    return [
+      for (final key in order)
+        ThreadSubGroup(
+          threadRootId: key == mainKey ? null : key,
+          notifications: buckets[key]!,
+        ),
+    ];
   }
 
   @override

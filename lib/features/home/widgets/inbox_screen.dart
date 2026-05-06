@@ -87,6 +87,10 @@ class _InboxScreenState extends State<InboxScreen> {
                   value: InboxFilter.mentions,
                   label: Text(InboxText.filterMentions),
                 ),
+                const ButtonSegment(
+                  value: InboxFilter.threads,
+                  label: Text(InboxText.filterThreads),
+                ),
                 ButtonSegment(
                   value: InboxFilter.invitations,
                   label: Text(
@@ -233,20 +237,36 @@ class _NotificationGroupTile extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.open_in_new_rounded, size: 20),
                     tooltip: InboxText.tooltipOpen,
-                    onPressed: () => context.goNamed(
-                      Routes.room,
-                      pathParameters: {'roomId': group.roomId},
-                    ),
+                    onPressed: () {
+                      final singleThread = group.subGroups.length == 1
+                          ? group.subGroups.first.threadRootId
+                          : null;
+                      if (singleThread != null) {
+                        context.goNamed(
+                          Routes.roomThread,
+                          pathParameters: {
+                            'roomId': group.roomId,
+                            'eventId': singleThread,
+                          },
+                        );
+                      } else {
+                        context.goNamed(
+                          Routes.room,
+                          pathParameters: {'roomId': group.roomId},
+                        );
+                      }
+                    },
                     visualDensity: VisualDensity.compact,
                   ),
                 ],
               ),
             ),
 
-            // ── Individual notifications ──
-            for (final notification in group.notifications)
-              _NotificationTile(
-                notification: notification,
+            // ── Sub-groups (per-thread + main) ──
+            for (final sub in group.subGroups)
+              _SubGroupSection(
+                roomId: group.roomId,
+                subGroup: sub,
                 client: client,
               ),
           ],
@@ -256,15 +276,111 @@ class _NotificationGroupTile extends StatelessWidget {
   }
 }
 
+// ── Sub-group section (per-thread or main timeline) ──────────
+class _SubGroupSection extends StatefulWidget {
+  const _SubGroupSection({
+    required this.roomId,
+    required this.subGroup,
+    required this.client,
+  });
+
+  final String roomId;
+  final ThreadSubGroup subGroup;
+  final matrix_sdk.Client client;
+
+  @override
+  State<_SubGroupSection> createState() => _SubGroupSectionState();
+}
+
+class _SubGroupSectionState extends State<_SubGroupSection> {
+  static final Map<String, String> _rootPreviewCache = {};
+  String? _rootPreview;
+
+  @override
+  void initState() {
+    super.initState();
+    final id = widget.subGroup.threadRootId;
+    if (id != null) {
+      _rootPreview = _rootPreviewCache[id];
+      if (_rootPreview == null) unawaited(_loadRoot(id));
+    }
+  }
+
+  Future<void> _loadRoot(String eventId) async {
+    final room = widget.client.getRoomById(widget.roomId);
+    if (room == null) return;
+    try {
+      final event = await room.getEventById(eventId);
+      if (event == null || !mounted) return;
+      final body = stripReplyFallback(event.body).trim();
+      if (body.isEmpty) return;
+      final truncated = body.length > 80 ? '${body.substring(0, 80)}…' : body;
+      final preview = InboxText.inReplyTo(truncated);
+      _rootPreviewCache[eventId] = preview;
+      if (mounted) setState(() => _rootPreview = preview);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final threadRootId = widget.subGroup.threadRootId;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (threadRootId != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 6, 12, 2),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.forum_outlined, size: 14, color: cs.primary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    _rootPreview ?? InboxText.inThread,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: tt.labelSmall?.copyWith(
+                      color: cs.primary,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  InboxText.threadCount(widget.subGroup.notifications.length),
+                  style: tt.labelSmall?.copyWith(
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        for (final notification in widget.subGroup.notifications)
+          _NotificationTile(
+            notification: notification,
+            client: widget.client,
+            threadRootId: threadRootId,
+          ),
+      ],
+    );
+  }
+}
+
 // ── Individual notification tile ─────────────────────────────
 class _NotificationTile extends StatelessWidget {
   const _NotificationTile({
     required this.notification,
     required this.client,
+    required this.threadRootId,
   });
 
   final matrix_sdk.Notification notification;
   final matrix_sdk.Client client;
+  final String? threadRootId;
 
   @override
   Widget build(BuildContext context) {
@@ -278,20 +394,21 @@ class _NotificationTile extends StatelessWidget {
         room?.unsafeGetUserFromMemoryOrFallback(senderId).calcDisplayname() ??
             senderId;
 
+    final controller = context.read<InboxController>();
     final body = _extractBody(context, event);
     final ts = DateTime.fromMillisecondsSinceEpoch(notification.ts);
-    final threadRootId =
-        context.read<InboxController>().threadRootIdFor(notification);
+    final isMention = controller.isMention(notification);
 
     return InkWell(
       mouseCursor: SystemMouseCursors.click,
       onTap: () {
-        if (threadRootId != null) {
+        final tid = threadRootId;
+        if (tid != null) {
           context.goNamed(
             Routes.roomThread,
             pathParameters: {
               'roomId': notification.roomId,
-              'eventId': threadRootId,
+              'eventId': tid,
             },
           );
         } else {
@@ -339,15 +456,18 @@ class _NotificationTile extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (threadRootId != null) ...[
-                      Icon(Icons.forum_outlined,
+                    if (isMention) ...[
+                      Icon(Icons.alternate_email_rounded,
                           size: 12, color: cs.primary,),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 2),
                       Text(
-                        InboxText.inThread,
+                        threadRootId != null
+                            ? InboxText.mentionInThread
+                            : InboxText.mention,
                         style: tt.labelSmall?.copyWith(
                           color: cs.primary,
                           fontSize: 10,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(width: 6),
