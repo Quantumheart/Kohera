@@ -15,7 +15,7 @@ Future<List<ThreadSummary>> fetchThreadSummaries({
       client,
       Event.fromMatrixEvent(raw, room),
     );
-    final children = await _fetchChildren(client, room, root.eventId);
+    final children = await fetchThreadChildren(client, room, root.eventId);
     summaries.add(
       ThreadSummary(
         root: root,
@@ -32,16 +32,26 @@ Future<List<ThreadSummary>> fetchThreadSummaries({
   return summaries;
 }
 
-Future<List<Event>> _fetchChildren(
+class ThreadChildrenPage {
+  ThreadChildrenPage({required this.events, this.nextBatch});
+
+  final List<Event> events;
+  final String? nextBatch;
+}
+
+Future<ThreadChildrenPage> fetchThreadChildrenPage(
   Client client,
   Room room,
-  String rootEventId,
-) async {
+  String rootEventId, {
+  String? from,
+  int limit = 100,
+}) async {
   final relations = await client.getRelatingEventsWithRelType(
     room.id,
     rootEventId,
     RelationshipTypes.thread,
-    limit: 100,
+    limit: limit,
+    from: from,
   );
   final events = <Event>[];
   for (final raw in relations.chunk) {
@@ -50,7 +60,16 @@ Future<List<Event>> _fetchChildren(
     );
   }
   events.sort((a, b) => a.originServerTs.compareTo(b.originServerTs));
-  return events;
+  return ThreadChildrenPage(events: events, nextBatch: relations.nextBatch);
+}
+
+Future<List<Event>> fetchThreadChildren(
+  Client client,
+  Room room,
+  String rootEventId,
+) async {
+  final page = await fetchThreadChildrenPage(client, room, rootEventId);
+  return page.events;
 }
 
 Future<Event> _decryptIfNeeded(Client client, Event event) async {

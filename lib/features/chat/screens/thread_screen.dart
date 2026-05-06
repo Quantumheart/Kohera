@@ -6,9 +6,11 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
+import 'package:kohera/features/chat/services/thread_roots_service.dart';
 import 'package:kohera/features/chat/widgets/compose_bar_section.dart';
 import 'package:kohera/features/chat/widgets/file_send_handler.dart';
 import 'package:kohera/features/chat/widgets/message_list_view.dart';
+import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 class ThreadScreen extends StatefulWidget {
@@ -36,6 +38,9 @@ class _ThreadScreenState extends State<ThreadScreen> {
   late ChatMessageActions _actions;
   bool _loadingRoot = true;
   bool _focusReady = false;
+  bool _loadingMoreReplies = false;
+  List<Event> _threadReplies = const [];
+  String? _repliesNextBatch;
 
   @override
   void initState() {
@@ -67,10 +72,18 @@ class _ThreadScreenState extends State<ThreadScreen> {
       return;
     }
     try {
+      final client = context.read<MatrixService>().client;
       final root = await room.getEventById(widget.threadRootEventId);
+      final page = await fetchThreadChildrenPage(
+        client,
+        room,
+        widget.threadRootEventId,
+      );
       if (!mounted) return;
       setState(() {
         _loadingRoot = false;
+        _threadReplies = page.events;
+        _repliesNextBatch = page.nextBatch;
         if (root != null) _compose.setThreadRoot(root);
       });
       _scheduleFocusReady();
@@ -82,6 +95,40 @@ class _ThreadScreenState extends State<ThreadScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not load thread')),
       );
+    }
+  }
+
+  Future<void> _loadMoreReplies() async {
+    if (_loadingMoreReplies) return;
+    final from = _repliesNextBatch;
+    if (from == null) return;
+    final room = context
+        .read<MatrixService>()
+        .client
+        .getRoomById(widget.roomId);
+    if (room == null) return;
+    setState(() => _loadingMoreReplies = true);
+    try {
+      final page = await fetchThreadChildrenPage(
+        context.read<MatrixService>().client,
+        room,
+        widget.threadRootEventId,
+        from: from,
+      );
+      if (!mounted) return;
+      final seen = _threadReplies.map((e) => e.eventId).toSet();
+      final merged = [
+        ..._threadReplies,
+        ...page.events.where((e) => seen.add(e.eventId)),
+      ];
+      setState(() {
+        _threadReplies = merged;
+        _repliesNextBatch = page.nextBatch;
+      });
+    } catch (e) {
+      debugPrint('[Kohera] Thread reply pagination failed: $e');
+    } finally {
+      if (mounted) setState(() => _loadingMoreReplies = false);
     }
   }
 
@@ -162,6 +209,9 @@ class _ThreadScreenState extends State<ThreadScreen> {
               matrix: matrix,
               threadRootEventId: widget.threadRootEventId,
               initialEventId: widget.threadRootEventId,
+              extraEvents: _threadReplies,
+              extraLoading: _loadingMoreReplies,
+              onLoadMoreExtra: () => unawaited(_loadMoreReplies()),
               emptyText: 'No replies yet.\nStart the conversation.',
               onReply: _compose.setReplyTo,
               onEdit: (event, timeline) =>
