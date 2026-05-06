@@ -31,6 +31,7 @@ class MessageListView extends StatefulWidget {
     this.onReplyInThread,
     this.onOpenThread,
     this.emptyText,
+    this.onTimelineChanged,
     super.key,
   });
 
@@ -48,6 +49,7 @@ class MessageListView extends StatefulWidget {
   final void Function(Event event)? onReplyInThread;
   final void Function(Event event)? onOpenThread;
   final String? emptyText;
+  final VoidCallback? onTimelineChanged;
 
   @override
   State<MessageListView> createState() => MessageListViewState();
@@ -108,11 +110,13 @@ class MessageListViewState extends State<MessageListView> {
           _cachedVisibleEvents = null;
           setState(() {});
         }
+        widget.onTimelineChanged?.call();
         _markAsRead();
       },
     );
     if (gen != _initGeneration) return;
     if (mounted) setState(() {});
+    widget.onTimelineChanged?.call();
     _markAsRead();
     _requestMissingKeys();
     if (widget.initialEventId != null) _jumpToEvent(widget.initialEventId!);
