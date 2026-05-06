@@ -126,7 +126,12 @@ class IosVoipPushService {
       );
 
       try {
-        await matrixService.client.oneShotSync();
+        await matrixService.client
+            .oneShotSync()
+            .timeout(const Duration(seconds: 20));
+      } on TimeoutException {
+        debugPrint('[Kohera] VoIP oneShotSync timed out after 20s');
+        return;
       } catch (e) {
         debugPrint('[Kohera] VoIP oneShotSync failed: $e');
         return;

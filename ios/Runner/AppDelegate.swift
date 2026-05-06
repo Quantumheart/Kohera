@@ -331,9 +331,7 @@ import UserNotifications
         "roomId": roomId,
         "withVideo": isVideo ? "true" : "false",
       ]
-      plugin.showCallkitIncoming(data, fromPushKit: true) {
-        finish()
-      }
+      plugin.showCallkitIncoming(data, fromPushKit: true) {}
     } else {
       NSLog("[Kohera] PushKit: SwiftFlutterCallkitIncomingPlugin.sharedInstance nil; dropping call")
       finish()
@@ -345,8 +343,18 @@ import UserNotifications
     enriched["nativeCallId"] = nativeCallId
     enriched["callKitAlreadyShown"] = callKitShown
 
+    // Defer PushKit `completion()` until Dart acks (or we hit the safety
+    // timeout). This prevents iOS from suspending the process while the
+    // Matrix oneShotSync is still writing to sqflite — which was the cause
+    // of `0xdead10cc` watchdog kills on background launch.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 20) {
+      finish()
+    }
+
     if voipChannelReady {
-      voipChannel?.invokeMethod("onVoipMessage", arguments: enriched)
+      voipChannel?.invokeMethod("onVoipMessage", arguments: enriched) { _ in
+        finish()
+      }
     } else if pendingVoipPayloads.count < AppDelegate.maxPendingPayloads {
       pendingVoipPayloads.append(enriched)
     }

@@ -30,6 +30,7 @@ class SyncService extends ChangeNotifier {
   }
 
   Future<void> startSync({Duration? timeout = const Duration(seconds: 30)}) async {
+    if (_syncing) return;
     _syncing = true;
     notifyListeners();
 
