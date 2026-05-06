@@ -126,7 +126,9 @@ class _WideLayoutState extends State<WideLayout> {
         name == Routes.settingsRecoveryKey ||
         name == Routes.spaces ||
         name == Routes.spaceDetails ||
-        name == Routes.inbox) {
+        name == Routes.inbox ||
+        name == Routes.roomThread ||
+        name == Routes.roomThreads) {
       return widget.routerChild;
     }
 
