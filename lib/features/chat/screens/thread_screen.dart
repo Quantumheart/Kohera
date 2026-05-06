@@ -40,7 +40,14 @@ class _ThreadScreenState extends State<ThreadScreen> {
   bool _focusReady = false;
   bool _loadingMoreReplies = false;
   List<Event> _threadReplies = const [];
+  Event? _threadRootEvent;
   String? _repliesNextBatch;
+
+  List<Event> get _seedEvents {
+    final root = _threadRootEvent;
+    if (root == null) return _threadReplies;
+    return [root, ..._threadReplies];
+  }
 
   @override
   void initState() {
@@ -83,6 +90,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
       setState(() {
         _loadingRoot = false;
         _threadReplies = page.events;
+        _threadRootEvent = root;
         _repliesNextBatch = page.nextBatch;
         if (root != null) _compose.setThreadRoot(root);
       });
@@ -208,8 +216,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
               room: room,
               matrix: matrix,
               threadRootEventId: widget.threadRootEventId,
-              initialEventId: widget.threadRootEventId,
-              extraEvents: _threadReplies,
+              extraEvents: _seedEvents,
               extraLoading: _loadingMoreReplies,
               onLoadMoreExtra: () => unawaited(_loadMoreReplies()),
               emptyText: 'No replies yet.\nStart the conversation.',
