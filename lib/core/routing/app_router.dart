@@ -26,6 +26,7 @@ import 'package:kohera/features/settings/screens/notification_settings_screen.da
 import 'package:kohera/features/settings/screens/settings_screen.dart';
 import 'package:kohera/features/settings/screens/voice_video_settings_screen.dart';
 import 'package:kohera/features/spaces/widgets/space_details_panel.dart';
+import 'package:kohera/features/whats_new/screens/whats_new_screen.dart';
 import 'package:provider/provider.dart';
 
 /// Creates the app router with auth-aware redirects.
@@ -240,6 +241,11 @@ GoRouter buildRouter(ClientManager manager) {
                 path: 'inbox',
                 name: Routes.inbox,
                 builder: (context, state) => const InboxScreen(),
+              ),
+              GoRoute(
+                path: 'whats-new',
+                name: Routes.whatsNew,
+                builder: (context, state) => const WhatsNewScreen(),
               ),
               GoRoute(
                 path: 'settings',
