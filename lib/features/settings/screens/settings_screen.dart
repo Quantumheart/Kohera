@@ -450,16 +450,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _SettingsTile(
                   icon: Icons.info_outline_rounded,
                   title: 'Kohera',
-                  subtitle: 'v1.0.0 • Built with Flutter',
-                  onTap: () {},
-                ),
-                const Divider(height: 1, indent: 56),
-                _SettingsTile(
-                  icon: Icons.auto_awesome_outlined,
-                  title: "What's new",
                   subtitle: prefs.currentVersion != null
-                      ? 'v${prefs.currentVersion}'
-                      : 'Latest release notes',
+                      ? "v${prefs.currentVersion} · What's new"
+                      : "What's new",
                   onTap: () => context.pushNamed(Routes.whatsNew),
                 ),
                 const Divider(height: 1, indent: 56),
