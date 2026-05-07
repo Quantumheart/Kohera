@@ -61,7 +61,8 @@ class _NarrowLayoutState extends State<NarrowLayout> {
         name == Routes.settingsDevices ||
         name == Routes.settingsVoiceVideo ||
         name == Routes.settingsRecoveryKey ||
-        name == Routes.spaceDetails;
+        name == Routes.spaceDetails ||
+        name == Routes.whatsNew;
   }
 
   @override
