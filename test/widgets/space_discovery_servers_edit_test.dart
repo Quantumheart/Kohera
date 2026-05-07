@@ -9,6 +9,7 @@ import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -47,7 +48,7 @@ void main() {
   late SelectionService selectionService;
   late PreferencesService prefsService;
 
-  Future<void> configure() async {
+  setUp(() async {
     SharedPreferences.setMockInitialValues({});
     mockClient = MockClient();
     mockMatrixService = MockMatrixService();
@@ -58,9 +59,16 @@ void main() {
         .thenReturn(Uri.parse('https://example.org'));
     selectionService = SelectionService(client: mockClient);
     when(mockMatrixService.selection).thenReturn(selectionService);
-    prefsService = PreferencesService();
+    prefsService = PreferencesService(
+      packageInfo: PackageInfo(
+        appName: 'kohera',
+        packageName: 'kohera',
+        version: '0.0.0',
+        buildNumber: '0',
+      ),
+    );
     await prefsService.init();
-  }
+  });
 
   Widget buildHarness(SpaceDiscoveryDataSource dataSource) {
     return MultiProvider(
@@ -93,7 +101,6 @@ void main() {
 
   testWidgets('add valid host: chip + prefs updated + query fires',
       (tester) async {
-    await configure();
     final ds = _SpyFakeDataSource();
     await tester.pumpWidget(buildHarness(ds));
     await openDialog(tester);
@@ -115,7 +122,6 @@ void main() {
 
   testWidgets('invalid host shows inline error and does not save',
       (tester) async {
-    await configure();
     final ds = _SpyFakeDataSource();
     await tester.pumpWidget(buildHarness(ds));
     await openDialog(tester);
@@ -136,7 +142,6 @@ void main() {
 
   testWidgets('remove non-default after confirm; selected falls back',
       (tester) async {
-    await configure();
     final ds = _SpyFakeDataSource();
     await tester.pumpWidget(buildHarness(ds));
     await openDialog(tester);
@@ -160,7 +165,6 @@ void main() {
   });
 
   testWidgets('own homeserver chip has no delete icon', (tester) async {
-    await configure();
     final ds = _SpyFakeDataSource();
     await tester.pumpWidget(buildHarness(ds));
     await openDialog(tester);
@@ -170,7 +174,6 @@ void main() {
   });
 
   testWidgets('rejects duplicate of existing server', (tester) async {
-    await configure();
     final ds = _SpyFakeDataSource();
     await tester.pumpWidget(buildHarness(ds));
     await openDialog(tester);
@@ -185,7 +188,6 @@ void main() {
   });
 
   testWidgets('rejects own homeserver as duplicate', (tester) async {
-    await configure();
     final ds = _SpyFakeDataSource();
     await tester.pumpWidget(buildHarness(ds));
     await openDialog(tester);

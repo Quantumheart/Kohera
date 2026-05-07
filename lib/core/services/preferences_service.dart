@@ -83,7 +83,13 @@ class PreferencesService extends ChangeNotifier {
   Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs?.remove('room_filter');
-    _packageInfo ??= await PackageInfo.fromPlatform();
+    if (_packageInfo == null) {
+      try {
+        _packageInfo = await PackageInfo.fromPlatform();
+      } on MissingPluginException {
+        _packageInfo = null;
+      }
+    }
     _currentVersion = _packageInfo?.version;
     if (_currentVersion != null && lastSeenVersion == null) {
       await _prefs?.setString(_lastSeenVersionKey, _currentVersion!);
