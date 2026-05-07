@@ -455,6 +455,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 56),
                 _SettingsTile(
+                  icon: Icons.auto_awesome_outlined,
+                  title: "What's new",
+                  subtitle: prefs.currentVersion != null
+                      ? 'v${prefs.currentVersion}'
+                      : 'Latest release notes',
+                  onTap: () => context.pushNamed(Routes.whatsNew),
+                ),
+                const Divider(height: 1, indent: 56),
+                _SettingsTile(
                   icon: Icons.code_rounded,
                   title: 'Source code',
                   subtitle: 'View on GitHub',
