@@ -15,6 +15,7 @@ import 'package:kohera/features/rooms/widgets/room_list_builder.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
 import 'package:kohera/features/rooms/widgets/room_section_header.dart';
 import 'package:kohera/features/rooms/widgets/room_tile.dart';
+import 'package:kohera/features/whats_new/widgets/whats_new_banner.dart';
 import 'package:kohera/shared/widgets/speed_dial_item.dart';
 import 'package:provider/provider.dart';
 
@@ -249,6 +250,7 @@ class _RoomListState extends State<RoomList>
           children: [
             Column(
               children: [
+              const WhatsNewBanner(),
               // ── Sectioned room list ──
               Expanded(
                 child: isEmpty && items.isEmpty
