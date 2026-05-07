@@ -128,7 +128,8 @@ class _WideLayoutState extends State<WideLayout> {
         name == Routes.spaceDetails ||
         name == Routes.inbox ||
         name == Routes.roomThread ||
-        name == Routes.roomThreads) {
+        name == Routes.roomThreads ||
+        name == Routes.whatsNew) {
       return widget.routerChild;
     }
 
