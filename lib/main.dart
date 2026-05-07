@@ -7,6 +7,7 @@ import 'package:kohera/core/routing/app_router.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/client_manager.dart';
+import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
@@ -137,6 +138,10 @@ class _KoheraAppState extends State<KoheraApp> {
         ChangeNotifierProvider(create: (_) => MediaPlaybackService()),
         Provider(
           create: (_) => OpenGraphService(),
+          dispose: (_, service) => service.dispose(),
+        ),
+        Provider(
+          create: (_) => GitHubReleasesService(),
           dispose: (_, service) => service.dispose(),
         ),
       ],
