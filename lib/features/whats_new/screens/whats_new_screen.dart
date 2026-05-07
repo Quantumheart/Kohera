@@ -207,7 +207,7 @@ class _NotesView extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         if (staleNotice) ...[
-          const _StaleBanner(),
+          _StaleBanner(fetchedAt: notes.fetchedAt),
           const SizedBox(height: 12),
         ],
         ReleaseNotesMarkdown(data: notes.body),
@@ -226,11 +226,17 @@ class _NotesView extends StatelessWidget {
 }
 
 class _StaleBanner extends StatelessWidget {
-  const _StaleBanner();
+  const _StaleBanner({required this.fetchedAt});
+
+  final DateTime fetchedAt;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final date = MaterialLocalizations.of(context).formatMediumDate(fetchedAt);
+    final time = MaterialLocalizations.of(context).formatTimeOfDay(
+      TimeOfDay.fromDateTime(fetchedAt),
+    );
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -247,7 +253,7 @@ class _StaleBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Showing cached release notes',
+              'Showing cached release notes · last updated $date $time',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
