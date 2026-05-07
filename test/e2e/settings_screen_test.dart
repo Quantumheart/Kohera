@@ -244,7 +244,7 @@ void main() {
   // ── Group 6: About section ────────────────────────────────────
 
   group("Settings screen — what's new", () {
-    testWidgets('about section shows What\'s new tile', (tester) async {
+    testWidgets("about section shows What's new tile", (tester) async {
       await tester.pumpWidget(buildSettingsApp());
       await tester.pumpAndSettle();
       await scrollToBottom(tester);
