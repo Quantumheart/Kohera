@@ -244,14 +244,15 @@ void main() {
   // ── Group 6: About section ────────────────────────────────────
 
   group("Settings screen — what's new", () {
-    testWidgets("about section shows What's new tile", (tester) async {
+    testWidgets('about section shows merged Kohera tile', (tester) async {
       await tester.pumpWidget(buildSettingsApp());
       await tester.pumpAndSettle();
       await scrollToBottom(tester);
 
       expect(find.text('ABOUT'), findsOneWidget);
-      expect(find.text("What's new"), findsOneWidget);
-      expect(find.byIcon(Icons.auto_awesome_outlined), findsOneWidget);
+      expect(find.text('Kohera'), findsOneWidget);
+      expect(find.textContaining("What's new"), findsOneWidget);
+      expect(find.byIcon(Icons.info_outline_rounded), findsOneWidget);
     });
   });
 
