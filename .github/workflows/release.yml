@@ -169,8 +169,53 @@ jobs:
         if: always()
         run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
 
+  build-android:
+    needs: analyze-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+        with:
+          distribution: zulu
+          java-version: '17'
+      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2
+        with:
+          channel: stable
+          flutter-version: '3.41.x'
+          cache: true
+      - name: Install signing keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          KEYSTORE_PATH="$RUNNER_TEMP/kohera-release.jks"
+          echo -n "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=$KEYSTORE_PATH
+          EOF
+      - run: flutter pub get
+      - run: flutter build apk --release --target-platform android-arm64 --build-number=${{ github.run_number }} --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
+      - name: Rename APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk kohera-android-arm64.apk
+      - name: Generate checksum
+        run: sha256sum kohera-android-arm64.apk > kohera-android-arm64.apk.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: android-release
+          path: |
+            kohera-android-arm64.apk
+            kohera-android-arm64.apk.sha256
+      - name: Clean up keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/kohera-release.jks" android/key.properties
+
   publish-release:
-    needs: [build-linux, build-windows, build-macos, build-ios]
+    needs: [build-linux, build-windows, build-macos, build-ios, build-android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -187,6 +232,9 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: ios-release
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: android-release
       - name: Upload artifacts to Release
         uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # v2
         with:
@@ -200,5 +248,7 @@ jobs:
             kohera-macos-universal.zip.sha256
             kohera.ipa
             kohera-ios-arm64.ipa.sha256
+            kohera-android-arm64.apk
+            kohera-android-arm64.apk.sha256
           generate_release_notes: false
           append_body: false
