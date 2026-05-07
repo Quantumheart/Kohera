@@ -9,6 +9,7 @@ import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -52,8 +53,20 @@ void main() {
   late SelectionService selectionService;
   late PreferencesService prefsService;
 
-  Future<void> configureClient({required Uri homeserverUri}) async {
+  setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    prefsService = PreferencesService(
+      packageInfo: PackageInfo(
+        appName: 'kohera',
+        packageName: 'kohera',
+        version: '0.0.0',
+        buildNumber: '0',
+      ),
+    );
+    await prefsService.init();
+  });
+
+  void configureClient({required Uri homeserverUri}) {
     mockClient = MockClient();
     mockMatrixService = MockMatrixService();
     when(mockMatrixService.client).thenReturn(mockClient);
@@ -62,8 +75,6 @@ void main() {
     when(mockClient.homeserver).thenReturn(homeserverUri);
     selectionService = SelectionService(client: mockClient);
     when(mockMatrixService.selection).thenReturn(selectionService);
-    prefsService = PreferencesService();
-    await prefsService.init();
   }
 
   Widget buildHarness(SpaceDiscoveryDataSource dataSource) {
@@ -97,7 +108,7 @@ void main() {
 
   testWidgets('switching to matrix.org queries it and resets cursor + search',
       (tester) async {
-    await configureClient(homeserverUri: Uri.parse('https://example.org'));
+    configureClient(homeserverUri: Uri.parse('https://example.org'));
     final ds = _SpyFakeDataSource();
     await tester.pumpWidget(buildHarness(ds));
     await openDialog(tester);
@@ -124,7 +135,7 @@ void main() {
   });
 
   testWidgets('federation failure shows server-named error', (tester) async {
-    await configureClient(homeserverUri: Uri.parse('https://example.org'));
+    configureClient(homeserverUri: Uri.parse('https://example.org'));
     final ds = _SpyFakeDataSource(failingServers: const {'matrix.org'});
     await tester.pumpWidget(buildHarness(ds));
     await openDialog(tester);
@@ -141,7 +152,7 @@ void main() {
 
   testWidgets('matrix.org user: own host shown without delete; defaults null',
       (tester) async {
-    await configureClient(homeserverUri: Uri.parse('https://matrix.org'));
+    configureClient(homeserverUri: Uri.parse('https://matrix.org'));
     final ds = _SpyFakeDataSource();
     await tester.pumpWidget(buildHarness(ds));
     await openDialog(tester);
