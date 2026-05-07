@@ -20,7 +20,6 @@ class WhatsNewBanner extends StatefulWidget {
 
 class _WhatsNewBannerState extends State<WhatsNewBanner> {
   ReleaseNotes? _notes;
-  bool _loading = false;
   bool _attempted = false;
 
   @override
@@ -35,22 +34,20 @@ class _WhatsNewBannerState extends State<WhatsNewBanner> {
 
   Future<void> _loadNotes() async {
     if (!mounted) return;
-    setState(() => _loading = true);
-    try {
-      final service = context.read<GitHubReleasesService>();
-      final notes = await service.fetchLatest();
-      if (!mounted) return;
-      setState(() => _notes = notes);
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    final service = context.read<GitHubReleasesService>();
+    final notes = await service.fetchLatest();
+    if (!mounted) return;
+    setState(() => _notes = notes);
   }
 
   Future<void> _dismiss() async {
     final prefs = context.read<PreferencesService>();
     final current = prefs.currentVersion;
-    if (current != null) {
+    if (current == null) return;
+    try {
       await prefs.markVersionSeen(current);
+    } catch (e) {
+      debugPrint('[Kohera] Failed to mark version seen: $e');
     }
   }
 
@@ -63,8 +60,11 @@ class _WhatsNewBannerState extends State<WhatsNewBanner> {
     final hasBump = context.select<PreferencesService, bool>(
       (p) => p.hasVersionBumped,
     );
+    final currentVersion = context.select<PreferencesService, String?>(
+      (p) => p.currentVersion,
+    );
     final notes = _notes;
-    final visible = hasBump && notes != null && !_loading;
+    final visible = hasBump && notes != null && currentVersion != null;
 
     return AnimatedSize(
       duration: const Duration(milliseconds: 200),
@@ -72,7 +72,7 @@ class _WhatsNewBannerState extends State<WhatsNewBanner> {
       alignment: Alignment.topCenter,
       child: visible
           ? _BannerContent(
-              tagName: notes.tagName,
+              versionLabel: 'v$currentVersion',
               onView: _viewDetails,
               onDismiss: _dismiss,
             )
@@ -83,12 +83,12 @@ class _WhatsNewBannerState extends State<WhatsNewBanner> {
 
 class _BannerContent extends StatelessWidget {
   const _BannerContent({
-    required this.tagName,
+    required this.versionLabel,
     required this.onView,
     required this.onDismiss,
   });
 
-  final String tagName;
+  final String versionLabel;
   final VoidCallback onView;
   final VoidCallback onDismiss;
 
@@ -100,7 +100,7 @@ class _BannerContent extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: Semantics(
-        label: "What's new in $tagName. Tap View for details.",
+        label: "What's new in $versionLabel. Tap View for details.",
         button: true,
         child: InkWell(
           onTap: onView,
@@ -117,7 +117,7 @@ class _BannerContent extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    "What's new in $tagName",
+                    "What's new in $versionLabel",
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: tt.bodySmall?.copyWith(
