@@ -1,6 +1,14 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+PackageInfo _fakePackageInfo(String version) => PackageInfo(
+      appName: 'kohera',
+      packageName: 'app.kohera',
+      version: version,
+      buildNumber: '1',
+    );
 
 void main() {
   late PreferencesService prefs;
@@ -438,6 +446,114 @@ void main() {
       expect(MobileTab.inbox.label, 'Inbox');
       expect(MobileTab.chats.label, 'Chats');
       expect(MobileTab.you.label, 'You');
+    });
+  });
+
+  group('version bump detection', () {
+    test('fresh install marks current as seen and reports no bump', () async {
+      SharedPreferences.setMockInitialValues({});
+      final sp = await SharedPreferences.getInstance();
+      final svc = PreferencesService(
+        prefs: sp,
+        packageInfo: _fakePackageInfo('1.4.0'),
+      );
+      await svc.init();
+
+      expect(svc.currentVersion, '1.4.0');
+      expect(svc.lastSeenVersion, '1.4.0');
+      expect(svc.hasVersionBumped, isFalse);
+    });
+
+    test('upgrade flags bump until dismissed', () async {
+      SharedPreferences.setMockInitialValues({'last_seen_version': '1.0.0'});
+      final sp = await SharedPreferences.getInstance();
+      final svc = PreferencesService(
+        prefs: sp,
+        packageInfo: _fakePackageInfo('1.4.0'),
+      );
+      await svc.init();
+
+      expect(svc.lastSeenVersion, '1.0.0');
+      expect(svc.hasVersionBumped, isTrue);
+
+      await svc.markVersionSeen('1.4.0');
+      expect(svc.lastSeenVersion, '1.4.0');
+      expect(svc.hasVersionBumped, isFalse);
+    });
+
+    test('same version reports no bump', () async {
+      SharedPreferences.setMockInitialValues({'last_seen_version': '1.4.0'});
+      final sp = await SharedPreferences.getInstance();
+      final svc = PreferencesService(
+        prefs: sp,
+        packageInfo: _fakePackageInfo('1.4.0'),
+      );
+      await svc.init();
+      expect(svc.hasVersionBumped, isFalse);
+    });
+
+    test('downgrade reports no bump', () async {
+      SharedPreferences.setMockInitialValues({'last_seen_version': '1.4.0'});
+      final sp = await SharedPreferences.getInstance();
+      final svc = PreferencesService(
+        prefs: sp,
+        packageInfo: _fakePackageInfo('1.0.0'),
+      );
+      await svc.init();
+      expect(svc.hasVersionBumped, isFalse);
+    });
+
+    test('pre-release suffix: beta -> stable is a bump', () async {
+      SharedPreferences.setMockInitialValues(
+        {'last_seen_version': '1.4.0-beta'},
+      );
+      final sp = await SharedPreferences.getInstance();
+      final svc = PreferencesService(
+        prefs: sp,
+        packageInfo: _fakePackageInfo('1.4.0'),
+      );
+      await svc.init();
+      expect(svc.hasVersionBumped, isTrue);
+    });
+
+    test('pre-release suffix: stable -> beta is not a bump', () async {
+      SharedPreferences.setMockInitialValues({'last_seen_version': '1.4.0'});
+      final sp = await SharedPreferences.getInstance();
+      final svc = PreferencesService(
+        prefs: sp,
+        packageInfo: _fakePackageInfo('1.4.0-beta'),
+      );
+      await svc.init();
+      expect(svc.hasVersionBumped, isFalse);
+    });
+
+    test('markVersionSeen notifies listeners', () async {
+      SharedPreferences.setMockInitialValues({'last_seen_version': '1.0.0'});
+      final sp = await SharedPreferences.getInstance();
+      final svc = PreferencesService(
+        prefs: sp,
+        packageInfo: _fakePackageInfo('1.4.0'),
+      );
+      await svc.init();
+
+      var notified = false;
+      svc.addListener(() => notified = true);
+      await svc.markVersionSeen('1.4.0');
+      expect(notified, isTrue);
+    });
+
+    test('malformed stored version does not throw and reports no bump',
+        () async {
+      SharedPreferences.setMockInitialValues(
+        {'last_seen_version': 'not-a-version'},
+      );
+      final sp = await SharedPreferences.getInstance();
+      final svc = PreferencesService(
+        prefs: sp,
+        packageInfo: _fakePackageInfo('1.4.0'),
+      );
+      await svc.init();
+      expect(svc.hasVersionBumped, isFalse);
     });
   });
 }

@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kohera/core/theme/custom_theme.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:pub_semver/pub_semver.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Controls how compact or spacious message bubbles appear.
@@ -60,20 +62,32 @@ enum MobileTab {
 
 /// Manages user preferences that persist across app restarts.
 class PreferencesService extends ChangeNotifier {
-  PreferencesService({SharedPreferences? prefs}) : _prefs = prefs;
+  PreferencesService({
+    SharedPreferences? prefs,
+    PackageInfo? packageInfo,
+  })  : _prefs = prefs,
+        _packageInfo = packageInfo;
 
   SharedPreferences? _prefs;
+  PackageInfo? _packageInfo;
+  String? _currentVersion;
   static const _defaultHomeserverKey = 'default_homeserver';
   static const _densityKey = 'message_density';
   static const _themeModeKey = 'theme_mode';
   static const _themePresetKey = 'theme_preset';
   static const _lastMobileTabKey = 'last_mobile_tab';
+  static const _lastSeenVersionKey = 'last_seen_version';
 
   /// Initialise the underlying [SharedPreferences] instance.
   /// Must be called (and awaited) before reading any values.
   Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
     await _prefs?.remove('room_filter');
+    _packageInfo ??= await PackageInfo.fromPlatform();
+    _currentVersion = _packageInfo?.version;
+    if (_currentVersion != null && lastSeenVersion == null) {
+      await _prefs?.setString(_lastSeenVersionKey, _currentVersion!);
+    }
     notifyListeners();
   }
 
@@ -614,6 +628,29 @@ class PreferencesService extends ChangeNotifier {
   Future<void> setPttSoundEnabled(bool value) async {
     await _prefs?.setBool(_pttSoundEnabledKey, value);
     debugPrint('[Kohera] PTT sound ${value ? "enabled" : "disabled"}');
+    notifyListeners();
+  }
+
+  // ── Version bump detection ────────────────────────────────────
+
+  String? get lastSeenVersion => _prefs?.getString(_lastSeenVersionKey);
+
+  String? get currentVersion => _currentVersion;
+
+  bool get hasVersionBumped {
+    final seen = lastSeenVersion;
+    final current = _currentVersion;
+    if (seen == null || current == null) return false;
+    try {
+      return Version.parse(current) > Version.parse(seen);
+    } on FormatException {
+      return false;
+    }
+  }
+
+  Future<void> markVersionSeen(String version) async {
+    await _prefs?.setString(_lastSeenVersionKey, version);
+    debugPrint('[Kohera] Marked version $version as seen');
     notifyListeners();
   }
 }
