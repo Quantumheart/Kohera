@@ -241,7 +241,21 @@ void main() {
     });
   });
 
-  // ── Group 6: Add Account ──────────────────────────────────────
+  // ── Group 6: About section ────────────────────────────────────
+
+  group("Settings screen — what's new", () {
+    testWidgets('about section shows What\'s new tile', (tester) async {
+      await tester.pumpWidget(buildSettingsApp());
+      await tester.pumpAndSettle();
+      await scrollToBottom(tester);
+
+      expect(find.text('ABOUT'), findsOneWidget);
+      expect(find.text("What's new"), findsOneWidget);
+      expect(find.byIcon(Icons.auto_awesome_outlined), findsOneWidget);
+    });
+  });
+
+  // ── Group 7: Add Account ──────────────────────────────────────
 
   group('Settings screen — add account', () {
     testWidgets('add account button is visible', (tester) async {
