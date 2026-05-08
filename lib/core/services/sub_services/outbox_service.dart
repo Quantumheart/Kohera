@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/core/services/sub_services/outbox_connectivity.dart';
 import 'package:kohera/core/services/sub_services/outbox_database.dart';
 import 'package:matrix/matrix.dart';
 
@@ -44,27 +45,37 @@ class OutboxService extends ChangeNotifier {
     required Client client,
     required String clientName,
     OutboxDatabase? databaseOverride,
+    OutboxConnectivity? connectivity,
     @visibleForTesting math.Random? random,
     @visibleForTesting Duration Function(int attempts)? backoffOverride,
     @visibleForTesting int? recentTimelineLookback,
+    @visibleForTesting Duration? connectivityDebounce,
   })  : _client = client,
         _db = databaseOverride ?? OutboxDatabase(clientName: clientName),
+        _connectivity = connectivity,
         _random = random ?? math.Random(),
         _backoffOverride = backoffOverride,
-        _recentLookback = recentTimelineLookback ?? 50;
+        _recentLookback = recentTimelineLookback ?? 50,
+        _connectivityDebounce =
+            connectivityDebounce ?? const Duration(seconds: 2);
 
   static const int kMaxAttempts = 8;
   static const Duration kMaxBackoff = Duration(seconds: 60);
 
   final Client _client;
   final OutboxDatabase _db;
+  final OutboxConnectivity? _connectivity;
   final math.Random _random;
   final Duration Function(int)? _backoffOverride;
   final int _recentLookback;
+  final Duration _connectivityDebounce;
 
   final Map<String, _Entry> _entries = {};
   StreamSubscription<SyncUpdate>? _syncSub;
   StreamSubscription<Event>? _timelineSub;
+  StreamSubscription<bool>? _connectivitySub;
+  Timer? _drainDebounceTimer;
+  bool _wasOffline = false;
   bool _started = false;
   bool _scanned = false;
   bool _disposed = false;
@@ -86,10 +97,50 @@ class OutboxService extends ChangeNotifier {
     debugPrint('[Kohera] outbox: start');
     _timelineSub = _client.onTimelineEvent.stream.listen(_onTimelineEvent);
     _syncSub = _client.onSync.stream.listen((_) {
-      if (_scanned) return;
-      _scanned = true;
-      unawaited(_initialScan());
+      if (!_scanned) {
+        _scanned = true;
+        unawaited(_initialScan());
+      }
+      if (_wasOffline) {
+        debugPrint('[Kohera] outbox: sync resumed after offline, draining');
+        _wasOffline = false;
+        _scheduleDrain(immediate: true);
+      }
     });
+    final c = _connectivity;
+    if (c != null) {
+      _wasOffline = !(await c.isOnline());
+      _connectivitySub = c.onlineChanges.listen((online) {
+        debugPrint('[Kohera] outbox: connectivity online=$online');
+        if (!online) {
+          _wasOffline = true;
+          return;
+        }
+        if (_wasOffline) {
+          _wasOffline = false;
+          _scheduleDrain();
+        }
+      });
+    }
+  }
+
+  void _scheduleDrain({bool immediate = false}) {
+    if (_disposed) return;
+    _drainDebounceTimer?.cancel();
+    final delay = immediate ? Duration.zero : _connectivityDebounce;
+    _drainDebounceTimer = Timer(delay, () {
+      if (_disposed) return;
+      _drain();
+    });
+  }
+
+  void _drain() {
+    debugPrint('[Kohera] outbox: drain (${_entries.length} entries)');
+    for (final entry in _entries.values.toList()) {
+      if (entry.inFlight || entry.finalFailed) continue;
+      entry.nextRetryAt = DateTime.now();
+      _scheduleRetry(entry);
+    }
   }
 
   Future<void> _initialScan() async {
@@ -294,6 +345,9 @@ class OutboxService extends ChangeNotifier {
   @visibleForTesting
   Future<void> retryNowForTest(String txid) => _retry(txid);
 
+  @visibleForTesting
+  void drainNowForTest() => _drain();
+
   @override
   void dispose() {
     _disposed = true;
@@ -302,11 +356,17 @@ class OutboxService extends ChangeNotifier {
       e.timer?.cancel();
     }
     _entries.clear();
+    _drainDebounceTimer?.cancel();
+    _drainDebounceTimer = null;
     unawaited(_syncSub?.cancel());
     unawaited(_timelineSub?.cancel());
+    unawaited(_connectivitySub?.cancel());
     _syncSub = null;
     _timelineSub = null;
+    _connectivitySub = null;
     unawaited(_db.close());
+    final c = _connectivity;
+    if (c != null) unawaited(c.dispose());
     super.dispose();
   }
 }
