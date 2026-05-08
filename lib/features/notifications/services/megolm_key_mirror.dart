@@ -62,7 +62,7 @@ class MegolmKeyMirror {
   Future<void> _migrateLegacyDbIfNeeded() async {
     final legacyPath = p.join(_appGroupPath!, _legacyDbName);
     final legacyFile = File(legacyPath);
-    if (!await legacyFile.exists()) return;
+    if (!legacyFile.existsSync()) return;
 
     debugPrint('[Kohera] Key mirror: migrating legacy App Group DB');
     sqflite.Database? legacy;
@@ -80,7 +80,7 @@ class MegolmKeyMirror {
 
     for (final suffix in const ['', '-wal', '-shm', '-journal']) {
       final f = File('$legacyPath$suffix');
-      if (await f.exists()) {
+      if (f.existsSync()) {
         try {
           await f.delete();
         } catch (e) {
