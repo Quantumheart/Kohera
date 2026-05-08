@@ -13,7 +13,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 const _apnsChannel = MethodChannel('kohera/apns');
 
 Future<void> _migrateIosDbFromAppGroup(String clientName, String sandboxDb) async {
-  if (await File(sandboxDb).exists()) return;
+  if (File(sandboxDb).existsSync()) return;
 
   String? appGroupPath;
   try {
@@ -25,12 +25,12 @@ Future<void> _migrateIosDbFromAppGroup(String clientName, String sandboxDb) asyn
   if (appGroupPath == null) return;
 
   final legacyPath = p.join(appGroupPath, 'kohera_$clientName.db');
-  if (!await File(legacyPath).exists()) return;
+  if (!File(legacyPath).existsSync()) return;
 
   debugPrint('[Kohera] Migrating Matrix DB from App Group to sandbox');
   for (final suffix in const ['', '-wal', '-shm', '-journal']) {
     final src = File('$legacyPath$suffix');
-    if (await src.exists()) {
+    if (src.existsSync()) {
       try {
         await src.copy('$sandboxDb$suffix');
       } catch (e) {
