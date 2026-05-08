@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/services/sub_services/outbox_connectivity.dart';
 import 'package:kohera/core/services/sub_services/outbox_database.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:matrix/matrix.dart';
@@ -31,6 +32,29 @@ class _StubDatabase extends Fake implements DatabaseApi {
       onlySending
           ? (sendingByRoom[room.id] ?? const [])
           : (allByRoom[room.id] ?? const []);
+}
+
+class _FakeConnectivity implements OutboxConnectivity {
+  _FakeConnectivity({bool initiallyOnline = true}) : _online = initiallyOnline;
+
+  final StreamController<bool> _ctrl = StreamController<bool>.broadcast();
+  bool _online;
+
+  @override
+  Stream<bool> get onlineChanges => _ctrl.stream;
+
+  @override
+  Future<bool> isOnline() async => _online;
+
+  void emit(bool online) {
+    _online = online;
+    _ctrl.add(online);
+  }
+
+  @override
+  Future<void> dispose() async {
+    await _ctrl.close();
+  }
 }
 
 class _MemoryOutboxDb extends OutboxDatabase {
@@ -236,6 +260,78 @@ void main() {
       final a3 = mid(3).inMilliseconds;
       expect(a1, inInclusiveRange(2 * 750, 2 * 1250));
       expect(a3, inInclusiveRange(8 * 750, 8 * 1250));
+      service.dispose();
+    });
+  });
+
+  test('connectivity: offline→online drain after debounce', () {
+    fakeAsync((async) {
+      final stuck = _stubEvent(
+        txid: 'tx6',
+        eventId: r'$tx6',
+        status: EventStatus.error,
+      );
+      when(client.database).thenReturn(
+        _StubDatabase(sendingByRoom: {'!r:s': [stuck]}),
+      );
+      final fakeConn = _FakeConnectivity(initiallyOnline: false);
+      final service = OutboxService(
+        client: client,
+        clientName: 'test',
+        databaseOverride: _MemoryOutboxDb(),
+        connectivity: fakeConn,
+        backoffOverride: (_) => const Duration(hours: 1),
+        connectivityDebounce: const Duration(milliseconds: 500),
+      );
+      unawaited(service.start());
+      unawaited(service.runScanForTest());
+      async.elapse(const Duration(seconds: 1));
+      clearInteractions(stuck);
+
+      fakeConn.emit(true);
+      async.elapse(const Duration(milliseconds: 100));
+      verifyNever(stuck.sendAgain(txid: anyNamed('txid')));
+      async.elapse(const Duration(milliseconds: 600));
+      verify(stuck.sendAgain(txid: 'tx6')).called(greaterThanOrEqualTo(1));
+      service.dispose();
+    });
+  });
+
+  test('connectivity: rapid flaps debounced to single drain', () {
+    fakeAsync((async) {
+      final stuck = _stubEvent(
+        txid: 'tx7',
+        eventId: r'$tx7',
+        status: EventStatus.error,
+      );
+      when(client.database).thenReturn(
+        _StubDatabase(sendingByRoom: {'!r:s': [stuck]}),
+      );
+      final fakeConn = _FakeConnectivity(initiallyOnline: false);
+      final service = OutboxService(
+        client: client,
+        clientName: 'test',
+        databaseOverride: _MemoryOutboxDb(),
+        connectivity: fakeConn,
+        backoffOverride: (_) => const Duration(hours: 1),
+        connectivityDebounce: const Duration(milliseconds: 500),
+      );
+      unawaited(service.start());
+      unawaited(service.runScanForTest());
+      async.elapse(const Duration(seconds: 1));
+      clearInteractions(stuck);
+
+      fakeConn.emit(true);
+      async.elapse(const Duration(milliseconds: 100));
+      fakeConn.emit(false);
+      async.elapse(const Duration(milliseconds: 100));
+      fakeConn.emit(true);
+      async.elapse(const Duration(milliseconds: 100));
+      fakeConn.emit(false);
+      async.elapse(const Duration(milliseconds: 100));
+      fakeConn.emit(true);
+      async.elapse(const Duration(milliseconds: 600));
+      verify(stuck.sendAgain(txid: 'tx7')).called(1);
       service.dispose();
     });
   });

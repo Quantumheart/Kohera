@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/services/session_backup.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/core/services/sub_services/outbox_connectivity.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
@@ -62,7 +63,11 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     );
     callPushRuleManager = CallPushRuleManager(client: _client);
     keyMirror = MegolmKeyMirror(client: _client, clientName: clientName);
-    outbox = OutboxService(client: _client, clientName: clientName);
+    outbox = OutboxService(
+      client: _client,
+      clientName: clientName,
+      connectivity: RealOutboxConnectivity(),
+    );
     auth.addListener(_onAuthChanged);
   }
 
