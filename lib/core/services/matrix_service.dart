@@ -10,6 +10,7 @@ import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/core/utils/network_error.dart';
 import 'package:kohera/features/notifications/services/call_push_rule_manager.dart';
+import 'package:kohera/features/notifications/services/megolm_key_mirror.dart';
 import 'package:matrix/matrix.dart';
 // ignore: implementation_imports, no public API for ClientInitException
 import 'package:matrix/src/utils/client_init_exception.dart';
@@ -59,10 +60,12 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       clientName: clientName,
     );
     callPushRuleManager = CallPushRuleManager(client: _client);
+    keyMirror = MegolmKeyMirror(client: _client, clientName: clientName);
     auth.addListener(_onAuthChanged);
   }
 
   late final CallPushRuleManager callPushRuleManager;
+  late final MegolmKeyMirror keyMirror;
 
   // ── Fields ──────────────────────────────────────────────────────
 
@@ -122,6 +125,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     auth.removeListener(_onAuthChanged);
     auth.isLoggedIn = false;
     sync.cancelSyncSub();
+    unawaited(keyMirror.dispose());
     uia.dispose();
     selection.dispose();
     chatBackup.dispose();
@@ -244,10 +248,16 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       uia.listenForUia();
       _listenForLoginState();
       unawaited(callPushRuleManager.ensureRule());
+      unawaited(
+        keyMirror.start().catchError((Object e) {
+          debugPrint('[Kohera] Key mirror start failed: $e');
+        }),
+      );
     } else {
       unawaited(_loginStateSub?.cancel());
       _loginStateSub = null;
       sync.cancelSyncSub();
+      unawaited(keyMirror.dispose());
       uia.clearCachedPassword();
       uia.cancelUiaSub();
       selection.resetSelection();

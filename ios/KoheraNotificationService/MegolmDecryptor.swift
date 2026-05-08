@@ -57,10 +57,10 @@ struct MegolmDecryptor {
             return nil
         }
 
-        let dbPath = containerURL.appendingPathComponent("kohera_\(clientName).db").path
+        let dbPath = containerURL.appendingPathComponent("kohera_\(clientName)_keys.db").path
         var db: OpaquePointer?
         guard sqlite3_open_v2(dbPath, &db, SQLITE_OPEN_READONLY, nil) == SQLITE_OK else {
-            NSLog("[KoheraNSE] Failed to open database")
+            NSLog("[KoheraNSE] Failed to open key mirror database at %@", dbPath)
             return nil
         }
         defer { sqlite3_close(db) }
