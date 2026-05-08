@@ -226,6 +226,16 @@ class OutboxService extends ChangeNotifier {
     final entry = _entries[txid];
     if (entry == null || _disposed) return;
     if (entry.inFlight || entry.finalFailed) return;
+    entry.inFlight = true;
+    _safeNotify();
+    try {
+      await _retryInner(txid, entry);
+    } finally {
+      entry.inFlight = false;
+    }
+  }
+
+  Future<void> _retryInner(String txid, _Entry entry) async {
     final room = _client.getRoomById(entry.roomId);
     if (room == null) {
       debugPrint('[Kohera] outbox: room ${entry.roomId} gone, dropping $txid');
@@ -237,8 +247,6 @@ class OutboxService extends ChangeNotifier {
       _evict(txid);
       return;
     }
-    entry.inFlight = true;
-    _safeNotify();
     Event? stuck;
     try {
       final list = await _client.database.getEventList(
@@ -256,7 +264,6 @@ class OutboxService extends ChangeNotifier {
     }
     if (stuck == null) {
       debugPrint('[Kohera] outbox: stuck event $txid not found, evicting');
-      entry.inFlight = false;
       _evict(txid);
       return;
     }
@@ -267,7 +274,6 @@ class OutboxService extends ChangeNotifier {
       debugPrint('[Kohera] outbox: sendAgain $txid threw: $e');
       result = null;
     }
-    entry.inFlight = false;
     if (result != null) {
       debugPrint('[Kohera] outbox: $txid sendAgain succeeded ($result)');
       return;
