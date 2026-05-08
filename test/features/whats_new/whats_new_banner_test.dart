@@ -165,6 +165,85 @@ void main() {
     expect(find.text('detail-page-stub'), findsOneWidget);
   });
 
+  testWidgets('shows update-available when latest tag is newer than installed',
+      (tester) async {
+    final prefs = await _prefsWith(current: '1.0.0');
+    final releases = _releasesService(cacheDir: tempDir);
+
+    await tester.runAsync(() async {
+      await tester.pumpWidget(_harness(prefs: prefs, releases: releases));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Update available'), findsOneWidget);
+    expect(find.text('Open'), findsOneWidget);
+  });
+
+  testWidgets('Open launches the GitHub release URL externally',
+      (tester) async {
+    final prefs = await _prefsWith(current: '1.0.0');
+    final releases = _releasesService(cacheDir: tempDir);
+    final launched = <Uri>[];
+
+    final router = GoRouter(
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (_, __) => Scaffold(
+            body: Column(
+              children: [
+                WhatsNewBanner(
+                  linkLauncher: (uri) async {
+                    launched.add(uri);
+                    return true;
+                  },
+                ),
+                const Expanded(child: SizedBox()),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        _harness(prefs: prefs, releases: releases, router: router),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+
+    expect(
+      launched.single.toString(),
+      'https://github.com/Quantumheart/Kohera/releases/tag/v1.4.0',
+    );
+  });
+
+  testWidgets('dismissing update-available persists tag and hides banner',
+      (tester) async {
+    final prefs = await _prefsWith(current: '1.0.0');
+    final releases = _releasesService(cacheDir: tempDir);
+
+    await tester.runAsync(() async {
+      await tester.pumpWidget(_harness(prefs: prefs, releases: releases));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Update available'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Dismiss'));
+    await tester.pumpAndSettle();
+
+    expect(prefs.lastDismissedUpdateTag, 'v1.4.0');
+    expect(find.textContaining('Update available'), findsNothing);
+  });
+
   testWidgets('stays hidden when release notes fail to load', (tester) async {
     final prefs = await _prefsWith(lastSeen: '1.0.0', current: '1.4.0');
     final releases = _releasesService(
