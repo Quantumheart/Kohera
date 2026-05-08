@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.0.1](https://github.com/Quantumheart/Kohera/compare/v1.0.0...v1.0.1) (2026-05-08)
+
+
+### Bug Fixes
+
+* **chat:** always show threads button in app bar ([dfdd3fe](https://github.com/Quantumheart/Kohera/commit/dfdd3fe43669290234c81cb3a2ca1d69f0fcf890))
+* **ios:** move matrix DB out of App Group to avoid 0xdead10cc ([66551f0](https://github.com/Quantumheart/Kohera/commit/66551f05787a979941d317826aa745d5c6243f68)), closes [#411](https://github.com/Quantumheart/Kohera/issues/411)
+* **ios:** use sync File.existsSync to satisfy avoid_slow_async_io ([8e7d88d](https://github.com/Quantumheart/Kohera/commit/8e7d88d82738bd1d764a90f9c7c939bd915bf743))
+* prevent stale SDK login state from blocking sign-in ([a8a787c](https://github.com/Quantumheart/Kohera/commit/a8a787c809e2e9b395476f2f5b05b818f8008872))
+
 ## 1.0.0 (2026-05-07)
 
 
