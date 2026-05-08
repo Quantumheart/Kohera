@@ -354,7 +354,7 @@ class _ChatScreenState extends State<ChatScreen>
         onSearch: _openSearch,
         onPinnedEvent: (event) =>
             _messageListKey.currentState?.navigateToEvent(event),
-        onShowThreads: summaries.isEmpty ? null : _openThreadList,
+        onShowThreads: _openThreadList,
         threadUnreadCount: totalThreadUnread(summaries),
       );
     }
