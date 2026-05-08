@@ -6,13 +6,27 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-/// Dismissible banner that announces a new app release.
+typedef WhatsNewLinkLauncher = Future<bool> Function(Uri uri);
+
+/// Dismissible banner with two modes:
 ///
-/// Visible only when [PreferencesService.hasVersionBumped] is `true` AND
-/// release notes have been fetched, so it never flickers on slow networks.
+/// 1. **Post-update** — installed version > last-seen version. Shows
+///    "What's new in vX" linking to the in-app release notes screen.
+/// 2. **Update-available** — latest GitHub release tag > installed
+///    version. Shows "Update available vX" linking to the GitHub
+///    release page.
+///
+/// Hidden until release notes have been fetched, so it never flickers
+/// on slow networks.
 class WhatsNewBanner extends StatefulWidget {
-  const WhatsNewBanner({super.key});
+  const WhatsNewBanner({
+    super.key,
+    @visibleForTesting this.linkLauncher,
+  });
+
+  final WhatsNewLinkLauncher? linkLauncher;
 
   @override
   State<WhatsNewBanner> createState() => _WhatsNewBannerState();
@@ -25,8 +39,7 @@ class _WhatsNewBannerState extends State<WhatsNewBanner> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final prefs = context.read<PreferencesService>();
-    if (prefs.hasVersionBumped && !_attempted) {
+    if (!_attempted) {
       _attempted = true;
       unawaited(_loadNotes());
     }
@@ -40,7 +53,7 @@ class _WhatsNewBannerState extends State<WhatsNewBanner> {
     setState(() => _notes = notes);
   }
 
-  Future<void> _dismiss() async {
+  Future<void> _dismissPostUpdate() async {
     final prefs = context.read<PreferencesService>();
     final current = prefs.currentVersion;
     if (current == null) return;
@@ -51,45 +64,89 @@ class _WhatsNewBannerState extends State<WhatsNewBanner> {
     }
   }
 
-  void _viewDetails() {
+  Future<void> _dismissUpdateAvailable() async {
+    final prefs = context.read<PreferencesService>();
+    final tag = _notes?.tagName;
+    if (tag == null || tag.isEmpty) return;
+    try {
+      await prefs.markUpdateDismissed(tag);
+    } catch (e) {
+      debugPrint('[Kohera] Failed to dismiss update notice: $e');
+    }
+  }
+
+  void _viewReleaseNotes() {
     unawaited(context.pushNamed(Routes.whatsNew));
+  }
+
+  Future<void> _openLatestRelease() async {
+    final url = _notes?.htmlUrl;
+    if (url == null || url.isEmpty) return;
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    final launcher = widget.linkLauncher ??
+        (u) => launchUrl(u, mode: LaunchMode.externalApplication);
+    unawaited(launcher(uri));
   }
 
   @override
   Widget build(BuildContext context) {
-    final hasBump = context.select<PreferencesService, bool>(
-      (p) => p.hasVersionBumped,
-    );
-    final currentVersion = context.select<PreferencesService, String?>(
-      (p) => p.currentVersion,
-    );
+    final prefs = context.watch<PreferencesService>();
     final notes = _notes;
-    final visible = hasBump && notes != null && currentVersion != null;
+    final currentVersion = prefs.currentVersion;
+
+    Widget? content;
+    if (notes != null && currentVersion != null) {
+      if (prefs.hasVersionBumped) {
+        content = _BannerContent(
+          key: const ValueKey('post-update'),
+          icon: Icons.auto_awesome,
+          label: "What's new in v$currentVersion",
+          semanticsLabel:
+              "What's new in v$currentVersion. Tap View for details.",
+          actionLabel: 'View',
+          onAction: _viewReleaseNotes,
+          onDismiss: _dismissPostUpdate,
+        );
+      } else if (prefs.isUpdateAvailable(notes.tagName)) {
+        content = _BannerContent(
+          key: const ValueKey('update-available'),
+          icon: Icons.system_update_alt,
+          label: 'Update available · ${notes.tagName}',
+          semanticsLabel:
+              'Update available ${notes.tagName}. Tap Open to view the release.',
+          actionLabel: 'Open',
+          onAction: _openLatestRelease,
+          onDismiss: _dismissUpdateAvailable,
+        );
+      }
+    }
 
     return AnimatedSize(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
       alignment: Alignment.topCenter,
-      child: visible
-          ? _BannerContent(
-              versionLabel: 'v$currentVersion',
-              onView: _viewDetails,
-              onDismiss: _dismiss,
-            )
-          : const SizedBox.shrink(),
+      child: content ?? const SizedBox.shrink(),
     );
   }
 }
 
 class _BannerContent extends StatelessWidget {
   const _BannerContent({
-    required this.versionLabel,
-    required this.onView,
+    required this.icon,
+    required this.label,
+    required this.semanticsLabel,
+    required this.actionLabel,
+    required this.onAction,
     required this.onDismiss,
+    super.key,
   });
 
-  final String versionLabel;
-  final VoidCallback onView;
+  final IconData icon;
+  final String label;
+  final String semanticsLabel;
+  final String actionLabel;
+  final VoidCallback onAction;
   final VoidCallback onDismiss;
 
   @override
@@ -100,10 +157,10 @@ class _BannerContent extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: Semantics(
-        label: "What's new in $versionLabel. Tap View for details.",
+        label: semanticsLabel,
         button: true,
         child: InkWell(
-          onTap: onView,
+          onTap: onAction,
           child: Container(
             constraints: const BoxConstraints(minHeight: 48),
             padding: const EdgeInsets.only(left: 12, right: 4),
@@ -113,11 +170,11 @@ class _BannerContent extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.auto_awesome, size: 18, color: cs.primary),
+                Icon(icon, size: 18, color: cs.primary),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    "What's new in $versionLabel",
+                    label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: tt.bodySmall?.copyWith(
@@ -127,8 +184,8 @@ class _BannerContent extends StatelessWidget {
                   ),
                 ),
                 TextButton(
-                  onPressed: onView,
-                  child: const Text('View'),
+                  onPressed: onAction,
+                  child: Text(actionLabel),
                 ),
                 IconButton(
                   tooltip: 'Dismiss',

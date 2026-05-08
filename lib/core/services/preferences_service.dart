@@ -77,6 +77,7 @@ class PreferencesService extends ChangeNotifier {
   static const _themePresetKey = 'theme_preset';
   static const _lastMobileTabKey = 'last_mobile_tab';
   static const _lastSeenVersionKey = 'last_seen_version';
+  static const _lastDismissedUpdateKey = 'last_dismissed_update';
 
   /// Initialise the underlying [SharedPreferences] instance.
   /// Must be called (and awaited) before reading any values.
@@ -658,5 +659,31 @@ class PreferencesService extends ChangeNotifier {
     await _prefs?.setString(_lastSeenVersionKey, version);
     debugPrint('[Kohera] Marked version $version as seen');
     notifyListeners();
+  }
+
+  // ── Update-available detection ───────────────────────────────
+
+  String? get lastDismissedUpdateTag =>
+      _prefs?.getString(_lastDismissedUpdateKey);
+
+  Future<void> markUpdateDismissed(String tag) async {
+    await _prefs?.setString(_lastDismissedUpdateKey, tag);
+    debugPrint('[Kohera] Dismissed update notice for $tag');
+    notifyListeners();
+  }
+
+  /// Returns true when [latestTag] (e.g. `v1.5.0` or `1.5.0`) is strictly
+  /// newer than the installed [currentVersion] and has not been dismissed.
+  bool isUpdateAvailable(String? latestTag) {
+    final current = _currentVersion;
+    if (latestTag == null || latestTag.isEmpty || current == null) return false;
+    if (lastDismissedUpdateTag == latestTag) return false;
+    final stripped =
+        latestTag.startsWith('v') ? latestTag.substring(1) : latestTag;
+    try {
+      return Version.parse(stripped) > Version.parse(current);
+    } on FormatException {
+      return false;
+    }
   }
 }
