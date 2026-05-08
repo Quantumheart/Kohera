@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/time_format.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
+import 'package:kohera/features/chat/widgets/message_bubble_outbox_status.dart';
 import 'package:matrix/matrix.dart';
 
 class MessageBubbleTimestamp extends StatelessWidget {
@@ -61,13 +62,7 @@ class MessageBubbleTimestamp extends StatelessWidget {
           ),
           if (isMe) ...[
             const SizedBox(width: 4),
-            Icon(
-              event.status.isSent
-                  ? Icons.done_all_rounded
-                  : Icons.done_rounded,
-              size: metrics.statusIconSize,
-              color: cs.onPrimary.withValues(alpha: 0.6),
-            ),
+            MessageBubbleOutboxStatus(event: event, metrics: metrics),
           ],
         ],
       ),
