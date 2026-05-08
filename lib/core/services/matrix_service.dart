@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/services/session_backup.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
@@ -61,6 +62,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     );
     callPushRuleManager = CallPushRuleManager(client: _client);
     keyMirror = MegolmKeyMirror(client: _client, clientName: clientName);
+    outbox = OutboxService(client: _client, clientName: clientName);
     auth.addListener(_onAuthChanged);
   }
 
@@ -102,6 +104,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   late final SelectionService selection;
   late final SyncService sync;
   late final AuthService auth;
+  late final OutboxService outbox;
 
   StreamSubscription<LoginState>? _loginStateSub;
 
@@ -126,6 +129,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     auth.isLoggedIn = false;
     sync.cancelSyncSub();
     unawaited(keyMirror.dispose());
+    outbox.dispose();
     uia.dispose();
     selection.dispose();
     chatBackup.dispose();
@@ -251,6 +255,11 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       unawaited(
         keyMirror.start().catchError((Object e) {
           debugPrint('[Kohera] Key mirror start failed: $e');
+        }),
+      );
+      unawaited(
+        outbox.start().catchError((Object e) {
+          debugPrint('[Kohera] Outbox start failed: $e');
         }),
       );
     } else {

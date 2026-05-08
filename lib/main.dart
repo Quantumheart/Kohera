@@ -11,6 +11,7 @@ import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/theme/kohera_theme.dart';
 import 'package:kohera/core/theme/theme_presets.dart';
@@ -162,6 +163,9 @@ class _KoheraAppState extends State<KoheraApp> {
                   ),
                   ChangeNotifierProvider<ChatBackupService>.value(
                     value: matrix.chatBackup,
+                  ),
+                  ChangeNotifierProvider<OutboxService>.value(
+                    value: matrix.outbox,
                   ),
                   ChangeNotifierProxyProvider<MatrixService, InboxController>(
                     create: (ctx) => InboxController(
