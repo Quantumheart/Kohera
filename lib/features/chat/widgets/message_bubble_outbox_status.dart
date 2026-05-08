@@ -1,0 +1,114 @@
+import 'package:flutter/material.dart';
+import 'package:kohera/core/services/sub_services/outbox_service.dart';
+import 'package:kohera/features/chat/widgets/density_metrics.dart';
+import 'package:kohera/features/chat/widgets/outbox_action_sheet.dart';
+import 'package:matrix/matrix.dart';
+import 'package:provider/provider.dart';
+
+enum _Phase { sent, sending, retrying, failed }
+
+class MessageBubbleOutboxStatus extends StatelessWidget {
+  const MessageBubbleOutboxStatus({
+    required this.event,
+    required this.metrics,
+    super.key,
+  });
+
+  final Event event;
+  final DensityMetrics metrics;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    OutboxService? outbox;
+    try {
+      outbox = context.watch<OutboxService>();
+    } on ProviderNotFoundException {
+      outbox = null;
+    }
+    final entry = outbox == null ? null : _lookup(outbox);
+    final phase = _phaseFor(entry);
+
+    switch (phase) {
+      case _Phase.sent:
+        return Icon(
+          event.status.isSent ? Icons.done_all_rounded : Icons.done_rounded,
+          size: metrics.statusIconSize,
+          color: cs.onPrimary.withValues(alpha: 0.6),
+        );
+      case _Phase.sending:
+        return Semantics(
+          label: 'Sending',
+          child: Icon(
+            Icons.schedule_rounded,
+            size: metrics.statusIconSize,
+            color: cs.onPrimary.withValues(alpha: 0.6),
+          ),
+        );
+      case _Phase.retrying:
+        final next = entry?.nextRetryAt;
+        final eta =
+            next?.difference(DateTime.now()).inSeconds.clamp(0, 1 << 31);
+        return Tooltip(
+          message: eta == null
+              ? 'Retrying'
+              : 'Retrying in ${eta}s (attempt ${entry!.attempts + 1})',
+          child: Semantics(
+            label: eta == null
+                ? 'Retrying to send'
+                : 'Retrying to send, next attempt in $eta seconds',
+            child: Icon(
+              Icons.schedule_rounded,
+              size: metrics.statusIconSize,
+              color: cs.onPrimary.withValues(alpha: 0.4),
+            ),
+          ),
+        );
+      case _Phase.failed:
+        return Semantics(
+          label: 'Failed to send, tap to retry',
+          button: true,
+          child: InkResponse(
+            radius: metrics.statusIconSize,
+            onTap: () => _openSheet(context, event),
+            child: Icon(
+              Icons.error_outline_rounded,
+              size: metrics.statusIconSize,
+              color: cs.error,
+            ),
+          ),
+        );
+    }
+  }
+
+  OutboxEntryView? _lookup(OutboxService outbox) {
+    final entries = outbox.entries;
+    final tx = event.transactionId;
+    if (tx != null && entries.containsKey(tx)) return entries[tx];
+    return entries[event.eventId];
+  }
+
+  _Phase _phaseFor(OutboxEntryView? entry) {
+    if (entry == null) {
+      if (event.status.isSent || event.status.isSynced) return _Phase.sent;
+      return _Phase.sending;
+    }
+    if (entry.finalFailed) return _Phase.failed;
+    if (entry.attempts > 0) return _Phase.retrying;
+    return _Phase.sending;
+  }
+
+  Future<void> _openSheet(BuildContext context, Event event) =>
+      showOutboxActionSheet(context, event: event);
+}
+
+@visibleForTesting
+String debugPhaseFor(OutboxEntryView? entry, Event event) {
+  if (entry == null) {
+    if (event.status.isSent || event.status.isSynced) return 'sent';
+    return 'sending';
+  }
+  if (entry.finalFailed) return 'failed';
+  if (entry.attempts > 0) return 'retrying';
+  return 'sending';
+}
