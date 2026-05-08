@@ -47,7 +47,12 @@ class _WhatsNewBannerState extends State<WhatsNewBanner> {
 
   Future<void> _loadNotes() async {
     if (!mounted) return;
-    final service = context.read<GitHubReleasesService>();
+    final GitHubReleasesService service;
+    try {
+      service = context.read<GitHubReleasesService>();
+    } on ProviderNotFoundException {
+      return;
+    }
     final notes = await service.fetchLatest();
     if (!mounted) return;
     setState(() => _notes = notes);
