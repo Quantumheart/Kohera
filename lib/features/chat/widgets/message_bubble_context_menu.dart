@@ -18,27 +18,38 @@ Future<void> showMessageContextMenu(
   VoidCallback? onReplyInThread,
 }) async {
   final cs = Theme.of(context).colorScheme;
+  final isFailed = event.status.isError;
   final items = <PopupMenuItem<String>>[
-    if (onReply != null) _menuItem(Icons.reply_rounded, 'Reply', 'reply'),
-    if (onReplyInThread != null)
-      _menuItem(Icons.forum_outlined, 'Reply in thread', 'reply_in_thread'),
-    if (onEdit != null) _menuItem(Icons.edit_rounded, 'Edit', 'edit'),
-    if (onReact != null)
-      _menuItem(Icons.add_reaction_outlined, 'React', 'react'),
-    if (!event.redacted) _menuItem(Icons.copy_rounded, 'Copy', 'copy'),
-    if (onPin != null)
-      _menuItem(
-        isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
-        isPinned ? 'Unpin' : 'Pin',
-        'pin',
-      ),
-    if (onDelete != null)
+    if (isFailed) ...[
+      _menuItem(Icons.refresh_rounded, 'Retry sending', 'outbox_retry'),
       _menuItem(
         Icons.delete_outline_rounded,
-        isMe ? 'Delete' : 'Remove',
-        'delete',
+        'Discard message',
+        'outbox_discard',
         color: cs.error,
       ),
+    ] else ...[
+      if (onReply != null) _menuItem(Icons.reply_rounded, 'Reply', 'reply'),
+      if (onReplyInThread != null)
+        _menuItem(Icons.forum_outlined, 'Reply in thread', 'reply_in_thread'),
+      if (onEdit != null) _menuItem(Icons.edit_rounded, 'Edit', 'edit'),
+      if (onReact != null)
+        _menuItem(Icons.add_reaction_outlined, 'React', 'react'),
+      if (!event.redacted) _menuItem(Icons.copy_rounded, 'Copy', 'copy'),
+      if (onPin != null)
+        _menuItem(
+          isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+          isPinned ? 'Unpin' : 'Pin',
+          'pin',
+        ),
+      if (onDelete != null)
+        _menuItem(
+          Icons.delete_outline_rounded,
+          isMe ? 'Delete' : 'Remove',
+          'delete',
+          color: cs.error,
+        ),
+    ],
   ];
   if (items.isEmpty) return;
   final value = await showMenu<String>(
@@ -49,6 +60,22 @@ Future<void> showMessageContextMenu(
     items: items,
   );
   if (!context.mounted) return;
+  if (value == 'outbox_retry') {
+    try {
+      await event.sendAgain();
+    } catch (e) {
+      debugPrint('[Kohera] outbox: retry from menu failed: $e');
+    }
+    return;
+  }
+  if (value == 'outbox_discard') {
+    try {
+      await event.cancelSend();
+    } catch (e) {
+      debugPrint('[Kohera] outbox: discard from menu failed: $e');
+    }
+    return;
+  }
   if (value == 'reply') onReply?.call();
   if (value == 'reply_in_thread') onReplyInThread?.call();
   if (value == 'react') onReact?.call();
