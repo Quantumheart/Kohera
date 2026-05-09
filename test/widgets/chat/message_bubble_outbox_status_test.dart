@@ -108,7 +108,7 @@ void main() {
     expect(find.byTooltip, isNotNull);
   });
 
-  testWidgets('final-failed entry shows error_outline tap target', (tester) async {
+  testWidgets('final-failed entry shows error_outline indicator', (tester) async {
     final outbox = _StubOutbox(
       {'tx': _entry(txid: 'tx', attempts: 8, failed: true)},
       client,
@@ -116,7 +116,6 @@ void main() {
     final event = _event(status: EventStatus.error, txid: 'tx');
     await tester.pumpWidget(_harness(outbox: outbox, event: event));
     expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
-    expect(find.byType(InkResponse), findsOneWidget);
   });
 
   test('debugPhaseFor classification matrix', () {

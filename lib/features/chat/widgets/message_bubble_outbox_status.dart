@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
-import 'package:kohera/features/chat/widgets/outbox_action_sheet.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
@@ -66,16 +65,11 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
         );
       case _Phase.failed:
         return Semantics(
-          label: 'Failed to send, tap to retry',
-          button: true,
-          child: InkResponse(
-            radius: metrics.statusIconSize,
-            onTap: () => _openSheet(context, event),
-            child: Icon(
-              Icons.error_outline_rounded,
-              size: metrics.statusIconSize,
-              color: cs.error,
-            ),
+          label: 'Failed to send',
+          child: Icon(
+            Icons.error_outline_rounded,
+            size: metrics.statusIconSize,
+            color: cs.error,
           ),
         );
     }
@@ -97,9 +91,6 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
     if (entry.attempts > 0) return _Phase.retrying;
     return _Phase.sending;
   }
-
-  Future<void> _openSheet(BuildContext context, Event event) =>
-      showOutboxActionSheet(context, event: event);
 }
 
 @visibleForTesting

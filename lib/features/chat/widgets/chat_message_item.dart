@@ -155,62 +155,91 @@ class ChatMessageItem extends StatelessWidget {
     if (event.redacted) return;
 
     final cs = Theme.of(context).colorScheme;
-    final actions = <MessageAction>[
-      MessageAction(
-        label: 'Reply',
-        icon: Icons.reply_rounded,
-        onTap: () => onReply?.call(event),
-      ),
-      if (!inThread && onReplyInThread != null)
+    final List<MessageAction> actions;
+    if (event.status.isError) {
+      actions = <MessageAction>[
         MessageAction(
-          label: 'Reply in thread',
-          icon: Icons.forum_outlined,
-          onTap: () => onReplyInThread?.call(event),
+          label: 'Retry sending',
+          icon: Icons.refresh_rounded,
+          onTap: () async {
+            try {
+              await event.sendAgain();
+            } catch (e) {
+              debugPrint('[Kohera] outbox: retry from menu failed: $e');
+            }
+          },
         ),
-      if (isMe)
         MessageAction(
-          label: 'Edit',
-          icon: Icons.edit_rounded,
-          onTap: () => onEdit?.call(event),
-        ),
-      MessageAction(
-        label: 'React',
-        icon: Icons.add_reaction_outlined,
-        onTap: () => showEmojiPickerSheet(
-          context,
-          (emoji) => onToggleReaction(event, emoji),
-        ),
-      ),
-      if (canPin)
-        MessageAction(
-          label: isPinned ? 'Unpin' : 'Pin',
-          icon: isPinned
-              ? Icons.push_pin_rounded
-              : Icons.push_pin_outlined,
-          onTap: () => onPin?.call(event),
-        ),
-      MessageAction(
-        label: 'Copy',
-        icon: Icons.copy_rounded,
-        onTap: () {
-          final displayEvent = timeline != null
-              ? event.getDisplayEvent(timeline!)
-              : event;
-          unawaited(
-            Clipboard.setData(
-              ClipboardData(text: stripReplyFallback(displayEvent.body)),
-            ),
-          );
-        },
-      ),
-      if (event.canRedact)
-        MessageAction(
-          label: isMe ? 'Delete' : 'Remove',
+          label: 'Discard message',
           icon: Icons.delete_outline_rounded,
-          onTap: () => confirmAndDeleteEvent(context, event),
+          onTap: () async {
+            try {
+              await event.cancelSend();
+            } catch (e) {
+              debugPrint('[Kohera] outbox: discard from menu failed: $e');
+            }
+          },
           color: cs.error,
         ),
-    ];
+      ];
+    } else {
+      actions = <MessageAction>[
+        MessageAction(
+          label: 'Reply',
+          icon: Icons.reply_rounded,
+          onTap: () => onReply?.call(event),
+        ),
+        if (!inThread && onReplyInThread != null)
+          MessageAction(
+            label: 'Reply in thread',
+            icon: Icons.forum_outlined,
+            onTap: () => onReplyInThread?.call(event),
+          ),
+        if (isMe)
+          MessageAction(
+            label: 'Edit',
+            icon: Icons.edit_rounded,
+            onTap: () => onEdit?.call(event),
+          ),
+        MessageAction(
+          label: 'React',
+          icon: Icons.add_reaction_outlined,
+          onTap: () => showEmojiPickerSheet(
+            context,
+            (emoji) => onToggleReaction(event, emoji),
+          ),
+        ),
+        if (canPin)
+          MessageAction(
+            label: isPinned ? 'Unpin' : 'Pin',
+            icon: isPinned
+                ? Icons.push_pin_rounded
+                : Icons.push_pin_outlined,
+            onTap: () => onPin?.call(event),
+          ),
+        MessageAction(
+          label: 'Copy',
+          icon: Icons.copy_rounded,
+          onTap: () {
+            final displayEvent = timeline != null
+                ? event.getDisplayEvent(timeline!)
+                : event;
+            unawaited(
+              Clipboard.setData(
+                ClipboardData(text: stripReplyFallback(displayEvent.body)),
+              ),
+            );
+          },
+        ),
+        if (event.canRedact)
+          MessageAction(
+            label: isMe ? 'Delete' : 'Remove',
+            icon: Icons.delete_outline_rounded,
+            onTap: () => confirmAndDeleteEvent(context, event),
+            color: cs.error,
+          ),
+      ];
+    }
 
     showMessageActionSheet(
       context: context,
