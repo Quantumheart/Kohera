@@ -7,6 +7,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
+import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -58,6 +59,21 @@ class MobileSpaceDrawer extends StatelessWidget {
                   selection.selectSpace(space.id);
                   Navigator.of(context).pop();
                   context.goNamed(Routes.home);
+                },
+                onLongPress: (tileContext) {
+                  final box = tileContext.findRenderObject()! as RenderBox;
+                  final overlay = Overlay.of(tileContext)
+                      .context
+                      .findRenderObject()! as RenderBox;
+                  final position = box.localToGlobal(
+                    Offset(box.size.width / 2, box.size.height / 2),
+                    ancestor: overlay,
+                  );
+                  unawaited(showSpaceContextMenu(
+                    tileContext,
+                    RelativeRect.fromSize(position & Size.zero, overlay.size),
+                    space,
+                  ),);
                 },
               ),
             if (invited.isNotEmpty) ...[
@@ -134,38 +150,43 @@ class _SpaceTile extends StatelessWidget {
     required this.selected,
     required this.unread,
     required this.onTap,
+    this.onLongPress,
   });
 
   final Room space;
   final bool selected;
   final int unread;
   final VoidCallback onTap;
+  final void Function(BuildContext tileContext)? onLongPress;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return ListTile(
-      leading: RoomAvatarWidget(room: space, size: 36),
-      title: Text(space.getLocalizedDisplayname()),
-      selected: selected,
-      trailing: unread > 0
-          ? Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: cs.primary,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                unread > 99 ? '99+' : '$unread',
-                style: TextStyle(
-                  color: cs.onPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+    return Builder(
+      builder: (tileContext) => ListTile(
+        leading: RoomAvatarWidget(room: space, size: 36),
+        title: Text(space.getLocalizedDisplayname()),
+        selected: selected,
+        trailing: unread > 0
+            ? Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: cs.primary,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-              ),
-            )
-          : null,
-      onTap: onTap,
+                child: Text(
+                  unread > 99 ? '99+' : '$unread',
+                  style: TextStyle(
+                    color: cs.onPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              )
+            : null,
+        onTap: onTap,
+        onLongPress: onLongPress == null ? null : () => onLongPress!(tileContext),
+      ),
     );
   }
 }
