@@ -3,15 +3,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
 
-@GenerateNiceMocks([MockSpec<Room>()])
+@GenerateNiceMocks([MockSpec<Client>(), MockSpec<Room>()])
 import 'invite_user_dialog_test.mocks.dart';
 
 void main() {
   late MockRoom mockRoom;
+  late MockClient mockClient;
 
   setUp(() {
     mockRoom = MockRoom();
+    mockClient = MockClient();
+    when(mockRoom.client).thenReturn(mockClient);
+    when(mockRoom.getParticipants()).thenReturn([]);
+    when(mockClient.rooms).thenReturn([]);
+    when(mockClient.searchUserDirectory(any, limit: anyNamed('limit')))
+        .thenAnswer((_) async => SearchUserDirectoryResponse(
+              results: [],
+              limited: false,
+            ),);
   });
 
   Widget buildTestWidget({ValueChanged<String?>? onResult}) {
@@ -146,6 +157,86 @@ void main() {
       await tester.pump();
 
       expect(find.text('Please enter a Matrix ID'), findsOneWidget);
+    });
+
+    testWidgets('shows recent contacts from existing DMs', (tester) async {
+      final dmRoom = MockRoom();
+      when(dmRoom.isDirectChat).thenReturn(true);
+      when(dmRoom.directChatMatrixID).thenReturn('@bob:example.com');
+      when(dmRoom.getLocalizedDisplayname()).thenReturn('Bob');
+      when(dmRoom.avatar).thenReturn(null);
+      when(mockClient.rooms).thenReturn([dmRoom]);
+
+      await openDialog(tester);
+
+      expect(find.text('Recent contacts'), findsOneWidget);
+      expect(find.text('Bob'), findsOneWidget);
+    });
+
+    testWidgets('hides existing room members from recent contacts',
+        (tester) async {
+      final dmRoom = MockRoom();
+      when(dmRoom.isDirectChat).thenReturn(true);
+      when(dmRoom.directChatMatrixID).thenReturn('@bob:example.com');
+      when(dmRoom.getLocalizedDisplayname()).thenReturn('Bob');
+      when(dmRoom.avatar).thenReturn(null);
+      when(mockClient.rooms).thenReturn([dmRoom]);
+
+      // Bob is already in the room we're inviting to.
+      final bob = User('@bob:example.com', room: mockRoom);
+      when(mockRoom.getParticipants()).thenReturn([bob]);
+
+      await openDialog(tester);
+
+      expect(find.text('Recent contacts'), findsNothing);
+      expect(find.text('Bob'), findsNothing);
+    });
+
+    testWidgets('tapping a suggestion pops with that MXID', (tester) async {
+      String? result;
+
+      final original = FlutterError.onError;
+      FlutterError.onError = (d) {};
+      addTearDown(() => FlutterError.onError = original);
+
+      final dmRoom = MockRoom();
+      when(dmRoom.isDirectChat).thenReturn(true);
+      when(dmRoom.directChatMatrixID).thenReturn('@bob:example.com');
+      when(dmRoom.getLocalizedDisplayname()).thenReturn('Bob');
+      when(dmRoom.avatar).thenReturn(null);
+      when(mockClient.rooms).thenReturn([dmRoom]);
+
+      await openDialog(tester, onResult: (v) => result = v);
+
+      await tester.tap(find.text('Bob'));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(result, '@bob:example.com');
+    });
+
+    testWidgets('searches user directory after typing', (tester) async {
+      when(mockClient.searchUserDirectory(any, limit: anyNamed('limit')))
+          .thenAnswer((_) async => SearchUserDirectoryResponse(
+                results: [
+                  Profile(
+                    userId: '@carol:example.com',
+                    displayName: 'Carol',
+                  ),
+                ],
+                limited: false,
+              ),);
+
+      await openDialog(tester);
+
+      await tester.enterText(find.byType(TextField), 'car');
+      // debounce is 300ms
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      verify(mockClient.searchUserDirectory('car', limit: 20)).called(1);
+      expect(find.text('Carol'), findsOneWidget);
+      expect(find.text('@carol:example.com'), findsOneWidget);
     });
   });
 }
