@@ -53,7 +53,9 @@ void main() {
       home: ChangeNotifierProvider<MatrixService>.value(
         value: mockMatrixService,
         child: Scaffold(
-          body: RoomMembersSection(room: mockRoom),
+          body: SingleChildScrollView(
+            child: RoomMembersSection(room: mockRoom),
+          ),
         ),
       ),
     );
@@ -155,6 +157,76 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Mod'), findsOneWidget);
+    });
+
+    testWidgets('search filters members by display name and MXID',
+        (tester) async {
+      final users = [
+        _makeUser('@alice:example.com', 'Alice', room: mockRoom),
+        _makeUser('@bob:example.com', 'Bob', room: mockRoom),
+        _makeUser('@charlie:example.com', 'Charlie', room: mockRoom),
+        _makeUser('@dave:example.com', 'Dave', room: mockRoom),
+        _makeUser('@eve:example.com', 'Eve', room: mockRoom),
+        _makeUser('@frank:example.com', 'Frank', room: mockRoom),
+      ];
+      when(mockRoom.requestParticipants(any)).thenAnswer((_) async => users);
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(TextField), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'ali');
+      await tester.pumpAndSettle();
+      expect(find.text('Alice'), findsOneWidget);
+      expect(find.text('Bob'), findsNothing);
+
+      await tester.enterText(find.byType(TextField), '@bob');
+      await tester.pumpAndSettle();
+      expect(find.text('Bob'), findsOneWidget);
+      expect(find.text('Alice'), findsNothing);
+
+      await tester.enterText(find.byType(TextField), 'zzzz');
+      await tester.pumpAndSettle();
+      expect(find.textContaining('No members match'), findsOneWidget);
+    });
+
+    testWidgets('search field hidden when 5 or fewer members', (tester) async {
+      final users = List.generate(
+        5,
+        (i) => _makeUser('@user$i:example.com', 'User $i', room: mockRoom),
+      );
+      when(mockRoom.requestParticipants(any)).thenAnswer((_) async => users);
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(TextField, 'Search members'), findsNothing);
+      expect(find.byIcon(Icons.search), findsNothing);
+    });
+
+    testWidgets('search clear button restores full list', (tester) async {
+      final users = List.generate(
+        6,
+        (i) => _makeUser('@user$i:example.com', 'User $i', room: mockRoom),
+      );
+      when(mockRoom.requestParticipants(any)).thenAnswer((_) async => users);
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'user0');
+      await tester.pumpAndSettle();
+      expect(find.text('User 0'), findsOneWidget);
+      expect(find.text('User 1'), findsNothing);
+
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+
+      for (var i = 0; i < 5; i++) {
+        expect(find.text('User $i'), findsOneWidget);
+      }
+      expect(find.text('Show all 6 members'), findsOneWidget);
     });
 
     testWidgets('tapping member opens SimpleDialog with member info',
