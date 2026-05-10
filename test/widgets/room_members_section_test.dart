@@ -227,7 +227,7 @@ void main() {
       verify(mockClient.kick(
         '!room:example.com',
         '@alice:example.com',
-        reason: null,
+        reason: argThat(isNull, named: 'reason'),
       ),).called(1);
     });
 
