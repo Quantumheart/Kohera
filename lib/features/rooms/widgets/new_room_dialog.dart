@@ -61,19 +61,25 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
   }
 
   void _initTargetSpaces() {
-    final selected = widget.parentSpaceIds ?? widget.matrixService.selection.selectedSpaceIds;
-    final eligible = <String>[];
-    for (final id in selected) {
-      final space = widget.matrixService.client.getRoomById(id);
-      if (space != null && space.canChangeStateEvent('m.space.child')) {
-        eligible.add(id);
-      }
-    }
+    final eligible = _eligibleParentSpaces();
     if (eligible.isEmpty) {
       _addToSpace = false;
     } else {
-      _targetSpaceIds.addAll(eligible);
+      _targetSpaceIds.addAll(eligible.map((s) => s.id));
     }
+  }
+
+  List<Room> _eligibleParentSpaces() {
+    final source = widget.parentSpaceIds ??
+        widget.matrixService.selection.selectedSpaceIds;
+    final eligible = <Room>[];
+    for (final id in source) {
+      final space = widget.matrixService.client.getRoomById(id);
+      if (space != null && space.canChangeStateEvent('m.space.child')) {
+        eligible.add(space);
+      }
+    }
+    return eligible;
   }
 
   void _onFocusChanged() {
@@ -223,39 +229,22 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
   }
 
   List<Widget> _buildSpaceSelection() {
-    final selected = widget.matrixService.selection.selectedSpaceIds;
-    final eligible = <Room>[];
-    for (final id in selected) {
-      final space = widget.matrixService.client.getRoomById(id);
-      if (space != null && space.canChangeStateEvent('m.space.child')) {
-        eligible.add(space);
-      }
-    }
-    if (eligible.isEmpty) return [];
-
-    if (eligible.length == 1) {
-      final space = eligible.first;
-      return [
-        CheckboxListTile(
-          value: _addToSpace && _targetSpaceIds.contains(space.id),
-          onChanged: _loading
-              ? null
-              : (v) => setState(() {
-                    _addToSpace = v ?? false;
-                    if (_addToSpace) {
-                      _targetSpaceIds.add(space.id);
-                    } else {
-                      _targetSpaceIds.remove(space.id);
-                    }
-                  }),
-          title: Text('Add to ${space.getLocalizedDisplayname()}'),
-          contentPadding: EdgeInsets.zero,
-          controlAffinity: ListTileControlAffinity.leading,
-        ),
-      ];
-    }
+    final eligible = _eligibleParentSpaces();
+    if (eligible.length < 2) return [];
 
     return [
+      const SizedBox(height: 8),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          'Add to spaces',
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
       for (final space in eligible)
         CheckboxListTile(
           value: _targetSpaceIds.contains(space.id),
@@ -269,9 +258,10 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
                     }
                     _addToSpace = _targetSpaceIds.isNotEmpty;
                   }),
-          title: Text('Add to ${space.getLocalizedDisplayname()}'),
+          title: Text(space.getLocalizedDisplayname()),
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
+          dense: true,
         ),
     ];
   }
@@ -358,8 +348,13 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
+    final eligible = _eligibleParentSpaces();
+    final titleSuffix = eligible.length == 1
+        ? ' in ${eligible.first.getLocalizedDisplayname()}'
+        : '';
+
     return AlertDialog(
-      title: const Text('New Room'),
+      title: Text('New Room$titleSuffix'),
       content: SizedBox(
         width: 400,
         child: SingleChildScrollView(
