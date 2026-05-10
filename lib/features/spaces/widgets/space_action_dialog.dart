@@ -181,93 +181,101 @@ class _CreateSpaceDialogState extends State<CreateSpaceDialog> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return AlertDialog(
-      scrollable: true,
+    return SimpleDialog(
       title: const Text('Create Space'),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _nameController,
-              autofocus: true,
-              enabled: !_loading,
-              decoration: InputDecoration(
-                labelText: 'Name',
-                border: const OutlineInputBorder(),
-                errorText: _nameError,
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _nameController,
+                autofocus: true,
+                enabled: !_loading,
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  border: const OutlineInputBorder(),
+                  errorText: _nameError,
+                ),
+                onSubmitted: (_) => _submit(),
               ),
-              onSubmitted: (_) => _submit(),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _topicController,
-              enabled: !_loading,
-              decoration: const InputDecoration(
-                labelText: 'Topic (optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              title: const Text('Public space'),
-              value: _isPublic,
-              onChanged: _loading
-                  ? null
-                  : (v) => setState(() {
-                        _isPublic = v;
-                        if (v) _enableEncryption = false;
-                      }),
-              contentPadding: EdgeInsets.zero,
-            ),
-            SwitchListTile(
-              title: const Text('Enable encryption'),
-              subtitle: Text(
-                _isPublic
-                    ? 'Not available for public spaces'
-                    : 'Cannot be disabled later',
-                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
-              ),
-              value: _enableEncryption,
-              onChanged: _loading || _isPublic
-                  ? null
-                  : (v) => setState(() => _enableEncryption = v),
-              contentPadding: EdgeInsets.zero,
-            ),
-            SwitchListTile(
-              title: const Text('Allow federation'),
-              value: _enableFederation,
-              onChanged: _loading
-                  ? null
-                  : (v) => setState(() => _enableFederation = v),
-              contentPadding: EdgeInsets.zero,
-            ),
-            if (_networkError != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  _networkError!,
-                  style: TextStyle(color: cs.error, fontSize: 13),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _topicController,
+                enabled: !_loading,
+                decoration: const InputDecoration(
+                  labelText: 'Topic (optional)',
+                  border: OutlineInputBorder(),
                 ),
               ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _loading ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _loading ? null : _submit,
-          child: _loading
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2.5),
-                )
-              : const Text('Create'),
+              const SizedBox(height: 8),
+              SwitchListTile(
+                title: const Text('Public space'),
+                value: _isPublic,
+                onChanged: _loading
+                    ? null
+                    : (v) => setState(() {
+                          _isPublic = v;
+                          if (v) _enableEncryption = false;
+                        }),
+                contentPadding: EdgeInsets.zero,
+              ),
+              SwitchListTile(
+                title: const Text('Enable encryption'),
+                subtitle: Text(
+                  _isPublic
+                      ? 'Not available for public spaces'
+                      : 'Cannot be disabled later',
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+                ),
+                value: _enableEncryption,
+                onChanged: _loading || _isPublic
+                    ? null
+                    : (v) => setState(() => _enableEncryption = v),
+                contentPadding: EdgeInsets.zero,
+              ),
+              SwitchListTile(
+                title: const Text('Allow federation'),
+                value: _enableFederation,
+                onChanged: _loading
+                    ? null
+                    : (v) => setState(() => _enableFederation = v),
+                contentPadding: EdgeInsets.zero,
+              ),
+              if (_networkError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _networkError!,
+                    style: TextStyle(color: cs.error, fontSize: 13),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              OverflowBar(
+                alignment: MainAxisAlignment.end,
+                spacing: 8,
+                children: [
+                  TextButton(
+                    onPressed: _loading ? null : () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: _loading ? null : _submit,
+                    child: _loading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          )
+                        : const Text('Create'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -349,51 +357,59 @@ class _JoinSpaceDialogState extends State<JoinSpaceDialog> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return AlertDialog(
-      scrollable: true,
+    return SimpleDialog(
       title: const Text('Join Space'),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _addressController,
-              autofocus: true,
-              enabled: !_loading,
-              decoration: InputDecoration(
-                labelText: 'Space address',
-                hintText: '#space:example.com',
-                border: const OutlineInputBorder(),
-                errorText: _addressError,
-              ),
-              onSubmitted: (_) => _submit(),
-            ),
-            if (_networkError != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  _networkError!,
-                  style: TextStyle(color: cs.error, fontSize: 13),
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _addressController,
+                autofocus: true,
+                enabled: !_loading,
+                decoration: InputDecoration(
+                  labelText: 'Space address',
+                  hintText: '#space:example.com',
+                  border: const OutlineInputBorder(),
+                  errorText: _addressError,
                 ),
+                onSubmitted: (_) => _submit(),
               ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: _loading ? null : () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _loading ? null : _submit,
-          child: _loading
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2.5),
-                )
-              : const Text('Join'),
+              if (_networkError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _networkError!,
+                    style: TextStyle(color: cs.error, fontSize: 13),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              OverflowBar(
+                alignment: MainAxisAlignment.end,
+                spacing: 8,
+                children: [
+                  TextButton(
+                    onPressed: _loading ? null : () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: _loading ? null : _submit,
+                    child: _loading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          )
+                        : const Text('Join'),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );
