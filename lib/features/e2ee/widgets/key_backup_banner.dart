@@ -42,12 +42,18 @@ class _KeyBackupBannerContent extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 48),
           padding: const EdgeInsets.only(left: 12, right: 4),
           decoration: BoxDecoration(
-            border: Border(left: BorderSide(color: cs.tertiary, width: 3)),
-            color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+            border: Border(
+              left: BorderSide(color: cs.onTertiaryContainer, width: 3),
+            ),
+            color: cs.tertiaryContainer,
           ),
           child: Row(
             children: [
-              Icon(Icons.shield_outlined, size: 18, color: cs.tertiary),
+              Icon(
+                Icons.shield_outlined,
+                size: 18,
+                color: cs.onTertiaryContainer,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -58,9 +64,9 @@ class _KeyBackupBannerContent extends StatelessWidget {
                       'Protect your messages',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: tt.bodySmall?.copyWith(
+                      style: tt.titleSmall?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: cs.tertiary,
+                        color: cs.onTertiaryContainer,
                       ),
                     ),
                     Text(
@@ -69,7 +75,7 @@ class _KeyBackupBannerContent extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: tt.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
+                        color: cs.onTertiaryContainer.withValues(alpha: 0.85),
                       ),
                     ),
                   ],
@@ -77,6 +83,9 @@ class _KeyBackupBannerContent extends StatelessWidget {
               ),
               TextButton(
                 onPressed: () => context.go('/e2ee-setup'),
+                style: TextButton.styleFrom(
+                  foregroundColor: cs.onTertiaryContainer,
+                ),
                 child: const Text('Set up'),
               ),
             ],
