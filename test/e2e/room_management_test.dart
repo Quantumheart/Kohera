@@ -358,7 +358,7 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Add to My Space'), findsOneWidget);
+      expect(find.text('New Room in My Space'), findsOneWidget);
 
       await tester.enterText(
         find.widgetWithText(TextField, 'Name'),

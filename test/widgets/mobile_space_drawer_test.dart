@@ -76,8 +76,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Home'), findsOneWidget);
-      expect(find.text('Create space'), findsOneWidget);
-      expect(find.text('Join space'), findsOneWidget);
+      expect(find.text('Add space'), findsOneWidget);
     });
 
     testWidgets('Home tile tap clears space selection', (tester) async {
