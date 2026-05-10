@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.1.0](https://github.com/Quantumheart/Kohera/compare/v1.0.1...v1.1.0) (2026-05-10)
+
+
+### Features
+
+* **outbox:** drain queue on connectivity restore ([87b9b99](https://github.com/Quantumheart/Kohera/commit/87b9b999206449ea4b7cdc95e5245ded373c780a))
+* **outbox:** scan and retry stuck events with backoff ([5d04578](https://github.com/Quantumheart/Kohera/commit/5d045780ecb479dd88947d3e953c873259514357))
+* **outbox:** timeline status icon + retry/discard sheet ([0b8369b](https://github.com/Quantumheart/Kohera/commit/0b8369be426a83c3eaa060570f9b7a2f4c1f0cb2))
+* **whats-new:** surface update-available banner ([a491134](https://github.com/Quantumheart/Kohera/commit/a491134b40fd1f0519454f58935bd256772753a7))
+
+
+### Bug Fixes
+
+* **outbox:** claim inFlight before any await to stop concurrent retries ([2ff274c](https://github.com/Quantumheart/Kohera/commit/2ff274c9b18299cabc20b7c27491d2fbc457e142))
+* **rooms:** show parent space in NewRoomDialog and clean up UI ([acc40d7](https://github.com/Quantumheart/Kohera/commit/acc40d77beb767145bbb13926dff0bdcd476a37c))
+* **spaces:** expose space context menu on mobile via long-press ([ae1ec75](https://github.com/Quantumheart/Kohera/commit/ae1ec75d7e61a9586a826add070152de69136e4e))
+* **spaces:** use SimpleDialog for Add space chooser ([2fb3f0c](https://github.com/Quantumheart/Kohera/commit/2fb3f0cf875e9c4d85050c41a3d2f918217e7dbd))
+* **whats-new:** swallow ProviderNotFound when releases service absent ([aa63679](https://github.com/Quantumheart/Kohera/commit/aa63679c16433bf6472c0114caba4a6c33b3342b))
+
 ## [1.0.1](https://github.com/Quantumheart/Kohera/compare/v1.0.0...v1.0.1) (2026-05-08)
 
 
