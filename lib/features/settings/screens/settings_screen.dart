@@ -9,9 +9,9 @@ import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/features/settings/widgets/account_switcher.dart';
 import 'package:kohera/features/settings/widgets/profile_avatar_card.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
-import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -32,7 +32,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final manager = context.watch<ClientManager>();
     final prefs = context.watch<PreferencesService>();
     final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
 
     // Surface backup errors via SnackBar.
     final error = matrix.chatBackup.chatBackupError;
@@ -61,38 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           const ProfileAvatarCard(),
 
-          // ── Account Switcher ──
-          if (manager.hasMultipleAccounts) ...[
-            const SizedBox(height: 16),
-            const SectionHeader(label: 'ACCOUNTS'),
-            Card(
-              child: Column(
-                children: [
-                  for (var i = 0; i < manager.services.length; i++) ...[
-                    if (i > 0) const Divider(height: 1, indent: 56),
-                    ListTile(
-                      leading: UserAvatar(
-                        client: manager.services[i].client,
-                        userId: manager.services[i].client.userID,
-                        size: 36,
-                      ),
-                      title: Text(
-                        manager.services[i].client.userID ?? 'Unknown',
-                        style: i == manager.activeIndex
-                            ? tt.bodyLarge?.copyWith(fontWeight: FontWeight.w600)
-                            : null,
-                      ),
-                      trailing: i == manager.activeIndex
-                          ? Icon(Icons.check, color: cs.primary)
-                          : null,
-                      mouseCursor: SystemMouseCursors.click,
-                      onTap: () => manager.setActiveAccount(i),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
+          const AccountSwitcher(),
 
           const SizedBox(height: 16),
 
