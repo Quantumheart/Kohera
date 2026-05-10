@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
@@ -10,6 +11,62 @@ import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
+
+enum _AddSpaceAction { create, join, discover }
+
+Future<void> _showAddSpaceChooser(BuildContext context) async {
+  final cs = Theme.of(context).colorScheme;
+  final action = await showDialog<_AddSpaceAction>(
+    context: context,
+    builder: (ctx) => SimpleDialog(
+      title: const Text('Add space'),
+      children: [
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(ctx, _AddSpaceAction.create),
+          child: Row(
+            children: [
+              Icon(Icons.add_circle_outline, color: cs.primary),
+              const SizedBox(width: 16),
+              const Text('Create space'),
+            ],
+          ),
+        ),
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(ctx, _AddSpaceAction.join),
+          child: Row(
+            children: [
+              Icon(Icons.tag, color: cs.primary),
+              const SizedBox(width: 16),
+              const Text('Join with address'),
+            ],
+          ),
+        ),
+        SimpleDialogOption(
+          onPressed: () => Navigator.pop(ctx, _AddSpaceAction.discover),
+          child: Row(
+            children: [
+              Icon(Icons.travel_explore, color: cs.primary),
+              const SizedBox(width: 16),
+              const Text('Explore spaces'),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+
+  if (action == null || !context.mounted) return;
+  final matrix = context.read<MatrixService>();
+  Navigator.of(context).pop();
+  switch (action) {
+    case _AddSpaceAction.create:
+      await CreateSpaceDialog.show(context, matrixService: matrix);
+    case _AddSpaceAction.join:
+      await JoinSpaceDialog.show(context, matrixService: matrix);
+    case _AddSpaceAction.discover:
+      await SpaceDiscoveryDialog.show(context, matrixService: matrix);
+  }
+}
 
 class MobileSpaceDrawer extends StatelessWidget {
   const MobileSpaceDrawer({super.key});
@@ -119,31 +176,11 @@ class MobileSpaceDrawer extends StatelessWidget {
               ),
             ),
             const Divider(height: 1),
-            Builder(
-              builder: (btnContext) => ListTile(
-                leading: Icon(Icons.add_circle_outline, color: cs.primary),
-                title: const Text('Add space'),
-                subtitle: const Text('Create, join, or explore'),
-                onTap: () {
-                  final box = btnContext.findRenderObject()! as RenderBox;
-                  final overlay = Overlay.of(btnContext)
-                      .context
-                      .findRenderObject()! as RenderBox;
-                  final topLeft = box.localToGlobal(
-                    Offset.zero,
-                    ancestor: overlay,
-                  );
-                  unawaited(showSpaceActionMenu(
-                    btnContext,
-                    RelativeRect.fromLTRB(
-                      topLeft.dx,
-                      topLeft.dy,
-                      overlay.size.width - topLeft.dx - box.size.width,
-                      overlay.size.height - topLeft.dy - box.size.height,
-                    ),
-                  ),);
-                },
-              ),
+            ListTile(
+              leading: Icon(Icons.add_circle_outline, color: cs.primary),
+              title: const Text('Add space'),
+              subtitle: const Text('Create, join, or explore'),
+              onTap: () => unawaited(_showAddSpaceChooser(context)),
             ),
           ],
         ),
