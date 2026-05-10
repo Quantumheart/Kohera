@@ -478,9 +478,10 @@ void main() {
       when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
     });
 
-    testWidgets('kick member from bottom sheet', (tester) async {
+    testWidgets('kick member from member dialog', (tester) async {
       when(mockRoom.canKick).thenReturn(true);
-      when(mockRoom.kick(any)).thenAnswer((_) async {});
+      when(mockClient.kick(any, any, reason: anyNamed('reason')))
+          .thenAnswer((_) async {});
 
       await tester.pumpWidget(buildDetailsApp());
       await tester.pumpAndSettle();
@@ -488,7 +489,7 @@ void main() {
       await tester.tap(find.text('Alice'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Kick'));
+      await tester.tap(find.widgetWithText(SimpleDialogOption, 'Kick'));
       await tester.pumpAndSettle();
 
       expect(find.text('Kick member?'), findsOneWidget);
@@ -496,12 +497,17 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Kick'));
       await tester.pumpAndSettle();
 
-      verify(mockRoom.kick('@alice:example.com')).called(1);
+      verify(mockClient.kick(
+        _roomId,
+        '@alice:example.com',
+        reason: argThat(isNull, named: 'reason'),
+      ),).called(1);
     });
 
-    testWidgets('ban member from bottom sheet', (tester) async {
+    testWidgets('ban member from member dialog', (tester) async {
       when(mockRoom.canBan).thenReturn(true);
-      when(mockRoom.ban(any)).thenAnswer((_) async {});
+      when(mockClient.ban(any, any, reason: anyNamed('reason')))
+          .thenAnswer((_) async {});
 
       await tester.pumpWidget(buildDetailsApp());
       await tester.pumpAndSettle();
@@ -509,7 +515,7 @@ void main() {
       await tester.tap(find.text('Alice'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Ban'));
+      await tester.tap(find.widgetWithText(SimpleDialogOption, 'Ban'));
       await tester.pumpAndSettle();
 
       expect(find.text('Ban member?'), findsOneWidget);
@@ -517,10 +523,14 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Ban'));
       await tester.pumpAndSettle();
 
-      verify(mockRoom.ban('@alice:example.com')).called(1);
+      verify(mockClient.ban(
+        _roomId,
+        '@alice:example.com',
+        reason: argThat(isNull, named: 'reason'),
+      ),).called(1);
     });
 
-    testWidgets('cancel kick does not call room.kick', (tester) async {
+    testWidgets('cancel kick does not call client.kick', (tester) async {
       when(mockRoom.canKick).thenReturn(true);
 
       await tester.pumpWidget(buildDetailsApp());
@@ -529,13 +539,13 @@ void main() {
       await tester.tap(find.text('Alice'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Kick'));
+      await tester.tap(find.widgetWithText(SimpleDialogOption, 'Kick'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
       await tester.pumpAndSettle();
 
-      verifyNever(mockRoom.kick(any));
+      verifyNever(mockClient.kick(any, any, reason: anyNamed('reason')));
     });
 
     testWidgets('member sheet hides kick/ban for self', (tester) async {
