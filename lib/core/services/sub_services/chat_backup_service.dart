@@ -25,14 +25,22 @@ class ChatBackupService extends ChangeNotifier {
 
   StreamSubscription<SyncUpdate>? _syncSub;
   DateTime? _lastResumeRefresh;
+  DateTime? _lastSyncRefresh;
+  bool _checking = false;
   static const Duration _resumeRefreshThrottle = Duration(seconds: 30);
+  static const Duration _syncRefreshThrottle = Duration(seconds: 5);
 
   static const _backupAccountDataTypes = <String>{
     'm.megolm_backup.v1',
     'm.cross_signing.master',
     'm.cross_signing.self_signing',
     'm.cross_signing.user_signing',
+    'm.secret_storage.default_key',
   };
+
+  static const _backupAccountDataTypePrefixes = <String>[
+    'm.secret_storage.key.',
+  ];
 
   // ── Chat Backup ─────────────────────────────────────────────
   bool? _chatBackupNeeded;
@@ -46,6 +54,8 @@ class ChatBackupService extends ChangeNotifier {
   String? get chatBackupError => _chatBackupError;
 
   Future<void> checkChatBackupStatus() async {
+    if (_checking) return;
+    _checking = true;
     try {
       final hasBackupVersion = await _backupVersion.hasVersion();
       final state = await _client.getCryptoIdentityState();
@@ -65,17 +75,30 @@ class ChatBackupService extends ChangeNotifier {
       debugPrint('[Kohera] checkChatBackupStatus error: $e');
       // Transient failure — keep the last known value. Forcing `true` here
       // produced false positives on sync hiccups and cross-signing rotations.
+    } finally {
+      _checking = false;
     }
+  }
+
+  bool _isBackupRelevantAccountData(String type) {
+    if (_backupAccountDataTypes.contains(type)) return true;
+    for (final prefix in _backupAccountDataTypePrefixes) {
+      if (type.startsWith(prefix)) return true;
+    }
+    return false;
   }
 
   void _onSyncUpdate(SyncUpdate update) {
     final events = update.accountData;
     if (events == null || events.isEmpty) return;
-    final relevant = events.any(
-      (e) => _backupAccountDataTypes.contains(e.type),
-    );
+    final relevant = events.any((e) => _isBackupRelevantAccountData(e.type));
     if (!relevant) return;
-    debugPrint('[Kohera] Backup-relevant account-data observed in sync');
+    final now = DateTime.now();
+    if (_lastSyncRefresh != null &&
+        now.difference(_lastSyncRefresh!) < _syncRefreshThrottle) {
+      return;
+    }
+    _lastSyncRefresh = now;
     _backupVersion.invalidateCache();
     unawaited(checkChatBackupStatus());
   }

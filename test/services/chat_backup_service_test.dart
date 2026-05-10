@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:matrix/matrix.dart';
@@ -175,6 +177,73 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       verifyNever(mockBackupVersion.invalidateCache());
+      verifyNever(mockBackupVersion.hasVersion());
+    });
+
+    test('refreshes on m.secret_storage.key.* (SSSS root) events', () async {
+      when(mockCrossSigning.enabled).thenReturn(true);
+      when(mockKeyManager.enabled).thenReturn(true);
+      when(mockCrossSigning.isCached()).thenAnswer((_) async => true);
+      when(mockKeyManager.isCached()).thenAnswer((_) async => true);
+      when(mockBackupVersion.hasVersion()).thenAnswer((_) async => true);
+
+      syncController.add(
+        SyncUpdate(
+          nextBatch: 'tok',
+          accountData: [
+            BasicEvent(
+              type: 'm.secret_storage.key.AbCdEf',
+              content: const {},
+            ),
+          ],
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      verify(mockBackupVersion.invalidateCache()).called(1);
+    });
+
+    test('throttles repeated sync-driven refreshes within 5s', () async {
+      when(mockCrossSigning.enabled).thenReturn(true);
+      when(mockKeyManager.enabled).thenReturn(true);
+      when(mockCrossSigning.isCached()).thenAnswer((_) async => true);
+      when(mockKeyManager.isCached()).thenAnswer((_) async => true);
+      when(mockBackupVersion.hasVersion()).thenAnswer((_) async => true);
+
+      for (var i = 0; i < 3; i++) {
+        syncController.add(
+          SyncUpdate(
+            nextBatch: 'tok$i',
+            accountData: [
+              BasicEvent(type: 'm.megolm_backup.v1', content: const {}),
+            ],
+          ),
+        );
+      }
+      await Future<void>.delayed(Duration.zero);
+
+      verify(mockBackupVersion.invalidateCache()).called(1);
+      verify(mockBackupVersion.hasVersion()).called(1);
+    });
+  });
+
+  group('concurrent checkChatBackupStatus', () {
+    test('second concurrent call is a no-op while the first is in flight',
+        () async {
+      final completer = Completer<bool?>();
+      when(mockCrossSigning.enabled).thenReturn(true);
+      when(mockKeyManager.enabled).thenReturn(true);
+      when(mockCrossSigning.isCached()).thenAnswer((_) async => true);
+      when(mockKeyManager.isCached()).thenAnswer((_) async => true);
+      when(mockBackupVersion.hasVersion())
+          .thenAnswer((_) => completer.future);
+
+      final first = service.checkChatBackupStatus();
+      final second = service.checkChatBackupStatus();
+      completer.complete(true);
+      await Future.wait([first, second]);
+
+      verify(mockBackupVersion.hasVersion()).called(1);
     });
   });
 
