@@ -352,52 +352,17 @@ class _MemberTileState extends State<_MemberTile> {
     required String message,
     required String confirmLabel,
     required ColorScheme cs,
-  }) async {
-    final controller = TextEditingController();
-    try {
-      return await showDialog<String?>(
-        context: context,
-        builder: (dCtx) => AlertDialog(
-          title: Text(title),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(message),
-              const SizedBox(height: 16),
-              TextField(
-                controller: controller,
-                textInputAction: TextInputAction.done,
-                maxLength: 240,
-                decoration: const InputDecoration(
-                  labelText: 'Reason (optional)',
-                  border: OutlineInputBorder(),
-                ),
-                onSubmitted: (_) =>
-                    Navigator.pop(dCtx, controller.text.trim()),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dCtx),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: cs.error,
-                foregroundColor: cs.onError,
-              ),
-              onPressed: () =>
-                  Navigator.pop(dCtx, controller.text.trim()),
-              child: Text(confirmLabel),
-            ),
-          ],
-        ),
-      );
-    } finally {
-      controller.dispose();
-    }
+  }) {
+    return showDialog<String?>(
+      context: context,
+      builder: (dCtx) => _ModerationReasonDialog(
+        title: title,
+        message: message,
+        confirmLabel: confirmLabel,
+        confirmColor: cs.error,
+        onConfirmColor: cs.onError,
+      ),
+    );
   }
 
   String _powerLevelLabel(int level) {
@@ -407,4 +372,77 @@ class _MemberTileState extends State<_MemberTile> {
     return 'Member';
   }
 
+}
+
+// ── Moderation reason dialog ───────────────────────────────────
+
+class _ModerationReasonDialog extends StatefulWidget {
+  const _ModerationReasonDialog({
+    required this.title,
+    required this.message,
+    required this.confirmLabel,
+    required this.confirmColor,
+    required this.onConfirmColor,
+  });
+
+  final String title;
+  final String message;
+  final String confirmLabel;
+  final Color confirmColor;
+  final Color onConfirmColor;
+
+  @override
+  State<_ModerationReasonDialog> createState() =>
+      _ModerationReasonDialogState();
+}
+
+class _ModerationReasonDialogState extends State<_ModerationReasonDialog> {
+  late final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(widget.message),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _controller,
+            textInputAction: TextInputAction.done,
+            maxLength: 240,
+            decoration: const InputDecoration(
+              labelText: 'Reason (optional)',
+              border: OutlineInputBorder(),
+            ),
+            onSubmitted: (_) =>
+                Navigator.pop(context, _controller.text.trim()),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: widget.confirmColor,
+            foregroundColor: widget.onConfirmColor,
+          ),
+          onPressed: () =>
+              Navigator.pop(context, _controller.text.trim()),
+          child: Text(widget.confirmLabel),
+        ),
+      ],
+    );
+  }
 }
