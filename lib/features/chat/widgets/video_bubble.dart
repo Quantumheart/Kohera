@@ -84,11 +84,23 @@ class _VideoBubbleState extends State<VideoBubble> {
           });
         }
       } else {
-        final uri = await widget.event.getAttachmentUri(
+        var uri = await widget.event.getAttachmentUri(
           getThumbnail: true,
           width: 280,
           height: 260,
         );
+        if (uri == null) {
+          // Fallback: derive a server-generated thumbnail directly from the
+          // attachment mxc URL when the event has no explicit thumbnail_url.
+          final mxc = widget.event.attachmentMxcUrl;
+          if (mxc != null) {
+            uri = await mxc.getThumbnailUri(
+              widget.event.room.client,
+              width: 280,
+              height: 260,
+            );
+          }
+        }
         if (mounted) {
           setState(() {
             _thumbUrl = uri?.toString();
