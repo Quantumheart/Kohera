@@ -10,63 +10,77 @@ import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
-// ── Popover menu ────────────────────────────────────────────────
+// ── Add-space actions (shared by desktop popover and mobile dialog) ──
 
-enum _SpaceAction { create, join, discover }
+enum SpaceAction { create, join, discover }
 
-/// Shows a two-option popover anchored to the right of the "+" rail icon.
+class SpaceActionEntry {
+  const SpaceActionEntry({
+    required this.action,
+    required this.icon,
+    required this.label,
+  });
+
+  final SpaceAction action;
+  final IconData icon;
+  final String label;
+}
+
+const spaceActionEntries = <SpaceActionEntry>[
+  SpaceActionEntry(
+    action: SpaceAction.create,
+    icon: Icons.add_circle_outline,
+    label: 'Create space',
+  ),
+  SpaceActionEntry(
+    action: SpaceAction.join,
+    icon: Icons.tag,
+    label: 'Join with address',
+  ),
+  SpaceActionEntry(
+    action: SpaceAction.discover,
+    icon: Icons.travel_explore,
+    label: 'Explore spaces',
+  ),
+];
+
+Future<void> runSpaceAction(BuildContext context, SpaceAction action) async {
+  final matrix = context.read<MatrixService>();
+  switch (action) {
+    case SpaceAction.create:
+      await CreateSpaceDialog.show(context, matrixService: matrix);
+    case SpaceAction.join:
+      await JoinSpaceDialog.show(context, matrixService: matrix);
+    case SpaceAction.discover:
+      await SpaceDiscoveryDialog.show(context, matrixService: matrix);
+  }
+}
+
+/// Shows a popover anchored to the right of the "+" rail icon.
 Future<void> showSpaceActionMenu(
   BuildContext context,
   RelativeRect position,
 ) async {
-  final action = await showMenu<_SpaceAction>(
+  final action = await showMenu<SpaceAction>(
     context: context,
     position: position,
-    items: const [
-      PopupMenuItem(
-        value: _SpaceAction.create,
-        child: Row(
-          children: [
-            Icon(Icons.add_circle_outline),
-            SizedBox(width: 10),
-            Text('Create Space'),
-          ],
+    items: [
+      for (final entry in spaceActionEntries)
+        PopupMenuItem(
+          value: entry.action,
+          child: Row(
+            children: [
+              Icon(entry.icon),
+              const SizedBox(width: 10),
+              Text(entry.label),
+            ],
+          ),
         ),
-      ),
-      PopupMenuItem(
-        value: _SpaceAction.join,
-        child: Row(
-          children: [
-            Icon(Icons.tag),
-            SizedBox(width: 10),
-            Text('Join with Address'),
-          ],
-        ),
-      ),
-      PopupMenuItem(
-        value: _SpaceAction.discover,
-        child: Row(
-          children: [
-            Icon(Icons.explore_outlined),
-            SizedBox(width: 10),
-            Text('Explore spaces'),
-          ],
-        ),
-      ),
     ],
   );
 
   if (action == null || !context.mounted) return;
-
-  final matrix = context.read<MatrixService>();
-  switch (action) {
-    case _SpaceAction.create:
-      await CreateSpaceDialog.show(context, matrixService: matrix);
-    case _SpaceAction.join:
-      await JoinSpaceDialog.show(context, matrixService: matrix);
-    case _SpaceAction.discover:
-      await SpaceDiscoveryDialog.show(context, matrixService: matrix);
-  }
+  await runSpaceAction(context, action);
 }
 
 // ── Create Space dialog ─────────────────────────────────────────
