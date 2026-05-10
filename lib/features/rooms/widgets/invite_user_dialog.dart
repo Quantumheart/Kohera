@@ -1,25 +1,24 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:kohera/core/utils/known_contacts.dart';
 import 'package:matrix/matrix.dart' hide Visibility;
 
-/// A reusable dialog that prompts for a Matrix user ID to invite to a room.
+/// A reusable dialog that prompts for a Matrix user ID to invite to a room
+/// or space. Suggests recent contacts and searches the homeserver's user
+/// directory as the user types.
 ///
 /// Returns the validated MXID string on success, or `null` if cancelled.
 class InviteUserDialog extends StatefulWidget {
-  const InviteUserDialog._({
-    required this.room,
-    required this.controller,
-  });
+  const InviteUserDialog._({required this.room});
 
   final Room room;
-  final TextEditingController controller;
 
-  /// Shows the invite dialog and returns the entered MXID, or `null`.
   static Future<String?> show(BuildContext context, {required Room room}) {
-    final controller = TextEditingController();
     return showDialog<String>(
       context: context,
-      builder: (_) => InviteUserDialog._(room: room, controller: controller),
-    ).whenComplete(controller.dispose);
+      builder: (_) => InviteUserDialog._(room: room),
+    );
   }
 
   @override
@@ -28,54 +27,114 @@ class InviteUserDialog extends StatefulWidget {
 
 class _InviteUserDialogState extends State<InviteUserDialog> {
   static final _mxidRegex = RegExp(r'^@[^:]+:.+$');
+  static const _debounceDuration = Duration(milliseconds: 400);
+
+  final _controller = TextEditingController();
+  final _focusNode = FocusNode();
   String? _error;
+  bool _searching = false;
+  List<Profile> _searchResults = [];
+  Timer? _debounce;
+  int _searchGeneration = 0;
+  List<Profile>? _cachedContacts;
+  Set<String>? _cachedExistingMembers;
 
   @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return AlertDialog(
-      title: const Text('Invite user'),
-      content: SizedBox(
-        width: 400,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: widget.controller,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Matrix ID',
-                hintText: '@user:server.com',
-                border: OutlineInputBorder(),
-              ),
-              onSubmitted: (_) => _submit(),
-            ),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  _error!,
-                  style: TextStyle(color: cs.error, fontSize: 13),
-                ),
-              ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _submit,
-          child: const Text('Invite'),
-        ),
-      ],
-    );
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChanged);
+    _focusNode.dispose();
+    _controller.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onFocusChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Client? get _client {
+    try {
+      return widget.room.client;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Set<String> _existingMembers() {
+    if (_cachedExistingMembers != null) return _cachedExistingMembers!;
+    try {
+      _cachedExistingMembers = widget.room
+          .getParticipants()
+          .map((u) => u.id)
+          .toSet();
+    } catch (_) {
+      _cachedExistingMembers = const <String>{};
+    }
+    return _cachedExistingMembers!;
+  }
+
+  List<Profile> _knownContacts() {
+    if (_cachedContacts != null) return _cachedContacts!;
+    final client = _client;
+    if (client == null) return _cachedContacts = const [];
+    try {
+      _cachedContacts = knownContacts(client);
+    } catch (_) {
+      _cachedContacts = const [];
+    }
+    return _cachedContacts!;
+  }
+
+  void _onQueryChanged(String text) {
+    _debounce?.cancel();
+    final query = text.trim();
+    setState(() => _error = null);
+    if (query.isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _searching = false;
+      });
+      return;
+    }
+    _debounce = Timer(_debounceDuration, () {
+      unawaited(_runSearch(query));
+    });
+  }
+
+  Future<void> _runSearch(String query) async {
+    final client = _client;
+    if (client == null) return;
+    _searchGeneration++;
+    final gen = _searchGeneration;
+    setState(() => _searching = true);
+    try {
+      final response = await client.searchUserDirectory(query, limit: 20);
+      if (!mounted || gen != _searchGeneration) return;
+      setState(() {
+        _searchResults = response.results;
+        _searching = false;
+      });
+    } catch (_) {
+      if (!mounted || gen != _searchGeneration) return;
+      setState(() {
+        _searchResults = [];
+        _searching = false;
+      });
+    }
+  }
+
+  void _selectProfile(Profile profile) {
+    Navigator.pop(context, profile.userId);
   }
 
   void _submit() {
-    final mxid = widget.controller.text.trim();
+    final mxid = _controller.text.trim();
     if (mxid.isEmpty) {
       setState(() => _error = 'Please enter a Matrix ID');
       return;
@@ -85,5 +144,121 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
       return;
     }
     Navigator.pop(context, mxid);
+  }
+
+  List<Widget> _buildSuggestions(ColorScheme cs) {
+    final query = _controller.text.trim();
+    final existing = _existingMembers();
+    final source = query.isEmpty ? _knownContacts() : _searchResults;
+    final filtered = source.where((p) => !existing.contains(p.userId)).toList();
+    if (filtered.isEmpty) return [];
+
+    final tiles = <Widget>[];
+    if (query.isEmpty) {
+      tiles.add(Padding(
+        padding: const EdgeInsets.only(left: 12, top: 8, bottom: 4),
+        child: Text(
+          'Recent contacts',
+          style: TextStyle(
+            fontSize: 12,
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),);
+    }
+    for (final p in filtered) {
+      final label = p.displayName ?? p.userId;
+      final initial = label.isNotEmpty ? label.characters.first.toUpperCase() : '?';
+      tiles.add(ListTile(
+        dense: true,
+        leading: CircleAvatar(
+          radius: 16,
+          backgroundColor: cs.primaryContainer,
+          child: Text(
+            initial,
+            style: TextStyle(color: cs.onPrimaryContainer, fontSize: 13),
+          ),
+        ),
+        title: Text(
+          label,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 14),
+        ),
+        subtitle: p.displayName != null
+            ? Text(
+                p.userId,
+                style: const TextStyle(fontSize: 11),
+                overflow: TextOverflow.ellipsis,
+              )
+            : null,
+        onTap: () => _selectProfile(p),
+      ),);
+    }
+    return tiles;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final suggestions = _buildSuggestions(cs);
+
+    return SimpleDialog(
+      title: const Text('Invite user'),
+      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                autofocus: true,
+                decoration: InputDecoration(
+                  labelText: 'Matrix ID',
+                  hintText: '@user:server.com or display name',
+                  border: const OutlineInputBorder(),
+                  errorText: _error,
+                ),
+                onChanged: _onQueryChanged,
+                onSubmitted: (_) => _submit(),
+              ),
+              if (_searching)
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: LinearProgressIndicator(),
+                ),
+              if (suggestions.isNotEmpty)
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 220),
+                  child: ListView(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
+                    children: suggestions,
+                  ),
+                ),
+              const SizedBox(height: 16),
+              OverflowBar(
+                alignment: MainAxisAlignment.end,
+                spacing: 8,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: _submit,
+                    child: const Text('Invite'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }

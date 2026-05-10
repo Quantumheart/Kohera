@@ -7,6 +7,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
+import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
@@ -103,10 +104,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
   });
 
   Future<void> _showInviteDialog(Room room) async {
-    final result = await showDialog<String>(
-      context: context,
-      builder: (ctx) => _InviteUserDialog(room: room),
-    );
+    final result = await InviteUserDialog.show(context, room: room);
     if (result == null || !mounted) return;
 
     final scaffold = ScaffoldMessenger.of(context);
@@ -503,82 +501,5 @@ class _ActionButton extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-// ── Invite dialog ──────────────────────────────────────────────
-
-class _InviteUserDialog extends StatefulWidget {
-  const _InviteUserDialog({required this.room});
-
-  final Room room;
-
-  @override
-  State<_InviteUserDialog> createState() => _InviteUserDialogState();
-}
-
-class _InviteUserDialogState extends State<_InviteUserDialog> {
-  static final _mxidRegex = RegExp(r'^@[^:]+:.+$');
-  final _controller = TextEditingController();
-  String? _error;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return AlertDialog(
-      title: const Text('Invite user'),
-      content: SizedBox(
-        width: 400,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _controller,
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Matrix ID',
-                hintText: '@user:server.com',
-                border: OutlineInputBorder(),
-              ),
-              onSubmitted: (_) => _submit(),
-            ),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(_error!, style: TextStyle(color: cs.error, fontSize: 13)),
-              ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _submit,
-          child: const Text('Invite'),
-        ),
-      ],
-    );
-  }
-
-  void _submit() {
-    final mxid = _controller.text.trim();
-    if (mxid.isEmpty) {
-      setState(() => _error = 'Please enter a Matrix ID');
-      return;
-    }
-    if (!_mxidRegex.hasMatch(mxid)) {
-      setState(() => _error = 'Invalid Matrix ID (use @user:server)');
-      return;
-    }
-    Navigator.pop(context, mxid);
   }
 }
