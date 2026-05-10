@@ -585,14 +585,16 @@ void main() {
         expect(service.chatBackup.chatBackupEnabled, isTrue);
       });
 
-      test('sets chatBackupNeeded true when client.encryption is null',
+      test('leaves chatBackupNeeded unchanged when client.encryption is null',
           () async {
         when(mockClient.encryption).thenReturn(null);
 
         await service.chatBackup.checkChatBackupStatus();
 
-        expect(service.chatBackup.chatBackupNeeded, isTrue);
-        expect(service.chatBackup.chatBackupEnabled, isFalse);
+        // Encryption being unavailable is treated as "unknown", not a
+        // positive signal that backup is missing — avoids transient
+        // false-positive banners during sync/init.
+        expect(service.chatBackup.chatBackupNeeded, isNull);
       });
 
       test('sets chatBackupNeeded true when cross-signing not cached',
@@ -619,13 +621,15 @@ void main() {
         expect(service.chatBackup.chatBackupNeeded, isTrue);
       });
 
-      test('catches exceptions and sets chatBackupNeeded true', () async {
+      test('leaves chatBackupNeeded unchanged when an inner call throws',
+          () async {
         when(mockClient.encryption).thenReturn(mockEncryption);
         when(mockKeyManager.enabled).thenThrow(Exception('network error'));
 
         await service.chatBackup.checkChatBackupStatus();
 
-        expect(service.chatBackup.chatBackupNeeded, isTrue);
+        // Transient errors must not flip the banner to "needed".
+        expect(service.chatBackup.chatBackupNeeded, isNull);
       });
     });
 

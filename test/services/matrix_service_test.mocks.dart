@@ -12907,15 +12907,15 @@ class MockBackupVersionManager extends _i1.Mock
       );
 
   @override
-  _i5.Future<bool> hasVersion({bool? refresh = false}) => (super.noSuchMethod(
+  _i5.Future<bool?> hasVersion({bool? refresh = false}) => (super.noSuchMethod(
         Invocation.method(
           #hasVersion,
           [],
           {#refresh: refresh},
         ),
-        returnValue: _i5.Future<bool>.value(false),
-        returnValueForMissingStub: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+        returnValue: _i5.Future<bool?>.value(),
+        returnValueForMissingStub: _i5.Future<bool?>.value(),
+      ) as _i5.Future<bool?>);
 
   @override
   _i5.Future<_i2.GetRoomKeysVersionCurrentResponse?> ensureExists() =>

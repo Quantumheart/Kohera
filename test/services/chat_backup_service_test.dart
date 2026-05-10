@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
 
 import 'matrix_service_test.mocks.dart';
@@ -14,6 +15,7 @@ void main() {
   late MockSSSS mockSsss;
   late MockDatabaseApi mockDatabase;
   late MockBackupVersionManager mockBackupVersion;
+  late CachedStreamController<SyncUpdate> syncController;
   late ChatBackupService service;
   late int changeCount;
 
@@ -35,7 +37,9 @@ void main() {
     mockSsss = MockSSSS();
     mockDatabase = MockDatabaseApi();
     mockBackupVersion = MockBackupVersionManager();
+    syncController = CachedStreamController<SyncUpdate>();
     changeCount = 0;
+    when(mockClient.onSync).thenReturn(syncController);
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.encryption).thenReturn(mockEncryption);
     when(mockClient.database).thenReturn(mockDatabase);
@@ -88,13 +92,35 @@ void main() {
       expect(service.chatBackupNeeded, isTrue);
     });
 
-    test('sets chatBackupNeeded true on error', () async {
-      when(mockClient.encryption).thenReturn(null);
+    test('leaves chatBackupNeeded unchanged when an inner call throws',
+        () async {
+      when(mockBackupVersion.hasVersion())
+          .thenThrow(Exception('sync glitch'));
 
       await service.checkChatBackupStatus();
 
-      expect(service.chatBackupNeeded, isTrue);
-      expect(changeCount, greaterThan(0));
+      // Previous behavior forced `true` here, producing false positives.
+      // The new contract is "transient errors leave the last value in place".
+      expect(service.chatBackupNeeded, isNull);
+    });
+
+    test(
+        'leaves chatBackupNeeded unchanged when hasVersion returns null '
+        '(transient lookup failure)', () async {
+      when(mockCrossSigning.enabled).thenReturn(true);
+      when(mockKeyManager.enabled).thenReturn(true);
+      when(mockCrossSigning.isCached()).thenAnswer((_) async => true);
+      when(mockKeyManager.isCached()).thenAnswer((_) async => true);
+
+      // First call: backup exists, so banner is hidden.
+      await service.checkChatBackupStatus();
+      expect(service.chatBackupNeeded, isFalse);
+
+      // Second call: hasVersion lookup fails — must not flip to true.
+      when(mockBackupVersion.hasVersion()).thenAnswer((_) async => null);
+      await service.checkChatBackupStatus();
+
+      expect(service.chatBackupNeeded, isFalse);
     });
 
     test(
@@ -110,6 +136,72 @@ void main() {
       await service.checkChatBackupStatus();
 
       expect(service.chatBackupNeeded, isTrue);
+    });
+  });
+
+  group('account-data refresh', () {
+    test('refreshes when sync brings a m.megolm_backup.v1 account-data event',
+        () async {
+      when(mockCrossSigning.enabled).thenReturn(true);
+      when(mockKeyManager.enabled).thenReturn(true);
+      when(mockCrossSigning.isCached()).thenAnswer((_) async => true);
+      when(mockKeyManager.isCached()).thenAnswer((_) async => true);
+      when(mockBackupVersion.hasVersion()).thenAnswer((_) async => true);
+
+      syncController.add(
+        SyncUpdate(
+          nextBatch: 'tok',
+          accountData: [
+            BasicEvent(type: 'm.megolm_backup.v1', content: const {}),
+          ],
+        ),
+      );
+      // Let the listener's microtask drain.
+      await Future<void>.delayed(Duration.zero);
+
+      verify(mockBackupVersion.invalidateCache()).called(1);
+      expect(service.chatBackupNeeded, isFalse);
+    });
+
+    test('ignores sync updates without backup-relevant account-data', () async {
+      syncController.add(
+        SyncUpdate(
+          nextBatch: 'tok',
+          accountData: [
+            BasicEvent(type: 'm.push_rules', content: const {}),
+          ],
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      verifyNever(mockBackupVersion.invalidateCache());
+    });
+  });
+
+  group('refreshOnResume', () {
+    test('runs checkChatBackupStatus on first call', () async {
+      when(mockCrossSigning.enabled).thenReturn(true);
+      when(mockKeyManager.enabled).thenReturn(true);
+      when(mockCrossSigning.isCached()).thenAnswer((_) async => true);
+      when(mockKeyManager.isCached()).thenAnswer((_) async => true);
+
+      await service.refreshOnResume();
+
+      verify(mockBackupVersion.invalidateCache()).called(1);
+      verify(mockBackupVersion.hasVersion()).called(1);
+    });
+
+    test('throttles repeat calls within 30s', () async {
+      when(mockCrossSigning.enabled).thenReturn(true);
+      when(mockKeyManager.enabled).thenReturn(true);
+      when(mockCrossSigning.isCached()).thenAnswer((_) async => true);
+      when(mockKeyManager.isCached()).thenAnswer((_) async => true);
+
+      await service.refreshOnResume();
+      await service.refreshOnResume();
+
+      verify(mockBackupVersion.invalidateCache()).called(1);
+      verify(mockBackupVersion.hasVersion()).called(1);
     });
   });
 

@@ -114,10 +114,41 @@ void main() {
       expect(await manager.hasVersion(), isFalse);
     });
 
-    test('returns false when encryption is unavailable', () async {
+    test('returns null when encryption is unavailable', () async {
       when(mockClient.encryption).thenReturn(null);
 
-      expect(await manager.hasVersion(), isFalse);
+      expect(await manager.hasVersion(), isNull);
+    });
+
+    test('returns null on non-M_NOT_FOUND MatrixException', () async {
+      when(mockKeyManager.getRoomKeysBackupInfo(any)).thenThrow(
+        MatrixException.fromJson({
+          'errcode': 'M_FORBIDDEN',
+          'error': 'Not allowed',
+        }),
+      );
+
+      expect(await manager.hasVersion(), isNull);
+    });
+
+    test('returns null on unexpected exception', () async {
+      when(mockKeyManager.getRoomKeysBackupInfo(any))
+          .thenThrow(Exception('network'));
+
+      expect(await manager.hasVersion(), isNull);
+    });
+
+    test('null results are not cached — next call retries', () async {
+      var callCount = 0;
+      when(mockKeyManager.getRoomKeysBackupInfo(any)).thenAnswer((_) async {
+        callCount++;
+        throw Exception('network');
+      });
+
+      expect(await manager.hasVersion(), isNull);
+      expect(await manager.hasVersion(), isNull);
+
+      expect(callCount, 2);
     });
 
     test('does not attempt to recreate the version', () async {

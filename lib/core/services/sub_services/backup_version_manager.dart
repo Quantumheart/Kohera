@@ -17,7 +17,13 @@ class BackupVersionManager {
     _cachedHasVersionAt = null;
   }
 
-  Future<bool> hasVersion({bool refresh = false}) async {
+  /// Returns:
+  /// - `true` if a backup version exists on the server,
+  /// - `false` if the server explicitly returned `M_NOT_FOUND`,
+  /// - `null` if the lookup failed (network error, encryption unavailable,
+  ///   or a non-`M_NOT_FOUND` MatrixException). Unknown results are
+  ///   intentionally not cached so the next call retries.
+  Future<bool?> hasVersion({bool refresh = false}) async {
     if (!refresh &&
         _cachedHasVersion != null &&
         _cachedHasVersionAt != null &&
@@ -26,17 +32,17 @@ class BackupVersionManager {
     }
 
     final encryption = _client.encryption;
-    if (encryption == null) return _rememberHasVersion(false);
+    if (encryption == null) return null;
     try {
       await encryption.keyManager.getRoomKeysBackupInfo(false);
       return _rememberHasVersion(true);
     } on MatrixException catch (e) {
       if (e.errcode == 'M_NOT_FOUND') return _rememberHasVersion(false);
       debugPrint('[Kohera] hasVersion MatrixException: $e');
-      return _rememberHasVersion(false);
+      return null;
     } catch (e) {
       debugPrint('[Kohera] hasVersion error: $e');
-      return _rememberHasVersion(false);
+      return null;
     }
   }
 

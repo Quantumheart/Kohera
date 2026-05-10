@@ -148,6 +148,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     switch (state) {
       case AppLifecycleState.resumed:
         _startForegroundSync();
+        unawaited(chatBackup.refreshOnResume());
       case AppLifecycleState.inactive:
       case AppLifecycleState.paused:
       case AppLifecycleState.detached:

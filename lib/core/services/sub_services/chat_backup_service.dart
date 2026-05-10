@@ -15,11 +15,24 @@ class ChatBackupService extends ChangeNotifier {
   })  : _client = client,
         _storage = storage,
         _backupVersion =
-            backupVersion ?? BackupVersionManager(client: client);
+            backupVersion ?? BackupVersionManager(client: client) {
+    _syncSub = _client.onSync.stream.listen(_onSyncUpdate);
+  }
 
   final Client _client;
   final FlutterSecureStorage _storage;
   final BackupVersionManager _backupVersion;
+
+  StreamSubscription<SyncUpdate>? _syncSub;
+  DateTime? _lastResumeRefresh;
+  static const Duration _resumeRefreshThrottle = Duration(seconds: 30);
+
+  static const _backupAccountDataTypes = <String>{
+    'm.megolm_backup.v1',
+    'm.cross_signing.master',
+    'm.cross_signing.self_signing',
+    'm.cross_signing.user_signing',
+  };
 
   // ── Chat Backup ─────────────────────────────────────────────
   bool? _chatBackupNeeded;
@@ -40,14 +53,51 @@ class ChatBackupService extends ChangeNotifier {
         '[Kohera] Backup status: initialized=${state.initialized}, '
         'connected=${state.connected}, hasBackupVersion=$hasBackupVersion',
       );
+      if (hasBackupVersion == null) {
+        // Lookup failed — leave the previous value in place rather than
+        // emitting a false-positive "backup needed".
+        return;
+      }
       _chatBackupNeeded =
           !state.initialized || !state.connected || !hasBackupVersion;
       notifyListeners();
     } catch (e) {
       debugPrint('[Kohera] checkChatBackupStatus error: $e');
-      _chatBackupNeeded = true;
-      notifyListeners();
+      // Transient failure — keep the last known value. Forcing `true` here
+      // produced false positives on sync hiccups and cross-signing rotations.
     }
+  }
+
+  void _onSyncUpdate(SyncUpdate update) {
+    final events = update.accountData;
+    if (events == null || events.isEmpty) return;
+    final relevant = events.any(
+      (e) => _backupAccountDataTypes.contains(e.type),
+    );
+    if (!relevant) return;
+    debugPrint('[Kohera] Backup-relevant account-data observed in sync');
+    _backupVersion.invalidateCache();
+    unawaited(checkChatBackupStatus());
+  }
+
+  /// Refreshes backup status after the app returns to the foreground.
+  /// Throttled so repeated resume events don't thrash the server.
+  Future<void> refreshOnResume() async {
+    final now = DateTime.now();
+    if (_lastResumeRefresh != null &&
+        now.difference(_lastResumeRefresh!) < _resumeRefreshThrottle) {
+      return;
+    }
+    _lastResumeRefresh = now;
+    _backupVersion.invalidateCache();
+    await checkChatBackupStatus();
+  }
+
+  @override
+  void dispose() {
+    unawaited(_syncSub?.cancel());
+    _syncSub = null;
+    super.dispose();
   }
 
   Future<void> disableChatBackup() async {

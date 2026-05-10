@@ -62,6 +62,25 @@ class MockChatBackupService extends _i1.Mock implements _i2.ChatBackupService {
       ) as _i3.Future<void>);
 
   @override
+  _i3.Future<void> refreshOnResume() => (super.noSuchMethod(
+        Invocation.method(
+          #refreshOnResume,
+          [],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  void dispose() => super.noSuchMethod(
+        Invocation.method(
+          #dispose,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
   _i3.Future<void> disableChatBackup() => (super.noSuchMethod(
         Invocation.method(
           #disableChatBackup,
@@ -158,15 +177,6 @@ class MockChatBackupService extends _i1.Mock implements _i2.ChatBackupService {
         Invocation.method(
           #removeListener,
           [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
-
-  @override
-  void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
         ),
         returnValueForMissingStub: null,
       );
