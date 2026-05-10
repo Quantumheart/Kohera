@@ -26,11 +26,36 @@ class _RoomMembersSectionState extends State<RoomMembersSection> {
   bool _expanded = false;
   int? _lastMemberCount;
   int _loadGeneration = 0;
+  final TextEditingController _searchController = TextEditingController();
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
     unawaited(_loadMembers());
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final next = _searchController.text.trim().toLowerCase();
+    if (next == _query) return;
+    setState(() => _query = next);
+  }
+
+  List<User> _filtered() {
+    if (_query.isEmpty) return _members;
+    return _members.where((u) {
+      final name = (u.displayName ?? '').toLowerCase();
+      final id = u.id.toLowerCase();
+      return name.contains(_query) || id.contains(_query);
+    }).toList();
   }
 
   @override
@@ -97,19 +122,54 @@ class _RoomMembersSectionState extends State<RoomMembersSection> {
             child: Center(child: CircularProgressIndicator()),
           )
         else ...[
-          for (final member in _expanded ? _members : _members.take(5))
-            _MemberTile(
-              user: member,
-              room: widget.room,
-            ),
-          if (_members.length > 5 && !_expanded)
-            TextButton(
-              onPressed: () => setState(() => _expanded = true),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text('Show all ${_members.length} members'),
+          if (_members.length > 5)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  isDense: true,
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  hintText: 'Search members',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.close, size: 20),
+                          onPressed: _searchController.clear,
+                        ),
+                ),
               ),
             ),
+          Builder(builder: (_) {
+            final filtered = _filtered();
+            if (filtered.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  'No members match "${_searchController.text}"',
+                  style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                ),
+              );
+            }
+            final showAll = _expanded || _query.isNotEmpty;
+            final visible = showAll ? filtered : filtered.take(5);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final member in visible)
+                  _MemberTile(user: member, room: widget.room),
+                if (!showAll && filtered.length > 5)
+                  TextButton(
+                    onPressed: () => setState(() => _expanded = true),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text('Show all ${filtered.length} members'),
+                    ),
+                  ),
+              ],
+            );
+          },),
         ],
       ],
     );
