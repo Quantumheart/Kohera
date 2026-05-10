@@ -203,146 +203,201 @@ class _MemberTileState extends State<_MemberTile> {
     final displayName = widget.user.displayName ?? widget.user.id;
     final isMe = widget.user.id == widget.room.client.userID;
 
-    unawaited(showModalBottomSheet(
+    final avatarColor = senderColor(widget.user.id, cs);
+    final avatarFg =
+        ThemeData.estimateBrightnessForColor(avatarColor) == Brightness.dark
+            ? Colors.white
+            : Colors.black;
+
+    unawaited(showDialog<void>(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircleAvatar(
-                radius: 32,
-                backgroundColor: senderColor(widget.user.id, cs),
-                child: Text(
-                  displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                    color: ThemeData.estimateBrightnessForColor(senderColor(widget.user.id, cs)) == Brightness.dark
-                        ? Colors.white
-                        : Colors.black,
-                  ),
+      builder: (ctx) => SimpleDialog(
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+        title: Column(
+          children: [
+            CircleAvatar(
+              radius: 32,
+              backgroundColor: avatarColor,
+              child: Text(
+                displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  color: avatarFg,
                 ),
               ),
-              const SizedBox(height: 12),
-              Text(displayName, style: tt.titleMedium),
-              Text(widget.user.id, style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
-              const SizedBox(height: 4),
-              Text(
-                _powerLevelLabel(powerLevel),
-                style: tt.bodySmall?.copyWith(color: cs.primary),
-              ),
-              const SizedBox(height: 16),
-              if (!isMe) ...[
-                FilledButton.tonalIcon(
-                  onPressed: () async {
-                    Navigator.pop(ctx);
-                    if (!mounted) return;
-                    try {
-                      final dmRoomId = await matrix.client.startDirectChat(widget.user.id);
-                      if (!mounted) return;
-                      context.read<SelectionService>().selectRoom(dmRoomId);
-                    } catch (e) {
-                      debugPrint('[Kohera] Start DM failed: $e');
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to start chat: ${MatrixService.friendlyAuthError(e)}')),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.chat_outlined),
-                  label: const Text('Send message'),
-                ),
-                const SizedBox(height: 8),
-                if (widget.room.canKick)
-                  TextButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(ctx);
-                      if (!mounted) return;
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (dCtx) => AlertDialog(
-                          title: const Text('Kick member?'),
-                          content: Text('Remove $displayName from the room?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(dCtx, false),
-                              child: const Text('Cancel'),
-                            ),
-                            FilledButton(
-                              style: FilledButton.styleFrom(
-                                backgroundColor: cs.error,
-                                foregroundColor: cs.onError,
-                              ),
-                              onPressed: () => Navigator.pop(dCtx, true),
-                              child: const Text('Kick'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirmed == true) {
-                        try {
-                          await widget.room.kick(widget.user.id);
-                        } catch (e) {
-                          debugPrint('[Kohera] Kick failed: $e');
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Kick failed: ${MatrixService.friendlyAuthError(e)}')),
-                          );
-                        }
-                      }
-                    },
-                    icon: Icon(Icons.person_remove_outlined, color: cs.error),
-                    label: Text('Kick', style: TextStyle(color: cs.error)),
-                  ),
-                if (widget.room.canBan)
-                  TextButton.icon(
-                    onPressed: () async {
-                      Navigator.pop(ctx);
-                      if (!mounted) return;
-                      final confirmed = await showDialog<bool>(
-                        context: context,
-                        builder: (dCtx) => AlertDialog(
-                          title: const Text('Ban member?'),
-                          content: Text('Ban $displayName from the room? This can be reversed later.'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(dCtx, false),
-                              child: const Text('Cancel'),
-                            ),
-                            FilledButton(
-                              style: FilledButton.styleFrom(
-                                backgroundColor: cs.error,
-                                foregroundColor: cs.onError,
-                              ),
-                              onPressed: () => Navigator.pop(dCtx, true),
-                              child: const Text('Ban'),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (confirmed == true) {
-                        try {
-                          await widget.room.ban(widget.user.id);
-                        } catch (e) {
-                          debugPrint('[Kohera] Ban failed: $e');
-                          if (!mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Ban failed: ${MatrixService.friendlyAuthError(e)}')),
-                          );
-                        }
-                      }
-                    },
-                    icon: Icon(Icons.block_rounded, color: cs.error),
-                    label: Text('Ban', style: TextStyle(color: cs.error)),
-                  ),
-              ],
-            ],
-          ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              displayName,
+              style: tt.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              widget.user.id,
+              style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _powerLevelLabel(powerLevel),
+              style: tt.bodySmall?.copyWith(color: cs.primary),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
+        children: [
+          if (!isMe)
+            SimpleDialogOption(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                if (!mounted) return;
+                try {
+                  final dmRoomId =
+                      await matrix.client.startDirectChat(widget.user.id);
+                  if (!mounted) return;
+                  context.read<SelectionService>().selectRoom(dmRoomId);
+                } catch (e) {
+                  debugPrint('[Kohera] Start DM failed: $e');
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to start chat: ${MatrixService.friendlyAuthError(e)}')),
+                  );
+                }
+              },
+              child: const Row(
+                children: [
+                  Icon(Icons.chat_outlined),
+                  SizedBox(width: 16),
+                  Text('Send message'),
+                ],
+              ),
+            ),
+          if (!isMe && widget.room.canKick)
+            SimpleDialogOption(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                if (!mounted) return;
+                final reason = await _promptModerationReason(
+                  title: 'Kick member?',
+                  message: 'Remove $displayName from the room?',
+                  confirmLabel: 'Kick',
+                  cs: cs,
+                );
+                if (reason == null) return;
+                try {
+                  await widget.room.client.kick(
+                    widget.room.id,
+                    widget.user.id,
+                    reason: reason.isEmpty ? null : reason,
+                  );
+                } catch (e) {
+                  debugPrint('[Kohera] Kick failed: $e');
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Kick failed: ${MatrixService.friendlyAuthError(e)}')),
+                  );
+                }
+              },
+              child: Row(
+                children: [
+                  Icon(Icons.person_remove_outlined, color: cs.error),
+                  const SizedBox(width: 16),
+                  Text('Kick', style: TextStyle(color: cs.error)),
+                ],
+              ),
+            ),
+          if (!isMe && widget.room.canBan)
+            SimpleDialogOption(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                if (!mounted) return;
+                final reason = await _promptModerationReason(
+                  title: 'Ban member?',
+                  message:
+                      'Ban $displayName from the room? This can be reversed later.',
+                  confirmLabel: 'Ban',
+                  cs: cs,
+                );
+                if (reason == null) return;
+                try {
+                  await widget.room.client.ban(
+                    widget.room.id,
+                    widget.user.id,
+                    reason: reason.isEmpty ? null : reason,
+                  );
+                } catch (e) {
+                  debugPrint('[Kohera] Ban failed: $e');
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Ban failed: ${MatrixService.friendlyAuthError(e)}')),
+                  );
+                }
+              },
+              child: Row(
+                children: [
+                  Icon(Icons.block_rounded, color: cs.error),
+                  const SizedBox(width: 16),
+                  Text('Ban', style: TextStyle(color: cs.error)),
+                ],
+              ),
+            ),
+        ],
       ),
     ),);
+  }
+
+  Future<String?> _promptModerationReason({
+    required String title,
+    required String message,
+    required String confirmLabel,
+    required ColorScheme cs,
+  }) async {
+    final controller = TextEditingController();
+    try {
+      return await showDialog<String?>(
+        context: context,
+        builder: (dCtx) => AlertDialog(
+          title: Text(title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(message),
+              const SizedBox(height: 16),
+              TextField(
+                controller: controller,
+                textInputAction: TextInputAction.done,
+                maxLength: 240,
+                decoration: const InputDecoration(
+                  labelText: 'Reason (optional)',
+                  border: OutlineInputBorder(),
+                ),
+                onSubmitted: (_) =>
+                    Navigator.pop(dCtx, controller.text.trim()),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dCtx),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: cs.error,
+                foregroundColor: cs.onError,
+              ),
+              onPressed: () =>
+                  Navigator.pop(dCtx, controller.text.trim()),
+              child: Text(confirmLabel),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      controller.dispose();
+    }
   }
 
   String _powerLevelLabel(int level) {
