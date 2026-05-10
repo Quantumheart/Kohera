@@ -8,21 +8,16 @@ import 'package:matrix/matrix.dart' hide Visibility;
 ///
 /// Returns the validated MXID string on success, or `null` if cancelled.
 class InviteUserDialog extends StatefulWidget {
-  const InviteUserDialog._({
-    required this.room,
-    required this.controller,
-  });
+  const InviteUserDialog._({required this.room});
 
   final Room room;
-  final TextEditingController controller;
 
   /// Shows the invite dialog and returns the entered MXID, or `null`.
   static Future<String?> show(BuildContext context, {required Room room}) {
-    final controller = TextEditingController();
     return showDialog<String>(
       context: context,
-      builder: (_) => InviteUserDialog._(room: room, controller: controller),
-    ).whenComplete(controller.dispose);
+      builder: (_) => InviteUserDialog._(room: room),
+    );
   }
 
   @override
@@ -30,7 +25,10 @@ class InviteUserDialog extends StatefulWidget {
 }
 
 class _InviteUserDialogState extends State<InviteUserDialog> {
+  static const _dialogWidth = 400.0;
   static final _mxidRegex = RegExp(r'^@[^:]+:.+$');
+  final _controller = TextEditingController();
+  String _query = '';
   String? _error;
   bool _searching = false;
   List<Profile> _searchResults = [];
@@ -40,14 +38,8 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
   Set<String>? _cachedMemberIds;
 
   @override
-  void initState() {
-    super.initState();
-    widget.controller.addListener(_onTextChanged);
-  }
-
-  @override
   void dispose() {
-    widget.controller.removeListener(_onTextChanged);
+    _controller.dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -69,22 +61,19 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
 
   // ── Search ──────────────────────────────────────────────────
 
-  void _onTextChanged() {
+  void _onTextChanged(String value) {
     _debounce?.cancel();
-    final query = widget.controller.text.trim();
+    final query = value.trim();
     _searchGeneration++;
-    if (query.isEmpty) {
-      if (_searchResults.isNotEmpty || _searching) {
-        setState(() {
-          _searchResults = [];
-          _searching = false;
-        });
-      } else {
-        setState(() {});
+    setState(() {
+      _query = query;
+      _error = null;
+      if (query.isEmpty) {
+        _searchResults = [];
+        _searching = false;
       }
-      return;
-    }
-    setState(() {});
+    });
+    if (query.isEmpty) return;
     _debounce = Timer(const Duration(milliseconds: 300), () {
       unawaited(_searchDirectory(query));
     });
@@ -114,7 +103,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
   // ── Submit ──────────────────────────────────────────────────
 
   void _submit([String? override]) {
-    final mxid = (override ?? widget.controller.text).trim();
+    final mxid = (override ?? _controller.text).trim();
     if (mxid.isEmpty) {
       setState(() => _error = 'Please enter a Matrix ID');
       return;
@@ -126,113 +115,99 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
     Navigator.pop(context, mxid);
   }
 
-  // ── Suggestion tiles ────────────────────────────────────────
+  // ── Suggestion list ─────────────────────────────────────────
 
-  List<Widget> _suggestionTiles(ColorScheme cs) {
-    final query = widget.controller.text.trim();
+  List<Profile> _suggestions() {
+    if (_query.isEmpty) return _knownContacts();
     final members = _memberIds();
-    final List<Profile> profiles;
-    if (query.isEmpty) {
-      profiles = _knownContacts();
-    } else {
-      profiles = _searchResults
-          .where((p) => !members.contains(p.userId))
-          .toList();
-    }
-    if (profiles.isEmpty) return const [];
-
-    final tiles = <Widget>[];
-    if (query.isEmpty) {
-      tiles.add(Padding(
-        padding: const EdgeInsets.only(left: 4, top: 8, bottom: 4),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Recent contacts',
-            style: TextStyle(
-              fontSize: 12,
-              color: cs.onSurfaceVariant,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ),);
-    }
-    for (final p in profiles) {
-      tiles.add(_SuggestionTile(profile: p, onTap: () => _submit(p.userId)));
-    }
-    return tiles;
+    return _searchResults.where((p) => !members.contains(p.userId)).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final tiles = _suggestionTiles(cs);
+    final suggestions = _suggestions();
+    final showHeader = _query.isEmpty && suggestions.isNotEmpty;
 
-    return AlertDialog(
+    return SimpleDialog(
       title: const Text('Invite user'),
-      content: SizedBox(
-        width: 400,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: widget.controller,
+      contentPadding: const EdgeInsets.only(top: 12, bottom: 8),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 4),
+          child: SizedBox(
+            width: _dialogWidth,
+            child: TextField(
+              controller: _controller,
               autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Matrix ID',
+              decoration: InputDecoration(
+                labelText: 'Matrix ID or display name',
                 hintText: '@user:server.com',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.search_rounded),
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.search_rounded),
+                errorText: _error,
               ),
+              onChanged: _onTextChanged,
               onSubmitted: (_) => _submit(),
             ),
-            if (_searching)
-              const Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: LinearProgressIndicator(),
-              ),
-            if (tiles.isNotEmpty)
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 240),
-                child: ListView(
-                  shrinkWrap: true,
-                  padding: EdgeInsets.zero,
-                  children: tiles,
+          ),
+        ),
+        SizedBox(
+          width: _dialogWidth,
+          height: 4,
+          child: _searching ? const LinearProgressIndicator() : null,
+        ),
+        if (showHeader)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Recent contacts',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: cs.onSurfaceVariant,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    _error!,
-                    style: TextStyle(color: cs.error, fontSize: 13),
-                  ),
-                ),
+            ),
+          ),
+        if (suggestions.isNotEmpty)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 280),
+            child: SizedBox(
+              width: _dialogWidth,
+              child: ListView.builder(
+                shrinkWrap: true,
+                padding: EdgeInsets.zero,
+                itemCount: suggestions.length,
+                itemBuilder: (context, i) {
+                  final p = suggestions[i];
+                  return _SuggestionOption(
+                    profile: p,
+                    onTap: () => _submit(p.userId),
+                  );
+                },
               ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: _submit,
-          child: const Text('Invite'),
-        ),
+            ),
+          )
+        else if (_query.isNotEmpty && !_searching)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+            child: Text(
+              'No matching users. Press Enter to invite by Matrix ID.',
+              style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+            ),
+          ),
       ],
     );
   }
 }
 
-// ── Suggestion tile ───────────────────────────────────────────
+// ── Suggestion option ─────────────────────────────────────────
 
-class _SuggestionTile extends StatelessWidget {
-  const _SuggestionTile({required this.profile, required this.onTap});
+class _SuggestionOption extends StatelessWidget {
+  const _SuggestionOption({required this.profile, required this.onTap});
 
   final Profile profile;
   final VoidCallback onTap;
@@ -244,30 +219,41 @@ class _SuggestionTile extends StatelessWidget {
     final firstChar = (name ?? profile.userId).isNotEmpty
         ? (name ?? profile.userId).characters.first.toUpperCase()
         : '?';
-    return ListTile(
-      dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-      leading: CircleAvatar(
-        radius: 16,
-        backgroundColor: cs.primaryContainer,
-        child: Text(
-          firstChar,
-          style: TextStyle(color: cs.onPrimaryContainer, fontSize: 13),
-        ),
+    return SimpleDialogOption(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      onPressed: onTap,
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: cs.primaryContainer,
+            child: Text(
+              firstChar,
+              style: TextStyle(color: cs.onPrimaryContainer, fontSize: 14),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  name ?? profile.userId,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14),
+                ),
+                if (name != null)
+                  Text(
+                    profile.userId,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
-      title: Text(
-        name ?? profile.userId,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontSize: 14),
-      ),
-      subtitle: name != null
-          ? Text(
-              profile.userId,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 11),
-            )
-          : null,
-      onTap: onTap,
     );
   }
 }

@@ -376,6 +376,11 @@ void main() {
   group('Room details — invite', () {
     testWidgets('invite user via room details panel', (tester) async {
       when(mockRoom.invite(any)).thenAnswer((_) async {});
+      when(mockClient.searchUserDirectory(any, limit: anyNamed('limit')))
+          .thenAnswer((_) async => SearchUserDirectoryResponse(
+                results: [],
+                limited: false,
+              ),);
       await tester.pumpWidget(buildDetailsApp());
       await tester.pumpAndSettle();
 
@@ -384,28 +389,27 @@ void main() {
 
       expect(find.text('Invite user'), findsOneWidget);
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Matrix ID'),
-        '@bob:example.com',
-      );
-      await tester.tap(find.widgetWithText(FilledButton, 'Invite'));
+      await tester.enterText(find.byType(TextField), '@bob:example.com');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
 
       verify(mockRoom.invite('@bob:example.com')).called(1);
     });
 
     testWidgets('invalid MXID shows error in invite dialog', (tester) async {
+      when(mockClient.searchUserDirectory(any, limit: anyNamed('limit')))
+          .thenAnswer((_) async => SearchUserDirectoryResponse(
+                results: [],
+                limited: false,
+              ),);
       await tester.pumpWidget(buildDetailsApp());
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Invite'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.widgetWithText(TextField, 'Matrix ID'),
-        'invalid-id',
-      );
-      await tester.tap(find.widgetWithText(FilledButton, 'Invite'));
+      await tester.enterText(find.byType(TextField), 'invalid-id');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
 
       expect(
@@ -421,7 +425,7 @@ void main() {
       await tester.tap(find.text('Invite'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Invite'));
+      await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
 
       expect(find.text('Please enter a Matrix ID'), findsOneWidget);

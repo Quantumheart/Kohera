@@ -53,21 +53,24 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> submitField(WidgetTester tester) async {
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+  }
+
   group('InviteUserDialog', () {
     testWidgets('shows title and text field', (tester) async {
       await openDialog(tester);
 
       expect(find.text('Invite user'), findsOneWidget);
       expect(find.byType(TextField), findsOneWidget);
-      expect(find.text('Invite'), findsOneWidget);
-      expect(find.text('Cancel'), findsOneWidget);
     });
 
-    testWidgets('empty input shows validation error', (tester) async {
+    testWidgets('empty input on submit shows validation error',
+        (tester) async {
       await openDialog(tester);
 
-      await tester.tap(find.text('Invite'));
-      await tester.pumpAndSettle();
+      await submitField(tester);
 
       expect(find.text('Please enter a Matrix ID'), findsOneWidget);
     });
@@ -76,8 +79,7 @@ void main() {
       await openDialog(tester);
 
       await tester.enterText(find.byType(TextField), 'alice');
-      await tester.tap(find.text('Invite'));
-      await tester.pumpAndSettle();
+      await submitField(tester);
 
       expect(
         find.text('Invalid Matrix ID (use @user:server)'),
@@ -89,8 +91,7 @@ void main() {
       await openDialog(tester);
 
       await tester.enterText(find.byType(TextField), '@alice');
-      await tester.tap(find.text('Invite'));
-      await tester.pumpAndSettle();
+      await submitField(tester);
 
       expect(
         find.text('Invalid Matrix ID (use @user:server)'),
@@ -102,8 +103,7 @@ void main() {
       await openDialog(tester);
 
       await tester.enterText(find.byType(TextField), 'alice@server');
-      await tester.tap(find.text('Invite'));
-      await tester.pumpAndSettle();
+      await submitField(tester);
 
       expect(
         find.text('Invalid Matrix ID (use @user:server)'),
@@ -111,52 +111,26 @@ void main() {
       );
     });
 
-    testWidgets('valid MXID pops dialog with value', (tester) async {
+    testWidgets('valid MXID pops dialog with value on submit', (tester) async {
       String? result;
-
-      // Suppress controller-disposed errors from whenComplete in show()
-      final original = FlutterError.onError;
-      FlutterError.onError = (d) {};
-      addTearDown(() => FlutterError.onError = original);
 
       await openDialog(tester, onResult: (v) => result = v);
 
       await tester.enterText(find.byType(TextField), '@alice:matrix.org');
-      await tester.tap(find.text('Invite'));
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
+      await submitField(tester);
 
       expect(result, '@alice:matrix.org');
     });
 
-    testWidgets('cancel closes dialog', (tester) async {
+    testWidgets('barrier dismiss returns null', (tester) async {
       String? result = 'sentinel';
-
-      final original = FlutterError.onError;
-      FlutterError.onError = (d) {};
-      addTearDown(() => FlutterError.onError = original);
 
       await openDialog(tester, onResult: (v) => result = v);
 
-      await tester.tap(find.text('Cancel'));
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
 
       expect(result, isNull);
-    });
-
-    testWidgets('keyboard submit triggers validation', (tester) async {
-      final original = FlutterError.onError;
-      FlutterError.onError = (d) {};
-      addTearDown(() => FlutterError.onError = original);
-
-      await openDialog(tester);
-
-      await tester.enterText(find.byType(TextField), '');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pump();
-
-      expect(find.text('Please enter a Matrix ID'), findsOneWidget);
     });
 
     testWidgets('shows recent contacts from existing DMs', (tester) async {
@@ -195,10 +169,6 @@ void main() {
     testWidgets('tapping a suggestion pops with that MXID', (tester) async {
       String? result;
 
-      final original = FlutterError.onError;
-      FlutterError.onError = (d) {};
-      addTearDown(() => FlutterError.onError = original);
-
       final dmRoom = MockRoom();
       when(dmRoom.isDirectChat).thenReturn(true);
       when(dmRoom.directChatMatrixID).thenReturn('@bob:example.com');
@@ -209,8 +179,7 @@ void main() {
       await openDialog(tester, onResult: (v) => result = v);
 
       await tester.tap(find.text('Bob'));
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
 
       expect(result, '@bob:example.com');
     });
@@ -237,6 +206,20 @@ void main() {
       verify(mockClient.searchUserDirectory('car', limit: 20)).called(1);
       expect(find.text('Carol'), findsOneWidget);
       expect(find.text('@carol:example.com'), findsOneWidget);
+    });
+
+    testWidgets('shows empty-state hint when search returns no results',
+        (tester) async {
+      await openDialog(tester);
+
+      await tester.enterText(find.byType(TextField), 'nobody');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('No matching users. Press Enter to invite by Matrix ID.'),
+        findsOneWidget,
+      );
     });
   });
 }
