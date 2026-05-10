@@ -157,7 +157,8 @@ void main() {
       expect(find.text('Mod'), findsOneWidget);
     });
 
-    testWidgets('tapping member opens bottom sheet', (tester) async {
+    testWidgets('tapping member opens SimpleDialog with member info',
+        (tester) async {
       final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
       when(mockRoom.requestParticipants(any))
           .thenAnswer((_) async => [alice]);
@@ -168,9 +169,134 @@ void main() {
       await tester.tap(find.text('Alice'));
       await tester.pumpAndSettle();
 
-      // Bottom sheet should show member info
+      expect(find.byType(SimpleDialog), findsOneWidget);
       expect(find.text('@alice:example.com'), findsWidgets);
       expect(find.text('Member'), findsOneWidget);
+    });
+
+    testWidgets('kick action prompts for reason and forwards it to client.kick',
+        (tester) async {
+      final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+      when(mockRoom.canKick).thenReturn(true);
+      when(mockRoom.requestParticipants(any))
+          .thenAnswer((_) async => [alice]);
+      when(mockClient.kick(any, any, reason: anyNamed('reason')))
+          .thenAnswer((_) async {});
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Alice'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(SimpleDialogOption, 'Kick'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Kick member?'), findsOneWidget);
+      expect(find.byType(TextField), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'spamming');
+      await tester.tap(find.widgetWithText(FilledButton, 'Kick'));
+      await tester.pumpAndSettle();
+
+      verify(mockClient.kick(
+        '!room:example.com',
+        '@alice:example.com',
+        reason: 'spamming',
+      ),).called(1);
+    });
+
+    testWidgets('kick with empty reason sends null reason', (tester) async {
+      final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+      when(mockRoom.canKick).thenReturn(true);
+      when(mockRoom.requestParticipants(any))
+          .thenAnswer((_) async => [alice]);
+      when(mockClient.kick(any, any, reason: anyNamed('reason')))
+          .thenAnswer((_) async {});
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Alice'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(SimpleDialogOption, 'Kick'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Kick'));
+      await tester.pumpAndSettle();
+
+      verify(mockClient.kick(
+        '!room:example.com',
+        '@alice:example.com',
+        reason: null,
+      ),).called(1);
+    });
+
+    testWidgets('cancelling kick reason dialog does not call client.kick',
+        (tester) async {
+      final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+      when(mockRoom.canKick).thenReturn(true);
+      when(mockRoom.requestParticipants(any))
+          .thenAnswer((_) async => [alice]);
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Alice'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(SimpleDialogOption, 'Kick'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      verifyNever(mockClient.kick(any, any, reason: anyNamed('reason')));
+    });
+
+    testWidgets('ban action prompts for reason and forwards it to client.ban',
+        (tester) async {
+      final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+      when(mockRoom.canBan).thenReturn(true);
+      when(mockRoom.requestParticipants(any))
+          .thenAnswer((_) async => [alice]);
+      when(mockClient.ban(any, any, reason: anyNamed('reason')))
+          .thenAnswer((_) async {});
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Alice'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(SimpleDialogOption, 'Ban'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ban member?'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'abuse');
+      await tester.tap(find.widgetWithText(FilledButton, 'Ban'));
+      await tester.pumpAndSettle();
+
+      verify(mockClient.ban(
+        '!room:example.com',
+        '@alice:example.com',
+        reason: 'abuse',
+      ),).called(1);
+    });
+
+    testWidgets('kick and ban actions hidden when permissions are missing',
+        (tester) async {
+      final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+      when(mockRoom.canKick).thenReturn(false);
+      when(mockRoom.canBan).thenReturn(false);
+      when(mockRoom.requestParticipants(any))
+          .thenAnswer((_) async => [alice]);
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Alice'));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(SimpleDialogOption, 'Kick'), findsNothing);
+      expect(find.widgetWithText(SimpleDialogOption, 'Ban'), findsNothing);
     });
   });
 }
