@@ -182,9 +182,10 @@ class _CreateSpaceDialogState extends State<CreateSpaceDialog> {
     final cs = Theme.of(context).colorScheme;
 
     return AlertDialog(
+      scrollable: true,
       title: const Text('Create Space'),
-      content: SizedBox(
-        width: 400,
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -349,9 +350,10 @@ class _JoinSpaceDialogState extends State<JoinSpaceDialog> {
     final cs = Theme.of(context).colorScheme;
 
     return AlertDialog(
+      scrollable: true,
       title: const Text('Join Space'),
-      content: SizedBox(
-        width: 400,
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
