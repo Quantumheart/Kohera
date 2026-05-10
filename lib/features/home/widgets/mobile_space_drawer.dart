@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
@@ -26,14 +25,16 @@ class MobileSpaceDrawer extends StatelessWidget {
 
     return Drawer(
       child: SafeArea(
-        child: ListView(
-          padding: EdgeInsets.zero,
+        child: Column(
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-              child: Text(
-                'Spaces',
-                style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Spaces',
+                  style: tt.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
               ),
             ),
             ListTile(
@@ -49,93 +50,100 @@ class MobileSpaceDrawer extends StatelessWidget {
                 context.goNamed(Routes.home);
               },
             ),
-            if (topLevel.isNotEmpty) const Divider(height: 8),
-            for (final space in topLevel)
-              _SpaceTile(
-                space: space,
-                selected: selection.selectedSpaceIds.contains(space.id),
-                unread: selection.unreadCountForSpace(space.id),
+            const Divider(height: 8),
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  for (final space in topLevel)
+                    _SpaceTile(
+                      space: space,
+                      selected: selection.selectedSpaceIds.contains(space.id),
+                      unread: selection.unreadCountForSpace(space.id),
+                      onTap: () {
+                        selection.selectSpace(space.id);
+                        Navigator.of(context).pop();
+                        context.goNamed(Routes.home);
+                      },
+                      onMenuRequested: (anchorContext) {
+                        final box =
+                            anchorContext.findRenderObject()! as RenderBox;
+                        final overlay = Overlay.of(anchorContext)
+                            .context
+                            .findRenderObject()! as RenderBox;
+                        final position = box.localToGlobal(
+                          Offset(box.size.width / 2, box.size.height / 2),
+                          ancestor: overlay,
+                        );
+                        unawaited(showSpaceContextMenu(
+                          anchorContext,
+                          RelativeRect.fromSize(
+                              position & Size.zero, overlay.size,),
+                          space,
+                        ),);
+                      },
+                    ),
+                  if (invited.isNotEmpty) ...[
+                    const Divider(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+                      child: Text(
+                        'Invited',
+                        style: tt.labelLarge?.copyWith(
+                          color: cs.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    for (final space in invited)
+                      ListTile(
+                        leading: Opacity(
+                          opacity: 0.7,
+                          child: RoomAvatarWidget(room: space, size: 36),
+                        ),
+                        title: Text(space.getLocalizedDisplayname()),
+                        onTap: () async {
+                          final result =
+                              await InviteDialog.show(context, room: space);
+                          if (result == true && context.mounted) {
+                            selection.selectSpace(space.id);
+                            if (context.mounted) {
+                              Navigator.of(context).pop();
+                              context.goNamed(Routes.home);
+                            }
+                          }
+                        },
+                      ),
+                  ],
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Builder(
+              builder: (btnContext) => ListTile(
+                leading: Icon(Icons.add_circle_outline, color: cs.primary),
+                title: const Text('Add space'),
+                subtitle: const Text('Create, join, or explore'),
                 onTap: () {
-                  selection.selectSpace(space.id);
-                  Navigator.of(context).pop();
-                  context.goNamed(Routes.home);
-                },
-                onLongPress: (tileContext) {
-                  final box = tileContext.findRenderObject()! as RenderBox;
-                  final overlay = Overlay.of(tileContext)
+                  final box = btnContext.findRenderObject()! as RenderBox;
+                  final overlay = Overlay.of(btnContext)
                       .context
                       .findRenderObject()! as RenderBox;
-                  final position = box.localToGlobal(
-                    Offset(box.size.width / 2, box.size.height / 2),
+                  final topLeft = box.localToGlobal(
+                    Offset.zero,
                     ancestor: overlay,
                   );
-                  unawaited(showSpaceContextMenu(
-                    tileContext,
-                    RelativeRect.fromSize(position & Size.zero, overlay.size),
-                    space,
+                  unawaited(showSpaceActionMenu(
+                    btnContext,
+                    RelativeRect.fromLTRB(
+                      topLeft.dx,
+                      topLeft.dy,
+                      overlay.size.width - topLeft.dx - box.size.width,
+                      overlay.size.height - topLeft.dy - box.size.height,
+                    ),
                   ),);
                 },
               ),
-            if (invited.isNotEmpty) ...[
-              const Divider(height: 8),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-                child: Text(
-                  'Invited',
-                  style: tt.labelLarge?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              for (final space in invited)
-                ListTile(
-                  leading: Opacity(
-                    opacity: 0.7,
-                    child: RoomAvatarWidget(room: space, size: 36),
-                  ),
-                  title: Text(space.getLocalizedDisplayname()),
-                  onTap: () async {
-                    final result = await InviteDialog.show(context, room: space);
-                    if (result == true && context.mounted) {
-                      selection.selectSpace(space.id);
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                        context.goNamed(Routes.home);
-                      }
-                    }
-                  },
-                ),
-            ],
-            const Divider(height: 8),
-            ListTile(
-              leading: Icon(Icons.add_circle_outline, color: cs.primary),
-              title: const Text('Create space'),
-              onTap: () {
-                final matrix = context.read<MatrixService>();
-                Navigator.of(context).pop();
-                unawaited(CreateSpaceDialog.show(context, matrixService: matrix));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.tag, color: cs.primary),
-              title: const Text('Join space'),
-              onTap: () {
-                final matrix = context.read<MatrixService>();
-                Navigator.of(context).pop();
-                unawaited(JoinSpaceDialog.show(context, matrixService: matrix));
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.travel_explore, color: cs.primary),
-              title: const Text('Explore spaces'),
-              onTap: () {
-                final matrix = context.read<MatrixService>();
-                Navigator.of(context).pop();
-                unawaited(
-                  SpaceDiscoveryDialog.show(context, matrixService: matrix),
-                );
-              },
             ),
           ],
         ),
@@ -150,43 +158,70 @@ class _SpaceTile extends StatelessWidget {
     required this.selected,
     required this.unread,
     required this.onTap,
-    this.onLongPress,
+    this.onMenuRequested,
   });
 
   final Room space;
   final bool selected;
   final int unread;
   final VoidCallback onTap;
-  final void Function(BuildContext tileContext)? onLongPress;
+  final void Function(BuildContext anchorContext)? onMenuRequested;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Builder(
-      builder: (tileContext) => ListTile(
-        leading: RoomAvatarWidget(room: space, size: 36),
-        title: Text(space.getLocalizedDisplayname()),
-        selected: selected,
-        trailing: unread > 0
-            ? Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: cs.primary,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  unread > 99 ? '99+' : '$unread',
-                  style: TextStyle(
-                    color: cs.onPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              )
-            : null,
-        onTap: onTap,
-        onLongPress: onLongPress == null ? null : () => onLongPress!(tileContext),
-      ),
+      builder: (tileContext) {
+        Widget? trailing;
+        if (unread > 0) {
+          trailing = Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: cs.primary,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              unread > 99 ? '99+' : '$unread',
+              style: TextStyle(
+                color: cs.onPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          );
+        }
+        if (onMenuRequested != null) {
+          final menuButton = Builder(
+            builder: (btnContext) => IconButton(
+              icon: const Icon(Icons.more_vert),
+              tooltip: 'Space options',
+              onPressed: () => onMenuRequested!(btnContext),
+            ),
+          );
+          trailing = trailing == null
+              ? menuButton
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [trailing, const SizedBox(width: 4), menuButton],
+                );
+        }
+
+        return GestureDetector(
+          onSecondaryTapUp: onMenuRequested == null
+              ? null
+              : (_) => onMenuRequested!(tileContext),
+          child: ListTile(
+            leading: RoomAvatarWidget(room: space, size: 36),
+            title: Text(space.getLocalizedDisplayname()),
+            selected: selected,
+            trailing: trailing,
+            onTap: onTap,
+            onLongPress: onMenuRequested == null
+                ? null
+                : () => onMenuRequested!(tileContext),
+          ),
+        );
+      },
     );
   }
 }
