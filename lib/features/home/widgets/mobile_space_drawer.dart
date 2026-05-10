@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
@@ -12,60 +11,32 @@ import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
-enum _AddSpaceAction { create, join, discover }
-
 Future<void> _showAddSpaceChooser(BuildContext context) async {
   final cs = Theme.of(context).colorScheme;
-  final action = await showDialog<_AddSpaceAction>(
+  final action = await showDialog<SpaceAction>(
     context: context,
     builder: (ctx) => SimpleDialog(
       title: const Text('Add space'),
       children: [
-        SimpleDialogOption(
-          onPressed: () => Navigator.pop(ctx, _AddSpaceAction.create),
-          child: Row(
-            children: [
-              Icon(Icons.add_circle_outline, color: cs.primary),
-              const SizedBox(width: 16),
-              const Text('Create space'),
-            ],
+        for (final entry in spaceActionEntries)
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, entry.action),
+            child: Row(
+              children: [
+                Icon(entry.icon, color: cs.primary),
+                const SizedBox(width: 16),
+                Text(entry.label),
+              ],
+            ),
           ),
-        ),
-        SimpleDialogOption(
-          onPressed: () => Navigator.pop(ctx, _AddSpaceAction.join),
-          child: Row(
-            children: [
-              Icon(Icons.tag, color: cs.primary),
-              const SizedBox(width: 16),
-              const Text('Join with address'),
-            ],
-          ),
-        ),
-        SimpleDialogOption(
-          onPressed: () => Navigator.pop(ctx, _AddSpaceAction.discover),
-          child: Row(
-            children: [
-              Icon(Icons.travel_explore, color: cs.primary),
-              const SizedBox(width: 16),
-              const Text('Explore spaces'),
-            ],
-          ),
-        ),
       ],
     ),
   );
 
   if (action == null || !context.mounted) return;
-  final matrix = context.read<MatrixService>();
   Navigator.of(context).pop();
-  switch (action) {
-    case _AddSpaceAction.create:
-      await CreateSpaceDialog.show(context, matrixService: matrix);
-    case _AddSpaceAction.join:
-      await JoinSpaceDialog.show(context, matrixService: matrix);
-    case _AddSpaceAction.discover:
-      await SpaceDiscoveryDialog.show(context, matrixService: matrix);
-  }
+  if (!context.mounted) return;
+  await runSpaceAction(context, action);
 }
 
 class MobileSpaceDrawer extends StatelessWidget {
