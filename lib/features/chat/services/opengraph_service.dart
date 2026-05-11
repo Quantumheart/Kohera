@@ -215,13 +215,25 @@ class OpenGraphService {
 
     // Read only the first ~50 KB to avoid downloading huge pages.
     final bytes = <int>[];
-    try {
-      late final StreamSubscription<List<int>> subscription;
-      subscription = response.stream.listen((chunk) {
+    final done = Completer<void>();
+    late final StreamSubscription<List<int>> subscription;
+    void finish() {
+      if (!done.isCompleted) done.complete();
+    }
+    subscription = response.stream.listen(
+      (chunk) {
         bytes.addAll(chunk);
-        if (bytes.length >= _maxBytes) unawaited(subscription.cancel());
-      });
-      await subscription.asFuture<void>().timeout(
+        if (bytes.length >= _maxBytes) {
+          unawaited(subscription.cancel());
+          finish();
+        }
+      },
+      onDone: finish,
+      onError: (_, __) => finish(),
+      cancelOnError: true,
+    );
+    try {
+      await done.future.timeout(
         _fetchTimeout,
         onTimeout: () { unawaited(subscription.cancel()); },
       );
