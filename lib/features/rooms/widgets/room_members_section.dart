@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/sender_color.dart';
@@ -252,15 +254,30 @@ class _MemberTileState extends State<_MemberTile> {
               onPressed: () async {
                 Navigator.pop(ctx);
                 if (!mounted) return;
+                final selection = context.read<SelectionService>();
+                final router = GoRouter.of(context);
+                final messenger = ScaffoldMessenger.of(context);
                 try {
-                  final dmRoomId =
-                      await matrix.client.startDirectChat(widget.user.id);
+                  final client = matrix.client;
+                  final dmRoomId = await client.startDirectChat(
+                    widget.user.id,
+                    enableEncryption: true,
+                  );
+                  if (client.getRoomById(dmRoomId) == null) {
+                    await client
+                        .waitForRoomInSync(dmRoomId, join: true)
+                        .timeout(const Duration(seconds: 30));
+                  }
                   if (!mounted) return;
-                  context.read<SelectionService>().selectRoom(dmRoomId);
+                  selection.selectRoom(dmRoomId);
+                  router.goNamed(
+                    Routes.room,
+                    pathParameters: {'roomId': dmRoomId},
+                  );
                 } catch (e) {
                   debugPrint('[Kohera] Start DM failed: $e');
                   if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  messenger.showSnackBar(
                     SnackBar(content: Text('Failed to start chat: ${MatrixService.friendlyAuthError(e)}')),
                   );
                 }
