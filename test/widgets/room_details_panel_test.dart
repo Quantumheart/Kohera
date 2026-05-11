@@ -182,6 +182,12 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.text('All messages'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
       expect(find.text('All messages'), findsOneWidget);
       expect(find.text('Mentions only'), findsOneWidget);
       expect(find.text('Muted'), findsOneWidget);

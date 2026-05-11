@@ -123,6 +123,12 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.text('ADMIN SETTINGS'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
       expect(find.text('ADMIN SETTINGS'), findsOneWidget);
     });
 
