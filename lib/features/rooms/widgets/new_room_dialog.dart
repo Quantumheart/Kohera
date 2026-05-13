@@ -525,6 +525,7 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
                 needsUpgrade: false,
                 canEdit: !_loading,
                 disabledModes: _disabledModes,
+                padding: const EdgeInsets.symmetric(vertical: 12),
                 onModeChanged: (m) => setState(() => _joinMode = m),
                 onAllowedSpacesChanged: (l) =>
                     setState(() => _allowedJoinSpaces = l),
