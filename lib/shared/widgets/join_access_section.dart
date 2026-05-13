@@ -12,6 +12,7 @@ class JoinAccessSection extends StatelessWidget {
     required this.onModeChanged,
     required this.onAllowedSpacesChanged,
     this.onUpgradeRequested,
+    this.disabledModes = const {},
     super.key,
   });
 
@@ -20,6 +21,7 @@ class JoinAccessSection extends StatelessWidget {
   final List<Room> candidateSpaces;
   final bool needsUpgrade;
   final bool canEdit;
+  final Set<JoinMode> disabledModes;
   final ValueChanged<JoinMode> onModeChanged;
   final ValueChanged<List<Room>> onAllowedSpacesChanged;
   final VoidCallback? onUpgradeRequested;
@@ -44,17 +46,25 @@ class JoinAccessSection extends StatelessWidget {
         labelText: 'Join',
         border: OutlineInputBorder(),
       ),
-      items: JoinMode.values
-          .map(
-            (m) => DropdownMenuItem<JoinMode>(
-              value: m,
-              child: Text(m.displayLabel),
-            ),
-          )
-          .toList(),
+      items: JoinMode.values.map((m) {
+        final disabled = disabledModes.contains(m);
+        final label = Text(m.displayLabel);
+        return DropdownMenuItem<JoinMode>(
+          value: m,
+          enabled: !disabled,
+          child: disabled
+              ? Tooltip(
+                  message: 'Not supported by this server',
+                  child: label,
+                )
+              : label,
+        );
+      }).toList(),
       onChanged: canEdit
           ? (v) {
-              if (v != null) onModeChanged(v);
+              if (v == null) return;
+              if (disabledModes.contains(v)) return;
+              onModeChanged(v);
             }
           : null,
     );
@@ -67,7 +77,7 @@ class JoinAccessSection extends StatelessWidget {
           );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

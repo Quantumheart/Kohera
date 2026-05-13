@@ -327,6 +327,51 @@ void main() {
     });
   });
 
+  group('pickRestrictedRoomVersion', () {
+    void stubCaps(Map<String, String> versions) {
+      when(client.getCapabilities()).thenAnswer(
+        (_) async => Capabilities.fromJson({
+          'm.room_versions': {
+            'default': versions.keys.first,
+            'available': versions,
+          },
+        }),
+      );
+    }
+
+    test('returns highest >=10 when wantKnock', () async {
+      stubCaps({'1': 'stable', '9': 'stable', '10': 'stable', '11': 'stable'});
+      expect(
+        await service.pickRestrictedRoomVersion(wantKnock: true),
+        '11',
+      );
+    });
+
+    test('returns highest >=8 when not wantKnock', () async {
+      stubCaps({'1': 'stable', '8': 'stable', '9': 'stable'});
+      expect(
+        await service.pickRestrictedRoomVersion(wantKnock: false),
+        '9',
+      );
+    });
+
+    test('falls back to null when no qualifying version', () async {
+      stubCaps({'1': 'stable', '7': 'stable'});
+      expect(
+        await service.pickRestrictedRoomVersion(wantKnock: false),
+        isNull,
+      );
+    });
+
+    test('returns null when v8 available but knock wanted', () async {
+      stubCaps({'8': 'stable', '9': 'stable'});
+      expect(
+        await service.pickRestrictedRoomVersion(wantKnock: true),
+        isNull,
+      );
+    });
+  });
+
   group('serverSupportedRoomVersions', () {
     test('returns available versions from capabilities', () async {
       when(client.getCapabilities()).thenAnswer(
