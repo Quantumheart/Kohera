@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
 import 'package:matrix/matrix.dart';
 
 /// Admin settings for a room: edit name, topic, encryption,
@@ -221,6 +222,9 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: _loading ? null : () => _showPowerLevelDialog(room),  // power levels uses global _loading since it's read-only
           ),
+
+        // Join access
+        JoinAccessController(room: room),
 
         if (_error != null)
           Padding(
