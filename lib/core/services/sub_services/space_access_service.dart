@@ -49,6 +49,99 @@ class SpaceAccessService {
     return version < threshold;
   }
 
+  Future<void> setInviteOnly(Room room) =>
+      applyJoinMode(roomId: room.id, mode: JoinMode.invite);
+
+  Future<void> setPublic(Room room) =>
+      applyJoinMode(roomId: room.id, mode: JoinMode.public);
+
+  Future<void> setRestrictedJoin(Room room, List<Room> allowSpaces) =>
+      applyJoinMode(
+        roomId: room.id,
+        mode: JoinMode.restricted,
+        allowSpaceIds: allowSpaces.map((r) => r.id).toList(growable: false),
+      );
+
+  Future<void> setKnockRestricted(Room room, List<Room> allowSpaces) =>
+      applyJoinMode(
+        roomId: room.id,
+        mode: JoinMode.knockRestricted,
+        allowSpaceIds: allowSpaces.map((r) => r.id).toList(growable: false),
+      );
+
+  Future<void> applyJoinMode({
+    required String roomId,
+    required JoinMode mode,
+    List<String> allowSpaceIds = const [],
+  }) {
+    final restrictedFamily =
+        mode == JoinMode.restricted || mode == JoinMode.knockRestricted;
+    if (restrictedFamily && allowSpaceIds.isEmpty) {
+      throw ArgumentError(
+        'allowSpaceIds must contain at least one space for $mode',
+      );
+    }
+    final joinRule = switch (mode) {
+      JoinMode.invite => 'invite',
+      JoinMode.public => 'public',
+      JoinMode.knock => 'knock',
+      JoinMode.restricted => 'restricted',
+      JoinMode.knockRestricted => 'knock_restricted',
+    };
+    return _writeJoinRule(
+      roomId,
+      joinRule,
+      allowSpaceIds: restrictedFamily ? allowSpaceIds : const [],
+    );
+  }
+
+  Future<void> _writeJoinRule(
+    String roomId,
+    String joinRule, {
+    required List<String> allowSpaceIds,
+  }) async {
+    final existing = _client
+            .getRoomById(roomId)
+            ?.getState(EventTypes.RoomJoinRules)
+            ?.content
+            .tryGetList<Map<String, Object?>>('allow') ??
+        const <Map<String, Object?>>[];
+    final preserved = existing
+        .where((e) => e['type'] != 'm.room_membership')
+        .toList(growable: true);
+    final newAllow = [
+      ...preserved,
+      for (final id in allowSpaceIds)
+        <String, Object?>{'type': 'm.room_membership', 'room_id': id},
+    ];
+
+    final payload = <String, Object?>{
+      'join_rule': joinRule,
+      if (newAllow.isNotEmpty) 'allow': newAllow,
+    };
+    await _client.setRoomStateWithKey(
+      roomId,
+      EventTypes.RoomJoinRules,
+      '',
+      payload,
+    );
+  }
+
+  Future<String> upgradeRoomTo(Room room, String newVersion) {
+    return _client.upgradeRoom(room.id, newVersion);
+  }
+
+  Future<void> rewireParentSpaces(String oldRoomId, String newRoomId) async {
+    final parents = _client.rooms
+        .where((r) =>
+            r.isSpace && r.spaceChildren.any((c) => c.roomId == oldRoomId),)
+        .toList();
+    for (final parent in parents) {
+      await parent.setSpaceChild(newRoomId);
+      await parent.removeSpaceChild(oldRoomId);
+    }
+  }
+
   Future<List<String>> serverSupportedRoomVersions() async {
     final cached = _supportedVersionsCache;
     if (cached != null) return cached;

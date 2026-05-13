@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/space_child.dart';
 import 'package:mockito/mockito.dart';
 
 import 'matrix_service_test.mocks.dart';
@@ -156,6 +157,173 @@ void main() {
       final room = MockRoom();
       _stubRoomVersion(room, 'org.matrix.msc-future');
       expect(service.needsUpgradeForRestricted(room, wantKnock: false), isTrue);
+    });
+  });
+
+  group('applyJoinMode', () {
+    test('restricted writes correct payload', () async {
+      final room = MockRoom();
+      when(room.id).thenReturn('!r:e.com');
+      final allow = MockRoom();
+      when(allow.id).thenReturn('!s:e.com');
+      when(client.getRoomById('!r:e.com')).thenReturn(null);
+      when(
+        client.setRoomStateWithKey(any, any, any, any),
+      ).thenAnswer((_) async => 'evt');
+
+      await service.setRestrictedJoin(room, [allow]);
+
+      final captured = verify(
+        client.setRoomStateWithKey(
+          '!r:e.com',
+          'm.room.join_rules',
+          '',
+          captureAny,
+        ),
+      ).captured.single as Map<String, Object?>;
+      expect(captured['join_rule'], 'restricted');
+      expect(captured['allow'], [
+        {'type': 'm.room_membership', 'room_id': '!s:e.com'},
+      ]);
+    });
+
+    test('knock_restricted writes correct join_rule', () async {
+      final room = MockRoom();
+      when(room.id).thenReturn('!r:e.com');
+      final allow = MockRoom();
+      when(allow.id).thenReturn('!s:e.com');
+      when(client.getRoomById('!r:e.com')).thenReturn(null);
+      when(
+        client.setRoomStateWithKey(any, any, any, any),
+      ).thenAnswer((_) async => 'evt');
+
+      await service.setKnockRestricted(room, [allow]);
+
+      final captured = verify(
+        client.setRoomStateWithKey(any, any, any, captureAny),
+      ).captured.single as Map<String, Object?>;
+      expect(captured['join_rule'], 'knock_restricted');
+    });
+
+    test('invite writes no allow list', () async {
+      final room = MockRoom();
+      when(room.id).thenReturn('!r:e.com');
+      when(client.getRoomById('!r:e.com')).thenReturn(null);
+      when(
+        client.setRoomStateWithKey(any, any, any, any),
+      ).thenAnswer((_) async => 'evt');
+
+      await service.setInviteOnly(room);
+
+      final captured = verify(
+        client.setRoomStateWithKey(any, any, any, captureAny),
+      ).captured.single as Map<String, Object?>;
+      expect(captured['join_rule'], 'invite');
+      expect(captured.containsKey('allow'), isFalse);
+    });
+
+    test('preserves non-m.room_membership allow entries', () async {
+      final room = MockRoom();
+      when(room.id).thenReturn('!r:e.com');
+      _stubJoinRules(
+        room,
+        _joinRulesEvent(
+          joinRule: 'restricted',
+          allow: [
+            {'type': 'm.room_membership', 'room_id': '!old:e.com'},
+            {'type': 'org.example.future', 'value': 'keep me'},
+          ],
+        ),
+      );
+      when(client.getRoomById('!r:e.com')).thenReturn(room);
+      when(
+        client.setRoomStateWithKey(any, any, any, any),
+      ).thenAnswer((_) async => 'evt');
+
+      final newAllow = MockRoom();
+      when(newAllow.id).thenReturn('!new:e.com');
+      await service.setRestrictedJoin(room, [newAllow]);
+
+      final captured = verify(
+        client.setRoomStateWithKey(any, any, any, captureAny),
+      ).captured.single as Map<String, Object?>;
+      final allow =
+          (captured['allow']! as List).cast<Map<String, Object?>>();
+      expect(
+        allow.any(
+          (e) =>
+              e['type'] == 'org.example.future' && e['value'] == 'keep me',
+        ),
+        isTrue,
+      );
+      expect(
+        allow.any(
+          (e) =>
+              e['type'] == 'm.room_membership' &&
+              e['room_id'] == '!new:e.com',
+        ),
+        isTrue,
+      );
+      expect(
+        allow.any(
+          (e) =>
+              e['type'] == 'm.room_membership' &&
+              e['room_id'] == '!old:e.com',
+        ),
+        isFalse,
+        reason: 'old m.room_membership entry should be replaced',
+      );
+    });
+
+    test('empty allowSpaces for restricted throws', () {
+      final room = MockRoom();
+      when(room.id).thenReturn('!r:e.com');
+      expect(
+        () => service.setRestrictedJoin(room, []),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('empty allowSpaces for knock_restricted throws', () {
+      final room = MockRoom();
+      when(room.id).thenReturn('!r:e.com');
+      expect(
+        () => service.setKnockRestricted(room, []),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+  });
+
+  group('rewireParentSpaces', () {
+    test('rewrites m.space.child on each parent space', () async {
+      final parent = MockRoom();
+      when(parent.isSpace).thenReturn(true);
+      when(parent.spaceChildren).thenReturn([
+        SpaceChild.fromState(
+          StrippedStateEvent(
+            type: EventTypes.SpaceChild,
+            stateKey: '!old:e.com',
+            senderId: '@a:e.com',
+            content: {
+              'via': ['e.com'],
+            },
+          ),
+        ),
+      ]);
+      when(parent.setSpaceChild(any)).thenAnswer((_) async {});
+      when(parent.removeSpaceChild(any)).thenAnswer((_) async {});
+
+      final other = MockRoom();
+      when(other.isSpace).thenReturn(false);
+      when(other.spaceChildren).thenReturn([]);
+
+      when(client.rooms).thenReturn([parent, other]);
+
+      await service.rewireParentSpaces('!old:e.com', '!new:e.com');
+
+      verify(parent.setSpaceChild('!new:e.com')).called(1);
+      verify(parent.removeSpaceChild('!old:e.com')).called(1);
+      verifyNever(other.setSpaceChild(any));
     });
   });
 
