@@ -47,13 +47,16 @@ void main() {
         .thenReturn(false);
   });
 
-  Widget host() {
+  Widget host({CandidateSpacesBuilder? candidatesBuilder}) {
     return MaterialApp(
       home: Scaffold(
         body: SingleChildScrollView(
           child: ChangeNotifierProvider<MatrixService>.value(
             value: matrix,
-            child: JoinAccessController(room: room),
+            child: JoinAccessController(
+              room: room,
+              candidatesBuilder: candidatesBuilder,
+            ),
           ),
         ),
       ),
@@ -103,6 +106,30 @@ void main() {
         allowSpaceIds: anyNamed('allowSpaceIds'),
       ),
     );
+  });
+
+  testWidgets('custom candidatesBuilder controls picker entries',
+      (tester) async {
+    when(access.getJoinMode(room)).thenReturn(JoinMode.restricted);
+    when(access.allowedSpaceIds(room)).thenReturn(const []);
+    final parent = MockRoom();
+    when(parent.id).thenReturn('!parent:e.com');
+    when(parent.getLocalizedDisplayname()).thenReturn('Parent');
+
+    await tester.pumpWidget(host(candidatesBuilder: (_, __) => [parent]));
+
+    expect(
+      find.byKey(const Key('join_access_space_!parent:e.com')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('empty candidates shows no-parents hint', (tester) async {
+    when(access.getJoinMode(room)).thenReturn(JoinMode.restricted);
+
+    await tester.pumpWidget(host(candidatesBuilder: (_, __) => const []));
+
+    expect(find.text('No eligible parent spaces'), findsOneWidget);
   });
 
   testWidgets(

@@ -4,6 +4,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
+import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:kohera/features/spaces/widgets/notification_radio_group.dart';
 import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
@@ -122,6 +123,10 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
           ),
         const Divider(),
         _buildJoinAccessRow(space, tt),
+        JoinAccessController(
+          room: space,
+          candidatesBuilder: _parentSpaceCandidates,
+        ),
         const Divider(),
         RoomMembersSection(room: space),
         const Divider(),
@@ -137,6 +142,9 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
   }
 
   // ── Notification settings ──────────────────────────────────
+
+  List<Room> _parentSpaceCandidates(BuildContext ctx, Room room) =>
+      ctx.read<MatrixService>().selection.parentSpacesOf(room);
 
   Widget _buildJoinAccessRow(Room space, TextTheme tt) {
     final mode = context.read<MatrixService>().spaceAccess.getJoinMode(space);

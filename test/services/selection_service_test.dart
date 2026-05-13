@@ -376,4 +376,72 @@ void main() {
       expect(service.spaceTree, isEmpty);
     });
   });
+
+  group('parentSpacesOf', () {
+    MockRoom space(String id, String name,
+        {List<SpaceChild> children = const [],}) {
+      final r = MockRoom();
+      when(r.id).thenReturn(id);
+      when(r.isSpace).thenReturn(true);
+      when(r.membership).thenReturn(Membership.join);
+      when(r.getLocalizedDisplayname()).thenReturn(name);
+      when(r.spaceChildren).thenReturn(children);
+      return r;
+    }
+
+    test('returns spaces that list the room as child, sorted by name', () {
+      final target = space('!target:e.com', 'Target');
+      final alpha = space(
+        '!alpha:e.com',
+        'Alpha',
+        children: [_fakeSpaceChild('!target:e.com')],
+      );
+      final bravo = space(
+        '!bravo:e.com',
+        'Bravo',
+        children: [_fakeSpaceChild('!target:e.com')],
+      );
+      final unrelated = space('!c:e.com', 'Unrelated');
+
+      when(mockClient.rooms).thenReturn([bravo, alpha, unrelated, target]);
+
+      final parents = service.parentSpacesOf(target);
+      expect(parents.map((r) => r.id), ['!alpha:e.com', '!bravo:e.com']);
+    });
+
+    test('excludes non-space rooms even if they list child', () {
+      final target = space('!target:e.com', 'Target');
+      final fakeParent = MockRoom();
+      when(fakeParent.id).thenReturn('!fake:e.com');
+      when(fakeParent.isSpace).thenReturn(false);
+      when(fakeParent.membership).thenReturn(Membership.join);
+      when(fakeParent.getLocalizedDisplayname()).thenReturn('Fake');
+      when(fakeParent.spaceChildren)
+          .thenReturn([_fakeSpaceChild('!target:e.com')]);
+
+      when(mockClient.rooms).thenReturn([fakeParent, target]);
+      expect(service.parentSpacesOf(target), isEmpty);
+    });
+
+    test('excludes self', () {
+      final target = space(
+        '!target:e.com',
+        'Target',
+        children: [_fakeSpaceChild('!target:e.com')],
+      );
+      when(mockClient.rooms).thenReturn([target]);
+      expect(service.parentSpacesOf(target), isEmpty);
+    });
+
+    test('dedupes when a space is returned twice from client.rooms', () {
+      final target = space('!target:e.com', 'Target');
+      final parent = space(
+        '!p:e.com',
+        'Parent',
+        children: [_fakeSpaceChild('!target:e.com')],
+      );
+      when(mockClient.rooms).thenReturn([parent, parent, target]);
+      expect(service.parentSpacesOf(target).map((r) => r.id), ['!p:e.com']);
+    });
+  });
 }
