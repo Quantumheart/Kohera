@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/shared/widgets/join_access_section.dart';
 import 'package:matrix/matrix.dart';
 
 /// Dialog to create a new subspace within a parent space.
@@ -42,6 +44,44 @@ class _CreateSubspaceDialogState extends State<CreateSubspaceDialog> {
   String? _nameError;
   String? _networkError;
 
+  JoinMode _joinMode = JoinMode.invite;
+  List<Room> _allowedJoinSpaces = const [];
+  Set<JoinMode> _disabledModes = const {};
+  String? _restrictedRoomVersion;
+  bool _restrictedAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_loadRestrictedCapabilities());
+  }
+
+  Future<void> _loadRestrictedCapabilities() async {
+    final access = widget.matrixService.spaceAccess;
+    final knockVersion =
+        await access.pickRestrictedRoomVersion(wantKnock: true);
+    final basicVersion =
+        await access.pickRestrictedRoomVersion(wantKnock: false);
+    if (!mounted) return;
+    setState(() {
+      _restrictedRoomVersion = knockVersion ?? basicVersion;
+      _restrictedAvailable = _restrictedRoomVersion != null;
+      _disabledModes = knockVersion == null
+          ? const {JoinMode.knockRestricted}
+          : const <JoinMode>{};
+      if (_restrictedAvailable && _allowedJoinSpaces.isEmpty) {
+        _joinMode = JoinMode.restricted;
+        _allowedJoinSpaces = [widget.parentSpace];
+      }
+      if (!_restrictedAvailable) {
+        debugPrint(
+          '[Kohera] Restricted join unavailable: '
+          'server room versions has no v8+',
+        );
+      }
+    });
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -69,12 +109,35 @@ class _CreateSubspaceDialogState extends State<CreateSubspaceDialog> {
       final client = widget.matrixService.client;
       final topic = _topicController.text.trim();
 
+      final useRestricted = _restrictedAvailable &&
+          (_joinMode == JoinMode.restricted ||
+              _joinMode == JoinMode.knockRestricted) &&
+          _allowedJoinSpaces.isNotEmpty;
+      final joinRulesEvent = useRestricted
+          ? StateEvent(
+              type: EventTypes.RoomJoinRules,
+              content: {
+                'join_rule': _joinMode == JoinMode.knockRestricted
+                    ? 'knock_restricted'
+                    : 'restricted',
+                'allow': [
+                  for (final s in _allowedJoinSpaces)
+                    {'type': 'm.room_membership', 'room_id': s.id},
+                ],
+              },
+            )
+          : null;
+
       // Create the subspace room.
       final roomId = await client.createRoom(
         name: name,
         topic: topic.isNotEmpty ? topic : null,
         creationContent: {'type': 'm.space'},
         visibility: Visibility.private,
+        roomVersion: useRestricted ? _restrictedRoomVersion : null,
+        initialState: [
+          if (joinRulesEvent != null) joinRulesEvent,
+        ],
         powerLevelContentOverride: {'events_default': 100},
       );
 
@@ -141,6 +204,20 @@ class _CreateSubspaceDialogState extends State<CreateSubspaceDialog> {
                 border: OutlineInputBorder(),
               ),
             ),
+            if (_restrictedAvailable) ...[
+              const SizedBox(height: 8),
+              JoinAccessSection(
+                mode: _joinMode,
+                allowedSpaces: _allowedJoinSpaces,
+                candidateSpaces: [widget.parentSpace],
+                needsUpgrade: false,
+                canEdit: !_loading,
+                disabledModes: _disabledModes,
+                onModeChanged: (m) => setState(() => _joinMode = m),
+                onAllowedSpacesChanged: (l) =>
+                    setState(() => _allowedJoinSpaces = l),
+              ),
+            ],
             if (_networkError != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
