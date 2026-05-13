@@ -26,14 +26,11 @@ class JoinAccessSection extends StatelessWidget {
   final ValueChanged<List<Room>> onAllowedSpacesChanged;
   final VoidCallback? onUpgradeRequested;
 
-  static bool _isRestrictedFamily(JoinMode mode) =>
-      mode == JoinMode.restricted || mode == JoinMode.knockRestricted;
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final restrictedFamily = _isRestrictedFamily(mode);
+    final restrictedFamily = mode.isRestrictedFamily;
     final showPicker = restrictedFamily;
     final showUpgrade = needsUpgrade && restrictedFamily;
     final emptyAllowError =
@@ -82,6 +79,14 @@ class JoinAccessSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           disabledTooltip,
+          if (!canEdit)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'Requires higher power level to change.',
+                style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+              ),
+            ),
           if (showPicker) ...[
             const SizedBox(height: 12),
             _SpacePicker(
