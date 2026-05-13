@@ -262,6 +262,23 @@ class SelectionService extends ChangeNotifier {
     return room.unsafeGetUserFromMemoryOrFallback(senderId).calcDisplayname();
   }
 
+  List<Room> parentSpacesOf(Room room) {
+    final ids = <String>{};
+    final result = <Room>[];
+    for (final candidate in _client.rooms) {
+      if (!candidate.isSpace) continue;
+      if (candidate.id == room.id) continue;
+      final isParent =
+          candidate.spaceChildren.any((c) => c.roomId == room.id);
+      if (isParent && ids.add(candidate.id)) {
+        result.add(candidate);
+      }
+    }
+    result.sort((a, b) =>
+        a.getLocalizedDisplayname().compareTo(b.getLocalizedDisplayname()),);
+    return result;
+  }
+
   List<Room> get orphanRooms {
     _ensureTreeFresh();
     final spaceRoomIds = _cachedAllSpaceRoomIds!;

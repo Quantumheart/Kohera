@@ -10,10 +10,23 @@ import 'package:kohera/shared/widgets/join_access_section.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
+typedef CandidateSpacesBuilder = List<Room> Function(
+  BuildContext context,
+  Room room,
+);
+
 class JoinAccessController extends StatefulWidget {
-  const JoinAccessController({required this.room, super.key});
+  const JoinAccessController({
+    required this.room,
+    this.candidatesBuilder,
+    super.key,
+  });
 
   final Room room;
+
+  /// Optional override for the picker's candidate list. Defaults to all
+  /// joined spaces minus the room itself.
+  final CandidateSpacesBuilder? candidatesBuilder;
 
   @override
   State<JoinAccessController> createState() => _JoinAccessControllerState();
@@ -45,6 +58,8 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
   }
 
   List<Room> get _candidates {
+    final builder = widget.candidatesBuilder;
+    if (builder != null) return builder(context, widget.room);
     final selection = context.read<MatrixService>().selection;
     return selection.spaces.where((s) => s.id != widget.room.id).toList();
   }
@@ -149,7 +164,12 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
           needsUpgrade: _needsUpgrade,
           canEdit: canEdit,
           onModeChanged: (m) {
-            setState(() => _mode = m);
+            setState(() {
+              _mode = m;
+              if (_isRestrictedFamily(m) && _allowed.isEmpty) {
+                _allowed = List.of(_candidates);
+              }
+            });
             unawaited(_applyIfValid());
           },
           onAllowedSpacesChanged: (list) {
