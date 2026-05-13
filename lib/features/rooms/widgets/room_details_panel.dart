@@ -8,6 +8,7 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
+import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
@@ -206,7 +207,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
             child: Text(_error!, style: TextStyle(color: cs.error, fontSize: 13)),
           ),
         const Divider(),
-        _buildJoinAccessRow(room, matrix, tt),
+        JoinAccessController(room: room),
         const Divider(),
         RoomMembersSection(room: room),
         const Divider(),
@@ -293,18 +294,6 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
           ),
         ],
       ),
-    );
-  }
-
-  // ── Join access row ────────────────────────────────────────
-
-  Widget _buildJoinAccessRow(Room room, MatrixService matrix, TextTheme tt) {
-    final mode = matrix.spaceAccess.getJoinMode(room);
-    return ListTile(
-      dense: true,
-      leading: const Icon(Icons.lock_outline),
-      title: const Text('Join'),
-      trailing: Text(mode.displayLabel, style: tt.bodyMedium),
     );
   }
 

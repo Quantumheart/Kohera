@@ -122,7 +122,6 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
             child: Text(_error!, style: TextStyle(color: cs.error, fontSize: 13)),
           ),
         const Divider(),
-        _buildJoinAccessRow(space, tt),
         JoinAccessController(
           room: space,
           candidatesBuilder: _parentSpaceCandidates,
@@ -145,16 +144,6 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
 
   List<Room> _parentSpaceCandidates(BuildContext ctx, Room room) =>
       ctx.read<MatrixService>().selection.parentSpacesOf(room);
-
-  Widget _buildJoinAccessRow(Room space, TextTheme tt) {
-    final mode = context.read<MatrixService>().spaceAccess.getJoinMode(space);
-    return ListTile(
-      dense: true,
-      leading: const Icon(Icons.lock_outline),
-      title: const Text('Join'),
-      trailing: Text(mode.displayLabel, style: tt.bodyMedium),
-    );
-  }
 
   Widget _buildNotificationSection(Room space, ColorScheme cs, TextTheme tt) {
     return Column(

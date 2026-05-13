@@ -13,6 +13,7 @@ class JoinAccessSection extends StatelessWidget {
     required this.onAllowedSpacesChanged,
     this.onUpgradeRequested,
     this.disabledModes = const {},
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     super.key,
   });
 
@@ -22,6 +23,7 @@ class JoinAccessSection extends StatelessWidget {
   final bool needsUpgrade;
   final bool canEdit;
   final Set<JoinMode> disabledModes;
+  final EdgeInsetsGeometry padding;
   final ValueChanged<JoinMode> onModeChanged;
   final ValueChanged<List<Room>> onAllowedSpacesChanged;
   final VoidCallback? onUpgradeRequested;
@@ -74,7 +76,7 @@ class JoinAccessSection extends StatelessWidget {
           );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: padding,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
