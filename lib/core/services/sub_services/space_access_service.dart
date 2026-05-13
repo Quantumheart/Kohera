@@ -72,52 +72,16 @@ class SpaceAccessService {
     required String roomId,
     required JoinMode mode,
     List<String> allowSpaceIds = const [],
-  }) {
-    final restrictedFamily =
-        mode == JoinMode.restricted || mode == JoinMode.knockRestricted;
-    if (restrictedFamily && allowSpaceIds.isEmpty) {
-      throw ArgumentError(
-        'allowSpaceIds must contain at least one space for $mode',
-      );
-    }
-    final joinRule = switch (mode) {
-      JoinMode.invite => 'invite',
-      JoinMode.public => 'public',
-      JoinMode.knock => 'knock',
-      JoinMode.restricted => 'restricted',
-      JoinMode.knockRestricted => 'knock_restricted',
-    };
-    return _writeJoinRule(
-      roomId,
-      joinRule,
-      allowSpaceIds: restrictedFamily ? allowSpaceIds : const [],
-    );
-  }
-
-  Future<void> _writeJoinRule(
-    String roomId,
-    String joinRule, {
-    required List<String> allowSpaceIds,
   }) async {
-    final existing = _client
-            .getRoomById(roomId)
-            ?.getState(EventTypes.RoomJoinRules)
-            ?.content
-            .tryGetList<Map<String, Object?>>('allow') ??
-        const <Map<String, Object?>>[];
-    final preserved = existing
-        .where((e) => e['type'] != 'm.room_membership')
-        .toList(growable: true);
-    final newAllow = [
-      ...preserved,
-      for (final id in allowSpaceIds)
-        <String, Object?>{'type': 'm.room_membership', 'room_id': id},
-    ];
-
-    final payload = <String, Object?>{
-      'join_rule': joinRule,
-      if (newAllow.isNotEmpty) 'allow': newAllow,
-    };
+    _validateForMode(mode, allowSpaceIds);
+    final existingForeign = mode.isRestrictedFamily
+        ? _foreignAllowEntries(roomId)
+        : const <Map<String, Object?>>[];
+    final payload = buildJoinRulesPayload(
+      mode,
+      mode.isRestrictedFamily ? allowSpaceIds : const [],
+      preserveEntries: existingForeign,
+    );
     await _client.setRoomStateWithKey(
       roomId,
       EventTypes.RoomJoinRules,
@@ -126,14 +90,70 @@ class SpaceAccessService {
     );
   }
 
+  /// Builds an `m.room.join_rules` content payload. Shared by [applyJoinMode]
+  /// and creation flows that bundle the event into `initial_state`.
+  Map<String, Object?> buildJoinRulesPayload(
+    JoinMode mode,
+    List<String> allowSpaceIds, {
+    List<Map<String, Object?>> preserveEntries = const [],
+  }) {
+    _validateForMode(mode, allowSpaceIds);
+    final allow = mode.isRestrictedFamily
+        ? [
+            ...preserveEntries,
+            for (final id in allowSpaceIds)
+              <String, Object?>{'type': 'm.room_membership', 'room_id': id},
+          ]
+        : const <Map<String, Object?>>[];
+    return <String, Object?>{
+      'join_rule': mode.wire,
+      if (allow.isNotEmpty) 'allow': allow,
+    };
+  }
+
+  /// Same payload, wrapped as a [StateEvent] for `createRoom`'s
+  /// `initial_state` parameter.
+  StateEvent buildJoinRulesStateEvent(
+    JoinMode mode,
+    List<String> allowSpaceIds,
+  ) {
+    return StateEvent(
+      type: EventTypes.RoomJoinRules,
+      content: buildJoinRulesPayload(mode, allowSpaceIds),
+    );
+  }
+
+  void _validateForMode(JoinMode mode, List<String> allowSpaceIds) {
+    if (mode.isRestrictedFamily && allowSpaceIds.isEmpty) {
+      throw ArgumentError(
+        'allowSpaceIds must contain at least one space for $mode',
+      );
+    }
+  }
+
+  List<Map<String, Object?>> _foreignAllowEntries(String roomId) {
+    final existing = _client
+            .getRoomById(roomId)
+            ?.getState(EventTypes.RoomJoinRules)
+            ?.content
+            .tryGetList<Map<String, Object?>>('allow') ??
+        const <Map<String, Object?>>[];
+    return existing
+        .where((e) => e['type'] != 'm.room_membership')
+        .toList(growable: false);
+  }
+
   Future<String> upgradeRoomTo(Room room, String newVersion) {
     return _client.upgradeRoom(room.id, newVersion);
   }
 
   Future<void> rewireParentSpaces(String oldRoomId, String newRoomId) async {
     final parents = _client.rooms
-        .where((r) =>
-            r.isSpace && r.spaceChildren.any((c) => c.roomId == oldRoomId),)
+        .where(
+          (r) =>
+              r.isSpace &&
+              r.spaceChildren.any((c) => c.roomId == oldRoomId),
+        )
         .toList();
     for (final parent in parents) {
       await parent.setSpaceChild(newRoomId);
@@ -162,11 +182,13 @@ class SpaceAccessService {
     if (cached != null) return cached;
     try {
       final caps = await _client.getCapabilities();
-      final keys = caps.mRoomVersions?.available.keys.toList(growable: false) ??
-          const <String>[];
+      final keys =
+          caps.mRoomVersions?.available.keys.toList(growable: false) ??
+              const <String>[];
       return _supportedVersionsCache = List.unmodifiable(keys);
     } catch (e) {
-      return _supportedVersionsCache = const <String>[];
+      // Don't poison the cache — let the next call retry.
+      return const <String>[];
     }
   }
 }

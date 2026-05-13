@@ -888,6 +888,16 @@ class _FakeUser_78 extends _i1.SmartFake implements _i2.User {
         );
 }
 
+class _FakeStateEvent_79 extends _i1.SmartFake implements _i2.StateEvent {
+  _FakeStateEvent_79(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
 /// A class which mocks [Client].
 ///
 /// See the documentation for Mockito's code generation for more information.
@@ -10112,6 +10122,60 @@ class MockSpaceAccessService extends _i1.Mock
         returnValue: _i5.Future<void>.value(),
         returnValueForMissingStub: _i5.Future<void>.value(),
       ) as _i5.Future<void>);
+
+  @override
+  Map<String, Object?> buildJoinRulesPayload(
+    _i25.JoinMode? mode,
+    List<String>? allowSpaceIds, {
+    List<Map<String, Object?>>? preserveEntries = const [],
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #buildJoinRulesPayload,
+          [
+            mode,
+            allowSpaceIds,
+          ],
+          {#preserveEntries: preserveEntries},
+        ),
+        returnValue: <String, Object?>{},
+        returnValueForMissingStub: <String, Object?>{},
+      ) as Map<String, Object?>);
+
+  @override
+  _i2.StateEvent buildJoinRulesStateEvent(
+    _i25.JoinMode? mode,
+    List<String>? allowSpaceIds,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #buildJoinRulesStateEvent,
+          [
+            mode,
+            allowSpaceIds,
+          ],
+        ),
+        returnValue: _FakeStateEvent_79(
+          this,
+          Invocation.method(
+            #buildJoinRulesStateEvent,
+            [
+              mode,
+              allowSpaceIds,
+            ],
+          ),
+        ),
+        returnValueForMissingStub: _FakeStateEvent_79(
+          this,
+          Invocation.method(
+            #buildJoinRulesStateEvent,
+            [
+              mode,
+              allowSpaceIds,
+            ],
+          ),
+        ),
+      ) as _i2.StateEvent);
 
   @override
   _i5.Future<String> upgradeRoomTo(

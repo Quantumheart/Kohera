@@ -847,8 +847,8 @@ class _FakeOutboxService_74 extends _i1.SmartFake
         );
 }
 
-class _FakeRoomSummary_75 extends _i1.SmartFake implements _i2.RoomSummary {
-  _FakeRoomSummary_75(
+class _FakeStateEvent_75 extends _i1.SmartFake implements _i2.StateEvent {
+  _FakeStateEvent_75(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -857,9 +857,19 @@ class _FakeRoomSummary_75 extends _i1.SmartFake implements _i2.RoomSummary {
         );
 }
 
-class _FakeLatestReceiptState_76 extends _i1.SmartFake
+class _FakeRoomSummary_76 extends _i1.SmartFake implements _i2.RoomSummary {
+  _FakeRoomSummary_76(
+    Object parent,
+    Invocation parentInvocation,
+  ) : super(
+          parent,
+          parentInvocation,
+        );
+}
+
+class _FakeLatestReceiptState_77 extends _i1.SmartFake
     implements _i2.LatestReceiptState {
-  _FakeLatestReceiptState_76(
+  _FakeLatestReceiptState_77(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -868,8 +878,8 @@ class _FakeLatestReceiptState_76 extends _i1.SmartFake
         );
 }
 
-class _FakeTimeline_77 extends _i1.SmartFake implements _i2.Timeline {
-  _FakeTimeline_77(
+class _FakeTimeline_78 extends _i1.SmartFake implements _i2.Timeline {
+  _FakeTimeline_78(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -878,8 +888,8 @@ class _FakeTimeline_77 extends _i1.SmartFake implements _i2.Timeline {
         );
 }
 
-class _FakeUser_78 extends _i1.SmartFake implements _i2.User {
-  _FakeUser_78(
+class _FakeUser_79 extends _i1.SmartFake implements _i2.User {
+  _FakeUser_79(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -8406,6 +8416,60 @@ class MockSpaceAccessService extends _i1.Mock
       ) as _i5.Future<void>);
 
   @override
+  Map<String, Object?> buildJoinRulesPayload(
+    _i23.JoinMode? mode,
+    List<String>? allowSpaceIds, {
+    List<Map<String, Object?>>? preserveEntries = const [],
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #buildJoinRulesPayload,
+          [
+            mode,
+            allowSpaceIds,
+          ],
+          {#preserveEntries: preserveEntries},
+        ),
+        returnValue: <String, Object?>{},
+        returnValueForMissingStub: <String, Object?>{},
+      ) as Map<String, Object?>);
+
+  @override
+  _i2.StateEvent buildJoinRulesStateEvent(
+    _i23.JoinMode? mode,
+    List<String>? allowSpaceIds,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #buildJoinRulesStateEvent,
+          [
+            mode,
+            allowSpaceIds,
+          ],
+        ),
+        returnValue: _FakeStateEvent_75(
+          this,
+          Invocation.method(
+            #buildJoinRulesStateEvent,
+            [
+              mode,
+              allowSpaceIds,
+            ],
+          ),
+        ),
+        returnValueForMissingStub: _FakeStateEvent_75(
+          this,
+          Invocation.method(
+            #buildJoinRulesStateEvent,
+            [
+              mode,
+              allowSpaceIds,
+            ],
+          ),
+        ),
+      ) as _i2.StateEvent);
+
+  @override
   _i5.Future<String> upgradeRoomTo(
     _i2.Room? room,
     String? newVersion,
@@ -8522,11 +8586,11 @@ class MockRoom extends _i1.Mock implements _i2.Room {
   @override
   _i2.RoomSummary get summary => (super.noSuchMethod(
         Invocation.getter(#summary),
-        returnValue: _FakeRoomSummary_75(
+        returnValue: _FakeRoomSummary_76(
           this,
           Invocation.getter(#summary),
         ),
-        returnValueForMissingStub: _FakeRoomSummary_75(
+        returnValueForMissingStub: _FakeRoomSummary_76(
           this,
           Invocation.getter(#summary),
         ),
@@ -8746,11 +8810,11 @@ class MockRoom extends _i1.Mock implements _i2.Room {
   @override
   _i2.LatestReceiptState get receiptState => (super.noSuchMethod(
         Invocation.getter(#receiptState),
-        returnValue: _FakeLatestReceiptState_76(
+        returnValue: _FakeLatestReceiptState_77(
           this,
           Invocation.getter(#receiptState),
         ),
-        returnValueForMissingStub: _FakeLatestReceiptState_76(
+        returnValueForMissingStub: _FakeLatestReceiptState_77(
           this,
           Invocation.getter(#receiptState),
         ),
@@ -9709,7 +9773,7 @@ class MockRoom extends _i1.Mock implements _i2.Room {
             #limit: limit,
           },
         ),
-        returnValue: _i5.Future<_i2.Timeline>.value(_FakeTimeline_77(
+        returnValue: _i5.Future<_i2.Timeline>.value(_FakeTimeline_78(
           this,
           Invocation.method(
             #getTimeline,
@@ -9726,7 +9790,7 @@ class MockRoom extends _i1.Mock implements _i2.Room {
           ),
         )),
         returnValueForMissingStub:
-            _i5.Future<_i2.Timeline>.value(_FakeTimeline_77(
+            _i5.Future<_i2.Timeline>.value(_FakeTimeline_78(
           this,
           Invocation.method(
             #getTimeline,
@@ -9790,14 +9854,14 @@ class MockRoom extends _i1.Mock implements _i2.Room {
           #getUserByMXIDSync,
           [mxID],
         ),
-        returnValue: _FakeUser_78(
+        returnValue: _FakeUser_79(
           this,
           Invocation.method(
             #getUserByMXIDSync,
             [mxID],
           ),
         ),
-        returnValueForMissingStub: _FakeUser_78(
+        returnValueForMissingStub: _FakeUser_79(
           this,
           Invocation.method(
             #getUserByMXIDSync,
@@ -9813,14 +9877,14 @@ class MockRoom extends _i1.Mock implements _i2.Room {
           #unsafeGetUserFromMemoryOrFallback,
           [mxID],
         ),
-        returnValue: _FakeUser_78(
+        returnValue: _FakeUser_79(
           this,
           Invocation.method(
             #unsafeGetUserFromMemoryOrFallback,
             [mxID],
           ),
         ),
-        returnValueForMissingStub: _FakeUser_78(
+        returnValueForMissingStub: _FakeUser_79(
           this,
           Invocation.method(
             #unsafeGetUserFromMemoryOrFallback,
