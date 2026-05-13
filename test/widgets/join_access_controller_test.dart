@@ -78,6 +78,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Public').last);
     await tester.pumpAndSettle();
+    // Auto-save is debounced — advance past the timer.
+    await tester.pump(const Duration(milliseconds: 600));
 
     verify(
       access.applyJoinMode(
@@ -148,8 +150,14 @@ void main() {
         access.needsUpgradeForRestricted(room,
             wantKnock: anyNamed('wantKnock'),),
       ).thenReturn(true);
+      when(access.pickRestrictedRoomVersion(wantKnock: false))
+          .thenAnswer((_) async => '10');
+      when(access.pickRestrictedRoomVersion(wantKnock: true))
+          .thenAnswer((_) async => '10');
       when(access.upgradeRoomTo(room, '10'))
           .thenAnswer((_) async => '!newroom:e.com');
+      when(client.waitForRoomInSync(any, join: anyNamed('join')))
+          .thenAnswer((_) async => SyncUpdate(nextBatch: ''));
       when(access.rewireParentSpaces('!r:e.com', '!newroom:e.com'))
           .thenAnswer((_) async {});
       when(

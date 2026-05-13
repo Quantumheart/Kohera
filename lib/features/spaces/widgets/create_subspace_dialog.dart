@@ -110,21 +110,12 @@ class _CreateSubspaceDialogState extends State<CreateSubspaceDialog> {
       final topic = _topicController.text.trim();
 
       final useRestricted = _restrictedAvailable &&
-          (_joinMode == JoinMode.restricted ||
-              _joinMode == JoinMode.knockRestricted) &&
+          _joinMode.isRestrictedFamily &&
           _allowedJoinSpaces.isNotEmpty;
       final joinRulesEvent = useRestricted
-          ? StateEvent(
-              type: EventTypes.RoomJoinRules,
-              content: {
-                'join_rule': _joinMode == JoinMode.knockRestricted
-                    ? 'knock_restricted'
-                    : 'restricted',
-                'allow': [
-                  for (final s in _allowedJoinSpaces)
-                    {'type': 'm.room_membership', 'room_id': s.id},
-                ],
-              },
+          ? widget.matrixService.spaceAccess.buildJoinRulesStateEvent(
+              _joinMode,
+              _allowedJoinSpaces.map((s) => s.id).toList(growable: false),
             )
           : null;
 

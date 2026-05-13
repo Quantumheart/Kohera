@@ -197,6 +197,17 @@ void main() {
             .thenAnswer((_) async => '10');
         when(mockAccess.pickRestrictedRoomVersion(wantKnock: false))
             .thenAnswer((_) async => '10');
+        when(mockAccess.buildJoinRulesStateEvent(any, any)).thenReturn(
+          StateEvent(
+            type: EventTypes.RoomJoinRules,
+            content: {
+              'join_rule': 'restricted',
+              'allow': [
+                {'type': 'm.room_membership', 'room_id': '!parent:e.com'},
+              ],
+            },
+          ),
+        );
         when(
           mockClient.createRoom(
             name: anyNamed('name'),
