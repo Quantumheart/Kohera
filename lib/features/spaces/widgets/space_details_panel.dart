@@ -121,6 +121,8 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
             child: Text(_error!, style: TextStyle(color: cs.error, fontSize: 13)),
           ),
         const Divider(),
+        _buildJoinAccessRow(space, tt),
+        const Divider(),
         RoomMembersSection(room: space),
         const Divider(),
         _buildNotificationSection(space, cs, tt),
@@ -135,6 +137,16 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
   }
 
   // ── Notification settings ──────────────────────────────────
+
+  Widget _buildJoinAccessRow(Room space, TextTheme tt) {
+    final mode = context.read<MatrixService>().spaceAccess.getJoinMode(space);
+    return ListTile(
+      dense: true,
+      leading: const Icon(Icons.lock_outline),
+      title: const Text('Join'),
+      trailing: Text(mode.displayLabel, style: tt.bodyMedium),
+    );
+  }
 
   Widget _buildNotificationSection(Room space, ColorScheme cs, TextTheme tt) {
     return Column(
