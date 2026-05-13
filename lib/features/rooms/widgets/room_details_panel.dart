@@ -206,6 +206,8 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
             child: Text(_error!, style: TextStyle(color: cs.error, fontSize: 13)),
           ),
         const Divider(),
+        _buildJoinAccessRow(room, matrix, tt),
+        const Divider(),
         RoomMembersSection(room: room),
         const Divider(),
         _buildEncryptionSection(room, cs, tt),
@@ -291,6 +293,18 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
           ),
         ],
       ),
+    );
+  }
+
+  // ── Join access row ────────────────────────────────────────
+
+  Widget _buildJoinAccessRow(Room room, MatrixService matrix, TextTheme tt) {
+    final mode = matrix.spaceAccess.getJoinMode(room);
+    return ListTile(
+      dense: true,
+      leading: const Icon(Icons.lock_outline),
+      title: const Text('Join'),
+      trailing: Text(mode.displayLabel, style: tt.bodyMedium),
     );
   }
 

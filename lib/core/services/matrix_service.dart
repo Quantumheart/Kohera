@@ -8,6 +8,7 @@ import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/outbox_connectivity.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/core/utils/network_error.dart';
@@ -50,6 +51,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       storage: _storage,
     );
     selection = SelectionService(client: _client);
+    spaceAccess = SpaceAccessService(client: _client);
     sync = SyncService(
       client: _client,
       onPostSyncBackup: () async {
@@ -107,6 +109,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   late final UiaService uia;
   late final ChatBackupService chatBackup;
   late final SelectionService selection;
+  late final SpaceAccessService spaceAccess;
   late final SyncService sync;
   late final AuthService auth;
   late final OutboxService outbox;
