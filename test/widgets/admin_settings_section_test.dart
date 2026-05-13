@@ -1,26 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/models/join_mode.dart';
+import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:provider/provider.dart';
 
 @GenerateNiceMocks([
   MockSpec<Room>(),
+  MockSpec<Client>(),
+  MockSpec<MatrixService>(),
+  MockSpec<SpaceAccessService>(),
 ])
 import 'admin_settings_section_test.mocks.dart';
 
 void main() {
   late MockRoom mockRoom;
+  late MockMatrixService mockMatrix;
+  late MockClient mockClient;
+  late MockSpaceAccessService mockAccess;
+  late SelectionService selection;
 
   setUp(() {
     mockRoom = MockRoom();
+    mockMatrix = MockMatrixService();
+    mockClient = MockClient();
+    mockAccess = MockSpaceAccessService();
+    when(mockClient.rooms).thenReturn([]);
+    when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    selection = SelectionService(client: mockClient);
+    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.spaceAccess).thenReturn(mockAccess);
+    when(mockMatrix.selection).thenReturn(selection);
+    when(mockAccess.getJoinMode(mockRoom)).thenReturn(JoinMode.invite);
+    when(mockAccess.allowedSpaceIds(mockRoom)).thenReturn(const []);
+    when(mockAccess.needsUpgradeForRestricted(
+      mockRoom,
+      wantKnock: anyNamed('wantKnock'),
+    ),).thenReturn(false);
+    when(mockRoom.id).thenReturn('!r:e.com');
     when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
     when(mockRoom.topic).thenReturn('A topic');
     when(mockRoom.encrypted).thenReturn(false);
     when(mockRoom.canChangeStateEvent(EventTypes.RoomName)).thenReturn(true);
     when(mockRoom.canChangeStateEvent(EventTypes.RoomTopic)).thenReturn(true);
     when(mockRoom.canChangeStateEvent(EventTypes.Encryption)).thenReturn(true);
+    when(mockRoom.canChangeStateEvent(EventTypes.RoomJoinRules))
+        .thenReturn(false);
     when(mockRoom.canChangePowerLevel).thenReturn(false);
     when(mockRoom.getState(EventTypes.RoomPowerLevels)).thenReturn(null);
   });
@@ -29,7 +60,10 @@ void main() {
     return MaterialApp(
       home: Scaffold(
         body: SingleChildScrollView(
-          child: AdminSettingsSection(room: mockRoom),
+          child: ChangeNotifierProvider<MatrixService>.value(
+            value: mockMatrix,
+            child: AdminSettingsSection(room: mockRoom),
+          ),
         ),
       ),
     );

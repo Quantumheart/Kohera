@@ -141,6 +141,22 @@ class SpaceAccessService {
     }
   }
 
+  /// Pick the highest server-supported room version usable for restricted /
+  /// knock_restricted joins. Returns null if the server supports neither.
+  Future<String?> pickRestrictedRoomVersion({required bool wantKnock}) async {
+    final available = await serverSupportedRoomVersions();
+    final numeric = available
+        .map((v) => MapEntry(v, int.tryParse(v)))
+        .where((e) => e.value != null)
+        .toList()
+      ..sort((a, b) => b.value!.compareTo(a.value!));
+    final threshold = wantKnock ? 10 : 8;
+    for (final entry in numeric) {
+      if (entry.value! >= threshold) return entry.key;
+    }
+    return null;
+  }
+
   Future<List<String>> serverSupportedRoomVersions() async {
     final cached = _supportedVersionsCache;
     if (cached != null) return cached;

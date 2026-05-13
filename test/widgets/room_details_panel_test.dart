@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/features/rooms/widgets/room_details_panel.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -13,6 +15,7 @@ import 'package:provider/provider.dart';
   MockSpec<Client>(),
   MockSpec<MatrixService>(),
   MockSpec<Room>(),
+  MockSpec<SpaceAccessService>(),
 ])
 import 'room_details_panel_test.mocks.dart';
 
@@ -29,7 +32,15 @@ void main() {
     mockRoom = MockRoom();
     syncController = CachedStreamController<SyncUpdate>();
 
+    final mockAccess = MockSpaceAccessService();
     when(mockMatrixService.client).thenReturn(mockClient);
+    when(mockMatrixService.spaceAccess).thenReturn(mockAccess);
+    when(mockAccess.getJoinMode(mockRoom)).thenReturn(JoinMode.invite);
+    when(mockAccess.allowedSpaceIds(mockRoom)).thenReturn(const []);
+    when(mockAccess.needsUpgradeForRestricted(
+      mockRoom,
+      wantKnock: anyNamed('wantKnock'),
+    ),).thenReturn(false);
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
     when(mockClient.userID).thenReturn('@me:example.com');
     when(mockClient.updateUserDeviceKeys()).thenAnswer((_) async {});

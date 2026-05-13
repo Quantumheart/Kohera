@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/known_contacts.dart';
+import 'package:kohera/shared/widgets/join_access_section.dart';
 import 'package:matrix/matrix.dart';
 
 // ── New Room dialog ───────────────────────────────────────────
@@ -53,11 +55,49 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
   bool _addToSpace = true;
   final Set<String> _targetSpaceIds = {};
 
+  // Restricted-join state (only relevant when created inside a parent space).
+  JoinMode _joinMode = JoinMode.invite;
+  List<Room> _allowedJoinSpaces = const [];
+  Set<JoinMode> _disabledModes = const {};
+  String? _restrictedRoomVersion;
+  bool _restrictedAvailable = false;
+
   @override
   void initState() {
     super.initState();
     _inviteFocusNode.addListener(_onFocusChanged);
     _initTargetSpaces();
+    unawaited(_loadRestrictedCapabilities());
+  }
+
+  Future<void> _loadRestrictedCapabilities() async {
+    if (_eligibleParentSpaces().isEmpty) return;
+    final access = widget.matrixService.spaceAccess;
+    final knockVersion =
+        await access.pickRestrictedRoomVersion(wantKnock: true);
+    final basicVersion =
+        await access.pickRestrictedRoomVersion(wantKnock: false);
+    if (!mounted) return;
+    setState(() {
+      _restrictedRoomVersion = knockVersion ?? basicVersion;
+      _restrictedAvailable = _restrictedRoomVersion != null;
+      _disabledModes = knockVersion == null
+          ? const {JoinMode.knockRestricted}
+          : const <JoinMode>{};
+      if (_restrictedAvailable && _allowedJoinSpaces.isEmpty) {
+        final parents = _eligibleParentSpaces();
+        if (parents.isNotEmpty) {
+          _joinMode = JoinMode.restricted;
+          _allowedJoinSpaces = [parents.first];
+        }
+      }
+      if (!_restrictedAvailable) {
+        debugPrint(
+          '[Kohera] Restricted join unavailable: '
+          'server room versions has no v8+',
+        );
+      }
+    });
   }
 
   void _initTargetSpaces() {
@@ -287,10 +327,31 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
       final client = widget.matrixService.client;
       final topic = _topicController.text.trim();
 
+      final useRestricted = !_isPublic &&
+          _restrictedAvailable &&
+          (_joinMode == JoinMode.restricted ||
+              _joinMode == JoinMode.knockRestricted) &&
+          _allowedJoinSpaces.isNotEmpty;
+      final joinRulesEvent = useRestricted
+          ? StateEvent(
+              type: EventTypes.RoomJoinRules,
+              content: {
+                'join_rule': _joinMode == JoinMode.knockRestricted
+                    ? 'knock_restricted'
+                    : 'restricted',
+                'allow': [
+                  for (final s in _allowedJoinSpaces)
+                    {'type': 'm.room_membership', 'room_id': s.id},
+                ],
+              },
+            )
+          : null;
+
       final roomId = await client.createRoom(
         name: name,
         topic: topic.isNotEmpty ? topic : null,
         visibility: _isPublic ? Visibility.public : Visibility.private,
+        roomVersion: useRestricted ? _restrictedRoomVersion : null,
         initialState: [
           if (_enableEncryption)
             StateEvent(
@@ -300,6 +361,7 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
               },
               type: EventTypes.Encryption,
             ),
+          if (joinRulesEvent != null) joinRulesEvent,
         ],
         invite: _invitedUsers.isNotEmpty ? _invitedUsers : null,
       );
@@ -463,6 +525,20 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
               contentPadding: EdgeInsets.zero,
             ),
             ..._buildSpaceSelection(),
+            if (_restrictedAvailable && _eligibleParentSpaces().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              JoinAccessSection(
+                mode: _joinMode,
+                allowedSpaces: _allowedJoinSpaces,
+                candidateSpaces: _eligibleParentSpaces(),
+                needsUpgrade: false,
+                canEdit: !_loading,
+                disabledModes: _disabledModes,
+                onModeChanged: (m) => setState(() => _joinMode = m),
+                onAllowedSpacesChanged: (l) =>
+                    setState(() => _allowedJoinSpaces = l),
+              ),
+            ],
             if (_networkError != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),

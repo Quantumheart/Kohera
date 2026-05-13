@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/features/spaces/widgets/space_details_panel.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
@@ -11,6 +15,7 @@ import 'package:provider/provider.dart';
   MockSpec<Client>(),
   MockSpec<MatrixService>(),
   MockSpec<Room>(),
+  MockSpec<SpaceAccessService>(),
 ])
 import 'space_details_panel_test.mocks.dart';
 
@@ -19,12 +24,27 @@ void main() {
   late MockMatrixService mockMatrixService;
   late MockRoom mockSpace;
 
+  late MockSpaceAccessService mockAccess;
+  late SelectionService selection;
+
   setUp(() {
     mockClient = MockClient();
     mockMatrixService = MockMatrixService();
     mockSpace = MockRoom();
+    mockAccess = MockSpaceAccessService();
+    when(mockClient.rooms).thenReturn([]);
+    when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    selection = SelectionService(client: mockClient);
 
     when(mockMatrixService.client).thenReturn(mockClient);
+    when(mockMatrixService.spaceAccess).thenReturn(mockAccess);
+    when(mockMatrixService.selection).thenReturn(selection);
+    when(mockAccess.getJoinMode(mockSpace)).thenReturn(JoinMode.invite);
+    when(mockAccess.allowedSpaceIds(mockSpace)).thenReturn(const []);
+    when(mockAccess.needsUpgradeForRestricted(
+      mockSpace,
+      wantKnock: anyNamed('wantKnock'),
+    ),).thenReturn(false);
     when(mockClient.getRoomById('!space:example.com')).thenReturn(mockSpace);
     when(mockClient.userID).thenReturn('@me:example.com');
     when(mockSpace.id).thenReturn('!space:example.com');
