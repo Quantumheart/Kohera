@@ -296,11 +296,15 @@ void main() {
       // Device list should not be visible initially
       expect(find.text('DEVICE1'), findsNothing);
 
-      // Tap the verification summary to expand
+      // Use a taller surface so the encryption section + expanded device
+      // list both fit; default 800×600 viewport now clips the section.
+      await tester.binding.setSurfaceSize(const Size(800, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpAndSettle();
+
       await tester.tap(find.textContaining('of 1 device verified'));
       await tester.pumpAndSettle();
 
-      // Device should now be visible
       expect(find.text('DEVICE1'), findsOneWidget);
     });
   });
