@@ -38,11 +38,19 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
   int _searchGeneration = 0;
   List<Profile>? _cachedContacts;
   Set<String>? _cachedExistingMembers;
+  bool _suggestionsReady = false;
 
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _existingMembers();
+      _knownContacts();
+      if (!mounted) return;
+      setState(() => _suggestionsReady = true);
+    });
   }
 
   @override
@@ -147,6 +155,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
   }
 
   List<Widget> _buildSuggestions(ColorScheme cs) {
+    if (!_suggestionsReady) return [];
     final query = _controller.text.trim();
     final existing = _existingMembers();
     final source = query.isEmpty ? _knownContacts() : _searchResults;
@@ -201,18 +210,20 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
     final suggestions = _buildSuggestions(cs);
 
-    return SimpleDialog(
-      title: const Text('Invite user'),
-      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-      children: [
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
+    return Dialog(
+      child: SizedBox(
+        width: 400,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Text('Invite user', style: tt.titleLarge),
+              const SizedBox(height: 16),
               TextField(
                 controller: _controller,
                 focusNode: _focusNode,
@@ -231,7 +242,18 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
                   padding: EdgeInsets.only(top: 4),
                   child: LinearProgressIndicator(),
                 ),
-              if (suggestions.isNotEmpty)
+              if (!_suggestionsReady)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    ),
+                  ),
+                )
+              else if (suggestions.isNotEmpty)
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 220),
                   child: ListView(
@@ -258,7 +280,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
