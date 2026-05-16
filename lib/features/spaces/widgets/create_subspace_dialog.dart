@@ -46,7 +46,7 @@ class _CreateSubspaceDialogState extends State<CreateSubspaceDialog> {
 
   JoinMode _joinMode = JoinMode.invite;
   List<Room> _allowedJoinSpaces = const [];
-  Set<JoinMode> _disabledModes = const {};
+  Map<JoinMode, String> _disabledModes = const {};
   String? _restrictedRoomVersion;
   bool _restrictedAvailable = false;
 
@@ -67,19 +67,21 @@ class _CreateSubspaceDialogState extends State<CreateSubspaceDialog> {
       _restrictedRoomVersion = knockVersion ?? basicVersion;
       _restrictedAvailable = _restrictedRoomVersion != null;
       _disabledModes = knockVersion == null
-          ? const {JoinMode.knockRestricted}
-          : const <JoinMode>{};
+          ? const {
+              JoinMode.knockRestricted: 'Not supported by this server',
+            }
+          : const <JoinMode, String>{};
       if (_restrictedAvailable && _allowedJoinSpaces.isEmpty) {
         _joinMode = JoinMode.restricted;
         _allowedJoinSpaces = [widget.parentSpace];
       }
-      if (!_restrictedAvailable) {
-        debugPrint(
-          '[Kohera] Restricted join unavailable: '
-          'server room versions has no v8+',
-        );
-      }
     });
+    if (!_restrictedAvailable) {
+      final versions = await access.serverSupportedRoomVersions();
+      debugPrint(
+        '[Kohera] Restricted join unavailable: server room versions=$versions',
+      );
+    }
   }
 
   @override

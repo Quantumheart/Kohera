@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/join_mode.dart';
@@ -6,6 +8,7 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -135,6 +138,84 @@ void main() {
   });
 
   testWidgets(
+    'empty candidates disables restricted dropdown items with tooltip',
+    (tester) async {
+      await tester.pumpWidget(host(candidatesBuilder: (_, __) => const []));
+
+      final innerDropdown = tester.widget<DropdownButton<JoinMode>>(
+        find.descendant(
+          of: find.byKey(const Key('join_access_mode_dropdown')),
+          matching: find.byType(DropdownButton<JoinMode>),
+        ),
+      );
+      final restrictedItem = innerDropdown.items!.firstWhere(
+        (i) => i.value == JoinMode.restricted,
+      );
+      final knockItem = innerDropdown.items!.firstWhere(
+        (i) => i.value == JoinMode.knockRestricted,
+      );
+      expect(restrictedItem.enabled, isFalse);
+      expect(knockItem.enabled, isFalse);
+    },
+  );
+
+  testWidgets('sync update refreshes mode when not user-dirty',
+      (tester) async {
+    final controller = CachedStreamController<SyncUpdate>();
+    when(client.onSync).thenReturn(controller);
+
+    when(access.getJoinMode(room)).thenReturn(JoinMode.invite);
+    await tester.pumpWidget(host());
+    expect(find.text('Invite-only'), findsWidgets);
+
+    // Server-side flip.
+    when(access.getJoinMode(room)).thenReturn(JoinMode.public);
+    controller.add(SyncUpdate(nextBatch: ''));
+    await tester.pump();
+
+    expect(find.text('Public'), findsWidgets);
+  });
+
+  testWidgets('saving spinner appears during applyJoinMode',
+      (tester) async {
+    final completer = Completer<void>();
+    when(
+      access.applyJoinMode(
+        roomId: anyNamed('roomId'),
+        mode: anyNamed('mode'),
+        allowSpaceIds: anyNamed('allowSpaceIds'),
+      ),
+    ).thenAnswer((_) => completer.future);
+
+    await tester.pumpWidget(host());
+
+    await tester.tap(find.byKey(const Key('join_access_mode_dropdown')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('Public').last);
+    await tester.pump();
+    // Fire the debounce timer and let _applyIfValid kick off.
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('join_access_saving_indicator')),
+      findsOneWidget,
+    );
+
+    completer.complete();
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('join_access_saved_indicator')),
+      findsOneWidget,
+    );
+    // Drain the saved-hint timer before tearing down.
+    await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets(
     'upgrade banner click triggers upgrade + rewire + apply',
     (tester) async {
       when(access.getJoinMode(room)).thenReturn(JoinMode.restricted);
@@ -158,8 +239,11 @@ void main() {
           .thenAnswer((_) async => '!newroom:e.com');
       when(client.waitForRoomInSync(any, join: anyNamed('join')))
           .thenAnswer((_) async => SyncUpdate(nextBatch: ''));
-      when(access.rewireParentSpaces('!r:e.com', '!newroom:e.com'))
-          .thenAnswer((_) async {});
+      when(access.rewireParentSpaces(
+        oldRoomId: anyNamed('oldRoomId'),
+        newRoomId: anyNamed('newRoomId'),
+        parents: anyNamed('parents'),
+      ),).thenAnswer((_) async {});
       when(
         access.applyJoinMode(
           roomId: anyNamed('roomId'),
@@ -183,7 +267,11 @@ void main() {
       await tester.pumpAndSettle();
 
       verify(access.upgradeRoomTo(room, '10')).called(1);
-      verify(access.rewireParentSpaces('!r:e.com', '!newroom:e.com')).called(1);
+      verify(access.rewireParentSpaces(
+        oldRoomId: '!r:e.com',
+        newRoomId: '!newroom:e.com',
+        parents: anyNamed('parents'),
+      ),).called(1);
       verify(
         access.applyJoinMode(
           roomId: '!newroom:e.com',

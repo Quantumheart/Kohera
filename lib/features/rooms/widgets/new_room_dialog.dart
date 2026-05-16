@@ -58,7 +58,7 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
   // Restricted-join state (only relevant when created inside a parent space).
   JoinMode _joinMode = JoinMode.invite;
   List<Room> _allowedJoinSpaces = const [];
-  Set<JoinMode> _disabledModes = const {};
+  Map<JoinMode, String> _disabledModes = const {};
   String? _restrictedRoomVersion;
   bool _restrictedAvailable = false;
 
@@ -82,22 +82,24 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
       _restrictedRoomVersion = knockVersion ?? basicVersion;
       _restrictedAvailable = _restrictedRoomVersion != null;
       _disabledModes = knockVersion == null
-          ? const {JoinMode.knockRestricted}
-          : const <JoinMode>{};
+          ? const {
+              JoinMode.knockRestricted: 'Not supported by this server',
+            }
+          : const <JoinMode, String>{};
       if (_restrictedAvailable && _allowedJoinSpaces.isEmpty) {
         final parents = _eligibleParentSpaces();
         if (parents.isNotEmpty) {
           _joinMode = JoinMode.restricted;
-          _allowedJoinSpaces = [parents.first];
+          _allowedJoinSpaces = List.of(parents);
         }
       }
-      if (!_restrictedAvailable) {
-        debugPrint(
-          '[Kohera] Restricted join unavailable: '
-          'server room versions has no v8+',
-        );
-      }
     });
+    if (!_restrictedAvailable) {
+      final versions = await access.serverSupportedRoomVersions();
+      debugPrint(
+        '[Kohera] Restricted join unavailable: server room versions=$versions',
+      );
+    }
   }
 
   void _initTargetSpaces() {
