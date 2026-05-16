@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:matrix/matrix.dart';
 
@@ -57,7 +58,8 @@ class SpaceAccessService {
           const <String>[];
       return _supportedVersionsCache = List.unmodifiable(keys);
     } catch (e) {
-      return _supportedVersionsCache = const <String>[];
+      debugPrint('[Kohera] SpaceAccessService.serverSupportedRoomVersions failed: $e');
+      return const <String>[];
     }
   }
 }
