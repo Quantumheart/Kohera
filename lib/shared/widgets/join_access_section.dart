@@ -124,19 +124,22 @@ class _SpacePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tt = Theme.of(context).textTheme;
-    if (candidates.isEmpty) {
+    if (candidates.isEmpty && selected.isEmpty) {
       return Text(
         'No eligible parent spaces',
         style: tt.bodySmall,
       );
     }
+    final candidateIds = candidates.map((r) => r.id).toSet();
+    final orphans = selected.where((r) => !candidateIds.contains(r.id));
+    final rows = [...candidates, ...orphans];
     final selectedIds = selected.map((r) => r.id).toSet();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Spaces whose members can join', style: tt.labelMedium),
         const SizedBox(height: 4),
-        ...candidates.map(
+        ...rows.map(
           (room) => CheckboxListTile(
             key: Key('join_access_space_${room.id}'),
             dense: true,

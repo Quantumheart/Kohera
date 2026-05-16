@@ -170,6 +170,27 @@ void main() {
     expect(find.byKey(const Key('join_access_empty_error')), findsNothing);
   });
 
+  testWidgets('orphan selected space (not in candidates) is shown and uncheckable',
+      (tester) async {
+    List<Room>? captured;
+    final orphan = _makeSpace('!orphan:e.com', 'Orphan');
+    await tester.pumpWidget(host(
+      mode: JoinMode.restricted,
+      allowed: [orphan],
+      onAllowedSpacesChanged: (l) => captured = l,
+    ),);
+
+    expect(find.byKey(const Key('join_access_space_!orphan:e.com')),
+        findsOneWidget,);
+    expect(find.text('Orphan'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('join_access_space_!orphan:e.com')));
+    await tester.pumpAndSettle();
+
+    expect(captured, isNotNull);
+    expect(captured, isEmpty);
+  });
+
   testWidgets('checking a space candidate fires onAllowedSpacesChanged',
       (tester) async {
     List<Room>? captured;
