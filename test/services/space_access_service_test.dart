@@ -197,5 +197,24 @@ void main() {
       when(client.getCapabilities()).thenThrow(Exception('network'));
       expect(await service.serverSupportedRoomVersions(), isEmpty);
     });
+
+    test('retries after error and caches success', () async {
+      var calls = 0;
+      when(client.getCapabilities()).thenAnswer((_) async {
+        calls++;
+        if (calls == 1) throw Exception('network');
+        return Capabilities.fromJson({
+          'm.room_versions': {
+            'default': '10',
+            'available': {'10': 'stable'},
+          },
+        });
+      });
+
+      expect(await service.serverSupportedRoomVersions(), isEmpty);
+      expect(await service.serverSupportedRoomVersions(), ['10']);
+      await service.serverSupportedRoomVersions();
+      verify(client.getCapabilities()).called(2);
+    });
   });
 }
