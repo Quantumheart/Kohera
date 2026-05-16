@@ -148,14 +148,11 @@ class SpaceAccessService {
     return _client.upgradeRoom(room.id, newVersion);
   }
 
-  Future<void> rewireParentSpaces(String oldRoomId, String newRoomId) async {
-    final parents = _client.rooms
-        .where(
-          (r) =>
-              r.isSpace &&
-              r.spaceChildren.any((c) => c.roomId == oldRoomId),
-        )
-        .toList();
+  Future<void> rewireParentSpaces({
+    required String oldRoomId,
+    required String newRoomId,
+    required List<Room> parents,
+  }) async {
     for (final parent in parents) {
       await parent.setSpaceChild(newRoomId);
       await parent.removeSpaceChild(oldRoomId);

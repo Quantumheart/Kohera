@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:matrix/matrix.dart';
-import 'package:matrix/src/utils/space_child.dart';
 import 'package:mockito/mockito.dart';
 
 import 'matrix_service_test.mocks.dart';
@@ -295,35 +294,28 @@ void main() {
   });
 
   group('rewireParentSpaces', () {
-    test('rewrites m.space.child on each parent space', () async {
+    test('rewrites m.space.child on each supplied parent', () async {
       final parent = MockRoom();
-      when(parent.isSpace).thenReturn(true);
-      when(parent.spaceChildren).thenReturn([
-        SpaceChild.fromState(
-          StrippedStateEvent(
-            type: EventTypes.SpaceChild,
-            stateKey: '!old:e.com',
-            senderId: '@a:e.com',
-            content: {
-              'via': ['e.com'],
-            },
-          ),
-        ),
-      ]);
       when(parent.setSpaceChild(any)).thenAnswer((_) async {});
       when(parent.removeSpaceChild(any)).thenAnswer((_) async {});
 
-      final other = MockRoom();
-      when(other.isSpace).thenReturn(false);
-      when(other.spaceChildren).thenReturn([]);
-
-      when(client.rooms).thenReturn([parent, other]);
-
-      await service.rewireParentSpaces('!old:e.com', '!new:e.com');
+      await service.rewireParentSpaces(
+        oldRoomId: '!old:e.com',
+        newRoomId: '!new:e.com',
+        parents: [parent],
+      );
 
       verify(parent.setSpaceChild('!new:e.com')).called(1);
       verify(parent.removeSpaceChild('!old:e.com')).called(1);
-      verifyNever(other.setSpaceChild(any));
+    });
+
+    test('no-op when parents list is empty', () async {
+      await service.rewireParentSpaces(
+        oldRoomId: '!old:e.com',
+        newRoomId: '!new:e.com',
+        parents: const [],
+      );
+      // No verification needed — just ensure it doesn't throw.
     });
   });
 

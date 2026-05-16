@@ -10214,17 +10214,20 @@ class MockSpaceAccessService extends _i1.Mock
       ) as _i5.Future<String>);
 
   @override
-  _i5.Future<void> rewireParentSpaces(
-    String? oldRoomId,
-    String? newRoomId,
-  ) =>
+  _i5.Future<void> rewireParentSpaces({
+    required String? oldRoomId,
+    required String? newRoomId,
+    required List<_i2.Room>? parents,
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #rewireParentSpaces,
-          [
-            oldRoomId,
-            newRoomId,
-          ],
+          [],
+          {
+            #oldRoomId: oldRoomId,
+            #newRoomId: newRoomId,
+            #parents: parents,
+          },
         ),
         returnValue: _i5.Future<void>.value(),
         returnValueForMissingStub: _i5.Future<void>.value(),

@@ -34,12 +34,17 @@ class JoinAccessController extends StatefulWidget {
 
 class _JoinAccessControllerState extends State<JoinAccessController> {
   static const _saveDebounce = Duration(milliseconds: 500);
+  static const _savedHintDuration = Duration(seconds: 2);
 
   late JoinMode _mode;
   late List<Room> _allowed;
   bool _busy = false;
+  bool _savedHint = false;
   String? _error;
   Timer? _saveTimer;
+  Timer? _savedHintTimer;
+  StreamSubscription<SyncUpdate>? _syncSub;
+  bool _userDirty = false;
 
   SpaceAccessService get _service => context.read<MatrixService>().spaceAccess;
 
@@ -53,9 +58,40 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncSub ??= _client.onSync.stream.listen(_onSync);
+  }
+
+  @override
   void dispose() {
     _saveTimer?.cancel();
+    _savedHintTimer?.cancel();
+    unawaited(_syncSub?.cancel());
     super.dispose();
+  }
+
+  void _onSync(SyncUpdate _) {
+    // Skip if the user has unsaved local edits or a write is in flight; we
+    // don't want to clobber what they're typing. Refresh once that settles.
+    if (_userDirty || _busy || (_saveTimer?.isActive ?? false)) return;
+    final remoteMode = _service.getJoinMode(widget.room);
+    final remoteAllowed = _resolveAllowed();
+    final changed = remoteMode != _mode ||
+        remoteAllowed.length != _allowed.length ||
+        !_sameIds(remoteAllowed, _allowed);
+    if (changed && mounted) {
+      setState(() {
+        _mode = remoteMode;
+        _allowed = remoteAllowed;
+      });
+    }
+  }
+
+  bool _sameIds(List<Room> a, List<Room> b) {
+    final ai = a.map((r) => r.id).toSet();
+    final bi = b.map((r) => r.id).toSet();
+    return ai.length == bi.length && ai.containsAll(bi);
   }
 
   List<Room> _resolveAllowed() {
@@ -73,6 +109,17 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
     return selection.spaces.where((s) => s.id != widget.room.id).toList();
   }
 
+  Map<JoinMode, String> get _disabledModes {
+    if (_candidates.isEmpty) {
+      const tip = 'Add this space to a parent space first';
+      return const {
+        JoinMode.restricted: tip,
+        JoinMode.knockRestricted: tip,
+      };
+    }
+    return const {};
+  }
+
   bool get _needsUpgrade {
     if (!_mode.isRestrictedFamily) return false;
     return _service.needsUpgradeForRestricted(
@@ -82,6 +129,7 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
   }
 
   void _scheduleApply() {
+    _userDirty = true;
     _saveTimer?.cancel();
     _saveTimer = Timer(_saveDebounce, _applyIfValid);
   }
@@ -91,6 +139,7 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
     if (_mode.isRestrictedFamily && _allowed.isEmpty) return;
     setState(() {
       _busy = true;
+      _savedHint = false;
       _error = null;
     });
     try {
@@ -99,6 +148,16 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
         mode: _mode,
         allowSpaceIds: _allowed.map((r) => r.id).toList(growable: false),
       );
+      if (mounted) {
+        setState(() {
+          _savedHint = true;
+          _userDirty = false;
+        });
+        _savedHintTimer?.cancel();
+        _savedHintTimer = Timer(_savedHintDuration, () {
+          if (mounted) setState(() => _savedHint = false);
+        });
+      }
     } catch (e) {
       debugPrint('[Kohera] applyJoinMode failed: $e');
       if (mounted) {
@@ -142,8 +201,12 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
     );
     if (confirmed != true || !mounted) return;
 
+    final selection = context.read<MatrixService>().selection;
+    final parents = selection.parentSpacesOf(widget.room);
+
     setState(() {
       _busy = true;
+      _savedHint = false;
       _error = null;
     });
     try {
@@ -155,7 +218,11 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
       } on TimeoutException {
         debugPrint('[Kohera] new room $newRoomId did not sync in time');
       }
-      await _service.rewireParentSpaces(widget.room.id, newRoomId);
+      await _service.rewireParentSpaces(
+        oldRoomId: widget.room.id,
+        newRoomId: newRoomId,
+        parents: parents,
+      );
       await _service.applyJoinMode(
         roomId: newRoomId,
         mode: _mode,
@@ -191,6 +258,9 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
           candidateSpaces: _candidates,
           needsUpgrade: _needsUpgrade,
           canEdit: canEdit,
+          disabledModes: _disabledModes,
+          saving: _busy,
+          savedHint: _savedHint,
           onModeChanged: (m) {
             setState(() {
               _mode = m;

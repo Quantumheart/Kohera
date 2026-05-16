@@ -14,6 +14,8 @@ class JoinAccessSection extends StatelessWidget {
     this.onUpgradeRequested,
     this.disabledModes = const {},
     this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    this.saving = false,
+    this.savedHint = false,
     super.key,
   });
 
@@ -22,8 +24,12 @@ class JoinAccessSection extends StatelessWidget {
   final List<Room> candidateSpaces;
   final bool needsUpgrade;
   final bool canEdit;
-  final Set<JoinMode> disabledModes;
+  /// Modes that should be disabled in the dropdown, mapped to the tooltip
+  /// explaining why. Pass an empty map for no restrictions.
+  final Map<JoinMode, String> disabledModes;
   final EdgeInsetsGeometry padding;
+  final bool saving;
+  final bool savedHint;
   final ValueChanged<JoinMode> onModeChanged;
   final ValueChanged<List<Room>> onAllowedSpacesChanged;
   final VoidCallback? onUpgradeRequested;
@@ -41,28 +47,25 @@ class JoinAccessSection extends StatelessWidget {
     final dropdown = DropdownButtonFormField<JoinMode>(
       key: const Key('join_access_mode_dropdown'),
       initialValue: mode,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'Join',
-        border: OutlineInputBorder(),
+        border: const OutlineInputBorder(),
+        suffixIcon: _statusIcon(cs),
       ),
       items: JoinMode.values.map((m) {
-        final disabled = disabledModes.contains(m);
+        final tooltip = disabledModes[m];
+        final disabled = tooltip != null;
         final label = Text(m.displayLabel);
         return DropdownMenuItem<JoinMode>(
           value: m,
           enabled: !disabled,
-          child: disabled
-              ? Tooltip(
-                  message: 'Not supported by this server',
-                  child: label,
-                )
-              : label,
+          child: disabled ? Tooltip(message: tooltip, child: label) : label,
         );
       }).toList(),
       onChanged: canEdit
           ? (v) {
               if (v == null) return;
-              if (disabledModes.contains(v)) return;
+              if (disabledModes.containsKey(v)) return;
               onModeChanged(v);
             }
           : null,
@@ -121,6 +124,28 @@ class JoinAccessSection extends StatelessWidget {
       key: const Key('join_access_empty_error'),
       style: tt.bodySmall?.copyWith(color: cs.error),
     );
+  }
+
+  Widget? _statusIcon(ColorScheme cs) {
+    if (saving) {
+      return const Padding(
+        key: Key('join_access_saving_indicator'),
+        padding: EdgeInsets.all(12),
+        child: SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+    if (savedHint) {
+      return Padding(
+        key: const Key('join_access_saved_indicator'),
+        padding: const EdgeInsets.all(8),
+        child: Icon(Icons.check_circle_outline, color: cs.primary, size: 20),
+      );
+    }
+    return null;
   }
 }
 
