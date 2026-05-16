@@ -62,6 +62,19 @@ void main() {
     expect(captured, JoinMode.restricted);
   });
 
+  testWidgets('dropdown reflects updated mode prop', (tester) async {
+    await tester.pumpWidget(host(mode: JoinMode.invite));
+    expect(find.text('Invite-only'), findsOneWidget);
+
+    await tester.pumpWidget(host(
+      mode: JoinMode.public,
+      candidates: [_makeSpace('!a:e.com', 'Alpha')],
+    ),);
+    await tester.pumpAndSettle();
+    expect(find.text('Public'), findsOneWidget);
+    expect(find.text('Invite-only'), findsNothing);
+  });
+
   testWidgets(
     'picker hidden for Invite-only / Public / Knock',
     (tester) async {
