@@ -1,10 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
 
 void main() {
   Widget buildTestWidget(String label) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: SectionHeader(label: label),
       ),
@@ -32,6 +33,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: ThemeData(
+            splashFactory: InkRipple.splashFactory,
             colorScheme: const ColorScheme.light(primary: primaryColor),
           ),
           home: const Scaffold(

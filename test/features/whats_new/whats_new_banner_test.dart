@@ -85,7 +85,10 @@ Widget _harness({
       ChangeNotifierProvider<PreferencesService>.value(value: prefs),
       Provider<GitHubReleasesService>.value(value: releases),
     ],
-    child: MaterialApp.router(routerConfig: theRouter),
+    child: MaterialApp.router(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
+      routerConfig: theRouter,
+    ),
   );
 }
 

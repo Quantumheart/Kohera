@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,6 +24,7 @@ Widget _wrap(Room room, {String? myUserId, PreferencesService? prefs}) {
   return ChangeNotifierProvider<PreferencesService>.value(
     value: prefs ?? PreferencesService(),
     child: MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: TypingIndicator(
           room: room,

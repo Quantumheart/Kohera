@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
@@ -72,6 +72,7 @@ void main() {
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
       ],
       child: MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: LoginScreen(
           homeserver: homeserver,
           capabilities: capabilities,

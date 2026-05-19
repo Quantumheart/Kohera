@@ -124,6 +124,7 @@ void main() {
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
       ],
       child: MaterialApp.router(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         routerConfig: router,
       ),
     );

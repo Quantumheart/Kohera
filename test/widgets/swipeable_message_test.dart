@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:kohera/features/chat/widgets/swipeable_message.dart';
@@ -10,6 +10,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: Scaffold(
             body: SwipeableMessage(
               onReply: () => replyCalled = true,
@@ -35,6 +36,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: Scaffold(
             body: SwipeableMessage(
               onReply: () => replyCalled = true,
@@ -58,6 +60,7 @@ void main() {
     testWidgets('snaps back to origin after swipe', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: Scaffold(
             body: SwipeableMessage(
               onReply: () {},
@@ -88,6 +91,7 @@ void main() {
     testWidgets('shows reply icon during swipe', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: Scaffold(
             body: SwipeableMessage(
               onReply: () {},
@@ -109,6 +113,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: Scaffold(
             body: SwipeableMessage(
               onReply: () => replyCalled = true,

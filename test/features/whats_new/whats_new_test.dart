@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -31,7 +31,7 @@ final x = 42;
 
 Widget _markdownHarness(Widget child, {ThemeMode mode = ThemeMode.light}) {
   return MaterialApp(
-    theme: ThemeData.light(useMaterial3: true),
+    theme: ThemeData.light(useMaterial3: true).copyWith(splashFactory: InkRipple.splashFactory),
     darkTheme: ThemeData.dark(useMaterial3: true),
     themeMode: mode,
     home: Scaffold(
@@ -56,7 +56,10 @@ GitHubReleasesService _service({
 Widget _screenHarness(GitHubReleasesService service) =>
     Provider<GitHubReleasesService>.value(
       value: service,
-      child: const MaterialApp(home: WhatsNewScreen()),
+      child: MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+        home: const WhatsNewScreen(),
+      ),
     );
 
 ReleaseNotes _sampleCached(DateTime now) => ReleaseNotes(

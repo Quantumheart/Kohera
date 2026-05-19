@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -97,7 +97,8 @@ void main() {
         ChangeNotifierProvider<MatrixService>.value(value: fakeMatrix),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
       ],
-      child: const MaterialApp(
+      child: MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: InboxScreen(),
       ),
     );
@@ -211,7 +212,9 @@ void main() {
             ChangeNotifierProvider<MatrixService>.value(value: fakeMatrix),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
           ],
-          child: const MaterialApp(home: Scaffold()),
+          child: MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
+      home: Scaffold()),
         ),
       );
       await tester.pumpAndSettle();

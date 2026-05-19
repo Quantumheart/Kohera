@@ -77,6 +77,7 @@ Widget _buildChatWidget({
       ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
     ],
     child: MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: SizedBox(
         width: width,
         child: const ChatScreen(roomId: '!room:example.com'),

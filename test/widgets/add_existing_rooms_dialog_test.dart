@@ -53,6 +53,7 @@ void main() {
     when(mockClient.rooms).thenReturn(clientRooms ?? []);
 
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: Builder(
           builder: (context) => Center(

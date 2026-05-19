@@ -143,7 +143,10 @@ void main() {
         ChangeNotifierProvider(create: (_) => PreferencesService()),
         ChangeNotifierProvider<InboxController>.value(value: inboxController),
       ],
-      child: MaterialApp.router(routerConfig: router),
+      child: MaterialApp.router(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+        routerConfig: router,
+      ),
     );
   }
 

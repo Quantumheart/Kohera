@@ -258,7 +258,10 @@ void main() {
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
       ],
-      child: MaterialApp.router(routerConfig: router),
+      child: MaterialApp.router(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+        routerConfig: router,
+      ),
     );
   }
 

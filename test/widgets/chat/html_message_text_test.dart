@@ -1,4 +1,4 @@
-import 'package:flutter/gestures.dart';
+﻿import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/chat/widgets/code_block.dart';
@@ -17,6 +17,7 @@ import 'html_message_text_test.mocks.dart';
 
 Widget _wrap(Widget child) {
   return MaterialApp(
+    theme: ThemeData(splashFactory: InkRipple.splashFactory),
     home: Scaffold(body: child),
   );
 }

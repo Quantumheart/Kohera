@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/shared/widgets/pulsing_avatar.dart';
 
@@ -8,6 +8,7 @@ void main() {
     double radius = 48,
   }) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: PulsingAvatar(displayName: displayName, radius: radius),
       ),
@@ -48,7 +49,9 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pump(const Duration(milliseconds: 600));
 
-      await tester.pumpWidget(const MaterialApp(home: Scaffold(body: SizedBox())));
+      await tester.pumpWidget(MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
+      home: Scaffold(body: SizedBox())));
       await tester.pump();
     });
   });

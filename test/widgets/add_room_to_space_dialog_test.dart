@@ -77,6 +77,7 @@ void main() {
     when(mockMatrix.selection).thenReturn(selectionService);
 
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: Builder(
           builder: (context) => Center(

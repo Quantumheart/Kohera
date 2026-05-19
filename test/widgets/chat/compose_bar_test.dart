@@ -31,6 +31,7 @@ Widget _wrap({
   return ChangeNotifierProvider<PreferencesService>.value(
     value: prefs ?? PreferencesService(),
     child: MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: ComposeBar(
           controller: controller,

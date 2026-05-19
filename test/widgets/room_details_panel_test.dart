@@ -71,6 +71,7 @@ void main() {
 
   Widget buildTestWidget({bool isFullPage = false}) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: MultiProvider(
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),

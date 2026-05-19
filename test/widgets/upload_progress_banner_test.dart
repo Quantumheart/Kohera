@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:kohera/core/models/upload_state.dart';
@@ -10,6 +10,7 @@ void main() {
     VoidCallback? onCancel,
   }) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: UploadProgressBanner(
           state: state,

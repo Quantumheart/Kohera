@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/settings/widgets/push_to_talk_key_editor.dart';
@@ -9,6 +9,7 @@ void main() {
   Widget buildEditor({int? keyId}) {
     capturedKeyId = keyId ?? LogicalKeyboardKey.controlLeft.keyId;
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: StatefulBuilder(
           builder: (context, setState) {

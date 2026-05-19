@@ -1,4 +1,4 @@
-import 'dart:ui' show PointerDeviceKind;
+﻿import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -150,7 +150,8 @@ void main() {
           ChangeNotifierProvider<PreferencesService>.value(
               value: prefsService,),
         ],
-        child: const MaterialApp(
+        child: MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: SizedBox(
             width: 400, // mobile width to test swipe path
             child: ChatScreen(roomId: '!room:example.com'),

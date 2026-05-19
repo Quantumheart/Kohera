@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/chat/widgets/state_event_tile.dart';
 import 'package:matrix/matrix.dart';
@@ -43,7 +43,9 @@ void main() {
   });
 
   Widget wrap(Event event) =>
-      MaterialApp(home: Scaffold(body: StateEventTile(event: event)));
+      MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
+      home: Scaffold(body: StateEventTile(event: event)));
 
   testWidgets(
     'displayname change uses previous name as subject, not new name',

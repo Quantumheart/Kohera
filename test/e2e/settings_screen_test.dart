@@ -105,7 +105,10 @@ void main() {
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
         ChangeNotifierProvider(create: (_) => PreferencesService()),
       ],
-      child: const MaterialApp(home: SettingsScreen()),
+      child: MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+        home: const SettingsScreen(),
+      ),
     );
   }
 
