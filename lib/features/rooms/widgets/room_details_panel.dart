@@ -187,7 +187,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
       );
     }
 
-    return ColoredBox(
+    return Material(
       color: cs.surface,
       child: content,
     );
