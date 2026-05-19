@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/features/rooms/models/room_role.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
@@ -244,7 +245,8 @@ void main() {
 
       expect(find.byType(SimpleDialog), findsOneWidget);
       expect(find.text('@alice:example.com'), findsWidgets);
-      expect(find.text('Member'), findsOneWidget);
+      // 'Member' appears in both the title description and the dropdown value.
+      expect(find.text('Member'), findsWidgets);
     });
 
     testWidgets('kick action prompts for reason and forwards it to client.kick',
@@ -370,6 +372,202 @@ void main() {
 
       expect(find.widgetWithText(SimpleDialogOption, 'Kick'), findsNothing);
       expect(find.widgetWithText(SimpleDialogOption, 'Ban'), findsNothing);
+    });
+
+    group('role dropdown', () {
+      testWidgets('shows dropdown with current role for a member', (tester) async {
+        final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+        when(mockRoom.getPowerLevelByUserId('@alice:example.com')).thenReturn(0);
+        when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
+
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Alice'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(DropdownButton<RoomRole>), findsOneWidget);
+        // 'Member' appears in the title description and the dropdown value.
+        expect(find.text('Member'), findsWidgets);
+      });
+
+      testWidgets('shows dropdown with current role for a moderator', (tester) async {
+        final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+        when(mockRoom.getPowerLevelByUserId('@alice:example.com')).thenReturn(50);
+        when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
+
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Alice'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Moderator'), findsWidgets);
+      });
+
+      testWidgets('dropdown is disabled when viewer cannot change power levels',
+          (tester) async {
+        final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+        when(mockRoom.getPowerLevelByUserId('@alice:example.com')).thenReturn(0);
+        when(mockRoom.canChangePowerLevel).thenReturn(false);
+        when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
+
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Alice'));
+        await tester.pumpAndSettle();
+
+        final dropdown = tester.widget<DropdownButton<RoomRole>>(
+          find.byType(DropdownButton<RoomRole>),
+        );
+        expect(dropdown.onChanged, isNull);
+      });
+
+      testWidgets('dropdown is disabled when target is at or above viewer level',
+          (tester) async {
+        // Viewer is moderator (50), target is also moderator (50).
+        when(mockClient.userID).thenReturn('@me:example.com');
+        when(mockRoom.getPowerLevelByUserId('@me:example.com')).thenReturn(50);
+        final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+        when(mockRoom.getPowerLevelByUserId('@alice:example.com')).thenReturn(50);
+        when(mockRoom.canChangePowerLevel).thenReturn(true);
+        when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
+
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Alice'));
+        await tester.pumpAndSettle();
+
+        final dropdown = tester.widget<DropdownButton<RoomRole>>(
+          find.byType(DropdownButton<RoomRole>),
+        );
+        expect(dropdown.onChanged, isNull);
+      });
+
+      testWidgets('selecting a role calls setRoomStateWithKey with correct patch',
+          (tester) async {
+        // Viewer is admin (100), target Alice is member (0).
+        when(mockClient.userID).thenReturn('@me:example.com');
+        when(mockRoom.getPowerLevelByUserId('@me:example.com')).thenReturn(100);
+        final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+        when(mockRoom.getPowerLevelByUserId('@alice:example.com')).thenReturn(0);
+        when(mockRoom.canChangePowerLevel).thenReturn(true);
+        when(mockRoom.getState(EventTypes.RoomPowerLevels)).thenReturn(null);
+        when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
+        when(mockClient.setRoomStateWithKey(any, any, any, any))
+            .thenAnswer((_) async => r'$eventId');
+
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Alice'));
+        await tester.pumpAndSettle();
+
+        // Open dropdown and select Moderator.
+        await tester.tap(find.byType(DropdownButton<RoomRole>));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Moderator').last);
+        await tester.pumpAndSettle();
+
+        verify(mockClient.setRoomStateWithKey(
+          '!room:example.com',
+          EventTypes.RoomPowerLevels,
+          '',
+          argThat(predicate<Map<String, Object?>>(
+            (m) {
+              final users = m['users'] as Map<String, Object?>?;
+              return users?['@alice:example.com'] == 50;
+            },
+            'contains users.@alice:example.com == 50',
+          ),),
+        ),).called(1);
+      });
+
+      testWidgets('shows confirmation dialog before demoting an admin',
+          (tester) async {
+        when(mockClient.userID).thenReturn('@me:example.com');
+        // Viewer at 150 so they outrank Alice at 100 and canChangeRole is true.
+        when(mockRoom.getPowerLevelByUserId('@me:example.com')).thenReturn(150);
+        final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+        when(mockRoom.getPowerLevelByUserId('@alice:example.com')).thenReturn(100);
+        when(mockRoom.canChangePowerLevel).thenReturn(true);
+        when(mockRoom.getState(EventTypes.RoomPowerLevels)).thenReturn(null);
+        when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
+        when(mockClient.setRoomStateWithKey(any, any, any, any))
+            .thenAnswer((_) async => r'$eventId');
+
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Alice'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(DropdownButton<RoomRole>));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Member').last);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Demote admin?'), findsOneWidget);
+        verifyNever(mockClient.setRoomStateWithKey(any, any, any, any));
+      });
+
+      testWidgets('cancelling demotion confirm does not call setRoomStateWithKey',
+          (tester) async {
+        when(mockClient.userID).thenReturn('@me:example.com');
+        // Viewer at 150 so they outrank Alice at 100 and canChangeRole is true.
+        when(mockRoom.getPowerLevelByUserId('@me:example.com')).thenReturn(150);
+        final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+        when(mockRoom.getPowerLevelByUserId('@alice:example.com')).thenReturn(100);
+        when(mockRoom.canChangePowerLevel).thenReturn(true);
+        when(mockRoom.getState(EventTypes.RoomPowerLevels)).thenReturn(null);
+        when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
+
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Alice'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(DropdownButton<RoomRole>));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Member').last);
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+        await tester.pumpAndSettle();
+
+        verifyNever(mockClient.setRoomStateWithKey(any, any, any, any));
+      });
+
+      testWidgets('custom power level shown in dropdown', (tester) async {
+        final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+        when(mockRoom.getPowerLevelByUserId('@alice:example.com')).thenReturn(75);
+        when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
+
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Alice'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Custom (75)'), findsWidgets);
+      });
+
+      testWidgets('role section hidden for self', (tester) async {
+        when(mockClient.userID).thenReturn('@me:example.com');
+        final me = _makeUser('@me:example.com', 'Me', room: mockRoom);
+        when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [me]);
+
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Me'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(DropdownButton<RoomRole>), findsNothing);
+      });
     });
   });
 }

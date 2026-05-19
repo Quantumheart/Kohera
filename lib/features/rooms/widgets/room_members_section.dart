@@ -6,6 +6,8 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/sender_color.dart';
+import 'package:kohera/features/rooms/models/room_role.dart';
+import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
@@ -258,61 +260,20 @@ class _MemberTileState extends State<_MemberTile> {
   }
 
   void _showMemberSheet() {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
     final matrix = context.read<MatrixService>();
-    final powerLevel = widget.room.getPowerLevelByUserId(widget.user.id);
-    final displayName = widget.user.displayName ?? widget.user.id;
     final isMe = widget.user.id == widget.room.client.userID;
-
-    final avatarColor = senderColor(widget.user.id, cs);
-    final avatarFg =
-        ThemeData.estimateBrightnessForColor(avatarColor) == Brightness.dark
-            ? Colors.white
-            : Colors.black;
+    final ownLevel = widget.room.getPowerLevelByUserId(widget.room.client.userID!);
+    final displayName = widget.user.displayName ?? widget.user.id;
 
     unawaited(showDialog<void>(
       context: context,
-      builder: (ctx) => SimpleDialog(
-        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-        title: Column(
-          children: [
-            CircleAvatar(
-              radius: 32,
-              backgroundColor: avatarColor,
-              child: Text(
-                displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w600,
-                  color: avatarFg,
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              displayName,
-              style: tt.titleMedium,
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              widget.user.id,
-              style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _powerLevelLabel(powerLevel),
-              style: tt.bodySmall?.copyWith(color: cs.primary),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-        children: [
-          if (!isMe)
-            SimpleDialogOption(
-              onPressed: () async {
-                Navigator.pop(ctx);
+      builder: (ctx) => _MemberSheetDialog(
+        user: widget.user,
+        room: widget.room,
+        ownLevel: ownLevel,
+        isMe: isMe,
+        onStartDm: !isMe
+            ? () async {
                 if (!mounted) return;
                 final selection = context.read<SelectionService>();
                 final router = GoRouter.of(context);
@@ -341,25 +302,16 @@ class _MemberTileState extends State<_MemberTile> {
                     SnackBar(content: Text('Failed to start chat: ${MatrixService.friendlyAuthError(e)}')),
                   );
                 }
-              },
-              child: const Row(
-                children: [
-                  Icon(Icons.chat_outlined),
-                  SizedBox(width: 16),
-                  Text('Send message'),
-                ],
-              ),
-            ),
-          if (!isMe && widget.room.canKick)
-            SimpleDialogOption(
-              onPressed: () async {
-                Navigator.pop(ctx);
+              }
+            : null,
+        onKick: widget.room.canKick && !isMe
+            ? () async {
                 if (!mounted) return;
                 final reason = await _promptModerationReason(
                   title: 'Kick member?',
                   message: 'Remove $displayName from the room?',
                   confirmLabel: 'Kick',
-                  cs: cs,
+                  cs: Theme.of(context).colorScheme,
                 );
                 if (reason == null) return;
                 try {
@@ -375,26 +327,16 @@ class _MemberTileState extends State<_MemberTile> {
                     SnackBar(content: Text('Kick failed: ${MatrixService.friendlyAuthError(e)}')),
                   );
                 }
-              },
-              child: Row(
-                children: [
-                  Icon(Icons.person_remove_outlined, color: cs.error),
-                  const SizedBox(width: 16),
-                  Text('Kick', style: TextStyle(color: cs.error)),
-                ],
-              ),
-            ),
-          if (!isMe && widget.room.canBan)
-            SimpleDialogOption(
-              onPressed: () async {
-                Navigator.pop(ctx);
+              }
+            : null,
+        onBan: widget.room.canBan && !isMe
+            ? () async {
                 if (!mounted) return;
                 final reason = await _promptModerationReason(
                   title: 'Ban member?',
-                  message:
-                      'Ban $displayName from the room? This can be reversed later.',
+                  message: 'Ban $displayName from the room? This can be reversed later.',
                   confirmLabel: 'Ban',
-                  cs: cs,
+                  cs: Theme.of(context).colorScheme,
                 );
                 if (reason == null) return;
                 try {
@@ -410,16 +352,8 @@ class _MemberTileState extends State<_MemberTile> {
                     SnackBar(content: Text('Ban failed: ${MatrixService.friendlyAuthError(e)}')),
                   );
                 }
-              },
-              child: Row(
-                children: [
-                  Icon(Icons.block_rounded, color: cs.error),
-                  const SizedBox(width: 16),
-                  Text('Ban', style: TextStyle(color: cs.error)),
-                ],
-              ),
-            ),
-        ],
+              }
+            : null,
       ),
     ),);
   }
@@ -441,14 +375,276 @@ class _MemberTileState extends State<_MemberTile> {
       ),
     );
   }
+}
 
-  String _powerLevelLabel(int level) {
+// ── Member sheet dialog ────────────────────────────────────────
+
+class _MemberSheetDialog extends StatefulWidget {
+  const _MemberSheetDialog({
+    required this.user,
+    required this.room,
+    required this.ownLevel,
+    required this.isMe,
+    this.onStartDm,
+    this.onKick,
+    this.onBan,
+  });
+
+  final User user;
+  final Room room;
+  final int ownLevel;
+  final bool isMe;
+  final Future<void> Function()? onStartDm;
+  final Future<void> Function()? onKick;
+  final Future<void> Function()? onBan;
+
+  @override
+  State<_MemberSheetDialog> createState() => _MemberSheetDialogState();
+}
+
+class _MemberSheetDialogState extends State<_MemberSheetDialog> {
+  bool _roleLoading = false;
+  String? _roleError;
+
+  Future<void> _changeRole(RoomRole newRole, int currentPowerLevel) async {
+    final currentRole = RoomRole.fromPowerLevel(currentPowerLevel);
+    if (newRole == currentRole) return;
+
+    // Require explicit confirmation before demoting another admin.
+    if (currentPowerLevel >= 100) {
+      final displayName = widget.user.displayName ?? widget.user.id;
+      final cs = Theme.of(context).colorScheme;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Demote admin?'),
+          content: Text(
+            'This will demote $displayName from admin. Are you sure?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: cs.error,
+                foregroundColor: cs.onError,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Demote'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+
+    setState(() {
+      _roleLoading = true;
+      _roleError = null;
+    });
+    try {
+      await PowerLevelService.update(
+        widget.room,
+        PowerLevelPatch(users: {widget.user.id: newRole.toPowerLevel()}),
+      );
+    } on PowerLevelException catch (e) {
+      if (mounted) setState(() => _roleError = e.message);
+    } finally {
+      if (mounted) setState(() => _roleLoading = false);
+    }
+  }
+
+  List<DropdownMenuItem<RoomRole>> _buildRoleItems(int powerLevel) {
+    final presets = [
+      const RoomRole.admin(),
+      const RoomRole.moderator(),
+      const RoomRole.member(),
+    ];
+
+    final items = <DropdownMenuItem<RoomRole>>[];
+
+    // If the current level doesn't match a preset, prepend it as a
+    // display-only Custom item so the dropdown shows the right selection.
+    final isCustom = !presets.any((r) => r.toPowerLevel() == powerLevel);
+    if (isCustom) {
+      final custom = RoomRole.fromPowerLevel(powerLevel);
+      items.add(DropdownMenuItem(value: custom, child: Text(custom.label)));
+    }
+
+    for (final role in presets) {
+      final canAssign = RoomRole.canAssignRole(
+        target: role,
+        ownLevel: widget.ownLevel,
+        targetCurrentLevel: powerLevel,
+      );
+      items.add(DropdownMenuItem(
+        value: role,
+        enabled: canAssign,
+        child: Text(
+          role.label,
+          style: canAssign
+              ? null
+              : TextStyle(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.38),
+                ),
+        ),
+      ),);
+    }
+
+    return items;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final user = widget.user;
+    final room = widget.room;
+    final powerLevel = room.getPowerLevelByUserId(user.id);
+    final currentRole = RoomRole.fromPowerLevel(powerLevel);
+    final displayName = user.displayName ?? user.id;
+
+    final avatarColor = senderColor(user.id, cs);
+    final avatarFg =
+        ThemeData.estimateBrightnessForColor(avatarColor) == Brightness.dark
+            ? Colors.white
+            : Colors.black;
+
+    final canChangeRole = !widget.isMe &&
+        room.canChangePowerLevel &&
+        powerLevel < widget.ownLevel;
+
+    return SimpleDialog(
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
+      title: Column(
+        children: [
+          CircleAvatar(
+            radius: 32,
+            backgroundColor: avatarColor,
+            child: Text(
+              displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: avatarFg,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            displayName,
+            style: tt.titleMedium,
+            textAlign: TextAlign.center,
+          ),
+          Text(
+            user.id,
+            style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _powerLevelDescription(powerLevel),
+            style: tt.bodySmall?.copyWith(color: cs.primary),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+      children: [
+        // ── Role section ──────────────────────────────────────
+        if (!widget.isMe) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+            child: Text(
+              'Role',
+              style: tt.labelMedium?.copyWith(color: cs.onSurfaceVariant),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: _roleLoading
+                ? const LinearProgressIndicator()
+                : DropdownButton<RoomRole>(
+                    isExpanded: true,
+                    value: currentRole,
+                    onChanged: canChangeRole
+                        ? (newRole) {
+                            if (newRole != null) {
+                              unawaited(_changeRole(newRole, powerLevel));
+                            }
+                          }
+                        : null,
+                    items: _buildRoleItems(powerLevel),
+                  ),
+          ),
+          if (_roleError != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 4),
+              child: Text(
+                _roleError!,
+                style: TextStyle(color: cs.error, fontSize: 12),
+              ),
+            ),
+          const Divider(height: 1),
+        ],
+
+        // ── Actions ───────────────────────────────────────────
+        if (!widget.isMe && widget.onStartDm != null)
+          SimpleDialogOption(
+            onPressed: () async {
+              Navigator.pop(context);
+              await widget.onStartDm!();
+            },
+            child: const Row(
+              children: [
+                Icon(Icons.chat_outlined),
+                SizedBox(width: 16),
+                Text('Send message'),
+              ],
+            ),
+          ),
+        if (widget.onKick != null)
+          SimpleDialogOption(
+            onPressed: () async {
+              Navigator.pop(context);
+              await widget.onKick!();
+            },
+            child: Row(
+              children: [
+                Icon(Icons.person_remove_outlined, color: cs.error),
+                const SizedBox(width: 16),
+                Text('Kick', style: TextStyle(color: cs.error)),
+              ],
+            ),
+          ),
+        if (widget.onBan != null)
+          SimpleDialogOption(
+            onPressed: () async {
+              Navigator.pop(context);
+              await widget.onBan!();
+            },
+            child: Row(
+              children: [
+                Icon(Icons.block_rounded, color: cs.error),
+                const SizedBox(width: 16),
+                Text('Ban', style: TextStyle(color: cs.error)),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  String _powerLevelDescription(int level) {
     if (level >= 100) return 'Admin (power level $level)';
     if (level >= 50) return 'Moderator (power level $level)';
     if (level > 0) return 'Power level $level';
     return 'Member';
   }
-
 }
 
 // ── Moderation reason dialog ───────────────────────────────────
