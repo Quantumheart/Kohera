@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:matrix/matrix.dart';
@@ -22,6 +22,7 @@ void main() {
 
   Widget buildTestWidget({double size = 44}) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: RoomAvatarWidget(room: mockRoom, size: size),
       ),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
@@ -23,6 +23,7 @@ void main() {
 
   Widget buildTestWidget({double size = 72}) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: AvatarEditOverlay(room: mockRoom, size: size),
       ),

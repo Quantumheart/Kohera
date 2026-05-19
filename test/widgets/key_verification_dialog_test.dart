@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -94,6 +94,7 @@ class FakeKeyVerification extends Fake implements KeyVerification {
 void main() {
   Widget buildTestApp({required FakeKeyVerification verification}) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: Builder(
           builder: (context) => Center(

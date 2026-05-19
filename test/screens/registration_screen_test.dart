@@ -100,6 +100,7 @@ void main() {
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
       ],
       child: MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: RegistrationScreen(initialHomeserver: homeserver),
       ),
     );

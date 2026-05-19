@@ -13,6 +13,7 @@ import 'audio_bubble_test.mocks.dart';
 
 Widget _wrap(Event event, {bool isMe = true, MediaPlaybackService? playbackService}) {
   return MaterialApp(
+    theme: ThemeData(splashFactory: InkRipple.splashFactory),
     home: Scaffold(
       body: ChangeNotifierProvider<MediaPlaybackService>.value(
         value: playbackService ?? MockMediaPlaybackService(),

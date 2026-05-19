@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
 import 'package:matrix/matrix.dart';
@@ -16,6 +16,7 @@ void main() {
 
   Widget buildTestWidget({ValueChanged<String?>? onResult}) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: Builder(
           builder: (context) => Center(

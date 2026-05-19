@@ -74,6 +74,7 @@ void main() {
     return ChangeNotifierProvider<PreferencesService>.value(
       value: PreferencesService(),
       child: MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: Scaffold(
           body: Builder(
             builder: (context) => Center(

@@ -10,6 +10,7 @@ void main() {
     void Function(Offset position)? onMore,
   }) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: Center(
           child: HoverActionBar(

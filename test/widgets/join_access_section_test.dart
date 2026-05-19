@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
@@ -28,6 +28,7 @@ void main() {
     VoidCallback? onUpgradeRequested,
   }) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: SingleChildScrollView(
           child: JoinAccessSection(

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/chat/widgets/read_receipts.dart';
@@ -78,6 +78,7 @@ MockRoom _makeRoom({
 
 Widget _wrapRow(List<Receipt> receipts, Client client, {bool isMe = true}) {
   return MaterialApp(
+    theme: ThemeData(splashFactory: InkRipple.splashFactory),
     home: Scaffold(
       body: ReadReceiptsRow(
         receipts: receipts,
@@ -327,6 +328,7 @@ void main() {
         ChangeNotifierProvider<PreferencesService>.value(
           value: prefs,
           child: MaterialApp(
+            theme: ThemeData(splashFactory: InkRipple.splashFactory),
             home: Scaffold(
               body: Builder(
                 builder: (context) {

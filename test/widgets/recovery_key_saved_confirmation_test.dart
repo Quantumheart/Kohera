@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/e2ee/screens/e2ee_setup_screen.dart';
 
@@ -9,6 +9,7 @@ void main() {
   }) async {
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: Scaffold(
           body: Builder(
             builder: (context) => Center(

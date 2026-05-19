@@ -1,4 +1,4 @@
-import 'package:flutter/gestures.dart';
+﻿import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -20,6 +20,7 @@ List<TextSpan> _extractSpans(WidgetTester tester) {
 
 Widget _wrap(Widget child) {
   return MaterialApp(
+    theme: ThemeData(splashFactory: InkRipple.splashFactory),
     home: Scaffold(body: child),
   );
 }

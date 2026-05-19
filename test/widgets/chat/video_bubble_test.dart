@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +14,7 @@ import 'video_bubble_test.mocks.dart';
 
 Widget _wrap(Event event, {bool isMe = true, MediaPlaybackService? playbackService}) {
   return MaterialApp(
+    theme: ThemeData(splashFactory: InkRipple.splashFactory),
     home: Scaffold(
       body: ChangeNotifierProvider<MediaPlaybackService>.value(
         value: playbackService ?? MockMediaPlaybackService(),

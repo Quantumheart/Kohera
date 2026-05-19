@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
@@ -39,6 +39,7 @@ void main() {
           ChangeNotifierProvider<SelectionService>.value(value: selectionService),
         ],
         child: MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: Builder(
             builder: (context) => Scaffold(
               body: ElevatedButton(
@@ -173,6 +174,7 @@ void main() {
           ChangeNotifierProvider<SelectionService>.value(value: selectionService),
         ],
         child: MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: Builder(
             builder: (context) => Scaffold(
               body: ElevatedButton(

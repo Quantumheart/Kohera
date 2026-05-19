@@ -65,8 +65,9 @@ void main() {
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
       ],
-      child: const MaterialApp(
-        home: ChatScreen(roomId: '!room:example.com'),
+      child: MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+        home: const ChatScreen(roomId: '!room:example.com'),
       ),
     );
   }

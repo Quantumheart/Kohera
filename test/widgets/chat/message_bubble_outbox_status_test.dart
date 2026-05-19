@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
@@ -60,6 +60,7 @@ Widget _harness({
   required Event event,
 }) {
   return MaterialApp(
+    theme: ThemeData(splashFactory: InkRipple.splashFactory),
     home: ChangeNotifierProvider<OutboxService>.value(
       value: outbox,
       child: Scaffold(

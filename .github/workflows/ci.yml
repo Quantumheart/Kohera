@@ -44,6 +44,18 @@ jobs:
           files: coverage/lcov.info
           fail_ci_if_error: false
 
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+      - run: flutter test
+
   build-linux:
     if: github.event_name == 'push'
     needs: [analyze, test]

@@ -114,6 +114,7 @@ void main() {
 
   Widget buildNewRoomApp() {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: ChangeNotifierProvider<MatrixService>.value(
         value: matrixService,
         child: Scaffold(
@@ -150,8 +151,9 @@ void main() {
         ChangeNotifierProvider<SelectionService>.value(
             value: matrixService.selection,),
       ],
-      child: const MaterialApp(
-        home: Scaffold(
+      child: MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+        home: const Scaffold(
           body: RoomDetailsPanel(roomId: _roomId),
         ),
       ),
@@ -336,6 +338,7 @@ void main() {
       stubCreateRoom(mockClient);
 
       await tester.pumpWidget(MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: ChangeNotifierProvider<MatrixService>.value(
           value: matrixService,
           child: Scaffold(

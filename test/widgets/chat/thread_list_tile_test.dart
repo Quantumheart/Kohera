@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/widgets/thread_list_tile.dart';
@@ -29,7 +29,9 @@ MockEvent _event({
 }
 
 Widget _wrap(Widget child) =>
-    MaterialApp(home: Scaffold(body: child));
+    MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
+      home: Scaffold(body: child));
 
 void main() {
   group('ThreadListTile', () {

@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +25,7 @@ void main() {
     return Provider<OpenGraphService>.value(
       value: mockOgService,
       child: MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: Scaffold(
           body: LinkPreviewCard(url: url, isMe: isMe),
         ),
@@ -113,7 +114,8 @@ void main() {
       await tester.pumpWidget(
         Provider<OpenGraphService>.value(
           value: mockOgService,
-          child: const MaterialApp(
+          child: MaterialApp(
+            theme: ThemeData(splashFactory: InkRipple.splashFactory),
             home: Scaffold(
               body: LinkPreviewCard(url: 'https://a.com', isMe: false),
             ),
@@ -126,7 +128,8 @@ void main() {
       await tester.pumpWidget(
         Provider<OpenGraphService>.value(
           value: mockOgService,
-          child: const MaterialApp(
+          child: MaterialApp(
+            theme: ThemeData(splashFactory: InkRipple.splashFactory),
             home: Scaffold(
               body: LinkPreviewCard(url: 'https://b.com', isMe: false),
             ),

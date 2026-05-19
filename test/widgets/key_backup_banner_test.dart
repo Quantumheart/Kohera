@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/features/e2ee/widgets/key_backup_banner.dart';
@@ -18,6 +18,7 @@ void main() {
 
   Widget buildTestWidget() {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: ChangeNotifierProvider<ChatBackupService>.value(
         value: mockChatBackup,
         child: const Scaffold(body: KeyBackupBanner()),
@@ -71,6 +72,7 @@ void main() {
       final fake = _FakeChatBackupService(chatBackupNeeded: true);
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ChangeNotifierProvider<ChatBackupService>.value(
             value: fake,
             child: const Scaffold(body: KeyBackupBanner()),
@@ -92,6 +94,7 @@ void main() {
       final fake = _FakeChatBackupService(chatBackupNeeded: false);
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
           home: ChangeNotifierProvider<ChatBackupService>.value(
             value: fake,
             child: const Scaffold(body: KeyBackupBanner()),

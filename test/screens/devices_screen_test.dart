@@ -40,6 +40,7 @@ void main() {
 
   Widget buildTestWidget() {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: ChangeNotifierProvider<MatrixService>.value(
         value: mockMatrix,
         child: const DevicesScreen(),

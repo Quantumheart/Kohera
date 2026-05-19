@@ -6,6 +6,7 @@ import 'package:kohera/features/chat/widgets/code_block.dart';
 
 Widget _wrap(Widget child) {
   return MaterialApp(
+    theme: ThemeData(splashFactory: InkRipple.splashFactory),
     home: Scaffold(body: SingleChildScrollView(child: child)),
   );
 }

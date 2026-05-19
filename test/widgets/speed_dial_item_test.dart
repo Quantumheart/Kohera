@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/shared/widgets/speed_dial_item.dart';
 
@@ -9,6 +9,7 @@ void main() {
     IconData icon = Icons.add,
   }) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: SpeedDialItem(label: label, icon: icon, onTap: onTap),
       ),

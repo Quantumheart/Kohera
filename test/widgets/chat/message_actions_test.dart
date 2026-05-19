@@ -80,6 +80,7 @@ Widget _buildChatWidget({
       ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
     ],
     child: MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: SizedBox(
         width: width,
         child: const ChatScreen(roomId: '!room:example.com'),
@@ -99,6 +100,7 @@ Widget _buildBubble({
   return ChangeNotifierProvider<PreferencesService>.value(
     value: PreferencesService(),
     child: MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: SizedBox(
           width: 800,
@@ -162,6 +164,7 @@ void main() {
       );
 
       await tester.pumpWidget(MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: Scaffold(
           body: EditPreviewBanner(
             event: event,
@@ -184,6 +187,7 @@ void main() {
       );
 
       await tester.pumpWidget(MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: Scaffold(
           body: EditPreviewBanner(
             event: event,
@@ -204,6 +208,7 @@ void main() {
       );
 
       await tester.pumpWidget(MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: Scaffold(
           body: EditPreviewBanner(
             event: event,

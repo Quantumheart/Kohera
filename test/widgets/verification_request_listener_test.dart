@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -71,7 +71,9 @@ void main() {
         value: mockMatrix,
         child: VerificationRequestListener(
           router: router,
-          child: MaterialApp.router(routerConfig: router),
+          child: MaterialApp.router(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
+      routerConfig: router),
         ),
       ),
     );

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/chat/widgets/thread_indicator_chip.dart';
 import 'package:matrix/matrix.dart';
@@ -9,7 +9,9 @@ import 'package:mockito/mockito.dart';
 import 'thread_indicator_chip_test.mocks.dart';
 
 Widget _wrap(Widget child) =>
-    MaterialApp(home: Scaffold(body: Center(child: child)));
+    MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
+      home: Scaffold(body: Center(child: child)));
 
 void main() {
   group('ThreadIndicatorChip', () {

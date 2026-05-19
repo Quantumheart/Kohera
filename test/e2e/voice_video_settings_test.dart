@@ -50,7 +50,10 @@ void main() {
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),
         ChangeNotifierProvider<CallService>.value(value: callService),
       ],
-      child: const MaterialApp(home: VoiceVideoSettingsScreen()),
+      child: MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+        home: const VoiceVideoSettingsScreen(),
+      ),
     );
   }
 

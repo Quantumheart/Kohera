@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/shared/widgets/media_viewer_shell.dart';
 import 'package:matrix/matrix.dart';
@@ -38,6 +38,7 @@ void main() {
 
   Widget buildTestWidget({Widget? child}) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: MediaViewerShell(
           event: mockEvent,

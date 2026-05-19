@@ -58,6 +58,7 @@ void main() {
 
   Widget buildTestWidget() {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: SingleChildScrollView(
           child: ChangeNotifierProvider<MatrixService>.value(
