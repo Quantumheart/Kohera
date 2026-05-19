@@ -102,7 +102,7 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
       );
     }
 
-    return ColoredBox(
+    return Material(
       color: cs.surface,
       child: content,
     );
