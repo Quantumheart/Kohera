@@ -2026,6 +2026,13 @@ class MockRoom extends _i1.Mock implements _i2.Room {
       ) as bool);
 
   @override
+  bool get isLowPriority => (super.noSuchMethod(
+        Invocation.getter(#isLowPriority),
+        returnValue: false,
+        returnValueForMissingStub: false,
+      ) as bool);
+
+  @override
   Map<String, _i2.MatrixFile> get sendingFilePlaceholders =>
       (super.noSuchMethod(
         Invocation.getter(#sendingFilePlaceholders),
@@ -2532,6 +2539,16 @@ class MockRoom extends _i1.Mock implements _i2.Room {
         Invocation.method(
           #setFavourite,
           [favourite],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> setLowPriority(bool? lowPriority) => (super.noSuchMethod(
+        Invocation.method(
+          #setLowPriority,
+          [lowPriority],
         ),
         returnValue: _i5.Future<void>.value(),
         returnValueForMissingStub: _i5.Future<void>.value(),
