@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/shared/widgets/pulsing_avatar.dart';
 
@@ -51,7 +51,7 @@ void main() {
 
       await tester.pumpWidget(MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
-      home: Scaffold(body: SizedBox())));
+      home: const Scaffold(body: SizedBox()),),);
       await tester.pump();
     });
   });

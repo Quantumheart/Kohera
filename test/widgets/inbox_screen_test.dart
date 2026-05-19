@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -99,7 +99,7 @@ void main() {
       ],
       child: MaterialApp(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),
-        home: InboxScreen(),
+        home: const InboxScreen(),
       ),
     );
   }
@@ -214,7 +214,7 @@ void main() {
           ],
           child: MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
-      home: Scaffold()),
+      home: const Scaffold(),),
         ),
       );
       await tester.pumpAndSettle();
