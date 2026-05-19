@@ -89,8 +89,7 @@ class _SpaceRailState extends State<SpaceRail> {
               buildDefaultDragHandles: false,
               padding: const EdgeInsets.symmetric(vertical: 4),
               itemCount: spaces.length,
-              onReorder: (oldIndex, newIndex) {
-                if (newIndex > oldIndex) newIndex--;
+              onReorderItem: (oldIndex, newIndex) {
                 final ids = spaces.map((s) => s.id).toList();
                 final id = ids.removeAt(oldIndex);
                 ids.insert(newIndex, id);

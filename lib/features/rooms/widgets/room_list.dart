@@ -190,7 +190,7 @@ class _RoomListState extends State<RoomList>
                 ? SizeTransition(
                     sizeFactor: _searchAnimation,
                     axis: Axis.horizontal,
-                    axisAlignment: -1,
+                    alignment: Alignment.centerLeft,
                     child: TextField(
                       key: const ValueKey('search'),
                       controller: _searchCtrl,
@@ -341,7 +341,7 @@ class _RoomListState extends State<RoomList>
                 // ── Mini-FABs (speed dial) ──
                 SizeTransition(
                   sizeFactor: _fabAnimation,
-                  axisAlignment: -1,
+                  alignment: Alignment.topCenter,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: Column(
