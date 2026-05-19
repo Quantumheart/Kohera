@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -116,7 +116,7 @@ void main() {
           value: mockOgService,
           child: MaterialApp(
             theme: ThemeData(splashFactory: InkRipple.splashFactory),
-            home: Scaffold(
+            home: const Scaffold(
               body: LinkPreviewCard(url: 'https://a.com', isMe: false),
             ),
           ),
@@ -130,7 +130,7 @@ void main() {
           value: mockOgService,
           child: MaterialApp(
             theme: ThemeData(splashFactory: InkRipple.splashFactory),
-            home: Scaffold(
+            home: const Scaffold(
               body: LinkPreviewCard(url: 'https://b.com', isMe: false),
             ),
           ),

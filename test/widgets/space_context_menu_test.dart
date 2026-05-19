@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -307,7 +307,7 @@ void main() {
 
       await tester.pumpWidget(MaterialApp.router(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
-      routerConfig: router));
+      routerConfig: router,),);
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Open Menu'));
