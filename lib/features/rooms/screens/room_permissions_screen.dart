@@ -33,6 +33,7 @@ class RoomPermissionsScreen extends StatelessWidget {
         children: [
           _RolesSection(room: room),
           _WhoCanSection(room: room),
+          _DangerZoneSection(room: room),
         ],
       ),
     );
@@ -500,6 +501,370 @@ class _WhoCanRowState extends State<_WhoCanRow> {
             ),
         ],
       ),
+    );
+  }
+}
+
+// ── Danger zone section ───────────────────────────────────────
+
+Future<bool> _confirmDialog(
+  BuildContext context, {
+  required String title,
+  required String message,
+  bool isDestructive = false,
+}) async {
+  final cs = Theme.of(context).colorScheme;
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(title),
+      content: Text(message),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          style: isDestructive
+              ? FilledButton.styleFrom(
+                  backgroundColor: cs.error,
+                  foregroundColor: cs.onError,
+                )
+              : null,
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Confirm'),
+        ),
+      ],
+    ),
+  );
+  return confirmed == true;
+}
+
+class _DangerZoneSection extends StatefulWidget {
+  const _DangerZoneSection({required this.room});
+
+  final Room room;
+
+  @override
+  State<_DangerZoneSection> createState() => _DangerZoneSectionState();
+}
+
+class _DangerZoneSectionState extends State<_DangerZoneSection> {
+  bool _joinRulesLoading = false;
+  bool _permLevelLoading = false;
+  bool _encryptionLoading = false;
+  String? _joinRulesError;
+  String? _permLevelError;
+  String? _encryptionError;
+
+  static const _presets = [0, 50, 100];
+
+  String _levelLabel(int level) => switch (level) {
+        0 => 'Everyone',
+        50 => 'Moderators+',
+        100 => 'Admins only',
+        _ => 'Custom ($level)',
+      };
+
+  String _joinRuleLabel(JoinRules rule) => switch (rule) {
+        JoinRules.public => 'Public',
+        JoinRules.invite => 'Invite-only',
+        JoinRules.knock => 'Knock',
+        JoinRules.restricted => 'Restricted',
+        _ => rule.text,
+      };
+
+  String _joinRuleDescription(JoinRules rule) => switch (rule) {
+        JoinRules.public =>
+          'Anyone can join without an invitation. The room will be publicly discoverable.',
+        JoinRules.invite => 'Only users invited by a member can join.',
+        JoinRules.knock =>
+          'Users can request to join. A moderator must approve each request.',
+        JoinRules.restricted =>
+          'Users in a linked space can join automatically.',
+        _ => 'Change who can join this room.',
+      };
+
+  Future<void> _changeJoinRule(JoinRules newRule) async {
+    final confirmed = await _confirmDialog(
+      context,
+      title: 'Change join rule to "${_joinRuleLabel(newRule)}"?',
+      message: _joinRuleDescription(newRule),
+    );
+    if (!confirmed || !mounted) return;
+    setState(() {
+      _joinRulesLoading = true;
+      _joinRulesError = null;
+    });
+    try {
+      await widget.room.setJoinRules(newRule);
+    } catch (e) {
+      if (mounted) setState(() => _joinRulesError = e.toString());
+    } finally {
+      if (mounted) setState(() => _joinRulesLoading = false);
+    }
+  }
+
+  Future<void> _changePermLevel(int newLevel) async {
+    final ownLevel = widget.room
+        .getPowerLevelByUserId(widget.room.client.userID ?? '');
+    final selfLockout = newLevel > ownLevel;
+    final confirmed = await _confirmDialog(
+      context,
+      title: 'Change permissions requirement?',
+      message: selfLockout
+          ? 'Warning: setting this to "${_levelLabel(newLevel)}" will prevent '
+              'you from changing permissions in the future since your own power '
+              'level ($ownLevel) is below the new threshold.'
+          : 'Only users at level $newLevel or above will be able to '
+              'change room permissions.',
+      isDestructive: selfLockout,
+    );
+    if (!confirmed || !mounted) return;
+    setState(() {
+      _permLevelLoading = true;
+      _permLevelError = null;
+    });
+    try {
+      await PowerLevelService.update(
+        widget.room,
+        PowerLevelPatch(events: {EventTypes.RoomPowerLevels: newLevel}),
+      );
+    } on PowerLevelException catch (e) {
+      if (mounted) setState(() => _permLevelError = e.message);
+    } catch (e) {
+      if (mounted) setState(() => _permLevelError = e.toString());
+    } finally {
+      if (mounted) setState(() => _permLevelLoading = false);
+    }
+  }
+
+  Future<void> _enableEncryption() async {
+    final confirmed = await _confirmDialog(
+      context,
+      title: 'Enable encryption?',
+      message: "This can't be undone. Once enabled, all future messages will "
+          'be end-to-end encrypted and the room cannot be made unencrypted.',
+      isDestructive: true,
+    );
+    if (!confirmed || !mounted) return;
+    setState(() {
+      _encryptionLoading = true;
+      _encryptionError = null;
+    });
+    try {
+      await widget.room.enableEncryption();
+    } catch (e) {
+      if (mounted) setState(() => _encryptionError = e.toString());
+    } finally {
+      if (mounted) setState(() => _encryptionLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final room = widget.room;
+    final content =
+        room.getState(EventTypes.RoomPowerLevels)?.content ?? {};
+    final stateDefault = _plScalar(content, 'state_default', 50);
+    final currentPermLevel =
+        _plEvent(content, EventTypes.RoomPowerLevels, stateDefault);
+    final currentJoinRule = room.joinRules;
+
+    final canEditPermLevel = room.canChangePowerLevel;
+    final canEditJoinRules = room.canChangeJoinRules;
+    final canEnableEncryption =
+        !room.encrypted && room.canChangeStateEvent(EventTypes.Encryption);
+
+    // Hide the section entirely if there's nothing to show.
+    if (!canEditPermLevel && !canEditJoinRules && !canEnableEncryption) {
+      return const SizedBox.shrink();
+    }
+
+    final supportedRules = [
+      JoinRules.public,
+      JoinRules.invite,
+      JoinRules.knock,
+      if (currentJoinRule == JoinRules.restricted) JoinRules.restricted,
+    ];
+
+    final isCustomPermLevel = !_presets.contains(currentPermLevel);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 1),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, size: 16, color: cs.error),
+              const SizedBox(width: 6),
+              Text(
+                'DANGER ZONE',
+                style: tt.labelSmall?.copyWith(
+                  color: cs.error,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // ── Who can change permissions ─────────────────────────
+        if (canEditPermLevel) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Who can change permissions',
+                        style: tt.bodyMedium,
+                      ),
+                    ),
+                    if (_permLevelLoading)
+                      const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else
+                      DropdownButton<int>(
+                        value: currentPermLevel,
+                        isDense: true,
+                        onChanged: (v) {
+                          if (v != null && v != currentPermLevel) {
+                            unawaited(_changePermLevel(v));
+                          }
+                        },
+                        items: [
+                          if (isCustomPermLevel)
+                            DropdownMenuItem(
+                              value: currentPermLevel,
+                              child: Text(_levelLabel(currentPermLevel)),
+                            ),
+                          for (final level in _presets)
+                            DropdownMenuItem(
+                              value: level,
+                              child: Text(_levelLabel(level)),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
+                if (_permLevelError != null)
+                  Text(
+                    _permLevelError!,
+                    style: tt.bodySmall?.copyWith(color: cs.error),
+                  ),
+              ],
+            ),
+          ),
+        ],
+
+        // ── Join rule ──────────────────────────────────────────
+        if (canEditJoinRules) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('Who can join', style: tt.bodyMedium),
+                    ),
+                    if (_joinRulesLoading)
+                      const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else
+                      DropdownButton<JoinRules>(
+                        value: currentJoinRule,
+                        isDense: true,
+                        onChanged: (v) {
+                          if (v != null && v != currentJoinRule) {
+                            unawaited(_changeJoinRule(v));
+                          }
+                        },
+                        items: [
+                          for (final rule in supportedRules)
+                            DropdownMenuItem(
+                              value: rule,
+                              child: Text(_joinRuleLabel(rule)),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
+                if (_joinRulesError != null)
+                  Text(
+                    _joinRulesError!,
+                    style: tt.bodySmall?.copyWith(color: cs.error),
+                  ),
+              ],
+            ),
+          ),
+        ],
+
+        // ── Enable encryption ──────────────────────────────────
+        if (canEnableEncryption)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Enable encryption', style: tt.bodyMedium),
+                          Text(
+                            'Irreversible — cannot be undone',
+                            style: tt.bodySmall
+                                ?.copyWith(color: cs.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_encryptionLoading)
+                      const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else
+                      FilledButton.tonal(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: cs.errorContainer,
+                          foregroundColor: cs.onErrorContainer,
+                        ),
+                        onPressed: _enableEncryption,
+                        child: const Text('Enable'),
+                      ),
+                  ],
+                ),
+                if (_encryptionError != null)
+                  Text(
+                    _encryptionError!,
+                    style: tt.bodySmall?.copyWith(color: cs.error),
+                  ),
+              ],
+            ),
+          ),
+
+        const SizedBox(height: 24),
+      ],
     );
   }
 }
