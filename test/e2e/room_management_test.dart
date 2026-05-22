@@ -81,6 +81,7 @@ MockUser makeUser(String id, String displayName, {Room? room}) {
   when(user.id).thenReturn(id);
   when(user.displayName).thenReturn(displayName);
   when(user.room).thenReturn(room ?? MockRoom());
+  when(user.membership).thenReturn(Membership.join);
   return user;
 }
 
@@ -482,6 +483,7 @@ void main() {
     });
 
     testWidgets('kick member from member dialog', (tester) async {
+      when(mockRoom.getPowerLevelByUserId(_myUserId)).thenReturn(50);
       when(mockRoom.canKick).thenReturn(true);
       when(mockClient.kick(any, any, reason: anyNamed('reason')))
           .thenAnswer((_) async {});
@@ -508,6 +510,7 @@ void main() {
     });
 
     testWidgets('ban member from member dialog', (tester) async {
+      when(mockRoom.getPowerLevelByUserId(_myUserId)).thenReturn(50);
       when(mockRoom.canBan).thenReturn(true);
       when(mockClient.ban(any, any, reason: anyNamed('reason')))
           .thenAnswer((_) async {});
@@ -534,6 +537,7 @@ void main() {
     });
 
     testWidgets('cancel kick does not call client.kick', (tester) async {
+      when(mockRoom.getPowerLevelByUserId(_myUserId)).thenReturn(50);
       when(mockRoom.canKick).thenReturn(true);
 
       await tester.pumpWidget(buildDetailsApp());
