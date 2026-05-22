@@ -8,9 +8,9 @@ import 'package:provider/provider.dart';
 
 /// Full-page permissions screen reachable from the room admin settings.
 ///
-/// Displays a "Who can…" section where each row maps to one or more
-/// `m.room.power_levels` fields. Changes are written immediately via
-/// [PowerLevelService.update].
+/// Displays a "Roles" summary section followed by a "Who can…" section where
+/// each row maps to one or more `m.room.power_levels` fields. Changes are
+/// written immediately via [PowerLevelService.update].
 class RoomPermissionsScreen extends StatelessWidget {
   const RoomPermissionsScreen({required this.roomId, super.key});
 
@@ -30,7 +30,245 @@ class RoomPermissionsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Permissions')),
       body: ListView(
-        children: [_WhoCanSection(room: room)],
+        children: [
+          _RolesSection(room: room),
+          _WhoCanSection(room: room),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Shared power-level helpers ─────────────────────────────────
+
+int _plScalar(Map<String, Object?> c, String key, int fallback) =>
+    c.tryGet<int>(key) ?? fallback;
+
+int _plEvent(Map<String, Object?> c, String eventType, int fallback) {
+  final events = c.tryGetMap<String, Object?>('events') ?? {};
+  return events.tryGet<int>(eventType) ?? fallback;
+}
+
+int _plNotification(Map<String, Object?> c, String key, int fallback) {
+  final notifs = c.tryGetMap<String, Object?>('notifications') ?? {};
+  return notifs.tryGet<int>(key) ?? fallback;
+}
+
+/// Returns the plain-English list of things a user at [level] can do,
+/// given the current [content] of the `m.room.power_levels` event.
+List<String> plCapabilities(int level, Map<String, Object?> content) {
+  final stateDefault = _plScalar(content, 'state_default', 50);
+  return [
+    if (level >= _plScalar(content, 'events_default', 0)) 'Send messages',
+    if (level >= _plScalar(content, 'invite', 0)) 'Invite people',
+    if (level >= _plNotification(content, 'room', 50)) 'Mention @room',
+    if (level >= _plScalar(content, 'redact', 50)) "Redact others' messages",
+    if (level >= _plEvent(content, EventTypes.RoomName, stateDefault))
+      'Change room name & topic',
+    if (level >= _plEvent(content, EventTypes.RoomAvatar, stateDefault))
+      'Change room avatar',
+    if (level >= _plEvent(content, 'm.room.pinned_events', stateDefault))
+      'Pin messages',
+    if (level >= _plScalar(content, 'kick', 50)) 'Kick members',
+    if (level >= _plScalar(content, 'ban', 50)) 'Ban & unban members',
+    if (level >= _plEvent(content, EventTypes.RoomPowerLevels, stateDefault))
+      'Change permissions',
+  ];
+}
+
+// ── Roles section ──────────────────────────────────────────────
+
+class _RolesSection extends StatelessWidget {
+  const _RolesSection({required this.room});
+
+  final Room room;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
+    final content =
+        room.getState(EventTypes.RoomPowerLevels)?.content ?? {};
+    final participants = room.getParticipants();
+
+    int countAt(bool Function(int) test) => participants
+        .where((u) => test(room.getPowerLevelByUserId(u.id)))
+        .length;
+
+    final adminCount = countAt((pl) => pl >= 100);
+    final modCount = countAt((pl) => pl >= 50 && pl < 100);
+    final memberCount = countAt((pl) => pl < 50);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+          child: Text(
+            'ROLES',
+            style: tt.labelSmall?.copyWith(
+              color: cs.primary,
+              letterSpacing: 1.5,
+            ),
+          ),
+        ),
+        _RoleCard(
+          label: 'Admin',
+          description: 'Full control over the room',
+          icon: Icons.admin_panel_settings_outlined,
+          level: 100,
+          memberCount: adminCount,
+          content: content,
+        ),
+        _RoleCard(
+          label: 'Moderator',
+          description: 'Can manage messages and members',
+          icon: Icons.shield_outlined,
+          level: 50,
+          memberCount: modCount,
+          content: content,
+        ),
+        _RoleCard(
+          label: 'Member',
+          description: 'Standard room participant',
+          icon: Icons.person_outline,
+          level: 0,
+          memberCount: memberCount,
+          content: content,
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+class _RoleCard extends StatefulWidget {
+  const _RoleCard({
+    required this.label,
+    required this.description,
+    required this.icon,
+    required this.level,
+    required this.memberCount,
+    required this.content,
+  });
+
+  final String label;
+  final String description;
+  final IconData icon;
+  final int level;
+  final int memberCount;
+  final Map<String, Object?> content;
+
+  @override
+  State<_RoleCard> createState() => _RoleCardState();
+}
+
+class _RoleCardState extends State<_RoleCard> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final caps = plCapabilities(widget.level, widget.content);
+    final countLabel =
+        '${widget.memberCount} ${widget.memberCount == 1 ? 'member' : 'members'}';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Column(
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => setState(() => _expanded = !_expanded),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Icon(widget.icon, color: cs.primary, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(widget.label, style: tt.titleSmall),
+                          Text(
+                            widget.description,
+                            style: tt.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      countLabel,
+                      style: tt.labelSmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    AnimatedRotation(
+                      turns: _expanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: const Icon(Icons.expand_more, size: 20),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              child: _expanded
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Divider(height: 1, color: cs.outlineVariant),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                          child: Text(
+                            'What a ${widget.label.toLowerCase()} can do:',
+                            style: tt.labelSmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        if (caps.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                            child: Text(
+                              'No special permissions at this level.',
+                              style: tt.bodySmall?.copyWith(
+                                color: cs.onSurfaceVariant,
+                              ),
+                            ),
+                          )
+                        else
+                          for (final cap in caps)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 2, 16, 2),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.check_circle_outline,
+                                    size: 14,
+                                    color: cs.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(cap, style: tt.bodySmall),
+                                ],
+                              ),
+                            ),
+                        const SizedBox(height: 10),
+                      ],
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -66,7 +304,7 @@ class _WhoCanSection extends StatelessWidget {
         ),
         _WhoCanRow(
           label: 'Invite people',
-          currentLevel: _scalar(content, 'invite', 0),
+          currentLevel: _plScalar(content, 'invite', 0),
           canEdit: canEdit,
           onChanged: (v) => PowerLevelService.update(
             room,
@@ -75,7 +313,7 @@ class _WhoCanSection extends StatelessWidget {
         ),
         _WhoCanRow(
           label: 'Send messages',
-          currentLevel: _scalar(content, 'events_default', 0),
+          currentLevel: _plScalar(content, 'events_default', 0),
           canEdit: canEdit,
           onChanged: (v) => PowerLevelService.update(
             room,
@@ -84,8 +322,8 @@ class _WhoCanSection extends StatelessWidget {
         ),
         _WhoCanRow(
           label: 'Change room name & topic',
-          currentLevel: _event(content, EventTypes.RoomName,
-              _scalar(content, 'state_default', 50),),
+          currentLevel: _plEvent(content, EventTypes.RoomName,
+              _plScalar(content, 'state_default', 50),),
           canEdit: canEdit,
           onChanged: (v) => PowerLevelService.update(
             room,
@@ -97,8 +335,8 @@ class _WhoCanSection extends StatelessWidget {
         ),
         _WhoCanRow(
           label: 'Change room avatar',
-          currentLevel: _event(content, EventTypes.RoomAvatar,
-              _scalar(content, 'state_default', 50),),
+          currentLevel: _plEvent(content, EventTypes.RoomAvatar,
+              _plScalar(content, 'state_default', 50),),
           canEdit: canEdit,
           onChanged: (v) => PowerLevelService.update(
             room,
@@ -107,8 +345,8 @@ class _WhoCanSection extends StatelessWidget {
         ),
         _WhoCanRow(
           label: 'Pin messages',
-          currentLevel: _event(content, 'm.room.pinned_events',
-              _scalar(content, 'state_default', 50),),
+          currentLevel: _plEvent(content, 'm.room.pinned_events',
+              _plScalar(content, 'state_default', 50),),
           canEdit: canEdit,
           onChanged: (v) => PowerLevelService.update(
             room,
@@ -117,7 +355,7 @@ class _WhoCanSection extends StatelessWidget {
         ),
         _WhoCanRow(
           label: "Redact others' messages",
-          currentLevel: _scalar(content, 'redact', 50),
+          currentLevel: _plScalar(content, 'redact', 50),
           canEdit: canEdit,
           onChanged: (v) => PowerLevelService.update(
             room,
@@ -126,7 +364,7 @@ class _WhoCanSection extends StatelessWidget {
         ),
         _WhoCanRow(
           label: 'Mention @room',
-          currentLevel: _notification(content, 'room', 50),
+          currentLevel: _plNotification(content, 'room', 50),
           canEdit: canEdit,
           onChanged: (v) => PowerLevelService.update(
             room,
@@ -135,7 +373,7 @@ class _WhoCanSection extends StatelessWidget {
         ),
         _WhoCanRow(
           label: 'Kick members',
-          currentLevel: _scalar(content, 'kick', 50),
+          currentLevel: _plScalar(content, 'kick', 50),
           canEdit: canEdit,
           onChanged: (v) => PowerLevelService.update(
             room,
@@ -144,7 +382,7 @@ class _WhoCanSection extends StatelessWidget {
         ),
         _WhoCanRow(
           label: 'Ban members',
-          currentLevel: _scalar(content, 'ban', 50),
+          currentLevel: _plScalar(content, 'ban', 50),
           canEdit: canEdit,
           onChanged: (v) => PowerLevelService.update(
             room,
@@ -154,21 +392,6 @@ class _WhoCanSection extends StatelessWidget {
         const SizedBox(height: 16),
       ],
     );
-  }
-
-  static int _scalar(Map<String, Object?> c, String key, int fallback) =>
-      c.tryGet<int>(key) ?? fallback;
-
-  static int _event(
-      Map<String, Object?> c, String eventType, int fallback,) {
-    final events = c.tryGetMap<String, Object?>('events') ?? {};
-    return events.tryGet<int>(eventType) ?? fallback;
-  }
-
-  static int _notification(
-      Map<String, Object?> c, String key, int fallback,) {
-    final notifs = c.tryGetMap<String, Object?>('notifications') ?? {};
-    return notifs.tryGet<int>(key) ?? fallback;
   }
 }
 

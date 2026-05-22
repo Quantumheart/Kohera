@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
   MockSpec<MatrixService>(),
   MockSpec<Room>(),
   MockSpec<Event>(),
+  MockSpec<User>(),
 ])
 import 'room_permissions_screen_test.mocks.dart';
 
@@ -58,6 +59,7 @@ void main() {
     when(mockRoom.canChangePowerLevel).thenReturn(false);
     when(mockRoom.getState(EventTypes.RoomPowerLevels)).thenReturn(mockPlEvent);
     when(mockPlEvent.content).thenReturn(_plContent());
+    when(mockRoom.getParticipants()).thenReturn([]);
     when(mockClient.setRoomStateWithKey(any, any, any, any))
         .thenAnswer((_) async => r'$eventId');
   });
@@ -230,6 +232,138 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Room not found'), findsOneWidget);
+    });
+  });
+
+  group('Roles section', () {
+    MockUser makeUser(String id, int powerLevel) {
+      final u = MockUser();
+      when(u.id).thenReturn(id);
+      when(mockRoom.getPowerLevelByUserId(id)).thenReturn(powerLevel);
+      return u;
+    }
+
+    testWidgets('shows ROLES section header', (tester) async {
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+
+      expect(find.text('ROLES'), findsOneWidget);
+    });
+
+    testWidgets('shows Admin, Moderator and Member role cards', (tester) async {
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Admin'), findsOneWidget);
+      expect(find.text('Moderator'), findsOneWidget);
+      expect(find.text('Member'), findsOneWidget);
+    });
+
+    testWidgets('shows correct member counts for each role', (tester) async {
+      // Pre-compute users before calling when() — makeUser itself calls when()
+      // internally, and nesting when() inside thenReturn([...]) corrupts
+      // mockito's stub-setup state.
+      final alice = makeUser('@alice:example.com', 100);
+      final bob = makeUser('@bob:example.com', 50);
+      final carol = makeUser('@carol:example.com', 50);
+      final dave = makeUser('@dave:example.com', 0);
+      when(mockRoom.getParticipants()).thenReturn([alice, bob, carol, dave]);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+
+      // Admin=1, Member=1 → two "1 member" labels; Moderators=2.
+      expect(find.text('1 member'), findsNWidgets(2));
+      expect(find.text('2 members'), findsOneWidget);
+    });
+
+    testWidgets('tapping a role card expands capabilities list', (tester) async {
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+
+      expect(find.text('What a moderator can do:'), findsNothing);
+
+      await tester.tap(find.text('Moderator'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('What a moderator can do:'), findsOneWidget);
+    });
+
+    testWidgets('tapping again collapses the capabilities list', (tester) async {
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Member'));
+      await tester.pumpAndSettle();
+      expect(find.text('What a member can do:'), findsOneWidget);
+
+      await tester.tap(find.text('Member'));
+      await tester.pumpAndSettle();
+      expect(find.text('What a member can do:'), findsNothing);
+    });
+
+    testWidgets('Member card shows Send messages capability with default levels',
+        (tester) async {
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Member'));
+      await tester.pumpAndSettle();
+
+      // Scope to the expanded card — "Send messages" also appears in WHO CAN….
+      final memberCard = find.ancestor(
+        of: find.text('What a member can do:'),
+        matching: find.byType(Card),
+      );
+      expect(
+        find.descendant(of: memberCard, matching: find.text('Send messages')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        'Member card does not show kick capability when kick requires level 50',
+        (tester) async {
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Member'));
+      await tester.pumpAndSettle();
+
+      // Scope to the expanded card — "Kick members" also appears in WHO CAN….
+      final memberCard = find.ancestor(
+        of: find.text('What a member can do:'),
+        matching: find.byType(Card),
+      );
+      expect(
+        find.descendant(of: memberCard, matching: find.text('Kick members')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('plCapabilities returns all capabilities for admin level',
+        (tester) async {
+      final content = _plContent();
+      final caps = plCapabilities(100, content);
+
+      expect(caps, contains('Send messages'));
+      expect(caps, contains('Invite people'));
+      expect(caps, contains('Kick members'));
+      expect(caps, contains('Ban & unban members'));
+      expect(caps, contains("Redact others' messages"));
+    });
+
+    testWidgets(
+        'plCapabilities excludes kick/ban for member when thresholds are 50',
+        (tester) async {
+      final content = _plContent();
+      final memberCaps = plCapabilities(0, content);
+      final modCaps = plCapabilities(50, content);
+
+      expect(memberCaps, isNot(contains('Kick members')));
+      expect(memberCaps, isNot(contains('Ban & unban members')));
+      expect(modCaps, contains('Kick members'));
+      expect(modCaps, contains('Ban & unban members'));
     });
   });
 }
