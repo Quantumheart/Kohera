@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:matrix/matrix.dart';
 
@@ -209,18 +211,16 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
             ),
           ),
 
-        // Power levels
-        if (room.canChangePowerLevel)
-          ListTile(
-            leading: const Icon(Icons.admin_panel_settings_outlined),
-            title: const Text('Power levels'),
-            subtitle: Text(
-              'Admin: 100, Mod: 50, Default: ${_defaultPowerLevel(room)}',
-              style: tt.bodySmall,
-            ),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: _loading ? null : () => _showPowerLevelDialog(room),  // power levels uses global _loading since it's read-only
+        // Permissions
+        ListTile(
+          leading: const Icon(Icons.admin_panel_settings_outlined),
+          title: const Text('Permissions'),
+          trailing: const Icon(Icons.chevron_right_rounded),
+          onTap: () => context.goNamed(
+            Routes.roomPermissions,
+            pathParameters: {'roomId': room.id},
           ),
+        ),
 
         if (_error != null)
           Padding(
@@ -236,100 +236,4 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
     );
   }
 
-  int _defaultPowerLevel(Room room) {
-    final plEvent = room.getState(EventTypes.RoomPowerLevels);
-    if (plEvent == null) return 0;
-    return plEvent.content.tryGet<int>('users_default') ?? 0;
-  }
-
-  void _showPowerLevelDialog(Room room) {
-    final plEvent = room.getState(EventTypes.RoomPowerLevels);
-    if (plEvent == null) return;
-
-    final content = plEvent.content;
-    final events = content.tryGetMap<String, Object?>('events') ?? {};
-
-    unawaited(showDialog(
-      context: context,
-      builder: (ctx) {
-        final cs = Theme.of(ctx).colorScheme;
-        final tt = Theme.of(ctx).textTheme;
-        return AlertDialog(
-          title: const Text('Power levels'),
-          content: SizedBox(
-            width: 400,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Thresholds', style: tt.titleSmall?.copyWith(color: cs.primary)),
-                  const SizedBox(height: 8),
-                  _plRow('Send messages', content.tryGet<int>('events_default') ?? 0),
-                  _plRow('Invite users', content.tryGet<int>('invite') ?? 0),
-                  _plRow('Kick users', content.tryGet<int>('kick') ?? 50),
-                  _plRow('Ban users', content.tryGet<int>('ban') ?? 50),
-                  _plRow('Redact messages', content.tryGet<int>('redact') ?? 50),
-                  const Divider(),
-                  Text('State events', style: tt.titleSmall?.copyWith(color: cs.primary)),
-                  const SizedBox(height: 8),
-                  _plRow('Default state', content.tryGet<int>('state_default') ?? 50),
-                  for (final entry in events.entries)
-                    _plRow(
-                      _friendlyEventType(entry.key),
-                      entry.value is int ? entry.value! as int : 0,
-                    ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    ),);
-  }
-
-  Widget _plRow(String label, int level) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(label, overflow: TextOverflow.ellipsis),
-          ),
-          Text(
-            '$level',
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _friendlyEventType(String type) {
-    switch (type) {
-      case EventTypes.RoomName:
-        return 'Room name';
-      case EventTypes.RoomTopic:
-        return 'Room topic';
-      case EventTypes.RoomAvatar:
-        return 'Room avatar';
-      case EventTypes.Encryption:
-        return 'Encryption';
-      case EventTypes.HistoryVisibility:
-        return 'History visibility';
-      case EventTypes.RoomJoinRules:
-        return 'Join rules';
-      case EventTypes.GuestAccess:
-        return 'Guest access';
-      default:
-        return type;
-    }
-  }
 }

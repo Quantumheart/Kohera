@@ -22,4 +22,5 @@ abstract class Routes {
   static const addAccount = 'add-account';
   static const addAccountServer = 'add-account-server';
   static const whatsNew = 'whats-new';
+  static const roomPermissions = 'room-permissions';
 }
