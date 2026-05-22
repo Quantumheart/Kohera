@@ -18,6 +18,7 @@ import 'package:kohera/features/e2ee/screens/e2ee_setup_screen.dart';
 import 'package:kohera/features/e2ee/screens/show_recovery_key_screen.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/home/widgets/inbox_screen.dart';
+import 'package:kohera/features/rooms/screens/room_permissions_screen.dart';
 import 'package:kohera/features/rooms/widgets/room_details_panel.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/settings/screens/appearance_screen.dart';
@@ -179,6 +180,19 @@ GoRouter buildRouter(ClientManager manager) {
                         key: ValueKey('details-$roomId'),
                       );
                     },
+                    routes: [
+                      GoRoute(
+                        path: 'permissions',
+                        name: Routes.roomPermissions,
+                        builder: (context, state) {
+                          final roomId = state.pathParameters['roomId']!;
+                          return RoomPermissionsScreen(
+                            roomId: roomId,
+                            key: ValueKey('permissions-$roomId'),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                   GoRoute(
                     path: 'call',
