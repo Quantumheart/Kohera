@@ -23,6 +23,7 @@ MockUser _makeUser(String id, String displayName, {Room? room}) {
   when(user.id).thenReturn(id);
   when(user.displayName).thenReturn(displayName);
   when(user.room).thenReturn(room ?? MockRoom());
+  when(user.membership).thenReturn(Membership.join);
   return user;
 }
 
@@ -251,6 +252,7 @@ void main() {
 
     testWidgets('kick action prompts for reason and forwards it to client.kick',
         (tester) async {
+      when(mockRoom.getPowerLevelByUserId('@me:example.com')).thenReturn(50);
       final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
       when(mockRoom.canKick).thenReturn(true);
       when(mockRoom.requestParticipants(any))
@@ -282,6 +284,7 @@ void main() {
     });
 
     testWidgets('kick with empty reason sends null reason', (tester) async {
+      when(mockRoom.getPowerLevelByUserId('@me:example.com')).thenReturn(50);
       final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
       when(mockRoom.canKick).thenReturn(true);
       when(mockRoom.requestParticipants(any))
@@ -308,6 +311,7 @@ void main() {
 
     testWidgets('cancelling kick reason dialog does not call client.kick',
         (tester) async {
+      when(mockRoom.getPowerLevelByUserId('@me:example.com')).thenReturn(50);
       final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
       when(mockRoom.canKick).thenReturn(true);
       when(mockRoom.requestParticipants(any))
@@ -328,6 +332,7 @@ void main() {
 
     testWidgets('ban action prompts for reason and forwards it to client.ban',
         (tester) async {
+      when(mockRoom.getPowerLevelByUserId('@me:example.com')).thenReturn(50);
       final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
       when(mockRoom.canBan).thenReturn(true);
       when(mockRoom.requestParticipants(any))
@@ -372,6 +377,101 @@ void main() {
 
       expect(find.widgetWithText(SimpleDialogOption, 'Kick'), findsNothing);
       expect(find.widgetWithText(SimpleDialogOption, 'Ban'), findsNothing);
+    });
+
+    testWidgets('kick and ban hidden when target power level >= viewer level',
+        (tester) async {
+      when(mockRoom.getPowerLevelByUserId('@me:example.com')).thenReturn(50);
+      when(mockRoom.getPowerLevelByUserId('@alice:example.com')).thenReturn(50);
+      final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+      when(mockRoom.canKick).thenReturn(true);
+      when(mockRoom.canBan).thenReturn(true);
+      when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Alice'));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(SimpleDialogOption, 'Kick'), findsNothing);
+      expect(find.widgetWithText(SimpleDialogOption, 'Ban'), findsNothing);
+    });
+
+    testWidgets('ban dialog shows correct wording', (tester) async {
+      when(mockRoom.getPowerLevelByUserId('@me:example.com')).thenReturn(50);
+      final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+      when(mockRoom.canBan).thenReturn(true);
+      when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Alice'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(SimpleDialogOption, 'Ban'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining("won't be able to rejoin"), findsOneWidget);
+    });
+
+    testWidgets('unban shown for banned user and calls client.unban',
+        (tester) async {
+      when(mockRoom.getPowerLevelByUserId('@me:example.com')).thenReturn(50);
+      final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+      when(alice.membership).thenReturn(Membership.ban);
+      when(mockRoom.canBan).thenReturn(true);
+      when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
+      when(mockClient.unban(any, any)).thenAnswer((_) async {});
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Alice'));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(SimpleDialogOption, 'Ban'), findsNothing);
+      expect(find.widgetWithText(SimpleDialogOption, 'Unban'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(SimpleDialogOption, 'Unban'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Unban member?'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Unban'));
+      await tester.pumpAndSettle();
+
+      verify(mockClient.unban('!room:example.com', '@alice:example.com'))
+          .called(1);
+    });
+
+    testWidgets('kick error shown inline without dismissing sheet',
+        (tester) async {
+      when(mockRoom.getPowerLevelByUserId('@me:example.com')).thenReturn(50);
+      final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+      when(mockRoom.canKick).thenReturn(true);
+      when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
+      when(mockClient.kick(any, any, reason: anyNamed('reason')))
+          .thenThrow(
+        MatrixException.fromJson({
+          'errcode': 'M_FORBIDDEN',
+          'error': 'You do not have permission',
+        }),
+      );
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Alice'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(SimpleDialogOption, 'Kick'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Kick'));
+      await tester.pumpAndSettle();
+
+      // Sheet still open (Alice appears in tile + sheet title), error displayed inline.
+      expect(find.text('Alice'), findsWidgets);
+      expect(find.textContaining('permission'), findsOneWidget);
     });
 
     group('role dropdown', () {

@@ -263,7 +263,6 @@ class _MemberTileState extends State<_MemberTile> {
     final matrix = context.read<MatrixService>();
     final isMe = widget.user.id == widget.room.client.userID;
     final ownLevel = widget.room.getPowerLevelByUserId(widget.room.client.userID!);
-    final displayName = widget.user.displayName ?? widget.user.id;
 
     unawaited(showDialog<void>(
       context: context,
@@ -304,76 +303,8 @@ class _MemberTileState extends State<_MemberTile> {
                 }
               }
             : null,
-        onKick: widget.room.canKick && !isMe
-            ? () async {
-                if (!mounted) return;
-                final reason = await _promptModerationReason(
-                  title: 'Kick member?',
-                  message: 'Remove $displayName from the room?',
-                  confirmLabel: 'Kick',
-                  cs: Theme.of(context).colorScheme,
-                );
-                if (reason == null) return;
-                try {
-                  await widget.room.client.kick(
-                    widget.room.id,
-                    widget.user.id,
-                    reason: reason.isEmpty ? null : reason,
-                  );
-                } catch (e) {
-                  debugPrint('[Kohera] Kick failed: $e');
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Kick failed: ${MatrixService.friendlyAuthError(e)}')),
-                  );
-                }
-              }
-            : null,
-        onBan: widget.room.canBan && !isMe
-            ? () async {
-                if (!mounted) return;
-                final reason = await _promptModerationReason(
-                  title: 'Ban member?',
-                  message: 'Ban $displayName from the room? This can be reversed later.',
-                  confirmLabel: 'Ban',
-                  cs: Theme.of(context).colorScheme,
-                );
-                if (reason == null) return;
-                try {
-                  await widget.room.client.ban(
-                    widget.room.id,
-                    widget.user.id,
-                    reason: reason.isEmpty ? null : reason,
-                  );
-                } catch (e) {
-                  debugPrint('[Kohera] Ban failed: $e');
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Ban failed: ${MatrixService.friendlyAuthError(e)}')),
-                  );
-                }
-              }
-            : null,
       ),
     ),);
-  }
-
-  Future<String?> _promptModerationReason({
-    required String title,
-    required String message,
-    required String confirmLabel,
-    required ColorScheme cs,
-  }) {
-    return showDialog<String?>(
-      context: context,
-      builder: (dCtx) => _ModerationReasonDialog(
-        title: title,
-        message: message,
-        confirmLabel: confirmLabel,
-        confirmColor: cs.error,
-        onConfirmColor: cs.onError,
-      ),
-    );
   }
 }
 
@@ -386,8 +317,6 @@ class _MemberSheetDialog extends StatefulWidget {
     required this.ownLevel,
     required this.isMe,
     this.onStartDm,
-    this.onKick,
-    this.onBan,
   });
 
   final User user;
@@ -395,8 +324,6 @@ class _MemberSheetDialog extends StatefulWidget {
   final int ownLevel;
   final bool isMe;
   final Future<void> Function()? onStartDm;
-  final Future<void> Function()? onKick;
-  final Future<void> Function()? onBan;
 
   @override
   State<_MemberSheetDialog> createState() => _MemberSheetDialogState();
@@ -405,6 +332,8 @@ class _MemberSheetDialog extends StatefulWidget {
 class _MemberSheetDialogState extends State<_MemberSheetDialog> {
   bool _roleLoading = false;
   String? _roleError;
+  bool _actionLoading = false;
+  String? _actionError;
 
   Future<void> _changeRole(RoomRole newRole, int currentPowerLevel) async {
     final currentRole = RoomRole.fromPowerLevel(currentPowerLevel);
@@ -454,6 +383,126 @@ class _MemberSheetDialogState extends State<_MemberSheetDialog> {
     } finally {
       if (mounted) setState(() => _roleLoading = false);
     }
+  }
+
+  Future<void> _kick() async {
+    final displayName = widget.user.displayName ?? widget.user.id;
+    final cs = Theme.of(context).colorScheme;
+    final reason = await _promptModerationReason(
+      title: 'Kick member?',
+      message: 'Remove $displayName from the room?',
+      confirmLabel: 'Kick',
+      cs: cs,
+    );
+    if (reason == null || !mounted) return;
+    setState(() {
+      _actionLoading = true;
+      _actionError = null;
+    });
+    try {
+      await widget.room.client.kick(
+        widget.room.id,
+        widget.user.id,
+        reason: reason.isEmpty ? null : reason,
+      );
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      debugPrint('[Kohera] Kick failed: $e');
+      if (mounted) {
+        setState(() {
+          _actionLoading = false;
+          _actionError = MatrixService.friendlyAuthError(e);
+        });
+      }
+    }
+  }
+
+  Future<void> _ban() async {
+    final displayName = widget.user.displayName ?? widget.user.id;
+    final cs = Theme.of(context).colorScheme;
+    final reason = await _promptModerationReason(
+      title: 'Ban member?',
+      message: "Ban $displayName from this room? They won't be able to rejoin.",
+      confirmLabel: 'Ban',
+      cs: cs,
+    );
+    if (reason == null || !mounted) return;
+    setState(() {
+      _actionLoading = true;
+      _actionError = null;
+    });
+    try {
+      await widget.room.client.ban(
+        widget.room.id,
+        widget.user.id,
+        reason: reason.isEmpty ? null : reason,
+      );
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      debugPrint('[Kohera] Ban failed: $e');
+      if (mounted) {
+        setState(() {
+          _actionLoading = false;
+          _actionError = MatrixService.friendlyAuthError(e);
+        });
+      }
+    }
+  }
+
+  Future<void> _unban() async {
+    final displayName = widget.user.displayName ?? widget.user.id;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Unban member?'),
+        content: Text('Allow $displayName to rejoin the room?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Unban'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() {
+      _actionLoading = true;
+      _actionError = null;
+    });
+    try {
+      await widget.room.client.unban(widget.room.id, widget.user.id);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      debugPrint('[Kohera] Unban failed: $e');
+      if (mounted) {
+        setState(() {
+          _actionLoading = false;
+          _actionError = MatrixService.friendlyAuthError(e);
+        });
+      }
+    }
+  }
+
+  Future<String?> _promptModerationReason({
+    required String title,
+    required String message,
+    required String confirmLabel,
+    required ColorScheme cs,
+  }) {
+    return showDialog<String?>(
+      context: context,
+      builder: (dCtx) => _ModerationReasonDialog(
+        title: title,
+        message: message,
+        confirmLabel: confirmLabel,
+        confirmColor: cs.error,
+        onConfirmColor: cs.onError,
+      ),
+    );
   }
 
   List<DropdownMenuItem<RoomRole>> _buildRoleItems(int powerLevel) {
@@ -508,6 +557,7 @@ class _MemberSheetDialogState extends State<_MemberSheetDialog> {
     final powerLevel = room.getPowerLevelByUserId(user.id);
     final currentRole = RoomRole.fromPowerLevel(powerLevel);
     final displayName = user.displayName ?? user.id;
+    final isBanned = user.membership == Membership.ban;
 
     final avatarColor = senderColor(user.id, cs);
     final avatarFg =
@@ -518,6 +568,15 @@ class _MemberSheetDialogState extends State<_MemberSheetDialog> {
     final canChangeRole = !widget.isMe &&
         room.canChangePowerLevel &&
         powerLevel < widget.ownLevel;
+    final canKick = !widget.isMe &&
+        room.canKick &&
+        powerLevel < widget.ownLevel &&
+        !isBanned;
+    final canBan = !widget.isMe &&
+        room.canBan &&
+        powerLevel < widget.ownLevel &&
+        !isBanned;
+    final canUnban = !widget.isMe && room.canBan && isBanned;
 
     return SimpleDialog(
       titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
@@ -592,13 +651,30 @@ class _MemberSheetDialogState extends State<_MemberSheetDialog> {
           const Divider(height: 1),
         ],
 
+        // ── Action feedback ───────────────────────────────────
+        if (_actionLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: LinearProgressIndicator(),
+          ),
+        if (_actionError != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
+            child: Text(
+              _actionError!,
+              style: TextStyle(color: cs.error, fontSize: 12),
+            ),
+          ),
+
         // ── Actions ───────────────────────────────────────────
         if (!widget.isMe && widget.onStartDm != null)
           SimpleDialogOption(
-            onPressed: () async {
-              Navigator.pop(context);
-              await widget.onStartDm!();
-            },
+            onPressed: _actionLoading
+                ? null
+                : () async {
+                    Navigator.pop(context);
+                    await widget.onStartDm!();
+                  },
             child: const Row(
               children: [
                 Icon(Icons.chat_outlined),
@@ -607,12 +683,9 @@ class _MemberSheetDialogState extends State<_MemberSheetDialog> {
               ],
             ),
           ),
-        if (widget.onKick != null)
+        if (canKick)
           SimpleDialogOption(
-            onPressed: () async {
-              Navigator.pop(context);
-              await widget.onKick!();
-            },
+            onPressed: _actionLoading ? null : _kick,
             child: Row(
               children: [
                 Icon(Icons.person_remove_outlined, color: cs.error),
@@ -621,17 +694,25 @@ class _MemberSheetDialogState extends State<_MemberSheetDialog> {
               ],
             ),
           ),
-        if (widget.onBan != null)
+        if (canBan)
           SimpleDialogOption(
-            onPressed: () async {
-              Navigator.pop(context);
-              await widget.onBan!();
-            },
+            onPressed: _actionLoading ? null : _ban,
             child: Row(
               children: [
                 Icon(Icons.block_rounded, color: cs.error),
                 const SizedBox(width: 16),
                 Text('Ban', style: TextStyle(color: cs.error)),
+              ],
+            ),
+          ),
+        if (canUnban)
+          SimpleDialogOption(
+            onPressed: _actionLoading ? null : _unban,
+            child: Row(
+              children: [
+                Icon(Icons.lock_open_outlined, color: cs.primary),
+                const SizedBox(width: 16),
+                Text('Unban', style: TextStyle(color: cs.primary)),
               ],
             ),
           ),
