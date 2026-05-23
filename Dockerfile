@@ -3,7 +3,7 @@
 # ── Build Stage ──────────────────────────────────────────────────────
 FROM docker.io/library/debian:bookworm-slim AS build
 
-ARG FLUTTER_VERSION=3.41.6
+ARG FLUTTER_VERSION=3.44.0
 ARG VODOZEMAC_VERSION=0.5.0
 ARG GIPHY_API_KEY
 
