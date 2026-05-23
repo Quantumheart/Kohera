@@ -6,6 +6,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/rooms/models/room_role.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
@@ -38,6 +39,7 @@ void main() {
     mockRoom = MockRoom();
 
     when(mockMatrixService.client).thenReturn(mockClient);
+    when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockRoom.id).thenReturn('!room:example.com');
     when(mockRoom.client).thenReturn(mockClient);
     when(mockRoom.summary).thenReturn(RoomSummary.fromJson({

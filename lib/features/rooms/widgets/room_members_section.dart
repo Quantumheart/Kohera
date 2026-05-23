@@ -30,19 +30,34 @@ class _RoomMembersSectionState extends State<RoomMembersSection> {
   int _loadGeneration = 0;
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+  StreamSubscription<SyncUpdate>? _syncSub;
+  Timer? _syncDebounce;
 
   @override
   void initState() {
     super.initState();
     unawaited(_loadMembers());
     _searchController.addListener(_onSearchChanged);
+    _syncSub = widget.room.client.onSync.stream.listen(_onSync);
   }
 
   @override
   void dispose() {
+    _syncDebounce?.cancel();
+    unawaited(_syncSub?.cancel());
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSync(SyncUpdate update) {
+    final stateEvents =
+        update.rooms?.join?[widget.room.id]?.state ?? [];
+    if (!stateEvents.any((e) => e.type == EventTypes.RoomPowerLevels)) return;
+    _syncDebounce?.cancel();
+    _syncDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) unawaited(_loadMembers());
+    });
   }
 
   void _onSearchChanged() {
@@ -334,6 +349,31 @@ class _MemberSheetDialogState extends State<_MemberSheetDialog> {
   String? _roleError;
   bool _actionLoading = false;
   String? _actionError;
+  StreamSubscription<SyncUpdate>? _syncSub;
+  Timer? _syncDebounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncSub = widget.room.client.onSync.stream.listen(_onSync);
+  }
+
+  @override
+  void dispose() {
+    _syncDebounce?.cancel();
+    unawaited(_syncSub?.cancel());
+    super.dispose();
+  }
+
+  void _onSync(SyncUpdate update) {
+    final stateEvents =
+        update.rooms?.join?[widget.room.id]?.state ?? [];
+    if (!stateEvents.any((e) => e.type == EventTypes.RoomPowerLevels)) return;
+    _syncDebounce?.cancel();
+    _syncDebounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) setState(() {});
+    });
+  }
 
   Future<void> _changeRole(RoomRole newRole, int currentPowerLevel) async {
     final currentRole = RoomRole.fromPowerLevel(currentPowerLevel);
