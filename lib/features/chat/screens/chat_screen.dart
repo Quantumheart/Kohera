@@ -441,7 +441,7 @@ class _ChatScreenState extends State<ChatScreen>
                   );
                 }
               : null,
-          onPasteImage: (_isDesktop || kIsWeb) ? _handlePasteImage : null,
+          onPasteImage: _isDesktop ? _handlePasteImage : null,
           uploadNotifier: _compose.uploadNotifier,
           room: room,
           joinedRooms: context.read<SelectionService>().rooms,
