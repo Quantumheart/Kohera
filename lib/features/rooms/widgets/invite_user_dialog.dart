@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/utils/known_contacts.dart';
+import 'package:kohera/core/utils/known_contacts.dart' show knownContacts, roomContacts;
 import 'package:matrix/matrix.dart' hide Visibility;
 
 /// A reusable dialog that prompts for a Matrix user ID to invite to a room
@@ -37,6 +37,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
   Timer? _debounce;
   int _searchGeneration = 0;
   List<Profile>? _cachedContacts;
+  List<Profile>? _cachedRoomContacts;
   Set<String>? _cachedExistingMembers;
   bool _suggestionsReady = false;
 
@@ -48,6 +49,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
       if (!mounted) return;
       _existingMembers();
       _knownContacts();
+      _roomContacts();
       if (!mounted) return;
       setState(() => _suggestionsReady = true);
     });
@@ -97,6 +99,19 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
       _cachedContacts = const [];
     }
     return _cachedContacts!;
+  }
+
+  List<Profile> _roomContacts() {
+    if (_cachedRoomContacts != null) return _cachedRoomContacts!;
+    final client = _client;
+    if (client == null) return _cachedRoomContacts = const [];
+    try {
+      final dmIds = _knownContacts().map((p) => p.userId).toSet();
+      _cachedRoomContacts = roomContacts(client, excludeMxids: dmIds);
+    } catch (_) {
+      _cachedRoomContacts = const [];
+    }
+    return _cachedRoomContacts!;
   }
 
   void _onQueryChanged(String text) {
@@ -158,53 +173,77 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
     if (!_suggestionsReady) return [];
     final query = _controller.text.trim();
     final existing = _existingMembers();
-    final source = query.isEmpty ? _knownContacts() : _searchResults;
-    final filtered = source.where((p) => !existing.contains(p.userId)).toList();
-    if (filtered.isEmpty) return [];
-
     final tiles = <Widget>[];
-    if (query.isEmpty) {
-      tiles.add(Padding(
+
+    if (query.isNotEmpty) {
+      final filtered = _searchResults.where((p) => !existing.contains(p.userId)).toList();
+      for (final p in filtered) {
+        tiles.add(_profileTile(p, cs));
+      }
+      return tiles;
+    }
+
+    final dmContacts = _knownContacts().where((p) => !existing.contains(p.userId)).toList();
+    final groupContacts = _roomContacts().where((p) => !existing.contains(p.userId)).toList();
+
+    if (dmContacts.isEmpty && groupContacts.isEmpty) return [];
+
+    if (dmContacts.isNotEmpty) {
+      tiles.add(_sectionLabel('Recent contacts', cs));
+      for (final p in dmContacts) {
+        tiles.add(_profileTile(p, cs));
+      }
+    }
+
+    if (groupContacts.isNotEmpty) {
+      tiles.add(_sectionLabel('From other rooms', cs));
+      for (final p in groupContacts) {
+        tiles.add(_profileTile(p, cs));
+      }
+    }
+
+    return tiles;
+  }
+
+  Widget _sectionLabel(String text, ColorScheme cs) => Padding(
         padding: const EdgeInsets.only(left: 12, top: 8, bottom: 4),
         child: Text(
-          'Recent contacts',
+          text,
           style: TextStyle(
             fontSize: 12,
             color: cs.onSurfaceVariant,
             fontWeight: FontWeight.w500,
           ),
         ),
-      ),);
-    }
-    for (final p in filtered) {
-      final label = p.displayName ?? p.userId;
-      final initial = label.isNotEmpty ? label.characters.first.toUpperCase() : '?';
-      tiles.add(ListTile(
-        dense: true,
-        leading: CircleAvatar(
-          radius: 16,
-          backgroundColor: cs.primaryContainer,
-          child: Text(
-            initial,
-            style: TextStyle(color: cs.onPrimaryContainer, fontSize: 13),
-          ),
+      );
+
+  Widget _profileTile(Profile p, ColorScheme cs) {
+    final label = p.displayName ?? p.userId;
+    final initial = label.isNotEmpty ? label.characters.first.toUpperCase() : '?';
+    return ListTile(
+      dense: true,
+      leading: CircleAvatar(
+        radius: 16,
+        backgroundColor: cs.primaryContainer,
+        child: Text(
+          initial,
+          style: TextStyle(color: cs.onPrimaryContainer, fontSize: 13),
         ),
-        title: Text(
-          label,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 14),
-        ),
-        subtitle: p.displayName != null
-            ? Text(
-                p.userId,
-                style: const TextStyle(fontSize: 11),
-                overflow: TextOverflow.ellipsis,
-              )
-            : null,
-        onTap: () => _selectProfile(p),
-      ),);
-    }
-    return tiles;
+      ),
+      title: Text(
+        label,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 14),
+      ),
+      subtitle: p.displayName != null
+          ? Text(
+              p.userId,
+              style: const TextStyle(fontSize: 11),
+              overflow: TextOverflow.ellipsis,
+            )
+          : null,
+      onTap: () => _selectProfile(p),
+    );
   }
 
   @override
