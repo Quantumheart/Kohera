@@ -499,4 +499,401 @@ void main() {
       expect(events[EventTypes.RoomPowerLevels], 100);
     });
   });
+  group('Advanced section', () {
+    Future<void> scrollToAdvanced(WidgetTester tester) async {
+      await tester.drag(find.byType(ListView), const Offset(0, -3000));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> expandAdvanced(WidgetTester tester) async {
+      await scrollToAdvanced(tester);
+      await tester.tap(find.text('ADVANCED'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('ADVANCED header is hidden when canChangePowerLevel is false',
+        (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(false);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await scrollToAdvanced(tester);
+
+      expect(find.text('ADVANCED'), findsNothing);
+    });
+
+    testWidgets('ADVANCED header is visible when canChangePowerLevel is true',
+        (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await scrollToAdvanced(tester);
+
+      expect(find.text('ADVANCED'), findsOneWidget);
+    });
+
+    testWidgets('section is collapsed by default', (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await scrollToAdvanced(tester);
+
+      expect(find.text('users_default'), findsNothing);
+    });
+
+    testWidgets('tapping ADVANCED expands scalar fields', (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      expect(find.text('users_default'), findsOneWidget);
+      expect(find.text('state_default'), findsOneWidget);
+      expect(find.text('events_default'), findsOneWidget);
+    });
+
+    testWidgets('scalar fields show values from power_levels content',
+        (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+      when(mockPlEvent.content).thenReturn(
+        _plContent(stateDefault: 75, eventsDefault: 25),
+      );
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      // state_default label field should have '75' as its value.
+      final stateField = tester.widget<TextField>(
+        find.widgetWithText(TextField, 'state_default'),
+      );
+      expect(stateField.controller?.text, '75');
+
+      final eventsField = tester.widget<TextField>(
+        find.widgetWithText(TextField, 'events_default'),
+      );
+      expect(eventsField.controller?.text, '25');
+    });
+
+    testWidgets('Apply button is disabled when nothing has changed',
+        (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      final applyButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Apply'),
+      );
+      expect(applyButton.onPressed, isNull);
+    });
+
+    testWidgets('editing a scalar field enables Apply button', (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'users_default'),
+        '10',
+      );
+      await tester.pump();
+
+      final applyButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Apply'),
+      );
+      expect(applyButton.onPressed, isNotNull);
+    });
+
+    testWidgets('Apply calls setRoomStateWithKey with updated scalar',
+        (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'users_default'),
+        '10',
+      );
+      await tester.pump();
+
+      await tester.ensureVisible(find.widgetWithText(FilledButton, 'Apply'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
+      await tester.pumpAndSettle();
+
+      final captured = verify(
+        mockClient.setRoomStateWithKey(
+          _roomId,
+          EventTypes.RoomPowerLevels,
+          '',
+          captureAny,
+        ),
+      ).captured.single as Map<String, Object?>;
+
+      expect(captured['users_default'], 10);
+    });
+
+    testWidgets('non-integer input shows validation error and disables Apply',
+        (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'state_default'),
+        'abc',
+      );
+      await tester.pump();
+
+      expect(find.text('Scalar values must be integers.'), findsOneWidget);
+      final applyButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Apply'),
+      );
+      expect(applyButton.onPressed, isNull);
+    });
+
+    testWidgets('Reset restores fields to server values', (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'users_default'),
+        '99',
+      );
+      await tester.pump();
+
+      await tester.ensureVisible(find.text('Reset'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Reset'));
+      await tester.pumpAndSettle();
+
+      final usersField = tester.widget<TextField>(
+        find.widgetWithText(TextField, 'users_default'),
+      );
+      expect(usersField.controller?.text, '0');
+    });
+
+    testWidgets('existing per-event rows are rendered when expanded',
+        (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+      when(mockPlEvent.content).thenReturn(
+        _plContent(events: {'m.room.encryption': 100}),
+      );
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      expect(find.text('m.room.encryption'), findsOneWidget);
+    });
+
+    testWidgets('Add button appends a new event row', (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      expect(find.widgetWithText(TextField, 'Event type'), findsNothing);
+
+      // Scroll to the Add icon (inside TextButton.icon) before tapping.
+      await tester.ensureVisible(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(TextField, 'Event type'), findsOneWidget);
+    });
+
+    testWidgets('Remove button deletes the event row', (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+      when(mockPlEvent.content).thenReturn(
+        _plContent(events: {'m.room.encryption': 100}),
+      );
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      expect(find.text('m.room.encryption'), findsOneWidget);
+
+      // Use the icon widget directly — byTooltip resolves to the overlay render
+      // object which can be off-screen even after ensureVisible.
+      await tester.ensureVisible(find.byIcon(Icons.remove_circle_outline));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.remove_circle_outline));
+      await tester.pumpAndSettle();
+
+      expect(find.text('m.room.encryption'), findsNothing);
+    });
+
+    testWidgets('duplicate event type shows validation error', (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+      when(mockPlEvent.content).thenReturn(
+        _plContent(events: {'m.room.encryption': 100}),
+      );
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      // Add a second row.
+      await tester.ensureVisible(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+
+      // enterText works off-screen (uses semantics, not hit-test).
+      final typeFields = find.widgetWithText(TextField, 'Event type');
+      await tester.enterText(typeFields.last, 'm.room.encryption');
+      await tester.pump();
+
+      expect(
+        find.textContaining('Duplicate event type'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('empty event type shows validation error and disables Apply',
+        (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      await tester.ensureVisible(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+
+      // New row starts with an empty type — validation fires immediately.
+      expect(find.text('Event type cannot be empty.'), findsOneWidget);
+      final applyButton = tester.widget<FilledButton>(
+        find.widgetWithText(FilledButton, 'Apply'),
+      );
+      expect(applyButton.onPressed, isNull);
+    });
+
+    testWidgets(
+        'Apply with removed row sends events map without the deleted key',
+        (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+      when(mockPlEvent.content).thenReturn(
+        _plContent(events: {'m.room.encryption': 100, 'm.room.name': 50}),
+      );
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      // Remove whichever row appears first (m.room.encryption).
+      await tester.ensureVisible(find.byIcon(Icons.remove_circle_outline).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.remove_circle_outline).first);
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.widgetWithText(FilledButton, 'Apply'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
+      await tester.pumpAndSettle();
+
+      final captured = verify(
+        mockClient.setRoomStateWithKey(any, any, any, captureAny),
+      ).captured.single as Map<String, Object?>;
+
+      final events = captured['events']! as Map<String, Object?>;
+      expect(events.length, 1);
+      expect(events.containsKey('m.room.encryption'), isFalse);
+      expect(events['m.room.name'], 50);
+    });
+
+    testWidgets('Apply with added row includes new key in payload',
+        (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      await tester.ensureVisible(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
+
+      final typeFields = find.widgetWithText(TextField, 'Event type');
+      await tester.enterText(typeFields.last, 'm.room.history_visibility');
+
+      final levelFields = find.widgetWithText(TextField, 'Level');
+      await tester.enterText(levelFields.last, '100');
+      await tester.pump();
+
+      await tester.ensureVisible(find.widgetWithText(FilledButton, 'Apply'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
+      await tester.pumpAndSettle();
+
+      final captured = verify(
+        mockClient.setRoomStateWithKey(any, any, any, captureAny),
+      ).captured.single as Map<String, Object?>;
+
+      final events = captured['events']! as Map<String, Object?>;
+      expect(events['m.room.history_visibility'], 100);
+    });
+
+    testWidgets('server error is shown after failed Apply', (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+      when(mockClient.setRoomStateWithKey(any, any, any, any))
+          .thenAnswer((_) async => throw MatrixException.fromJson({
+                'errcode': 'M_FORBIDDEN',
+                'error': 'You do not have permission',
+              },),);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'users_default'),
+        '10',
+      );
+      await tester.pump();
+
+      await tester.ensureVisible(find.widgetWithText(FilledButton, 'Apply'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Apply'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('You do not have permission'), findsOneWidget);
+    });
+
+    testWidgets('second tap on ADVANCED collapses the section', (tester) async {
+      when(mockRoom.canChangePowerLevel).thenReturn(true);
+
+      await tester.pumpWidget(buildScreen());
+      await tester.pumpAndSettle();
+      await expandAdvanced(tester);
+
+      expect(find.text('users_default'), findsOneWidget);
+
+      await tester.tap(find.text('ADVANCED'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('users_default'), findsNothing);
+    });
+  });
 }

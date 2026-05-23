@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:matrix/matrix.dart';
@@ -75,6 +76,7 @@ class _RoomPermissionsScreenState extends State<RoomPermissionsScreen> {
           _RolesSection(room: room),
           _WhoCanSection(room: room),
           _DangerZoneSection(room: room),
+          _AdvancedSection(room: room),
         ],
       ),
     );
@@ -906,6 +908,449 @@ class _DangerZoneSectionState extends State<_DangerZoneSection> {
 
         const SizedBox(height: 24),
       ],
+    );
+  }
+}
+// ── Advanced section ──────────────────────────────────────────
+
+/// One row in the per-event-type editor: an event type string + integer level.
+class _EventRowData {
+  _EventRowData({required String type, required String level})
+      : typeCtrl = TextEditingController(text: type),
+        levelCtrl = TextEditingController(text: level);
+
+  final TextEditingController typeCtrl;
+  final TextEditingController levelCtrl;
+
+  void dispose() {
+    typeCtrl.dispose();
+    levelCtrl.dispose();
+  }
+}
+
+/// Collapsed-by-default section that exposes raw `m.room.power_levels` fields
+/// (scalars + per-event-type map). Changes are applied atomically via a single
+/// [setRoomStateWithKey] call so deletions are possible (PowerLevelService
+/// never removes existing keys).
+///
+/// Hidden entirely when the local user cannot change power levels.
+class _AdvancedSection extends StatefulWidget {
+  const _AdvancedSection({required this.room});
+
+  final Room room;
+
+  @override
+  State<_AdvancedSection> createState() => _AdvancedSectionState();
+}
+
+class _AdvancedSectionState extends State<_AdvancedSection> {
+  bool _expanded = false;
+  bool _saving = false;
+  String? _error;
+
+  late TextEditingController _usersDefaultCtrl;
+  late TextEditingController _stateDefaultCtrl;
+  late TextEditingController _eventsDefaultCtrl;
+  final List<_EventRowData> _eventRows = [];
+
+  Map<String, Object?> get _currentContent =>
+      widget.room.getState(EventTypes.RoomPowerLevels)?.content ?? {};
+
+  @override
+  void initState() {
+    super.initState();
+    _initFromContent(_currentContent);
+  }
+
+  void _initFromContent(Map<String, Object?> c) {
+    _usersDefaultCtrl = TextEditingController(
+      text: _plScalar(c, 'users_default', 0).toString(),
+    );
+    _stateDefaultCtrl = TextEditingController(
+      text: _plScalar(c, 'state_default', 50).toString(),
+    );
+    _eventsDefaultCtrl = TextEditingController(
+      text: _plScalar(c, 'events_default', 0).toString(),
+    );
+    final events = c.tryGetMap<String, Object?>('events') ?? {};
+    _eventRows
+      ..clear()
+      ..addAll(
+        events.entries.map(
+          (e) => _EventRowData(
+            type: e.key,
+            level: (e.value as int? ?? 0).toString(),
+          ),
+        ),
+      );
+  }
+
+  @override
+  void dispose() {
+    _usersDefaultCtrl.dispose();
+    _stateDefaultCtrl.dispose();
+    _eventsDefaultCtrl.dispose();
+    for (final r in _eventRows) {
+      r.dispose();
+    }
+    super.dispose();
+  }
+
+  void _reset() {
+    for (final r in _eventRows) {
+      r.dispose();
+    }
+    _initFromContent(_currentContent);
+    setState(() => _error = null);
+  }
+
+  /// Validates and returns a human-readable error, or null if clean.
+  String? _validate() {
+    for (final ctrl in [_usersDefaultCtrl, _stateDefaultCtrl, _eventsDefaultCtrl]) {
+      if (int.tryParse(ctrl.text.trim()) == null) {
+        return 'Scalar values must be integers.';
+      }
+    }
+    final types = <String>[];
+    for (final row in _eventRows) {
+      final t = row.typeCtrl.text.trim();
+      final l = row.levelCtrl.text.trim();
+      if (t.isEmpty) return 'Event type cannot be empty.';
+      if (int.tryParse(l) == null) return 'Level for "$t" must be an integer.';
+      if (types.contains(t)) return 'Duplicate event type: "$t".';
+      types.add(t);
+    }
+    return null;
+  }
+
+  Future<void> _apply() async {
+    final validationError = _validate();
+    if (validationError != null) {
+      setState(() => _error = validationError);
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    try {
+      final content = _currentContent.copy();
+
+      content['users_default'] = int.parse(_usersDefaultCtrl.text.trim());
+      content['state_default'] = int.parse(_stateDefaultCtrl.text.trim());
+      content['events_default'] = int.parse(_eventsDefaultCtrl.text.trim());
+
+      final eventsMap = <String, Object?>{};
+      for (final row in _eventRows) {
+        eventsMap[row.typeCtrl.text.trim()] =
+            int.parse(row.levelCtrl.text.trim());
+      }
+      content['events'] = eventsMap;
+
+      await widget.room.client.setRoomStateWithKey(
+        widget.room.id,
+        EventTypes.RoomPowerLevels,
+        '',
+        content,
+      );
+    } on MatrixException catch (e) {
+      if (mounted) setState(() => _error = e.errorMessage);
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  bool get _isDirty {
+    final c = _currentContent;
+    if (_usersDefaultCtrl.text.trim() !=
+        _plScalar(c, 'users_default', 0).toString()) {
+      return true;
+    }
+    if (_stateDefaultCtrl.text.trim() !=
+        _plScalar(c, 'state_default', 50).toString()) {
+      return true;
+    }
+    if (_eventsDefaultCtrl.text.trim() !=
+        _plScalar(c, 'events_default', 0).toString()) {
+      return true;
+    }
+    final savedEvents = c.tryGetMap<String, Object?>('events') ?? {};
+    if (_eventRows.length != savedEvents.length) return true;
+    for (final row in _eventRows) {
+      final t = row.typeCtrl.text.trim();
+      final saved = savedEvents[t];
+      if (saved == null) return true;
+      if (row.levelCtrl.text.trim() != saved.toString()) return true;
+    }
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.room.canChangePowerLevel) return const SizedBox.shrink();
+
+    final tt = Theme.of(context).textTheme;
+    final cs = Theme.of(context).colorScheme;
+    final validationError = _validate();
+    final canApply = !_saving && _isDirty && validationError == null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Row(
+              children: [
+                Text(
+                  'ADVANCED',
+                  style: tt.labelSmall?.copyWith(
+                    color: cs.error,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const Spacer(),
+                AnimatedRotation(
+                  turns: _expanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(Icons.expand_more, size: 20, color: cs.error),
+                ),
+              ],
+            ),
+          ),
+        ),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          child: _expanded ? _buildBody(context, tt, cs, canApply, validationError) : const SizedBox.shrink(),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    TextTheme tt,
+    ColorScheme cs,
+    bool canApply,
+    String? validationError,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Warning banner
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: cs.errorContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  size: 18,
+                  color: cs.onErrorContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'These are raw power-level values. Incorrect settings can '
+                    'lock everyone out of the room.',
+                    style: tt.bodySmall
+                        ?.copyWith(color: cs.onErrorContainer),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Scalar fields
+          Text('Scalar defaults', style: tt.labelMedium),
+          const SizedBox(height: 8),
+          _ScalarField(
+            label: 'users_default',
+            controller: _usersDefaultCtrl,
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 8),
+          _ScalarField(
+            label: 'state_default',
+            controller: _stateDefaultCtrl,
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 8),
+          _ScalarField(
+            label: 'events_default',
+            controller: _eventsDefaultCtrl,
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 16),
+
+          // Per-event rows
+          Row(
+            children: [
+              Text('Per-event overrides', style: tt.labelMedium),
+              const Spacer(),
+              TextButton.icon(
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Add'),
+                onPressed: () => setState(() {
+                  _eventRows.add(_EventRowData(type: '', level: '50'));
+                }),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          for (int i = 0; i < _eventRows.length; i++)
+            _EventRow(
+              key: ObjectKey(_eventRows[i]),
+              row: _eventRows[i],
+              onChanged: () => setState(() {}),
+              onRemove: () => setState(() {
+                _eventRows[i].dispose();
+                _eventRows.removeAt(i);
+              }),
+            ),
+
+          // Validation or server error
+          if (validationError != null && _isDirty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                validationError,
+                style: tt.bodySmall?.copyWith(color: cs.error),
+              ),
+            )
+          else if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                _error!,
+                style: tt.bodySmall?.copyWith(color: cs.error),
+              ),
+            ),
+
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: _saving ? null : _reset,
+                child: const Text('Reset'),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: canApply ? _apply : null,
+                child: _saving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Apply'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScalarField extends StatelessWidget {
+  const _ScalarField({
+    required this.label,
+    required this.controller,
+    required this.onChanged,
+  });
+
+  final String label;
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        border: const OutlineInputBorder(),
+      ),
+      keyboardType: TextInputType.number,
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'-?\d*')),
+      ],
+      onChanged: onChanged,
+    );
+  }
+}
+
+class _EventRow extends StatelessWidget {
+  const _EventRow({
+    required this.row,
+    required this.onChanged,
+    required this.onRemove,
+    super.key,
+  });
+
+  final _EventRowData row;
+  final VoidCallback onChanged;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: TextField(
+              controller: row.typeCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Event type',
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (_) => onChanged(),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: row.levelCtrl,
+              decoration: const InputDecoration(
+                labelText: 'Level',
+                isDense: true,
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'-?\d*')),
+              ],
+              onChanged: (_) => onChanged(),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.remove_circle_outline, size: 20),
+            onPressed: onRemove,
+            tooltip: 'Remove',
+          ),
+        ],
+      ),
     );
   }
 }
