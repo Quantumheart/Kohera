@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/rooms/screens/room_permissions_screen.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
@@ -53,6 +54,7 @@ void main() {
     mockPlEvent = MockEvent();
 
     when(mockMatrixService.client).thenReturn(mockClient);
+    when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.getRoomById(_roomId)).thenReturn(mockRoom);
     when(mockRoom.id).thenReturn(_roomId);
     when(mockRoom.client).thenReturn(mockClient);

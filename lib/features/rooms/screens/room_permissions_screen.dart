@@ -11,15 +11,56 @@ import 'package:provider/provider.dart';
 /// Displays a "Roles" summary section followed by a "Who can…" section where
 /// each row maps to one or more `m.room.power_levels` fields. Changes are
 /// written immediately via [PowerLevelService.update].
-class RoomPermissionsScreen extends StatelessWidget {
+///
+/// Subscribes to the sync stream and rebuilds when power levels, join rules,
+/// or encryption state change so a concurrent admin's edits appear live.
+class RoomPermissionsScreen extends StatefulWidget {
   const RoomPermissionsScreen({required this.roomId, super.key});
 
   final String roomId;
 
   @override
+  State<RoomPermissionsScreen> createState() => _RoomPermissionsScreenState();
+}
+
+class _RoomPermissionsScreenState extends State<RoomPermissionsScreen> {
+  StreamSubscription<SyncUpdate>? _syncSub;
+  Timer? _debounce;
+
+  static const Set<String> _watchedTypes = {
+    EventTypes.RoomPowerLevels,
+    EventTypes.RoomJoinRules,
+    EventTypes.Encryption,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    final client = context.read<MatrixService>().client;
+    _syncSub = client.onSync.stream.listen(_onSync);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    unawaited(_syncSub?.cancel());
+    super.dispose();
+  }
+
+  void _onSync(SyncUpdate update) {
+    final stateEvents =
+        update.rooms?.join?[widget.roomId]?.state ?? [];
+    if (!stateEvents.any((e) => _watchedTypes.contains(e.type))) return;
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final room =
-        context.read<MatrixService>().client.getRoomById(roomId);
+        context.read<MatrixService>().client.getRoomById(widget.roomId);
     if (room == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Permissions')),
