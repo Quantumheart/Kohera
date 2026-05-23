@@ -69,6 +69,9 @@ jobs:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
       - run: flutter pub get
-      - run: pod repo update
+      - name: Pre-build macOS Pods (force repo update)
         working-directory: macos
+        run: |
+          flutter precache --macos
+          pod install --repo-update
       - run: flutter build macos --release --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
