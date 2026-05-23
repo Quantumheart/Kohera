@@ -1,6 +1,7 @@
 ﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/rooms/models/room_role.dart';
@@ -669,6 +670,56 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byType(DropdownButton<RoomRole>), findsNothing);
+      });
+    });
+
+    group('MXID copy', () {
+      testWidgets('copy button writes MXID to clipboard', (tester) async {
+        final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+        when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
+
+        String? copiedText;
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            if (call.method == 'Clipboard.setData') {
+              copiedText = (call.arguments as Map)['text'] as String;
+            }
+            return null;
+          },
+        );
+
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Alice'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.copy_outlined));
+        await tester.pumpAndSettle();
+
+        expect(copiedText, '@alice:example.com');
+      });
+
+      testWidgets('copy button shows snackbar confirmation', (tester) async {
+        final alice = _makeUser('@alice:example.com', 'Alice', room: mockRoom);
+        when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
+
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (_) async => null,
+        );
+
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Alice'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.copy_outlined));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Copied to clipboard'), findsOneWidget);
       });
     });
   });

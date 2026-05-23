@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -640,10 +641,30 @@ class _MemberSheetDialogState extends State<_MemberSheetDialog> {
             style: tt.titleMedium,
             textAlign: TextAlign.center,
           ),
-          Text(
-            user.id,
-            style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
-            textAlign: TextAlign.center,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: SelectableText(
+                  user.id,
+                  style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.copy_outlined),
+                iconSize: 14,
+                visualDensity: VisualDensity.compact,
+                tooltip: 'Copy MXID',
+                color: cs.onSurfaceVariant,
+                onPressed: () {
+                  unawaited(Clipboard.setData(ClipboardData(text: user.id)));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Copied to clipboard')),
+                  );
+                },
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           Text(
