@@ -1,5 +1,49 @@
 # Changelog
 
+## [1.2.0](https://github.com/Quantumheart/Kohera/compare/v1.1.0...v1.2.0) (2026-05-23)
+
+
+### Features
+
+* **invite:** suggest contacts and search user directory in invite dialog ([9a588e9](https://github.com/Quantumheart/Kohera/commit/9a588e9635c64e7c8fbde9c257386828420dfe44))
+* **rooms,spaces:** add SpaceAccessService + read-only join mode row ([c803b45](https://github.com/Quantumheart/Kohera/commit/c803b457dae5b6077e1208cda2730e6d473c7693))
+* **rooms,spaces:** close review gaps on restricted-join flow ([4d513d6](https://github.com/Quantumheart/Kohera/commit/4d513d630930bbd76c20f522ec9ae6ed0b45fe69))
+* **rooms,spaces:** restricted-join defaults in creation dialogs ([f859f2e](https://github.com/Quantumheart/Kohera/commit/f859f2e0e963ef26f72aab115b23a542f51e755a))
+* **rooms:** add reason field to kick/ban and convert member sheet to SimpleDialog ([6176c9e](https://github.com/Quantumheart/Kohera/commit/6176c9e5033daf15b02478564125a2909156ee5f)), closes [#443](https://github.com/Quantumheart/Kohera/issues/443)
+* **rooms:** advanced power-level editor section ([#458](https://github.com/Quantumheart/Kohera/issues/458)) ([49d5421](https://github.com/Quantumheart/Kohera/commit/49d54219e89bc2cc1ac1ae803066565ac7ac85f7))
+* **rooms:** danger zone section for join rules, permission level and encryption ([#457](https://github.com/Quantumheart/Kohera/issues/457)) ([21350b4](https://github.com/Quantumheart/Kohera/commit/21350b405b49b5acab57ff378dfe36a86e0a5fdc))
+* **rooms:** diff-aware updatePowerLevels helper ([#452](https://github.com/Quantumheart/Kohera/issues/452)) ([7311761](https://github.com/Quantumheart/Kohera/commit/7311761395348c3bf91d9de12786ff6dae7154cd))
+* **rooms:** edit join_rules via JoinAccessController + upgrade flow ([b99f450](https://github.com/Quantumheart/Kohera/commit/b99f45076639c90245647c9351accad63ccfbb8f))
+* **rooms:** kick / ban / unban with reason in member sheet ([#454](https://github.com/Quantumheart/Kohera/issues/454)) ([1046589](https://github.com/Quantumheart/Kohera/commit/1046589571defab417d2b9fa3c5e7e678c32361f))
+* **rooms:** live reactivity for permissions screen and member sheet ([#459](https://github.com/Quantumheart/Kohera/issues/459)) ([8d0091a](https://github.com/Quantumheart/Kohera/commit/8d0091a0aea5df1410c6fe38a34cf602809ce11b))
+* **rooms:** member sheet role dropdown ([#453](https://github.com/Quantumheart/Kohera/issues/453)) ([f3c0df3](https://github.com/Quantumheart/Kohera/commit/f3c0df3ce8d68fc938d7778fd20afbb3a04c06ec))
+* **rooms:** roles section with effective-permissions preview ([#456](https://github.com/Quantumheart/Kohera/issues/456)) ([b7825c3](https://github.com/Quantumheart/Kohera/commit/b7825c3655072fbba7b6a884cc17151809009a52))
+* **rooms:** room permissions screen scaffold + Who can… section ([#455](https://github.com/Quantumheart/Kohera/issues/455)) ([04b03da](https://github.com/Quantumheart/Kohera/commit/04b03dad09684e2fb1f0ec8992c57e88d1e99819))
+* **rooms:** room role abstraction for permissions ui ([#451](https://github.com/Quantumheart/Kohera/issues/451)) ([a2407c9](https://github.com/Quantumheart/Kohera/commit/a2407c9e414d662883b0c85db39f8cf80eebb1c2))
+* **rooms:** search/filter members list by name or MXID ([c07b6d4](https://github.com/Quantumheart/Kohera/commit/c07b6d45618d4e7b1fcae8fc280bc8c12bdac47b)), closes [#445](https://github.com/Quantumheart/Kohera/issues/445)
+* **shared:** add JoinAccessSection presentational widget ([ce9282a](https://github.com/Quantumheart/Kohera/commit/ce9282ac5e8a35f150aca054036c3a7e53b6715f))
+* **spaces:** edit subspace join_rules via JoinAccessController ([50bc041](https://github.com/Quantumheart/Kohera/commit/50bc041b544469af6bff40c291f623526787328b))
+
+
+### Bug Fixes
+
+* **chat:** complete OpenGraph fetch promptly when body exceeds size cap ([d78c92a](https://github.com/Quantumheart/Kohera/commit/d78c92a68682f4977768834b8b68d4926cf87b6c))
+* **ci,tests:** add Windows test job, update release to Flutter 3.44, fix Windows test compat ([c740fa8](https://github.com/Quantumheart/Kohera/commit/c740fa83d58b300817fb8c3813f8bc11b996440e))
+* **ci:** pod repo update before macOS build ([f16cf82](https://github.com/Quantumheart/Kohera/commit/f16cf82b783d7a73ea0ff87cabffbc63fee432f5))
+* **docker:** bump Flutter to 3.44.0 to match local and CI SDK ([cc2f876](https://github.com/Quantumheart/Kohera/commit/cc2f87643b46d026cb79c1533eb62d838dca8fe7))
+* **e2ee:** use tertiaryContainer pair for KeyBackupBanner contrast ([f5130e6](https://github.com/Quantumheart/Kohera/commit/f5130e628bfdbb953746d327f38903fab5f212af))
+* **invite:** prevent crash and reduce open lag in invite dialog ([ca69844](https://github.com/Quantumheart/Kohera/commit/ca69844ccb6efc891d927ab6889f7179424acf41))
+* **macos:** bump flutter-webrtc fork ref to WebRTC-SDK 144 ([d70ea86](https://github.com/Quantumheart/Kohera/commit/d70ea86de0238bb9889fe97eded8c07d2e4cef31))
+* resolve flutter 3.44 analyze errors and deprecations ([5c7696b](https://github.com/Quantumheart/Kohera/commit/5c7696b484cfbda9fbf896a70f15ce4e17f55bdb))
+* **rooms,spaces:** don't cache empty result on capabilities error ([198141d](https://github.com/Quantumheart/Kohera/commit/198141d57d71b8b9007568ec3d3d70a9482cea5a))
+* **rooms,spaces:** single Join section + matching margins ([a3d50ae](https://github.com/Quantumheart/Kohera/commit/a3d50ae6a437819576a36817b40aa1bc6a0c6d44))
+* **rooms,spaces:** wrap details panels in Material for ListTile ink ([ff64552](https://github.com/Quantumheart/Kohera/commit/ff64552d2c6a19d6f0c5c2a8cacb3707f4e957ae))
+* **rooms:** open DM via GoRouter when tapping Send message from member sheet ([3e0f322](https://github.com/Quantumheart/Kohera/commit/3e0f32267ce8f5328a9c3547a4bab6a8923c905b))
+* **rooms:** render permissions screen in wide desktop layout ([757e77b](https://github.com/Quantumheart/Kohera/commit/757e77b7e3e0d858f1d6144c6131abc8613e95a8))
+* **spaces:** make create/join space dialogs scrollable ([37e89fc](https://github.com/Quantumheart/Kohera/commit/37e89fcdc13b7056b7f4c495f3cadc52817c8384))
+* **tests:** apply dart fix trailing commas and const constructors ([31bbb17](https://github.com/Quantumheart/Kohera/commit/31bbb1797d903fa763ed9f517f3066dd09fedda0))
+* **windows:** suppress experimental coroutine deprecation for MSVC 14.5+ ([70d3ed8](https://github.com/Quantumheart/Kohera/commit/70d3ed8b553ca61678a9c078668ffbac8ca4c04a)), closes [#474](https://github.com/Quantumheart/Kohera/issues/474)
+
 ## [1.1.0](https://github.com/Quantumheart/Kohera/compare/v1.0.1...v1.1.0) (2026-05-10)
 
 
