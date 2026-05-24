@@ -9,10 +9,7 @@ class VoiceRecordingService {
   Future<bool> hasPermission() => _recorder.hasPermission();
 
   Future<void> start(String path) async {
-    await _recorder.start(
-      const RecordConfig(encoder: AudioEncoder.opus),
-      path: path,
-    );
+    await _recorder.start(const RecordConfig(), path: path);
   }
 
   Future<String?> stop() => _recorder.stop();

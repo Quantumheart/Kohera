@@ -39,14 +39,22 @@ class VoiceRecordingController extends ChangeNotifier {
     }
 
     if (kIsWeb) {
-      _filePath = 'recording.opus';
+      _filePath = 'recording.m4a';
     } else {
       final dir = await getTemporaryDirectory();
       _filePath =
-          '${dir.path}/kohera_voice_${DateTime.now().millisecondsSinceEpoch}.mp3';
+          '${dir.path}/kohera_voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
     }
 
-    await _service.start(_filePath!);
+    try {
+      await _service.start(_filePath!);
+    } catch (e, st) {
+      debugPrint('[Kohera] Voice recording start failed: $e\n$st');
+      _state = VoiceRecordingState.idle;
+      _filePath = null;
+      notifyListeners();
+      return false;
+    }
 
     _elapsed = Duration.zero;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -60,6 +68,10 @@ class VoiceRecordingController extends ChangeNotifier {
   }
 
   Future<String?> stopRecording() async {
+    if (_state == VoiceRecordingState.requesting) {
+      await cancelRecording();
+      return null;
+    }
     if (_state != VoiceRecordingState.recording) return null;
 
     _state = VoiceRecordingState.stopping;
@@ -78,7 +90,10 @@ class VoiceRecordingController extends ChangeNotifier {
   }
 
   Future<void> cancelRecording() async {
-    if (_state != VoiceRecordingState.recording) return;
+    if (_state != VoiceRecordingState.recording &&
+        _state != VoiceRecordingState.requesting) {
+      return;
+    }
 
     _timer?.cancel();
     _timer = null;
