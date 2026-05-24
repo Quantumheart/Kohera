@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart' show ClipboardData;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:kohera/core/models/pending_attachment.dart';
@@ -38,6 +39,21 @@ void main() {
       final pattern = RegExp(r'^paste_\d{8}_\d{6}\.png$');
       expect(pattern.hasMatch(name), isTrue);
     });
+  });
+
+  group('clipboardHasText', () {
+    test('returns false for null', () {
+      expect(clipboardHasText(null), isFalse);
+    });
+
+    test('returns false for empty text', () {
+      expect(clipboardHasText(const ClipboardData(text: '')), isFalse);
+    });
+
+    test('returns true for non-empty text', () {
+      expect(clipboardHasText(const ClipboardData(text: 'hello')), isTrue);
+    });
+
   });
 
   group('PendingAttachment', () {
