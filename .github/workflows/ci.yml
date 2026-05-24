@@ -61,7 +61,7 @@ jobs:
   build-macos:
     if: github.event_name == 'push'
     needs: [analyze, test]
-    runs-on: macos-latest
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
