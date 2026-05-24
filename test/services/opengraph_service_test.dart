@@ -584,6 +584,90 @@ void main() {
       final data = await svc.fetch('https://www.youtube.com/watch?v=abc');
       expect(data, isNull);
     });
+
+    test('always uses YouTube CDN thumbnail for YouTube URLs', () async {
+      // Homeserver returns a generic og:image (e.g. YouTube logo) — we override
+      // it with the video-specific CDN thumbnail in all cases.
+      final svc = createHomeserverService(
+        (_) => http.Response(
+          '{"og:title":"YT Video","og:description":"Desc","og:site_name":"YouTube","og:image":"https://www.youtube.com/img/desktop/yt_1200.png"}',
+          200,
+          headers: {'content-type': 'application/json'},
+        ),
+      );
+      addTearDown(svc.dispose);
+
+      final data =
+          await svc.fetch('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+      expect(data, isNotNull);
+      expect(data!.imageUrl,
+          'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',);
+    });
+  });
+
+  // ── YouTube thumbnail URL extraction ──────────────────────────
+
+  group('youtubeThumbUrl', () {
+    test('extracts video ID from watch URL', () {
+      expect(
+        OpenGraphService.youtubeThumbUrl(
+            'https://www.youtube.com/watch?v=dQw4w9WgXcQ',),
+        'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+      );
+    });
+
+    test('extracts video ID from youtu.be short URL', () {
+      expect(
+        OpenGraphService.youtubeThumbUrl('https://youtu.be/dQw4w9WgXcQ'),
+        'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+      );
+    });
+
+    test('extracts video ID from /shorts/ URL', () {
+      expect(
+        OpenGraphService.youtubeThumbUrl(
+            'https://www.youtube.com/shorts/dQw4w9WgXcQ',),
+        'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+      );
+    });
+
+    test('extracts video ID from /embed/ URL', () {
+      expect(
+        OpenGraphService.youtubeThumbUrl(
+            'https://www.youtube.com/embed/dQw4w9WgXcQ',),
+        'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+      );
+    });
+
+    test('handles mobile (m.) subdomain', () {
+      expect(
+        OpenGraphService.youtubeThumbUrl(
+            'https://m.youtube.com/watch?v=dQw4w9WgXcQ',),
+        'https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+      );
+    });
+
+    test('returns null for non-YouTube URL', () {
+      expect(
+        OpenGraphService.youtubeThumbUrl('https://example.com/video'),
+        isNull,
+      );
+    });
+
+    test('returns null for YouTube URL with no video ID', () {
+      expect(
+        OpenGraphService.youtubeThumbUrl('https://www.youtube.com/'),
+        isNull,
+      );
+    });
+
+    test('returns null for YouTube channel URL', () {
+      expect(
+        OpenGraphService.youtubeThumbUrl(
+            'https://www.youtube.com/@SomeChannel',),
+        isNull,
+      );
+    });
   });
 
   // ── YouTube oEmbed ─────────────────────────────────────────

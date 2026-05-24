@@ -50,7 +50,9 @@ class _KoheraAppState extends State<KoheraApp> {
   @override
   void initState() {
     super.initState();
-    unawaited(_init());
+    // Defer init to after the first frame so platform channels (shared_preferences,
+    // etc.) are fully registered on Windows before we access them.
+    WidgetsBinding.instance.addPostFrameCallback((_) => unawaited(_init()));
   }
 
   Future<void> _init() async {
