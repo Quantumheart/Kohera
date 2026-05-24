@@ -75,3 +75,38 @@ jobs:
           flutter precache --macos
           pod install --repo-update
       - run: flutter build macos --release --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
+
+  build-ios:
+    if: github.event_name == 'push'
+    needs: [analyze, test]
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: flutter pub get
+      - name: Pre-build iOS Pods (force repo update)
+        working-directory: ios
+        run: |
+          flutter precache --ios
+          pod install --repo-update
+      - run: flutter build ios --release --no-codesign --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
+
+  build-android:
+    if: github.event_name == 'push'
+    needs: [analyze, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: flutter pub get
+      - run: flutter build apk --release --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
