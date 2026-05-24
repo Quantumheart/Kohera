@@ -217,9 +217,77 @@ class OpenGraphService {
   }
 
   Future<OpenGraphData?> _doFetch(String url) async {
-    final homeserver = await _fetchViaHomeserver(url);
-    if (homeserver != null) return homeserver;
-    return _doDirectFetch(url);
+    var result = await _fetchViaHomeserver(url) ?? await _doDirectFetch(url);
+
+    // For YouTube video URLs, fetch oEmbed data to get the accurate title,
+    // channel name, and video-specific thumbnail (the homeserver returns generic
+    // YouTube branding instead of per-video metadata).
+    if (result != null && _youtubeVideoId(url) != null) {
+      final oembed = await _fetchYouTubeOEmbed(url, result);
+      if (oembed != null) result = oembed;
+    }
+
+    return result;
+  }
+
+  /// Extracts the YouTube video ID from [url], or `null` if not a YouTube video.
+  @visibleForTesting
+  static String? youtubeVideoId(String url) => _youtubeVideoId(url);
+
+  static String? _youtubeVideoId(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return null;
+
+    final host = uri.host
+        .replaceFirst('www.', '')
+        .replaceFirst('m.', '');
+
+    if (host == 'youtube.com' || host == 'youtube-nocookie.com') {
+      final segments = uri.pathSegments;
+      if (segments.isEmpty) return null;
+      switch (segments.first) {
+        case 'watch':
+          return uri.queryParameters['v'];
+        case 'shorts' || 'embed' || 'v':
+          return segments.length > 1 ? segments[1] : null;
+      }
+    } else if (host == 'youtu.be') {
+      return uri.pathSegments.isNotEmpty ? uri.pathSegments.first : null;
+    }
+
+    return null;
+  }
+
+  /// Calls the YouTube oEmbed API and overlays accurate title, channel name,
+  /// and video thumbnail onto [base]. Returns `null` on any failure so the
+  /// caller can fall back to [base] unchanged.
+  Future<OpenGraphData?> _fetchYouTubeOEmbed(
+      String url, OpenGraphData base,) async {
+    try {
+      final oEmbedUri = Uri.https('www.youtube.com', '/oembed', {
+        'url': url,
+        'format': 'json',
+      });
+      final response =
+          await _client.get(oEmbedUri).timeout(_fetchTimeout);
+      if (response.statusCode != 200) return null;
+
+      final json = jsonDecode(response.body) as Map<String, Object?>;
+      final title = json['title'] as String?;
+      final authorName = json['author_name'] as String?;
+      final thumbnailUrl = json['thumbnail_url'] as String?;
+
+      return OpenGraphData(
+        url: base.url,
+        title: title ?? base.title,
+        description: base.description,
+        siteName: authorName ?? base.siteName,
+        imageUrl: thumbnailUrl ?? base.imageUrl,
+        fetchedAt: base.fetchedAt,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<OpenGraphData?> _doDirectFetch(String url) async {

@@ -585,4 +585,170 @@ void main() {
       expect(data, isNull);
     });
   });
+
+  // ── YouTube oEmbed ─────────────────────────────────────────
+
+  group('YouTube oEmbed', () {
+    late MockMatrixClient mockMatrixClient;
+
+    setUp(() {
+      mockMatrixClient = MockMatrixClient();
+      when(mockMatrixClient.accessToken).thenReturn('test-token');
+      when(mockMatrixClient.baseUri)
+          .thenReturn(Uri.parse('https://matrix.example.com'));
+    });
+
+    OpenGraphService createOEmbedService({
+      required http.Response Function(http.Request) onHomeserver,
+      required http.Response Function(http.Request) onOEmbed,
+    }) {
+      final httpClient = MockClient((request) async {
+        if (request.url.host == 'www.youtube.com' &&
+            request.url.path == '/oembed') {
+          return onOEmbed(request);
+        }
+        return onHomeserver(request);
+      });
+      return OpenGraphService(client: httpClient, matrixClient: mockMatrixClient)
+        ..dnsResolver = (_) async => [_publicIp];
+    }
+
+    test('overlays oEmbed title, channel name, and thumbnail on homeserver result',
+        () async {
+      const videoId = 'dQw4w9WgXcQ';
+      final svc = createOEmbedService(
+        onHomeserver: (_) => http.Response(
+          '{"og:title":"- YouTube","og:description":"Enjoy the videos...","og:site_name":"YouTube"}',
+          200,
+          headers: {'content-type': 'application/json'},
+        ),
+        onOEmbed: (_) => http.Response(
+          '{"title":"Never Gonna Give You Up","author_name":"Rick Astley","thumbnail_url":"https://i.ytimg.com/vi/$videoId/hqdefault.jpg"}',
+          200,
+          headers: {'content-type': 'application/json'},
+        ),
+      );
+      addTearDown(svc.dispose);
+
+      final data = await svc.fetch('https://www.youtube.com/watch?v=$videoId');
+      expect(data, isNotNull);
+      expect(data!.title, 'Never Gonna Give You Up');
+      expect(data.siteName, 'Rick Astley');
+      expect(data.imageUrl, 'https://i.ytimg.com/vi/$videoId/hqdefault.jpg');
+      expect(data.description, 'Enjoy the videos...');
+    });
+
+    test('falls back to base result when oEmbed returns non-200', () async {
+      final svc = createOEmbedService(
+        onHomeserver: (_) => http.Response(
+          '{"og:title":"- YouTube","og:description":"Enjoy the videos..."}',
+          200,
+          headers: {'content-type': 'application/json'},
+        ),
+        onOEmbed: (_) => http.Response('', 404),
+      );
+      addTearDown(svc.dispose);
+
+      final data =
+          await svc.fetch('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+      expect(data, isNotNull);
+      expect(data!.title, '- YouTube');
+    });
+
+    test('does not call oEmbed for non-YouTube URLs', () async {
+      var oEmbedCalled = false;
+      final svc = createOEmbedService(
+        onHomeserver: (_) => http.Response(
+          _ogHtml(title: 'Some Page'),
+          200,
+          headers: {'content-type': 'text/html'},
+        ),
+        onOEmbed: (_) {
+          oEmbedCalled = true;
+          return http.Response('', 200);
+        },
+      );
+      addTearDown(svc.dispose);
+
+      await svc.fetch('https://example.com/page');
+      expect(oEmbedCalled, isFalse);
+    });
+
+    test('does not call oEmbed for YouTube channel URLs (no video ID)', () async {
+      var oEmbedCalled = false;
+      final svc = createOEmbedService(
+        onHomeserver: (_) => http.Response(
+          '{"og:title":"Rick Astley - YouTube","og:description":"Subscribe"}',
+          200,
+          headers: {'content-type': 'application/json'},
+        ),
+        onOEmbed: (_) {
+          oEmbedCalled = true;
+          return http.Response('', 200);
+        },
+      );
+      addTearDown(svc.dispose);
+
+      await svc.fetch('https://www.youtube.com/@RickAstleyYT');
+      expect(oEmbedCalled, isFalse);
+    });
+  });
+
+  // ── youtubeVideoId ─────────────────────────────────────────
+
+  group('youtubeVideoId', () {
+    test('extracts ID from watch URL', () {
+      expect(
+        OpenGraphService.youtubeVideoId(
+            'https://www.youtube.com/watch?v=dQw4w9WgXcQ',),
+        'dQw4w9WgXcQ',
+      );
+    });
+
+    test('extracts ID from youtu.be short URL', () {
+      expect(
+        OpenGraphService.youtubeVideoId('https://youtu.be/dQw4w9WgXcQ'),
+        'dQw4w9WgXcQ',
+      );
+    });
+
+    test('extracts ID from /shorts/ URL', () {
+      expect(
+        OpenGraphService.youtubeVideoId(
+            'https://www.youtube.com/shorts/dQw4w9WgXcQ',),
+        'dQw4w9WgXcQ',
+      );
+    });
+
+    test('extracts ID from /embed/ URL', () {
+      expect(
+        OpenGraphService.youtubeVideoId(
+            'https://www.youtube.com/embed/dQw4w9WgXcQ',),
+        'dQw4w9WgXcQ',
+      );
+    });
+
+    test('handles mobile subdomain', () {
+      expect(
+        OpenGraphService.youtubeVideoId(
+            'https://m.youtube.com/watch?v=dQw4w9WgXcQ',),
+        'dQw4w9WgXcQ',
+      );
+    });
+
+    test('returns null for channel URL', () {
+      expect(
+        OpenGraphService.youtubeVideoId(
+            'https://www.youtube.com/@RickAstleyYT',),
+        isNull,
+      );
+    });
+
+    test('returns null for non-YouTube URL', () {
+      expect(
+        OpenGraphService.youtubeVideoId('https://example.com/watch?v=abc'),
+        isNull,
+      );
+    });
+  });
 }
