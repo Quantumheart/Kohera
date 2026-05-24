@@ -118,12 +118,14 @@ class OpenGraphService {
 
       var imageUrl = json['og:image'] as String?;
 
-      // Convert mxc:// to an authenticated thumbnail HTTPS URL.
+      // Convert mxc:// to an authenticated download HTTPS URL.
+      // getDownloadUri is used instead of getThumbnailUri because the
+      // homeserver's thumbnail endpoint returns 400 for preview-cached media;
+      // Image.network scales to 60×60 on the client side.
       if (imageUrl != null && imageUrl.startsWith('mxc://')) {
         final mxcUri = Uri.tryParse(imageUrl);
         final resolved = mxcUri != null
-            ? (await mxcUri.getThumbnailUri(client!, width: 60, height: 60))
-                .toString()
+            ? (await mxcUri.getDownloadUri(client!)).toString()
             : null;
         imageUrl = (resolved?.isEmpty ?? true) ? null : resolved;
       }
