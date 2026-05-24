@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart' show ClipboardData;
 import 'package:pasteboard/pasteboard.dart';
 
 class ClipboardImageData {
@@ -34,6 +35,8 @@ String _detectMimeType(Uint8List bytes) {
   }
   return 'image/png';
 }
+
+bool clipboardHasText(ClipboardData? data) => data?.text?.isNotEmpty == true;
 
 Future<ClipboardImageData?> readClipboardImage() async {
   final bytes = await Pasteboard.image;

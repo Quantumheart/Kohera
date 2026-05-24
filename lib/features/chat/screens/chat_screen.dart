@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard;
 import 'package:giphy_get/giphy_get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
@@ -30,6 +31,7 @@ import 'package:kohera/features/chat/widgets/file_send_handler.dart';
 import 'package:kohera/features/chat/widgets/gif_send_handler.dart';
 import 'package:kohera/features/chat/widgets/join_call_banner.dart';
 import 'package:kohera/features/chat/widgets/message_list_view.dart';
+import 'package:kohera/features/chat/widgets/paste_image_handler.dart';
 import 'package:kohera/features/chat/widgets/photo_send_handler.dart';
 import 'package:kohera/features/chat/widgets/search_results_body.dart';
 import 'package:kohera/features/chat/widgets/typing_indicator.dart';
@@ -263,6 +265,11 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Future<void> _handlePasteImage() async {
+    if (kIsWeb) {
+      // On web, Clipboard.getData(kTextPlain) never triggers a permission popup.
+      // If text is present we let Flutter handle it as a normal text paste and bail.
+      if (clipboardHasText(await Clipboard.getData(Clipboard.kTextPlain))) return;
+    }
     final result = await _compose.handlePasteImage();
     if (mounted && result != null) _showAttachmentError(result);
   }
@@ -441,7 +448,7 @@ class _ChatScreenState extends State<ChatScreen>
                   );
                 }
               : null,
-          onPasteImage: _isDesktop ? _handlePasteImage : null,
+          onPasteImage: (_isDesktop || kIsWeb) ? _handlePasteImage : null,
           uploadNotifier: _compose.uploadNotifier,
           room: room,
           joinedRooms: context.read<SelectionService>().rooms,
