@@ -4,6 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:kohera/features/chat/services/opengraph_service.dart';
+import 'package:matrix/matrix.dart' show Client;
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+
+@GenerateNiceMocks([MockSpec<Client>(as: #MockMatrixClient)])
+import 'opengraph_service_test.mocks.dart';
 
 final _publicIp = InternetAddress('93.184.216.34');
 
@@ -488,6 +494,95 @@ void main() {
       ]);
       expect(results.every((r) => r!.title == 'Dedup'), isTrue);
       expect(callCount, 1);
+    });
+  });
+
+  // ── Homeserver URL preview path ────────────────────────────
+
+  group('fetch via homeserver', () {
+    late MockMatrixClient mockMatrixClient;
+
+    setUp(() {
+      mockMatrixClient = MockMatrixClient();
+      when(mockMatrixClient.accessToken).thenReturn('test-token');
+      when(mockMatrixClient.baseUri)
+          .thenReturn(Uri.parse('https://matrix.example.com'));
+    });
+
+    OpenGraphService createHomeserverService(
+      http.Response Function(http.Request request) handler,
+    ) {
+      final httpClient = MockClient((request) async => handler(request));
+      return OpenGraphService(client: httpClient, matrixClient: mockMatrixClient)
+        ..dnsResolver = (_) async => [_publicIp];
+    }
+
+    test('returns data from homeserver JSON response', () async {
+      final svc = createHomeserverService(
+        (_) => http.Response(
+          '{"og:title":"YT Video","og:description":"A video","og:site_name":"YouTube"}',
+          200,
+          headers: {'content-type': 'application/json'},
+        ),
+      );
+      addTearDown(svc.dispose);
+
+      final data = await svc.fetch('https://www.youtube.com/watch?v=abc');
+      expect(data, isNotNull);
+      expect(data!.title, 'YT Video');
+      expect(data.description, 'A video');
+      expect(data.siteName, 'YouTube');
+    });
+
+    test('falls back to direct fetch when homeserver returns non-200', () async {
+      var directFetchCalled = false;
+      final svc = createHomeserverService((request) {
+        if (request.url.path.contains('preview_url')) {
+          return http.Response('', 404);
+        }
+        directFetchCalled = true;
+        return http.Response(
+          _ogHtml(title: 'Direct'),
+          200,
+          headers: {'content-type': 'text/html'},
+        );
+      });
+      addTearDown(svc.dispose);
+
+      final data = await svc.fetch('https://example.com/page');
+      expect(directFetchCalled, isTrue);
+      expect(data?.title, 'Direct');
+    });
+
+    test('skips homeserver path when accessToken is null', () async {
+      when(mockMatrixClient.accessToken).thenReturn(null);
+      var directFetchCalled = false;
+      final svc = createHomeserverService((request) {
+        directFetchCalled = true;
+        return http.Response(
+          _ogHtml(title: 'Direct'),
+          200,
+          headers: {'content-type': 'text/html'},
+        );
+      });
+      addTearDown(svc.dispose);
+
+      await svc.fetch('https://example.com/page');
+      expect(directFetchCalled, isTrue);
+    });
+
+    test('returns null for empty homeserver response', () async {
+      final svc = createHomeserverService(
+        (_) => http.Response(
+          '{}',
+          200,
+          headers: {'content-type': 'application/json'},
+        ),
+      );
+      addTearDown(svc.dispose);
+
+      final data = await svc.fetch('https://www.youtube.com/watch?v=abc');
+      expect(data, isNull);
     });
   });
 }

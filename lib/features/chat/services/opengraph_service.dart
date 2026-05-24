@@ -6,6 +6,7 @@ import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 import 'package:kohera/features/chat/services/opengraph_io.dart'
     if (dart.library.js_interop) 'package:kohera/features/chat/services/opengraph_web.dart';
+import 'package:matrix/matrix.dart';
 
 // ── OpenGraph data model ─────────────────────────────────────
 
@@ -39,7 +40,9 @@ class _CacheEntry {
 // ── OpenGraph fetching service ───────────────────────────────
 
 class OpenGraphService {
-  OpenGraphService({http.Client? client}) : _client = client ?? http.Client();
+  OpenGraphService({http.Client? client, Client? matrixClient})
+      : _client = client ?? http.Client(),
+        _matrixClient = matrixClient;
 
   static const _maxCacheSize = 200;
   static const _fetchTimeout = Duration(seconds: 5);
@@ -48,10 +51,10 @@ class OpenGraphService {
   static const _cacheTtl = Duration(minutes: 30);
 
   final _cache = <String, _CacheEntry>{};
-
   final _inFlight = <String, Future<OpenGraphData?>>{};
 
   final http.Client _client;
+  final Client? _matrixClient;
   bool _disposed = false;
 
   void dispose() {
@@ -88,6 +91,54 @@ class OpenGraphService {
       return result;
     } finally {
       unawaited(_inFlight.remove(url));
+    }
+  }
+
+  // ── Homeserver URL preview (primary path) ─────────────────
+
+  Future<OpenGraphData?> _fetchViaHomeserver(String url) async {
+    final client = _matrixClient;
+    final token = client?.accessToken;
+    final base = client?.baseUri;
+    if (token == null || base == null) return null;
+
+    try {
+      final requestUri = Uri(
+        path: '_matrix/client/v1/media/preview_url',
+        queryParameters: {'url': url},
+      );
+      final request = http.Request('GET', base.resolveUri(requestUri));
+      request.headers['authorization'] = 'Bearer $token';
+
+      final streamed = await _client.send(request).timeout(_fetchTimeout);
+      if (streamed.statusCode != 200) return null;
+
+      final body = await streamed.stream.toBytes();
+      final json = jsonDecode(utf8.decode(body)) as Map<String, Object?>;
+
+      var imageUrl = json['og:image'] as String?;
+
+      // Convert mxc:// to an authenticated thumbnail HTTPS URL.
+      if (imageUrl != null && imageUrl.startsWith('mxc://')) {
+        final mxcUri = Uri.tryParse(imageUrl);
+        final resolved = mxcUri != null
+            ? (await mxcUri.getThumbnailUri(client!, width: 60, height: 60))
+                .toString()
+            : null;
+        imageUrl = (resolved?.isEmpty ?? true) ? null : resolved;
+      }
+
+      final data = OpenGraphData(
+        url: url,
+        title: json['og:title'] as String?,
+        description: json['og:description'] as String?,
+        imageUrl: imageUrl,
+        siteName: json['og:site_name'] as String?,
+      );
+      return data.isEmpty ? null : data;
+    } catch (e) {
+      debugPrint('[Kohera] Homeserver URL preview failed for $url: $e');
+      return null;
     }
   }
 
@@ -166,6 +217,12 @@ class OpenGraphService {
   }
 
   Future<OpenGraphData?> _doFetch(String url) async {
+    final homeserver = await _fetchViaHomeserver(url);
+    if (homeserver != null) return homeserver;
+    return _doDirectFetch(url);
+  }
+
+  Future<OpenGraphData?> _doDirectFetch(String url) async {
     try {
       var uri = Uri.parse(url);
 

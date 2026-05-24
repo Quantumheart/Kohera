@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/utils/media_auth.dart';
 import 'package:kohera/features/chat/services/opengraph_service.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -92,6 +94,9 @@ class _LinkPreviewCardState extends State<LinkPreviewCard>
 
     final data = _data!;
     final domain = Uri.tryParse(data.url)?.host ?? '';
+    // Null when MatrixService isn't in the tree (e.g. tests or unauthenticated).
+    final matrixClient =
+        context.read<MatrixService?>()?.client;
 
     return FadeTransition(
       opacity: _fadeAnimation,
@@ -131,6 +136,9 @@ class _LinkPreviewCardState extends State<LinkPreviewCard>
                           width: 60,
                           height: 60,
                           fit: BoxFit.cover,
+                          headers: matrixClient != null
+                              ? mediaAuthHeaders(matrixClient, data.imageUrl!) ?? const {}
+                              : const {},
                           errorBuilder: (_, __, ___) => SizedBox(
                             width: 60,
                             height: 60,
