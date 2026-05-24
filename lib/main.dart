@@ -138,10 +138,6 @@ class _KoheraAppState extends State<KoheraApp> {
         ),
         ChangeNotifierProvider(create: (_) => MediaPlaybackService()),
         Provider(
-          create: (_) => OpenGraphService(),
-          dispose: (_, service) => service.dispose(),
-        ),
-        Provider(
           create: (_) => GitHubReleasesService(),
           dispose: (_, service) => service.dispose(),
         ),
@@ -157,6 +153,12 @@ class _KoheraAppState extends State<KoheraApp> {
                 providers: [
                   ChangeNotifierProvider<MatrixService>.value(
                     value: matrix,
+                  ),
+                  Provider<OpenGraphService>(
+                    create: (ctx) => OpenGraphService(
+                      matrixClient: ctx.read<MatrixService>().client,
+                    ),
+                    dispose: (_, service) => service.dispose(),
                   ),
                   ChangeNotifierProvider<SelectionService>.value(
                     value: matrix.selection,
