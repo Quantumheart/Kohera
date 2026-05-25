@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/services/session_backup.dart';
+import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/outbox_connectivity.dart';
@@ -70,6 +71,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       clientName: clientName,
       connectivity: RealOutboxConnectivity(),
     );
+    stickerPacks = StickerPackService(client: _client);
     auth.addListener(_onAuthChanged);
   }
 
@@ -113,6 +115,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   late final SyncService sync;
   late final AuthService auth;
   late final OutboxService outbox;
+  late final StickerPackService stickerPacks;
 
   StreamSubscription<LoginState>? _loginStateSub;
 
@@ -142,6 +145,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     selection.dispose();
     chatBackup.dispose();
     sync.dispose();
+    stickerPacks.dispose();
     unawaited(_loginStateSub?.cancel());
     super.dispose();
   }
