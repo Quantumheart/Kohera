@@ -98,6 +98,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onTap: () => context.pushOrGo(Routes.settingsNotifications),
                 ),
                 const Divider(height: 1, indent: 56),
+                _SettingsTile(
+                  icon: Icons.emoji_emotions_outlined,
+                  title: 'Stickers & Emoji',
+                  subtitle: 'Manage sticker and emoji packs',
+                  onTap: () => context.pushOrGo(Routes.settingsStickerPacks),
+                ),
+                const Divider(height: 1, indent: 56),
                 SwitchListTile(
                   secondary: const Icon(Icons.link_rounded),
                   title: const Text('Link previews'),

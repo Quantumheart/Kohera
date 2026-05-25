@@ -15,6 +15,7 @@ abstract class Routes {
   static const settingsDevices = 'settings-devices';
   static const settingsVoiceVideo = 'settings-voice-video';
   static const settingsRecoveryKey = 'settings-recovery-key';
+  static const settingsStickerPacks = 'settings-sticker-packs';
   static const inbox = 'inbox';
   static const spaceDetails = 'space-details';
   static const call = 'call';
