@@ -20,8 +20,8 @@ List<Profile> knownContacts(Client client) {
 }
 
 /// Returns profiles of members from joined group rooms (non-DM), excluding
-/// [excludeMxids] and the client's own user ID. Prefers smaller rooms (more
-/// personal) and caps the result at [limit] unique profiles.
+/// [excludeMxids] and the client's own user ID. Prefers more recently active
+/// rooms and caps the result at [limit] unique profiles.
 List<Profile> roomContacts(
   Client client, {
   Set<String> excludeMxids = const {},
@@ -34,8 +34,8 @@ List<Profile> roomContacts(
   final groupRooms = client.rooms
       .where((r) => !r.isDirectChat)
       .toList()
-    ..sort((a, b) => (a.summary.mJoinedMemberCount ?? 0)
-        .compareTo(b.summary.mJoinedMemberCount ?? 0),);
+    ..sort((a, b) => (b.lastEvent?.originServerTs ?? DateTime(0))
+        .compareTo(a.lastEvent?.originServerTs ?? DateTime(0)),);
 
   for (final room in groupRooms) {
     if (contacts.length >= limit) break;
