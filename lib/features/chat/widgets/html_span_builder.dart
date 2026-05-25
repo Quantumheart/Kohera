@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:kohera/features/chat/widgets/code_block.dart';
 import 'package:kohera/features/chat/widgets/linkable_span_builder.dart';
+import 'package:kohera/features/chat/widgets/spoiler_text.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:matrix/matrix.dart';
 
@@ -32,6 +33,21 @@ class HtmlSpanBuilder {
     final tag = node.localName?.toLowerCase() ?? '';
 
     if (tag == 'mx-reply') return;
+
+    if (node.attributes.containsKey('data-mx-spoiler')) {
+      final reason = node.attributes['data-mx-spoiler'];
+      final innerSpans = <InlineSpan>[];
+      for (final child in node.nodes) {
+        buildSpans(child, currentStyle, linkColor, innerSpans);
+      }
+      spans.add(WidgetSpan(
+        child: SpoilerText(
+          child: TextSpan(style: currentStyle, children: innerSpans),
+          reason: reason != null && reason.isNotEmpty ? reason : null,
+        ),
+      ),);
+      return;
+    }
 
     switch (tag) {
       case 'br':
