@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
+import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/features/auth/widgets/registration_controller.dart';
@@ -17,15 +18,32 @@ import 'package:mockito/mockito.dart';
 ])
 import 'registration_controller_test.mocks.dart';
 
+/// Minimal [ClientManager] double. Hand-written rather than a generated mock
+/// so the controller test compiles without regenerating mocks.
+class _FakeClientManager extends ClientManager {
+  _FakeClientManager(this._registered);
+
+  final List<MatrixService> _registered;
+  bool committed = false;
+
+  @override
+  List<MatrixService> get services => _registered;
+
+  @override
+  void commitPendingService() => committed = true;
+}
+
 void main() {
   late MockClient mockClient;
   late MockMatrixService mockMatrixService;
   late MockAuthService mockAuthService;
+  late _FakeClientManager fakeClientManager;
 
   setUp(() {
     mockClient = MockClient();
     mockMatrixService = MockMatrixService();
     mockAuthService = MockAuthService();
+    fakeClientManager = _FakeClientManager([mockMatrixService]);
     when(mockMatrixService.client).thenReturn(mockClient);
     when(mockMatrixService.auth).thenReturn(mockAuthService);
     when(mockMatrixService.isLoggedIn).thenReturn(false);
@@ -34,6 +52,7 @@ void main() {
   RegistrationController createController({String homeserver = 'example.com'}) {
     return RegistrationController(
       matrixService: mockMatrixService,
+      clientManager: fakeClientManager,
       homeserver: homeserver,
     );
   }
@@ -428,6 +447,59 @@ void main() {
           any,
           password: anyNamed('password'),
         ),).called(1);
+        controller.dispose();
+      });
+
+      test('commits pending service when registering an additional account',
+          () async {
+        // The registering service is not yet in the account list (pending),
+        // mirroring the add-account flow.
+        fakeClientManager = _FakeClientManager([]);
+
+        when(mockClient.register(
+          username: anyNamed('username'),
+          password: anyNamed('password'),
+          initialDeviceDisplayName: anyNamed('initialDeviceDisplayName'),
+          auth: anyNamed('auth'),
+        ),).thenAnswer((_) async => RegisterResponse(
+              userId: '@user:example.com',
+              accessToken: 'tok',
+              deviceId: 'D1',
+            ),);
+        when(mockMatrixService.completeRegistration(any))
+            .thenAnswer((_) async {});
+
+        final controller = createController();
+        await controller.checkServer();
+        await controller.submitForm(
+            username: 'user', password: 'password123',);
+
+        expect(controller.state, RegistrationState.done);
+        expect(fakeClientManager.committed, isTrue);
+        controller.dispose();
+      });
+
+      test('does not commit when registering the first account', () async {
+        when(mockClient.register(
+          username: anyNamed('username'),
+          password: anyNamed('password'),
+          initialDeviceDisplayName: anyNamed('initialDeviceDisplayName'),
+          auth: anyNamed('auth'),
+        ),).thenAnswer((_) async => RegisterResponse(
+              userId: '@user:example.com',
+              accessToken: 'tok',
+              deviceId: 'D1',
+            ),);
+        when(mockMatrixService.completeRegistration(any))
+            .thenAnswer((_) async {});
+
+        final controller = createController();
+        await controller.checkServer();
+        await controller.submitForm(
+            username: 'user', password: 'password123',);
+
+        expect(controller.state, RegistrationState.done);
+        expect(fakeClientManager.committed, isFalse);
         controller.dispose();
       });
 

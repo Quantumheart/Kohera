@@ -90,7 +90,7 @@ class _HomeserverScreenState extends State<HomeserverScreen>
   void _openRegistration() {
     if (!mounted) return;
     context.goNamed(
-      Routes.register,
+      widget.isAddAccount ? Routes.addAccountRegister : Routes.register,
       extra: _homeserverCtrl.text.trim(),
     );
   }

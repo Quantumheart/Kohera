@@ -113,6 +113,23 @@ GoRouter buildRouter(ClientManager manager) {
         },
         routes: [
           GoRoute(
+            path: 'register',
+            name: Routes.addAccountRegister,
+            builder: (context, state) {
+              final homeserver = state.extra as String? ??
+                  context.read<PreferencesService>().defaultHomeserver ??
+                  AppConfig.instance.defaultHomeserver;
+              final manager = context.read<ClientManager>();
+              return _AddAccountGuard(
+                manager: manager,
+                child: ChangeNotifierProvider<MatrixService>.value(
+                  value: manager.pendingService!,
+                  child: RegistrationScreen(initialHomeserver: homeserver),
+                ),
+              );
+            },
+          ),
+          GoRoute(
             path: ':homeserver',
             name: Routes.addAccountServer,
             builder: (context, state) {
