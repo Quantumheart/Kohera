@@ -4,7 +4,12 @@ import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-@GenerateNiceMocks([MockSpec<Client>(), MockSpec<Room>(), MockSpec<User>()])
+@GenerateNiceMocks([
+  MockSpec<Client>(),
+  MockSpec<Room>(),
+  MockSpec<User>(),
+  MockSpec<Event>(),
+])
 import 'known_contacts_test.mocks.dart';
 
 MockRoom _makeRoom({
@@ -21,14 +26,18 @@ MockRoom _makeRoom({
   return room;
 }
 
-MockRoom _makeGroupRoom(List<MockUser> participants, {int memberCount = 0}) {
+MockRoom _makeGroupRoom(
+  List<MockUser> participants, {
+  DateTime? lastEventTs,
+}) {
   final room = MockRoom();
   when(room.isDirectChat).thenReturn(false);
   when(room.getParticipants()).thenReturn(participants);
-  when(room.summary).thenReturn(RoomSummary.fromJson({
-    'm.joined_member_count': memberCount,
-    'm.invited_member_count': 0,
-  }),);
+  if (lastEventTs != null) {
+    final event = MockEvent();
+    when(event.originServerTs).thenReturn(lastEventTs);
+    when(room.lastEvent).thenReturn(event);
+  }
   return room;
 }
 
@@ -126,7 +135,7 @@ void main() {
       when(client.userID).thenReturn('@me:example.com');
       final me = _makeUser('@me:example.com', displayName: 'Me');
       final alice = _makeUser('@alice:example.com', displayName: 'Alice');
-      final room = _makeGroupRoom([me, alice], memberCount: 2);
+      final room = _makeGroupRoom([me, alice]);
       when(client.rooms).thenReturn([room]);
 
       final result = roomContacts(client);
@@ -137,7 +146,7 @@ void main() {
       when(client.userID).thenReturn('@me:example.com');
       final alice = _makeUser('@alice:example.com');
       final bob = _makeUser('@bob:example.com');
-      final room = _makeGroupRoom([alice, bob], memberCount: 2);
+      final room = _makeGroupRoom([alice, bob]);
       when(client.rooms).thenReturn([room]);
 
       final result = roomContacts(client, excludeMxids: {'@alice:example.com'});
@@ -147,7 +156,7 @@ void main() {
     test('includes members from joined group rooms', () {
       when(client.userID).thenReturn('@me:example.com');
       final alice = _makeUser('@alice:example.com', displayName: 'Alice');
-      final room = _makeGroupRoom([alice], memberCount: 1);
+      final room = _makeGroupRoom([alice]);
       when(client.rooms).thenReturn([room]);
 
       final result = roomContacts(client);
@@ -159,8 +168,8 @@ void main() {
     test('deduplicates members appearing in multiple rooms', () {
       when(client.userID).thenReturn('@me:example.com');
       final alice = _makeUser('@alice:example.com');
-      final room1 = _makeGroupRoom([alice], memberCount: 2);
-      final room2 = _makeGroupRoom([alice], memberCount: 3);
+      final room1 = _makeGroupRoom([alice]);
+      final room2 = _makeGroupRoom([alice]);
       when(client.rooms).thenReturn([room1, room2]);
 
       final result = roomContacts(client);
@@ -170,7 +179,7 @@ void main() {
     test('caps results at limit', () {
       when(client.userID).thenReturn('@me:example.com');
       final users = List.generate(10, (i) => _makeUser('@user$i:example.com'));
-      final room = _makeGroupRoom(users, memberCount: 10);
+      final room = _makeGroupRoom(users);
       when(client.rooms).thenReturn([room]);
 
       final result = roomContacts(client, limit: 3);
@@ -183,6 +192,25 @@ void main() {
       when(client.rooms).thenReturn([dmRoom]);
 
       expect(roomContacts(client), isEmpty);
+    });
+
+    test('prefers members from more recently active rooms', () {
+      when(client.userID).thenReturn('@me:example.com');
+      final alice = _makeUser('@alice:example.com', displayName: 'Alice');
+      final bob = _makeUser('@bob:example.com', displayName: 'Bob');
+      // bob is in the older room, alice in the newer one.
+      final olderRoom = _makeGroupRoom(
+        [bob],
+        lastEventTs: DateTime(2024),
+      );
+      final newerRoom = _makeGroupRoom(
+        [alice],
+        lastEventTs: DateTime(2025),
+      );
+      when(client.rooms).thenReturn([olderRoom, newerRoom]);
+
+      final result = roomContacts(client);
+      expect(result.map((p) => p.userId), ['@alice:example.com', '@bob:example.com']);
     });
   });
 }
