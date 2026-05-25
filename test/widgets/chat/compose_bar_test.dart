@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/features/chat/services/opengraph_service.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/widgets/compose_bar.dart';
+import 'package:kohera/features/chat/widgets/link_preview_card.dart';
 import 'package:kohera/features/chat/widgets/mention_suggestion_overlay.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
@@ -16,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
   MockSpec<User>(),
   MockSpec<Client>(),
   MockSpec<TypingController>(),
+  MockSpec<OpenGraphService>(),
 ])
 import 'compose_bar_test.mocks.dart';
 
@@ -27,27 +30,38 @@ Widget _wrap({
   PreferencesService? prefs,
   TypingController? typingController,
   VoidCallback? onGif,
+  OpenGraphService? openGraphService,
+  Event? editEvent,
 }) {
-  return ChangeNotifierProvider<PreferencesService>.value(
+  final bar = ComposeBar(
+    controller: controller,
+    onSend: onSend,
+    onCancelReply: () {},
+    onCancelEdit: () {},
+    editEvent: editEvent,
+    room: room,
+    joinedRooms: joinedRooms,
+    typingController: typingController,
+    onRemoveAttachment: (_) {},
+    onClearAttachments: () {},
+    onGif: onGif,
+  );
+
+  final withPrefs = ChangeNotifierProvider<PreferencesService>.value(
     value: prefs ?? PreferencesService(),
     child: MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
-      home: Scaffold(
-        body: ComposeBar(
-          controller: controller,
-          onSend: onSend,
-          onCancelReply: () {},
-          onCancelEdit: () {},
-          room: room,
-          joinedRooms: joinedRooms,
-          typingController: typingController,
-          onRemoveAttachment: (_) {},
-          onClearAttachments: () {},
-          onGif: onGif,
-        ),
-      ),
+      home: Scaffold(body: bar),
     ),
   );
+
+  if (openGraphService != null) {
+    return Provider<OpenGraphService>.value(
+      value: openGraphService,
+      child: withPrefs,
+    );
+  }
+  return withPrefs;
 }
 
 MockUser _makeUser(String id, String? displayName) {
@@ -380,6 +394,139 @@ void main() {
       await tester.pump();
 
       expect(find.byType(MentionSuggestionList), findsNothing);
+    });
+  });
+
+  group('ComposeBar link preview', () {
+    late TextEditingController controller;
+    late MockOpenGraphService mockOgService;
+
+    setUp(() {
+      controller = TextEditingController();
+      mockOgService = MockOpenGraphService();
+      when(mockOgService.fetch(any)).thenAnswer(
+        (_) async => OpenGraphData(url: 'https://example.com', title: 'Example'),
+      );
+    });
+
+    tearDown(() {
+      controller.dispose();
+    });
+
+    testWidgets('preview appears after debounce when URL is typed',
+        (tester) async {
+      await tester.pumpWidget(_wrap(
+        controller: controller,
+        onSend: () {},
+        openGraphService: mockOgService,
+      ),);
+
+      await tester.enterText(find.byType(TextField), 'https://example.com');
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LinkPreviewCard), findsOneWidget);
+    });
+
+    testWidgets('no preview when text contains no URL', (tester) async {
+      await tester.pumpWidget(_wrap(
+        controller: controller,
+        onSend: () {},
+        openGraphService: mockOgService,
+      ),);
+
+      await tester.enterText(find.byType(TextField), 'just plain text');
+      await tester.pump(const Duration(milliseconds: 600));
+
+      expect(find.byType(LinkPreviewCard), findsNothing);
+    });
+
+    testWidgets('close button removes preview', (tester) async {
+      await tester.pumpWidget(_wrap(
+        controller: controller,
+        onSend: () {},
+        openGraphService: mockOgService,
+      ),);
+
+      await tester.enterText(find.byType(TextField), 'https://example.com');
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      expect(find.byType(LinkPreviewCard), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pump();
+
+      expect(find.byType(LinkPreviewCard), findsNothing);
+    });
+
+    testWidgets('dismissed URL does not reappear while URL stays in text',
+        (tester) async {
+      await tester.pumpWidget(_wrap(
+        controller: controller,
+        onSend: () {},
+        openGraphService: mockOgService,
+      ),);
+
+      await tester.enterText(find.byType(TextField), 'https://example.com');
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pump();
+
+      // Add surrounding text — URL is still present, dismissed state must hold.
+      await tester.enterText(
+        find.byType(TextField),
+        'check this out https://example.com please',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LinkPreviewCard), findsNothing);
+    });
+
+    testWidgets('new URL appears after previous URL was dismissed',
+        (tester) async {
+      when(mockOgService.fetch('https://other.com')).thenAnswer(
+        (_) async => OpenGraphData(url: 'https://other.com', title: 'Other'),
+      );
+
+      await tester.pumpWidget(_wrap(
+        controller: controller,
+        onSend: () {},
+        openGraphService: mockOgService,
+      ),);
+
+      await tester.enterText(find.byType(TextField), 'https://example.com');
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pump();
+
+      await tester.enterText(find.byType(TextField), 'https://other.com');
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LinkPreviewCard), findsOneWidget);
+    });
+
+    testWidgets('preview hidden when showLinkPreviews preference is off',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({'show_link_previews': false});
+      final sp = await SharedPreferences.getInstance();
+      final prefs = PreferencesService(prefs: sp);
+
+      await tester.pumpWidget(_wrap(
+        controller: controller,
+        onSend: () {},
+        openGraphService: mockOgService,
+        prefs: prefs,
+      ),);
+
+      await tester.enterText(find.byType(TextField), 'https://example.com');
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LinkPreviewCard), findsNothing);
     });
   });
 }
