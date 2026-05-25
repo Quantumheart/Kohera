@@ -16,6 +16,7 @@ Future<void> showMessageContextMenu(
   VoidCallback? onPin,
   VoidCallback? onDelete,
   VoidCallback? onReplyInThread,
+  VoidCallback? onForward,
 }) async {
   final cs = Theme.of(context).colorScheme;
   final isFailed = event.status.isError;
@@ -36,6 +37,8 @@ Future<void> showMessageContextMenu(
       if (onReact != null)
         _menuItem(Icons.add_reaction_outlined, 'React', 'react'),
       if (!event.redacted) _menuItem(Icons.copy_rounded, 'Copy', 'copy'),
+      if (onForward != null)
+        _menuItem(Icons.forward_rounded, 'Forward', 'forward'),
       if (onPin != null)
         _menuItem(
           isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
@@ -88,6 +91,7 @@ Future<void> showMessageContextMenu(
         ClipboardData(text: stripReplyFallback(displayEvent.body)),);
   }
   if (value == 'delete') onDelete?.call();
+  if (value == 'forward') onForward?.call();
 }
 
 PopupMenuItem<String> _menuItem(

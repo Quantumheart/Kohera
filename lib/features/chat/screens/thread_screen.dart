@@ -9,6 +9,7 @@ import 'package:kohera/features/chat/services/compose_state_controller.dart';
 import 'package:kohera/features/chat/services/thread_roots_service.dart';
 import 'package:kohera/features/chat/widgets/compose_bar_section.dart';
 import 'package:kohera/features/chat/widgets/file_send_handler.dart';
+import 'package:kohera/features/chat/widgets/forward_message_dialog.dart';
 import 'package:kohera/features/chat/widgets/message_list_view.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -66,6 +67,13 @@ class _ThreadScreenState extends State<ThreadScreen> {
       if (!mounted) return;
       unawaited(_loadRoot());
     });
+  }
+
+  Future<void> _forwardMessage(Event event) async {
+    final client = context.read<MatrixService>().client;
+    final targetRoom = await ForwardMessageDialog.show(context, client: client);
+    if (targetRoom == null) return;
+    await _actions.forward(event, targetRoom);
   }
 
   Future<void> _loadRoot() async {
@@ -225,6 +233,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
                   _compose.setEditEvent(event, timeline, _msgCtrl),
               onToggleReaction: _actions.toggleReaction,
               onPin: _actions.togglePin,
+              onForward: (event) => unawaited(_forwardMessage(event)),
               onHighlight: (_) {},
             ),
           ),

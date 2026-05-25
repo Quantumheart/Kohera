@@ -82,6 +82,38 @@ class ChatMessageActions {
     }
   }
 
+  // ── Forward ─────────────────────────────────────────────
+
+  Future<void> forward(Event event, Room targetRoom) async {
+    final scaffold = getScaffold();
+    try {
+      final msgtype = event.messageType;
+      if (msgtype == MessageTypes.Text ||
+          msgtype == MessageTypes.Notice ||
+          msgtype == MessageTypes.Emote) {
+        await targetRoom.sendTextEvent(event.body);
+      } else {
+        final content = Map<String, dynamic>.from(event.content)
+          ..remove('m.relates_to');
+        await targetRoom.sendEvent(content, type: event.type);
+      }
+      scaffold.showSnackBar(
+        SnackBar(
+          content: Text('Forwarded to ${targetRoom.getLocalizedDisplayname()}'),
+        ),
+      );
+    } catch (e) {
+      debugPrint('[Kohera] Failed to forward message: $e');
+      scaffold.showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to forward: ${MatrixService.friendlyAuthError(e)}',
+          ),
+        ),
+      );
+    }
+  }
+
   // ── Send ───────────────────────────────────────────────
 
   Future<void> send() async {
