@@ -10,6 +10,7 @@ import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
@@ -168,6 +169,9 @@ class _KoheraAppState extends State<KoheraApp> {
                   ),
                   ChangeNotifierProvider<OutboxService>.value(
                     value: matrix.outbox,
+                  ),
+                  ChangeNotifierProvider<StickerPackService>.value(
+                    value: matrix.stickerPacks,
                   ),
                   ChangeNotifierProxyProvider<MatrixService, InboxController>(
                     create: (ctx) => InboxController(
