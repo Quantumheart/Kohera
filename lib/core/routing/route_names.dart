@@ -21,6 +21,7 @@ abstract class Routes {
   static const e2eeSetup = 'e2ee-setup';
   static const addAccount = 'add-account';
   static const addAccountServer = 'add-account-server';
+  static const addAccountRegister = 'add-account-register';
   static const whatsNew = 'whats-new';
   static const roomPermissions = 'room-permissions';
 }

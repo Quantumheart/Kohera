@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/network_error.dart';
 import 'package:kohera/features/auth/services/recaptcha_server.dart';
@@ -28,10 +29,12 @@ enum RegistrationState {
 class RegistrationController extends ChangeNotifier {
   RegistrationController({
     required this.matrixService,
+    required this.clientManager,
     required String homeserver,
   }) : _homeserver = homeserver;
 
   final MatrixService matrixService;
+  final ClientManager clientManager;
 
   String _homeserver;
   String get homeserver => _homeserver;
@@ -227,6 +230,9 @@ class RegistrationController extends ChangeNotifier {
       if (_isDisposed) return;
 
       await matrixService.completeRegistration(response, password: _password);
+      if (!clientManager.services.contains(matrixService)) {
+        clientManager.commitPendingService();
+      }
       _clearCredentials();
       _state = RegistrationState.done;
       _notify();
