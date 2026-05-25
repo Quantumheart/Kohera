@@ -186,24 +186,30 @@ class MessageListViewState extends State<MessageListView> {
     if (_cachedVisibleEvents != null) return _cachedVisibleEvents!;
     final timelineEvents = _timeline?.events;
     if (timelineEvents == null) return [];
-    final threadRootId = widget.threadRootEventId;
-    final extra = widget.extraEvents;
-    final Iterable<Event> source;
-    if (extra != null && extra.isNotEmpty) {
-      final seen = <String>{};
-      final merged = <Event>[];
-      for (final e in timelineEvents) {
-        if (seen.add(e.eventId)) merged.add(e);
-      }
-      for (final e in extra) {
-        if (seen.add(e.eventId)) merged.add(e);
-      }
-      merged.sort((a, b) => b.originServerTs.compareTo(a.originServerTs));
-      source = merged;
-    } else {
-      source = timelineEvents;
+    _cachedVisibleEvents = buildVisibleEvents(
+      timelineEvents,
+      extraEvents: widget.extraEvents,
+      threadRootId: widget.threadRootEventId,
+    );
+    return _cachedVisibleEvents!;
+  }
+
+  static List<Event> buildVisibleEvents(
+    Iterable<Event> timelineEvents, {
+    List<Event>? extraEvents,
+    String? threadRootId,
+  }) {
+    final seen = <String>{};
+    final merged = <Event>[];
+    for (final e in timelineEvents) {
+      if (seen.add(e.eventId)) merged.add(e);
     }
-    _cachedVisibleEvents = source
+    if (extraEvents != null) {
+      for (final e in extraEvents) {
+        if (seen.add(e.eventId)) merged.add(e);
+      }
+    }
+    return merged
         .where((e) =>
             (((e.type == EventTypes.Message ||
                             e.type == EventTypes.Encrypted) &&
@@ -213,8 +219,8 @@ class MessageListViewState extends State<MessageListView> {
                     _isStateEvent(e) ||
                     e.type == EventTypes.Sticker) &&
             _matchesThread(e, threadRootId),)
-        .toList();
-    return _cachedVisibleEvents!;
+        .toList()
+      ..sort((a, b) => b.originServerTs.compareTo(a.originServerTs));
   }
 
   static bool _matchesThread(Event event, String? threadRootId) {
