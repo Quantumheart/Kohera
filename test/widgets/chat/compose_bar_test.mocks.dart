@@ -4,9 +4,11 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i5;
+import 'dart:io' as _i14;
 import 'dart:typed_data' as _i11;
 
 import 'package:http/http.dart' as _i4;
+import 'package:kohera/features/chat/services/opengraph_service.dart' as _i13;
 import 'package:kohera/features/chat/services/typing_controller.dart' as _i12;
 import 'package:matrix/encryption.dart' as _i10;
 import 'package:matrix/matrix.dart' as _i2;
@@ -9725,4 +9727,55 @@ class MockTypingController extends _i1.Mock implements _i12.TypingController {
         ),
         returnValueForMissingStub: null,
       );
+}
+
+/// A class which mocks [OpenGraphService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockOpenGraphService extends _i1.Mock implements _i13.OpenGraphService {
+  @override
+  set dnsResolver(
+          _i5.Future<List<_i14.InternetAddress>> Function(String)? value) =>
+      super.noSuchMethod(
+        Invocation.setter(
+          #dnsResolver,
+          value,
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void dispose() => super.noSuchMethod(
+        Invocation.method(
+          #dispose,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  _i5.Future<_i13.OpenGraphData?> fetch(String? url) => (super.noSuchMethod(
+        Invocation.method(
+          #fetch,
+          [url],
+        ),
+        returnValue: _i5.Future<_i13.OpenGraphData?>.value(),
+        returnValueForMissingStub: _i5.Future<_i13.OpenGraphData?>.value(),
+      ) as _i5.Future<_i13.OpenGraphData?>);
+
+  @override
+  _i13.OpenGraphData? parse(
+    String? html,
+    String? url,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #parse,
+          [
+            html,
+            url,
+          ],
+        ),
+        returnValueForMissingStub: null,
+      ) as _i13.OpenGraphData?);
 }

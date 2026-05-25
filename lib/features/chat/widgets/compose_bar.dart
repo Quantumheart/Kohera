@@ -10,8 +10,10 @@ import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
 import 'package:kohera/features/chat/widgets/attachment_preview_bar.dart';
 import 'package:kohera/features/chat/widgets/edit_preview_banner.dart';
+import 'package:kohera/features/chat/widgets/link_preview_card.dart';
 import 'package:kohera/features/chat/widgets/mention_autocomplete_controller.dart';
 import 'package:kohera/features/chat/widgets/mention_suggestion_overlay.dart';
+import 'package:kohera/features/chat/widgets/message_bubble_link_preview.dart';
 import 'package:kohera/features/chat/widgets/recording_indicator.dart';
 import 'package:kohera/features/chat/widgets/reply_preview_banner.dart';
 import 'package:kohera/features/chat/widgets/upload_progress_banner.dart';
@@ -88,11 +90,16 @@ class _ComposeBarState extends State<ComposeBar> {
 
   MentionAutocompleteController? _mentionController;
 
+  Timer? _previewDebounce;
+  String? _previewUrl;
+  String? _dismissedUrl;
+
   @override
   void initState() {
     super.initState();
     _initMentionController();
     widget.controller.addListener(_onTextChangedForTyping);
+    widget.controller.addListener(_onTextChangedForPreview);
     _focusNode.addListener(_onFocusChanged);
   }
 
@@ -102,10 +109,18 @@ class _ComposeBarState extends State<ComposeBar> {
     if (old.room?.id != widget.room?.id) {
       _mentionController?.dispose();
       _initMentionController();
+      _previewDebounce?.cancel();
+      _previewUrl = null;
+      _dismissedUrl = null;
     }
     if (old.controller != widget.controller) {
       old.controller.removeListener(_onTextChangedForTyping);
+      old.controller.removeListener(_onTextChangedForPreview);
       widget.controller.addListener(_onTextChangedForTyping);
+      widget.controller.addListener(_onTextChangedForPreview);
+      _previewDebounce?.cancel();
+      _previewUrl = null;
+      _dismissedUrl = null;
     }
   }
 
@@ -126,6 +141,20 @@ class _ComposeBarState extends State<ComposeBar> {
     widget.typingController?.onTextChanged(widget.controller.text);
   }
 
+  void _onTextChangedForPreview() {
+    _previewDebounce?.cancel();
+    _previewDebounce = Timer(const Duration(milliseconds: 600), () {
+      if (!mounted) return;
+      final url = extractFirstPreviewUrl(widget.controller.text);
+      setState(() {
+        if (url != _dismissedUrl) {
+          _previewUrl = url;
+          if (url == null) _dismissedUrl = null;
+        }
+      });
+    });
+  }
+
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) {
       widget.typingController?.stop();
@@ -135,6 +164,8 @@ class _ComposeBarState extends State<ComposeBar> {
   @override
   void dispose() {
     widget.controller.removeListener(_onTextChangedForTyping);
+    widget.controller.removeListener(_onTextChangedForPreview);
+    _previewDebounce?.cancel();
     _focusNode.removeListener(_onFocusChanged);
     _mentionController?.dispose();
     _ownedFocusNode?.dispose();
@@ -252,6 +283,12 @@ class _ComposeBarState extends State<ComposeBar> {
               onRemove: widget.onRemoveAttachment,
               onClearAll: widget.onClearAttachments,
             ),
+          if (_previewUrl != null &&
+              widget.editEvent == null &&
+              context.select<PreferencesService, bool>(
+                (p) => p.showLinkPreviews,
+              ))
+            _buildLinkPreviewBanner(_previewUrl!),
           if (widget.uploadNotifier != null)
             ValueListenableBuilder<UploadState?>(
               valueListenable: widget.uploadNotifier!,
@@ -266,6 +303,34 @@ class _ComposeBarState extends State<ComposeBar> {
           _buildComposeRow(cs),
         ],
       ),
+    );
+  }
+
+  Widget _buildLinkPreviewBanner(String url) {
+    final cs = Theme.of(context).colorScheme;
+    return Stack(
+      alignment: Alignment.topRight,
+      children: [
+        LinkPreviewCard(url: url, isMe: false),
+        Positioned(
+          top: 8,
+          right: 2,
+          child: GestureDetector(
+            onTap: () => setState(() {
+              _dismissedUrl = _previewUrl;
+              _previewUrl = null;
+            }),
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: cs.surface,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.close, size: 14, color: cs.onSurfaceVariant),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
