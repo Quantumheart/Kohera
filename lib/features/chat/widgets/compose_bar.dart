@@ -6,10 +6,13 @@ import 'package:flutter/services.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
 import 'package:kohera/features/chat/widgets/attachment_preview_bar.dart';
 import 'package:kohera/features/chat/widgets/edit_preview_banner.dart';
+import 'package:kohera/features/chat/widgets/emoji_autocomplete_controller.dart';
+import 'package:kohera/features/chat/widgets/emoji_suggestion_overlay.dart';
 import 'package:kohera/features/chat/widgets/link_preview_card.dart';
 import 'package:kohera/features/chat/widgets/mention_autocomplete_controller.dart';
 import 'package:kohera/features/chat/widgets/mention_suggestion_overlay.dart';
@@ -89,6 +92,7 @@ class _ComposeBarState extends State<ComposeBar> {
   FocusNode get _focusNode => widget.focusNode ?? (_ownedFocusNode ??= FocusNode());
 
   MentionAutocompleteController? _mentionController;
+  EmojiAutocompleteController? _emojiController;
 
   Timer? _previewDebounce;
   String? _previewUrl;
@@ -98,6 +102,7 @@ class _ComposeBarState extends State<ComposeBar> {
   void initState() {
     super.initState();
     _initMentionController();
+    _initEmojiController();
     widget.controller.addListener(_onTextChangedForTyping);
     widget.controller.addListener(_onTextChangedForPreview);
     _focusNode.addListener(_onFocusChanged);
@@ -109,6 +114,8 @@ class _ComposeBarState extends State<ComposeBar> {
     if (old.room?.id != widget.room?.id) {
       _mentionController?.dispose();
       _initMentionController();
+      _emojiController?.dispose();
+      _initEmojiController();
       _previewDebounce?.cancel();
       _previewUrl = null;
       _dismissedUrl = null;
@@ -133,6 +140,18 @@ class _ComposeBarState extends State<ComposeBar> {
       );
     } else {
       _mentionController = null;
+    }
+  }
+
+  void _initEmojiController() {
+    if (widget.room != null) {
+      _emojiController = EmojiAutocompleteController(
+        textController: widget.controller,
+        room: widget.room!,
+        stickerPacks: context.read<StickerPackService>(),
+      );
+    } else {
+      _emojiController = null;
     }
   }
 
@@ -168,17 +187,23 @@ class _ComposeBarState extends State<ComposeBar> {
     _previewDebounce?.cancel();
     _focusNode.removeListener(_onFocusChanged);
     _mentionController?.dispose();
+    _emojiController?.dispose();
     _ownedFocusNode?.dispose();
     super.dispose();
   }
 
   void _handleSend() {
+    if (_emojiController != null && _emojiController!.hasSuggestions) {
+      _emojiController!.confirmSelection();
+      return;
+    }
     if (_mentionController != null && _mentionController!.hasSuggestions) {
       _mentionController!.confirmSelection();
       return;
     }
     // Dismiss empty autocomplete so it doesn't linger after send.
     _mentionController?.dismiss();
+    _emojiController?.dismiss();
     final hasText = widget.controller.text.trim().isNotEmpty;
     final hasAttachments = widget.pendingAttachments.isNotEmpty;
     if (hasText || hasAttachments) {
@@ -210,23 +235,41 @@ class _ComposeBarState extends State<ComposeBar> {
       return KeyEventResult.ignored;
     }
 
-    final mc = _mentionController;
-    if (mc == null || !mc.hasSuggestions) return KeyEventResult.ignored;
+    if (_mentionController?.hasSuggestions ?? false) {
+      return _handleAutocompleteKey(event, _mentionController!.moveUp,
+          _mentionController!.moveDown, _mentionController!.confirmSelection,
+          _mentionController!.dismiss,);
+    }
+    if (_emojiController?.hasSuggestions ?? false) {
+      return _handleAutocompleteKey(event, _emojiController!.moveUp,
+          _emojiController!.moveDown, _emojiController!.confirmSelection,
+          _emojiController!.dismiss,);
+    }
 
+    return KeyEventResult.ignored;
+  }
+
+  KeyEventResult _handleAutocompleteKey(
+    KeyEvent event,
+    VoidCallback moveUp,
+    VoidCallback moveDown,
+    VoidCallback confirm,
+    VoidCallback dismiss,
+  ) {
     if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-      mc.moveUp();
+      moveUp();
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-      mc.moveDown();
+      moveDown();
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.tab) {
-      mc.confirmSelection();
+      confirm();
       return KeyEventResult.handled;
     }
     if (event.logicalKey == LogicalKeyboardKey.escape) {
-      mc.dismiss();
+      dismiss();
       return KeyEventResult.handled;
     }
 
@@ -263,6 +306,20 @@ class _ComposeBarState extends State<ComposeBar> {
                 }
                 return MentionSuggestionList(
                   controller: _mentionController!,
+                  client: widget.room!.client,
+                );
+              },
+            ),
+          if (_emojiController != null)
+            ListenableBuilder(
+              listenable: _emojiController!,
+              builder: (context, _) {
+                if (!_emojiController!.isActive ||
+                    _emojiController!.suggestions.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return EmojiSuggestionList(
+                  controller: _emojiController!,
                   client: widget.room!.client,
                 );
               },
