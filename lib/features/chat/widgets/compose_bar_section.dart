@@ -19,6 +19,7 @@ class ComposeBarSection extends StatelessWidget {
     required this.onClearAttachments,
     this.onAttach,
     this.onGif,
+    this.onSticker,
     this.onPasteImage,
     this.uploadNotifier,
     this.room,
@@ -41,6 +42,7 @@ class ComposeBarSection extends StatelessWidget {
   final VoidCallback onCancelEdit;
   final VoidCallback? onAttach;
   final VoidCallback? onGif;
+  final VoidCallback? onSticker;
   final Future<void> Function()? onPasteImage;
   final ValueNotifier<UploadState?>? uploadNotifier;
   final Room? room;
@@ -68,6 +70,7 @@ class ComposeBarSection extends StatelessWidget {
           onCancelEdit: onCancelEdit,
           onAttach: onAttach,
           onGif: onGif,
+          onSticker: onSticker,
           onPasteImage: onPasteImage,
           uploadNotifier: uploadNotifier,
           room: room,
