@@ -495,6 +495,7 @@ class _ChatScreenState extends State<ChatScreen>
           onCancelEdit: () => _compose.cancelEdit(_msgCtrl),
           onAttach: _handleAttachPressed,
           onSticker: _toggleStickerPicker,
+          stickerPackService: context.read<StickerPackService>(),
           onGif: AppConfig.isInitialized && AppConfig.instance.giphyEnabled
               ? () async {
                   final gif = await GiphyGet.getGif(
