@@ -32,6 +32,7 @@ class ComposeBar extends StatefulWidget {
     this.editEvent,
     this.onAttach,
     this.onGif,
+    this.onSticker,
     this.onPasteImage,
     this.uploadNotifier,
     this.room,
@@ -54,6 +55,7 @@ class ComposeBar extends StatefulWidget {
   final VoidCallback onCancelEdit;
   final VoidCallback? onAttach;
   final VoidCallback? onGif;
+  final VoidCallback? onSticker;
   final ValueNotifier<UploadState?>? uploadNotifier;
 
   /// The current room (needed to fetch members for @-mentions).
@@ -366,6 +368,7 @@ class _ComposeBarState extends State<ComposeBar> {
         children: [
           _buildAttachButton(cs),
           if (widget.onGif != null) _buildGifButton(cs),
+          if (widget.onSticker != null) _buildStickerButton(cs),
           Expanded(
             child: CallbackShortcuts(
               bindings: {
@@ -476,6 +479,14 @@ class _ComposeBarState extends State<ComposeBar> {
       ),
       onPressed: widget.onGif,
       tooltip: 'Send GIF',
+    );
+  }
+
+  Widget _buildStickerButton(ColorScheme cs) {
+    return IconButton(
+      icon: Icon(Icons.emoji_emotions_outlined, color: cs.onSurfaceVariant),
+      onPressed: widget.onSticker,
+      tooltip: 'Stickers & Emoji',
     );
   }
 }

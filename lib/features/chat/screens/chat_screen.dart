@@ -7,11 +7,13 @@ import 'package:flutter/services.dart' show Clipboard;
 import 'package:giphy_get/giphy_get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
+import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/chat/screens/thread_list_screen.dart';
@@ -34,6 +36,7 @@ import 'package:kohera/features/chat/widgets/message_list_view.dart';
 import 'package:kohera/features/chat/widgets/paste_image_handler.dart';
 import 'package:kohera/features/chat/widgets/photo_send_handler.dart';
 import 'package:kohera/features/chat/widgets/search_results_body.dart';
+import 'package:kohera/features/chat/widgets/sticker_picker_overlay.dart';
 import 'package:kohera/features/chat/widgets/typing_indicator.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -90,6 +93,9 @@ class _ChatScreenState extends State<ChatScreen>
   // ── Thread side pane (desktop) ─────────────────────────
   String? _activeThreadEventId;
   bool _showThreadList = false;
+
+  // ── Sticker picker ─────────────────────────────────────
+  bool _showStickerPicker = false;
 
   // ── Search ─────────────────────────────────────────────
   late ChatSearchController _search;
@@ -309,6 +315,52 @@ class _ChatScreenState extends State<ChatScreen>
     _messageListKey.currentState?.navigateToEvent(event);
   }
 
+  // ── Sticker picker ────────────────────────────────────────
+
+  void _toggleStickerPicker() {
+    setState(() => _showStickerPicker = !_showStickerPicker);
+  }
+
+  Future<void> _handleStickerSelected(PackImage sticker) async {
+    setState(() => _showStickerPicker = false);
+    final room =
+        context.read<MatrixService>().client.getRoomById(widget.roomId);
+    if (room == null) return;
+    try {
+      await room.sendEvent(
+        {
+          'body': sticker.altText,
+          'url': sticker.url.toString(),
+          'info': <String, Object?>{},
+        },
+        type: 'm.sticker',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to send sticker: ${MatrixService.friendlyAuthError(e)}',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _handleEmojiSelected(PackImage emoji) {
+    setState(() => _showStickerPicker = false);
+    final text = _msgCtrl.text;
+    final sel = _msgCtrl.selection;
+    final pos = sel.isValid ? sel.baseOffset : text.length;
+    final insertion = ':${emoji.shortcode}: ';
+    _msgCtrl.value = TextEditingValue(
+      text: text.substring(0, pos) + insertion + text.substring(pos),
+      selection: TextSelection.collapsed(offset: pos + insertion.length),
+    );
+    _composeFocusNode.requestFocus();
+  }
+
   @override
   void dispose() {
     _msgCtrl.dispose();
@@ -420,6 +472,19 @@ class _ChatScreenState extends State<ChatScreen>
           myUserId: matrix.client.userID,
           syncStream: matrix.client.onSync.stream,
         ),
+        if (_showStickerPicker)
+          Consumer<StickerPackService>(
+            builder: (context, stickerService, _) => StickerPickerOverlay(
+              packs: stickerService.packsForRoom(room),
+              client: matrix.client,
+              onStickerTapped: _handleStickerSelected,
+              onEmojiTapped: _handleEmojiSelected,
+              onManagePacks: () {
+                setState(() => _showStickerPicker = false);
+                context.goNamed(Routes.settings);
+              },
+            ),
+          ),
         ComposeBarSection(
           replyNotifier: _compose.replyNotifier,
           editNotifier: _compose.editNotifier,
@@ -429,6 +494,7 @@ class _ChatScreenState extends State<ChatScreen>
           onCancelReply: _compose.cancelReply,
           onCancelEdit: () => _compose.cancelEdit(_msgCtrl),
           onAttach: _handleAttachPressed,
+          onSticker: _toggleStickerPicker,
           onGif: AppConfig.isInitialized && AppConfig.instance.giphyEnabled
               ? () async {
                   final gif = await GiphyGet.getGif(
