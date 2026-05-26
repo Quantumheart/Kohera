@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
+import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
 import 'package:kohera/features/chat/widgets/compose_bar.dart';
@@ -20,6 +21,7 @@ class ComposeBarSection extends StatelessWidget {
     this.onAttach,
     this.onGif,
     this.onSticker,
+    this.stickerPackService,
     this.onPasteImage,
     this.uploadNotifier,
     this.room,
@@ -43,6 +45,7 @@ class ComposeBarSection extends StatelessWidget {
   final VoidCallback? onAttach;
   final VoidCallback? onGif;
   final VoidCallback? onSticker;
+  final StickerPackService? stickerPackService;
   final Future<void> Function()? onPasteImage;
   final ValueNotifier<UploadState?>? uploadNotifier;
   final Room? room;
@@ -71,6 +74,7 @@ class ComposeBarSection extends StatelessWidget {
           onAttach: onAttach,
           onGif: onGif,
           onSticker: onSticker,
+          stickerPackService: stickerPackService,
           onPasteImage: onPasteImage,
           uploadNotifier: uploadNotifier,
           room: room,
