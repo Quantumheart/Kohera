@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
@@ -153,6 +154,10 @@ void main() {
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
         ChangeNotifierProvider(create: (_) => PreferencesService()),
         ChangeNotifierProvider(create: (_) => MediaPlaybackService()),
+        ChangeNotifierProvider(
+          create: (ctx) =>
+              StickerPackService(client: ctx.read<MatrixService>().client),
+        ),
       ],
       child: MaterialApp.router(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),

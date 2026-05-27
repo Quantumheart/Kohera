@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:matrix/matrix.dart';
@@ -75,6 +76,7 @@ Widget _buildChatWidget({
       ChangeNotifierProvider<SelectionService>.value(value: selectionService),
       ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
       ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
+      ChangeNotifierProvider(create: (ctx) => StickerPackService(client: ctx.read<MatrixService>().client)),
     ],
     child: MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
