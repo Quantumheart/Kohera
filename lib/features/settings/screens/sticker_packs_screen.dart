@@ -35,8 +35,14 @@ class StickerPacksScreen extends StatelessWidget {
           final personalPack = accountPacks
               .where((p) => p.id == _kPersonalPackId)
               .firstOrNull;
+          final importedPacks = accountPacks
+              .where((p) => p.id.startsWith('emojigg_'))
+              .toList();
           final subscribedPacks = accountPacks
-              .where((p) => p.id != _kPersonalPackId)
+              .where(
+                (p) =>
+                    p.id != _kPersonalPackId && !p.id.startsWith('emojigg_'),
+              )
               .toList();
 
           return ListView(
@@ -79,16 +85,30 @@ class StickerPacksScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (subscribedPacks.isNotEmpty)
-                          const Divider(height: 1, indent: 56),
                       ],
-                      if (subscribedPacks.isNotEmpty)
+                      for (var i = 0; i < importedPacks.length; i++) ...[
+                        const Divider(height: 1, indent: 56),
+                        _PackTile(
+                          pack: importedPacks[i],
+                          client: client,
+                          trailing: _RemoveButton(
+                            onTap: () => service.removeImportedPack(
+                              importedPacks[i].id,
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (subscribedPacks.isNotEmpty) ...[
+                        if (personalPack != null || importedPacks.isNotEmpty)
+                          const Divider(height: 1, indent: 56),
                         _ReorderablePackList(
                           packs: subscribedPacks,
                           client: client,
                           service: service,
-                          personalPackPresent: personalPack != null,
+                          hasLeadingPack:
+                              personalPack != null || importedPacks.isNotEmpty,
                         ),
+                      ],
                     ],
                   ),
                 ),
@@ -125,6 +145,23 @@ class StickerPacksScreen extends StatelessWidget {
                   ),
                 ),
 
+              const SizedBox(height: 24),
+
+              // ── Browse online ─────────────────────────────────
+              const _SectionLabel(label: 'BROWSE ONLINE'),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.explore_outlined),
+                  title: const Text('Browse emoji.gg packs'),
+                  subtitle: const Text(
+                    'Import sticker packs from the emoji.gg library',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () =>
+                      context.pushOrGo(Routes.settingsEmojiGgBrowse),
+                ),
+              ),
+
               const SizedBox(height: 32),
             ],
           );
@@ -141,13 +178,13 @@ class _ReorderablePackList extends StatelessWidget {
     required this.packs,
     required this.client,
     required this.service,
-    required this.personalPackPresent,
+    required this.hasLeadingPack,
   });
 
   final List<StickerPack> packs;
   final Client client;
   final StickerPackService service;
-  final bool personalPackPresent;
+  final bool hasLeadingPack;
 
   @override
   Widget build(BuildContext context) {
@@ -168,7 +205,7 @@ class _ReorderablePackList extends StatelessWidget {
           key: ValueKey(pack.id),
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (index > 0 || personalPackPresent)
+            if (index > 0 || hasLeadingPack)
               const Divider(height: 1, indent: 56),
             _PackTile(
               pack: pack,
