@@ -378,6 +378,64 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   // ── Private: Session Restore ───────────────────────────────────
 
   Future<void> _restoreSession() async {
+    // Tokens live in two places: the SDK database (rewritten on every automatic
+    // token refresh) and the keychain (only rewritten on explicit persist). The
+    // database therefore holds the freshest tokens, so restore from it whenever
+    // it has a session. Seeding a stale keychain token via init(newToken:) would
+    // overwrite the database's fresh tokens and trigger a spurious logout.
+    if (await _hasDatabaseSession()) {
+      await _restoreFromDatabase();
+    } else {
+      await _restoreFromKeychain();
+    }
+  }
+
+  Future<bool> _hasDatabaseSession() async {
+    try {
+      final stored = await _client.database.getClient(clientName);
+      if (stored == null) return false;
+      return stored.tryGet<String>('token') != null ||
+          stored.tryGet<String>('refresh_token') != null;
+    } catch (e) {
+      debugPrint('[Kohera] Database session probe failed: $e');
+      return false;
+    }
+  }
+
+  Future<void> _restoreFromDatabase() async {
+    debugPrint('[Kohera] Restoring session from database for $clientName');
+    try {
+      await _client.init();
+      if (!_client.isLogged()) {
+        debugPrint('[Kohera] Database restore produced no logged-in session');
+        auth.isLoggedIn = false;
+        return;
+      }
+      debugPrint('[Kohera] Session restored from database – '
+          'encryption=${_client.encryption != null ? "available" : "null"}, '
+          'encryptionEnabled=${_client.encryptionEnabled}');
+      await _activateSession();
+      try {
+        if (_client.accessToken != null) {
+          await auth.persistCredentials();
+        }
+        await auth.saveSessionBackup();
+      } catch (e) {
+        debugPrint('[Kohera] Persisting restored session failed '
+            '(non-fatal): $e');
+      }
+    } catch (e, s) {
+      debugPrint('[Kohera] Database session restore failed: $e');
+      debugPrint('[Kohera] Stack trace:\n$s');
+      final cause = _unwrapInitException(e);
+      auth.isLoggedIn = false;
+      if (auth.isPermanentAuthFailure(cause)) {
+        await _clearSessionAndBackup();
+      }
+    }
+  }
+
+  Future<void> _restoreFromKeychain() async {
     final ({
       String? token,
       String? refreshToken,
@@ -393,7 +451,6 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     if (keys.token == null || keys.userId == null || keys.homeserver == null) {
-      await _tryDatabaseRestore();
       return;
     }
 
@@ -403,7 +460,8 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     );
 
     debugPrint(
-        '[Kohera] Restoring session for ${keys.userId} on ${keys.homeserver} '
+        '[Kohera] Database restore unavailable; seeding session from keychain '
+        'for ${keys.userId} on ${keys.homeserver} '
         '(deviceId=${keys.deviceId}, clientName=$clientName)');
 
     try {
@@ -418,28 +476,24 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         newDeviceName: 'Kohera Flutter',
         newOlmAccount: backup?.olmAccount,
       );
-      debugPrint('[Kohera] Session restored – '
+      debugPrint('[Kohera] Session restored from keychain – '
           'encryption=${_client.encryption != null ? "available" : "null"}, '
           'encryptionEnabled=${_client.encryptionEnabled}');
       await _activateSession();
       try {
+        if (_client.accessToken != null) {
+          await auth.persistCredentials();
+        }
         await auth.saveSessionBackup();
       } catch (e) {
-        debugPrint('[Kohera] saveSessionBackup after restore failed '
+        debugPrint('[Kohera] Persisting restored session failed '
             '(non-fatal): $e');
       }
-      return;
     } catch (e, s) {
-      debugPrint('[Kohera] Session restore failed: $e');
+      debugPrint('[Kohera] Keychain session restore failed: $e');
       debugPrint('[Kohera] Stack trace:\n$s');
 
       final cause = _unwrapInitException(e);
-
-      if (_isExpiredTokenError(cause)) {
-        final refreshed = await _tryDatabaseRestore();
-        if (refreshed) return;
-      }
-
       auth.isLoggedIn = false;
       if (auth.isPermanentAuthFailure(cause)) {
         await _clearSessionAndBackup();
@@ -447,40 +501,8 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<bool> _tryDatabaseRestore() async {
-    debugPrint('[Kohera] Attempting database-only restore (token refresh)...');
-    try {
-      await _client.init();
-      if (_client.isLogged()) {
-        await _activateSession();
-        try {
-          if (_client.accessToken != null) {
-            await auth.persistCredentials();
-          }
-          await auth.saveSessionBackup();
-        } catch (e) {
-          debugPrint('[Kohera] Persisting restored session failed '
-              '(non-fatal): $e');
-        }
-        debugPrint('[Kohera] Session restored via database token refresh');
-        return true;
-      }
-      return false;
-    } catch (e) {
-      debugPrint('[Kohera] Database-only restore failed: $e');
-      return false;
-    }
-  }
-
   // ── Private: Error Classification ──────────────────────────────
 
   static Object _unwrapInitException(Object e) =>
       e is ClientInitException ? e.originalException : e;
-
-  static bool _isExpiredTokenError(Object e) {
-    if (e is MatrixException && e.errcode == 'M_UNKNOWN_TOKEN') {
-      return e.errorMessage.toLowerCase().contains('expired');
-    }
-    return false;
-  }
 }
