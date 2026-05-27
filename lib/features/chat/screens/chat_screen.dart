@@ -481,7 +481,7 @@ class _ChatScreenState extends State<ChatScreen>
               onEmojiTapped: _handleEmojiSelected,
               onManagePacks: () {
                 setState(() => _showStickerPicker = false);
-                context.goNamed(Routes.settings);
+                context.goNamed(Routes.settingsStickerPacks);
               },
             ),
           ),
