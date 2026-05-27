@@ -25,6 +25,7 @@ import 'package:kohera/features/settings/screens/appearance_screen.dart';
 import 'package:kohera/features/settings/screens/devices_screen.dart';
 import 'package:kohera/features/settings/screens/notification_settings_screen.dart';
 import 'package:kohera/features/settings/screens/settings_screen.dart';
+import 'package:kohera/features/settings/screens/sticker_packs_screen.dart';
 import 'package:kohera/features/settings/screens/voice_video_settings_screen.dart';
 import 'package:kohera/features/spaces/widgets/space_details_panel.dart';
 import 'package:kohera/features/whats_new/screens/whats_new_screen.dart';
@@ -311,6 +312,12 @@ GoRouter buildRouter(ClientManager manager) {
                     name: Routes.settingsRecoveryKey,
                     builder: (context, state) =>
                         const ShowRecoveryKeyScreen(),
+                  ),
+                  GoRoute(
+                    path: 'sticker-packs',
+                    name: Routes.settingsStickerPacks,
+                    builder: (context, state) =>
+                        const StickerPacksScreen(),
                   ),
                 ],
               ),

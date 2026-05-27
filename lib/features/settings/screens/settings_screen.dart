@@ -8,6 +8,7 @@ import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/features/settings/widgets/account_switcher.dart';
 import 'package:kohera/features/settings/widgets/profile_avatar_card.dart';
@@ -96,6 +97,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: 'Notifications',
                   subtitle: prefs.notificationLevelLabel,
                   onTap: () => context.pushOrGo(Routes.settingsNotifications),
+                ),
+                const Divider(height: 1, indent: 56),
+                _SettingsTile(
+                  icon: Icons.emoji_emotions_outlined,
+                  title: 'Sticker & emoji packs',
+                  subtitle: context.select<StickerPackService, String>(
+                    (s) {
+                      final count = s.accountPacks.length;
+                      return count == 0
+                          ? 'No packs added'
+                          : '$count pack${count == 1 ? '' : 's'} active';
+                    },
+                  ),
+                  onTap: () => context.pushOrGo(Routes.settingsStickerPacks),
                 ),
                 const Divider(height: 1, indent: 56),
                 SwitchListTile(
