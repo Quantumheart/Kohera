@@ -1,15 +1,28 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/core/models/emoji_gg_pack.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
+import 'package:kohera/core/services/emoji_gg_service.dart';
 import 'package:matrix/matrix.dart';
+
+class ImportProgress {
+  const ImportProgress({required this.done, required this.total});
+  final int done;
+  final int total;
+  double get fraction => total == 0 ? 1.0 : done / total;
+  bool get isComplete => done >= total;
+}
 
 class StickerPackService extends ChangeNotifier {
   StickerPackService({required Client client}) : _client = client {
     _sub = client.onSync.stream.listen((sync) {
       final relevant =
           sync.accountData?.any(
-            (e) => e.type == _kUserEmotesType || e.type == _kSubscriptionsType,
+            (e) =>
+                e.type == _kUserEmotesType ||
+                e.type == _kSubscriptionsType ||
+                e.type == _kImportedPacksType,
           ) ??
           false;
       if (relevant) notifyListeners();
@@ -19,17 +32,20 @@ class StickerPackService extends ChangeNotifier {
   static const _kUserEmotesType = 'im.ponies.user_emotes';
   static const _kRoomEmotesType = 'im.ponies.room_emotes';
   static const _kSubscriptionsType = 'kohera.sticker_pack_subscriptions';
+  static const _kImportedPacksType = 'kohera.imported_packs';
 
   final Client _client;
   StreamSubscription<SyncUpdate>? _sub;
 
   @override
   void dispose() {
-    unawaited(_sub?.cancel());
+    unawaited(_sub?.cancel() ?? Future.value());
     super.dispose();
   }
 
-  /// The user's personal pack plus all subscribed room packs.
+  // ── Account packs ────────────────────────────────────────────
+
+  /// Personal pack + imported emoji.gg packs + subscribed room packs.
   List<StickerPack> get accountPacks {
     final packs = <StickerPack>[];
 
@@ -42,6 +58,8 @@ class StickerPackService extends ChangeNotifier {
       if (pack != null) packs.add(pack);
     }
 
+    packs.addAll(importedPacks);
+
     for (final roomId in _subscribedRoomIds) {
       final room = _client.getRoomById(roomId);
       if (room == null) continue;
@@ -51,6 +69,70 @@ class StickerPackService extends ChangeNotifier {
 
     return packs;
   }
+
+  /// Packs imported from emoji.gg, stored in account data.
+  List<StickerPack> get importedPacks {
+    final content = _client.accountData[_kImportedPacksType]?.content;
+    if (content == null) return [];
+
+    final rawPacks =
+        (content['packs'] as List?)?.cast<Map<String, Object?>>() ?? [];
+    final packs = <StickerPack>[];
+
+    for (final raw in rawPacks) {
+      final id = raw['id'] as String?;
+      final displayName = raw['display_name'] as String?;
+      final rawImages = raw['images'] as Map<String, Object?>?;
+
+      if (id == null || displayName == null || rawImages == null) continue;
+
+      final stickers = <PackImage>[];
+
+      for (final entry in rawImages.entries) {
+        final imageData = entry.value as Map<String, Object?>?;
+        if (imageData == null) continue;
+
+        final urlStr = imageData['url'] as String?;
+        if (urlStr == null) continue;
+        final url = Uri.tryParse(urlStr);
+        if (url == null) continue;
+
+        stickers.add(PackImage(
+          shortcode: entry.key,
+          url: url,
+          body: imageData['body'] as String?,
+          isSticker: true,
+          isEmoji: true,
+        ),);
+      }
+
+      if (stickers.isEmpty) continue;
+
+      packs.add(StickerPack(
+        id: id,
+        displayName: displayName,
+        stickers: stickers,
+        emoji: stickers,
+      ),);
+    }
+
+    return packs;
+  }
+
+  /// Slugs of emoji.gg packs already imported by the user.
+  Set<String> get importedEmojiGgSlugs {
+    final content = _client.accountData[_kImportedPacksType]?.content;
+    if (content == null) return {};
+
+    final rawPacks =
+        (content['packs'] as List?)?.cast<Map<String, Object?>>() ?? [];
+    return rawPacks
+        .map((p) => p['source_slug'] as String?)
+        .whereType<String>()
+        .toSet();
+  }
+
+  // ── Room packs ───────────────────────────────────────────────
 
   /// All packs visible in a room context: account packs + room pack + space packs.
   List<StickerPack> packsForRoom(Room room) {
@@ -76,7 +158,7 @@ class StickerPackService extends ChangeNotifier {
     return packs;
   }
 
-  /// Room/space packs from joined rooms that are not yet subscribed at account level.
+  /// Room/space packs from joined rooms not yet subscribed at account level.
   List<StickerPack> availableRoomPacks() {
     final subscribedIds = {_kUserEmotesType, ..._subscribedRoomIds};
     final packs = <StickerPack>[];
@@ -87,6 +169,8 @@ class StickerPackService extends ChangeNotifier {
     }
     return packs;
   }
+
+  // ── Subscriptions ─────────────────────────────────────────────
 
   Future<void> subscribeToRoomPack(String roomId) async {
     final ids = [..._subscribedRoomIds];
@@ -101,6 +185,59 @@ class StickerPackService extends ChangeNotifier {
 
   Future<void> reorderSubscriptions(List<String> orderedIds) async {
     await _writeSubscriptions(orderedIds);
+  }
+
+  // ── Emoji.gg import ───────────────────────────────────────────
+
+  /// Downloads each emoji from [pack] via [emojiGgService], uploads them to
+  /// the user's homeserver, and saves the pack to account data.
+  ///
+  /// Yields [ImportProgress] after each image. The final event has
+  /// [ImportProgress.isComplete] == true.
+  Stream<ImportProgress> importEmojiGgPack(
+    EmojiGgPack pack,
+    EmojiGgService emojiGgService,
+  ) async* {
+    final emojis = pack.emojis;
+    final total = emojis.length;
+    final images = <String, Object?>{};
+    var done = 0;
+
+    for (final emoji in emojis) {
+      try {
+        final bytes = await emojiGgService.downloadImage(emoji.imageUrl);
+        final mxcUri = await _client.uploadContent(
+          bytes,
+          filename: '${emoji.slug}.png',
+          contentType: 'image/png',
+        );
+        images[emoji.shortcode] = {
+          'url': mxcUri.toString(),
+          'body': emoji.title,
+        };
+      } catch (e) {
+        debugPrint('[Kohera] Failed to import ${emoji.slug}: $e');
+      }
+      done++;
+      yield ImportProgress(done: done, total: total);
+    }
+
+    if (images.isNotEmpty) {
+      await _writeImportedPack(pack, images);
+    }
+  }
+
+  Future<void> removeImportedPack(String packId) async {
+    final content =
+        _client.accountData[_kImportedPacksType]?.content ?? {};
+    final rawPacks =
+        (content['packs'] as List?)?.cast<Map<String, Object?>>() ?? [];
+    final updated = rawPacks.where((p) => p['id'] != packId).toList();
+    await _client.setAccountData(
+      _client.userID!,
+      _kImportedPacksType,
+      {'packs': updated},
+    );
   }
 
   // ── Private helpers ──────────────────────────────────────────
@@ -122,6 +259,35 @@ class StickerPackService extends ChangeNotifier {
       _client.userID!,
       _kSubscriptionsType,
       {'room_ids': roomIds},
+    );
+  }
+
+  Future<void> _writeImportedPack(
+    EmojiGgPack pack,
+    Map<String, Object?> images,
+  ) async {
+    final content =
+        _client.accountData[_kImportedPacksType]?.content ?? {};
+    final rawPacks =
+        (content['packs'] as List?)?.cast<Map<String, Object?>>() ?? [];
+
+    // Replace existing entry for the same source pack, if any.
+    final updated = rawPacks
+        .where((p) => p['source_id'] != pack.id)
+        .toList()
+      ..add({
+        'id': 'emojigg_${pack.id}',
+        'display_name': pack.name,
+        'source': 'emojigg',
+        'source_id': pack.id,
+        'source_slug': pack.slug,
+        'images': images,
+      });
+
+    await _client.setAccountData(
+      _client.userID!,
+      _kImportedPacksType,
+      {'packs': updated},
     );
   }
 }
