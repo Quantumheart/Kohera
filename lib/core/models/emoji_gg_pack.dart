@@ -6,8 +6,8 @@ class EmojiGgEmoji {
 
   String get imageUrl => 'https://cdn3.emoji.gg/emojis/$slug.png';
 
-  /// Strips the numeric ID prefix: "4384_falco_stare" → "falco_stare".
-  String get shortcode => slug.replaceFirst(RegExp(r'^\d+_'), '');
+  /// Strips the numeric ID prefix: "4384_falco_stare" or "664414-name" → the name part.
+  String get shortcode => slug.replaceFirst(RegExp(r'^\d+[_-]'), '');
 }
 
 class EmojiGgPack {
@@ -36,8 +36,8 @@ class EmojiGgPack {
         (s) => EmojiGgEmoji(
           slug: s,
           title: s
-              .replaceFirst(RegExp(r'^\d+_'), '')
-              .replaceAll('_', ' '),
+              .replaceFirst(RegExp(r'^\d+[_-]'), '')
+              .replaceAll(RegExp('[_-]'), ' '),
         ),
       )
       .toList();

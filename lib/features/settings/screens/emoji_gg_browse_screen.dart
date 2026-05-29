@@ -321,6 +321,11 @@ class _PackCard extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ],
+            // Emoji preview strip
+            if (pack.emojiSlugs.length > 1) ...[
+              const SizedBox(height: 10),
+              _EmojiPreviewStrip(slugs: pack.emojiSlugs),
+            ],
             // Progress bar
             if (isImporting) ...[
               const SizedBox(height: 8),
@@ -332,6 +337,50 @@ class _PackCard extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Scrollable preview strip ─────────────────────────────────────
+
+class _EmojiPreviewStrip extends StatelessWidget {
+  const _EmojiPreviewStrip({required this.slugs});
+  final List<String> slugs;
+
+  static const _maxPreview = 12;
+  static const _size = 40.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final preview = slugs.take(_maxPreview).toList();
+    final cs = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      height: _size,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: preview.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 4),
+        itemBuilder: (context, i) => ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Image.network(
+            'https://cdn3.emoji.gg/emojis/${preview[i]}.png',
+            width: _size,
+            height: _size,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => Container(
+              width: _size,
+              height: _size,
+              color: cs.surfaceContainerHighest,
+              child: Icon(
+                Icons.broken_image_outlined,
+                size: 20,
+                color: cs.outlineVariant,
+              ),
+            ),
+          ),
         ),
       ),
     );

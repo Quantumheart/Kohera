@@ -111,31 +111,43 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
       children: [
         _buildSearchField(cs),
         if (_query.isEmpty) ...[
-          TabBar(
-            controller: _tabController,
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            tabs: [
-              for (final pack in widget.packs)
-                Tab(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (pack.avatarUrl != null) ...[
-                        MxcImage(
-                          mxcUrl: pack.avatarUrl!.toString(),
-                          client: widget.client,
-                          width: 18,
-                          height: 18,
-                          fallbackText: '',
-                          fallbackStyle: null,
+          Row(
+            children: [
+              Expanded(
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  tabs: [
+                    for (final pack in widget.packs)
+                      Tab(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (pack.avatarUrl != null) ...[
+                              MxcImage(
+                                mxcUrl: pack.avatarUrl!.toString(),
+                                client: widget.client,
+                                width: 18,
+                                height: 18,
+                                fallbackText: '',
+                                fallbackStyle: null,
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            Text(pack.displayName),
+                          ],
                         ),
-                        const SizedBox(width: 6),
-                      ],
-                      Text(pack.displayName),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_rounded),
+                iconSize: 20,
+                tooltip: 'Manage packs',
+                onPressed: widget.onManagePacks,
+              ),
             ],
           ),
           Expanded(

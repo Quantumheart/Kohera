@@ -102,7 +102,7 @@ class StickerPackService extends ChangeNotifier {
           url: url,
           body: imageData['body'] as String?,
           isSticker: true,
-          isEmoji: true,
+          isEmoji: false,
         ),);
       }
 
@@ -112,7 +112,7 @@ class StickerPackService extends ChangeNotifier {
         id: id,
         displayName: displayName,
         stickers: stickers,
-        emoji: stickers,
+        emoji: const [],
       ),);
     }
 
