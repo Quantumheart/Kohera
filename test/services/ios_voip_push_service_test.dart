@@ -348,7 +348,23 @@ void main() {
       final mockRoom = MockRoom();
       when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
       when(mockClient.userID).thenReturn('@alice:example.com');
+      when(mockRoom.isDirectChat).thenReturn(true);
       when(mockRoom.states).thenReturn({});
+      when(mockCallService.callState)
+          .thenReturn(KoheraCallState.ringingIncoming);
+
+      await service.onVoipMessage(validPayload());
+
+      verify(mockCallService.endCallFromPushKit()).called(1);
+    });
+
+    test('ends CallKit when post-sync shows room is not 1:1', () async {
+      when(mockClient.oneShotSync(timeout: anyNamed('timeout')))
+          .thenAnswer((_) async {});
+
+      final mockRoom = MockRoom();
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
+      when(mockRoom.isDirectChat).thenReturn(false);
       when(mockCallService.callState)
           .thenReturn(KoheraCallState.ringingIncoming);
 
