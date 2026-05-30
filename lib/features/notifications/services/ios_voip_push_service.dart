@@ -137,7 +137,7 @@ class IosVoipPushService {
         return;
       }
 
-      _maybeEndCallIfCallerGone(roomId);
+      _maybeEndRingAfterSync(roomId);
     } catch (e) {
       debugPrint('[Kohera] VoIP push message processing error: $e');
     }
@@ -220,11 +220,23 @@ class IosVoipPushService {
     debugPrint('[Kohera] VoIP pusher unregistered from homeserver');
   }
 
-  // ── Cancel check (caller removed m.call.member before answer) ───
+  // ── Cancel checks (run after the post-push sync) ───
+  // Only 1:1 calls should ring. iOS requires every VoIP push to present a
+  // CallKit ring immediately, so a group-call push (e.g. from a homeserver
+  // whose push rule predates the room_member_count restriction) is dismissed
+  // here once room state is known. Also cancels if the caller removed their
+  // m.call.member membership before we answered.
 
-  void _maybeEndCallIfCallerGone(String roomId) {
+  void _maybeEndRingAfterSync(String roomId) {
     if (_disposed) return;
     if (callService.callState != KoheraCallState.ringingIncoming) return;
+
+    final room = matrixService.client.getRoomById(roomId);
+    if (room != null && !room.isDirectChat) {
+      debugPrint('[Kohera] VoIP post-sync: not a 1:1 room, ending CallKit ring');
+      callService.endCallFromPushKit();
+      return;
+    }
 
     final stillRinging = RtcMembershipService.roomHasRemoteActiveCall(
       matrixService.client,

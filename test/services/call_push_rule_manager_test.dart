@@ -27,6 +27,7 @@ void main() {
             key: 'type',
             pattern: 'org.matrix.msc3401.call.member',
           ),
+          PushCondition(kind: 'room_member_count', is_: '2'),
         ],
         actions: [
           'notify',
@@ -35,7 +36,7 @@ void main() {
         ],
       );
 
-  test('writes rule when missing', () async {
+  test('writes rule restricted to 1:1 rooms when missing', () async {
     when(mockClient.getPushRules())
         .thenAnswer((_) async => PushRuleSet(override: []));
     when(
@@ -52,14 +53,27 @@ void main() {
 
     await manager.ensureRule();
 
-    verify(
+    final captured = verify(
       mockClient.setPushRule(
         PushRuleKind.override,
         'io.kohera.call_member',
         any,
-        conditions: anyNamed('conditions'),
+        conditions: captureAnyNamed('conditions'),
       ),
-    ).called(1);
+    ).captured;
+    final conditions = captured.single as List<PushCondition>;
+    expect(
+      conditions.any(
+        (c) => c.kind == 'event_match' &&
+            c.key == 'type' &&
+            c.pattern == 'org.matrix.msc3401.call.member',
+      ),
+      isTrue,
+    );
+    expect(
+      conditions.any((c) => c.kind == 'room_member_count' && c.is_ == '2'),
+      isTrue,
+    );
   });
 
   test('no write when rule already present with matching actions', () async {
@@ -112,6 +126,56 @@ void main() {
         conditions: anyNamed('conditions'),
       ),
     ).called(1);
+  });
+
+  test('rewrites legacy rule that lacks the room_member_count condition',
+      () async {
+    final legacy = PushRule(
+      ruleId: 'io.kohera.call_member',
+      default$: false,
+      enabled: true,
+      conditions: [
+        PushCondition(
+          kind: 'event_match',
+          key: 'type',
+          pattern: 'org.matrix.msc3401.call.member',
+        ),
+      ],
+      actions: [
+        'notify',
+        {'set_tweak': 'sound', 'value': 'ring'},
+        {'set_tweak': 'highlight', 'value': false},
+      ],
+    );
+    when(mockClient.getPushRules())
+        .thenAnswer((_) async => PushRuleSet(override: [legacy]));
+    when(
+      mockClient.setPushRule(
+        any,
+        any,
+        any,
+        before: anyNamed('before'),
+        after: anyNamed('after'),
+        conditions: anyNamed('conditions'),
+        pattern: anyNamed('pattern'),
+      ),
+    ).thenAnswer((_) async {});
+
+    await manager.ensureRule();
+
+    final captured = verify(
+      mockClient.setPushRule(
+        PushRuleKind.override,
+        'io.kohera.call_member',
+        any,
+        conditions: captureAnyNamed('conditions'),
+      ),
+    ).captured;
+    final conditions = captured.single as List<PushCondition>;
+    expect(
+      conditions.any((c) => c.kind == 'room_member_count' && c.is_ == '2'),
+      isTrue,
+    );
   });
 
   test('no-op when userID missing', () async {
