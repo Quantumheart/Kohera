@@ -48,7 +48,7 @@ class CallPushRuleManager {
           key: 'type',
           pattern: callMemberEventType,
         ),
-        PushCondition(kind: 'room_member_count', is_: '2'),
+        PushCondition(kind: 'room_member_count', is$: '2'),
       ];
 
   List<Object?> _desiredActions() => [
@@ -66,7 +66,7 @@ class CallPushRuleManager {
       if (a.kind != b.kind ||
           a.key != b.key ||
           a.pattern != b.pattern ||
-          a.is_ != b.is_) {
+          a.is$ != b.is$) {
         return false;
       }
     }

@@ -27,7 +27,7 @@ void main() {
             key: 'type',
             pattern: 'org.matrix.msc3401.call.member',
           ),
-          PushCondition(kind: 'room_member_count', is_: '2'),
+          PushCondition(kind: 'room_member_count', is$: '2'),
         ],
         actions: [
           'notify',
@@ -71,7 +71,7 @@ void main() {
       isTrue,
     );
     expect(
-      conditions.any((c) => c.kind == 'room_member_count' && c.is_ == '2'),
+      conditions.any((c) => c.kind == 'room_member_count' && c.is$ == '2'),
       isTrue,
     );
   });
@@ -173,7 +173,7 @@ void main() {
     ).captured;
     final conditions = captured.single as List<PushCondition>;
     expect(
-      conditions.any((c) => c.kind == 'room_member_count' && c.is_ == '2'),
+      conditions.any((c) => c.kind == 'room_member_count' && c.is$ == '2'),
       isTrue,
     );
   });
