@@ -1,5 +1,42 @@
 # Changelog
 
+## [1.4.0](https://github.com/Quantumheart/Kohera/compare/v1.3.0...v1.4.0) (2026-06-01)
+
+
+### Features
+
+* **#148:** sticker/emoji pack data layer (MSC2545) ([6d8342d](https://github.com/Quantumheart/Kohera/commit/6d8342dbe7f14d25f2f5c2d31d41798c197dc45a))
+* **#149:** sticker picker overlay in compose bar ([0b7c67e](https://github.com/Quantumheart/Kohera/commit/0b7c67e1daaefc31693cfd3c29064541942a1854))
+* **#150:** custom emoji autocomplete with : trigger ([5c55879](https://github.com/Quantumheart/Kohera/commit/5c55879dd12f40224438ff312e06371c5b7c2f99))
+* **#151:** sticker & emoji pack management in Settings ([80a9bc5](https://github.com/Quantumheart/Kohera/commit/80a9bc54d78a984e791edd77ea9930f805c62629))
+* **#530:** browse and import emoji.gg sticker packs ([5aa2151](https://github.com/Quantumheart/Kohera/commit/5aa2151bc2333f76cb35247e119920c9557e1d80))
+* **chat:** render data-mx-spoiler with tap-to-reveal ([#68](https://github.com/Quantumheart/Kohera/issues/68)) ([e220ff6](https://github.com/Quantumheart/Kohera/commit/e220ff6cfc77cf26c8488586d82ef4d67e5831ed))
+* **chat:** show link preview in compose bar before sending ([f432f89](https://github.com/Quantumheart/Kohera/commit/f432f89dc82458f38ab7c772a9f5440432128fff))
+* **chat:** use YouTube oEmbed API for accurate video title and thumbnail ([28f16f3](https://github.com/Quantumheart/Kohera/commit/28f16f3b007d3a6b2aa0ee8810637fffe92caf32))
+* **rooms:** broaden invite dialog suggestions to group room members ([#485](https://github.com/Quantumheart/Kohera/issues/485)) ([86042d5](https://github.com/Quantumheart/Kohera/commit/86042d5d88ff0f13806501264055b840f5aa8f98))
+* **rooms:** sort invite suggestions by most recently active room ([14ea806](https://github.com/Quantumheart/Kohera/commit/14ea80682f6787381e4cc445274c0cfacdcddf69))
+
+
+### Bug Fixes
+
+* **#530:** fix sticker shortcodes, emoji section leak, and add picker shortcut ([2a62cf5](https://github.com/Quantumheart/Kohera/commit/2a62cf58d6b97f3ca3cef94abd5bddf30cd14af5))
+* **#535:** replace permission-gated clipboard.read() with DOM paste event on web ([1a613c7](https://github.com/Quantumheart/Kohera/commit/1a613c7c98259d420b09a50629b3b779bc147431))
+* **chat:** fall back to mxc thumbnail when video has no thumbnail_url ([580a229](https://github.com/Quantumheart/Kohera/commit/580a22946c8f03e0d42b5e8903e61bbc552f03a4)), closes [#220](https://github.com/Quantumheart/Kohera/issues/220)
+* **chat:** fix link preview thumbnails and Windows startup crash ([f6c6db0](https://github.com/Quantumheart/Kohera/commit/f6c6db0411f5efe43134de1900dd89fea26d981b))
+* **chat:** order call events chronologically in timeline ([ad74ee1](https://github.com/Quantumheart/Kohera/commit/ad74ee155f80c078553821aca8ad820eb0287f5a))
+* **chat:** restore web image paste without permission popup on text paste ([9978058](https://github.com/Quantumheart/Kohera/commit/9978058830e64de5559ac3d0e5f2202754461c07))
+* **chat:** route link previews through homeserver to fix CORS and bot blocking ([c80fe72](https://github.com/Quantumheart/Kohera/commit/c80fe72803dc314cbf42acf2aca1ca55c46bff12))
+* only ring iOS push calls for 1:1 rooms ([19b5146](https://github.com/Quantumheart/Kohera/commit/19b51460b857a6805259c12fe0659820f2e4e4ad))
+* open registration in add-account flow instead of redirecting home ([0d10263](https://github.com/Quantumheart/Kohera/commit/0d102631b48479d84bf391d33d6cc5e95cffb1ac))
+* remove unused errorBuilder parameter name ([17f5cfc](https://github.com/Quantumheart/Kohera/commit/17f5cfc86d12f54d075a91dc1215427500472336))
+* restore iOS session from SDK database before keychain ([aab6a10](https://github.com/Quantumheart/Kohera/commit/aab6a10fc360dfdc48d396a0772977851b58f3a3))
+* use correct PushCondition.is$ field name for room_member_count ([a0a2fd8](https://github.com/Quantumheart/Kohera/commit/a0a2fd8bf289bb0fcb3714378bb9e7438bfd2951))
+
+
+### Reverts
+
+* remove addPostFrameCallback from initState ([2e84691](https://github.com/Quantumheart/Kohera/commit/2e84691c0d8e026b7b686b8917c07d1ac7bf845c))
+
 ## [1.3.0](https://github.com/Quantumheart/Kohera/compare/v1.2.0...v1.3.0) (2026-05-24)
 
 
