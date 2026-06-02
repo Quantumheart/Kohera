@@ -486,16 +486,32 @@ class _ChatScreenState extends State<ChatScreen>
           syncStream: matrix.client.onSync.stream,
         ),
         if (_showStickerPicker)
-          Consumer<StickerPackService>(
-            builder: (context, stickerService, _) => StickerPickerOverlay(
-              packs: stickerService.packsForRoom(room),
-              client: matrix.client,
-              onStickerTapped: _handleStickerSelected,
-              onEmojiTapped: _handleEmojiSelected,
-              onManagePacks: () {
-                setState(() => _showStickerPicker = false);
-                context.goNamed(Routes.settingsStickerPacks);
-              },
+          SizedBox(
+            height: 300,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                border: Border(
+                  top: BorderSide(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .outlineVariant
+                        .withValues(alpha: 0.3),
+                  ),
+                ),
+              ),
+              child: Consumer<StickerPackService>(
+                builder: (context, stickerService, _) => StickerPickerOverlay(
+                  packs: stickerService.packsForRoom(room),
+                  client: matrix.client,
+                  onStickerTapped: _handleStickerSelected,
+                  onEmojiTapped: _handleEmojiSelected,
+                  onManagePacks: () {
+                    setState(() => _showStickerPicker = false);
+                    context.goNamed(Routes.settingsStickerPacks);
+                  },
+                ),
+              ),
             ),
           ),
         ComposeBarSection(

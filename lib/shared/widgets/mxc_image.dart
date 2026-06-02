@@ -12,6 +12,7 @@ class MxcImage extends StatefulWidget {
     required this.fallbackStyle,
     this.width,
     this.height,
+    this.fit,
     super.key,
   });
 
@@ -19,6 +20,7 @@ class MxcImage extends StatefulWidget {
   final Client? client;
   final double? width;
   final double? height;
+  final BoxFit? fit;
   final String fallbackText;
   final TextStyle? fallbackStyle;
 
@@ -106,6 +108,7 @@ class _MxcImageState extends State<MxcImage> {
       _resolvedUrl!,
       width: widget.width,
       height: widget.height,
+      fit: widget.fit,
       headers: widget.client != null
           ? mediaAuthHeaders(widget.client!, _resolvedUrl!)
           : null,
