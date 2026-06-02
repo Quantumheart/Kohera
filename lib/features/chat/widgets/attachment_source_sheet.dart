@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
-enum AttachmentSource { gallery, camera, file }
+enum AttachmentSource { gallery, camera, file, gif, sticker }
 
-Future<AttachmentSource?> showAttachmentSourceSheet(BuildContext context) {
+Future<AttachmentSource?> showAttachmentSourceSheet(
+  BuildContext context, {
+  bool showGif = false,
+  bool showSticker = false,
+}) {
   return showModalBottomSheet<AttachmentSource>(
     context: context,
     showDragHandle: true,
@@ -26,6 +30,19 @@ Future<AttachmentSource?> showAttachmentSourceSheet(BuildContext context) {
               title: const Text('File'),
               onTap: () => Navigator.pop(sheetContext, AttachmentSource.file),
             ),
+            if (showGif)
+              ListTile(
+                leading: const Icon(Icons.gif_box_outlined),
+                title: const Text('GIF'),
+                onTap: () => Navigator.pop(sheetContext, AttachmentSource.gif),
+              ),
+            if (showSticker)
+              ListTile(
+                leading: const Icon(Icons.emoji_emotions_outlined),
+                title: const Text('Stickers & Emoji'),
+                onTap: () =>
+                    Navigator.pop(sheetContext, AttachmentSource.sticker),
+              ),
             const SizedBox(height: 8),
           ],
         ),

@@ -7,6 +7,7 @@ import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
+import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
 import 'package:kohera/features/chat/widgets/attachment_preview_bar.dart';
@@ -428,8 +429,9 @@ class _ComposeBarState extends State<ComposeBar> {
       child: Row(
         children: [
           _buildAttachButton(cs),
-          if (widget.onGif != null) _buildGifButton(cs),
-          if (widget.onSticker != null) _buildStickerButton(cs),
+          if (!isTouchDevice && widget.onGif != null) _buildGifButton(cs),
+          if (!isTouchDevice && widget.onSticker != null)
+            _buildStickerButton(cs),
           Expanded(
             child: CallbackShortcuts(
               bindings: {
