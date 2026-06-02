@@ -246,10 +246,18 @@ class _ChatScreenState extends State<ChatScreen>
       return;
     }
 
-    final source = await showAttachmentSourceSheet(context);
+    final source = await showAttachmentSourceSheet(
+      context,
+      showGif: _giphyEnabled,
+      showSticker: true,
+    );
     if (source == null || !mounted) return;
 
     switch (source) {
+      case AttachmentSource.gif:
+        await _handleGifPressed();
+      case AttachmentSource.sticker:
+        _toggleStickerPicker();
       case AttachmentSource.file:
         final attachment = await pickFileAsAttachment();
         if (attachment != null && mounted) _addAttachment(attachment);
@@ -323,6 +331,31 @@ class _ChatScreenState extends State<ChatScreen>
   void _scrollToEvent(Event event, {bool closeSearch = true}) {
     if (closeSearch) _closeSearch();
     _messageListKey.currentState?.navigateToEvent(event);
+  }
+
+  // ── GIF ───────────────────────────────────────────────────
+
+  bool get _giphyEnabled =>
+      AppConfig.isInitialized && AppConfig.instance.giphyEnabled;
+
+  Future<void> _handleGifPressed() async {
+    final room =
+        context.read<MatrixService>().client.getRoomById(widget.roomId);
+    if (room == null) return;
+    final gif = await GiphyGet.getGif(
+      context: context,
+      apiKey: AppConfig.instance.giphyApiKey!,
+    );
+    if (gif == null || !mounted) return;
+    final url = gif.images?.downsized?.url ?? gif.images?.original?.url;
+    if (url == null) return;
+    await sendGifFromUrl(
+      scaffold: ScaffoldMessenger.of(context),
+      room: room,
+      url: url,
+      title: gif.title ?? 'giphy',
+      uploadNotifier: _compose.uploadNotifier,
+    );
   }
 
   // ── Sticker picker ────────────────────────────────────────
@@ -522,25 +555,7 @@ class _ChatScreenState extends State<ChatScreen>
           onAttach: _handleAttachPressed,
           onSticker: _toggleStickerPicker,
           stickerPackService: context.read<StickerPackService>(),
-          onGif: AppConfig.isInitialized && AppConfig.instance.giphyEnabled
-              ? () async {
-                  final gif = await GiphyGet.getGif(
-                    context: context,
-                    apiKey: AppConfig.instance.giphyApiKey!,
-                  );
-                  if (gif == null || !mounted) return;
-                  final url = gif.images?.downsized?.url ??
-                      gif.images?.original?.url;
-                  if (url == null) return;
-                  await sendGifFromUrl(
-                    scaffold: ScaffoldMessenger.of(context),
-                    room: room,
-                    url: url,
-                    title: gif.title ?? 'giphy',
-                    uploadNotifier: _compose.uploadNotifier,
-                  );
-                }
-              : null,
+          onGif: _giphyEnabled ? _handleGifPressed : null,
           onPasteImage: _isDesktop ? _handlePasteImage : null,
           uploadNotifier: _compose.uploadNotifier,
           room: room,
