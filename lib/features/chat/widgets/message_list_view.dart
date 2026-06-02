@@ -9,7 +9,7 @@ import 'package:kohera/features/chat/widgets/call_event_tile.dart';
 import 'package:kohera/features/chat/widgets/chat_message_item.dart';
 import 'package:kohera/features/chat/widgets/read_receipts.dart';
 import 'package:kohera/features/chat/widgets/state_event_tile.dart';
-import 'package:kohera/features/chat/widgets/sticker_bubble.dart';
+import 'package:kohera/features/chat/widgets/sticker_message_item.dart';
 import 'package:kohera/features/chat/widgets/unread_divider.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -542,9 +542,19 @@ class MessageListViewState extends State<MessageListView> {
           } else if (_isStateEvent(event)) {
             tile = StateEventTile(event: event);
           } else if (event.type == EventTypes.Sticker) {
-            tile = StickerBubble(
+            final isMe = event.senderId == widget.matrix.client.userID;
+            tile = StickerMessageItem(
+              key: ValueKey(event.eventId),
               event: event,
-              isMe: event.senderId == widget.matrix.client.userID,
+              isMe: isMe,
+              isMobile: isMobile,
+              timeline: _timeline,
+              client: widget.matrix.client,
+              onToggleReaction: widget.onToggleReaction,
+              onReply: widget.onReply,
+              onPin: widget.onPin,
+              highlightedEventId: widget.highlightedEventId,
+              isPinned: event.room.pinnedEventIds.contains(event.eventId),
             );
           } else {
             final prevSender =
