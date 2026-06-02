@@ -11,11 +11,15 @@ import 'package:matrix/matrix.dart';
 /// Displays aggregated emoji reaction chips below a message bubble.
 ///
 /// Each chip shows the emoji and its count. Chips where the current user
-/// has reacted are highlighted. Tapping toggles the reaction; long-pressing
-/// opens a bottom sheet listing who reacted.
-class ReactionChips extends StatefulWidget {
+/// has reacted are highlighted. Tapping a chip opens a sheet listing who
+/// reacted and allows toggling the current user's reaction.
+class ReactionChips extends StatelessWidget {
   const ReactionChips({
-    required this.event, required this.timeline, required this.client, required this.isMe, super.key,
+    required this.event,
+    required this.timeline,
+    required this.client,
+    required this.isMe,
+    super.key,
     this.onToggle,
   });
 
@@ -26,41 +30,11 @@ class ReactionChips extends StatefulWidget {
   final void Function(String emoji)? onToggle;
 
   @override
-  State<ReactionChips> createState() => _ReactionChipsState();
-}
-
-class _ReactionChipsState extends State<ReactionChips> {
-  /// Tracks emojis currently being toggled to prevent duplicate requests.
-  final _pendingToggles = <String>{};
-  final _debounceTimers = <String, Timer>{};
-
-  @override
-  void dispose() {
-    for (final timer in _debounceTimers.values) {
-      timer.cancel();
-    }
-    super.dispose();
-  }
-
-  void _handleToggle(String emoji) {
-    if (_pendingToggles.contains(emoji)) return;
-    _pendingToggles.add(emoji);
-    widget.onToggle?.call(emoji);
-    // Allow the same emoji to be toggled again after a short delay.
-    _debounceTimers[emoji]?.cancel();
-    _debounceTimers[emoji] = Timer(const Duration(milliseconds: 600), () {
-      _pendingToggles.remove(emoji);
-      _debounceTimers.remove(emoji);
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     final reactionEvents =
-        widget.event.aggregatedEvents(widget.timeline, RelationshipTypes.reaction);
+        event.aggregatedEvents(timeline, RelationshipTypes.reaction);
     if (reactionEvents.isEmpty) return const SizedBox.shrink();
 
-    // Group by emoji key.
     final grouped = <String, List<Event>>{};
     for (final re in reactionEvents) {
       final key = re.content
@@ -73,10 +47,10 @@ class _ReactionChipsState extends State<ReactionChips> {
     if (grouped.isEmpty) return const SizedBox.shrink();
 
     final cs = Theme.of(context).colorScheme;
-    final myId = widget.client.userID;
+    final myId = client.userID;
 
     return Wrap(
-      alignment: widget.isMe ? WrapAlignment.end : WrapAlignment.start,
+      alignment: isMe ? WrapAlignment.end : WrapAlignment.start,
       spacing: 4,
       runSpacing: 4,
       children: grouped.entries.map((entry) {
@@ -85,16 +59,16 @@ class _ReactionChipsState extends State<ReactionChips> {
         final isMine = events.any((e) => e.senderId == myId);
 
         return GestureDetector(
-          onTap: () => _handleToggle(emoji),
-          onLongPress: () => showReactorsSheet(
+          onTap: () => showReactorsSheet(
             context,
-            emoji,
-            events,
-            widget.event.room,
+            emoji: emoji,
+            reactionEvents: events,
+            room: event.room,
+            client: client,
+            onToggle: onToggle,
           ),
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: isMine
                   ? cs.primaryContainer
@@ -127,9 +101,7 @@ class _ReactionChipsState extends State<ReactionChips> {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
-                      color: isMine
-                          ? cs.primary
-                          : cs.onSurfaceVariant,
+                      color: isMine ? cs.primary : cs.onSurfaceVariant,
                     ),
                   ),
                 ],
@@ -144,16 +116,22 @@ class _ReactionChipsState extends State<ReactionChips> {
 
 // ── Reactors bottom sheet ────────────────────────────────────
 
-/// Shows a modal bottom sheet listing all users who sent a given reaction.
+/// Shows a modal bottom sheet listing all users who reacted with [emoji],
+/// with a button to add or remove the current user's own reaction.
 void showReactorsSheet(
-  BuildContext context,
-  String emoji,
-  List<Event> reactionEvents,
-  Room room,
-) {
+  BuildContext context, {
+  required String emoji,
+  required List<Event> reactionEvents,
+  required Room room,
+  required Client client,
+  void Function(String emoji)? onToggle,
+}) {
   unawaited(showModalBottomSheet(
     context: context,
-    builder: (context) {
+    builder: (ctx) {
+      final myId = client.userID;
+      final isMine = reactionEvents.any((e) => e.senderId == myId);
+
       return SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -162,7 +140,7 @@ void showReactorsSheet(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Text(
                 '$emoji ${reactionEvents.length}',
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(ctx).textTheme.titleMedium,
               ),
             ),
             const Divider(height: 1),
@@ -170,12 +148,11 @@ void showReactorsSheet(
               child: ListView.builder(
                 shrinkWrap: true,
                 itemCount: reactionEvents.length,
-                itemBuilder: (context, i) {
+                itemBuilder: (ctx, i) {
                   final re = reactionEvents[i];
                   final user =
                       room.unsafeGetUserFromMemoryOrFallback(re.senderId);
                   final name = user.displayName ?? re.senderId;
-
                   return ListTile(
                     leading: UserAvatar(
                       client: room.client,
@@ -189,6 +166,22 @@ void showReactorsSheet(
                 },
               ),
             ),
+            if (onToggle != null) ...[
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.tonal(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      onToggle(emoji);
+                    },
+                    child: Text(isMine ? 'Remove your $emoji' : 'React with $emoji'),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       );
