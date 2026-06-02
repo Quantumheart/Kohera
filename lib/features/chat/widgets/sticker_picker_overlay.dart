@@ -67,18 +67,7 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return SizedBox(
-      height: 300,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: cs.surface,
-          border: Border(
-            top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
-          ),
-        ),
-        child: widget.packs.isEmpty ? _buildEmptyState(cs) : _buildPicker(cs),
-      ),
-    );
+    return widget.packs.isEmpty ? _buildEmptyState(cs) : _buildPicker(cs);
   }
 
   Widget _buildEmptyState(ColorScheme cs) {
@@ -199,8 +188,9 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
           SliverToBoxAdapter(child: _sectionHeader('Stickers')),
           SliverGrid.builder(
             itemCount: pack.stickers.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 80,
+              mainAxisExtent: 80,
               mainAxisSpacing: 4,
               crossAxisSpacing: 4,
             ),
@@ -211,8 +201,9 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
           SliverToBoxAdapter(child: _sectionHeader('Emoji')),
           SliverGrid.builder(
             itemCount: pack.emoji.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 56,
+              mainAxisExtent: 56,
               mainAxisSpacing: 4,
               crossAxisSpacing: 4,
             ),
@@ -250,8 +241,9 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
           SliverToBoxAdapter(child: _sectionHeader('Stickers')),
           SliverGrid.builder(
             itemCount: matchingStickers.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 80,
+              mainAxisExtent: 80,
               mainAxisSpacing: 4,
               crossAxisSpacing: 4,
             ),
@@ -262,8 +254,9 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
           SliverToBoxAdapter(child: _sectionHeader('Emoji')),
           SliverGrid.builder(
             itemCount: matchingEmoji.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 56,
+              mainAxisExtent: 56,
               mainAxisSpacing: 4,
               crossAxisSpacing: 4,
             ),
@@ -298,6 +291,7 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
             client: widget.client,
             width: 64,
             height: 64,
+            fit: BoxFit.contain,
             fallbackText: sticker.altText,
             fallbackStyle: Theme.of(context).textTheme.bodySmall,
           ),
@@ -318,6 +312,7 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
             client: widget.client,
             width: 40,
             height: 40,
+            fit: BoxFit.contain,
             fallbackText: emoji.altText,
             fallbackStyle: Theme.of(context).textTheme.bodySmall,
           ),
