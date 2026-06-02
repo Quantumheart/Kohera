@@ -94,8 +94,6 @@ class _ChatScreenState extends State<ChatScreen>
   String? _activeThreadEventId;
   bool _showThreadList = false;
 
-  // ── Sticker picker ─────────────────────────────────────
-  bool _showStickerPicker = false;
 
   // ── Web paste ───────────────────────────────────────────
   StreamSubscription<ClipboardImageData>? _webPasteSub;
@@ -330,11 +328,39 @@ class _ChatScreenState extends State<ChatScreen>
   // ── Sticker picker ────────────────────────────────────────
 
   void _toggleStickerPicker() {
-    setState(() => _showStickerPicker = !_showStickerPicker);
+    final matrix = context.read<MatrixService>();
+    final stickerService = context.read<StickerPackService>();
+    final room = matrix.client.getRoomById(widget.roomId);
+    if (room == null) return;
+    final sheetHeight = MediaQuery.sizeOf(context).height * 0.45;
+    unawaited(showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (sheetCtx) => SizedBox(
+        height: sheetHeight,
+        child: StickerPickerOverlay(
+          packs: stickerService.packsForRoom(room),
+          client: matrix.client,
+          onStickerTapped: (sticker) {
+            Navigator.of(sheetCtx).pop();
+            unawaited(_handleStickerSelected(sticker));
+          },
+          onEmojiTapped: (emoji) {
+            Navigator.of(sheetCtx).pop();
+            _handleEmojiSelected(emoji);
+          },
+          onManagePacks: () {
+            Navigator.of(sheetCtx).pop();
+            context.goNamed(Routes.settingsStickerPacks);
+          },
+        ),
+      ),
+    ),);
   }
 
   Future<void> _handleStickerSelected(PackImage sticker) async {
-    setState(() => _showStickerPicker = false);
     final room =
         context.read<MatrixService>().client.getRoomById(widget.roomId);
     if (room == null) return;
@@ -361,7 +387,6 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _handleEmojiSelected(PackImage emoji) {
-    setState(() => _showStickerPicker = false);
     final text = _msgCtrl.text;
     final sel = _msgCtrl.selection;
     final pos = sel.isValid ? sel.baseOffset : text.length;
@@ -485,35 +510,6 @@ class _ChatScreenState extends State<ChatScreen>
           myUserId: matrix.client.userID,
           syncStream: matrix.client.onSync.stream,
         ),
-        if (_showStickerPicker)
-          SizedBox(
-            height: 300,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                border: Border(
-                  top: BorderSide(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .outlineVariant
-                        .withValues(alpha: 0.3),
-                  ),
-                ),
-              ),
-              child: Consumer<StickerPackService>(
-                builder: (context, stickerService, _) => StickerPickerOverlay(
-                  packs: stickerService.packsForRoom(room),
-                  client: matrix.client,
-                  onStickerTapped: _handleStickerSelected,
-                  onEmojiTapped: _handleEmojiSelected,
-                  onManagePacks: () {
-                    setState(() => _showStickerPicker = false);
-                    context.goNamed(Routes.settingsStickerPacks);
-                  },
-                ),
-              ),
-            ),
-          ),
         ComposeBarSection(
           replyNotifier: _compose.replyNotifier,
           editNotifier: _compose.editNotifier,
