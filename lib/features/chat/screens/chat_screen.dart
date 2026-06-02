@@ -332,15 +332,16 @@ class _ChatScreenState extends State<ChatScreen>
     final stickerService = context.read<StickerPackService>();
     final room = matrix.client.getRoomById(widget.roomId);
     if (room == null) return;
-    final sheetHeight = MediaQuery.sizeOf(context).height * 0.45;
     unawaited(showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
       useSafeArea: true,
-      builder: (sheetCtx) => SizedBox(
-        height: sheetHeight,
-        child: StickerPickerOverlay(
+      builder: (sheetCtx) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.7,
+        minChildSize: 0.7,
+        maxChildSize: 0.9,
+        builder: (_, __) => StickerPickerOverlay(
           packs: stickerService.packsForRoom(room),
           client: matrix.client,
           onStickerTapped: (sticker) {
