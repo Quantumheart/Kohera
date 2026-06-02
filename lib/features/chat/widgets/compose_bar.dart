@@ -208,6 +208,10 @@ class _ComposeBarState extends State<ComposeBar> {
     final hasAttachments = widget.pendingAttachments.isNotEmpty;
     if (hasText || hasAttachments) {
       widget.typingController?.stop();
+      setState(() {
+        _previewUrl = null;
+        _dismissedUrl = null;
+      });
       widget.onSend();
       _focusNode.requestFocus();
     }
