@@ -22,6 +22,8 @@ void main() {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.database).thenReturn(_FakeDatabase());
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onPresenceChanged)
+        .thenReturn(CachedStreamController<CachedPresence>());
     service = MatrixService(
       client: mockClient,
       storage: mockStorage,

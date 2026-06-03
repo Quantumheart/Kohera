@@ -103,6 +103,8 @@ void main() {
     when(mockClient.userID).thenReturn(_myUserId);
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.onSync).thenReturn(syncController);
+    when(mockClient.onPresenceChanged)
+        .thenReturn(CachedStreamController<CachedPresence>());
     when(mockClient.encryption).thenReturn(null);
     when(mockClient.homeserver).thenReturn(Uri.parse('https://matrix.org'));
     when(mockClient.fetchOwnProfile()).thenAnswer(

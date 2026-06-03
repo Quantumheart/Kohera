@@ -8,6 +8,7 @@ import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/outbox_connectivity.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
+import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
@@ -52,6 +53,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       storage: _storage,
     );
     selection = SelectionService(client: _client);
+    presence = PresenceService(client: _client);
     spaceAccess = SpaceAccessService(client: _client);
     sync = SyncService(
       client: _client,
@@ -111,6 +113,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   late final UiaService uia;
   late final ChatBackupService chatBackup;
   late final SelectionService selection;
+  late final PresenceService presence;
   late final SpaceAccessService spaceAccess;
   late final SyncService sync;
   late final AuthService auth;
@@ -143,6 +146,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     outbox.dispose();
     uia.dispose();
     selection.dispose();
+    presence.dispose();
     chatBackup.dispose();
     sync.dispose();
     stickerPacks.dispose();
@@ -155,10 +159,13 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     switch (state) {
       case AppLifecycleState.resumed:
         _startForegroundSync();
-      case AppLifecycleState.inactive:
+        presence.setOnline();
       case AppLifecycleState.paused:
-      case AppLifecycleState.detached:
       case AppLifecycleState.hidden:
+        presence.setAway();
+      case AppLifecycleState.detached:
+        presence.setOffline();
+      case AppLifecycleState.inactive:
         break;
     }
   }
@@ -189,6 +196,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       uia.setCachedPassword(password);
       try {
         await sync.startSync(timeout: const Duration(minutes: 5));
+        presence.setOnline();
         await auth.saveSessionBackup();
       } catch (e) {
         debugPrint('[Kohera] Post-login sync error: $e');
@@ -210,6 +218,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     if (success) {
       try {
         await sync.startSync(timeout: const Duration(minutes: 5));
+        presence.setOnline();
         await auth.saveSessionBackup();
       } catch (e) {
         debugPrint('[Kohera] Post-login sync error: $e');
@@ -331,10 +340,6 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   void _startForegroundSync() {
     if (_foregroundSyncStarted || _disposed) return;
     _foregroundSyncStarted = true;
-    if (_lifecycleObserverRegistered) {
-      WidgetsBinding.instance.removeObserver(this);
-      _lifecycleObserverRegistered = false;
-    }
     unawaited(
       sync.startSync().catchError((Object e) {
         if (e is! TimeoutException) {
@@ -342,6 +347,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         }
       }),
     );
+    presence.setOnline();
   }
 
   // ── Private: Session Keys ──────────────────────────────────────

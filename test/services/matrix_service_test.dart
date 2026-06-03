@@ -51,6 +51,8 @@ void main() {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.onSync)
         .thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onPresenceChanged)
+        .thenReturn(CachedStreamController<CachedPresence>());
     when(mockClient.database).thenReturn(_FakeDatabase());
     service = MatrixService(
       client: mockClient,
@@ -1555,10 +1557,30 @@ void main() {
       expect(
         notifyCount,
         0,
-        reason: 'observer should be unregistered after first foreground sync; '
-            'subsequent transitions must not re-trigger startSync',
+        reason: 'foreground sync is idempotent; subsequent lifecycle '
+            'transitions must not re-trigger startSync',
       );
       expect(service.sync.syncing, isTrue);
+    });
+
+    test('publishes presence across lifecycle transitions', () async {
+      WidgetsBinding.instance
+          .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await service.activateSessionForTest();
+      verify(mockClient.syncPresence = PresenceType.online)
+          .called(greaterThanOrEqualTo(1));
+
+      WidgetsBinding.instance
+          .handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      verify(mockClient.syncPresence = PresenceType.unavailable).called(1);
+
+      WidgetsBinding.instance
+          .handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      verify(mockClient.syncPresence = PresenceType.unavailable).called(1);
+
+      WidgetsBinding.instance
+          .handleAppLifecycleStateChanged(AppLifecycleState.detached);
+      verify(mockClient.syncPresence = PresenceType.offline).called(1);
     });
   });
 }
