@@ -36,6 +36,8 @@ class _TestServiceFactory extends MatrixServiceFactory {
     when(mockClient.userID).thenReturn('@$clientName:example.com');
     when(mockClient.dispose()).thenAnswer((_) async {});
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onPresenceChanged)
+        .thenReturn(CachedStreamController<CachedPresence>());
     final s = MatrixService(
       client: mockClient,
       storage: storage ?? const FlutterSecureStorage(),
@@ -167,6 +169,8 @@ void main() {
       final newMockClient = MockClient();
       when(newMockClient.rooms).thenReturn([]);
       when(newMockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+      when(newMockClient.onPresenceChanged)
+          .thenReturn(CachedStreamController<CachedPresence>());
       final newService = MatrixService(
         client: newMockClient,
         storage: mockStorage,
@@ -344,6 +348,8 @@ class _MixedLoginFactory extends MatrixServiceFactory {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.userID).thenReturn('@$clientName:example.com');
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onPresenceChanged)
+        .thenReturn(CachedStreamController<CachedPresence>());
     final s = MatrixService(
       client: mockClient,
       storage: storage ?? _storage,
@@ -377,6 +383,8 @@ class _CountingFactory extends MatrixServiceFactory {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.dispose()).thenAnswer((_) async {});
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onPresenceChanged)
+        .thenReturn(CachedStreamController<CachedPresence>());
     final s = MatrixService(
       client: mockClient,
       storage: storage ?? _storage,
