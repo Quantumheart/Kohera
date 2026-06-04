@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cached_network_image_platform_interface/cached_network_image_platform_interface.dart';
 import 'package:flutter/material.dart';
+import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/utils/media_auth.dart';
 import 'package:matrix/matrix.dart';
 
@@ -10,18 +11,23 @@ import 'package:matrix/matrix.dart';
 ///
 /// Resolves the mxc:// [avatarUrl] asynchronously via [getThumbnailUri]
 /// and passes auth headers for authenticated media endpoints.
+///
+/// When [presence] and [userId] are both supplied, an opt-in status dot is
+/// overlaid on the bottom-right. Unknown presence renders no dot.
 class UserAvatar extends StatefulWidget {
   const UserAvatar({
     required this.client, super.key,
     this.avatarUrl,
     this.userId,
     this.size = 44,
+    this.presence,
   });
 
   final Client client;
   final Uri? avatarUrl;
   final String? userId;
   final double size;
+  final PresenceService? presence;
 
   @override
   State<UserAvatar> createState() => _UserAvatarState();
@@ -66,7 +72,7 @@ class _UserAvatarState extends State<UserAvatar> {
     final initial = _userInitial(widget.userId);
     final bgColor = _colorFromString(widget.userId ?? '', cs);
 
-    return ClipOval(
+    final avatar = ClipOval(
       child: SizedBox(
         width: widget.size,
         height: widget.size,
@@ -94,6 +100,30 @@ class _UserAvatarState extends State<UserAvatar> {
               ),
       ),
     );
+
+    final presence = widget.presence;
+    final userId = widget.userId;
+    if (presence == null || userId == null) return avatar;
+
+    return SizedBox(
+      width: widget.size,
+      height: widget.size,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          avatar,
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: _PresenceDot(
+              presence: presence,
+              userId: userId,
+              size: widget.size,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   static String _userInitial(String? userId) {
@@ -116,6 +146,53 @@ class _UserAvatarState extends State<UserAvatar> {
     ];
     return palette[hash % palette.length];
   }
+}
+
+/// Status dot overlaid on [UserAvatar]. Rebuilds independently of the avatar
+/// when presence changes; renders nothing for unknown presence.
+class _PresenceDot extends StatelessWidget {
+  const _PresenceDot({
+    required this.presence,
+    required this.userId,
+    required this.size,
+  });
+
+  final PresenceService presence;
+  final String userId;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return ListenableBuilder(
+      listenable: presence,
+      builder: (context, _) {
+        final cached = presence.presenceFor(userId);
+        if (cached == null) return const SizedBox.shrink();
+        final (color, label) = _styleFor(cached.presence, cs);
+        final diameter = size * 0.3;
+        return Semantics(
+          label: label,
+          child: Container(
+            width: diameter,
+            height: diameter,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: Border.all(color: cs.surface, width: size * 0.05),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  static (Color, String) _styleFor(PresenceType type, ColorScheme cs) =>
+      switch (type) {
+        PresenceType.online => (cs.primary, 'Online'),
+        PresenceType.unavailable => (cs.tertiary, 'Away'),
+        PresenceType.offline => (cs.outline, 'Offline'),
+      };
 }
 
 class _Fallback extends StatelessWidget {
