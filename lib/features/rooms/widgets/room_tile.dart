@@ -18,6 +18,7 @@ import 'package:kohera/features/calling/widgets/call_state_views.dart'
 import 'package:kohera/features/chat/widgets/typing_indicator.dart' show TypingIndicator;
 import 'package:kohera/features/rooms/widgets/room_context_menu.dart';
 import 'package:kohera/features/spaces/widgets/space_reparent_controller.dart';
+import 'package:kohera/shared/widgets/presence_dot.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
@@ -94,6 +95,7 @@ class _RoomTileState extends State<RoomTile> {
     final unread = effectiveUnreadCount(room, prefs);
     final lastEvent = room.lastEvent;
     final hasMenu = widget.hasContextMenu;
+    final dmUserId = room.isDirectChat ? room.directChatMatrixID : null;
 
     final isUserInThisCall = callService.activeCallRoomId == room.id &&
         callService.callState == KoheraCallState.connected;
@@ -158,7 +160,14 @@ class _RoomTileState extends State<RoomTile> {
                 Row(
                   children: [
                     // Avatar
-                    RoomAvatarWidget(room: room, size: 48),
+                    PresenceOverlay(
+                      size: 48,
+                      presence: dmUserId != null
+                          ? context.read<MatrixService>().presence
+                          : null,
+                      userId: dmUserId,
+                      child: RoomAvatarWidget(room: room, size: 48),
+                    ),
 
                     const SizedBox(width: 12),
 

@@ -5,8 +5,11 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/features/rooms/widgets/room_tile.dart';
+import 'package:kohera/shared/widgets/presence_dot.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
@@ -592,6 +595,64 @@ void main() {
       final tooltips = tester.widgetList<Tooltip>(find.byType(Tooltip))
           .where((t) => t.message == 'User 9');
       expect(tooltips.length, 1);
+    });
+  });
+
+  // ── Presence dot (DM only) ─────────────────────────────────
+
+  group('Presence dot', () {
+    late CachedStreamController<CachedPresence> presenceController;
+
+    void enablePresence() {
+      presenceController = CachedStreamController<CachedPresence>();
+      when(mockClient.onPresenceChanged).thenReturn(presenceController);
+      when(mockMatrix.presence)
+          .thenReturn(PresenceService(client: mockClient));
+    }
+
+    Finder dot() => find.descendant(
+          of: find.byType(PresenceDot),
+          matching: find.byType(Container),
+        );
+
+    testWidgets('shows counterpart dot for a direct chat', (tester) async {
+      enablePresence();
+      when(mockRoom.isDirectChat).thenReturn(true);
+      when(mockRoom.directChatMatrixID).thenReturn('@bob:example.com');
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      presenceController.add(
+        CachedPresence(PresenceType.online, null, null, true, '@bob:example.com'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PresenceDot), findsOneWidget);
+      expect(dot(), findsOneWidget);
+    });
+
+    testWidgets('shows no presence overlay for a group room', (tester) async {
+      enablePresence();
+      when(mockRoom.isDirectChat).thenReturn(false);
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PresenceDot), findsNothing);
+    });
+
+    testWidgets('direct chat with unknown presence shows no dot',
+        (tester) async {
+      enablePresence();
+      when(mockRoom.isDirectChat).thenReturn(true);
+      when(mockRoom.directChatMatrixID).thenReturn('@bob:example.com');
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PresenceDot), findsOneWidget);
+      expect(dot(), findsNothing);
     });
   });
 }
