@@ -17,6 +17,7 @@ abstract class Routes {
   static const settingsRecoveryKey = 'settings-recovery-key';
   static const settingsStickerPacks = 'settings-sticker-packs';
   static const settingsEmojiGgBrowse = 'settings-emoji-gg-browse';
+  static const settingsDefaultEmoji = 'settings-default-emoji';
   static const inbox = 'inbox';
   static const spaceDetails = 'space-details';
   static const call = 'call';

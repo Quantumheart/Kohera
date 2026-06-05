@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/models/emoji_gg_pack.dart';
+import 'package:kohera/core/models/openmoji_pack.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/core/services/emoji_gg_service.dart';
+import 'package:kohera/core/services/openmoji_service.dart';
 import 'package:matrix/matrix.dart';
 
 class ImportProgress {
@@ -70,7 +72,8 @@ class StickerPackService extends ChangeNotifier {
     return packs;
   }
 
-  /// Packs imported from emoji.gg, stored in account data.
+  /// Packs imported from emoji.gg or OpenMoji, stored in account data.
+  /// A pack with `usage: 'emoticon'` is exposed as emoji; otherwise stickers.
   List<StickerPack> get importedPacks {
     final content = _client.accountData[_kImportedPacksType]?.content;
     if (content == null) return [];
@@ -86,7 +89,9 @@ class StickerPackService extends ChangeNotifier {
 
       if (id == null || displayName == null || rawImages == null) continue;
 
+      final asEmoji = (raw['usage'] as String?) == 'emoticon';
       final stickers = <PackImage>[];
+      final emoji = <PackImage>[];
 
       for (final entry in rawImages.entries) {
         final imageData = entry.value as Map<String, Object?>?;
@@ -97,22 +102,23 @@ class StickerPackService extends ChangeNotifier {
         final url = Uri.tryParse(urlStr);
         if (url == null) continue;
 
-        stickers.add(PackImage(
+        final image = PackImage(
           shortcode: entry.key,
           url: url,
           body: imageData['body'] as String?,
-          isSticker: true,
-          isEmoji: false,
-        ),);
+          isSticker: !asEmoji,
+          isEmoji: asEmoji,
+        );
+        (asEmoji ? emoji : stickers).add(image);
       }
 
-      if (stickers.isEmpty) continue;
+      if (stickers.isEmpty && emoji.isEmpty) continue;
 
       packs.add(StickerPack(
         id: id,
         displayName: displayName,
         stickers: stickers,
-        emoji: const [],
+        emoji: emoji,
       ),);
     }
 
@@ -120,13 +126,19 @@ class StickerPackService extends ChangeNotifier {
   }
 
   /// Slugs of emoji.gg packs already imported by the user.
-  Set<String> get importedEmojiGgSlugs {
+  Set<String> get importedEmojiGgSlugs => _importedSlugsForSource('emojigg');
+
+  /// Ids of OpenMoji default packs already imported by the user.
+  Set<String> get importedOpenMojiSlugs => _importedSlugsForSource('openmoji');
+
+  Set<String> _importedSlugsForSource(String source) {
     final content = _client.accountData[_kImportedPacksType]?.content;
     if (content == null) return {};
 
     final rawPacks =
         (content['packs'] as List?)?.cast<Map<String, Object?>>() ?? [];
     return rawPacks
+        .where((p) => p['source'] == source)
         .map((p) => p['source_slug'] as String?)
         .whereType<String>()
         .toSet();
@@ -227,6 +239,48 @@ class StickerPackService extends ChangeNotifier {
     }
   }
 
+  // ── OpenMoji default packs ────────────────────────────────────
+
+  /// Downloads each emoji from the OpenMoji [pack] via [openMojiService],
+  /// uploads them to the user's homeserver, and saves the pack to account
+  /// data as an emoji (emoticon) pack.
+  ///
+  /// Yields [ImportProgress] after each image. The final event has
+  /// [ImportProgress.isComplete] == true.
+  Stream<ImportProgress> importOpenMojiPack(
+    OpenMojiPack pack,
+    OpenMojiService openMojiService,
+  ) async* {
+    final emojis = pack.emojis;
+    final total = emojis.length;
+    final images = <String, Object?>{};
+    var done = 0;
+
+    for (final emoji in emojis) {
+      try {
+        final bytes =
+            await openMojiService.downloadImage(openMojiService.imageUrl(emoji));
+        final mxcUri = await _client.uploadContent(
+          bytes,
+          filename: '${emoji.hexcode}.png',
+          contentType: 'image/png',
+        );
+        images[emoji.shortcode] = {
+          'url': mxcUri.toString(),
+          'body': emoji.annotation,
+        };
+      } catch (e) {
+        debugPrint('[Kohera] Failed to import OpenMoji ${emoji.hexcode}: $e');
+      }
+      done++;
+      yield ImportProgress(done: done, total: total);
+    }
+
+    if (images.isNotEmpty) {
+      await _writeImportedOpenMojiPack(pack, images);
+    }
+  }
+
   Future<void> removeImportedPack(String packId) async {
     final content =
         _client.accountData[_kImportedPacksType]?.content ?? {};
@@ -281,6 +335,33 @@ class StickerPackService extends ChangeNotifier {
         'source': 'emojigg',
         'source_id': pack.id,
         'source_slug': pack.slug,
+        'images': images,
+      });
+
+    await _client.setAccountData(
+      _client.userID!,
+      _kImportedPacksType,
+      {'packs': updated},
+    );
+  }
+
+  Future<void> _writeImportedOpenMojiPack(
+    OpenMojiPack pack,
+    Map<String, Object?> images,
+  ) async {
+    final content =
+        _client.accountData[_kImportedPacksType]?.content ?? {};
+    final rawPacks =
+        (content['packs'] as List?)?.cast<Map<String, Object?>>() ?? [];
+
+    final id = 'openmoji_${pack.id}';
+    final updated = rawPacks.where((p) => p['id'] != id).toList()
+      ..add({
+        'id': id,
+        'display_name': pack.name,
+        'source': 'openmoji',
+        'source_slug': pack.id,
+        'usage': 'emoticon',
         'images': images,
       });
 

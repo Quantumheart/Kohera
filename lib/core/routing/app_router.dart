@@ -22,6 +22,7 @@ import 'package:kohera/features/rooms/screens/room_permissions_screen.dart';
 import 'package:kohera/features/rooms/widgets/room_details_panel.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/settings/screens/appearance_screen.dart';
+import 'package:kohera/features/settings/screens/default_emoji_packs_screen.dart';
 import 'package:kohera/features/settings/screens/devices_screen.dart';
 import 'package:kohera/features/settings/screens/emoji_gg_browse_screen.dart';
 import 'package:kohera/features/settings/screens/notification_settings_screen.dart';
@@ -325,6 +326,12 @@ GoRouter buildRouter(ClientManager manager) {
                     name: Routes.settingsEmojiGgBrowse,
                     builder: (context, state) =>
                         const EmojiGgBrowseScreen(),
+                  ),
+                  GoRoute(
+                    path: 'default-emoji',
+                    name: Routes.settingsDefaultEmoji,
+                    builder: (context, state) =>
+                        const DefaultEmojiPacksScreen(),
                   ),
                 ],
               ),

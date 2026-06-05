@@ -36,12 +36,17 @@ class StickerPacksScreen extends StatelessWidget {
               .where((p) => p.id == _kPersonalPackId)
               .firstOrNull;
           final importedPacks = accountPacks
-              .where((p) => p.id.startsWith('emojigg_'))
+              .where(
+                (p) =>
+                    p.id.startsWith('emojigg_') || p.id.startsWith('openmoji_'),
+              )
               .toList();
           final subscribedPacks = accountPacks
               .where(
                 (p) =>
-                    p.id != _kPersonalPackId && !p.id.startsWith('emojigg_'),
+                    p.id != _kPersonalPackId &&
+                    !p.id.startsWith('emojigg_') &&
+                    !p.id.startsWith('openmoji_'),
               )
               .toList();
 
@@ -150,15 +155,30 @@ class StickerPacksScreen extends StatelessWidget {
               // ── Browse online ─────────────────────────────────
               const _SectionLabel(label: 'BROWSE ONLINE'),
               Card(
-                child: ListTile(
-                  leading: const Icon(Icons.explore_outlined),
-                  title: const Text('Browse emoji.gg packs'),
-                  subtitle: const Text(
-                    'Import sticker packs from the emoji.gg library',
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () =>
-                      context.pushOrGo(Routes.settingsEmojiGgBrowse),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.emoji_emotions_outlined),
+                      title: const Text('Default emoji packs'),
+                      subtitle: const Text(
+                        'Add curated OpenMoji emoji packs',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () =>
+                          context.pushOrGo(Routes.settingsDefaultEmoji),
+                    ),
+                    const Divider(height: 1, indent: 56),
+                    ListTile(
+                      leading: const Icon(Icons.explore_outlined),
+                      title: const Text('Browse emoji.gg packs'),
+                      subtitle: const Text(
+                        'Import sticker packs from the emoji.gg library',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () =>
+                          context.pushOrGo(Routes.settingsEmojiGgBrowse),
+                    ),
+                  ],
                 ),
               ),
 

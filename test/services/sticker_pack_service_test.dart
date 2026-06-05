@@ -1,5 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart' as http_testing;
+import 'package:kohera/core/models/openmoji_pack.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
+import 'package:kohera/core/services/openmoji_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -383,6 +387,174 @@ void main() {
           {'room_ids': ordered},
         ),
       ).called(1);
+    });
+  });
+
+  // ── OpenMoji default packs ──────────────────────────────────
+
+  group('importOpenMojiPack', () {
+    const testPack = OpenMojiPack(
+      id: 'smileys',
+      name: 'OpenMoji Smileys',
+      description: 'd',
+      emojis: [
+        OpenMojiEmoji(
+          hexcode: '1F600',
+          shortcode: 'grinning',
+          annotation: 'grinning face',
+        ),
+        OpenMojiEmoji(
+          hexcode: '1F602',
+          shortcode: 'joy',
+          annotation: 'face with tears of joy',
+        ),
+      ],
+    );
+
+    OpenMojiService fakeService() => OpenMojiService(
+          client: http_testing.MockClient(
+            (_) async => http.Response.bytes([1, 2, 3], 200),
+          ),
+          catalog: const [testPack],
+        );
+
+    setUp(() {
+      when(mockClient.userID).thenReturn('@user:example.com');
+      when(
+        mockClient.uploadContent(
+          any,
+          filename: anyNamed('filename'),
+          contentType: anyNamed('contentType'),
+        ),
+      ).thenAnswer((_) async => Uri.parse('mxc://example.com/abc'));
+    });
+
+    test('uploads each emoji and reports progress', () async {
+      final oms = fakeService();
+      addTearDown(oms.dispose);
+
+      final events =
+          await service.importOpenMojiPack(testPack, oms).toList();
+
+      expect(events, hasLength(2));
+      expect(events.last.isComplete, isTrue);
+      verify(
+        mockClient.uploadContent(
+          any,
+          filename: anyNamed('filename'),
+          contentType: anyNamed('contentType'),
+        ),
+      ).called(2);
+    });
+
+    test('writes an emoticon pack to imported account data', () async {
+      final oms = fakeService();
+      addTearDown(oms.dispose);
+
+      await service.importOpenMojiPack(testPack, oms).drain<void>();
+
+      final captured = verify(
+        mockClient.setAccountData(
+          '@user:example.com',
+          'kohera.imported_packs',
+          captureAny,
+        ),
+      ).captured.single as Map<String, Object?>;
+
+      final packs = (captured['packs'] as List).cast<Map<String, Object?>>();
+      expect(packs, hasLength(1));
+      final stored = packs.single;
+      expect(stored['id'], 'openmoji_smileys');
+      expect(stored['source'], 'openmoji');
+      expect(stored['source_slug'], 'smileys');
+      expect(stored['usage'], 'emoticon');
+      final images = stored['images'] as Map<String, Object?>;
+      expect(images.keys, containsAll(['grinning', 'joy']));
+    });
+
+    test('does not write account data when all downloads fail', () async {
+      final oms = OpenMojiService(
+        client: http_testing.MockClient(
+          (_) async => http.Response('nope', 404),
+        ),
+        catalog: const [testPack],
+      );
+      addTearDown(oms.dispose);
+
+      await service.importOpenMojiPack(testPack, oms).drain<void>();
+
+      verifyNever(mockClient.setAccountData(any, any, any));
+    });
+  });
+
+  group('importedOpenMojiSlugs', () {
+    test('returns only slugs from openmoji-sourced packs', () {
+      when(mockClient.accountData).thenReturn({
+        'kohera.imported_packs': _accountDataEvent('kohera.imported_packs', {
+          'packs': [
+            {
+              'id': 'openmoji_smileys',
+              'source': 'openmoji',
+              'source_slug': 'smileys',
+            },
+            {
+              'id': 'emojigg_42',
+              'source': 'emojigg',
+              'source_slug': 'cool-pack',
+            },
+          ],
+        }),
+      });
+
+      expect(service.importedOpenMojiSlugs, {'smileys'});
+      expect(service.importedEmojiGgSlugs, {'cool-pack'});
+    });
+  });
+
+  group('importedPacks usage', () {
+    Map<String, Object?> importedContent({String? usage}) => {
+          'packs': [
+            {
+              'id': 'openmoji_smileys',
+              'display_name': 'OpenMoji Smileys',
+              'source': 'openmoji',
+              'source_slug': 'smileys',
+              if (usage != null) 'usage': usage,
+              'images': {
+                'grinning': {
+                  'url': 'mxc://example.com/grinning',
+                  'body': 'grinning face',
+                },
+              },
+            },
+          ],
+        };
+
+    test('emoticon usage registers images as emoji', () {
+      when(mockClient.accountData).thenReturn({
+        'kohera.imported_packs': _accountDataEvent(
+          'kohera.imported_packs',
+          importedContent(usage: 'emoticon'),
+        ),
+      });
+
+      final pack = service.importedPacks.single;
+      expect(pack.emoji, hasLength(1));
+      expect(pack.stickers, isEmpty);
+      expect(pack.emoji.first.shortcode, 'grinning');
+    });
+
+    test('absent usage defaults to sticker for backward compatibility', () {
+      when(mockClient.accountData).thenReturn({
+        'kohera.imported_packs': _accountDataEvent(
+          'kohera.imported_packs',
+          importedContent(),
+        ),
+      });
+
+      final pack = service.importedPacks.single;
+      expect(pack.stickers, hasLength(1));
+      expect(pack.emoji, isEmpty);
     });
   });
 
