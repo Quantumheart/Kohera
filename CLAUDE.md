@@ -27,6 +27,14 @@ See `agent_docs/architecture.md` for detailed architecture, routing, responsive 
 
 ## Conventions
 
-- **Commits:** `feat:`, `fix:`, `refactor:`, `style:`, `docs:`, `test:`, `chore:`
+- **Commits:** `feat:`, `fix:`, `refactor:`, `style:`, `docs:`, `test:`, `chore:`, `perf:`, `ci:`, `build:`, `revert:`. A commitlint CI check enforces this. In the commit body, avoid lines that start with `Word:` or contain inline `#123` refs — the parser treats them as footer trailers and fails the `footer-leading-blank` rule. Put issue refs only in the trailing footer (`Refs #123`, `Closes #123`) after a blank line.
 - **Logging:** `debugPrint('[Kohera] ...')` prefix for all log messages
 - **No comments** -- code should be self-descriptive. Section markers (`// ── Section Name ──────`) are the exception.
+
+## Issues and pull requests
+
+Always use the repository templates when filing issues or opening pull requests.
+
+- **Issues:** pick the matching template under `.github/ISSUE_TEMPLATE/` — `epic.md` for multi-slice work, `feature_request.md` for a feature/enhancement, `bug_report.md` for defects. Blank issues are disabled. Fill every section; keep the epic's child-issue list in dependency order and give each issue testable acceptance criteria.
+- **Pull requests:** follow `.github/PULL_REQUEST_TEMPLATE.md` — Summary, Changes, Testing, linked issues (`Closes #N` for the issue, `Refs #N` for the epic), and the checklist. When creating a PR via `gh pr create`, pass a body that mirrors that template's sections.
+- **Base branch:** target `master` unless a stacked PR is explicitly requested.
