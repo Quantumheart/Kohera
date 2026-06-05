@@ -33,6 +33,8 @@ Closes #
 
 ## Checklist
 
-- [ ] Follows the conventions in `CLAUDE.md` (logging prefix, no stray comments, commit prefixes)
-- [ ] Targets `master` (not another feature branch, unless this is an explicitly requested stacked PR)
-- [ ] Updated/added tests for the change
+- [ ] Commits use a Conventional Commits subject with an allowed type, and bodies keep issue refs in the footer (no `Word:` lines or inline `#123`)
+- [ ] Logs use the `debugPrint('[Kohera] ...')` prefix
+- [ ] No stray comments added (only `// ── Section ──` markers)
+- [ ] Tests added or updated to cover the change
+- [ ] Targets `master` (not another feature branch, unless an explicitly requested stacked PR)
