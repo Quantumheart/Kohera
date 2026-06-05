@@ -29,6 +29,7 @@ class AccountSwitcher extends StatelessWidget {
                   leading: UserAvatar(
                     client: manager.services[i].client,
                     userId: manager.services[i].client.userID,
+                    presence: manager.services[i].presence,
                     size: 36,
                   ),
                   title: Text(

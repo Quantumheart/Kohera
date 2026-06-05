@@ -4,10 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/call_service.dart';
+import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/features/calling/models/incoming_call_info.dart' as model;
 import 'package:kohera/features/calling/services/call_navigator.dart';
 import 'package:kohera/features/chat/widgets/pinned_messages_popup.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
+import 'package:kohera/shared/widgets/presence_dot.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -40,6 +43,9 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
         MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
     final effectiveOnBack =
         onBack ?? (isNarrow ? () => context.popOrGo(Routes.home) : null);
+    final dmUserId = room.isDirectChat ? room.directChatMatrixID : null;
+    final presence =
+        dmUserId != null ? context.read<MatrixService>().presence : null;
 
     return AppBar(
       leading: effectiveOnBack != null
@@ -56,7 +62,12 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
           return Row(
             children: [
               if (showAvatar) ...[
-                RoomAvatarWidget(room: room, size: 34),
+                PresenceOverlay(
+                  size: 34,
+                  presence: presence,
+                  userId: dmUserId,
+                  child: RoomAvatarWidget(room: room, size: 34),
+                ),
                 const SizedBox(width: 12),
               ],
               Expanded(
@@ -69,8 +80,10 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                       overflow: TextOverflow.ellipsis,
                       style: tt.titleMedium,
                     ),
-                    Text(
-                      _memberCountLabel(room),
+                    _HeaderSubtitle(
+                      room: room,
+                      presence: presence,
+                      userId: dmUserId,
                       style: tt.bodyMedium?.copyWith(fontSize: 11),
                     ),
                   ],
@@ -187,12 +200,77 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  static String _memberCountLabel(Room room) {
-    final count = room.summary.mJoinedMemberCount ?? 0;
-    if (count == 0) return '';
-    if (count == 1) return '1 member';
-    return '$count members';
+}
+
+/// App bar subtitle: the counterpart's presence for a DM, falling back to the
+/// member count when presence is unknown or the room is not a direct chat.
+class _HeaderSubtitle extends StatelessWidget {
+  const _HeaderSubtitle({
+    required this.room,
+    required this.style,
+    this.presence,
+    this.userId,
+  });
+
+  final Room room;
+  final TextStyle? style;
+  final PresenceService? presence;
+  final String? userId;
+
+  @override
+  Widget build(BuildContext context) {
+    final presence = this.presence;
+    final userId = this.userId;
+    if (presence == null || userId == null) {
+      return Text(_memberCountLabel(room), style: style);
+    }
+    return ListenableBuilder(
+      listenable: presence,
+      builder: (context, _) {
+        final label =
+            _presenceLabel(presence.presenceFor(userId)) ?? _memberCountLabel(room);
+        return Text(
+          label,
+          style: style,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        );
+      },
+    );
   }
+}
+
+String _memberCountLabel(Room room) {
+  final count = room.summary.mJoinedMemberCount ?? 0;
+  if (count == 0) return '';
+  if (count == 1) return '1 member';
+  return '$count members';
+}
+
+/// Human-readable presence line for a DM counterpart, or null when unknown.
+/// A "last seen" suffix is appended only when the server provided a timestamp.
+String? _presenceLabel(CachedPresence? presence) {
+  if (presence == null) return null;
+  final lastSeen = presence.lastActiveTimestamp;
+  switch (presence.presence) {
+    case PresenceType.online:
+      return 'Online';
+    case PresenceType.unavailable:
+      return lastSeen != null ? 'Away · last seen ${_ago(lastSeen)}' : 'Away';
+    case PresenceType.offline:
+      return lastSeen != null
+          ? 'Offline · last seen ${_ago(lastSeen)}'
+          : 'Offline';
+  }
+}
+
+String _ago(DateTime ts) {
+  final diff = DateTime.now().difference(ts);
+  if (diff.inMinutes < 1) return 'just now';
+  if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+  if (diff.inDays < 1) return '${diff.inHours}h ago';
+  if (diff.inDays < 30) return '${diff.inDays}d ago';
+  return '${(diff.inDays / 30).floor()}mo ago';
 }
 
 class _CallButton extends StatefulWidget {

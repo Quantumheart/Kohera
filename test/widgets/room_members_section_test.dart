@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/features/rooms/models/room_role.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:matrix/matrix.dart';
@@ -41,6 +42,10 @@ void main() {
 
     when(mockMatrixService.client).thenReturn(mockClient);
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onPresenceChanged)
+        .thenReturn(CachedStreamController<CachedPresence>());
+    when(mockMatrixService.presence)
+        .thenReturn(PresenceService(client: mockClient));
     when(mockRoom.id).thenReturn('!room:example.com');
     when(mockRoom.client).thenReturn(mockClient);
     when(mockRoom.summary).thenReturn(RoomSummary.fromJson({

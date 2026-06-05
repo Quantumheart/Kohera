@@ -5,10 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
-import 'package:kohera/core/utils/sender_color.dart';
 import 'package:kohera/features/rooms/models/room_role.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
+import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
@@ -216,19 +217,12 @@ class _MemberTileState extends State<_MemberTile> {
 
     return ListTile(
       dense: true,
-      leading: CircleAvatar(
-        radius: 16,
-        backgroundColor: senderColor(widget.user.id, cs),
-        child: Text(
-          displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: ThemeData.estimateBrightnessForColor(senderColor(widget.user.id, cs)) == Brightness.dark
-                ? Colors.white
-                : Colors.black,
-          ),
-        ),
+      leading: UserAvatar(
+        client: widget.room.client,
+        userId: widget.user.id,
+        avatarUrl: widget.user.avatarUrl,
+        presence: context.read<MatrixService>().presence,
+        size: 32,
       ),
       title: Text(
         displayName,
@@ -285,6 +279,7 @@ class _MemberTileState extends State<_MemberTile> {
       builder: (ctx) => _MemberSheetDialog(
         user: widget.user,
         room: widget.room,
+        presence: matrix.presence,
         ownLevel: ownLevel,
         isMe: isMe,
         onStartDm: !isMe
@@ -330,6 +325,7 @@ class _MemberSheetDialog extends StatefulWidget {
   const _MemberSheetDialog({
     required this.user,
     required this.room,
+    required this.presence,
     required this.ownLevel,
     required this.isMe,
     this.onStartDm,
@@ -337,6 +333,7 @@ class _MemberSheetDialog extends StatefulWidget {
 
   final User user;
   final Room room;
+  final PresenceService presence;
   final int ownLevel;
   final bool isMe;
   final Future<void> Function()? onStartDm;
@@ -600,12 +597,6 @@ class _MemberSheetDialogState extends State<_MemberSheetDialog> {
     final displayName = user.displayName ?? user.id;
     final isBanned = user.membership == Membership.ban;
 
-    final avatarColor = senderColor(user.id, cs);
-    final avatarFg =
-        ThemeData.estimateBrightnessForColor(avatarColor) == Brightness.dark
-            ? Colors.white
-            : Colors.black;
-
     final canChangeRole = !widget.isMe &&
         room.canChangePowerLevel &&
         powerLevel < widget.ownLevel;
@@ -623,17 +614,12 @@ class _MemberSheetDialogState extends State<_MemberSheetDialog> {
       titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
       title: Column(
         children: [
-          CircleAvatar(
-            radius: 32,
-            backgroundColor: avatarColor,
-            child: Text(
-              displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: avatarFg,
-              ),
-            ),
+          UserAvatar(
+            client: room.client,
+            userId: user.id,
+            avatarUrl: user.avatarUrl,
+            presence: widget.presence,
+            size: 64,
           ),
           const SizedBox(height: 12),
           Text(

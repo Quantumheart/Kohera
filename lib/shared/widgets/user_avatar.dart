@@ -5,6 +5,7 @@ import 'package:cached_network_image_platform_interface/cached_network_image_pla
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/utils/media_auth.dart';
+import 'package:kohera/shared/widgets/presence_dot.dart';
 import 'package:matrix/matrix.dart';
 
 /// Displays a user's Matrix avatar with a colored-initial fallback.
@@ -101,28 +102,11 @@ class _UserAvatarState extends State<UserAvatar> {
       ),
     );
 
-    final presence = widget.presence;
-    final userId = widget.userId;
-    if (presence == null || userId == null) return avatar;
-
-    return SizedBox(
-      width: widget.size,
-      height: widget.size,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          avatar,
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: _PresenceDot(
-              presence: presence,
-              userId: userId,
-              size: widget.size,
-            ),
-          ),
-        ],
-      ),
+    return PresenceOverlay(
+      size: widget.size,
+      presence: widget.presence,
+      userId: widget.userId,
+      child: avatar,
     );
   }
 
@@ -146,53 +130,6 @@ class _UserAvatarState extends State<UserAvatar> {
     ];
     return palette[hash % palette.length];
   }
-}
-
-/// Status dot overlaid on [UserAvatar]. Rebuilds independently of the avatar
-/// when presence changes; renders nothing for unknown presence.
-class _PresenceDot extends StatelessWidget {
-  const _PresenceDot({
-    required this.presence,
-    required this.userId,
-    required this.size,
-  });
-
-  final PresenceService presence;
-  final String userId;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return ListenableBuilder(
-      listenable: presence,
-      builder: (context, _) {
-        final cached = presence.presenceFor(userId);
-        if (cached == null) return const SizedBox.shrink();
-        final (color, label) = _styleFor(cached.presence, cs);
-        final diameter = size * 0.3;
-        return Semantics(
-          label: label,
-          child: Container(
-            width: diameter,
-            height: diameter,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(color: cs.surface, width: size * 0.05),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  static (Color, String) _styleFor(PresenceType type, ColorScheme cs) =>
-      switch (type) {
-        PresenceType.online => (cs.primary, 'Online'),
-        PresenceType.unavailable => (cs.tertiary, 'Away'),
-        PresenceType.offline => (cs.outline, 'Offline'),
-      };
 }
 
 class _Fallback extends StatelessWidget {
