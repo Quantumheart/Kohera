@@ -39,6 +39,7 @@ import 'package:provider/provider.dart';
 /// (which would reset the navigation stack and cause a visible flash).
 GoRouter buildRouter(ClientManager manager) {
   final refreshListenable = _ActiveMatrixListenable(manager);
+  final switchRedirector = AccountSwitchRedirector(manager.activeService);
   return GoRouter(
     refreshListenable: refreshListenable,
     initialLocation: '/',
@@ -50,6 +51,9 @@ GoRouter buildRouter(ClientManager manager) {
           loc.startsWith('/login') || loc.startsWith('/register');
       final onSetupRoute = loc == '/e2ee-setup';
       final onAddAccountRoute = loc.startsWith('/add-account');
+
+      final switchRedirect = switchRedirector.redirectFor(matrixService, loc);
+      if (switchRedirect != null) return switchRedirect;
 
       if (!loggedIn && !onAuthRoute) return '/login';
       if (loggedIn && onAuthRoute && !onAddAccountRoute) return '/';
@@ -377,6 +381,28 @@ class _ActiveMatrixListenable extends ChangeNotifier {
     _manager.removeListener(_onManagerChanged);
     _detach();
     super.dispose();
+  }
+}
+
+/// Detects active-account switches and falls back to the room list when a
+/// room route is still mounted.
+///
+/// Switching accounts swaps the per-account providers ([MatrixService] and
+/// friends) for different instances while the keyed `ChatScreen` subtree is
+/// still mounted and depends on them via `context.watch`. Reconciling the
+/// keyed subtree onto the swapped providers deactivates an `InheritedElement`
+/// before its dependent is released, tripping the framework's
+/// `_dependents.isEmpty` assertion. Redirecting `/rooms/...` to `/` tears the
+/// chat subtree down cleanly before the swap reconciles.
+class AccountSwitchRedirector {
+  AccountSwitchRedirector(this._active);
+
+  MatrixService _active;
+
+  String? redirectFor(MatrixService current, String location) {
+    if (identical(current, _active)) return null;
+    _active = current;
+    return location.startsWith('/rooms/') ? '/' : null;
   }
 }
 
