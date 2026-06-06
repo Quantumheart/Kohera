@@ -46,6 +46,7 @@ class _KoheraAppState extends State<KoheraApp> {
   PreferencesService? _preferencesService;
   GoRouter? _router;
   Object? _initError;
+  MatrixService? _displayedService;
   final _ringtoneService = RingtoneService();
 
   @override
@@ -73,9 +74,11 @@ class _KoheraAppState extends State<KoheraApp> {
       }
 
       if (!mounted) return;
+      clientManager.addListener(_onActiveServiceChanged);
       setState(() {
         _clientManager = clientManager;
         _preferencesService = prefs;
+        _displayedService = clientManager.activeService;
         _router = buildRouter(clientManager);
       });
     } catch (e) {
@@ -85,8 +88,21 @@ class _KoheraAppState extends State<KoheraApp> {
     }
   }
 
+  void _onActiveServiceChanged() {
+    final manager = _clientManager;
+    if (manager == null) return;
+    if (identical(manager.activeService, _displayedService)) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final current = _clientManager?.activeService;
+      if (current == null || identical(current, _displayedService)) return;
+      setState(() => _displayedService = current);
+    });
+  }
+
   @override
   void dispose() {
+    _clientManager?.removeListener(_onActiveServiceChanged);
     _router?.dispose();
     unawaited(_ringtoneService.dispose());
     super.dispose();
@@ -147,7 +163,7 @@ class _KoheraAppState extends State<KoheraApp> {
         builder: (lightDynamic, darkDynamic) {
           return Consumer2<ClientManager, PreferencesService>(
             builder: (context, manager, prefs, _) {
-              final matrix = manager.activeService;
+              final matrix = _displayedService ?? manager.activeService;
               final router = _router!;
 
               return MultiProvider(

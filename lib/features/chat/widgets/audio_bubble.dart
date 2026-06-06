@@ -34,7 +34,7 @@ class _AudioBubbleState extends State<AudioBubble> {
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   late final List<double> _bars;
-  late final MediaPlaybackService _playbackService;
+  late MediaPlaybackService _playbackService;
   final List<StreamSubscription<dynamic>> _subs = [];
 
   @override
