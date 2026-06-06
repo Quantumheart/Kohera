@@ -63,6 +63,29 @@ void main() {
       expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
     });
 
+    testWidgets('survives didChangeDependencies firing again', (tester) async {
+      final playback = MockMediaPlaybackService();
+      Widget build(Brightness brightness) => MaterialApp(
+            home: Theme(
+              data: ThemeData(brightness: brightness),
+              child: Scaffold(
+                body: ChangeNotifierProvider<MediaPlaybackService>.value(
+                  value: playback,
+                  child: AudioBubble(event: mockEvent, isMe: true),
+                ),
+              ),
+            ),
+          );
+
+      await tester.pumpWidget(build(Brightness.light));
+      // Changing an inherited dependency (theme) re-runs didChangeDependencies
+      // on the same State, mirroring the per-account provider swap on account
+      // switch. The playback service field must tolerate re-assignment.
+      await tester.pumpWidget(build(Brightness.dark));
+
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('play button is disabled when pending send', (tester) async {
       when(mockEvent.status).thenReturn(EventStatus.sending);
 
