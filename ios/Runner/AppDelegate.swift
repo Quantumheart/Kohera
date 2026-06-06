@@ -255,6 +255,79 @@ import UserNotifications
     voipChannel?.invokeMethod("onVoipTokenInvalidated", arguments: nil)
   }
 
+  // iOS 13+ contract: every VoIP push delivered to this delegate MUST report
+  // an incoming call to CallKit before `completion()` returns, or PushKit's
+  // `_terminateAppIfThereAreUnhandledVoIPPushes` kills the process with SIGABRT.
+  // `classifyVoipPush` therefore has no "silently drop" outcome — a push we
+  // intend to ignore still maps to `.reportAndEnd`, which reports a placeholder
+  // call and immediately ends it to satisfy the contract.
+  enum VoipPushOutcome: Equatable {
+    case showIncomingCall(
+      roomId: String,
+      callerName: String,
+      callerAvatarUrl: String?,
+      isVideo: Bool
+    )
+    case reportAndEnd(handle: String, reason: String)
+  }
+
+  static func classifyVoipPush(_ dict: [AnyHashable: Any]) -> VoipPushOutcome {
+    let notification = (dict["notification"] as? [AnyHashable: Any]) ?? dict
+
+    guard let roomId = notification["room_id"] as? String else {
+      return .reportAndEnd(handle: "Unknown", reason: "missing room_id")
+    }
+
+    let eventType = notification["event_type"] as? String
+    guard eventType == "org.matrix.msc3401.call.member" else {
+      return .reportAndEnd(handle: roomId, reason: "event_type=\(eventType ?? "nil")")
+    }
+
+    guard notification["call_id"] is String else {
+      return .reportAndEnd(handle: roomId, reason: "missing call_id")
+    }
+
+    let senderDisplayName = (notification["sender_display_name"] as? String) ?? "Unknown"
+    let callerAvatarUrl = notification["caller_avatar_url"] as? String
+    let isVideoValue = notification["is_video"]
+    let isVideo: Bool = {
+      if let b = isVideoValue as? Bool { return b }
+      if let s = isVideoValue as? String { return s == "true" || s == "1" }
+      if let n = isVideoValue as? NSNumber { return n.boolValue }
+      return false
+    }()
+
+    return .showIncomingCall(
+      roomId: roomId,
+      callerName: senderDisplayName,
+      callerAvatarUrl: callerAvatarUrl,
+      isVideo: isVideo
+    )
+  }
+
+  // Native CallKit provider used to satisfy the PushKit contract for pushes we
+  // cannot route through the Flutter plugin (malformed payloads, or the plugin
+  // not being registered yet on a cold background launch).
+  private lazy var placeholderCallProvider: CXProvider = {
+    let configuration = CXProviderConfiguration()
+    configuration.supportsVideo = true
+    configuration.supportedHandleTypes = [.generic]
+    return CXProvider(configuration: configuration)
+  }()
+
+  private func reportAndEndPlaceholderCall(handle: String, completion: @escaping () -> Void) {
+    let uuid = UUID()
+    let update = CXCallUpdate()
+    update.remoteHandle = CXHandle(type: .generic, value: handle)
+    update.hasVideo = false
+    placeholderCallProvider.reportNewIncomingCall(with: uuid, update: update) { [weak self] _ in
+      // The contract is satisfied the moment the call is reported. This push is
+      // not actionable, so end the call immediately to avoid stale CallKit UI.
+      self?.placeholderCallProvider.reportCall(with: uuid, endedAt: nil, reason: .remoteEnded)
+      completion()
+    }
+  }
+
   func pushRegistry(
     _ registry: PKPushRegistry,
     didReceiveIncomingPushWith payload: PKPushPayload,
@@ -276,72 +349,58 @@ import UserNotifications
     }
 
     let dict = payload.dictionaryPayload
-    let notification = (dict["notification"] as? [AnyHashable: Any]) ?? dict
 
-    guard let roomId = notification["room_id"] as? String else {
-      finish()
-      return
-    }
+    let roomId: String
+    let senderDisplayName: String
+    let callerAvatarUrl: String?
+    let isVideo: Bool
 
-    let eventType = notification["event_type"] as? String
-    guard eventType == "org.matrix.msc3401.call.member" else {
-      NSLog("[Kohera] VoIP push rejected: event_type=\(eventType ?? "nil")")
-      finish()
+    switch AppDelegate.classifyVoipPush(dict) {
+    case .reportAndEnd(let handle, let reason):
+      NSLog("[Kohera] VoIP push not actionable (\(reason)); reporting + ending to satisfy PushKit contract")
+      reportAndEndPlaceholderCall(handle: handle) { finish() }
       return
+    case .showIncomingCall(let r, let name, let avatar, let video):
+      roomId = r
+      senderDisplayName = name
+      callerAvatarUrl = avatar
+      isVideo = video
     }
-
-    guard notification["call_id"] is String else {
-      NSLog("[Kohera] VoIP push rejected: missing call_id")
-      finish()
-      return
-    }
-    let eventId = notification["event_id"] as? String
-    let senderDisplayName = (notification["sender_display_name"] as? String) ?? "Unknown"
-    let callerAvatarUrl = notification["caller_avatar_url"] as? String
-    let isVideoValue = notification["is_video"]
-    let isVideo: Bool = {
-      if let b = isVideoValue as? Bool { return b }
-      if let s = isVideoValue as? String { return s == "true" || s == "1" }
-      if let n = isVideoValue as? NSNumber { return n.boolValue }
-      return false
-    }()
 
     let nativeCallId = UUID().uuidString
 
     // Strategy (a): rely on the flutter_callkit_incoming plugin being
     // registered as part of the implicit Flutter engine boot (happens during
     // super.application(... didFinishLaunching ...) before iOS can deliver a
-    // push). If sharedInstance is still nil at this point we log and complete
-    // defensively; iOS may treat this as a missed call, but we avoid the
-    // process-termination strike caused by not calling `completion`.
-    var callKitShown = false
-    if let plugin = SwiftFlutterCallkitIncomingPlugin.sharedInstance {
-      callKitShown = true
-      let data = flutter_callkit_incoming.Data(
-        id: nativeCallId,
-        nameCaller: senderDisplayName,
-        handle: roomId,
-        type: isVideo ? 1 : 0
-      )
-      data.appName = "Kohera"
-      data.avatar = callerAvatarUrl ?? ""
-      data.supportsVideo = true
-      data.duration = 60000
-      data.extra = [
-        "roomId": roomId,
-        "withVideo": isVideo ? "true" : "false",
-      ]
-      plugin.showCallkitIncoming(data, fromPushKit: true) {}
-    } else {
-      NSLog("[Kohera] PushKit: SwiftFlutterCallkitIncomingPlugin.sharedInstance nil; dropping call")
-      finish()
+    // push). If sharedInstance is still nil we cannot show the full Flutter
+    // CallKit UI, but we must still report a call — fall back to the native
+    // CXProvider so iOS does not kill the process for an unhandled VoIP push.
+    guard let plugin = SwiftFlutterCallkitIncomingPlugin.sharedInstance else {
+      NSLog("[Kohera] PushKit: plugin not ready; reporting via native CXProvider fallback")
+      reportAndEndPlaceholderCall(handle: roomId) { finish() }
       return
     }
+
+    let data = flutter_callkit_incoming.Data(
+      id: nativeCallId,
+      nameCaller: senderDisplayName,
+      handle: roomId,
+      type: isVideo ? 1 : 0
+    )
+    data.appName = "Kohera"
+    data.avatar = callerAvatarUrl ?? ""
+    data.supportsVideo = true
+    data.duration = 60000
+    data.extra = [
+      "roomId": roomId,
+      "withVideo": isVideo ? "true" : "false",
+    ]
+    plugin.showCallkitIncoming(data, fromPushKit: true) {}
 
     var enriched: [AnyHashable: Any] = [:]
     for (k, v) in dict { enriched[k] = v }
     enriched["nativeCallId"] = nativeCallId
-    enriched["callKitAlreadyShown"] = callKitShown
+    enriched["callKitAlreadyShown"] = true
 
     // Defer PushKit `completion()` until Dart acks (or we hit the safety
     // timeout). This prevents iOS from suspending the process while the
