@@ -1,6 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/features/chat/widgets/hover_action_bar.dart';
+
+/// Finds the OpenMoji [Image] rendered for [emoji].
+Finder _emojiImage(String emoji) {
+  final asset = openMojiAssetFor(emoji)!;
+  return find.byWidgetPredicate(
+    (w) =>
+        w is Image &&
+        w.image is AssetImage &&
+        (w.image as AssetImage).assetName == asset,
+  );
+}
 
 void main() {
   Widget buildTestWidget({
@@ -74,12 +86,12 @@ void main() {
       await tester.tap(find.byIcon(Icons.add_reaction_outlined));
       await tester.pumpAndSettle();
 
-      expect(find.text('\u{2764}\u{FE0F}'), findsOneWidget);
-      expect(find.text('\u{1F44D}'), findsOneWidget);
-      expect(find.text('\u{1F44E}'), findsOneWidget);
-      expect(find.text('\u{1F602}'), findsOneWidget);
-      expect(find.text('\u{1F622}'), findsOneWidget);
-      expect(find.text('\u{1F62E}'), findsOneWidget);
+      expect(_emojiImage('\u{2764}\u{FE0F}'), findsOneWidget);
+      expect(_emojiImage('\u{1F44D}'), findsOneWidget);
+      expect(_emojiImage('\u{1F44E}'), findsOneWidget);
+      expect(_emojiImage('\u{1F602}'), findsOneWidget);
+      expect(_emojiImage('\u{1F622}'), findsOneWidget);
+      expect(_emojiImage('\u{1F62E}'), findsOneWidget);
     });
 
     testWidgets('tap emoji in overlay calls onQuickReact and closes overlay',
@@ -92,11 +104,11 @@ void main() {
       await tester.tap(find.byIcon(Icons.add_reaction_outlined));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('\u{1F44D}'));
+      await tester.tap(_emojiImage('\u{1F44D}'));
       await tester.pumpAndSettle();
 
       expect(selectedEmoji, '\u{1F44D}');
-      expect(find.text('\u{1F602}'), findsNothing);
+      expect(_emojiImage('\u{1F602}'), findsNothing);
     });
   });
 }

@@ -1,10 +1,7 @@
 import 'dart:async';
 
-import 'package:emoji_picker_flutter/emoji_picker_flutter.dart'
-    show BottomActionBarConfig, CategoryViewConfig, Config, DefaultEmojiTextStyle,
-         EmojiPicker, EmojiViewConfig, SearchViewConfig,
-         SkinToneConfig;
 import 'package:flutter/material.dart';
+import 'package:kohera/features/chat/widgets/openmoji_picker.dart';
 
 // coverage:ignore-start
 
@@ -32,36 +29,11 @@ class _EmojiPickerDialog extends StatelessWidget {
       child: SizedBox(
         width: 350,
         height: 400,
-        child: EmojiPicker(
-          onEmojiSelected: (category, emoji) {
+        child: OpenMojiPicker(
+          onSelected: (emoji) {
             Navigator.of(context).pop();
-            onSelected(emoji.emoji);
+            onSelected(emoji);
           },
-          config: Config(
-            emojiTextStyle: DefaultEmojiTextStyle,
-            emojiViewConfig: EmojiViewConfig(
-              columns: 8,
-              backgroundColor: cs.surfaceContainer,
-            ),
-            categoryViewConfig: CategoryViewConfig(
-              backgroundColor: cs.surfaceContainer,
-              indicatorColor: cs.primary,
-              iconColorSelected: cs.primary,
-              iconColor: cs.onSurfaceVariant,
-            ),
-            skinToneConfig: SkinToneConfig(
-              dialogBackgroundColor: cs.surfaceContainerHighest,
-              indicatorColor: cs.primary,
-            ),
-            bottomActionBarConfig: BottomActionBarConfig(
-              backgroundColor: cs.surfaceContainer,
-              buttonColor: cs.primary,
-            ),
-            searchViewConfig: SearchViewConfig(
-              backgroundColor: cs.surfaceContainer,
-              buttonIconColor: cs.onSurfaceVariant,
-            ),
-          ),
         ),
       ),
     );

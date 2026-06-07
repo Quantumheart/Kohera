@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:emoji_picker_flutter/emoji_picker_flutter.dart'
-    show DefaultEmojiTextStyle;
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/features/chat/widgets/long_press_wrapper.dart';
@@ -128,7 +126,7 @@ class _ReactionChipsState extends State<ReactionChips> {
                     TextSpan(
                       children: buildEmojiSpans(
                         emoji,
-                        DefaultEmojiTextStyle.copyWith(fontSize: 14),
+                        emojiTextStyle.copyWith(fontSize: 14),
                       ),
                     ),
                   ),
