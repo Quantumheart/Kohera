@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/features/chat/widgets/audio_bubble.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:kohera/features/chat/widgets/file_bubble.dart';
@@ -10,6 +11,9 @@ import 'package:kohera/features/chat/widgets/video_bubble.dart';
 import 'package:matrix/matrix.dart';
 
 const _msgtypeServerNotice = 'm.server_notice';
+
+/// Font-size multiplier applied to messages containing only emoji.
+const _emojiOnlyScale = 2.0;
 
 String escapeHtml(String input) => input
     .replaceAll('&', '&amp;')
@@ -90,6 +94,11 @@ class MessageBubbleBody extends StatelessWidget {
     if (isServerNotice) {
       textStyle = textStyle?.copyWith(
         color: isMe ? cs.onPrimary.withValues(alpha: 0.8) : cs.onSurfaceVariant,
+      );
+    }
+    if (!isEmote && !isServerNotice && isEmojiOnly(bodyText)) {
+      textStyle = textStyle?.copyWith(
+        fontSize: (textStyle.fontSize ?? metrics.bodyFontSize) * _emojiOnlyScale,
       );
     }
 
