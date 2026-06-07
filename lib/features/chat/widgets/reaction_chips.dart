@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart'
     show DefaultEmojiTextStyle;
 import 'package:flutter/material.dart';
+import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/features/chat/widgets/long_press_wrapper.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
@@ -123,9 +124,13 @@ class _ReactionChipsState extends State<ReactionChips> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    emoji,
-                    style: DefaultEmojiTextStyle.copyWith(fontSize: 14),
+                  Text.rich(
+                    TextSpan(
+                      children: buildEmojiSpans(
+                        emoji,
+                        DefaultEmojiTextStyle.copyWith(fontSize: 14),
+                      ),
+                    ),
                   ),
                   if (events.length > 1) ...[
                     const SizedBox(width: 3),
@@ -173,9 +178,19 @@ void showReactorsSheet(
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                '$emoji ${reactionEvents.length}',
-                style: Theme.of(ctx).textTheme.titleMedium,
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    ...buildEmojiSpans(
+                      emoji,
+                      Theme.of(ctx).textTheme.titleMedium,
+                    ),
+                    TextSpan(
+                      text: ' ${reactionEvents.length}',
+                      style: Theme.of(ctx).textTheme.titleMedium,
+                    ),
+                  ],
+                ),
               ),
             ),
             const Divider(height: 1),
@@ -212,8 +227,13 @@ void showReactorsSheet(
                       Navigator.of(ctx).pop();
                       onToggle(emoji);
                     },
-                    child: Text(
-                      isMine ? 'Remove your $emoji' : 'React with $emoji',
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(text: isMine ? 'Remove your ' : 'React with '),
+                          ...buildEmojiSpans(emoji, null),
+                        ],
+                      ),
                     ),
                   ),
                 ),

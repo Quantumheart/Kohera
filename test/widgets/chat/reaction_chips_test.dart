@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/features/chat/widgets/reaction_chips.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
@@ -15,6 +16,23 @@ import 'package:mockito/mockito.dart';
 import 'reaction_chips_test.mocks.dart';
 
 // ── Helpers ──────────────────────────────────────────────────
+
+/// Finds a [Text.rich] whose plain text contains [text] (emoji spans render as
+/// the U+FFFC placeholder, so `find.text` does not match them).
+Finder _richTextContaining(String text) => find.byWidgetPredicate(
+      (w) => w is Text && (w.textSpan?.toPlainText().contains(text) ?? false),
+    );
+
+/// Finds the OpenMoji [Image] rendered for [emoji].
+Finder _emojiImage(String emoji) {
+  final asset = openMojiAssetFor(emoji)!;
+  return find.byWidgetPredicate(
+    (w) =>
+        w is Image &&
+        w.image is AssetImage &&
+        (w.image as AssetImage).assetName == asset,
+  );
+}
 
 MockEvent _makeReactionEvent({
   required String senderId,
@@ -113,10 +131,10 @@ void main() {
       client: mockClient,
     ),);
 
-    // Three different emojis → three chips (each with count 1, so just emoji)
-    expect(find.text('\u{1F44D}'), findsOneWidget);
-    expect(find.text('\u{2764}\u{FE0F}'), findsOneWidget);
-    expect(find.text('\u{1F602}'), findsOneWidget);
+    // Three different emojis → three OpenMoji chips (count 1, so just emoji).
+    expect(_emojiImage('\u{1F44D}'), findsOneWidget);
+    expect(_emojiImage('\u{2764}\u{FE0F}'), findsOneWidget);
+    expect(_emojiImage('\u{1F602}'), findsOneWidget);
   });
 
   testWidgets('shows correct count per emoji', (tester) async {
@@ -137,8 +155,8 @@ void main() {
       client: mockClient,
     ),);
 
-    // One emoji chip with count 3 (emoji and count are separate Text widgets)
-    expect(find.text('\u{1F44D}'), findsOneWidget);
+    // One emoji chip with count 3 (OpenMoji image + separate count Text).
+    expect(_emojiImage('\u{1F44D}'), findsOneWidget);
     expect(find.text('3'), findsOneWidget);
   });
 
@@ -224,7 +242,7 @@ void main() {
       onToggle: (emoji) => tappedEmoji = emoji,
     ),);
 
-    await tester.tap(find.text('\u{1F44D}'));
+    await tester.tap(_emojiImage('\u{1F44D}'));
     expect(tappedEmoji, '\u{1F44D}');
   });
 
@@ -253,12 +271,66 @@ void main() {
       client: mockClient,
     ),);
 
-    await tester.longPress(find.text('\u{1F44D}'));
+    await tester.longPress(_emojiImage('\u{1F44D}'));
     await tester.pumpAndSettle();
 
-    // Bottom sheet should show the emoji with count
-    expect(find.text('\u{1F44D} 1'), findsWidgets);
+    // Bottom sheet shows the emoji (chip + sheet header) and the count.
+    expect(_emojiImage('\u{1F44D}'), findsWidgets);
+    expect(_richTextContaining(' 1'), findsOneWidget);
     // Should show the reactor's name
     expect(find.text('Alice'), findsOneWidget);
+  });
+
+  testWidgets('non-emoji reaction key falls back to text', (tester) async {
+    final reactions = [
+      _makeReactionEvent(senderId: '@alice:example.com', emoji: ':custom:'),
+    ];
+
+    final event = _makeParentEvent(
+      timeline: mockTimeline,
+      reactions: reactions,
+    );
+
+    await tester.pumpWidget(_wrapChips(
+      event: event,
+      timeline: mockTimeline,
+      client: mockClient,
+    ),);
+
+    expect(find.text(':custom:'), findsOneWidget);
+  });
+
+  testWidgets('reactors sheet button renders OpenMoji', (tester) async {
+    final mockRoom = MockRoom();
+    final mockUser = MockUser();
+    when(mockUser.displayName).thenReturn('Alice');
+    when(mockUser.avatarUrl).thenReturn(null);
+    when(mockRoom.unsafeGetUserFromMemoryOrFallback('@alice:example.com'))
+        .thenReturn(mockUser);
+    when(mockRoom.client).thenReturn(mockClient);
+
+    final reactions = [
+      _makeReactionEvent(senderId: '@alice:example.com', emoji: '\u{1F44D}'),
+    ];
+
+    final event = _makeParentEvent(
+      timeline: mockTimeline,
+      reactions: reactions,
+      room: mockRoom,
+    );
+
+    await tester.pumpWidget(_wrapChips(
+      event: event,
+      timeline: mockTimeline,
+      client: mockClient,
+      onToggle: (_) {},
+    ),);
+
+    await tester.longPress(_emojiImage('\u{1F44D}'));
+    await tester.pumpAndSettle();
+
+    expect(_richTextContaining('React with '), findsOneWidget);
+    // Chip + sheet header + button all render the OpenMoji image.
+    expect(_emojiImage('\u{1F44D}'), findsNWidgets(3));
   });
 }
