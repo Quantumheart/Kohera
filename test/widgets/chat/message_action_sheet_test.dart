@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/features/chat/widgets/message_action_sheet.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
@@ -17,6 +18,17 @@ import 'package:provider/provider.dart';
 import 'message_action_sheet_test.mocks.dart';
 
 late MockRoom _mockRoom;
+
+/// Finds the OpenMoji [Image] rendered for [emoji].
+Finder _emojiImage(String emoji) {
+  final asset = openMojiAssetFor(emoji)!;
+  return find.byWidgetPredicate(
+    (w) =>
+        w is Image &&
+        w.image is AssetImage &&
+        (w.image as AssetImage).assetName == asset,
+  );
+}
 
 MockEvent _makeEvent({
   required String eventId,
@@ -170,8 +182,8 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      expect(find.text('\u{1F44D}'), findsOneWidget);
-      expect(find.text('\u{2764}\u{FE0F}'), findsOneWidget);
+      expect(_emojiImage('\u{1F44D}'), findsOneWidget);
+      expect(_emojiImage('\u{2764}\u{FE0F}'), findsOneWidget);
     });
 
     testWidgets('quick react bar hidden when onQuickReact is null',
@@ -185,7 +197,7 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      expect(find.text('\u{1F44D}'), findsNothing);
+      expect(_emojiImage('\u{1F44D}'), findsNothing);
     });
 
     testWidgets('tap emoji fires onQuickReact with correct string',
@@ -205,7 +217,7 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('\u{1F44D}'));
+      await tester.tap(_emojiImage('\u{1F44D}'));
       await tester.pumpAndSettle();
 
       expect(selectedEmoji, '\u{1F44D}');

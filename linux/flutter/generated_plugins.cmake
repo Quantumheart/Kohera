@@ -5,7 +5,6 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   desktop_drop
   dynamic_color
-  emoji_picker_flutter
   file_selector_linux
   flutter_secure_storage_linux
   flutter_webrtc

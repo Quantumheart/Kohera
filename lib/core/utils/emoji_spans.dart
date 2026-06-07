@@ -8,6 +8,11 @@ const emojiFontFallback = [
   'Segoe UI Emoji',
 ];
 
+/// Text style for rendering emoji as text (the fallback when no OpenMoji asset
+/// is bundled). Applies [emojiFontFallback] so color emoji resolve on every
+/// platform.
+const emojiTextStyle = TextStyle(fontFamilyFallback: emojiFontFallback);
+
 /// Regex matching common emoji characters and sequences (ZWJ, skin tones,
 /// variation selectors). Uses Unicode ranges rather than `\p{Emoji}` which
 /// is not supported by Dart's RegExp engine.

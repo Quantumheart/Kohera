@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'dart:ui';
 
-import 'package:emoji_picker_flutter/emoji_picker_flutter.dart'
-    show DefaultEmojiTextStyle;
 import 'package:flutter/material.dart';
+import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/features/chat/widgets/message_bubble.dart';
 import 'package:matrix/matrix.dart';
 
@@ -327,9 +326,13 @@ class _QuickReactBar extends StatelessWidget {
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(8),
-                  child: Text(
-                    emoji,
-                    style: DefaultEmojiTextStyle.copyWith(fontSize: 22),
+                  child: Text.rich(
+                    TextSpan(
+                      children: buildEmojiSpans(
+                        emoji,
+                        emojiTextStyle.copyWith(fontSize: 22),
+                      ),
+                    ),
                   ),
                 ),
               ),
