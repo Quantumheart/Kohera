@@ -75,6 +75,7 @@ flutter:
   assets:
     - assets/audio/
     - assets/config/
+    - assets/openmoji/
     - assets/vodozemac/
 
 dependency_overrides:
