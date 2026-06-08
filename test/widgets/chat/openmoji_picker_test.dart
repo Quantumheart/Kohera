@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/utils/openmoji_catalog.dart';
 import 'package:kohera/features/chat/widgets/openmoji_picker.dart';
+import 'package:kohera/shared/widgets/openmoji_image.dart';
 
 const _json = '''
 {"groups":[
@@ -27,11 +28,8 @@ class _FakeBundle extends CachingAssetBundle {
       ByteData.sublistView(Uint8List.fromList(utf8.encode(payload)));
 }
 
-Finder _cell(String assetName) => find.byWidgetPredicate(
-      (w) =>
-          w is Image &&
-          w.image is AssetImage &&
-          (w.image as AssetImage).assetName == 'assets/openmoji/$assetName.png',
+Finder _cell(String emoji) => find.byWidgetPredicate(
+      (w) => w is OpenMojiImage && w.grapheme == emoji,
     );
 
 Widget _wrap(void Function(String) onSelected) => MaterialApp(
@@ -54,8 +52,8 @@ void main() {
     await tester.pumpWidget(_wrap((_) {}));
     await tester.pump();
 
-    expect(_cell('1F600'), findsOneWidget);
-    expect(_cell('1F622'), findsOneWidget);
+    expect(_cell('😀'), findsOneWidget);
+    expect(_cell('😢'), findsOneWidget);
   });
 
   testWidgets('tapping an emoji selects its Unicode value', (tester) async {
@@ -63,7 +61,7 @@ void main() {
     await tester.pumpWidget(_wrap((e) => selected = e));
     await tester.pump();
 
-    await tester.tap(_cell('1F600'));
+    await tester.tap(_cell('😀'));
     expect(selected, '😀');
   });
 
@@ -74,7 +72,7 @@ void main() {
     await tester.enterText(find.byType(TextField), 'united');
     await tester.pump();
 
-    expect(_cell('1F1FA-1F1F8'), findsOneWidget);
-    expect(_cell('1F600'), findsNothing);
+    expect(_cell('🇺🇸'), findsOneWidget);
+    expect(_cell('😀'), findsNothing);
   });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:kohera/core/utils/emoji_spans.dart';
+import 'package:kohera/shared/widgets/openmoji_image.dart';
 
 void main() {
   const style = TextStyle(fontSize: 14);
@@ -25,17 +26,16 @@ void main() {
       expect(spans.first, isA<WidgetSpan>());
       final widgetSpan = spans.first as WidgetSpan;
       expect(widgetSpan.alignment, PlaceholderAlignment.middle);
-      expect(widgetSpan.child, isA<Image>());
-      final image = widgetSpan.child as Image;
-      expect(image.width, isNotNull);
-      expect(image.height, image.width);
+      expect(widgetSpan.child, isA<OpenMojiImage>());
+      final image = widgetSpan.child as OpenMojiImage;
+      expect(image.size, isNotNull);
     });
 
     test('emoji image is sized to the surrounding line height', () {
       const styled = TextStyle(fontSize: 20, height: 1.5);
       final spans = buildEmojiSpans('😀', styled);
-      final image = (spans.first as WidgetSpan).child as Image;
-      expect(image.width, 20 * 1.5);
+      final image = (spans.first as WidgetSpan).child as OpenMojiImage;
+      expect(image.size, 20 * 1.5);
     });
 
     test('unmapped emoji falls back to font rendering', () {

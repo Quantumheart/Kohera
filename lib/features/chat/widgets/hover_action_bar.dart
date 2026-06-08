@@ -1,6 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/features/chat/widgets/openmoji_picker.dart';
+import 'package:kohera/shared/widgets/openmoji_image.dart';
+
+/// Emoji offered in the quick-react bar, in display order.
+const kQuickReactEmojis = [
+  '\u{2764}\u{FE0F}', // ❤️
+  '\u{1F44D}', // 👍
+  '\u{1F44E}', // 👎
+  '\u{1F602}', // 😂
+  '\u{1F622}', // 😢
+  '\u{1F62E}', // 😮
+];
 
 // ── Hover action bar ────────────────────────────────────────
 
@@ -31,6 +44,16 @@ class _HoverActionBarState extends State<HoverActionBar> {
   final LayerLink _layerLink = LayerLink();
 
   bool _disposing = false;
+  bool _precached = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_precached && widget.onQuickReact != null) {
+      _precached = true;
+      unawaited(precacheOpenMoji(context, kQuickReactEmojis));
+    }
+  }
 
   @override
   void dispose() {
@@ -179,15 +202,6 @@ class _QuickReactOverlay extends StatefulWidget {
 class _QuickReactOverlayState extends State<_QuickReactOverlay> {
   bool _showPicker = false;
 
-  static const _quickEmojis = [
-    '\u{2764}\u{FE0F}', // ❤️
-    '\u{1F44D}', // 👍
-    '\u{1F44E}', // 👎
-    '\u{1F602}', // 😂
-    '\u{1F622}', // 😢
-    '\u{1F62E}', // 😮
-  ];
-
   @override
   Widget build(BuildContext context) {
     final cs = widget.cs;
@@ -240,7 +254,7 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        for (final emoji in _quickEmojis)
+                        for (final emoji in kQuickReactEmojis)
                           InkWell(
                             borderRadius: BorderRadius.circular(20),
                             onTap: () => widget.onEmojiSelected(emoji),

@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/core/utils/openmoji_catalog.dart';
+import 'package:kohera/shared/widgets/openmoji_image.dart';
 
 // ── OpenMojiPicker ───────────────────────────────────────────
 
@@ -173,13 +173,7 @@ class _EmojiGrid extends StatelessWidget {
           onTap: () => onSelected(e.emoji),
           child: Padding(
             padding: const EdgeInsets.all(6),
-            child: Image.asset(
-              e.asset,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => Center(
-                child: Text(e.emoji, style: emojiTextStyle),
-              ),
-            ),
+            child: OpenMojiImage(grapheme: e.emoji),
           ),
         );
       },
