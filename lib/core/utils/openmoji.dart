@@ -4,6 +4,59 @@ const _openMojiAssetDir = 'assets/openmoji';
 
 const _variationSelectors = {0xFE0E, 0xFE0F};
 
+/// A Unicode skin-tone modifier (Fitzpatrick scale), or [none] for the default
+/// yellow rendering.
+enum SkinTone {
+  none,
+  light,
+  mediumLight,
+  medium,
+  mediumDark,
+  dark;
+
+  /// The Unicode modifier codepoint (`U+1F3FB`–`U+1F3FF`), or null for [none].
+  int? get modifier => switch (this) {
+        SkinTone.none => null,
+        SkinTone.light => 0x1F3FB,
+        SkinTone.mediumLight => 0x1F3FC,
+        SkinTone.medium => 0x1F3FD,
+        SkinTone.mediumDark => 0x1F3FE,
+        SkinTone.dark => 0x1F3FF,
+      };
+
+  String get label => switch (this) {
+        SkinTone.none => 'Default',
+        SkinTone.light => 'Light',
+        SkinTone.mediumLight => 'Medium-light',
+        SkinTone.medium => 'Medium',
+        SkinTone.mediumDark => 'Medium-dark',
+        SkinTone.dark => 'Dark',
+      };
+
+  /// A sample toned emoji (raised hand) for swatches.
+  String get sample => applySkinTone('\u{270B}', this);
+}
+
+/// Returns [grapheme] with [tone] applied, inserting the modifier after the
+/// leading codepoint. Falls back to [grapheme] when [tone] is [SkinTone.none]
+/// or the toned variant has no bundled asset (so it is safe to call on any
+/// emoji).
+String applySkinTone(String grapheme, SkinTone tone) {
+  final modifier = tone.modifier;
+  if (modifier == null) return grapheme;
+
+  final runes =
+      grapheme.runes.where((c) => !_variationSelectors.contains(c)).toList();
+  if (runes.isEmpty) return grapheme;
+
+  final toned = String.fromCharCodes([runes.first, modifier, ...runes.skip(1)]);
+  return openMojiNameFor(toned) != null ? toned : grapheme;
+}
+
+/// Whether [grapheme] has at least one bundled skin-tone variant.
+bool openMojiSupportsSkinTone(String grapheme) =>
+    applySkinTone(grapheme, SkinTone.light) != grapheme;
+
 /// Codepoint sequence base name for [grapheme] following OpenMoji's filename
 /// convention: uppercase hex codepoints joined by `-`.
 String _name(Iterable<int> codepoints) => codepoints

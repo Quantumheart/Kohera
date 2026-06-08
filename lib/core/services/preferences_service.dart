@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kohera/core/theme/custom_theme.dart';
+import 'package:kohera/core/utils/openmoji.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -78,6 +79,7 @@ class PreferencesService extends ChangeNotifier {
   static const _lastMobileTabKey = 'last_mobile_tab';
   static const _lastSeenVersionKey = 'last_seen_version';
   static const _lastDismissedUpdateKey = 'last_dismissed_update';
+  static const _skinToneKey = 'emoji_skin_tone';
 
   /// Initialise the underlying [SharedPreferences] instance.
   /// Must be called (and awaited) before reading any values.
@@ -143,6 +145,23 @@ class PreferencesService extends ChangeNotifier {
   Future<void> setLastMobileTab(MobileTab tab) async {
     await _prefs?.setString(_lastMobileTabKey, tab.name);
     debugPrint('[Kohera] Last mobile tab set to ${tab.label}');
+    notifyListeners();
+  }
+
+  // ── Emoji skin tone ───────────────────────────────────────────
+
+  SkinTone get skinTone {
+    final stored = _prefs?.getString(_skinToneKey);
+    if (stored == null) return SkinTone.none;
+    return SkinTone.values.firstWhere(
+      (t) => t.name == stored,
+      orElse: () => SkinTone.none,
+    );
+  }
+
+  Future<void> setSkinTone(SkinTone tone) async {
+    await _prefs?.setString(_skinToneKey, tone.name);
+    debugPrint('[Kohera] Emoji skin tone set to ${tone.label}');
     notifyListeners();
   }
 
