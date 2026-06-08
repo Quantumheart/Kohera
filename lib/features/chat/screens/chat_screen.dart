@@ -72,6 +72,9 @@ class _ChatScreenState extends State<ChatScreen>
   // ── Compose state ───────────────────────────────────────
   final _compose = ComposeStateController();
 
+  /// Whether the inline emoji & sticker panel is shown above the compose bar.
+  bool _emojiPanelOpen = false;
+
   // ── Typing ─────────────────────────────────────────────
   TypingController? _typingCtrl;
 
@@ -110,9 +113,18 @@ class _ChatScreenState extends State<ChatScreen>
     _actions = _createActions();
     _search = _createSearchController();
     _initControllers();
+    _composeFocusNode.addListener(_onComposeFocusChanged);
     if (kIsWeb) {
       initWebPasteListener();
       _webPasteSub = webPasteImageStream.listen(_onWebPasteImage);
+    }
+  }
+
+  void _onComposeFocusChanged() {
+    // Focusing the input (e.g. to type) closes the inline emoji panel so the
+    // keyboard can take its place.
+    if (_composeFocusNode.hasFocus && _emojiPanelOpen) {
+      setState(() => _emojiPanelOpen = false);
     }
   }
 
@@ -362,39 +374,42 @@ class _ChatScreenState extends State<ChatScreen>
   // ── Sticker picker ────────────────────────────────────────
 
   void _toggleStickerPicker() {
-    final matrix = context.read<MatrixService>();
-    final stickerService = context.read<StickerPackService>();
-    final skinTone = context.read<PreferencesService>().skinTone;
-    final room = matrix.client.getRoomById(widget.roomId);
-    if (room == null) return;
-    unawaited(showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (sheetCtx) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.7,
-        minChildSize: 0.7,
-        maxChildSize: 0.9,
-        builder: (_, __) => StickerPickerOverlay(
-          packs: stickerService.packsForRoom(room),
-          client: matrix.client,
-          skinTone: skinTone,
-          onStickerTapped: (sticker) {
-            Navigator.of(sheetCtx).pop();
-            unawaited(_handleStickerSelected(sticker));
-          },
-          onEmojiTapped: (emoji) {
-            Navigator.of(sheetCtx).pop();
-            _handleEmojiSelected(emoji);
-          },
-          onManagePacks: () {
-            Navigator.of(sheetCtx).pop();
-            context.goNamed(Routes.settingsStickerPacks);
-          },
+    setState(() => _emojiPanelOpen = !_emojiPanelOpen);
+    if (_emojiPanelOpen) {
+      _composeFocusNode.unfocus();
+    }
+  }
+
+  Widget _buildEmojiPanel(MatrixService matrix, Room room) {
+    final cs = Theme.of(context).colorScheme;
+    final stickerService = context.watch<StickerPackService>();
+    final skinTone = context.watch<PreferencesService>().skinTone;
+    final height =
+        (MediaQuery.sizeOf(context).height * 0.4).clamp(240.0, 360.0);
+
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: cs.surface,
+        border: Border(
+          top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
         ),
       ),
-    ),);
+      child: StickerPickerOverlay(
+        packs: stickerService.packsForRoom(room),
+        client: matrix.client,
+        skinTone: skinTone,
+        onStickerTapped: (sticker) {
+          setState(() => _emojiPanelOpen = false);
+          unawaited(_handleStickerSelected(sticker));
+        },
+        onEmojiTapped: _handleEmojiSelected,
+        onManagePacks: () {
+          setState(() => _emojiPanelOpen = false);
+          context.goNamed(Routes.settingsStickerPacks);
+        },
+      ),
+    );
   }
 
   Future<void> _handleStickerSelected(PackImage sticker) async {
@@ -443,6 +458,7 @@ class _ChatScreenState extends State<ChatScreen>
     _compose.dispose();
     _searchCtrl.dispose();
     _searchFocusNode.dispose();
+    _composeFocusNode.removeListener(_onComposeFocusChanged);
     _composeFocusNode.dispose();
     _typingCtrl?.dispose();
     _voiceCtrl?.dispose();
@@ -548,6 +564,7 @@ class _ChatScreenState extends State<ChatScreen>
           myUserId: matrix.client.userID,
           syncStream: matrix.client.onSync.stream,
         ),
+        if (_emojiPanelOpen) _buildEmojiPanel(matrix, room),
         ComposeBarSection(
           replyNotifier: _compose.replyNotifier,
           editNotifier: _compose.editNotifier,
