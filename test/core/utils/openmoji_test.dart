@@ -48,4 +48,33 @@ void main() {
       expect(openMojiAssetFor('x'), isNull);
     });
   });
+
+  group('skin tones', () {
+    test('applySkinTone inserts the modifier for a supporting emoji', () {
+      expect(applySkinTone('\u{1F44D}', SkinTone.dark), '\u{1F44D}\u{1F3FF}');
+      expect(
+        openMojiAssetFor(applySkinTone('\u{1F44D}', SkinTone.dark)),
+        'assets/openmoji/1F44D-1F3FF.png',
+      );
+    });
+
+    test('applySkinTone is a no-op for none', () {
+      expect(applySkinTone('\u{1F44D}', SkinTone.none), '\u{1F44D}');
+    });
+
+    test('applySkinTone falls back when no toned variant exists', () {
+      // Grinning face has no skin-tone variants.
+      expect(applySkinTone('\u{1F600}', SkinTone.dark), '\u{1F600}');
+    });
+
+    test('openMojiSupportsSkinTone reflects availability', () {
+      expect(openMojiSupportsSkinTone('\u{1F44D}'), isTrue);
+      expect(openMojiSupportsSkinTone('\u{1F600}'), isFalse);
+    });
+
+    test('SkinTone.sample renders a toned hand', () {
+      expect(SkinTone.dark.sample, '\u{270B}\u{1F3FF}');
+      expect(SkinTone.none.sample, '\u{270B}');
+    });
+  });
 }

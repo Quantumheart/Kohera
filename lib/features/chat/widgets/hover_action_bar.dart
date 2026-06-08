@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/features/chat/widgets/openmoji_picker.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
+import 'package:provider/provider.dart';
 
 /// Emoji offered in the quick-react bar, in display order.
 const kQuickReactEmojis = [
@@ -238,6 +240,9 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
                         width: 350,
                         height: 400,
                         child: OpenMojiPicker(
+                          skinTone: context.watch<PreferencesService>().skinTone,
+                          onSkinToneChanged:
+                              context.read<PreferencesService>().setSkinTone,
                           onSelected: widget.onEmojiSelected,
                         ),
                       ),

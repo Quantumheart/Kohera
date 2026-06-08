@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/chat/widgets/openmoji_picker.dart';
+import 'package:provider/provider.dart';
 
 // coverage:ignore-start
 
@@ -21,6 +23,7 @@ class _EmojiPickerDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final prefs = context.watch<PreferencesService>();
 
     return Dialog(
       backgroundColor: cs.surfaceContainer,
@@ -30,6 +33,8 @@ class _EmojiPickerDialog extends StatelessWidget {
         width: 350,
         height: 400,
         child: OpenMojiPicker(
+          skinTone: prefs.skinTone,
+          onSkinToneChanged: prefs.setSkinTone,
           onSelected: (emoji) {
             Navigator.of(context).pop();
             onSelected(emoji);

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/utils/openmoji.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -446,6 +447,31 @@ void main() {
       expect(MobileTab.inbox.label, 'Inbox');
       expect(MobileTab.chats.label, 'Chats');
       expect(MobileTab.you.label, 'You');
+    });
+  });
+
+  group('emoji skin tone', () {
+    test('defaults to none', () {
+      expect(prefs.skinTone, SkinTone.none);
+    });
+
+    test('round-trips a chosen tone', () async {
+      await prefs.setSkinTone(SkinTone.medium);
+      expect(prefs.skinTone, SkinTone.medium);
+    });
+
+    test('notifies listeners on change', () async {
+      var notified = false;
+      prefs.addListener(() => notified = true);
+      await prefs.setSkinTone(SkinTone.dark);
+      expect(notified, isTrue);
+    });
+
+    test('falls back to none on unknown stored value', () async {
+      SharedPreferences.setMockInitialValues({'emoji_skin_tone': 'bogus'});
+      final sp = await SharedPreferences.getInstance();
+      final badPrefs = PreferencesService(prefs: sp);
+      expect(badPrefs.skinTone, SkinTone.none);
     });
   });
 
