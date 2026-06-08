@@ -8,6 +8,7 @@ class OpenMojiEmoji {
   const OpenMojiEmoji({
     required this.emoji,
     required this.name,
+    required this.annotation,
     required this.search,
   });
 
@@ -17,10 +18,20 @@ class OpenMojiEmoji {
   /// The OpenMoji asset base name (codepoint sequence, no extension).
   final String name;
 
+  /// Human-readable name (e.g. "grinning face").
+  final String annotation;
+
   /// Lowercased annotation + tags, used for search matching.
   final String search;
 
   String get asset => 'assets/openmoji/$name.png';
+
+  /// `:shortcode:`-style identifier derived from [annotation]
+  /// (e.g. "grinning_face").
+  String get shortcode => annotation
+      .toLowerCase()
+      .replaceAll(RegExp('[^a-z0-9]+'), '_')
+      .replaceAll(RegExp(r'^_|_$'), '');
 }
 
 /// A named group of emoji (e.g. smileys-emotion, flags).
@@ -66,6 +77,7 @@ class OpenMojiCatalog {
                   (e) => OpenMojiEmoji(
                     emoji: e['e']! as String,
                     name: e['n']! as String,
+                    annotation: (e['a'] as String?) ?? '',
                     search: e['s']! as String,
                   ),
                 )

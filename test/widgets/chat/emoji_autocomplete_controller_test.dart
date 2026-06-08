@@ -338,6 +338,31 @@ void main() {
       ctrl.dispose();
     });
 
+    test('selectSuggestion inserts the grapheme for built-in OpenMoji', () {
+      final ctrl = _makeCtrl(
+          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+
+      textCtrl.value = const TextEditingValue(
+        text: ':grin',
+        selection: TextSelection.collapsed(offset: 5),
+      );
+
+      final openMoji = PackImage(
+        shortcode: 'grinning_face',
+        url: Uri.parse('openmoji://1F600'),
+        isSticker: false,
+        isEmoji: true,
+        body: 'grinning face',
+        emoji: '😀',
+      );
+      ctrl.selectSuggestion(openMoji);
+
+      expect(textCtrl.text, '😀 ');
+      expect(ctrl.isActive, isFalse);
+
+      ctrl.dispose();
+    });
+
     test('selectSuggestion preserves text before trigger', () {
       final ctrl = _makeCtrl(
           textCtrl: textCtrl, service: mockService, room: mockRoom,);

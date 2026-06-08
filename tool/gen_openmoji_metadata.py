@@ -4,7 +4,7 @@
 Source: OpenMoji metadata (data/openmoji.json from the OpenMoji repo).
 Keeps base (no skin-tone) emoji from the standard Unicode groups that have a
 bundled PNG asset, grouped and ordered for the picker. Each entry is
-{e: emoji, n: hexcode/asset-name, s: search text}.
+{e: emoji, n: hexcode/asset-name, a: annotation, s: search text}.
 
 Usage: python3 tool/gen_openmoji_metadata.py path/to/openmoji.json
 """
@@ -45,10 +45,12 @@ def main(src):
         name = e["hexcode"]
         if name not in available:
             continue
-        search = " ".join(
-            filter(None, [e.get("annotation", ""), e.get("tags", "")])
-        ).lower()
-        buckets[g].append((e.get("order") or 0, {"e": e["emoji"], "n": name, "s": search}))
+        annotation = e.get("annotation", "")
+        search = " ".join(filter(None, [annotation, e.get("tags", "")])).lower()
+        buckets[g].append((
+            e.get("order") or 0,
+            {"e": e["emoji"], "n": name, "a": annotation, "s": search},
+        ))
 
     groups = []
     total = 0

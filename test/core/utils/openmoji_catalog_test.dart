@@ -7,11 +7,11 @@ import 'package:kohera/core/utils/openmoji_catalog.dart';
 const _json = '''
 {"groups":[
   {"key":"smileys-emotion","emoji":[
-    {"e":"😀","n":"1F600","s":"grinning face happy smile"},
-    {"e":"😢","n":"1F622","s":"crying face sad tear"}
+    {"e":"😀","n":"1F600","a":"grinning face","s":"grinning face happy smile"},
+    {"e":"😢","n":"1F622","a":"crying face","s":"crying face sad tear"}
   ]},
   {"key":"flags","emoji":[
-    {"e":"🇺🇸","n":"1F1FA-1F1F8","s":"flag united states america"}
+    {"e":"🇺🇸","n":"1F1FA-1F1F8","a":"flag: United States","s":"flag united states america"}
   ]}
 ]}
 ''';
@@ -39,6 +39,16 @@ void main() {
   test('all flattens every category', () async {
     await OpenMojiCatalog.load(_FakeBundle(_json));
     expect(OpenMojiCatalog.all.length, 3);
+  });
+
+  test('parses annotation and derives a snake_case shortcode', () async {
+    await OpenMojiCatalog.load(_FakeBundle(_json));
+    final grinning = OpenMojiCatalog.all.firstWhere((e) => e.emoji == '😀');
+    expect(grinning.annotation, 'grinning face');
+    expect(grinning.shortcode, 'grinning_face');
+
+    final flag = OpenMojiCatalog.all.firstWhere((e) => e.emoji == '🇺🇸');
+    expect(flag.shortcode, 'flag_united_states');
   });
 
   test('search matches all whitespace-separated terms', () async {

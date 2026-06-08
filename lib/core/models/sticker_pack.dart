@@ -8,6 +8,7 @@ class PackImage {
     required this.isSticker,
     required this.isEmoji,
     this.body,
+    this.emoji,
   });
 
   final String shortcode;
@@ -15,6 +16,11 @@ class PackImage {
   final bool isSticker;
   final bool isEmoji;
   final String? body;
+
+  /// The Unicode emoji grapheme for built-in OpenMoji entries. When non-null
+  /// the image renders as a local OpenMoji asset and inserts this grapheme;
+  /// when null it is a remote (mxc/http) custom emoji.
+  final String? emoji;
 
   String get altText => body ?? ':$shortcode:';
 }
