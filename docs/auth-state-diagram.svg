@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="900" viewBox="0 0 1180 900" font-family="-apple-system, Segoe UI, Roboto, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#37474f"/>
+    </marker>
+    <marker id="arrowRed" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#c62828"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#2e7d32"/>
+    </marker>
+  </defs>
+
+  <rect width="1180" height="900" fill="#fafafa"/>
+  <text x="40" y="46" font-size="26" font-weight="700" fill="#1a237e">Kohera — Authentication State Machine</text>
+  <text x="40" y="72" font-size="14" fill="#546e7a">auth.isLoggedIn drives the GoRouter redirect (app_router.dart:58). false ⇒ forced to /login.</text>
+
+  <!-- App start -->
+  <circle cx="120" cy="140" r="14" fill="#37474f"/>
+  <text x="100" y="178" font-size="13" fill="#37474f">app start</text>
+  <text x="60" y="196" font-size="12" fill="#90a4ae">ClientManager.init()</text>
+
+  <!-- Restoring session -->
+  <rect x="280" y="108" rx="10" width="240" height="74" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/>
+  <text x="400" y="138" font-size="16" font-weight="700" fill="#0d47a1" text-anchor="middle">RESTORING SESSION</text>
+  <text x="400" y="160" font-size="12" fill="#1565c0" text-anchor="middle">_restoreSession()</text>
+  <text x="400" y="176" font-size="11" fill="#5472a8" text-anchor="middle">DB session first, else keychain</text>
+
+  <!-- Unauthenticated -->
+  <rect x="40" y="300" rx="10" width="240" height="84" fill="#fff3e0" stroke="#ef6c00" stroke-width="2"/>
+  <text x="160" y="330" font-size="16" font-weight="700" fill="#e65100" text-anchor="middle">UNAUTHENTICATED</text>
+  <text x="160" y="352" font-size="12" fill="#ef6c00" text-anchor="middle">isLoggedIn = false</text>
+  <text x="160" y="370" font-size="11" fill="#bf6a16" text-anchor="middle">/login · /register screens</text>
+
+  <!-- Authenticating -->
+  <rect x="360" y="300" rx="10" width="250" height="84" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2"/>
+  <text x="485" y="328" font-size="16" font-weight="700" fill="#6a1b9a" text-anchor="middle">AUTHENTICATING</text>
+  <text x="485" y="349" font-size="11" fill="#7b1fa2" text-anchor="middle">login() · completeSsoLogin()</text>
+  <text x="485" y="365" font-size="11" fill="#7b1fa2" text-anchor="middle">completeRegistration()</text>
+  <text x="485" y="380" font-size="10" fill="#9c5cb0" text-anchor="middle">checkHomeserver → _client.login → persist</text>
+
+  <!-- Logged in -->
+  <rect x="430" y="500" rx="10" width="300" height="96" fill="#e8f5e9" stroke="#2e7d32" stroke-width="3"/>
+  <text x="580" y="532" font-size="18" font-weight="700" fill="#1b5e20" text-anchor="middle">LOGGED IN</text>
+  <text x="580" y="555" font-size="12" fill="#2e7d32" text-anchor="middle">isLoggedIn = true · sync running</text>
+  <text x="580" y="572" font-size="11" fill="#43844a" text-anchor="middle">_onAuthChanged → start sync, outbox,</text>
+  <text x="580" y="587" font-size="11" fill="#43844a" text-anchor="middle">key mirror, login-state listener</text>
+
+  <!-- Soft logout -->
+  <rect x="800" y="300" rx="10" width="320" height="118" fill="#ffebee" stroke="#c62828" stroke-width="3"/>
+  <text x="960" y="330" font-size="16" font-weight="700" fill="#b71c1c" text-anchor="middle">SOFT LOGOUT (token refresh)</text>
+  <text x="960" y="351" font-size="12" fill="#c62828" text-anchor="middle">handleSoftLogout()  matrix_service.dart:255</text>
+  <text x="960" y="370" font-size="11" fill="#c62828" text-anchor="middle">SDK onSoftLogout → refreshAccessToken()</text>
+  <text x="960" y="392" font-size="11" font-weight="700" fill="#b71c1c" text-anchor="middle">⚠ BUG: ANY exception ⇒ auth.logout()</text>
+  <text x="960" y="408" font-size="10" fill="#c62828" text-anchor="middle">network blip / 5xx / timeout = permanent sign-out</text>
+
+  <!-- Server logout -->
+  <rect x="820" y="560" rx="10" width="280" height="84" fill="#eceff1" stroke="#455a64" stroke-width="2"/>
+  <text x="960" y="590" font-size="15" font-weight="700" fill="#263238" text-anchor="middle">SERVER LOGOUT (hard)</text>
+  <text x="960" y="611" font-size="11" fill="#455a64" text-anchor="middle">LoginState.loggedOut → handleServerLogout()</text>
+  <text x="960" y="628" font-size="11" fill="#455a64" text-anchor="middle">token revoked — correctly permanent</text>
+
+  <!-- User logout -->
+  <rect x="40" y="500" rx="10" width="250" height="74" fill="#eceff1" stroke="#455a64" stroke-width="2"/>
+  <text x="165" y="530" font-size="15" font-weight="700" fill="#263238" text-anchor="middle">USER LOGOUT</text>
+  <text x="165" y="551" font-size="11" fill="#455a64" text-anchor="middle">signOut() → auth.logout()</text>
+  <text x="165" y="567" font-size="11" fill="#455a64" text-anchor="middle">clears keychain + backup</text>
+
+  <!-- Edges -->
+  <!-- start -> restoring -->
+  <path d="M134,140 L280,142" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- restoring -> logged in (success) -->
+  <path d="M460,182 C540,300 565,400 580,498" fill="none" stroke="#2e7d32" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <text x="560" y="320" font-size="11" fill="#2e7d32">restore OK</text>
+  <text x="552" y="335" font-size="11" fill="#2e7d32">activateRestoredSession()</text>
+
+  <!-- restoring -> unauth (no session / permanent failure) -->
+  <path d="M300,182 C220,230 185,255 168,298" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="150" y="240" font-size="11" fill="#546e7a">no session /</text>
+  <text x="150" y="255" font-size="11" fill="#546e7a">isPermanentAuthFailure</text>
+
+  <!-- unauth -> authenticating -->
+  <path d="M280,338 L358,338" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="290" y="330" font-size="11" fill="#546e7a">submit creds</text>
+
+  <!-- authenticating -> logged in -->
+  <path d="M495,384 C520,430 545,460 565,498" fill="none" stroke="#2e7d32" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <text x="540" y="445" font-size="11" fill="#2e7d32">success</text>
+
+  <!-- authenticating -> unauth (failure) -->
+  <path d="M380,384 C320,420 280,440 230,498" fill="none" stroke="#37474f" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="300" y="470" font-size="11" fill="#546e7a">loginError</text>
+
+  <!-- logged in -> soft logout -->
+  <path d="M730,520 C850,470 920,450 945,420" fill="none" stroke="#c62828" stroke-width="2" marker-end="url(#arrowRed)"/>
+  <text x="790" y="475" font-size="11" fill="#c62828">access token expires (401 soft_logout)</text>
+
+  <!-- soft logout -> logged in (refresh OK) -->
+  <path d="M880,418 C820,460 760,480 732,512" fill="none" stroke="#2e7d32" stroke-width="2" stroke-dasharray="5,4" marker-end="url(#arrowGreen)"/>
+  <text x="735" y="455" font-size="11" fill="#2e7d32">refresh OK → persist</text>
+
+  <!-- soft logout -> unauth (BUG path) -->
+  <path d="M800,360 C560,250 360,255 250,298" fill="none" stroke="#c62828" stroke-width="3" marker-end="url(#arrowRed)"/>
+  <text x="430" y="240" font-size="13" font-weight="700" fill="#c62828">⚠ refresh throws (incl. transient) ⇒ logout() ⇒ /login</text>
+
+  <!-- logged in -> server logout -->
+  <path d="M730,560 C770,575 790,585 818,592" fill="none" stroke="#455a64" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- server logout -> unauth -->
+  <path d="M820,600 C500,690 280,560 200,576" fill="none" stroke="#455a64" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="470" y="690" font-size="11" fill="#455a64">handleServerLogout() → clear keys</text>
+
+  <!-- logged in -> user logout -->
+  <path d="M430,540 L292,538" fill="none" stroke="#455a64" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="320" y="530" font-size="11" fill="#455a64">user taps sign out</text>
+
+  <!-- user logout -> unauth -->
+  <path d="M165,500 L162,386" fill="none" stroke="#455a64" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Legend -->
+  <rect x="40" y="740" rx="8" width="1100" height="130" fill="#ffffff" stroke="#cfd8dc"/>
+  <text x="60" y="768" font-size="14" font-weight="700" fill="#37474f">Legend / Suspect</text>
+  <line x1="60" y1="788" x2="100" y2="788" stroke="#2e7d32" stroke-width="2" marker-end="url(#arrowGreen)"/>
+  <text x="108" y="792" font-size="12" fill="#37474f">happy path (stays logged in)</text>
+  <line x1="60" y1="812" x2="100" y2="812" stroke="#c62828" stroke-width="3" marker-end="url(#arrowRed)"/>
+  <text x="108" y="816" font-size="12" fill="#37474f">forced-logout path</text>
+  <line x1="60" y1="836" x2="100" y2="836" stroke="#455a64" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="108" y="840" font-size="12" fill="#37474f">expected logout (user / server-revoked)</text>
+  <text x="430" y="792" font-size="12" font-weight="700" fill="#c62828">Most likely culprit:</text>
+  <text x="430" y="812" font-size="12" fill="#37474f">handleSoftLogout() treats every refreshAccessToken() error as permanent and calls auth.logout().</text>
+  <text x="430" y="832" font-size="12" fill="#37474f">A transient network/server error during a routine token refresh ejects the user — unlike the restore</text>
+  <text x="430" y="852" font-size="12" fill="#37474f">paths, it never checks auth.isPermanentAuthFailure() (matrix_service.dart:255–267).</text>
+</svg>
