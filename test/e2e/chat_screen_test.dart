@@ -10,6 +10,7 @@ import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
+import 'package:kohera/features/chat/widgets/sticker_picker_overlay.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
@@ -167,6 +168,30 @@ void main() {
       ),
     );
   }
+
+  // ── Inline emoji & sticker panel ────────────────────────────────
+
+  group('Chat screen — emoji panel', () {
+    testWidgets('Stickers & Emoji button toggles the inline panel',
+        (tester) async {
+      stubTimeline(mockRoom, mockTimeline, []);
+
+      await tester.pumpWidget(buildChatApp());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(StickerPickerOverlay), findsNothing);
+
+      // Open: the panel renders inline (no modal route).
+      await tester.tap(find.byTooltip('Stickers & Emoji'));
+      await tester.pumpAndSettle();
+      expect(find.byType(StickerPickerOverlay), findsOneWidget);
+
+      // Re-tap closes it.
+      await tester.tap(find.byTooltip('Stickers & Emoji'));
+      await tester.pumpAndSettle();
+      expect(find.byType(StickerPickerOverlay), findsNothing);
+    });
+  });
 
   // ── Group 1: Basic Display ──────────────────────────────────────
 
