@@ -39,6 +39,7 @@ import 'package:kohera/features/chat/widgets/search_results_body.dart';
 import 'package:kohera/features/chat/widgets/sticker_picker_overlay.dart';
 import 'package:kohera/features/chat/widgets/typing_indicator.dart';
 import 'package:kohera/features/chat/widgets/web_image_paste.dart';
+import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
@@ -374,10 +375,51 @@ class _ChatScreenState extends State<ChatScreen>
   // ── Sticker picker ────────────────────────────────────────
 
   void _toggleStickerPicker() {
+    final isNarrow =
+        MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
+    if (isNarrow) {
+      final matrix = context.read<MatrixService>();
+      final room = matrix.client.getRoomById(widget.roomId);
+      if (room != null) _openStickerSheet(matrix, room);
+      return;
+    }
     setState(() => _emojiPanelOpen = !_emojiPanelOpen);
     if (_emojiPanelOpen) {
       _composeFocusNode.unfocus();
     }
+  }
+
+  void _openStickerSheet(MatrixService matrix, Room room) {
+    final stickerService = context.read<StickerPackService>();
+    final skinTone = context.read<PreferencesService>().skinTone;
+    unawaited(showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetCtx) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.7,
+        minChildSize: 0.7,
+        maxChildSize: 0.9,
+        builder: (_, __) => StickerPickerOverlay(
+          packs: stickerService.packsForRoom(room),
+          client: matrix.client,
+          skinTone: skinTone,
+          onStickerTapped: (sticker) {
+            Navigator.of(sheetCtx).pop();
+            unawaited(_handleStickerSelected(sticker));
+          },
+          onEmojiTapped: (emoji) {
+            Navigator.of(sheetCtx).pop();
+            _handleEmojiSelected(emoji);
+          },
+          onManagePacks: () {
+            Navigator.of(sheetCtx).pop();
+            context.goNamed(Routes.settingsStickerPacks);
+          },
+        ),
+      ),
+    ),);
   }
 
   Widget _buildEmojiPanel(MatrixService matrix, Room room) {

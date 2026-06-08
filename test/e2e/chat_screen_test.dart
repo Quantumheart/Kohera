@@ -172,8 +172,12 @@ void main() {
   // ── Inline emoji & sticker panel ────────────────────────────────
 
   group('Chat screen — emoji panel', () {
-    testWidgets('Stickers & Emoji button toggles the inline panel',
+    testWidgets('wide layout toggles the inline panel (no modal sheet)',
         (tester) async {
+      tester.view.physicalSize = const Size(1000, 800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       stubTimeline(mockRoom, mockTimeline, []);
 
       await tester.pumpWidget(buildChatApp());
@@ -185,11 +189,30 @@ void main() {
       await tester.tap(find.byTooltip('Stickers & Emoji'));
       await tester.pumpAndSettle();
       expect(find.byType(StickerPickerOverlay), findsOneWidget);
+      expect(find.byType(DraggableScrollableSheet), findsNothing);
 
       // Re-tap closes it.
       await tester.tap(find.byTooltip('Stickers & Emoji'));
       await tester.pumpAndSettle();
       expect(find.byType(StickerPickerOverlay), findsNothing);
+    });
+
+    testWidgets('narrow layout opens the picker in a bottom sheet',
+        (tester) async {
+      tester.view.physicalSize = const Size(420, 900);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      stubTimeline(mockRoom, mockTimeline, []);
+
+      await tester.pumpWidget(buildChatApp());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byTooltip('Stickers & Emoji'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DraggableScrollableSheet), findsOneWidget);
+      expect(find.byType(StickerPickerOverlay), findsOneWidget);
     });
   });
 
