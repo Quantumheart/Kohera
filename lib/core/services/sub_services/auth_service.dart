@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
 import 'package:kohera/core/services/matrix_service.dart' show koheraKey;
 import 'package:kohera/core/services/session_backup.dart';
+import 'package:kohera/core/utils/network_error.dart';
 import 'package:matrix/matrix.dart';
 // ignore: implementation_imports, no public API for ClientInitException
 import 'package:matrix/src/utils/client_init_exception.dart';
@@ -24,6 +25,24 @@ class AuthService extends ChangeNotifier {
 
   // ── Auth state ────────────────────────────────────────────────
   bool isLoggedIn = false;
+
+  // The session is authenticated but the SDK is temporarily unreachable; the
+  // lifecycle is retrying rather than tearing the session down. Distinct from
+  // `isLoggedIn = false` so the router keeps the user in the app.
+  bool _reconnecting = false;
+  bool get isReconnecting => _reconnecting;
+
+  void enterReconnecting() {
+    if (!isLoggedIn || _reconnecting) return;
+    _reconnecting = true;
+    notifyListeners();
+  }
+
+  void exitReconnecting() {
+    if (!_reconnecting) return;
+    _reconnecting = false;
+    notifyListeners();
+  }
 
   String? _loginError;
   String? get loginError => _loginError;
@@ -171,6 +190,7 @@ class AuthService extends ChangeNotifier {
 
   void activateRestoredSession() {
     isLoggedIn = true;
+    _reconnecting = false;
     notifyListeners();
   }
 
@@ -178,6 +198,7 @@ class AuthService extends ChangeNotifier {
 
   Future<void> logout() async {
     isLoggedIn = false;
+    _reconnecting = false;
     notifyListeners();
 
     try {
@@ -193,6 +214,7 @@ class AuthService extends ChangeNotifier {
 
   Future<void> handleServerLogout() async {
     isLoggedIn = false;
+    _reconnecting = false;
     notifyListeners();
 
     await clearSessionKeys();
@@ -327,6 +349,22 @@ class AuthService extends ChangeNotifier {
           e.errcode == 'M_FORBIDDEN' ||
           e.errcode == 'M_USER_DEACTIVATED';
     }
+    return false;
+  }
+
+  /// Whether [error] is a transient failure worth retrying — i.e. the session
+  /// is likely still valid and the server is merely unreachable. Restore and
+  /// soft-logout share this so they classify the same errcodes identically:
+  /// network/timeout failures, rate-limiting, and 5xx/other non-permanent
+  /// `MatrixException`s are transient; only [isPermanentAuthFailure] errcodes
+  /// are not.
+  bool isTransientAuthFailure(Object error) {
+    final e =
+        error is ClientInitException ? error.originalException : error;
+    if (isPermanentAuthFailure(e)) return false;
+    if (isNetworkError(e)) return true;
+    if (e is TimeoutException) return true;
+    if (e is MatrixException) return true;
     return false;
   }
 

@@ -6,6 +6,7 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/calling/widgets/voice_banner.dart';
 import 'package:kohera/features/e2ee/widgets/key_backup_banner.dart';
 import 'package:kohera/features/home/widgets/narrow_layout.dart';
+import 'package:kohera/features/home/widgets/reconnecting_banner.dart';
 import 'package:kohera/features/home/widgets/wide_layout.dart';
 import 'package:kohera/features/spaces/widgets/space_reparent_controller.dart';
 import 'package:provider/provider.dart';
@@ -115,6 +116,7 @@ class _HomeShellState extends State<HomeShell> {
           autofocus: true,
           child: Column(
             children: [
+              const ReconnectingBanner(),
               VoiceBanner(currentViewingRoomId: _routeRoomId),
               const KeyBackupBanner(),
               Expanded(child: child),

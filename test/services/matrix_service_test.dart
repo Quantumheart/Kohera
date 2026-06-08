@@ -58,6 +58,7 @@ void main() {
       client: mockClient,
       storage: mockStorage,
       clientName: 'test',
+      backoff: (_) async {},
     );
   });
 

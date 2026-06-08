@@ -14,6 +14,7 @@ import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/core/utils/network_error.dart';
+import 'package:kohera/core/utils/retry.dart';
 import 'package:kohera/features/notifications/services/call_push_rule_manager.dart';
 import 'package:kohera/features/notifications/services/megolm_key_mirror.dart';
 import 'package:matrix/matrix.dart';
@@ -35,7 +36,9 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     required Client client,
     FlutterSecureStorage? storage,
     this.clientName = 'default',
+    SleepFn? backoff,
   })  : _client = client,
+        _backoff = backoff ?? Future<void>.delayed,
         _storage = storage ??
             const FlutterSecureStorage(
               iOptions: IOSOptions(
@@ -57,6 +60,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     spaceAccess = SpaceAccessService(client: _client);
     sync = SyncService(
       client: _client,
+      sleep: _backoff,
       onPostSyncBackup: () async {
         await chatBackup.tryAutoUnlockBackup();
       },
@@ -84,11 +88,16 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
 
   final FlutterSecureStorage _storage;
   final String clientName;
+  final SleepFn _backoff;
 
   final Client _client;
   Client get client => _client;
 
   bool get isLoggedIn => auth.isLoggedIn;
+
+  /// Authenticated but the SDK is temporarily unreachable and the lifecycle is
+  /// retrying. The router keeps the user in the app while this is true.
+  bool get isReconnecting => auth.isReconnecting;
 
   @visibleForTesting
   set isLoggedInForTest(bool value) {
@@ -124,6 +133,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
 
   bool _foregroundSyncStarted = false;
   bool _lifecycleObserverRegistered = false;
+  bool _lastAuthLoggedIn = false;
 
   bool _hasSkippedSetup = false;
   bool get hasSkippedSetup => _hasSkippedSetup;
@@ -255,54 +265,78 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> handleSoftLogout() async {
     debugPrint('[Kohera] Soft logout detected, attempting token refresh...');
     try {
-      await _client.refreshAccessToken();
-      await auth.persistCredentials();
-      await auth.saveSessionBackup();
-      debugPrint('[Kohera] Token refreshed successfully');
+      await retryWithBackoff(
+        _client.refreshAccessToken,
+        retryIf: auth.isTransientAuthFailure,
+        sleep: _backoff,
+        onRetry: (e, delay, attempt) {
+          auth.enterReconnecting();
+          debugPrint('[Kohera] Token refresh failed (attempt $attempt), '
+              'retrying in ${delay.inSeconds}s: $e');
+        },
+      );
     } catch (e) {
-      debugPrint('[Kohera] Token refresh failed: $e');
-      final cause = _unwrapInitException(e);
-      if (auth.isPermanentAuthFailure(cause)) {
+      if (auth.isPermanentAuthFailure(_unwrapInitException(e))) {
+        debugPrint('[Kohera] Token refresh failed permanently, logging out: $e');
         await auth.logout();
         await chatBackup.deleteStoredRecoveryKey();
       } else {
-        debugPrint('[Kohera] Transient refresh failure, keeping session '
-            'for next sync/refresh retry');
+        debugPrint('[Kohera] Token refresh failed transiently after retries; '
+            'keeping session in reconnecting state: $e');
+        auth.enterReconnecting();
       }
+      return;
     }
+
+    try {
+      await auth.persistCredentials();
+      await auth.saveSessionBackup();
+    } catch (e) {
+      debugPrint('[Kohera] Persisting refreshed credentials failed '
+          '(non-fatal): $e');
+    }
+    auth.exitReconnecting();
+    debugPrint('[Kohera] Token refreshed successfully');
   }
 
   // ── Private: Auth Observer ──────────────────────────────────────
 
   void _onAuthChanged() {
-    if (auth.isLoggedIn) {
-      uia.listenForUia();
-      _listenForLoginState();
-      unawaited(callPushRuleManager.ensureRule());
-      unawaited(
-        keyMirror.start().catchError((Object e) {
-          debugPrint('[Kohera] Key mirror start failed: $e');
-        }),
-      );
-      unawaited(
-        outbox.start().catchError((Object e) {
-          debugPrint('[Kohera] Outbox start failed: $e');
-        }),
-      );
-    } else {
-      unawaited(_loginStateSub?.cancel());
-      _loginStateSub = null;
-      sync.cancelSyncSub();
-      unawaited(keyMirror.dispose());
-      uia.clearCachedPassword();
-      uia.cancelUiaSub();
-      selection.resetSelection();
-      chatBackup.resetChatBackupState();
-      _hasSkippedSetup = false;
-      _foregroundSyncStarted = false;
-      if (_lifecycleObserverRegistered) {
-        WidgetsBinding.instance.removeObserver(this);
-        _lifecycleObserverRegistered = false;
+    // Only run startup/teardown on an actual signed-in/out transition. The
+    // reconnecting flag also notifies through here, but must not re-run the
+    // logged-in startup.
+    final loggedIn = auth.isLoggedIn;
+    if (loggedIn != _lastAuthLoggedIn) {
+      _lastAuthLoggedIn = loggedIn;
+      if (loggedIn) {
+        uia.listenForUia();
+        _listenForLoginState();
+        unawaited(callPushRuleManager.ensureRule());
+        unawaited(
+          keyMirror.start().catchError((Object e) {
+            debugPrint('[Kohera] Key mirror start failed: $e');
+          }),
+        );
+        unawaited(
+          outbox.start().catchError((Object e) {
+            debugPrint('[Kohera] Outbox start failed: $e');
+          }),
+        );
+      } else {
+        unawaited(_loginStateSub?.cancel());
+        _loginStateSub = null;
+        sync.cancelSyncSub();
+        unawaited(keyMirror.dispose());
+        uia.clearCachedPassword();
+        uia.cancelUiaSub();
+        selection.resetSelection();
+        chatBackup.resetChatBackupState();
+        _hasSkippedSetup = false;
+        _foregroundSyncStarted = false;
+        if (_lifecycleObserverRegistered) {
+          WidgetsBinding.instance.removeObserver(this);
+          _lifecycleObserverRegistered = false;
+        }
       }
     }
     notifyListeners();
@@ -347,10 +381,19 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     if (_foregroundSyncStarted || _disposed) return;
     _foregroundSyncStarted = true;
     unawaited(
-      sync.startSync().catchError((Object e) {
+      sync
+          .startSync(
+            retrySchedule: kAuthBackoffSchedule,
+            onRetry: (e, delay, attempt) => auth.enterReconnecting(),
+          )
+          .then((_) => auth.exitReconnecting())
+          .catchError((Object e) {
         if (e is! TimeoutException) {
           debugPrint('[Kohera] Background sync error: $e');
         }
+        // First sync never landed after retries: stay authenticated but
+        // reconnecting rather than tearing the session down.
+        auth.enterReconnecting();
       }),
     );
     presence.setOnline();
@@ -417,7 +460,18 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _restoreFromDatabase() async {
     debugPrint('[Kohera] Restoring session from database for $clientName');
     try {
-      await _client.init();
+      await retryWithBackoff(
+        () async {
+          if (_client.isLogged()) return;
+          await _client.init();
+        },
+        retryIf: auth.isTransientAuthFailure,
+        sleep: _backoff,
+        onRetry: (e, delay, attempt) => debugPrint(
+          '[Kohera] Database restore failed (attempt $attempt), '
+          'retrying in ${delay.inSeconds}s: $e',
+        ),
+      );
       if (!_client.isLogged()) {
         debugPrint('[Kohera] Database restore produced no logged-in session');
         auth.isLoggedIn = false;
@@ -443,6 +497,11 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       auth.isLoggedIn = false;
       if (auth.isPermanentAuthFailure(cause)) {
         await _clearSessionAndBackup();
+      } else if (_client.isLogged()) {
+        debugPrint('[Kohera] Restore failed transiently but session data is '
+            'present; activating in reconnecting state');
+        await _activateSession();
+        auth.enterReconnecting();
       }
     }
   }
@@ -479,14 +538,25 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     try {
       final homeserverUri = Uri.parse(keys.homeserver!);
       _client.homeserver = homeserverUri;
-      await _client.init(
-        newToken: keys.token,
-        newRefreshToken: keys.refreshToken ?? backup?.refreshToken,
-        newUserID: keys.userId,
-        newDeviceID: keys.deviceId,
-        newHomeserver: homeserverUri,
-        newDeviceName: 'Kohera Flutter',
-        newOlmAccount: backup?.olmAccount,
+      await retryWithBackoff(
+        () async {
+          if (_client.isLogged()) return;
+          await _client.init(
+            newToken: keys.token,
+            newRefreshToken: keys.refreshToken ?? backup?.refreshToken,
+            newUserID: keys.userId,
+            newDeviceID: keys.deviceId,
+            newHomeserver: homeserverUri,
+            newDeviceName: 'Kohera Flutter',
+            newOlmAccount: backup?.olmAccount,
+          );
+        },
+        retryIf: auth.isTransientAuthFailure,
+        sleep: _backoff,
+        onRetry: (e, delay, attempt) => debugPrint(
+          '[Kohera] Keychain restore failed (attempt $attempt), '
+          'retrying in ${delay.inSeconds}s: $e',
+        ),
       );
       debugPrint('[Kohera] Session restored from keychain – '
           'encryption=${_client.encryption != null ? "available" : "null"}, '
@@ -509,6 +579,11 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       auth.isLoggedIn = false;
       if (auth.isPermanentAuthFailure(cause)) {
         await _clearSessionAndBackup();
+      } else if (_client.isLogged()) {
+        debugPrint('[Kohera] Restore failed transiently but session data is '
+            'present; activating in reconnecting state');
+        await _activateSession();
+        auth.enterReconnecting();
       }
     }
   }

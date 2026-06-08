@@ -109,4 +109,62 @@ void main() {
       expect(service.syncing, isFalse);
     });
   });
+
+  group('startSync retries', () {
+    late SyncService retryService;
+
+    setUp(() {
+      retryService = SyncService(
+        client: mockClient,
+        sleep: (_) async {},
+        onPostSyncBackup: () async {},
+      );
+    });
+
+    test('does not retry by default', () async {
+      var retries = 0;
+
+      await expectLater(
+        retryService.startSync(
+          timeout: const Duration(milliseconds: 1),
+          onRetry: (_, __, ___) => retries++,
+        ),
+        throwsA(isA<TimeoutException>()),
+      );
+
+      expect(retries, 0);
+    });
+
+    test('retries with backoff then recovers when sync lands late', () async {
+      var retries = 0;
+
+      // Emitting from inside onRetry guarantees the first attempt times out
+      // before the sync arrives, making retry-then-recover deterministic.
+      await retryService.startSync(
+        timeout: const Duration(milliseconds: 50),
+        retrySchedule: const [Duration(seconds: 1)],
+        onRetry: (_, __, ___) {
+          retries++;
+          syncController.add(SyncUpdate(nextBatch: 'b1'));
+        },
+      );
+
+      expect(retries, 1);
+    });
+
+    test('throws TimeoutException after exhausting retries', () async {
+      var retries = 0;
+
+      await expectLater(
+        retryService.startSync(
+          timeout: const Duration(milliseconds: 20),
+          retrySchedule: const [Duration(seconds: 1), Duration(seconds: 1)],
+          onRetry: (_, __, ___) => retries++,
+        ),
+        throwsA(isA<TimeoutException>()),
+      );
+
+      expect(retries, 2);
+    });
+  });
 }

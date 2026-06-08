@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:matrix/matrix.dart';
@@ -150,6 +153,98 @@ void main() {
         service.isPermanentAuthFailure(Exception('network')),
         isFalse,
       );
+    });
+  });
+
+  group('isTransientAuthFailure', () {
+    test('classifies network errors as transient', () {
+      expect(
+        service.isTransientAuthFailure(const SocketException('down')),
+        isTrue,
+      );
+    });
+
+    test('classifies timeouts as transient', () {
+      expect(
+        service.isTransientAuthFailure(TimeoutException('slow')),
+        isTrue,
+      );
+    });
+
+    test('classifies rate-limiting as transient', () {
+      final error = MatrixException.fromJson({
+        'errcode': 'M_LIMIT_EXCEEDED',
+        'error': 'Too many requests',
+        'retry_after_ms': 2000,
+      });
+
+      expect(service.isTransientAuthFailure(error), isTrue);
+    });
+
+    test('classifies other server MatrixExceptions as transient', () {
+      final error = MatrixException.fromJson({
+        'errcode': 'M_UNKNOWN',
+        'error': 'Internal server error',
+      });
+
+      expect(service.isTransientAuthFailure(error), isTrue);
+    });
+
+    test('does not classify permanent auth failures as transient', () {
+      for (final errcode in const [
+        'M_UNKNOWN_TOKEN',
+        'M_FORBIDDEN',
+        'M_USER_DEACTIVATED',
+      ]) {
+        final error = MatrixException.fromJson({
+          'errcode': errcode,
+          'error': 'nope',
+        });
+        expect(
+          service.isTransientAuthFailure(error),
+          isFalse,
+          reason: '$errcode should be permanent',
+        );
+      }
+    });
+
+    test('does not classify unrelated errors as transient', () {
+      expect(service.isTransientAuthFailure(StateError('bug')), isFalse);
+    });
+  });
+
+  group('reconnecting state', () {
+    test('enterReconnecting is a no-op while signed out', () {
+      service.enterReconnecting();
+      expect(service.isReconnecting, isFalse);
+    });
+
+    test('enters and exits reconnecting while signed in', () {
+      service.isLoggedIn = true;
+
+      var notifications = 0;
+      service.addListener(() => notifications++);
+
+      service.enterReconnecting();
+      expect(service.isReconnecting, isTrue);
+
+      // Re-entering does not re-notify.
+      service.enterReconnecting();
+
+      service.exitReconnecting();
+      expect(service.isReconnecting, isFalse);
+
+      expect(notifications, 2);
+    });
+
+    test('logout clears reconnecting', () async {
+      service.isLoggedIn = true;
+      service.enterReconnecting();
+
+      await service.logout();
+
+      expect(service.isReconnecting, isFalse);
+      expect(service.isLoggedIn, isFalse);
     });
   });
 
