@@ -261,8 +261,14 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       debugPrint('[Kohera] Token refreshed successfully');
     } catch (e) {
       debugPrint('[Kohera] Token refresh failed: $e');
-      await auth.logout();
-      await chatBackup.deleteStoredRecoveryKey();
+      final cause = _unwrapInitException(e);
+      if (auth.isPermanentAuthFailure(cause)) {
+        await auth.logout();
+        await chatBackup.deleteStoredRecoveryKey();
+      } else {
+        debugPrint('[Kohera] Transient refresh failure, keeping session '
+            'for next sync/refresh retry');
+      }
     }
   }
 
