@@ -11,8 +11,9 @@ import 'package:kohera/shared/widgets/openmoji_image.dart';
 /// searchable grid. Calls [onSelected] with the Unicode emoji on tap.
 ///
 /// Tone-supporting emoji render with [skinTone] applied; long-pressing one
-/// offers a per-emoji tone override. When [onSkinToneChanged] is provided a
-/// tone selector is shown for changing the default.
+/// opens an inline tone strip to insert a per-emoji override. When
+/// [onSkinToneChanged] is provided a header swatch opens the same strip for
+/// changing the default tone.
 class OpenMojiPicker extends StatefulWidget {
   const OpenMojiPicker({
     required this.onSelected,
@@ -47,12 +48,35 @@ class _OpenMojiPickerState extends State<OpenMojiPicker> {
   List<OpenMojiCategory>? _categories;
   String _query = '';
 
+  /// When non-null, the inline tone strip is open. An empty string means the
+  /// header (default-tone) strip; otherwise the per-emoji override for that
+  /// base grapheme.
+  String? _toneStripBase;
+
   @override
   void initState() {
     super.initState();
     unawaited(OpenMojiCatalog.load().then((categories) {
       if (mounted) setState(() => _categories = categories);
     }),);
+  }
+
+  void _openDefaultToneStrip() => setState(() => _toneStripBase = '');
+
+  void _openOverrideToneStrip(String base) =>
+      setState(() => _toneStripBase = base);
+
+  void _closeToneStrip() => setState(() => _toneStripBase = null);
+
+  void _onToneSelected(SkinTone tone) {
+    final base = _toneStripBase;
+    _closeToneStrip();
+    if (base == null) return;
+    if (base.isEmpty) {
+      widget.onSkinToneChanged?.call(tone);
+    } else {
+      widget.onSelected(applySkinTone(base, tone));
+    }
   }
 
   @override
@@ -63,94 +87,133 @@ class _OpenMojiPickerState extends State<OpenMojiPicker> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Column(
+    return Stack(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    isDense: true,
-                    hintText: 'Search emoji',
-                    prefixIcon: const Icon(Icons.search, size: 20),
-                    filled: true,
-                    fillColor: cs.surfaceContainerHighest,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+        Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText: 'Search emoji',
+                        prefixIcon: const Icon(Icons.search, size: 20),
+                        filled: true,
+                        fillColor: cs.surfaceContainerHighest,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      onChanged: (v) => setState(() => _query = v.trim()),
                     ),
                   ),
-                  onChanged: (v) => setState(() => _query = v.trim()),
+                  if (widget.onSkinToneChanged != null) ...[
+                    const SizedBox(width: 4),
+                    Tooltip(
+                      message: 'Default skin tone',
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: _openDefaultToneStrip,
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: OpenMojiImage(
+                              grapheme: widget.skinTone.sample,
+                              size: 28,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Expanded(
+              child: _query.isEmpty
+                  ? _CategoryTabs(
+                      categories: categories,
+                      icons: _icons,
+                      columns: widget.columns,
+                      skinTone: widget.skinTone,
+                      onSelected: widget.onSelected,
+                      onToneRequested: _openOverrideToneStrip,
+                    )
+                  : _EmojiGrid(
+                      emoji: OpenMojiCatalog.search(_query),
+                      columns: widget.columns,
+                      skinTone: widget.skinTone,
+                      onSelected: widget.onSelected,
+                      onToneRequested: _openOverrideToneStrip,
+                    ),
+            ),
+          ],
+        ),
+        if (_toneStripBase != null)
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _closeToneStrip,
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: _ToneStrip(
+                  base: _toneStripBase!,
+                  onSelected: _onToneSelected,
                 ),
               ),
-              if (widget.onSkinToneChanged != null) ...[
-                const SizedBox(width: 4),
-                _SkinToneSelector(
-                  tone: widget.skinTone,
-                  onChanged: widget.onSkinToneChanged!,
-                ),
-              ],
-            ],
+            ),
           ),
-        ),
-        Expanded(
-          child: _query.isEmpty
-              ? _CategoryTabs(
-                  categories: categories,
-                  icons: _icons,
-                  columns: widget.columns,
-                  skinTone: widget.skinTone,
-                  onSelected: widget.onSelected,
-                )
-              : _EmojiGrid(
-                  emoji: OpenMojiCatalog.search(_query),
-                  columns: widget.columns,
-                  skinTone: widget.skinTone,
-                  onSelected: widget.onSelected,
-                ),
-        ),
       ],
     );
   }
 }
 
-/// Default skin-tone chooser shown in the picker header.
-class _SkinToneSelector extends StatelessWidget {
-  const _SkinToneSelector({required this.tone, required this.onChanged});
+/// Inline row of skin-tone swatches. For the default strip ([base] empty) the
+/// swatches are sample hands; for an override they are the toned variants of
+/// [base].
+class _ToneStrip extends StatelessWidget {
+  const _ToneStrip({required this.base, required this.onSelected});
 
-  final SkinTone tone;
-  final ValueChanged<SkinTone> onChanged;
+  final String base;
+  final ValueChanged<SkinTone> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<SkinTone>(
-      tooltip: 'Default skin tone',
-      onSelected: onChanged,
-      itemBuilder: (context) => [
-        for (final t in SkinTone.values)
-          PopupMenuItem(
-            value: t,
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: OpenMojiImage(grapheme: t.sample, size: 24),
-                ),
-                const SizedBox(width: 12),
-                Text(t.label),
-              ],
-            ),
-          ),
-      ],
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      elevation: 6,
+      borderRadius: BorderRadius.circular(12),
+      color: cs.surfaceContainerHighest,
       child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: SizedBox(
-          width: 28,
-          height: 28,
-          child: OpenMojiImage(grapheme: tone.sample, size: 28),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final tone in SkinTone.values)
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => onSelected(tone),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: OpenMojiImage(
+                      grapheme: base.isEmpty
+                          ? tone.sample
+                          : applySkinTone(base, tone),
+                      size: 30,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -164,6 +227,7 @@ class _CategoryTabs extends StatelessWidget {
     required this.columns,
     required this.skinTone,
     required this.onSelected,
+    required this.onToneRequested,
   });
 
   final List<OpenMojiCategory> categories;
@@ -171,6 +235,7 @@ class _CategoryTabs extends StatelessWidget {
   final int columns;
   final SkinTone skinTone;
   final void Function(String emoji) onSelected;
+  final void Function(String base) onToneRequested;
 
   @override
   Widget build(BuildContext context) {
@@ -200,6 +265,7 @@ class _CategoryTabs extends StatelessWidget {
                     columns: columns,
                     skinTone: skinTone,
                     onSelected: onSelected,
+                    onToneRequested: onToneRequested,
                   ),
               ],
             ),
@@ -216,12 +282,14 @@ class _EmojiGrid extends StatelessWidget {
     required this.columns,
     required this.skinTone,
     required this.onSelected,
+    required this.onToneRequested,
   });
 
   final List<OpenMojiEmoji> emoji;
   final int columns;
   final SkinTone skinTone;
   final void Function(String emoji) onSelected;
+  final void Function(String base) onToneRequested;
 
   @override
   Widget build(BuildContext context) {
@@ -247,9 +315,8 @@ class _EmojiGrid extends StatelessWidget {
         return InkWell(
           borderRadius: BorderRadius.circular(8),
           onTap: () => onSelected(shown),
-          onLongPress: supportsTone
-              ? () => _pickTone(context, e.emoji)
-              : null,
+          onLongPress:
+              supportsTone ? () => onToneRequested(e.emoji) : null,
           child: Padding(
             padding: const EdgeInsets.all(6),
             child: OpenMojiImage(grapheme: shown),
@@ -257,33 +324,5 @@ class _EmojiGrid extends StatelessWidget {
         );
       },
     );
-  }
-
-  Future<void> _pickTone(BuildContext context, String base) async {
-    final overlay =
-        Overlay.of(context).context.findRenderObject()! as RenderBox;
-    final box = context.findRenderObject()! as RenderBox;
-    final topLeft = box.localToGlobal(Offset.zero, ancestor: overlay);
-    final position = RelativeRect.fromRect(
-      topLeft & box.size,
-      Offset.zero & overlay.size,
-    );
-
-    final picked = await showMenu<SkinTone>(
-      context: context,
-      position: position,
-      items: [
-        for (final t in SkinTone.values)
-          PopupMenuItem(
-            value: t,
-            child: SizedBox(
-              width: 32,
-              height: 32,
-              child: OpenMojiImage(grapheme: applySkinTone(base, t), size: 32),
-            ),
-          ),
-      ],
-    );
-    if (picked != null) onSelected(applySkinTone(base, picked));
   }
 }

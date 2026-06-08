@@ -107,10 +107,37 @@ void main() {
       (tester) async {
     await tester.pumpWidget(_wrap((_) {}));
     await tester.pump();
-    expect(find.byType(PopupMenuButton<SkinTone>), findsNothing);
+    expect(find.byTooltip('Default skin tone'), findsNothing);
 
     await tester.pumpWidget(_wrap((_) {}, onSkinToneChanged: (_) {}));
     await tester.pump();
-    expect(find.byType(PopupMenuButton<SkinTone>), findsOneWidget);
+    expect(find.byTooltip('Default skin tone'), findsOneWidget);
+  });
+
+  testWidgets('header swatch opens the default-tone strip and sets the tone',
+      (tester) async {
+    SkinTone? chosen;
+    await tester.pumpWidget(_wrap((_) {}, onSkinToneChanged: (t) => chosen = t));
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('Default skin tone'));
+    await tester.pump();
+
+    // The strip shows toned sample hands; tap the dark one.
+    await tester.tap(_cell(SkinTone.dark.sample));
+    expect(chosen, SkinTone.dark);
+  });
+
+  testWidgets('long-press opens a per-emoji tone override', (tester) async {
+    String? selected;
+    await tester.pumpWidget(_wrap((e) => selected = e));
+    await tester.pump();
+
+    await tester.longPress(_cell('👍'));
+    await tester.pump();
+
+    // Strip shows toned variants; the dark one only exists in the strip.
+    await tester.tap(_cell('\u{1F44D}\u{1F3FF}'));
+    expect(selected, '\u{1F44D}\u{1F3FF}');
   });
 }
