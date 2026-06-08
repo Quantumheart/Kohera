@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/features/chat/widgets/emoji_autocomplete_controller.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
+import 'package:kohera/shared/widgets/openmoji_image.dart';
 import 'package:matrix/matrix.dart';
 
 /// Displays filtered custom emoji suggestions above the compose field.
@@ -84,14 +85,17 @@ class _EmojiSuggestionTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           child: Row(
             children: [
-              MxcImage(
-                mxcUrl: emoji.url.toString(),
-                client: client,
-                width: 28,
-                height: 28,
-                fallbackText: emoji.altText,
-                fallbackStyle: tt.bodySmall,
-              ),
+              if (emoji.emoji != null)
+                OpenMojiImage(grapheme: emoji.emoji!, size: 28)
+              else
+                MxcImage(
+                  mxcUrl: emoji.url.toString(),
+                  client: client,
+                  width: 28,
+                  height: 28,
+                  fallbackText: emoji.altText,
+                  fallbackStyle: tt.bodySmall,
+                ),
               const SizedBox(width: 10),
               Text(
                 ':${emoji.shortcode}:',

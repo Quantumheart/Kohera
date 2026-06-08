@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:kohera/core/models/emoji_gg_pack.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/core/services/emoji_gg_service.dart';
+import 'package:kohera/core/utils/openmoji_catalog.dart';
 import 'package:matrix/matrix.dart';
 
 class ImportProgress {
@@ -27,6 +28,7 @@ class StickerPackService extends ChangeNotifier {
           false;
       if (relevant) notifyListeners();
     });
+    unawaited(_loadOpenMojiPack());
   }
 
   static const _kUserEmotesType = 'im.ponies.user_emotes';
@@ -34,8 +36,43 @@ class StickerPackService extends ChangeNotifier {
   static const _kSubscriptionsType = 'kohera.sticker_pack_subscriptions';
   static const _kImportedPacksType = 'kohera.imported_packs';
 
+  /// Stable id of the built-in OpenMoji pack (never persisted to account data).
+  static const kOpenMojiPackId = 'openmoji_builtin';
+
   final Client _client;
   StreamSubscription<SyncUpdate>? _sub;
+
+  StickerPack? _openMojiPack;
+
+  /// The built-in OpenMoji emoji pack, or null until the catalog has loaded.
+  StickerPack? get openMojiPack => _openMojiPack;
+
+  Future<void> _loadOpenMojiPack() async {
+    try {
+      final categories = await OpenMojiCatalog.load();
+      final emoji = [
+        for (final category in categories)
+          for (final e in category.emoji)
+            PackImage(
+              shortcode: e.shortcode,
+              url: Uri.parse('openmoji://${e.name}'),
+              isSticker: false,
+              isEmoji: true,
+              body: e.annotation,
+              emoji: e.emoji,
+            ),
+      ];
+      _openMojiPack = StickerPack(
+        id: kOpenMojiPackId,
+        displayName: 'OpenMoji',
+        stickers: const [],
+        emoji: emoji,
+      );
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[Kohera] Failed to load built-in OpenMoji pack: $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -153,6 +190,12 @@ class StickerPackService extends ChangeNotifier {
       if (spacePack != null && seen.add(spacePack.id)) {
         packs.add(spacePack);
       }
+    }
+
+    // Built-in OpenMoji pack last, so the user's own emoji rank first.
+    final openMoji = _openMojiPack;
+    if (openMoji != null && seen.add(openMoji.id)) {
+      packs.add(openMoji);
     }
 
     return packs;

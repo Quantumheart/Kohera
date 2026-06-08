@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
+import 'package:kohera/shared/widgets/openmoji_image.dart';
 import 'package:matrix/matrix.dart';
 
 class StickerPickerOverlay extends StatefulWidget {
@@ -307,15 +308,17 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
         onTap: () => widget.onEmojiTapped(emoji),
         child: Padding(
           padding: const EdgeInsets.all(4),
-          child: MxcImage(
-            mxcUrl: emoji.url.toString(),
-            client: widget.client,
-            width: 40,
-            height: 40,
-            fit: BoxFit.contain,
-            fallbackText: emoji.altText,
-            fallbackStyle: Theme.of(context).textTheme.bodySmall,
-          ),
+          child: emoji.emoji != null
+              ? OpenMojiImage(grapheme: emoji.emoji!, size: 40)
+              : MxcImage(
+                  mxcUrl: emoji.url.toString(),
+                  client: widget.client,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.contain,
+                  fallbackText: emoji.altText,
+                  fallbackStyle: Theme.of(context).textTheme.bodySmall,
+                ),
         ),
       ),
     );

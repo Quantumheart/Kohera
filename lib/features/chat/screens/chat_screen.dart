@@ -424,7 +424,8 @@ class _ChatScreenState extends State<ChatScreen>
     final text = _msgCtrl.text;
     final sel = _msgCtrl.selection;
     final pos = sel.isValid ? sel.baseOffset : text.length;
-    final insertion = ':${emoji.shortcode}: ';
+    final insertion =
+        emoji.emoji != null ? '${emoji.emoji} ' : ':${emoji.shortcode}: ';
     _msgCtrl.value = TextEditingValue(
       text: text.substring(0, pos) + insertion + text.substring(pos),
       selection: TextSelection.collapsed(offset: pos + insertion.length),

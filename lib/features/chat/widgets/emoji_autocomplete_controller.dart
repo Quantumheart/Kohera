@@ -154,7 +154,10 @@ class EmojiAutocompleteController extends ChangeNotifier {
     final before = text.substring(0, _triggerOffset);
     final cursorPos = textController.selection.baseOffset;
     final after = text.substring(cursorPos);
-    final insertion = ':${emoji.shortcode}: ';
+    // Built-in OpenMoji inserts the Unicode grapheme; custom emoji insert the
+    // :shortcode: reference.
+    final insertion =
+        emoji.emoji != null ? '${emoji.emoji} ' : ':${emoji.shortcode}: ';
     textController.value = TextEditingValue(
       text: '$before$insertion$after',
       selection: TextSelection.collapsed(

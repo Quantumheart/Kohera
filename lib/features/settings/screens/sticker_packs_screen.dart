@@ -44,6 +44,9 @@ class StickerPacksScreen extends StatelessWidget {
                     p.id != _kPersonalPackId && !p.id.startsWith('emojigg_'),
               )
               .toList();
+          final openMojiPack = service.openMojiPack;
+          final myPackCount =
+              accountPacks.length + (openMojiPack != null ? 1 : 0);
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -51,10 +54,10 @@ class StickerPacksScreen extends StatelessWidget {
               // ── My Packs ──────────────────────────────────────
               _SectionLabel(
                 label: 'MY PACKS',
-                trailing: subscribedPacks.isEmpty && personalPack == null
+                trailing: myPackCount == 0
                     ? null
                     : Text(
-                        '${accountPacks.length} pack${accountPacks.length == 1 ? '' : 's'}',
+                        '$myPackCount pack${myPackCount == 1 ? '' : 's'}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: Theme.of(context)
                                   .colorScheme
@@ -63,7 +66,7 @@ class StickerPacksScreen extends StatelessWidget {
                       ),
               ),
 
-              if (accountPacks.isEmpty)
+              if (accountPacks.isEmpty && openMojiPack == null)
                 const _EmptyState(
                   icon: Icons.emoji_emotions_outlined,
                   message: 'No packs added yet.\nBrowse available packs below.',
@@ -72,7 +75,22 @@ class StickerPacksScreen extends StatelessWidget {
                 Card(
                   child: Column(
                     children: [
+                      if (openMojiPack != null)
+                        _PackTile(
+                          pack: openMojiPack,
+                          client: client,
+                          trailing: Tooltip(
+                            message: 'Built-in pack — always available',
+                            child: Icon(
+                              Icons.lock_outline,
+                              size: 18,
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
+                        ),
                       if (personalPack != null) ...[
+                        if (openMojiPack != null)
+                          const Divider(height: 1, indent: 56),
                         _PackTile(
                           pack: personalPack,
                           client: client,
@@ -99,14 +117,17 @@ class StickerPacksScreen extends StatelessWidget {
                         ),
                       ],
                       if (subscribedPacks.isNotEmpty) ...[
-                        if (personalPack != null || importedPacks.isNotEmpty)
+                        if (openMojiPack != null ||
+                            personalPack != null ||
+                            importedPacks.isNotEmpty)
                           const Divider(height: 1, indent: 56),
                         _ReorderablePackList(
                           packs: subscribedPacks,
                           client: client,
                           service: service,
-                          hasLeadingPack:
-                              personalPack != null || importedPacks.isNotEmpty,
+                          hasLeadingPack: openMojiPack != null ||
+                              personalPack != null ||
+                              importedPacks.isNotEmpty,
                         ),
                       ],
                     ],

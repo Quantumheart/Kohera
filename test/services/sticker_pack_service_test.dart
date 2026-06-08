@@ -1,6 +1,10 @@
+import 'dart:convert';
+
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
+import 'package:kohera/core/utils/openmoji_catalog.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:matrix/src/utils/space_child.dart';
@@ -18,6 +22,23 @@ import 'sticker_pack_service_test.mocks.dart';
 const _kUserEmotesType = 'im.ponies.user_emotes';
 const _kRoomEmotesType = 'im.ponies.room_emotes';
 const _kSubscriptionsType = 'kohera.sticker_pack_subscriptions';
+
+const _openMojiJson = '''
+{"groups":[
+  {"key":"smileys-emotion","emoji":[
+    {"e":"😀","n":"1F600","a":"grinning face","s":"grinning face happy"}
+  ]}
+]}
+''';
+
+class _FakeBundle extends CachingAssetBundle {
+  _FakeBundle(this.payload);
+  final String payload;
+
+  @override
+  Future<ByteData> load(String key) async =>
+      ByteData.sublistView(Uint8List.fromList(utf8.encode(payload)));
+}
 
 BasicEvent _accountDataEvent(String type, Map<String, Object?> content) =>
     BasicEvent(type: type, content: content);
@@ -444,6 +465,54 @@ void main() {
       syncCtl.add(SyncUpdate(nextBatch: '1'));
 
       expect(notified, isFalse);
+    });
+  });
+
+  // ── built-in OpenMoji pack ──────────────────────────────────
+
+  group('built-in OpenMoji pack', () {
+    setUp(() async {
+      OpenMojiCatalog.reset();
+      await OpenMojiCatalog.load(_FakeBundle(_openMojiJson));
+    });
+
+    tearDown(OpenMojiCatalog.reset);
+
+    Future<StickerPackService> loadedService() async {
+      final s = StickerPackService(client: mockClient);
+      await pumpEventQueue();
+      return s;
+    }
+
+    test('builds an emoji-only pack with grapheme-bearing images', () async {
+      final s = await loadedService();
+      final pack = s.openMojiPack!;
+      expect(pack.id, StickerPackService.kOpenMojiPackId);
+      expect(pack.displayName, 'OpenMoji');
+      expect(pack.stickers, isEmpty);
+      final grinning = pack.emoji.single;
+      expect(grinning.emoji, '😀');
+      expect(grinning.shortcode, 'grinning_face');
+      expect(grinning.isEmoji, isTrue);
+      s.dispose();
+    });
+
+    test('appears last in packsForRoom', () async {
+      final s = await loadedService();
+      final room = MockRoom();
+      when(room.id).thenReturn('!room:example.com');
+      when(room.spaceParents).thenReturn([]);
+      when(room.getState(_kRoomEmotesType)).thenReturn(null);
+
+      final packs = s.packsForRoom(room);
+      expect(packs.last.id, StickerPackService.kOpenMojiPackId);
+      s.dispose();
+    });
+
+    test('is never written to account data', () async {
+      final s = await loadedService();
+      verifyNever(mockClient.setAccountData(any, any, any));
+      s.dispose();
     });
   });
 }
