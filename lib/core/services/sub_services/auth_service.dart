@@ -40,6 +40,7 @@ class AuthService extends ChangeNotifier {
     required String homeserver,
     required String username,
     required String password,
+    bool rememberCredentials = false,
   }) async {
     loginError = null;
 
@@ -67,6 +68,18 @@ class AuthService extends ChangeNotifier {
           'userId=${_client.userID}, '
           'encryption=${_client.encryption != null ? "available" : "null"}, '
           'encryptionEnabled=${_client.encryptionEnabled}');
+
+      // Save before notifyListeners() so the credential is stored before
+      // the router redirect fires and the login screen is disposed.
+      if (rememberCredentials) {
+        await saveLoginCredentials(
+          homeserver: homeserver,
+          username: username,
+          password: password,
+        );
+      } else {
+        await clearLoginCredentials(homeserver);
+      }
 
       isLoggedIn = true;
       notifyListeners();
@@ -338,6 +351,43 @@ class AuthService extends ChangeNotifier {
       _storage.delete(key: koheraKey(_clientName, 'homeserver')),
       _storage.delete(key: koheraKey(_clientName, 'device_id')),
       _storage.delete(key: koheraKey(_clientName, 'olm_account')),
+    ]);
+  }
+
+  // ── Saved Login Credentials ──────────────────────────────────
+
+  static String _savedLoginKey(String homeserver, String suffix) =>
+      'kohera_saved_login_${homeserver.trim().toLowerCase()}_$suffix';
+
+  Future<void> saveLoginCredentials({
+    required String homeserver,
+    required String username,
+    required String password,
+  }) async {
+    await Future.wait([
+      _storage.write(
+          key: _savedLoginKey(homeserver, 'username'), value: username,),
+      _storage.write(
+          key: _savedLoginKey(homeserver, 'password'), value: password,),
+    ]);
+  }
+
+  Future<({String username, String password})?> loadLoginCredentials(
+      String homeserver,) async {
+    final results = await Future.wait([
+      _storage.read(key: _savedLoginKey(homeserver, 'username')),
+      _storage.read(key: _savedLoginKey(homeserver, 'password')),
+    ]);
+    final username = results[0];
+    final password = results[1];
+    if (username == null || password == null) return null;
+    return (username: username, password: password);
+  }
+
+  Future<void> clearLoginCredentials(String homeserver) async {
+    await Future.wait([
+      _storage.delete(key: _savedLoginKey(homeserver, 'username')),
+      _storage.delete(key: _savedLoginKey(homeserver, 'password')),
     ]);
   }
 

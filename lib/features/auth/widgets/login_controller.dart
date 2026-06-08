@@ -57,9 +57,13 @@ class LoginController extends ChangeNotifier {
 
   // ── Password login ────────────────────────────────────────────
 
+  Future<({String username, String password})?> loadSavedCredentials() =>
+      matrixService.auth.loadLoginCredentials(_homeserver);
+
   Future<bool> login({
     required String username,
     required String password,
+    bool rememberCredentials = false,
   }) async {
     _error = null;
     _state = LoginState.loggingIn;
@@ -69,9 +73,10 @@ class LoginController extends ChangeNotifier {
       homeserver: _homeserver,
       username: username,
       password: password,
+      rememberCredentials: rememberCredentials,
     );
 
-    if (_isDisposed) return false;
+    if (_isDisposed) return success;
 
     if (success) {
       if (!clientManager.services.contains(matrixService)) {
