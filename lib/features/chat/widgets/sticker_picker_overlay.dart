@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
+import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
 import 'package:matrix/matrix.dart';
@@ -12,6 +13,7 @@ class StickerPickerOverlay extends StatefulWidget {
     required this.onEmojiTapped,
     required this.onManagePacks,
     super.key,
+    this.skinTone = SkinTone.none,
   });
 
   final List<StickerPack> packs;
@@ -19,6 +21,7 @@ class StickerPickerOverlay extends StatefulWidget {
   final void Function(PackImage) onStickerTapped;
   final void Function(PackImage) onEmojiTapped;
   final VoidCallback onManagePacks;
+  final SkinTone skinTone;
 
   @override
   State<StickerPickerOverlay> createState() => _StickerPickerOverlayState();
@@ -302,14 +305,18 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
   }
 
   Widget _emojiItem(PackImage emoji) {
+    final base = emoji.emoji;
+    final toned = base == null ? null : applySkinTone(base, widget.skinTone);
     return Tooltip(
       message: emoji.altText,
       child: GestureDetector(
-        onTap: () => widget.onEmojiTapped(emoji),
+        onTap: () => widget.onEmojiTapped(
+          toned == null ? emoji : _withGrapheme(emoji, toned),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(4),
-          child: emoji.emoji != null
-              ? OpenMojiImage(grapheme: emoji.emoji!, size: 40)
+          child: toned != null
+              ? OpenMojiImage(grapheme: toned, size: 40)
               : MxcImage(
                   mxcUrl: emoji.url.toString(),
                   client: widget.client,
@@ -323,4 +330,13 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
       ),
     );
   }
+
+  PackImage _withGrapheme(PackImage source, String grapheme) => PackImage(
+        shortcode: source.shortcode,
+        url: source.url,
+        isSticker: source.isSticker,
+        isEmoji: source.isEmoji,
+        body: source.body,
+        emoji: grapheme,
+      );
 }
