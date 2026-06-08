@@ -384,30 +384,32 @@ class _ChatScreenState extends State<ChatScreen>
     final cs = Theme.of(context).colorScheme;
     final stickerService = context.watch<StickerPackService>();
     final skinTone = context.watch<PreferencesService>().skinTone;
-    final height =
-        (MediaQuery.sizeOf(context).height * 0.4).clamp(240.0, 360.0);
+    final size = MediaQuery.sizeOf(context);
+    final width = (size.width - 16).clamp(0.0, 360.0);
+    final height = (size.height * 0.45).clamp(240.0, 360.0);
 
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        color: cs.surface,
-        border: Border(
-          top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.5)),
+    return Material(
+      elevation: 8,
+      color: cs.surfaceContainer,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: StickerPickerOverlay(
+          packs: stickerService.packsForRoom(room),
+          client: matrix.client,
+          skinTone: skinTone,
+          onStickerTapped: (sticker) {
+            setState(() => _emojiPanelOpen = false);
+            unawaited(_handleStickerSelected(sticker));
+          },
+          onEmojiTapped: _handleEmojiSelected,
+          onManagePacks: () {
+            setState(() => _emojiPanelOpen = false);
+            context.goNamed(Routes.settingsStickerPacks);
+          },
         ),
-      ),
-      child: StickerPickerOverlay(
-        packs: stickerService.packsForRoom(room),
-        client: matrix.client,
-        skinTone: skinTone,
-        onStickerTapped: (sticker) {
-          setState(() => _emojiPanelOpen = false);
-          unawaited(_handleStickerSelected(sticker));
-        },
-        onEmojiTapped: _handleEmojiSelected,
-        onManagePacks: () {
-          setState(() => _emojiPanelOpen = false);
-          context.goNamed(Routes.settingsStickerPacks);
-        },
       ),
     );
   }
@@ -541,22 +543,39 @@ class _ChatScreenState extends State<ChatScreen>
         if (roomHasCall && !isInCall)
           JoinCallBanner(room: room, callService: callService),
         Expanded(
-          child: MessageListView(
-            key: _messageListKey,
-            room: room,
-            matrix: matrix,
-            initialEventId: widget.initialEventId,
-            highlightedEventId: _search.highlightedEventId,
-            onReply: _setReplyTo,
-            onEdit: (event, timeline) =>
-                _compose.setEditEvent(event, timeline, _msgCtrl),
-            onToggleReaction: _actions.toggleReaction,
-            onPin: _actions.togglePin,
-            onHighlight: _search.setHighlight,
-            onScrollBack: isTouchDevice ? _dismissKeyboard : null,
-            onOpenThread: _openThread,
-            onReplyInThread: _replyInThread,
-            onTimelineChanged: _onTimelineChanged,
+          child: Stack(
+            children: [
+              MessageListView(
+                key: _messageListKey,
+                room: room,
+                matrix: matrix,
+                initialEventId: widget.initialEventId,
+                highlightedEventId: _search.highlightedEventId,
+                onReply: _setReplyTo,
+                onEdit: (event, timeline) =>
+                    _compose.setEditEvent(event, timeline, _msgCtrl),
+                onToggleReaction: _actions.toggleReaction,
+                onPin: _actions.togglePin,
+                onHighlight: _search.setHighlight,
+                onScrollBack: isTouchDevice ? _dismissKeyboard : null,
+                onOpenThread: _openThread,
+                onReplyInThread: _replyInThread,
+                onTimelineChanged: _onTimelineChanged,
+              ),
+              if (_emojiPanelOpen) ...[
+                Positioned.fill(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () => setState(() => _emojiPanelOpen = false),
+                  ),
+                ),
+                Positioned(
+                  left: 8,
+                  bottom: 8,
+                  child: _buildEmojiPanel(matrix, room),
+                ),
+              ],
+            ],
           ),
         ),
         TypingIndicator(
@@ -564,7 +583,6 @@ class _ChatScreenState extends State<ChatScreen>
           myUserId: matrix.client.userID,
           syncStream: matrix.client.onSync.stream,
         ),
-        if (_emojiPanelOpen) _buildEmojiPanel(matrix, room),
         ComposeBarSection(
           replyNotifier: _compose.replyNotifier,
           editNotifier: _compose.editNotifier,
