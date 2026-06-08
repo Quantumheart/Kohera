@@ -30,14 +30,14 @@ class OpenMojiImage extends StatelessWidget {
     if (asset == null) return _fallback();
 
     final s = size;
+    // Decode at native resolution (no cacheWidth): the 72px source upscales and
+    // pixelates if decoded smaller than its painted size. Downsampling from
+    // native uses the default medium filter quality and stays crisp.
     return Image.asset(
       asset,
       width: s,
       height: s,
       fit: BoxFit.contain,
-      cacheWidth: s == null
-          ? null
-          : (s * MediaQuery.devicePixelRatioOf(context)).round(),
       errorBuilder: (context, error, stackTrace) => _fallback(),
     );
   }
