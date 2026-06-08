@@ -1,17 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/utils/emoji_style.dart';
 import 'package:kohera/core/utils/openmoji.dart';
+import 'package:kohera/shared/widgets/openmoji_image.dart';
 
-/// Fallback font families for rendering color emoji on desktop platforms.
-const emojiFontFallback = [
-  'Noto Color Emoji',
-  'Apple Color Emoji',
-  'Segoe UI Emoji',
-];
-
-/// Text style for rendering emoji as text (the fallback when no OpenMoji asset
-/// is bundled). Applies [emojiFontFallback] so color emoji resolve on every
-/// platform.
-const emojiTextStyle = TextStyle(fontFamilyFallback: emojiFontFallback);
+export 'package:kohera/core/utils/emoji_style.dart';
 
 /// Regex matching common emoji characters and sequences (ZWJ, skin tones,
 /// variation selectors). Uses Unicode ranges rather than `\p{Emoji}` which
@@ -83,14 +75,7 @@ InlineSpan _emojiSpan(String run, TextStyle? style) {
   final size = fontSize * (style?.height ?? _defaultEmojiHeight);
   return WidgetSpan(
     alignment: PlaceholderAlignment.middle,
-    child: Image.asset(
-      asset,
-      width: size,
-      height: size,
-      fit: BoxFit.contain,
-      errorBuilder: (context, error, stackTrace) =>
-          Text.rich(_fallbackSpan(run, style)),
-    ),
+    child: OpenMojiImage(grapheme: run, size: size, fallbackStyle: style),
   );
 }
 

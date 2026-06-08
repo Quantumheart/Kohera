@@ -1,7 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/features/chat/widgets/reaction_chips.dart';
+import 'package:kohera/shared/widgets/openmoji_image.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -23,16 +23,10 @@ Finder _richTextContaining(String text) => find.byWidgetPredicate(
       (w) => w is Text && (w.textSpan?.toPlainText().contains(text) ?? false),
     );
 
-/// Finds the OpenMoji [Image] rendered for [emoji].
-Finder _emojiImage(String emoji) {
-  final asset = openMojiAssetFor(emoji)!;
-  return find.byWidgetPredicate(
-    (w) =>
-        w is Image &&
-        w.image is AssetImage &&
-        (w.image as AssetImage).assetName == asset,
-  );
-}
+/// Finds the [OpenMojiImage] rendered for [emoji].
+Finder _emojiImage(String emoji) => find.byWidgetPredicate(
+      (w) => w is OpenMojiImage && w.grapheme == emoji,
+    );
 
 MockEvent _makeReactionEvent({
   required String senderId,
