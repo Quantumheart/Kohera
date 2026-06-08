@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
 import 'package:kohera/core/services/client_manager.dart';
@@ -29,6 +30,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _usernameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
+  bool _rememberMe = false;
 
   late final AnimationController _fadeCtrl;
   late final Animation<double> _fadeAnim;
@@ -52,6 +54,7 @@ class _LoginScreenState extends State<LoginScreen>
       capabilities: widget.capabilities,
     );
     _controller.addListener(_onControllerChanged);
+    unawaited(_loadSavedCredentials());
   }
 
   @override
@@ -75,11 +78,23 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() {});
   }
 
+  Future<void> _loadSavedCredentials() async {
+    final saved = await _controller.loadSavedCredentials();
+    if (saved == null || !mounted) return;
+    setState(() {
+      _usernameCtrl.text = saved.username;
+      _passwordCtrl.text = saved.password;
+      _rememberMe = true;
+    });
+  }
+
   Future<void> _login() async {
-    await _controller.login(
+    final success = await _controller.login(
       username: _usernameCtrl.text,
       password: _passwordCtrl.text,
+      rememberCredentials: _rememberMe,
     );
+    TextInput.finishAutofillContext(shouldSave: success);
   }
 
   @override
@@ -182,7 +197,17 @@ class _LoginScreenState extends State<LoginScreen>
                         ],
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
+                    CheckboxListTile(
+                      value: _rememberMe,
+                      onChanged: formEnabled
+                          ? (v) => setState(() => _rememberMe = v ?? false)
+                          : null,
+                      title: const Text('Remember me'),
+                      controlAffinity: ListTileControlAffinity.leading,
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                    ),
 
                     // ── Error ──
                     if (_controller.error != null)

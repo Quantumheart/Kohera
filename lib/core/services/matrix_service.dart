@@ -179,11 +179,13 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     required String homeserver,
     required String username,
     required String password,
+    bool rememberCredentials = false,
   }) async {
     final success = await auth.login(
       homeserver: homeserver,
       username: username,
       password: password,
+      rememberCredentials: rememberCredentials,
     );
     if (success) {
       uia.setCachedPassword(password);
