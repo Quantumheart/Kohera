@@ -161,12 +161,33 @@ class _OpenMojiPickerState extends State<OpenMojiPicker> {
             child: GestureDetector(
               behavior: HitTestBehavior.translucent,
               onTap: _closeToneStrip,
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: _ToneStrip(
-                  base: _toneStripBase!,
-                  onSelected: _onToneSelected,
-                ),
+              child: Stack(
+                children: [
+                  // The default-tone strip drops from the header swatch
+                  // (top-right); a per-emoji override sits near the bottom.
+                  if (_toneStripBase!.isEmpty)
+                    Positioned(
+                      top: 52,
+                      right: 8,
+                      child: _ToneStrip(
+                        base: _toneStripBase!,
+                        selected: widget.skinTone,
+                        onSelected: _onToneSelected,
+                      ),
+                    )
+                  else
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 8,
+                      child: Center(
+                        child: _ToneStrip(
+                          base: _toneStripBase!,
+                          onSelected: _onToneSelected,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -179,10 +200,17 @@ class _OpenMojiPickerState extends State<OpenMojiPicker> {
 /// swatches are sample hands; for an override they are the toned variants of
 /// [base].
 class _ToneStrip extends StatelessWidget {
-  const _ToneStrip({required this.base, required this.onSelected});
+  const _ToneStrip({
+    required this.base,
+    required this.onSelected,
+    this.selected,
+  });
 
   final String base;
   final ValueChanged<SkinTone> onSelected;
+
+  /// Currently active tone, highlighted in the strip (default-tone mode).
+  final SkinTone? selected;
 
   @override
   Widget build(BuildContext context) {
@@ -200,8 +228,18 @@ class _ToneStrip extends StatelessWidget {
               InkWell(
                 borderRadius: BorderRadius.circular(8),
                 onTap: () => onSelected(tone),
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
+                child: Container(
+                  margin: const EdgeInsets.all(2),
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    color: tone == selected
+                        ? cs.primary.withValues(alpha: 0.18)
+                        : null,
+                    border: tone == selected
+                        ? Border.all(color: cs.primary, width: 1.5)
+                        : null,
+                  ),
                   child: SizedBox(
                     width: 30,
                     height: 30,
