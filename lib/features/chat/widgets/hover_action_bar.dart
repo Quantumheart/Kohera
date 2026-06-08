@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
+import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/features/chat/widgets/openmoji_picker.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
 import 'package:provider/provider.dart';
@@ -207,6 +208,7 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
   @override
   Widget build(BuildContext context) {
     final cs = widget.cs;
+    final tone = context.watch<PreferencesService>().skinTone;
     const gap = 4.0;
 
     return Stack(
@@ -260,21 +262,24 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         for (final emoji in kQuickReactEmojis)
-                          InkWell(
-                            borderRadius: BorderRadius.circular(20),
-                            onTap: () => widget.onEmojiSelected(emoji),
-                            child: Padding(
-                              padding: const EdgeInsets.all(6),
-                              child: Text.rich(
-                                TextSpan(
-                                  children: buildEmojiSpans(
-                                    emoji,
-                                    emojiTextStyle.copyWith(fontSize: 22),
+                          () {
+                            final toned = applySkinTone(emoji, tone);
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(20),
+                              onTap: () => widget.onEmojiSelected(toned),
+                              child: Padding(
+                                padding: const EdgeInsets.all(6),
+                                child: Text.rich(
+                                  TextSpan(
+                                    children: buildEmojiSpans(
+                                      toned,
+                                      emojiTextStyle.copyWith(fontSize: 22),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ),
+                            );
+                          }(),
                         if (widget.hasMore)
                           InkWell(
                             borderRadius: BorderRadius.circular(20),

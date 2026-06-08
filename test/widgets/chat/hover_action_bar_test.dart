@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/chat/widgets/hover_action_bar.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Finds the [OpenMojiImage] rendered for [emoji].
 Finder _emojiImage(String emoji) => find.byWidgetPredicate(
@@ -14,17 +17,21 @@ void main() {
     void Function(String emoji)? onQuickReact,
     VoidCallback? onReply,
     void Function(Offset position)? onMore,
+    PreferencesService? prefs,
   }) {
-    return MaterialApp(
-      theme: ThemeData(splashFactory: InkRipple.splashFactory),
-      home: Scaffold(
-        body: Center(
-          child: HoverActionBar(
-            cs: const ColorScheme.light(),
-            onReact: onReact,
-            onQuickReact: onQuickReact,
-            onReply: onReply,
-            onMore: onMore ?? (_) {},
+    return ChangeNotifierProvider<PreferencesService>(
+      create: (_) => prefs ?? PreferencesService(),
+      child: MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+        home: Scaffold(
+          body: Center(
+            child: HoverActionBar(
+              cs: const ColorScheme.light(),
+              onReact: onReact,
+              onQuickReact: onQuickReact,
+              onReply: onReply,
+              onMore: onMore ?? (_) {},
+            ),
           ),
         ),
       ),
@@ -103,6 +110,26 @@ void main() {
 
       expect(selectedEmoji, '\u{1F44D}');
       expect(_emojiImage('\u{1F602}'), findsNothing);
+    });
+
+    testWidgets('quick-react applies the default skin tone', (tester) async {
+      SharedPreferences.setMockInitialValues({'emoji_skin_tone': 'dark'});
+      final sp = await SharedPreferences.getInstance();
+      final prefs = PreferencesService(prefs: sp);
+      String? reacted;
+
+      await tester.pumpWidget(
+        buildTestWidget(prefs: prefs, onQuickReact: (e) => reacted = e),
+      );
+      await tester.tap(find.byIcon(Icons.add_reaction_outlined));
+      await tester.pumpAndSettle();
+
+      // 👍 is toned; ❤️ (no variant) stays base.
+      expect(_emojiImage('\u{1F44D}\u{1F3FF}'), findsOneWidget);
+      expect(_emojiImage('\u{2764}\u{FE0F}'), findsOneWidget);
+
+      await tester.tap(_emojiImage('\u{1F44D}\u{1F3FF}'));
+      expect(reacted, '\u{1F44D}\u{1F3FF}');
     });
   });
 }
