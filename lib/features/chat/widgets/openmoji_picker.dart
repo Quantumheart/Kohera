@@ -113,8 +113,9 @@ class _OpenMojiPickerState extends State<OpenMojiPicker> {
                   ),
                   if (widget.onSkinToneChanged != null) ...[
                     const SizedBox(width: 4),
-                    Tooltip(
-                      message: 'Default skin tone',
+                    Semantics(
+                      button: true,
+                      label: 'Default skin tone',
                       child: InkWell(
                         borderRadius: BorderRadius.circular(8),
                         onTap: _openDefaultToneStrip,

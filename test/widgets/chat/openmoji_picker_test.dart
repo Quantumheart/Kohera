@@ -107,11 +107,11 @@ void main() {
       (tester) async {
     await tester.pumpWidget(_wrap((_) {}));
     await tester.pump();
-    expect(find.byTooltip('Default skin tone'), findsNothing);
+    expect(find.bySemanticsLabel('Default skin tone'), findsNothing);
 
     await tester.pumpWidget(_wrap((_) {}, onSkinToneChanged: (_) {}));
     await tester.pump();
-    expect(find.byTooltip('Default skin tone'), findsOneWidget);
+    expect(find.bySemanticsLabel('Default skin tone'), findsOneWidget);
   });
 
   testWidgets('header swatch opens the default-tone strip and sets the tone',
@@ -120,7 +120,7 @@ void main() {
     await tester.pumpWidget(_wrap((_) {}, onSkinToneChanged: (t) => chosen = t));
     await tester.pump();
 
-    await tester.tap(find.byTooltip('Default skin tone'));
+    await tester.tap(find.bySemanticsLabel('Default skin tone'));
     await tester.pump();
 
     // The strip shows toned sample hands; tap the dark one.
