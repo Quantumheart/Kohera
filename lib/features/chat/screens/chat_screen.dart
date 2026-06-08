@@ -12,6 +12,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
@@ -363,6 +364,7 @@ class _ChatScreenState extends State<ChatScreen>
   void _toggleStickerPicker() {
     final matrix = context.read<MatrixService>();
     final stickerService = context.read<StickerPackService>();
+    final skinTone = context.read<PreferencesService>().skinTone;
     final room = matrix.client.getRoomById(widget.roomId);
     if (room == null) return;
     unawaited(showModalBottomSheet<void>(
@@ -377,6 +379,7 @@ class _ChatScreenState extends State<ChatScreen>
         builder: (_, __) => StickerPickerOverlay(
           packs: stickerService.packsForRoom(room),
           client: matrix.client,
+          skinTone: skinTone,
           onStickerTapped: (sticker) {
             Navigator.of(sheetCtx).pop();
             unawaited(_handleStickerSelected(sticker));
