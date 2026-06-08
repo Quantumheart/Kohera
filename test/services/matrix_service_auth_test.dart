@@ -263,6 +263,72 @@ void main() {
     });
   });
 
+  group('handleSoftLogout', () {
+    setUp(() {
+      when(mockClient.userID).thenReturn('@user:example.com');
+      when(mockClient.homeserver)
+          .thenReturn(Uri.parse('https://example.com'));
+      service.isLoggedInForTest = true;
+    });
+
+    test('keeps session on transient refresh failure', () async {
+      when(mockClient.refreshAccessToken())
+          .thenThrow(Exception('connection timed out'));
+
+      await service.handleSoftLogout();
+
+      expect(service.isLoggedIn, isTrue);
+      verifyNever(mockStorage.delete(key: 'kohera_test_access_token'));
+      verifyNever(mockStorage.delete(key: 'ssss_recovery_key_@user:example.com'));
+    });
+
+    test('keeps session on transient MatrixException (limit exceeded)',
+        () async {
+      when(mockClient.refreshAccessToken()).thenThrow(
+        MatrixException.fromJson({
+          'errcode': 'M_LIMIT_EXCEEDED',
+          'error': 'Too many requests',
+        }),
+      );
+
+      await service.handleSoftLogout();
+
+      expect(service.isLoggedIn, isTrue);
+      verifyNever(mockStorage.delete(key: 'kohera_test_access_token'));
+    });
+
+    test('signs out on permanent auth failure (unknown token)', () async {
+      when(mockClient.accessToken).thenReturn('tok');
+      when(mockClient.logout()).thenAnswer((_) async {});
+      when(mockClient.refreshAccessToken()).thenThrow(
+        MatrixException.fromJson({
+          'errcode': 'M_UNKNOWN_TOKEN',
+          'error': 'Invalid refresh token',
+        }),
+      );
+
+      await service.handleSoftLogout();
+
+      expect(service.isLoggedIn, isFalse);
+      verify(mockStorage.delete(key: 'kohera_test_access_token')).called(1);
+      verify(mockStorage.delete(key: 'ssss_recovery_key_@user:example.com'))
+          .called(1);
+    });
+
+    test('persists credentials on successful refresh', () async {
+      when(mockClient.accessToken).thenReturn('new_tok');
+      when(mockClient.deviceID).thenReturn('DEV');
+      when(mockClient.refreshAccessToken()).thenAnswer((_) async {});
+
+      await service.handleSoftLogout();
+
+      expect(service.isLoggedIn, isTrue);
+      verify(mockStorage.write(
+              key: 'kohera_test_access_token', value: 'new_tok',),)
+          .called(1);
+    });
+  });
+
   group('completeSsoLogin', () {
     late CachedStreamController<SyncUpdate> syncController;
 
