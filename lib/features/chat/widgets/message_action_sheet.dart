@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
+import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/features/chat/widgets/message_bubble.dart';
 import 'package:matrix/matrix.dart';
+import 'package:provider/provider.dart';
 
 // ── Data class ──────────────────────────────────────────
 
@@ -306,6 +309,7 @@ class _QuickReactBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final tone = context.watch<PreferencesService>().skinTone;
 
     return Material(
       elevation: 4,
@@ -317,19 +321,20 @@ class _QuickReactBar extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: _quickEmojis.map((emoji) {
+            final toned = applySkinTone(emoji, tone);
             return Flexible(
               child: InkWell(
                 borderRadius: BorderRadius.circular(20),
                 onTap: () {
                   Navigator.of(context).pop();
-                  onQuickReact(emoji);
+                  onQuickReact(toned);
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(8),
                   child: Text.rich(
                     TextSpan(
                       children: buildEmojiSpans(
-                        emoji,
+                        toned,
                         emojiTextStyle.copyWith(fontSize: 22),
                       ),
                     ),
