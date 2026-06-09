@@ -1,5 +1,51 @@
 # Changelog
 
+## [1.5.0](https://github.com/Quantumheart/Kohera/compare/v1.4.0...v1.5.0) (2026-06-09)
+
+
+### Features
+
+* **#497:** add Remember Me to pre-fill credentials on re-login ([137a46e](https://github.com/Quantumheart/Kohera/commit/137a46e1bcfa35efe46651b500587a5ba6f21497))
+* **#539:** match sticker picker height to GIF modal ([bb7d974](https://github.com/Quantumheart/Kohera/commit/bb7d974c7f3283aed26f1c7a99fe6945de901245))
+* **#539:** responsive sticker/emoji picker grid layout ([0b7fb9f](https://github.com/Quantumheart/Kohera/commit/0b7fb9fa98f2d9ae48b446e2228db32f07285a31))
+* **#539:** show sticker picker as modal bottom sheet ([aae1db0](https://github.com/Quantumheart/Kohera/commit/aae1db01d9978d533c100694b840d9aee20139ed))
+* **#545:** move GIF and sticker actions into attachment sheet on mobile ([393fe54](https://github.com/Quantumheart/Kohera/commit/393fe5433a3f797bcb9e1f47b79ff3a60e9f089a))
+* **#549:** presence service + publishing layer ([31fabfc](https://github.com/Quantumheart/Kohera/commit/31fabfcaf3bd1d6a85f712556bba0c64128db4c7)), closes [#523](https://github.com/Quantumheart/Kohera/issues/523) [#549](https://github.com/Quantumheart/Kohera/issues/549)
+* **#550:** presence indicator dot on UserAvatar ([cd1415e](https://github.com/Quantumheart/Kohera/commit/cd1415e158696da58148cf42603e58c1813bcf1a)), closes [#523](https://github.com/Quantumheart/Kohera/issues/523) [#550](https://github.com/Quantumheart/Kohera/issues/550)
+* **#551:** roll out presence indicators across UI surfaces ([3b74b0f](https://github.com/Quantumheart/Kohera/commit/3b74b0f37cbbe806f1789ef5b18bb1fb8ec9776d)), closes [#523](https://github.com/Quantumheart/Kohera/issues/523) [#551](https://github.com/Quantumheart/Kohera/issues/551)
+* **#561:** bundle OpenMoji assets and codepoint resolver ([4585ae7](https://github.com/Quantumheart/Kohera/commit/4585ae7eb0b2530670a6175fe26aaf94d62b6669)), closes [#561](https://github.com/Quantumheart/Kohera/issues/561) [#566](https://github.com/Quantumheart/Kohera/issues/566)
+* **#563:** render OpenMoji images in reactions ([07aed66](https://github.com/Quantumheart/Kohera/commit/07aed66243b2f53d328d74e01a1142bf960c0f1d)), closes [#563](https://github.com/Quantumheart/Kohera/issues/563) [#566](https://github.com/Quantumheart/Kohera/issues/566)
+* **#564:** replace emoji picker with in-house OpenMoji picker ([abd0f3a](https://github.com/Quantumheart/Kohera/commit/abd0f3a1118f295eb4f6bc5f886c57eb94853936)), closes [#564](https://github.com/Quantumheart/Kohera/issues/564) [#566](https://github.com/Quantumheart/Kohera/issues/566)
+* **#565:** consolidate OpenMoji rendering, add perf and docs ([0c056ed](https://github.com/Quantumheart/Kohera/commit/0c056edc63c9c5a2e79aa390b3aa6063b3e3d4df)), closes [#565](https://github.com/Quantumheart/Kohera/issues/565) [#566](https://github.com/Quantumheart/Kohera/issues/566)
+* **#571:** add OpenMoji as a built-in default emoji pack ([99c558f](https://github.com/Quantumheart/Kohera/commit/99c558fe985546eaebc8337963e102d32cf7a308)), closes [#571](https://github.com/Quantumheart/Kohera/issues/571) [#566](https://github.com/Quantumheart/Kohera/issues/566)
+* **#573:** add skin-tone selection to the OpenMoji picker ([fce3282](https://github.com/Quantumheart/Kohera/commit/fce328268088367e6696d63daa2a0bc8e85c959f)), closes [#573](https://github.com/Quantumheart/Kohera/issues/573) [#566](https://github.com/Quantumheart/Kohera/issues/566)
+* **#573:** apply default skin tone in the sticker/emoji sheet ([8beeca3](https://github.com/Quantumheart/Kohera/commit/8beeca3bf5ba534ade587977a345baf5294d0b5a)), closes [#573](https://github.com/Quantumheart/Kohera/issues/573)
+* **#573:** apply default skin tone to quick-react emoji ([d9526f5](https://github.com/Quantumheart/Kohera/commit/d9526f5dc468f9a3ba9c6295f4a0450819a04cfc)), closes [#573](https://github.com/Quantumheart/Kohera/issues/573)
+* **#581:** float the emoji panel as a popover above the button ([95c7175](https://github.com/Quantumheart/Kohera/commit/95c717536817c33c0851e40cdc309ff2729584ec)), closes [#581](https://github.com/Quantumheart/Kohera/issues/581)
+* **#581:** keep the bottom sheet on narrow layouts ([af91b73](https://github.com/Quantumheart/Kohera/commit/af91b73bac777630a87a5b49e7a3dd6af70bb0d1)), closes [#581](https://github.com/Quantumheart/Kohera/issues/581)
+* **#581:** show emoji & sticker picker inline at the compose bar ([707927f](https://github.com/Quantumheart/Kohera/commit/707927f6305e5a38cefd003335f5b1df3e6f2c86)), closes [#581](https://github.com/Quantumheart/Kohera/issues/581) [#566](https://github.com/Quantumheart/Kohera/issues/566)
+* **#81:** forward a message to another room ([951c592](https://github.com/Quantumheart/Kohera/commit/951c592bda7eb81130cdacf97e319076712b12e3)), closes [#81](https://github.com/Quantumheart/Kohera/issues/81)
+* **chat:** render OpenMoji images in message text ([9542c46](https://github.com/Quantumheart/Kohera/commit/9542c460033646706b2cba6696d01fa13781177b)), closes [#562](https://github.com/Quantumheart/Kohera/issues/562) [#566](https://github.com/Quantumheart/Kohera/issues/566)
+
+
+### Bug Fixes
+
+* **#540:** clear link preview card on message send ([a436cbc](https://github.com/Quantumheart/Kohera/commit/a436cbc0b63dde8d2d5220bfa19c01bd1ea3afc4))
+* **#543:** add reaction support to sticker messages ([e513e0d](https://github.com/Quantumheart/Kohera/commit/e513e0dd1f55d8b923f11d381d61737f44eaa094))
+* **#544:** show reactors on long-press without breaking tap-to-toggle ([9509447](https://github.com/Quantumheart/Kohera/commit/95094475c7506e060b63583eb841a9182cfa347d))
+* **#544:** tap reaction chip to see who reacted ([4ce0b24](https://github.com/Quantumheart/Kohera/commit/4ce0b24527755b5d0f3ab7a462083a6e7ed99412))
+* **#573:** anchor default-tone strip under the header swatch ([0467989](https://github.com/Quantumheart/Kohera/commit/0467989c4db7d0484417bd363d7b4a8579239c11)), closes [#573](https://github.com/Quantumheart/Kohera/issues/573)
+* **#573:** drop Tooltip from the tone swatch (overlay transform crash) ([acd2e02](https://github.com/Quantumheart/Kohera/commit/acd2e020431027be7f6d795919c1a4a9932b2d4c)), closes [#573](https://github.com/Quantumheart/Kohera/issues/573)
+* **#573:** use an inline tone strip instead of a popup menu ([287c11f](https://github.com/Quantumheart/Kohera/commit/287c11fdace84a9c4ebc44423a15a7b4adf42e09)), closes [#573](https://github.com/Quantumheart/Kohera/issues/573)
+* **#583:** clamp quick-react bar inside the viewport ([ffbd367](https://github.com/Quantumheart/Kohera/commit/ffbd367161e2bcb289fe413a89860d0c9abdf25a)), closes [#583](https://github.com/Quantumheart/Kohera/issues/583)
+* **#592:** constrain OpenMoji image size in WidgetSpans on web ([89bed4e](https://github.com/Quantumheart/Kohera/commit/89bed4ed93c711e01d3e644dde508676830401cd)), closes [#592](https://github.com/Quantumheart/Kohera/issues/592)
+* defer per-account provider swap a frame past room teardown ([2b66b0a](https://github.com/Quantumheart/Kohera/commit/2b66b0a8b48eb0506135ee438d09cefe3f26c14f))
+* keep session on transient token-refresh failure in soft logout ([8327132](https://github.com/Quantumheart/Kohera/commit/832713243479b04a51c10b4eb41adafe5c60a5ff)), closes [#574](https://github.com/Quantumheart/Kohera/issues/574)
+* keep sticker & emoji pack routes full-screen on narrow layout ([0962681](https://github.com/Quantumheart/Kohera/commit/09626815a3566537e47b72013a62b1b635cbf13a))
+* prevent crash when switching accounts with a room open ([f6b9d7e](https://github.com/Quantumheart/Kohera/commit/f6b9d7ecc425054feb0c1aeefaa81e614b24eb46))
+* render OpenMoji at native resolution to avoid pixelation ([ec03106](https://github.com/Quantumheart/Kohera/commit/ec031067920972b2b34cbbed719038689779e3f2))
+* report a CallKit call on every VoIP push to avoid PushKit SIGABRT ([4903c5d](https://github.com/Quantumheart/Kohera/commit/4903c5dca0cba23a98c746dbfd8398d520f832cb)), closes [#538](https://github.com/Quantumheart/Kohera/issues/538)
+
 ## [1.4.0](https://github.com/Quantumheart/Kohera/compare/v1.3.0...v1.4.0) (2026-06-01)
 
 
