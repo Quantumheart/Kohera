@@ -30,7 +30,6 @@ class HoverActionBar extends StatefulWidget {
 
 class _HoverActionBarState extends State<HoverActionBar> {
   OverlayEntry? _overlayEntry;
-  final LayerLink _layerLink = LayerLink();
 
   bool _disposing = false;
 
@@ -57,10 +56,11 @@ class _HoverActionBarState extends State<HoverActionBar> {
 
     widget.onQuickReactOpenChanged?.call(true);
 
+    final anchorRect = box.localToGlobal(Offset.zero) & box.size;
+
     _overlayEntry = OverlayEntry(
       builder: (ctx) => _QuickReactOverlay(
-        link: _layerLink,
-        anchorSize: box.size,
+        anchorRect: anchorRect,
         cs: widget.cs,
         hasMore: widget.onReact != null,
         onEmojiSelected: (emoji) {
@@ -76,49 +76,46 @@ class _HoverActionBarState extends State<HoverActionBar> {
   @override
   Widget build(BuildContext context) {
     final hasReact = widget.onReact != null || widget.onQuickReact != null;
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Material(
-          elevation: 2,
-          borderRadius: BorderRadius.circular(16),
-          color: widget.cs.surfaceContainerHighest,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (hasReact)
-                _ActionIcon(
-                  icon: Icons.add_reaction_outlined,
-                  onTap: _showQuickReactPopup,
-                  cs: widget.cs,
-                  borderRadius: const BorderRadius.horizontal(
-                    left: Radius.circular(16),
-                  ),
-                ),
-              if (widget.onReply != null)
-                _ActionIcon(
-                  icon: Icons.reply_rounded,
-                  onTap: widget.onReply!,
-                  cs: widget.cs,
-                ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Material(
+        elevation: 2,
+        borderRadius: BorderRadius.circular(16),
+        color: widget.cs.surfaceContainerHighest,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (hasReact)
               _ActionIcon(
-                icon: Icons.more_horiz_rounded,
-                onTap: () {
-                  final box = context.findRenderObject() as RenderBox?;
-                  if (box == null || !box.hasSize) return;
-                  final pos = box.localToGlobal(
-                    Offset(box.size.width, box.size.height / 2),
-                  );
-                  widget.onMore(pos);
-                },
+                icon: Icons.add_reaction_outlined,
+                onTap: _showQuickReactPopup,
                 cs: widget.cs,
                 borderRadius: const BorderRadius.horizontal(
-                  right: Radius.circular(16),
+                  left: Radius.circular(16),
                 ),
               ),
-            ],
-          ),
+            if (widget.onReply != null)
+              _ActionIcon(
+                icon: Icons.reply_rounded,
+                onTap: widget.onReply!,
+                cs: widget.cs,
+              ),
+            _ActionIcon(
+              icon: Icons.more_horiz_rounded,
+              onTap: () {
+                final box = context.findRenderObject() as RenderBox?;
+                if (box == null || !box.hasSize) return;
+                final pos = box.localToGlobal(
+                  Offset(box.size.width, box.size.height / 2),
+                );
+                widget.onMore(pos);
+              },
+              cs: widget.cs,
+              borderRadius: const BorderRadius.horizontal(
+                right: Radius.circular(16),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -157,16 +154,14 @@ class _ActionIcon extends StatelessWidget {
 
 class _QuickReactOverlay extends StatefulWidget {
   const _QuickReactOverlay({
-    required this.link,
-    required this.anchorSize,
+    required this.anchorRect,
     required this.cs,
     required this.hasMore,
     required this.onEmojiSelected,
     required this.onDismiss,
   });
 
-  final LayerLink link;
-  final Size anchorSize;
+  final Rect anchorRect;
   final ColorScheme cs;
 
   /// Whether to show the "..." button (only when a full emoji picker is available).
@@ -194,6 +189,7 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
   Widget build(BuildContext context) {
     final cs = widget.cs;
     const gap = 4.0;
+    const margin = 8.0;
 
     return Stack(
       children: [
@@ -204,12 +200,14 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
             onTap: widget.onDismiss,
           ),
         ),
-        CompositedTransformFollower(
-          link: widget.link,
-          targetAnchor: Alignment.topCenter,
-          followerAnchor: Alignment.bottomCenter,
-          offset: const Offset(0, -gap),
-          child: UnconstrainedBox(
+        // Clamped overlay — centered on anchor, never clipped by screen edges
+        Positioned.fill(
+          child: CustomSingleChildLayout(
+            delegate: _OverlayPositionDelegate(
+              anchorRect: widget.anchorRect,
+              gap: gap,
+              margin: margin,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -308,4 +306,41 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
       ],
     );
   }
+}
+
+// ── Overlay position delegate ───────────────────────────────
+
+class _OverlayPositionDelegate extends SingleChildLayoutDelegate {
+  const _OverlayPositionDelegate({
+    required this.anchorRect,
+    required this.gap,
+    required this.margin,
+  });
+
+  final Rect anchorRect;
+  final double gap;
+  final double margin;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) =>
+      constraints.loosen();
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    // Center horizontally on the anchor, clamped within the margin.
+    var left = anchorRect.center.dx - childSize.width / 2;
+    left = left.clamp(margin, size.width - childSize.width - margin);
+
+    // Place just above the anchor, clamped so it never goes off the top.
+    var top = anchorRect.top - childSize.height - gap;
+    top = top.clamp(margin, size.height - childSize.height - margin);
+
+    return Offset(left, top);
+  }
+
+  @override
+  bool shouldRelayout(_OverlayPositionDelegate old) =>
+      old.anchorRect != anchorRect ||
+      old.gap != gap ||
+      old.margin != margin;
 }
