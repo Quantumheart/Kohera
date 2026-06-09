@@ -208,6 +208,10 @@ class _MessageBubbleState extends State<MessageBubble> {
     if (isDesktop) {
       bubble = MouseRegion(
         onEnter: (_) => _hovering.value = true,
+        // Belt-and-suspenders: onEnter can be missed on Flutter web canvas,
+        // so onHover (fires on every mouse-move inside the region) ensures
+        // the bar eventually appears even if the enter event was dropped.
+        onHover: (_) { if (!_hovering.value) _hovering.value = true; },
         onExit: (_) {
           if (!_quickReactOpen.value) _hovering.value = false;
         },
