@@ -35,6 +35,34 @@ void main() {
     expect(_assetOf(image), 'assets/openmoji/2764.png');
   });
 
+  testWidgets('constrains the painted box to size', (tester) async {
+    await tester.pumpWidget(
+      _wrap(const OpenMojiImage(grapheme: '\u{1F44D}', size: 24)),
+    );
+
+    expect(tester.getSize(find.byType(OpenMojiImage)), const Size(24, 24));
+  });
+
+  testWidgets('stays constrained when rendered inline in a WidgetSpan',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        const Text.rich(
+          TextSpan(
+            children: [
+              WidgetSpan(
+                alignment: PlaceholderAlignment.middle,
+                child: OpenMojiImage(grapheme: '\u{1F44D}', size: 16),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.getSize(find.byType(OpenMojiImage)), const Size(16, 16));
+  });
+
   testWidgets('falls back to text when no asset is bundled', (tester) async {
     await tester.pumpWidget(
       _wrap(const OpenMojiImage(grapheme: 'x', size: 24)),

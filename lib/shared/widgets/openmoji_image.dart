@@ -33,13 +33,18 @@ class OpenMojiImage extends StatelessWidget {
     // Decode at native resolution (no cacheWidth): the 72px source upscales and
     // pixelates if decoded smaller than its painted size. Downsampling from
     // native uses the default medium filter quality and stays crisp.
-    return Image.asset(
+    final image = Image.asset(
       asset,
       width: s,
       height: s,
       fit: BoxFit.contain,
       errorBuilder: (context, error, stackTrace) => _fallback(),
     );
+    if (s == null) return image;
+    // Pin the painted box. Inside a WidgetSpan (inline emoji, reaction chips)
+    // the web renderer can ignore Image.width/height and paint the asset at its
+    // native 72px, blowing out the layout; an explicit SizedBox constrains it.
+    return SizedBox(width: s, height: s, child: image);
   }
 
   Widget _fallback() => Text(
