@@ -112,6 +112,48 @@ void main() {
       expect(_emojiImage('\u{1F602}'), findsNothing);
     });
 
+    Widget buildEdgeWidget(Alignment alignment) =>
+        ChangeNotifierProvider<PreferencesService>(
+          create: (_) => PreferencesService(),
+          child: MaterialApp(
+            home: Scaffold(
+              body: Align(
+                alignment: alignment,
+                child: HoverActionBar(
+                  cs: const ColorScheme.light(),
+                  onQuickReact: (_) {},
+                  onMore: (_) {},
+                ),
+              ),
+            ),
+          ),
+        );
+
+    testWidgets('quick-react bar stays on-screen near the left edge',
+        (tester) async {
+      await tester.pumpWidget(buildEdgeWidget(Alignment.centerLeft));
+      await tester.tap(find.byIcon(Icons.add_reaction_outlined));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getTopLeft(_emojiImage('\u{2764}\u{FE0F}')).dx,
+        greaterThanOrEqualTo(0),
+      );
+    });
+
+    testWidgets('quick-react bar stays on-screen near the right edge',
+        (tester) async {
+      await tester.pumpWidget(buildEdgeWidget(Alignment.centerRight));
+      await tester.tap(find.byIcon(Icons.add_reaction_outlined));
+      await tester.pumpAndSettle();
+
+      final screenWidth = tester.getSize(find.byType(Scaffold)).width;
+      expect(
+        tester.getTopRight(_emojiImage('\u{1F62E}')).dx,
+        lessThanOrEqualTo(screenWidth),
+      );
+    });
+
     testWidgets('quick-react applies the default skin tone', (tester) async {
       SharedPreferences.setMockInitialValues({'emoji_skin_tone': 'dark'});
       final sp = await SharedPreferences.getInstance();
