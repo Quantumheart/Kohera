@@ -30,6 +30,7 @@ class MessageListView extends StatefulWidget {
     this.threadRootEventId,
     this.onReplyInThread,
     this.onOpenThread,
+    this.onForward,
     this.emptyText,
     this.onTimelineChanged,
     this.extraEvents,
@@ -51,6 +52,7 @@ class MessageListView extends StatefulWidget {
   final VoidCallback? onScrollBack;
   final void Function(Event event)? onReplyInThread;
   final void Function(Event event)? onOpenThread;
+  final void Function(Event event, Timeline? timeline)? onForward;
   final String? emptyText;
   final VoidCallback? onTimelineChanged;
   final List<Event>? extraEvents;
@@ -553,6 +555,9 @@ class MessageListViewState extends State<MessageListView> {
               onToggleReaction: widget.onToggleReaction,
               onReply: widget.onReply,
               onPin: widget.onPin,
+              onForward: widget.onForward == null
+                  ? null
+                  : (event) => widget.onForward!(event, _timeline),
               highlightedEventId: widget.highlightedEventId,
               isPinned: event.room.pinnedEventIds.contains(event.eventId),
             );
@@ -575,6 +580,9 @@ class MessageListViewState extends State<MessageListView> {
               onTapReply: _navigateToEvent,
               onReplyInThread: widget.onReplyInThread,
               onOpenThread: widget.onOpenThread,
+              onForward: widget.onForward == null
+                  ? null
+                  : (event) => widget.onForward!(event, _timeline),
               inThread: widget.threadRootEventId != null,
             );
           }

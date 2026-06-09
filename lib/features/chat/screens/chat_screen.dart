@@ -30,6 +30,7 @@ import 'package:kohera/features/chat/widgets/chat_app_bar.dart';
 import 'package:kohera/features/chat/widgets/compose_bar_section.dart';
 import 'package:kohera/features/chat/widgets/desktop_drop_wrapper.dart';
 import 'package:kohera/features/chat/widgets/file_send_handler.dart';
+import 'package:kohera/features/chat/widgets/forward_message_dialog.dart';
 import 'package:kohera/features/chat/widgets/gif_send_handler.dart';
 import 'package:kohera/features/chat/widgets/join_call_banner.dart';
 import 'package:kohera/features/chat/widgets/message_list_view.dart';
@@ -237,6 +238,15 @@ class _ChatScreenState extends State<ChatScreen>
         ) ??
         event;
     _openThread(root);
+  }
+
+  void _forwardMessage(Event event, Timeline? timeline) {
+    unawaited(ForwardMessageDialog.show(
+      context,
+      event: event,
+      timeline: timeline,
+      matrixService: context.read<MatrixService>(),
+    ),);
   }
 
   void _dismissKeyboard() {
@@ -602,6 +612,7 @@ class _ChatScreenState extends State<ChatScreen>
                 onScrollBack: isTouchDevice ? _dismissKeyboard : null,
                 onOpenThread: _openThread,
                 onReplyInThread: _replyInThread,
+                onForward: _forwardMessage,
                 onTimelineChanged: _onTimelineChanged,
               ),
               if (_emojiPanelOpen) ...[

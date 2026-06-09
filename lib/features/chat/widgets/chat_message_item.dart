@@ -32,6 +32,7 @@ class ChatMessageItem extends StatelessWidget {
     this.onTapReply,
     this.onReplyInThread,
     this.onOpenThread,
+    this.onForward,
     this.inThread = false,
     super.key,
   });
@@ -50,6 +51,7 @@ class ChatMessageItem extends StatelessWidget {
   final void Function(Event event)? onTapReply;
   final void Function(Event event)? onReplyInThread;
   final void Function(Event event)? onOpenThread;
+  final void Function(Event event)? onForward;
   final bool inThread;
   final Future<void> Function(Event event, String emoji) onToggleReaction;
 
@@ -115,6 +117,9 @@ class ChatMessageItem extends StatelessWidget {
       onPin: canPin ? () => onPin?.call(event) : null,
       onReplyInThread:
           isRedacted || inThread ? null : () => onReplyInThread?.call(event),
+      onForward: isRedacted || onForward == null
+          ? null
+          : () => onForward!(event),
       reactionBubble: reactionBubble,
       subBubble: subBubble,
       threadIndicator: hasThread
@@ -194,6 +199,12 @@ class ChatMessageItem extends StatelessWidget {
             label: 'Reply in thread',
             icon: Icons.forum_outlined,
             onTap: () => onReplyInThread?.call(event),
+          ),
+        if (onForward != null)
+          MessageAction(
+            label: 'Forward',
+            icon: Icons.forward_rounded,
+            onTap: () => onForward!(event),
           ),
         if (isMe)
           MessageAction(

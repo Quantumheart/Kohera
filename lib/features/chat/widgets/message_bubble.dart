@@ -27,6 +27,7 @@ class MessageBubble extends StatefulWidget {
     this.onQuickReact,
     this.onPin,
     this.onReplyInThread,
+    this.onForward,
     this.reactionBubble,
     this.subBubble,
     this.threadIndicator,
@@ -71,6 +72,9 @@ class MessageBubble extends StatefulWidget {
   /// Called to start a thread reply rooted at this event.
   final VoidCallback? onReplyInThread;
 
+  /// Called to forward this message to another room.
+  final VoidCallback? onForward;
+
   /// Reaction chips overlapping the bottom edge of the bubble (Signal-style).
   final Widget? reactionBubble;
 
@@ -109,6 +113,7 @@ class _MessageBubbleState extends State<MessageBubble> {
       onPin: widget.onPin,
       onDelete: widget.onDelete,
       onReplyInThread: widget.onReplyInThread,
+      onForward: widget.onForward,
     ),);
   }
 
