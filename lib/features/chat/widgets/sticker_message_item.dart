@@ -23,6 +23,7 @@ class StickerMessageItem extends StatefulWidget {
     this.client,
     this.onReply,
     this.onPin,
+    this.onForward,
     this.isPinned = false,
     this.highlightedEventId,
     super.key,
@@ -36,6 +37,7 @@ class StickerMessageItem extends StatefulWidget {
   final Client? client;
   final void Function(Event event)? onReply;
   final Future<void> Function(Event event)? onPin;
+  final void Function(Event event)? onForward;
   final bool isPinned;
   final String? highlightedEventId;
 
@@ -70,6 +72,9 @@ class _StickerMessageItemState extends State<StickerMessageItem> {
       onPin: widget.onPin != null
           ? () => widget.onPin!.call(widget.event)
           : null,
+      onForward: widget.onForward != null
+          ? () => widget.onForward!.call(widget.event)
+          : null,
     ),);
   }
 
@@ -96,6 +101,12 @@ class _StickerMessageItemState extends State<StickerMessageItem> {
             (emoji) => widget.onToggleReaction(widget.event, emoji),
           ),
         ),
+        if (widget.onForward != null)
+          MessageAction(
+            label: 'Forward',
+            icon: Icons.forward_rounded,
+            onTap: () => widget.onForward!.call(widget.event),
+          ),
         if (widget.onPin != null)
           MessageAction(
             label: widget.isPinned ? 'Unpin' : 'Pin',
