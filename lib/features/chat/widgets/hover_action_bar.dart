@@ -44,7 +44,6 @@ class HoverActionBar extends StatefulWidget {
 
 class _HoverActionBarState extends State<HoverActionBar> {
   OverlayEntry? _overlayEntry;
-  final LayerLink _layerLink = LayerLink();
 
   bool _disposing = false;
   bool _precached = false;
@@ -79,12 +78,17 @@ class _HoverActionBarState extends State<HoverActionBar> {
     final box = context.findRenderObject() as RenderBox?;
     if (box == null || !box.hasSize) return;
 
+    final overlayBox = overlay.context.findRenderObject() as RenderBox?;
+    final anchorTopCenter = box.localToGlobal(
+      Offset(box.size.width / 2, 0),
+      ancestor: overlayBox,
+    );
+
     widget.onQuickReactOpenChanged?.call(true);
 
     _overlayEntry = OverlayEntry(
       builder: (ctx) => _QuickReactOverlay(
-        link: _layerLink,
-        anchorSize: box.size,
+        anchorTopCenter: anchorTopCenter,
         cs: widget.cs,
         hasMore: widget.onReact != null,
         onEmojiSelected: (emoji) {
@@ -100,49 +104,46 @@ class _HoverActionBarState extends State<HoverActionBar> {
   @override
   Widget build(BuildContext context) {
     final hasReact = widget.onReact != null || widget.onQuickReact != null;
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: Material(
-          elevation: 2,
-          borderRadius: BorderRadius.circular(16),
-          color: widget.cs.surfaceContainerHighest,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (hasReact)
-                _ActionIcon(
-                  icon: Icons.add_reaction_outlined,
-                  onTap: _showQuickReactPopup,
-                  cs: widget.cs,
-                  borderRadius: const BorderRadius.horizontal(
-                    left: Radius.circular(16),
-                  ),
-                ),
-              if (widget.onReply != null)
-                _ActionIcon(
-                  icon: Icons.reply_rounded,
-                  onTap: widget.onReply!,
-                  cs: widget.cs,
-                ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Material(
+        elevation: 2,
+        borderRadius: BorderRadius.circular(16),
+        color: widget.cs.surfaceContainerHighest,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (hasReact)
               _ActionIcon(
-                icon: Icons.more_horiz_rounded,
-                onTap: () {
-                  final box = context.findRenderObject() as RenderBox?;
-                  if (box == null || !box.hasSize) return;
-                  final pos = box.localToGlobal(
-                    Offset(box.size.width, box.size.height / 2),
-                  );
-                  widget.onMore(pos);
-                },
+                icon: Icons.add_reaction_outlined,
+                onTap: _showQuickReactPopup,
                 cs: widget.cs,
                 borderRadius: const BorderRadius.horizontal(
-                  right: Radius.circular(16),
+                  left: Radius.circular(16),
                 ),
               ),
-            ],
-          ),
+            if (widget.onReply != null)
+              _ActionIcon(
+                icon: Icons.reply_rounded,
+                onTap: widget.onReply!,
+                cs: widget.cs,
+              ),
+            _ActionIcon(
+              icon: Icons.more_horiz_rounded,
+              onTap: () {
+                final box = context.findRenderObject() as RenderBox?;
+                if (box == null || !box.hasSize) return;
+                final pos = box.localToGlobal(
+                  Offset(box.size.width, box.size.height / 2),
+                );
+                widget.onMore(pos);
+              },
+              cs: widget.cs,
+              borderRadius: const BorderRadius.horizontal(
+                right: Radius.circular(16),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -181,16 +182,15 @@ class _ActionIcon extends StatelessWidget {
 
 class _QuickReactOverlay extends StatefulWidget {
   const _QuickReactOverlay({
-    required this.link,
-    required this.anchorSize,
+    required this.anchorTopCenter,
     required this.cs,
     required this.hasMore,
     required this.onEmojiSelected,
     required this.onDismiss,
   });
 
-  final LayerLink link;
-  final Size anchorSize;
+  /// Top-center of the action bar, in the overlay's coordinate space.
+  final Offset anchorTopCenter;
   final ColorScheme cs;
 
   /// Whether to show the "..." button (only when a full emoji picker is available).
@@ -210,6 +210,10 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
     final cs = widget.cs;
     final tone = context.watch<PreferencesService>().skinTone;
     const gap = 4.0;
+    const margin = 8.0;
+
+    final pickerWidth =
+        (MediaQuery.sizeOf(context).width - margin * 2).clamp(0.0, 350.0);
 
     return Stack(
       children: [
@@ -220,12 +224,13 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
             onTap: widget.onDismiss,
           ),
         ),
-        CompositedTransformFollower(
-          link: widget.link,
-          targetAnchor: Alignment.topCenter,
-          followerAnchor: Alignment.bottomCenter,
-          offset: const Offset(0, -gap),
-          child: UnconstrainedBox(
+        Positioned.fill(
+          child: CustomSingleChildLayout(
+            delegate: _QuickReactLayoutDelegate(
+              anchorTopCenter: widget.anchorTopCenter,
+              gap: gap,
+              margin: margin,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -239,7 +244,7 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
                       color: cs.surfaceContainer,
                       clipBehavior: Clip.antiAlias,
                       child: SizedBox(
-                        width: 350,
+                        width: pickerWidth,
                         height: 400,
                         child: OpenMojiPicker(
                           skinTone: context.watch<PreferencesService>().skinTone,
@@ -305,4 +310,46 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
       ],
     );
   }
+}
+
+// ── Quick-react layout delegate ─────────────────────────────
+//
+// Positions the popup so its bottom-center sits above [anchorTopCenter], then
+// clamps it inside the viewport (minus [margin]) so it never overflows a screen
+// edge on narrow layouts.
+class _QuickReactLayoutDelegate extends SingleChildLayoutDelegate {
+  _QuickReactLayoutDelegate({
+    required this.anchorTopCenter,
+    required this.gap,
+    required this.margin,
+  });
+
+  final Offset anchorTopCenter;
+  final double gap;
+  final double margin;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) {
+    return BoxConstraints.loose(
+      Size(
+        (constraints.maxWidth - margin * 2).clamp(0.0, double.infinity),
+        (constraints.maxHeight - margin * 2).clamp(0.0, double.infinity),
+      ),
+    );
+  }
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) {
+    final dx = (anchorTopCenter.dx - childSize.width / 2)
+        .clamp(margin, size.width - margin - childSize.width);
+    final dy = (anchorTopCenter.dy - gap - childSize.height)
+        .clamp(margin, size.height - margin - childSize.height);
+    return Offset(dx, dy);
+  }
+
+  @override
+  bool shouldRelayout(_QuickReactLayoutDelegate oldDelegate) =>
+      anchorTopCenter != oldDelegate.anchorTopCenter ||
+      gap != oldDelegate.gap ||
+      margin != oldDelegate.margin;
 }
