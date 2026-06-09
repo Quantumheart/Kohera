@@ -309,7 +309,7 @@ import UserNotifications
   // cannot route through the Flutter plugin (malformed payloads, or the plugin
   // not being registered yet on a cold background launch).
   private lazy var placeholderCallProvider: CXProvider = {
-    let configuration = CXProviderConfiguration()
+    let configuration = CXProviderConfiguration(localizedName: "Kohera")
     configuration.supportsVideo = true
     configuration.supportedHandleTypes = [.generic]
     return CXProvider(configuration: configuration)
