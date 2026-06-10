@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.1](https://github.com/Quantumheart/Kohera/compare/v1.5.0...v1.5.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* pin connectivity_plus to 7.0.0 for Xcode 16.4 ([2a857dc](https://github.com/Quantumheart/Kohera/commit/2a857dc7da5851faa9d2284be7f400a35a66f150))
+* use CXProviderConfiguration localizedName init for iOS 13 ([a13138c](https://github.com/Quantumheart/Kohera/commit/a13138c288fd35f0732a95b411339d2625accee7)), closes [#563](https://github.com/Quantumheart/Kohera/issues/563)
+
 ## [1.5.0](https://github.com/Quantumheart/Kohera/compare/v1.4.0...v1.5.0) (2026-06-09)
 
 
