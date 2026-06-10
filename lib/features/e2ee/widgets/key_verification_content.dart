@@ -13,6 +13,12 @@ class KeyVerificationContent extends StatelessWidget {
   final KeyVerificationState state;
   final KeyVerification verification;
 
+  bool get _showSasNumbers {
+    final types = verification.sasTypes;
+    final emojiNegotiated = types.isEmpty || types.contains('emoji');
+    return !emojiNegotiated || verification.sasEmojis.isEmpty;
+  }
+
   String get title {
     switch (state) {
       case KeyVerificationState.askChoice:
@@ -21,7 +27,7 @@ class KeyVerificationContent extends StatelessWidget {
       case KeyVerificationState.askAccept:
         return 'Incoming verification';
       case KeyVerificationState.askSas:
-        return 'Compare emoji';
+        return _showSasNumbers ? 'Compare numbers' : 'Compare emoji';
       case KeyVerificationState.askSSSS:
         return 'Unlocking secrets';
       case KeyVerificationState.waitingSas:
@@ -60,7 +66,9 @@ class KeyVerificationContent extends StatelessWidget {
         return _buildWaiting('Starting verification...');
 
       case KeyVerificationState.askSas:
-        return _buildSasEmoji(context);
+        return _showSasNumbers
+            ? _buildSasNumbers(context)
+            : _buildSasEmoji(context);
 
       case KeyVerificationState.askSSSS:
         return _buildWaiting('Unlocking encryption secrets...');
@@ -119,6 +127,34 @@ class KeyVerificationContent extends StatelessWidget {
         const CircularProgressIndicator(),
         const SizedBox(height: 16),
         Text(message),
+      ],
+    );
+  }
+
+  Widget _buildSasNumbers(BuildContext context) {
+    final numbers = verification.sasNumbers;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'Verify that the following numbers appear on both devices, '
+          'in the same order:',
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 24,
+          runSpacing: 8,
+          children: numbers
+              .map((n) => Text(
+                    '$n',
+                    style: const TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),)
+              .toList(),
+        ),
       ],
     );
   }

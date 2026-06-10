@@ -27,6 +27,16 @@ class FakeKeyVerification extends Fake implements KeyVerification {
   @override
   List<KeyVerificationEmoji> get sasEmojis => _sasEmojis;
 
+  List<int> _sasNumbers = [];
+
+  @override
+  List<int> get sasNumbers => _sasNumbers;
+
+  List<String> _sasTypes = [];
+
+  @override
+  List<String> get sasTypes => _sasTypes;
+
   @override
   List<String> possibleMethods = [];
 
@@ -44,6 +54,14 @@ class FakeKeyVerification extends Fake implements KeyVerification {
 
   void setSasEmojis(List<KeyVerificationEmoji> emojis) {
     _sasEmojis = emojis;
+  }
+
+  void setSasNumbers(List<int> numbers) {
+    _sasNumbers = numbers;
+  }
+
+  void setSasTypes(List<String> types) {
+    _sasTypes = types;
   }
 
   void simulateStateChange(KeyVerificationState newState) {
@@ -159,6 +177,56 @@ void main() {
 
       // Verify ExcludeSemantics wraps the emoji text (at least 2 from our code)
       expect(find.byType(ExcludeSemantics), findsAtLeast(2));
+      expect(find.text('Compare emoji'), findsOneWidget);
+    });
+
+    testWidgets('renders decimal SAS when decimal is negotiated',
+        (tester) async {
+      final verification = FakeKeyVerification(
+        state: KeyVerificationState.askSas,
+      );
+      verification.setSasTypes(['decimal']);
+      verification.setSasNumbers([1234, 5678, 9012]);
+
+      await openDialog(tester, verification: verification);
+
+      // Title and numbers reflect the decimal representation.
+      expect(find.text('Compare numbers'), findsOneWidget);
+      expect(find.text('1234'), findsOneWidget);
+      expect(find.text('5678'), findsOneWidget);
+      expect(find.text('9012'), findsOneWidget);
+
+      // The match/reject actions still work for decimal.
+      await tester.tap(find.text('They match'));
+      expect(verification.acceptSasCalled, isTrue);
+    });
+
+    testWidgets('prefers emoji when both emoji and decimal are negotiated',
+        (tester) async {
+      final verification = FakeKeyVerification(
+        state: KeyVerificationState.askSas,
+      );
+      verification.setSasTypes(['emoji', 'decimal']);
+      verification.setSasEmojis([KeyVerificationEmoji(0)]);
+      verification.setSasNumbers([1234, 5678, 9012]);
+
+      await openDialog(tester, verification: verification);
+
+      expect(find.text('Compare emoji'), findsOneWidget);
+      expect(find.text('1234'), findsNothing);
+    });
+
+    testWidgets('falls back to decimal when no emoji are available',
+        (tester) async {
+      final verification = FakeKeyVerification(
+        state: KeyVerificationState.askSas,
+      );
+      verification.setSasNumbers([42, 4242, 8191]);
+
+      await openDialog(tester, verification: verification);
+
+      expect(find.text('Compare numbers'), findsOneWidget);
+      expect(find.text('4242'), findsOneWidget);
     });
 
     testWidgets('cancel calls verification.cancel() and pops', (tester) async {
