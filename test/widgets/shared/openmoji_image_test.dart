@@ -63,6 +63,38 @@ void main() {
     expect(tester.getSize(find.byType(OpenMojiImage)), const Size(16, 16));
   });
 
+  testWidgets('resizes at decode time to the painted physical size',
+      (tester) async {
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _wrap(const OpenMojiImage(grapheme: '\u{1F44D}', size: 16)),
+    );
+
+    final image = tester.widget<Image>(find.byType(Image));
+    final provider = image.image as ResizeImage;
+    // 16 logical px * 2.0 dpr = 32 physical px, well below the 72px source.
+    expect(provider.width, 32);
+    expect(provider.height, 32);
+  });
+
+  testWidgets('caps the decode at the 72px native source size',
+      (tester) async {
+    tester.view.devicePixelRatio = 2.0;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      _wrap(const OpenMojiImage(grapheme: '\u{1F44D}', size: 64)),
+    );
+
+    final image = tester.widget<Image>(find.byType(Image));
+    final provider = image.image as ResizeImage;
+    // 64 * 2.0 = 128 px would exceed the source; clamps to 72.
+    expect(provider.width, 72);
+    expect(provider.height, 72);
+  });
+
   testWidgets('falls back to text when no asset is bundled', (tester) async {
     await tester.pumpWidget(
       _wrap(const OpenMojiImage(grapheme: 'x', size: 24)),
