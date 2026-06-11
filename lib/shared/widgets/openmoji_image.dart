@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/emoji_style.dart';
 import 'package:kohera/core/utils/openmoji.dart';
 
+/// Edge length in pixels of the bundled OpenMoji source assets.
+const _openMojiSourcePx = 72;
+
 /// Renders a single emoji [grapheme] as its bundled OpenMoji image, falling
 /// back to system-font text when no asset is bundled or the asset fails to
 /// load. This is the single shared OpenMoji render+fallback path used by both
@@ -30,14 +33,23 @@ class OpenMojiImage extends StatelessWidget {
     if (asset == null) return _fallback();
 
     final s = size;
-    // Decode at native resolution (no cacheWidth): the 72px source upscales and
-    // pixelates if decoded smaller than its painted size. Downsampling from
-    // native uses the default medium filter quality and stays crisp.
+    // Resize at decode time so small targets (reaction chips, inline emoji) are
+    // downsampled with the decoder's high-quality resampling instead of being
+    // shrunk ~4x from the 72px source at draw time, which looks blurry. Cap the
+    // decode at the native source size so larger paints still upscale from the
+    // full 72px (avoids the blocky decode that motivated dropping cacheWidth).
+    final cacheSize = s == null
+        ? null
+        : (s * (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0))
+            .round()
+            .clamp(1, _openMojiSourcePx);
     final image = Image.asset(
       asset,
       width: s,
       height: s,
       fit: BoxFit.contain,
+      cacheWidth: cacheSize,
+      cacheHeight: cacheSize,
       errorBuilder: (context, error, stackTrace) => _fallback(),
     );
     if (s == null) return image;
