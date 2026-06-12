@@ -505,6 +505,20 @@ Key facts:
 - Graceful degradation is built into the SDK: on a homeserver without MSC3814,
   `getDehydratedDevice()` returns 400 and `dehydratedDeviceSetup()` logs and
   returns, so setup/restore complete normally via the recovery-key flow.
+- The dehydrated device is filtered out of Settings → Devices
+  (`DevicesScreen._loadDevices` excludes the id from `getDehydratedDevice()`),
+  so users never see — or accidentally delete — the server-side device.
+
+Known limitation — the verification-only unlock path does not rehydrate.
+`dehydratedDeviceSetup()` requires an **unlocked** `OpenSSSS`
+(`OpenSSSS.getStored` needs the 4S private key), which only the setup,
+typed-recovery-key, and stored-key (`restoreCryptoIdentity`) paths produce. A
+fresh login unlocked purely by verifying another device gossips the cached
+secrets but never unlocks an `OpenSSSS`, so it skips dehydration. Those logins
+still recover history via online key backup and key gossip from the verified
+device; they only miss the narrow set of messages sent while no device was
+online and never backed up. Closing this would require an SDK entry point that
+rehydrates from cached secrets.
 
 **Source:** `lib/core/services/client_factory_shared.dart`;
 SDK `matrix/lib/msc_extensions/msc_3814_dehydrated_devices/`; issue #620.

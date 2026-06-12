@@ -72,23 +72,25 @@ void main() {
 
     testWidgets('shows current device and other devices', (tester) async {
       final now = DateTime.now().millisecondsSinceEpoch;
-      when(mockClient.getDevices()).thenAnswer((_) async => [
-            Device(
-              deviceId: 'THISDEVICE',
-              displayName: 'Kohera Flutter',
-              lastSeenTs: now,
-            ),
-            Device(
-              deviceId: 'OTHER1',
-              displayName: 'Element Android',
-              lastSeenTs: now - 3600000,
-            ),
-            Device(
-              deviceId: 'OTHER2',
-              displayName: 'Element Web',
-              lastSeenTs: now - 7200000,
-            ),
-          ],);
+      when(mockClient.getDevices()).thenAnswer(
+        (_) async => [
+          Device(
+            deviceId: 'THISDEVICE',
+            displayName: 'Kohera Flutter',
+            lastSeenTs: now,
+          ),
+          Device(
+            deviceId: 'OTHER1',
+            displayName: 'Element Android',
+            lastSeenTs: now - 3600000,
+          ),
+          Device(
+            deviceId: 'OTHER2',
+            displayName: 'Element Web',
+            lastSeenTs: now - 7200000,
+          ),
+        ],
+      );
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
@@ -101,13 +103,54 @@ void main() {
       expect(find.text('Remove all other devices'), findsOneWidget);
     });
 
+    testWidgets('hides the dehydrated device from the list', (tester) async {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      when(mockClient.getDevices()).thenAnswer(
+        (_) async => [
+          Device(
+            deviceId: 'THISDEVICE',
+            displayName: 'Kohera Flutter',
+            lastSeenTs: now,
+          ),
+          Device(
+            deviceId: 'OTHER1',
+            displayName: 'Element Android',
+            lastSeenTs: now - 3600000,
+          ),
+          Device(
+            deviceId: 'FAMdehydrated',
+            displayName: 'Dehydrated Device',
+          ),
+        ],
+      );
+      when(
+        mockClient.request(
+          any,
+          argThat(contains('dehydrated_device')),
+          data: anyNamed('data'),
+          contentType: anyNamed('contentType'),
+          query: anyNamed('query'),
+        ),
+      ).thenAnswer(
+        (_) async => {'device_id': 'FAMdehydrated'},
+      );
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Element Android'), findsOneWidget);
+      expect(find.text('Dehydrated Device'), findsNothing);
+    });
+
     testWidgets('shows empty state when no other devices', (tester) async {
-      when(mockClient.getDevices()).thenAnswer((_) async => [
-            Device(
-              deviceId: 'THISDEVICE',
-              displayName: 'Kohera Flutter',
-            ),
-          ],);
+      when(mockClient.getDevices()).thenAnswer(
+        (_) async => [
+          Device(
+            deviceId: 'THISDEVICE',
+            displayName: 'Kohera Flutter',
+          ),
+        ],
+      );
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
@@ -118,9 +161,11 @@ void main() {
 
     testWidgets('shows backup warning when backup needed', (tester) async {
       when(mockChatBackup.chatBackupNeeded).thenReturn(true);
-      when(mockClient.getDevices()).thenAnswer((_) async => [
-            Device(deviceId: 'THISDEVICE', displayName: 'Kohera Flutter'),
-          ],);
+      when(mockClient.getDevices()).thenAnswer(
+        (_) async => [
+          Device(deviceId: 'THISDEVICE', displayName: 'Kohera Flutter'),
+        ],
+      );
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
@@ -133,12 +178,14 @@ void main() {
 
     testWidgets('rename device shows dialog and calls updateDevice',
         (tester) async {
-      when(mockClient.getDevices()).thenAnswer((_) async => [
-            Device(
-              deviceId: 'THISDEVICE',
-              displayName: 'Kohera Flutter',
-            ),
-          ],);
+      when(mockClient.getDevices()).thenAnswer(
+        (_) async => [
+          Device(
+            deviceId: 'THISDEVICE',
+            displayName: 'Kohera Flutter',
+          ),
+        ],
+      );
       when(mockClient.updateDevice(any, displayName: anyNamed('displayName')))
           .thenAnswer((_) async {});
 
@@ -162,14 +209,16 @@ void main() {
 
     testWidgets('remove device shows confirmation dialog', (tester) async {
       final now = DateTime.now().millisecondsSinceEpoch;
-      when(mockClient.getDevices()).thenAnswer((_) async => [
-            Device(deviceId: 'THISDEVICE', displayName: 'Kohera Flutter'),
-            Device(
-              deviceId: 'OTHER1',
-              displayName: 'Old Phone',
-              lastSeenTs: now,
-            ),
-          ],);
+      when(mockClient.getDevices()).thenAnswer(
+        (_) async => [
+          Device(deviceId: 'THISDEVICE', displayName: 'Kohera Flutter'),
+          Device(
+            deviceId: 'OTHER1',
+            displayName: 'Old Phone',
+            lastSeenTs: now,
+          ),
+        ],
+      );
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
@@ -181,9 +230,11 @@ void main() {
       } else {
         // PopupMenuButton renders as an IconButton with an overflow icon.
         // Find it by widget type within the DeviceListItem for 'Old Phone'.
-        await tester.tap(find.byWidgetPredicate(
-          (widget) => widget is PopupMenuButton,
-        ),);
+        await tester.tap(
+          find.byWidgetPredicate(
+            (widget) => widget is PopupMenuButton,
+          ),
+        );
       }
       await tester.pumpAndSettle();
 
