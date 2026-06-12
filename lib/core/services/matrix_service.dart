@@ -125,11 +125,9 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   bool _foregroundSyncStarted = false;
   bool _lifecycleObserverRegistered = false;
 
-  bool _hasSkippedSetup = false;
-  bool get hasSkippedSetup => _hasSkippedSetup;
+  bool get hasSkippedSetup => chatBackup.setupSkipped;
   void skipSetup() {
-    _hasSkippedSetup = true;
-    notifyListeners();
+    unawaited(chatBackup.markSetupSkipped());
   }
 
   @override
@@ -250,6 +248,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> logout() async {
     await auth.logout();
     await chatBackup.deleteStoredRecoveryKey();
+    await chatBackup.deleteDismissalState();
   }
 
   // ── Soft Logout ──────────────────────────────────────────────
@@ -267,6 +266,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       if (auth.isPermanentAuthFailure(cause)) {
         await auth.logout();
         await chatBackup.deleteStoredRecoveryKey();
+        await chatBackup.deleteDismissalState();
       } else {
         debugPrint('[Kohera] Transient refresh failure, keeping session '
             'for next sync/refresh retry');
@@ -280,6 +280,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     if (auth.isLoggedIn) {
       uia.listenForUia();
       _listenForLoginState();
+      unawaited(chatBackup.loadDismissalState());
       unawaited(callPushRuleManager.ensureRule());
       unawaited(
         keyMirror.start().catchError((Object e) {
@@ -300,7 +301,6 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       uia.cancelUiaSub();
       selection.resetSelection();
       chatBackup.resetChatBackupState();
-      _hasSkippedSetup = false;
       _foregroundSyncStarted = false;
       if (_lifecycleObserverRegistered) {
         WidgetsBinding.instance.removeObserver(this);
@@ -319,6 +319,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         debugPrint('[Kohera] Server-side logout detected');
         await auth.handleServerLogout();
         await chatBackup.deleteStoredRecoveryKey();
+        await chatBackup.deleteDismissalState();
       }
     });
   }

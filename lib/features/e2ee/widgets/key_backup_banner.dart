@@ -11,12 +11,15 @@ class KeyBackupBanner extends StatelessWidget {
     final needed = context.select<ChatBackupService, bool?>(
       (s) => s.chatBackupNeeded,
     );
+    final dismissed = context.select<ChatBackupService, bool>(
+      (s) => s.bannerDismissed,
+    );
 
     return AnimatedSize(
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
       alignment: Alignment.topCenter,
-      child: needed == true
+      child: needed == true && !dismissed
           ? const _KeyBackupBannerContent()
           : const SizedBox.shrink(),
     );
@@ -87,6 +90,14 @@ class _KeyBackupBannerContent extends StatelessWidget {
                   foregroundColor: cs.onTertiaryContainer,
                 ),
                 child: const Text('Set up'),
+              ),
+              IconButton(
+                onPressed: () =>
+                    context.read<ChatBackupService>().dismissBanner(),
+                icon: const Icon(Icons.close, size: 18),
+                color: cs.onTertiaryContainer,
+                tooltip: 'Dismiss',
+                visualDensity: VisualDensity.compact,
               ),
             ],
           ),
