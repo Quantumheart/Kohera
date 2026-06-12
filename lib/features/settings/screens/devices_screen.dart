@@ -9,6 +9,7 @@ import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:kohera/features/settings/widgets/device_list_item.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/msc_extensions/msc_3814_dehydrated_devices/api.dart';
 import 'package:provider/provider.dart';
 
 class DevicesScreen extends StatefulWidget {
@@ -49,10 +50,16 @@ class _DevicesScreenState extends State<DevicesScreen> {
     });
     try {
       final matrix = context.read<MatrixService>();
-      final devices = await matrix.client.getDevices();
+      final client = matrix.client;
+      final devicesFuture = client.getDevices();
+      final dehydratedIdFuture = _dehydratedDeviceId(client);
+      final devices = await devicesFuture;
+      final dehydratedId = await dehydratedIdFuture;
       if (!mounted) return;
       setState(() {
-        _devices = devices;
+        _devices = devices == null || dehydratedId == null
+            ? devices
+            : devices.where((d) => d.deviceId != dehydratedId).toList();
         _loading = false;
       });
     } catch (e) {
@@ -62,6 +69,15 @@ class _DevicesScreenState extends State<DevicesScreen> {
         _error = 'Failed to load devices';
         _loading = false;
       });
+    }
+  }
+
+  Future<String?> _dehydratedDeviceId(Client client) async {
+    try {
+      final device = await client.getDehydratedDevice();
+      return device.deviceId;
+    } catch (_) {
+      return null;
     }
   }
 
