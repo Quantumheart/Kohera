@@ -104,6 +104,7 @@ class _ChatScreenState extends State<ChatScreen>
   // ── Thread unread count (fetched from server) ───────────
   int _threadUnreadCount = 0;
   StreamSubscription<dynamic>? _threadCountSyncSub;
+  Timer? _threadCountDebounce;
 
 
   // ── Web paste ───────────────────────────────────────────
@@ -141,7 +142,12 @@ class _ChatScreenState extends State<ChatScreen>
       if (!mounted) return;
       setState(() => _threadUnreadCount = totalThreadUnread(summaries));
       _threadCountSyncSub ??= matrix.client.onSync.stream.listen((_) {
-        if (mounted) unawaited(_refreshThreadUnreadCount());
+        if (!mounted) return;
+        _threadCountDebounce?.cancel();
+        _threadCountDebounce = Timer(
+          const Duration(seconds: 30),
+          () => unawaited(_refreshThreadUnreadCount()),
+        );
       });
     } catch (_) {}
   }
@@ -169,6 +175,8 @@ class _ChatScreenState extends State<ChatScreen>
       _search = _createSearchController();
       unawaited(_threadCountSyncSub?.cancel() ?? Future.value());
       _threadCountSyncSub = null;
+      _threadCountDebounce?.cancel();
+      _threadCountDebounce = null;
       _threadUnreadCount = 0;
       unawaited(_refreshThreadUnreadCount());
     }
@@ -537,6 +545,7 @@ class _ChatScreenState extends State<ChatScreen>
   void dispose() {
     unawaited(_webPasteSub?.cancel() ?? Future.value());
     unawaited(_threadCountSyncSub?.cancel() ?? Future.value());
+    _threadCountDebounce?.cancel();
     _msgCtrl.dispose();
     _compose.dispose();
     _searchCtrl.dispose();
