@@ -23,11 +23,13 @@ Notification _makeNotification({
   bool read = false,
   int ts = 1000,
   Map<String, Object?>? content,
+  String type = 'm.room.message',
+  List<Object?> actions = const [],
 }) {
   return Notification(
-    actions: [],
+    actions: actions,
     event: MatrixEvent(
-      type: 'm.room.message',
+      type: type,
       content: content ?? {'body': 'hello', 'msgtype': 'm.text'},
       senderId: '@alice:example.com',
       eventId: eventId,
@@ -887,7 +889,7 @@ void main() {
       expect(controller.grouped[0].roomId, '!r1:x');
     });
 
-    test('mentions filter includes notification with user ID in body', () async {
+    test('mentions filter includes notification with highlight action', () async {
       when(mockClient.getNotifications(
         limit: anyNamed('limit'),
         only: anyNamed('only'),
@@ -895,6 +897,31 @@ void main() {
             _makeNotification(
               eventId: 'e1',
               roomId: '!r1:x',
+              actions: [
+                'notify',
+                {'set_tweak': 'highlight'},
+              ],
+            ),
+            _makeNotification(eventId: 'e2', roomId: '!r2:x'),
+          ]),);
+
+      controller.setFilter(InboxFilter.mentions);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.grouped, hasLength(1));
+      expect(controller.grouped[0].roomId, '!r1:x');
+    });
+
+    test('mentions filter includes encrypted notification with user ID in body', () async {
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(
+              eventId: 'e1',
+              roomId: '!r1:x',
+              type: 'm.room.encrypted',
               content: {
                 'body': 'hey @me:example.com check this',
                 'msgtype': 'm.text',
@@ -911,7 +938,7 @@ void main() {
       expect(controller.grouped[0].roomId, '!r1:x');
     });
 
-    test('mentions filter includes notification with display name in body', () async {
+    test('mentions filter includes encrypted notification with display name in body', () async {
       final displayUser = MockUser();
       when(displayUser.calcDisplayname()).thenReturn('MyName');
       when(defaultRoom.unsafeGetUserFromMemoryOrFallback('@me:example.com'))
@@ -924,6 +951,7 @@ void main() {
             _makeNotification(
               eventId: 'e1',
               roomId: '!r1:x',
+              type: 'm.room.encrypted',
               content: {
                 'body': 'hey MyName check this out',
                 'msgtype': 'm.text',
@@ -938,6 +966,33 @@ void main() {
 
       expect(controller.grouped, hasLength(1));
       expect(controller.grouped[0].roomId, '!r1:x');
+    });
+
+    test('mentions filter excludes plaintext body matches without highlight action', () async {
+      final displayUser = MockUser();
+      when(displayUser.calcDisplayname()).thenReturn('Will');
+      when(defaultRoom.unsafeGetUserFromMemoryOrFallback('@me:example.com'))
+          .thenReturn(displayUser);
+
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(
+              eventId: 'e1',
+              roomId: '!r1:x',
+              content: {
+                'body': 'Will you join the call?',
+                'msgtype': 'm.text',
+              },
+            ),
+          ]),);
+
+      controller.setFilter(InboxFilter.mentions);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.grouped, isEmpty);
     });
 
     test('mentions filter excludes notifications without mentions', () async {
@@ -968,6 +1023,169 @@ void main() {
       await controller.fetch();
 
       expect(controller.grouped, hasLength(2));
+    });
+  });
+
+  // ── isMention ─────────────────────────────────────────────
+
+  group('isMention', () {
+    setUp(() {
+      when(mockClient.userID).thenReturn('@me:example.com');
+    });
+
+    void stubDisplayName(String name) {
+      final user = MockUser();
+      when(user.calcDisplayname()).thenReturn(name);
+      when(defaultRoom.unsafeGetUserFromMemoryOrFallback('@me:example.com'))
+          .thenReturn(user);
+    }
+
+    test('true for highlight action without value', () {
+      stubDisplayName('Me');
+      final n = _makeNotification(
+        eventId: 'e1',
+        roomId: '!r1:x',
+        actions: [
+          'notify',
+          {'set_tweak': 'highlight'},
+        ],
+      );
+      expect(controller.isMention(n), isTrue);
+    });
+
+    test('true for highlight action with value true', () {
+      stubDisplayName('Me');
+      final n = _makeNotification(
+        eventId: 'e1',
+        roomId: '!r1:x',
+        actions: [
+          'notify',
+          {'set_tweak': 'highlight', 'value': true},
+        ],
+      );
+      expect(controller.isMention(n), isTrue);
+    });
+
+    test('false for highlight action with value false', () {
+      stubDisplayName('Me');
+      final n = _makeNotification(
+        eventId: 'e1',
+        roomId: '!r1:x',
+        actions: [
+          'notify',
+          {'set_tweak': 'highlight', 'value': false},
+        ],
+      );
+      expect(controller.isMention(n), isFalse);
+    });
+
+    test('true when m.mentions lists the user', () {
+      stubDisplayName('Me');
+      final n = _makeNotification(
+        eventId: 'e1',
+        roomId: '!r1:x',
+        content: {
+          'body': 'hello everyone',
+          'msgtype': 'm.text',
+          'm.mentions': {
+            'user_ids': ['@me:example.com'],
+          },
+        },
+      );
+      expect(controller.isMention(n), isTrue);
+    });
+
+    test('true when m.mentions flags a room mention', () {
+      stubDisplayName('Me');
+      final n = _makeNotification(
+        eventId: 'e1',
+        roomId: '!r1:x',
+        type: 'm.room.encrypted',
+        content: {
+          'body': 'attention everyone',
+          'msgtype': 'm.text',
+          'm.mentions': {'room': true},
+        },
+      );
+      expect(controller.isMention(n), isTrue);
+    });
+
+    test('false when m.mentions is present without the user, even if the body matches', () {
+      stubDisplayName('Me');
+      final n = _makeNotification(
+        eventId: 'e1',
+        roomId: '!r1:x',
+        type: 'm.room.encrypted',
+        content: {
+          'body': 'hey Me, did @other ping you?',
+          'msgtype': 'm.text',
+          'm.mentions': {
+            'user_ids': ['@other:example.com'],
+          },
+        },
+      );
+      expect(controller.isMention(n), isFalse);
+    });
+
+    test('false for plaintext body match without highlight action', () {
+      stubDisplayName('Will');
+      final n = _makeNotification(
+        eventId: 'e1',
+        roomId: '!r1:x',
+        content: {'body': 'Will you join?', 'msgtype': 'm.text'},
+      );
+      expect(controller.isMention(n), isFalse);
+    });
+
+    test('encrypted fallback matches a word-bounded display name', () {
+      stubDisplayName('Will');
+      final n = _makeNotification(
+        eventId: 'e1',
+        roomId: '!r1:x',
+        type: 'm.room.encrypted',
+        content: {'body': 'Will, are you there?', 'msgtype': 'm.text'},
+      );
+      expect(controller.isMention(n), isTrue);
+    });
+
+    test('encrypted fallback ignores the display name inside a larger word', () {
+      stubDisplayName('Will');
+      final n = _makeNotification(
+        eventId: 'e1',
+        roomId: '!r1:x',
+        type: 'm.room.encrypted',
+        content: {'body': 'willpower beats talent', 'msgtype': 'm.text'},
+      );
+      expect(controller.isMention(n), isFalse);
+    });
+
+    test('encrypted fallback treats digits as word characters', () {
+      stubDisplayName('Max');
+      final n = _makeNotification(
+        eventId: 'e1',
+        roomId: '!r1:x',
+        type: 'm.room.encrypted',
+        content: {'body': 'Max99 said hi', 'msgtype': 'm.text'},
+      );
+      expect(controller.isMention(n), isFalse);
+    });
+
+    test('encrypted fallback is Unicode-aware for Cyrillic display names', () {
+      stubDisplayName('Вера');
+      final bounded = _makeNotification(
+        eventId: 'e1',
+        roomId: '!r1:x',
+        type: 'm.room.encrypted',
+        content: {'body': 'Вера, привет', 'msgtype': 'm.text'},
+      );
+      final embedded = _makeNotification(
+        eventId: 'e2',
+        roomId: '!r1:x',
+        type: 'm.room.encrypted',
+        content: {'body': 'проверая текст', 'msgtype': 'm.text'},
+      );
+      expect(controller.isMention(bounded), isTrue);
+      expect(controller.isMention(embedded), isFalse);
     });
   });
 
