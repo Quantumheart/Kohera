@@ -477,6 +477,40 @@ SDK Database (IndexedDB on web, SQLite on native)
 
 ---
 
+## Dehydrated Devices (MSC3814)
+
+The client is built with `enableDehydratedDevices: true`
+(`lib/core/services/client_factory_shared.dart`). A dehydrated device is a
+server-stored, offline olm account that other users keep sending room keys to
+while none of your real devices are online. On a later login it is rehydrated:
+its queued to-device room keys are fetched and imported, then a fresh
+dehydrated device replaces it.
+
+The SDK drives this automatically — `Client.dehydratedDeviceSetup()` is invoked
+from inside the bootstrap state machine, so it runs both during first-time E2EE
+setup (the `BootstrapDriver` flow) and during headless restore
+(`restoreCryptoIdentity`, used by `tryAutoUnlockBackup`). Kohera adds no
+explicit call.
+
+Key facts:
+
+- The dehydrated device's pickle key is stored in SSSS (4S) under the secret
+  name `org.matrix.msc3814` — there is no new user-visible secret.
+- Rehydration requires SSSS to be **open**. It therefore rides on whatever
+  unlocks SSSS: the on-device stored recovery key (silent), a typed recovery
+  key, or device verification. Dehydrated devices do **not** remove the unlock
+  step — they make the post-unlock result more complete by also recovering
+  messages sent while no device was online, which online key backup alone can
+  miss.
+- Graceful degradation is built into the SDK: on a homeserver without MSC3814,
+  `getDehydratedDevice()` returns 400 and `dehydratedDeviceSetup()` logs and
+  returns, so setup/restore complete normally via the recovery-key flow.
+
+**Source:** `lib/core/services/client_factory_shared.dart`;
+SDK `matrix/lib/msc_extensions/msc_3814_dehydrated_devices/`; issue #620.
+
+---
+
 ## Call Signaling Metadata
 
 1:1 voice/video calls in Kohera use MatrixRTC (MSC3401) `m.call.member` state events for signaling. State events are **not** E2EE — they are written in clear at the Matrix state layer so the homeserver and push gateway can route VoIP pushes on event type without decrypting anything.

@@ -26,6 +26,7 @@ Client buildClient(
       KeyVerificationMethod.emoji,
       KeyVerificationMethod.numbers,
     },
+    enableDehydratedDevices: true,
     nativeImplementations: nativeImplementations,
   );
   client.roomPreviewLastEvents.removeAll(callPreviewTypes);
