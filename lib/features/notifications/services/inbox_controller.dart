@@ -1,30 +1,23 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/core/utils/word_boundary.dart';
 import 'package:kohera/features/notifications/services/apns_push_service.dart';
 import 'package:matrix/matrix.dart' as matrix_sdk;
 import 'package:matrix/matrix.dart'
     show Client, Event, EventTypes, MatrixException, Membership;
 
-// ── Word-boundary helper ─────────────────────────────────────
+// ── Push-action helper ───────────────────────────────────────
 
-bool _containsWord(String text, String word) {
-  var start = 0;
-  while (true) {
-    final index = text.indexOf(word, start);
-    if (index == -1) return false;
-    final before = index > 0 ? text.codeUnitAt(index - 1) : 0;
-    final afterIdx = index + word.length;
-    final after = afterIdx < text.length ? text.codeUnitAt(afterIdx) : 0;
-    final boundedLeft = !_isLetter(before);
-    final boundedRight = !_isLetter(after);
-    if (boundedLeft && boundedRight) return true;
-    start = index + 1;
+bool _hasHighlightAction(List<Object?> actions) {
+  for (final action in actions) {
+    if (action is Map && action['set_tweak'] == 'highlight') {
+      final value = action['value'];
+      if (value == null || value == true) return true;
+    }
   }
+  return false;
 }
-
-bool _isLetter(int c) =>
-    (c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A);
 
 // ── Filter enum ──────────────────────────────────────────────
 enum InboxFilter { all, mentions, threads, invitations }
@@ -362,6 +355,8 @@ class InboxController extends ChangeNotifier {
     final userId = _client.userID;
     if (userId == null) return false;
 
+    if (_hasHighlightAction(n.actions)) return true;
+
     final content =
         _decryptedContent[n.event.eventId] ?? n.event.content;
 
@@ -369,24 +364,24 @@ class InboxController extends ChangeNotifier {
     if (mentions is Map) {
       final userIds = mentions['user_ids'];
       if (userIds is List && userIds.contains(userId)) return true;
+      return mentions['room'] == true;
     }
+
+    if (n.event.type != EventTypes.Encrypted) return false;
 
     final body = content['body'];
-    if (body is String) {
-      final lower = body.toLowerCase();
-      if (lower.contains(userId.toLowerCase())) return true;
-      final displayName = _client
-          .getRoomById(n.roomId)
-          ?.unsafeGetUserFromMemoryOrFallback(userId)
-          .calcDisplayname();
-      if (displayName != null &&
-          displayName.length >= 2 &&
-          _containsWord(lower, displayName.toLowerCase())) {
-        return true;
-      }
-    }
+    if (body is! String) return false;
 
-    return false;
+    final lower = body.toLowerCase();
+    if (lower.contains(userId.toLowerCase())) return true;
+
+    final displayName = _client
+        .getRoomById(n.roomId)
+        ?.unsafeGetUserFromMemoryOrFallback(userId)
+        .calcDisplayname();
+    return displayName != null &&
+        displayName.length >= 2 &&
+        containsWord(lower, displayName.toLowerCase());
   }
 
   // ── Helpers ────────────────────────────────────────────────

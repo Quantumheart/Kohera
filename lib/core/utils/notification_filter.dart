@@ -1,25 +1,6 @@
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/utils/word_boundary.dart';
 import 'package:matrix/matrix.dart';
-
-/// Whether [text] contains [word] as a whole word (bounded by non-letter
-/// characters or string edges). Avoids per-call RegExp compilation.
-bool _containsWord(String text, String word) {
-  var start = 0;
-  while (true) {
-    final index = text.indexOf(word, start);
-    if (index == -1) return false;
-    final before = index > 0 ? text.codeUnitAt(index - 1) : 0;
-    final afterIdx = index + word.length;
-    final after = afterIdx < text.length ? text.codeUnitAt(afterIdx) : 0;
-    final boundedLeft = !_isLetter(before);
-    final boundedRight = !_isLetter(after);
-    if (boundedLeft && boundedRight) return true;
-    start = index + 1;
-  }
-}
-
-bool _isLetter(int c) =>
-    (c >= 0x41 && c <= 0x5A) || (c >= 0x61 && c <= 0x7A);
 
 // ── Notification-level-aware unread count ───────────────────
 
@@ -79,7 +60,7 @@ bool shouldNotifyForEvent({
               : null);
       if (displayName != null &&
           displayName.length >= 2 &&
-          _containsWord(lower, displayName)) {
+          containsWord(lower, displayName)) {
         return true;
       }
       for (final kw in prefs.notificationKeywords) {
