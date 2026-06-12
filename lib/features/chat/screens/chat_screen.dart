@@ -21,6 +21,7 @@ import 'package:kohera/features/chat/screens/thread_screen.dart';
 import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/chat_search_controller.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
+import 'package:kohera/features/chat/services/thread_roots_service.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
@@ -100,6 +101,10 @@ class _ChatScreenState extends State<ChatScreen>
   String? _activeThreadEventId;
   bool _showThreadList = false;
 
+  // ── Thread unread count (fetched from server) ───────────
+  int _threadUnreadCount = 0;
+  StreamSubscription<dynamic>? _threadCountSyncSub;
+
 
   // ── Web paste ───────────────────────────────────────────
   StreamSubscription<ClipboardImageData>? _webPasteSub;
@@ -120,6 +125,25 @@ class _ChatScreenState extends State<ChatScreen>
       initWebPasteListener();
       _webPasteSub = webPasteImageStream.listen(_onWebPasteImage);
     }
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshThreadUnreadCount());
+  }
+
+  Future<void> _refreshThreadUnreadCount() async {
+    if (!mounted) return;
+    final matrix = context.read<MatrixService>();
+    final room = matrix.client.getRoomById(widget.roomId);
+    if (room == null) return;
+    try {
+      final summaries = await fetchThreadSummaries(
+        client: matrix.client,
+        room: room,
+      );
+      if (!mounted) return;
+      setState(() => _threadUnreadCount = totalThreadUnread(summaries));
+      _threadCountSyncSub ??= matrix.client.onSync.stream.listen((_) {
+        if (mounted) unawaited(_refreshThreadUnreadCount());
+      });
+    } catch (_) {}
   }
 
   void _onComposeFocusChanged() {
@@ -143,6 +167,10 @@ class _ChatScreenState extends State<ChatScreen>
       _search.dispose();
       _actions = _createActions();
       _search = _createSearchController();
+      unawaited(_threadCountSyncSub?.cancel() ?? Future.value());
+      _threadCountSyncSub = null;
+      _threadUnreadCount = 0;
+      unawaited(_refreshThreadUnreadCount());
     }
   }
 
@@ -508,6 +536,7 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   void dispose() {
     unawaited(_webPasteSub?.cancel() ?? Future.value());
+    unawaited(_threadCountSyncSub?.cancel() ?? Future.value());
     _msgCtrl.dispose();
     _compose.dispose();
     _searchCtrl.dispose();
@@ -544,14 +573,6 @@ class _ChatScreenState extends State<ChatScreen>
         onClose: _closeSearch,
       );
     } else {
-      final timeline = _messageListKey.currentState?.timeline;
-      final summaries = timeline == null
-          ? const <ThreadSummary>[]
-          : deriveThreadSummaries(
-              timeline: timeline,
-              room: room,
-              myUserId: matrix.client.userID ?? '',
-            );
       appBar = ChatAppBar(
         room: room,
         onBack: widget.onBack,
@@ -560,7 +581,7 @@ class _ChatScreenState extends State<ChatScreen>
         onPinnedEvent: (event) =>
             _messageListKey.currentState?.navigateToEvent(event),
         onShowThreads: _openThreadList,
-        threadUnreadCount: totalThreadUnread(summaries),
+        threadUnreadCount: _threadUnreadCount,
       );
     }
 
