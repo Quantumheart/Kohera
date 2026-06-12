@@ -125,10 +125,10 @@ void main() {
         _makeNotification(
           eventId: 'new1',
           roomId: '!new:x',
-          content: {
-            'body': 'hey @me:example.com',
-            'msgtype': 'm.text',
-          },
+          actions: [
+            'notify',
+            {'set_tweak': 'highlight'},
+          ],
         ),
       ]),);
 
@@ -202,10 +202,10 @@ void main() {
             _makeNotification(
               eventId: 'e2',
               roomId: '!r2:x',
-              content: {
-                'body': 'hey @me:example.com',
-                'msgtype': 'm.text',
-              },
+              actions: [
+                'notify',
+                {'set_tweak': 'highlight'},
+              ],
             ),
           ]),);
 
@@ -286,10 +286,10 @@ void main() {
             _makeNotification(
               eventId: 'new1',
               roomId: '!new:x',
-              content: {
-                'body': 'hey @me:example.com',
-                'msgtype': 'm.text',
-              },
+              actions: [
+                'notify',
+                {'set_tweak': 'highlight'},
+              ],
             ),
           ]),);
       controller.setFilter(InboxFilter.mentions);
