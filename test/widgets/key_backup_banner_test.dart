@@ -89,6 +89,37 @@ void main() {
       expect(find.text('Protect your messages'), findsNothing);
     });
 
+    testWidgets('hidden when needed but already dismissed', (tester) async {
+      when(mockChatBackup.chatBackupNeeded).thenReturn(true);
+      when(mockChatBackup.bannerDismissed).thenReturn(true);
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Protect your messages'), findsNothing);
+    });
+
+    testWidgets('dismiss button hides the banner', (tester) async {
+      final fake = _FakeChatBackupService(chatBackupNeeded: true);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
+          home: ChangeNotifierProvider<ChatBackupService>.value(
+            value: fake,
+            child: const Scaffold(body: KeyBackupBanner()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Protect your messages'), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Protect your messages'), findsNothing);
+      expect(fake.bannerDismissed, isTrue);
+    });
+
     testWidgets('appears when backup status changes to needed',
         (tester) async {
       final fake = _FakeChatBackupService(chatBackupNeeded: false);
@@ -116,14 +147,27 @@ void main() {
 class _FakeChatBackupService extends ChangeNotifier
     implements ChatBackupService {
   bool? _chatBackupNeeded;
+  bool _bannerDismissed;
 
-  _FakeChatBackupService({required bool? chatBackupNeeded})
-      : _chatBackupNeeded = chatBackupNeeded;
+  _FakeChatBackupService({
+    required bool? chatBackupNeeded,
+    bool bannerDismissed = false,
+  })  : _chatBackupNeeded = chatBackupNeeded,
+        _bannerDismissed = bannerDismissed;
 
   @override
   bool? get chatBackupNeeded => _chatBackupNeeded;
   set chatBackupNeeded(bool? value) {
     _chatBackupNeeded = value;
+    notifyListeners();
+  }
+
+  @override
+  bool get bannerDismissed => _bannerDismissed;
+
+  @override
+  Future<void> dismissBanner() async {
+    _bannerDismissed = true;
     notifyListeners();
   }
 

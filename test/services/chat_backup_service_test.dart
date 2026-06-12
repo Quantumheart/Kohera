@@ -282,7 +282,88 @@ void main() {
     });
   });
 
+  group('setup dismissal state', () {
+    const userId = '@user:example.com';
+
+    test('loadDismissalState reads both flags from storage', () async {
+      when(mockClient.userID).thenReturn(userId);
+      when(mockStorage.read(key: 'e2ee_setup_skipped_$userId'))
+          .thenAnswer((_) async => 'true');
+      when(mockStorage.read(key: 'e2ee_banner_dismissed_$userId'))
+          .thenAnswer((_) async => null);
+
+      await service.loadDismissalState();
+
+      expect(service.setupSkipped, isTrue);
+      expect(service.bannerDismissed, isFalse);
+    });
+
+    test('markSetupSkipped sets flag immediately and persists', () async {
+      when(mockClient.userID).thenReturn(userId);
+
+      await service.markSetupSkipped();
+
+      expect(service.setupSkipped, isTrue);
+      verify(
+        mockStorage.write(
+          key: 'e2ee_setup_skipped_$userId',
+          value: 'true',
+        ),
+      ).called(1);
+    });
+
+    test('dismissBanner sets flag immediately and persists', () async {
+      when(mockClient.userID).thenReturn(userId);
+
+      await service.dismissBanner();
+
+      expect(service.bannerDismissed, isTrue);
+      verify(
+        mockStorage.write(
+          key: 'e2ee_banner_dismissed_$userId',
+          value: 'true',
+        ),
+      ).called(1);
+    });
+
+    test('deleteDismissalState removes both keys', () async {
+      when(mockClient.userID).thenReturn(userId);
+
+      await service.deleteDismissalState();
+
+      verify(mockStorage.delete(key: 'e2ee_setup_skipped_$userId')).called(1);
+      verify(mockStorage.delete(key: 'e2ee_banner_dismissed_$userId'))
+          .called(1);
+    });
+
+    test('disableChatBackup re-shows a previously dismissed banner', () async {
+      when(mockClient.userID).thenReturn(userId);
+      await service.dismissBanner();
+      expect(service.bannerDismissed, isTrue);
+
+      when(mockKeyManager.getRoomKeysBackupInfo())
+          .thenAnswer((_) async => fakeBackupInfo());
+      when(mockClient.deleteRoomKeysVersion(any)).thenAnswer((_) async {});
+
+      await service.disableChatBackup();
+
+      expect(service.bannerDismissed, isFalse);
+    });
+  });
+
   group('resetChatBackupState', () {
+    test('resets dismissal flags along with chatBackupNeeded', () async {
+      when(mockClient.userID).thenReturn('@user:example.com');
+      await service.markSetupSkipped();
+      await service.dismissBanner();
+
+      service.resetChatBackupState();
+
+      expect(service.setupSkipped, isFalse);
+      expect(service.bannerDismissed, isFalse);
+      expect(service.chatBackupNeeded, isNull);
+    });
+
     test('resets chatBackupNeeded to null', () async {
       when(mockCrossSigning.enabled).thenReturn(true);
       when(mockKeyManager.enabled).thenReturn(true);

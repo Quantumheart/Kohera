@@ -45,11 +45,65 @@ class MockChatBackupService extends _i1.Mock implements _i2.ChatBackupService {
       ) as bool);
 
   @override
+  bool get setupSkipped => (super.noSuchMethod(
+        Invocation.getter(#setupSkipped),
+        returnValue: false,
+        returnValueForMissingStub: false,
+      ) as bool);
+
+  @override
+  bool get bannerDismissed => (super.noSuchMethod(
+        Invocation.getter(#bannerDismissed),
+        returnValue: false,
+        returnValueForMissingStub: false,
+      ) as bool);
+
+  @override
   bool get hasListeners => (super.noSuchMethod(
         Invocation.getter(#hasListeners),
         returnValue: false,
         returnValueForMissingStub: false,
       ) as bool);
+
+  @override
+  _i3.Future<void> loadDismissalState() => (super.noSuchMethod(
+        Invocation.method(
+          #loadDismissalState,
+          [],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> markSetupSkipped() => (super.noSuchMethod(
+        Invocation.method(
+          #markSetupSkipped,
+          [],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> dismissBanner() => (super.noSuchMethod(
+        Invocation.method(
+          #dismissBanner,
+          [],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> deleteDismissalState() => (super.noSuchMethod(
+        Invocation.method(
+          #deleteDismissalState,
+          [],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 
   @override
   _i3.Future<void> checkChatBackupStatus() => (super.noSuchMethod(

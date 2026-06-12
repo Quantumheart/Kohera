@@ -458,7 +458,9 @@ FlutterSecureStorage (localStorage on web, Keychain/Keystore on native)
 ├── kohera_{clientName}_homeserver     ← session credential
 ├── kohera_{clientName}_device_id      ← session credential
 ├── kohera_session_backup_{clientName} ← JSON: tokens + olmAccount pickle
-└── ssss_recovery_key_{userId}          ← recovery key (if "Save to device" checked)
+├── ssss_recovery_key_{userId}          ← recovery key (if "Save to device" checked)
+├── e2ee_setup_skipped_{userId}         ← skip/done flag; stops router re-forcing on restart
+└── e2ee_banner_dismissed_{userId}      ← KeyBackupBanner dismissed (persists until backup disabled/logout)
 
 In-Memory (UiaService)
 └── _cachedPassword             ← login password (30s TTL)

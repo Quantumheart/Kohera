@@ -32,6 +32,50 @@ class ChatBackupService extends ChangeNotifier {
   String? _chatBackupError;
   String? get chatBackupError => _chatBackupError;
 
+  // ── Setup Dismissal State ─────────────────────────────────────
+  bool _setupSkipped = false;
+  bool get setupSkipped => _setupSkipped;
+
+  bool _bannerDismissed = false;
+  bool get bannerDismissed => _bannerDismissed;
+
+  Future<void> loadDismissalState() async {
+    final userId = _client.userID;
+    if (userId == null) return;
+    final results = await Future.wait([
+      _storage.read(key: 'e2ee_setup_skipped_$userId'),
+      _storage.read(key: 'e2ee_banner_dismissed_$userId'),
+    ]);
+    _setupSkipped = results[0] == 'true';
+    _bannerDismissed = results[1] == 'true';
+    notifyListeners();
+  }
+
+  Future<void> markSetupSkipped() async {
+    _setupSkipped = true;
+    notifyListeners();
+    final userId = _client.userID;
+    if (userId == null) return;
+    await _storage.write(key: 'e2ee_setup_skipped_$userId', value: 'true');
+  }
+
+  Future<void> dismissBanner() async {
+    _bannerDismissed = true;
+    notifyListeners();
+    final userId = _client.userID;
+    if (userId == null) return;
+    await _storage.write(key: 'e2ee_banner_dismissed_$userId', value: 'true');
+  }
+
+  Future<void> deleteDismissalState() async {
+    final userId = _client.userID;
+    if (userId == null) return;
+    await Future.wait([
+      _storage.delete(key: 'e2ee_setup_skipped_$userId'),
+      _storage.delete(key: 'e2ee_banner_dismissed_$userId'),
+    ]);
+  }
+
   Future<void> checkChatBackupStatus() async {
     try {
       final hasBackupVersion = await _backupVersion.hasVersion();
@@ -69,6 +113,7 @@ class ChatBackupService extends ChangeNotifier {
       }
       _backupVersion.invalidateCache();
       await deleteStoredRecoveryKey();
+      _bannerDismissed = false;
       _chatBackupNeeded = true;
     } catch (e) {
       debugPrint('[Kohera] disableChatBackup error: $e');
@@ -81,6 +126,8 @@ class ChatBackupService extends ChangeNotifier {
 
   void resetChatBackupState() {
     _chatBackupNeeded = null;
+    _setupSkipped = false;
+    _bannerDismissed = false;
   }
 
   // ── Key Restoration ──────────────────────────────────────────
