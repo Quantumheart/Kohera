@@ -18,6 +18,11 @@ class RecaptchaServer {
 
   final String siteKey;
 
+  /// Cloudflare Turnstile site keys are `0x`-prefixed; Google reCAPTCHA keys
+  /// are not. The backend serves a Turnstile key under the `m.login.recaptcha`
+  /// stage (adapter path), so the widget is chosen from the key shape.
+  bool get _isTurnstile => siteKey.startsWith('0x');
+
   HttpServer? _server;
   final Completer<String> _tokenCompleter = Completer<String>();
   Timer? _timeout;
@@ -105,14 +110,19 @@ class RecaptchaServer {
     });
   }
 
-  String _buildHtmlPage() => '''
+  String _buildHtmlPage() {
+    final scriptSrc = _isTurnstile
+        ? 'https://challenges.cloudflare.com/turnstile/v0/api.js'
+        : 'https://www.google.com/recaptcha/api.js';
+    final widgetClass = _isTurnstile ? 'cf-turnstile' : 'g-recaptcha';
+    return '''
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verify you are human</title>
-  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+  <script src="$scriptSrc" async defer></script>
   <style>
     body {
       font-family: sans-serif;
@@ -132,7 +142,7 @@ class RecaptchaServer {
     <h2>Verify you are human</h2>
     <form id="captchaForm" method="POST" action="/token">
       <input type="hidden" id="tokenField" name="g-recaptcha-response" value="">
-      <div class="g-recaptcha"
+      <div class="$widgetClass"
            data-sitekey="${_escapeHtmlAttr(siteKey)}"
            data-callback="onCaptchaComplete"></div>
     </form>
@@ -146,6 +156,7 @@ class RecaptchaServer {
 </body>
 </html>
 ''';
+  }
 
   String _buildSuccessPage() => '''
 <!DOCTYPE html>
