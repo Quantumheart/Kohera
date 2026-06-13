@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/features/auth/services/captcha_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 String _escapeHtmlAttr(String value) => value
@@ -17,11 +18,6 @@ class RecaptchaServer {
   RecaptchaServer({required this.siteKey});
 
   final String siteKey;
-
-  /// Cloudflare Turnstile site keys are `0x`-prefixed; Google reCAPTCHA keys
-  /// are not. The backend serves a Turnstile key under the `m.login.recaptcha`
-  /// stage (adapter path), so the widget is chosen from the key shape.
-  bool get _isTurnstile => siteKey.startsWith('0x');
 
   HttpServer? _server;
   final Completer<String> _tokenCompleter = Completer<String>();
@@ -111,10 +107,9 @@ class RecaptchaServer {
   }
 
   String _buildHtmlPage() {
-    final scriptSrc = _isTurnstile
-        ? 'https://challenges.cloudflare.com/turnstile/v0/api.js'
-        : 'https://www.google.com/recaptcha/api.js';
-    final widgetClass = _isTurnstile ? 'cf-turnstile' : 'g-recaptcha';
+    final provider = resolveCaptchaProvider(siteKey);
+    final scriptSrc = provider.scriptSrc;
+    final widgetClass = provider.widgetClass;
     return '''
 <!DOCTYPE html>
 <html lang="en">

@@ -35,7 +35,7 @@ void main() {
     });
 
     test('renders Turnstile widget for a 0x-prefixed site key', () async {
-      final server = RecaptchaServer(siteKey: '0x4AAAAAtestkey');
+      final server = RecaptchaServer(siteKey: '0x4AAAAAAABkMYinukE8nzYS');
       final url = await server.start();
 
       final client = HttpClient();
@@ -48,7 +48,7 @@ void main() {
           (acc, chunk) => acc..addAll(chunk),
         );
         final html = String.fromCharCodes(body);
-        expect(html, contains('data-sitekey="0x4AAAAAtestkey"'));
+        expect(html, contains('data-sitekey="0x4AAAAAAABkMYinukE8nzYS"'));
         expect(html, contains('cf-turnstile'));
         expect(html, contains('challenges.cloudflare.com/turnstile'));
         expect(html, isNot(contains('google.com/recaptcha')));
