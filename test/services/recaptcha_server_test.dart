@@ -26,6 +26,32 @@ void main() {
         final html = String.fromCharCodes(body);
         expect(html, contains('data-sitekey="testkey"'));
         expect(html, contains('g-recaptcha'));
+        expect(html, contains('google.com/recaptcha'));
+      } finally {
+        client.close();
+        unawaited(server.tokenFuture.catchError((_) => ''));
+        server.dispose();
+      }
+    });
+
+    test('renders Turnstile widget for a 0x-prefixed site key', () async {
+      final server = RecaptchaServer(siteKey: '0x4AAAAAtestkey');
+      final url = await server.start();
+
+      final client = HttpClient();
+      try {
+        final request = await client.getUrl(Uri.parse(url));
+        final response = await request.close();
+
+        final body = await response.fold<List<int>>(
+          [],
+          (acc, chunk) => acc..addAll(chunk),
+        );
+        final html = String.fromCharCodes(body);
+        expect(html, contains('data-sitekey="0x4AAAAAtestkey"'));
+        expect(html, contains('cf-turnstile'));
+        expect(html, contains('challenges.cloudflare.com/turnstile'));
+        expect(html, isNot(contains('google.com/recaptcha')));
       } finally {
         client.close();
         unawaited(server.tokenFuture.catchError((_) => ''));
