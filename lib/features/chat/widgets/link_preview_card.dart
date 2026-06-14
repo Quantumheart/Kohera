@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/media_auth.dart';
+import 'package:kohera/core/utils/safe_url_launcher.dart';
 import 'package:kohera/features/chat/services/opengraph_service.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// Displays an OpenGraph preview card for a URL found in a chat message.
 class LinkPreviewCard extends StatefulWidget {
@@ -111,10 +111,7 @@ class _LinkPreviewCardState extends State<LinkPreviewCard>
             child: InkWell(
               borderRadius: BorderRadius.circular(8),
               onTap: () {
-                final uri = Uri.tryParse(data.url);
-                if (uri != null) {
-                  unawaited(launchUrl(uri, mode: LaunchMode.externalApplication));
-                }
+                unawaited(safeLaunchUrl(data.url));
               },
               child: Container(
                 decoration: BoxDecoration(
