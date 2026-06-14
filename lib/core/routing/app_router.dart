@@ -107,6 +107,8 @@ GoRouter buildRouter(ClientManager manager) {
       GoRoute(
         path: '/add-account',
         name: Routes.addAccount,
+        redirect: (context, state) =>
+            addAccountRedirect(manager.pendingService),
         builder: (context, state) {
           final manager = context.read<ClientManager>();
           return _AddAccountGuard(
@@ -405,6 +407,17 @@ class AccountSwitchRedirector {
     return location.startsWith('/rooms/') ? '/' : null;
   }
 }
+
+/// Redirect target for the add-account routes.
+///
+/// The add-account route builders eagerly dereference
+/// [ClientManager.pendingService] to seed a scoped [MatrixService] provider, so
+/// the route is only safe to build once a pending service exists. When
+/// [pendingService] is null (e.g. a deep link or back navigation that bypasses
+/// the settings entry point), the routes must redirect home instead of letting
+/// the `!` dereference crash the screen.
+String? addAccountRedirect(MatrixService? pendingService) =>
+    pendingService == null ? '/' : null;
 
 class _AddAccountGuard extends StatefulWidget {
   const _AddAccountGuard({required this.manager, required this.child});
