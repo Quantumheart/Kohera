@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import SQLite3
 
@@ -50,6 +51,11 @@ struct MegolmDecryptor {
     // ── Session lookup ───────────────────────────────────────────
 
     private static func lookupSession(sessionId: String, clientName: String) -> String? {
+        guard let dbKey = loadDbKey(clientName: clientName) else {
+            NSLog("[KoheraNSE] No key-mirror encryption key available")
+            return nil
+        }
+
         guard let containerURL = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: appGroupId
         ) else {
@@ -85,16 +91,44 @@ struct MegolmDecryptor {
         }
 
         guard let cValue = sqlite3_column_text(stmt, 0) else { return nil }
-        let jsonString = String(cString: cValue)
+        let storedValue = String(cString: cValue)
 
-        guard let jsonData = jsonString.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
+        guard let jsonData = decryptValue(base64: storedValue, key: dbKey) else {
+            NSLog("[KoheraNSE] Failed to decrypt session payload")
+            return nil
+        }
+
+        guard let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
               let pickle = json["pickle"] as? String else {
             NSLog("[KoheraNSE] Failed to parse session JSON")
             return nil
         }
 
         return pickle
+    }
+
+    // ── Payload encryption (AES-256-GCM, key shared via Keychain) ─
+
+    private static func loadDbKey(clientName: String) -> SymmetricKey? {
+        guard let encoded = SharedKeychainReader.read(
+                  key: "kohera_\(clientName)_key_mirror_db_key"
+              ),
+              let data = Data(base64Encoded: encoded),
+              data.count == 32 else {
+            return nil
+        }
+        return SymmetricKey(data: data)
+    }
+
+    private static func decryptValue(base64: String, key: SymmetricKey) -> Data? {
+        guard let combined = Data(base64Encoded: base64) else { return nil }
+        do {
+            let box = try AES.GCM.SealedBox(combined: combined)
+            return try AES.GCM.open(box, using: key)
+        } catch {
+            NSLog("[KoheraNSE] AES-GCM open failed: %@", error.localizedDescription)
+            return nil
+        }
     }
 
     // ── Body extraction ──────────────────────────────────────────
