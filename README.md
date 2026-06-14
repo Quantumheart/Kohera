@@ -164,6 +164,10 @@ GitHub Actions runs on push/PR to `master`:
 
 Tagged releases (`v*`) build Linux (tar.gz) and Windows (Inno Setup installer) artifacts and publish a GitHub Release. A separate workflow builds and pushes a web Docker image to `ghcr.io`.
 
+## Attribution
+
+All emojis designed by [OpenMoji](https://openmoji.org/) – the open-source emoji and icon project. License: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
+
 ## License
 
 This project is licensed under the [GNU General Public License v3.0](LICENSE).
