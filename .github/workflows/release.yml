@@ -246,9 +246,22 @@ jobs:
           storeFile=$KEYSTORE_PATH
           EOF
       - run: flutter pub get
-      - run: flutter build apk --release --target-platform android-arm64 --build-number=${{ github.run_number }} --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
+      - run: flutter build apk --release --split-per-abi --target-platform android-arm64 --build-number=${{ github.run_number }} --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
       - name: Rename APK
-        run: cp build/app/outputs/flutter-apk/app-release.apk kohera-android-arm64.apk
+        run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk kohera-android-arm64.apk
+      - name: Verify APK is arm64-only
+        run: |
+          if unzip -l kohera-android-arm64.apk | grep -qE 'lib/(x86_64|x86|armeabi-v7a)/'; then
+            echo "::error::APK contains native libraries for non-arm64 ABIs"
+            unzip -l kohera-android-arm64.apk | grep 'lib/'
+            exit 1
+          fi
+          size_mb=$(( $(stat -c%s kohera-android-arm64.apk) / 1024 / 1024 ))
+          echo "arm64 APK size: ${size_mb} MB"
+          if [ "$size_mb" -gt 70 ]; then
+            echo "::error::APK is ${size_mb} MB, exceeds 70 MB budget"
+            exit 1
+          fi
       - name: Generate checksum
         run: sha256sum kohera-android-arm64.apk > kohera-android-arm64.apk.sha256
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
