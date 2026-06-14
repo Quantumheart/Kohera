@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:kohera/core/utils/safe_url_launcher.dart';
 
 class InlineImagePreview extends StatelessWidget {
   const InlineImagePreview({
@@ -21,10 +21,7 @@ class InlineImagePreview extends StatelessWidget {
       padding: const EdgeInsets.only(top: 6),
       child: GestureDetector(
         onTap: () {
-          final uri = Uri.tryParse(url);
-          if (uri != null) {
-            unawaited(launchUrl(uri, mode: LaunchMode.externalApplication));
-          }
+          unawaited(safeLaunchUrl(url));
         },
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10),

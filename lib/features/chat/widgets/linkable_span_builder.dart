@@ -4,10 +4,10 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:kohera/core/utils/emoji_spans.dart';
+import 'package:kohera/core/utils/safe_url_launcher.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
 import 'package:kohera/features/chat/widgets/mention_pill.dart';
 import 'package:matrix/matrix.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 typedef RecognizerFactory = TapGestureRecognizer Function(VoidCallback onTap);
 
@@ -57,10 +57,7 @@ class LinkableSpanBuilder {
           decorationColor: linkColor,
         ),
         recognizer: createRecognizer(() {
-          final uri = Uri.tryParse(cleanedUrl);
-          if (uri != null) {
-            unawaited(launchUrl(uri, mode: LaunchMode.externalApplication));
-          }
+          unawaited(safeLaunchUrl(cleanedUrl));
         }),
       ),);
 
@@ -105,10 +102,7 @@ class LinkableSpanBuilder {
         text: text,
         style: aStyle,
         recognizer: createRecognizer(() {
-          final uri = Uri.tryParse(href);
-          if (uri != null) {
-            unawaited(launchUrl(uri, mode: LaunchMode.externalApplication));
-          }
+          unawaited(safeLaunchUrl(href));
         }),
       ),);
       return;

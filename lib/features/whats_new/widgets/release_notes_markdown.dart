@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:kohera/core/utils/safe_url_launcher.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 typedef LinkLauncher = Future<bool> Function(Uri uri);
@@ -36,7 +37,7 @@ class ReleaseNotesMarkdown extends StatelessWidget {
       onTapLink: (text, href, title) {
         if (href == null) return;
         final uri = Uri.tryParse(href);
-        if (uri == null) return;
+        if (uri == null || !isAllowedUrl(uri)) return;
         final launcher = linkLauncher ??
             (u) => launchUrl(u, mode: LaunchMode.externalApplication);
         unawaited(launcher(uri));
