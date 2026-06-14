@@ -1,6 +1,9 @@
 import 'package:kohera/core/utils/openmoji_manifest.g.dart';
 
-const _openMojiAssetDir = 'assets/openmoji';
+/// Font family of the bundled OpenMoji color font (`assets/fonts`, declared in
+/// `pubspec.yaml`). Emoji in [kOpenMojiNames] render through this family;
+/// anything else falls back to the platform emoji font.
+const openMojiFontFamily = 'OpenMoji';
 
 const _variationSelectors = {0xFE0E, 0xFE0F};
 
@@ -80,11 +83,4 @@ String? openMojiNameFor(String grapheme) {
   if (stripped != asIs && kOpenMojiNames.contains(stripped)) return stripped;
 
   return null;
-}
-
-/// Resolves the bundled OpenMoji asset path for a single emoji [grapheme], or
-/// `null` when no matching asset exists (caller should fall back to text).
-String? openMojiAssetFor(String grapheme) {
-  final name = openMojiNameFor(grapheme);
-  return name == null ? null : '$_openMojiAssetDir/$name.png';
 }
