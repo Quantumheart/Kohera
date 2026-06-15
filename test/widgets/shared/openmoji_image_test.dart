@@ -7,11 +7,12 @@ Widget _wrap(Widget child) =>
     MaterialApp(home: Scaffold(body: Center(child: child)));
 
 /// The [Text] glyph rendered inside an [OpenMojiImage].
-Text _glyphOf(WidgetTester tester) =>
-    tester.widget<Text>(find.descendant(
-      of: find.byType(OpenMojiImage),
-      matching: find.byType(Text),
-    ));
+Text _glyphOf(WidgetTester tester) => tester.widget<Text>(
+      find.descendant(
+        of: find.byType(OpenMojiImage),
+        matching: find.byType(Text),
+      ),
+    );
 
 void main() {
   testWidgets('renders the grapheme through the OpenMoji font', (tester) async {
