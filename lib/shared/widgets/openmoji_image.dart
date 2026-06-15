@@ -47,16 +47,18 @@ class OpenMojiImage extends StatelessWidget {
     );
   }
 
-  Widget _glyph(double fontSize) => Text(
-        grapheme,
-        textAlign: TextAlign.center,
-        softWrap: false,
-        overflow: TextOverflow.visible,
-        style: TextStyle(
-          fontFamily: openMojiFontFamily,
-          fontFamilyFallback: emojiFontFallback,
-          fontSize: fontSize,
-          height: 1,
+  Widget _glyph(double fontSize) => ExcludeSemantics(
+        child: Text(
+          grapheme,
+          textAlign: TextAlign.center,
+          softWrap: false,
+          overflow: TextOverflow.visible,
+          style: TextStyle(
+            fontFamily: openMojiFontFamily,
+            fontFamilyFallback: emojiFontFallback,
+            fontSize: fontSize,
+            height: 1,
+          ),
         ),
       );
 
