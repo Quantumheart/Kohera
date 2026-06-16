@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.6.1](https://github.com/Quantumheart/Kohera/compare/v1.6.0...v1.6.1) (2026-06-16)
+
+
+### Bug Fixes
+
+* render emoji via system font on iOS to fix blank glyphs ([5cb3233](https://github.com/Quantumheart/Kohera/commit/5cb3233d561d0f67d7af8b838336abb88e94779b))
+
+
+### Reverts
+
+* drop COLRv1 OpenMoji font, restore bundled PNGs ([e5d0408](https://github.com/Quantumheart/Kohera/commit/e5d04088f87277753ffb90ffac494c7a9621a7e1))
+
 ## [1.6.0](https://github.com/Quantumheart/Kohera/compare/v1.5.1...v1.6.0) (2026-06-16)
 
 
