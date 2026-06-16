@@ -156,12 +156,15 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.resumed:
+        sync.resume();
         _startForegroundSync();
         presence.setOnline();
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:
+        unawaited(sync.pause());
         presence.setAway();
       case AppLifecycleState.detached:
+        unawaited(sync.pause());
         presence.setOffline();
       case AppLifecycleState.inactive:
         break;
