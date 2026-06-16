@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.6.0](https://github.com/Quantumheart/Kohera/compare/v1.5.1...v1.6.0) (2026-06-16)
+
+
+### Features
+
+* **#587:** render decimal SAS in device verification ([849487c](https://github.com/Quantumheart/Kohera/commit/849487c8579d34b7d2e5465273b3d0cded0f324e)), closes [#587](https://github.com/Quantumheart/Kohera/issues/587)
+* **#620:** enable dehydrated devices (MSC3814) ([842af35](https://github.com/Quantumheart/Kohera/commit/842af35a0882ac0d1048ff3cd2a50299250cfabd)), closes [#620](https://github.com/Quantumheart/Kohera/issues/620)
+* **#620:** hide dehydrated device from the devices list ([12938b5](https://github.com/Quantumheart/Kohera/commit/12938b5c4ad75c3c6aea499ca8460cef0e1c06b1)), closes [#620](https://github.com/Quantumheart/Kohera/issues/620)
+* **#621:** persist E2EE skip state and make backup banner dismissable ([bd39f30](https://github.com/Quantumheart/Kohera/commit/bd39f307c9a525e993a5b7a632b1dff2b2b951a5)), closes [#621](https://github.com/Quantumheart/Kohera/issues/621)
+* **#637:** render Cloudflare Turnstile widget under recaptcha stage ([c5ec986](https://github.com/Quantumheart/Kohera/commit/c5ec98629a8b95a32aac654f4bb43f8d6c361534)), closes [#637](https://github.com/Quantumheart/Kohera/issues/637)
+
+
+### Bug Fixes
+
+* **#589:** add onHover fallback for hover bar on Flutter web canvas ([ec36f06](https://github.com/Quantumheart/Kohera/commit/ec36f0688a720a2ff1025f5cef185ea3eccbbc43))
+* **#627:** make inbox mention detection push-rule-driven and Unicode-aware ([8e28f80](https://github.com/Quantumheart/Kohera/commit/8e28f808dec82ccbc763bee739c4eff7a89494eb)), closes [#627](https://github.com/Quantumheart/Kohera/issues/627)
+* **#635:** debounce thread unread count refresh to avoid per-sync API calls ([2a81e78](https://github.com/Quantumheart/Kohera/commit/2a81e78e77a5d4c811a09df3fae2c7c81113a70e))
+* **#635:** fetch thread unread count from server for app bar badge ([e361caf](https://github.com/Quantumheart/Kohera/commit/e361cafb432f1c70320718d657bd18d3664a4075))
+* decode OpenMoji at painted size so small emoji aren't blurry ([42937c6](https://github.com/Quantumheart/Kohera/commit/42937c69285d46f3073f96b91e531e2a295595cb)), closes [#608](https://github.com/Quantumheart/Kohera/issues/608)
+* exclude OpenMoji glyph text from semantics tree ([96f530a](https://github.com/Quantumheart/Kohera/commit/96f530a8816402d663d484d99d26efa6704cf2a6))
+* **security:** validate URL schemes before launching links ([7d035d9](https://github.com/Quantumheart/Kohera/commit/7d035d9f1401234a5e4608cda084e11c20950b05))
+* **sync:** pause Matrix sync when app backgrounds to avoid 0xdead10cc ([b03134b](https://github.com/Quantumheart/Kohera/commit/b03134b087a586cc0347d101961a63ecf5a1e53a))
+
+
+### Performance Improvements
+
+* render emoji via OpenMoji color font instead of 4495 PNGs ([50ad58e](https://github.com/Quantumheart/Kohera/commit/50ad58e1c797d215958fa64e9190affda9867000))
+
 ## [1.5.1](https://github.com/Quantumheart/Kohera/compare/v1.5.0...v1.5.1) (2026-06-10)
 
 
