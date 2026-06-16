@@ -74,4 +74,23 @@ void main() {
     final text = tester.widget<Text>(find.text('x'));
     expect(text.style?.fontFamily, isNot(openMojiFontFamily));
   });
+
+  testWidgets(
+    'renders through the system emoji font on iOS, not the COLRv1 font',
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+
+      await tester.pumpWidget(
+        _wrap(const OpenMojiImage(grapheme: '\u{1F44D}', size: 24)),
+      );
+
+      final text = _glyphOf(tester);
+      expect(text.data, '\u{1F44D}');
+      expect(text.style?.fontFamily, isNot(openMojiFontFamily));
+      expect(text.style?.fontFamilyFallback, contains('Apple Color Emoji'));
+      expect(text.style?.fontSize, 24);
+      expect(tester.getSize(find.byType(OpenMojiImage)), const Size(24, 24));
+    },
+  );
 }
