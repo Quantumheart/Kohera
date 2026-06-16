@@ -228,6 +228,67 @@ void main() {
       expect(result, isNull);
     });
 
+    test('fetchRelease requests the tagged release endpoint', () async {
+      late Uri requested;
+      final svc = _service(
+        cacheDir: tempDir,
+        handler: (req) async {
+          requested = req.url;
+          return http.Response(
+            jsonEncode({
+              'tag_name': 'v1.6.1',
+              'name': 'v1.6.1',
+              'body': '## 1.6.1\n- thing',
+              'published_at': '2026-06-16T14:43:51Z',
+              'html_url':
+                  'https://github.com/Quantumheart/Kohera/releases/tag/v1.6.1',
+            }),
+            200,
+          );
+        },
+      );
+
+      final result = await svc.fetchRelease(tag: 'v1.6.1', forceRefresh: true);
+
+      expect(requested.path, endsWith('/releases/tags/v1.6.1'));
+      expect(result, isNotNull);
+      expect(result!.tagName, 'v1.6.1');
+    });
+
+    test('tagged releases cache separately from latest', () async {
+      final svc = _service(
+        cacheDir: tempDir,
+        handler: (req) async {
+          final tag = req.url.path.contains('/tags/') ? 'v1.6.1' : 'v1.5.1';
+          return http.Response(
+            jsonEncode({
+              'tag_name': tag,
+              'name': tag,
+              'body': 'notes for $tag',
+              'published_at': '2026-06-16T00:00:00Z',
+              'html_url':
+                  'https://github.com/Quantumheart/Kohera/releases/tag/$tag',
+            }),
+            200,
+          );
+        },
+      );
+
+      final latest = await svc.fetchLatest(forceRefresh: true);
+      final tagged = await svc.fetchRelease(tag: 'v1.6.1', forceRefresh: true);
+
+      expect(latest!.tagName, 'v1.5.1');
+      expect(tagged!.tagName, 'v1.6.1');
+      expect(
+        File('${tempDir.path}/whats_new_cache.json').existsSync(),
+        isTrue,
+      );
+      expect(
+        File('${tempDir.path}/whats_new_cache_v1_6_1.json').existsSync(),
+        isTrue,
+      );
+    });
+
     test('cache round-trip preserves all fields', () async {
       final original = _sampleCached(DateTime.now());
       await _writeCache(tempDir, original);

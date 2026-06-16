@@ -113,8 +113,8 @@ class GitHubReleasesService {
   final Duration _cacheTtl;
   final Duration _requestTimeout;
 
-  ReleaseNotes? _memoryCache;
-  Future<ReleaseNotes?>? _inFlight;
+  final Map<String, ReleaseNotes> _memoryCache = {};
+  final Map<String, Future<ReleaseNotes?>> _inFlight = {};
   bool _disposed = false;
 
   void dispose() {
@@ -125,20 +125,38 @@ class GitHubReleasesService {
   /// Returns the latest release. Prefers cache within [_cacheTtl].
   /// On expiry, revalidates with `If-None-Match` and falls back to cache
   /// on network errors.
-  Future<ReleaseNotes?> fetchLatest({bool forceRefresh = false}) {
+  Future<ReleaseNotes?> fetchLatest({bool forceRefresh = false}) =>
+      fetchRelease(forceRefresh: forceRefresh);
+
+  /// Returns the release for [tag] (e.g. `v1.6.1`), or the latest release
+  /// when [tag] is null. Caches each tag separately so the latest-release
+  /// lookup used by the update banner never overwrites a version-specific
+  /// lookup used by the release-notes screen.
+  Future<ReleaseNotes?> fetchRelease({String? tag, bool forceRefresh = false}) {
     if (_disposed) return Future<ReleaseNotes?>.value();
-    return _inFlight ??= _fetchLatest(forceRefresh: forceRefresh)
-        .whenComplete(() => _inFlight = null);
+    final key = _cacheKey(tag);
+    final existing = _inFlight[key];
+    if (existing != null && !forceRefresh) return existing;
+    final future = _fetch(tag: tag, forceRefresh: forceRefresh)
+        .whenComplete(() => _inFlight.remove(key));
+    _inFlight[key] = future;
+    return future;
   }
 
   /// Reads the cached release without touching the network.
-  Future<ReleaseNotes?> getCached() async {
-    if (_memoryCache != null) return _memoryCache;
-    return _readDiskCache();
+  Future<ReleaseNotes?> getCached({String? tag}) async {
+    final key = _cacheKey(tag);
+    final mem = _memoryCache[key];
+    if (mem != null) return mem;
+    return _readDiskCache(tag);
   }
 
-  Future<ReleaseNotes?> _fetchLatest({required bool forceRefresh}) async {
-    final cached = await getCached();
+  Future<ReleaseNotes?> _fetch({
+    required String? tag,
+    required bool forceRefresh,
+  }) async {
+    final key = _cacheKey(tag);
+    final cached = await getCached(tag: tag);
     if (!forceRefresh && cached != null && _isFresh(cached)) {
       return cached;
     }
@@ -153,13 +171,14 @@ class GitHubReleasesService {
         headers['If-None-Match'] = cached!.etag!;
       }
 
-      final response =
-          await _client.get(_endpoint, headers: headers).timeout(_requestTimeout);
+      final response = await _client
+          .get(_endpointFor(tag), headers: headers)
+          .timeout(_requestTimeout);
 
       if (response.statusCode == 304 && cached != null) {
         final refreshed = cached.copyWith(fetchedAt: DateTime.now());
-        await _writeDiskCache(refreshed);
-        _memoryCache = refreshed;
+        await _writeDiskCache(tag, refreshed);
+        _memoryCache[key] = refreshed;
         return refreshed;
       }
 
@@ -171,8 +190,8 @@ class GitHubReleasesService {
           fetchedAt: DateTime.now(),
           etag: etag,
         );
-        await _writeDiskCache(notes);
-        _memoryCache = notes;
+        await _writeDiskCache(tag, notes);
+        _memoryCache[key] = notes;
         return notes;
       }
 
@@ -189,20 +208,34 @@ class GitHubReleasesService {
   bool _isFresh(ReleaseNotes notes) =>
       DateTime.now().difference(notes.fetchedAt) < _cacheTtl;
 
-  Future<File> _cacheFile() async {
-    final dir = await _cacheDirProvider();
-    return File(p.join(dir.path, _cacheFileName));
+  String _cacheKey(String? tag) => tag == null ? 'latest' : 'tag:$tag';
+
+  Uri _endpointFor(String? tag) {
+    if (tag == null) return _endpoint;
+    final base = _endpoint.toString();
+    final trimmed = base.endsWith('/latest')
+        ? base.substring(0, base.length - '/latest'.length)
+        : base;
+    return Uri.parse('$trimmed/tags/$tag');
   }
 
-  Future<ReleaseNotes?> _readDiskCache() async {
+  Future<File> _cacheFile(String? tag) async {
+    final dir = await _cacheDirProvider();
+    final name = tag == null
+        ? _cacheFileName
+        : 'whats_new_cache_${tag.replaceAll(RegExp(r'[^A-Za-z0-9]'), '_')}.json';
+    return File(p.join(dir.path, name));
+  }
+
+  Future<ReleaseNotes?> _readDiskCache(String? tag) async {
     try {
-      final file = await _cacheFile();
+      final file = await _cacheFile(tag);
       if (!file.existsSync()) return null;
       final contents = await file.readAsString();
       if (contents.isEmpty) return null;
       final json = jsonDecode(contents) as Map<String, dynamic>;
       final notes = ReleaseNotes.fromCacheJson(json);
-      _memoryCache = notes;
+      _memoryCache[_cacheKey(tag)] = notes;
       return notes;
     } catch (e) {
       debugPrint('[Kohera] GitHub releases cache read failed: $e');
@@ -210,9 +243,9 @@ class GitHubReleasesService {
     }
   }
 
-  Future<void> _writeDiskCache(ReleaseNotes notes) async {
+  Future<void> _writeDiskCache(String? tag, ReleaseNotes notes) async {
     try {
-      final file = await _cacheFile();
+      final file = await _cacheFile(tag);
       await file.parent.create(recursive: true);
       await file.writeAsString(jsonEncode(notes.toCacheJson()));
     } catch (e) {

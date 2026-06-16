@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
+import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/whats_new/widgets/release_notes_markdown.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -39,8 +40,13 @@ class _WhatsNewScreenState extends State<WhatsNewScreen> {
     });
 
     final service = context.read<GitHubReleasesService>();
+    final tag = _installedVersionTag();
     try {
-      final result = await service.fetchLatest(forceRefresh: forceRefresh);
+      ReleaseNotes? result;
+      if (tag != null) {
+        result = await service.fetchRelease(tag: tag, forceRefresh: forceRefresh);
+      }
+      result ??= await service.fetchLatest(forceRefresh: forceRefresh);
       if (!mounted) return;
       if (result == null) {
         setState(() {
@@ -58,7 +64,7 @@ class _WhatsNewScreenState extends State<WhatsNewScreen> {
       debugPrintStack(stackTrace: st);
       ReleaseNotes? cached;
       try {
-        cached = await service.getCached();
+        cached = await service.getCached(tag: tag) ?? await service.getCached();
       } catch (_) {
         cached = null;
       }
@@ -68,6 +74,16 @@ class _WhatsNewScreenState extends State<WhatsNewScreen> {
         if (cached != null) _notes = cached;
         _loading = false;
       });
+    }
+  }
+
+  String? _installedVersionTag() {
+    try {
+      final version = context.read<PreferencesService>().currentVersion;
+      if (version == null || version.isEmpty) return null;
+      return version.startsWith('v') ? version : 'v$version';
+    } on ProviderNotFoundException {
+      return null;
     }
   }
 
