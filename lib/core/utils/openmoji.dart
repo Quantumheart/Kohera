@@ -1,9 +1,20 @@
+import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/openmoji_manifest.g.dart';
 
 /// Font family of the bundled OpenMoji color font (`assets/fonts`, declared in
 /// `pubspec.yaml`). Emoji in [kOpenMojiNames] render through this family;
 /// anything else falls back to the platform emoji font.
 const openMojiFontFamily = 'OpenMoji';
+
+/// Whether to render emoji through the bundled OpenMoji COLRv1 color font.
+///
+/// Disabled on native iOS: the Impeller renderer does not paint COLRv1 color
+/// glyphs, so the selected OpenMoji glyph renders blank (transparent) rather
+/// than falling through to the platform emoji font. There we render emoji with
+/// the system color emoji font instead. Flutter web (CanvasKit/Skia, even on
+/// iOS Safari) and every other platform render COLRv1 correctly.
+bool get useBundledOpenMoji =>
+    kIsWeb || defaultTargetPlatform != TargetPlatform.iOS;
 
 const _variationSelectors = {0xFE0E, 0xFE0F};
 

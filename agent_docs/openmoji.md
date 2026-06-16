@@ -29,6 +29,12 @@ Everything funnels through one widget and one resolver:
   `Text` styled with `openMojiFontFamily` (sized to its box); for anything else
   it falls back to system-font text (`emojiTextStyle`,
   `lib/core/utils/emoji_style.dart`).
+- `useBundledOpenMoji` (`lib/core/utils/openmoji.dart`) gates the bundled font.
+  It is `false` on native iOS, where Impeller does not paint COLRv1 color glyphs
+  (the glyph is selected but renders transparent, so emoji show blank). There
+  `OpenMojiImage` renders every emoji through the system color emoji font
+  (`emojiFontFallback`) instead. Flutter web (CanvasKit/Skia, including iOS
+  Safari) and all other platforms keep the bundled OpenMoji font.
 
 Consumers:
 
@@ -54,9 +60,12 @@ Committed as plain git blobs (not Git LFS). Replacing the ~4500 individual PNGs
 with one font collapses the dominant file-count cost (per-asset `AssetManifest`
 entries + on-disk block overhead) and cuts bundled bytes from ~7.7 MB to ~2.4 MB.
 
-> Rendering note: the font is **COLRv1**. Modern Skia/Impeller render it, but
-> color-font support has had renderer edge cases — verify emoji render (not
-> tofu) on a real iOS/Android device after a Flutter SDK bump.
+> Rendering note: the font is **COLRv1**. Skia (desktop, web/CanvasKit) renders
+> it, but Impeller on **native iOS** does not paint COLRv1 glyphs — they show
+> blank — so iOS falls back to the system emoji font via `useBundledOpenMoji`.
+> Re-verify emoji render (not tofu, not blank) on real iOS/Android devices after
+> a Flutter SDK bump; if Impeller gains COLRv1 support, the iOS branch of
+> `useBundledOpenMoji` can be removed.
 
 ## Updating the font
 

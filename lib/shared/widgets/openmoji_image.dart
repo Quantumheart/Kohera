@@ -54,7 +54,7 @@ class OpenMojiImage extends StatelessWidget {
           softWrap: false,
           overflow: TextOverflow.visible,
           style: TextStyle(
-            fontFamily: openMojiFontFamily,
+            fontFamily: useBundledOpenMoji ? openMojiFontFamily : null,
             fontFamilyFallback: emojiFontFallback,
             fontSize: fontSize,
             height: 1,
