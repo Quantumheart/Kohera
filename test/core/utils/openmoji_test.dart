@@ -38,12 +38,23 @@ void main() {
     });
   });
 
+  group('openMojiAssetFor', () {
+    test('returns bundled asset path for a known emoji', () {
+      expect(openMojiAssetFor('\u{1F44D}'), 'assets/openmoji/1F44D.png');
+      expect(openMojiAssetFor('❤️'), 'assets/openmoji/2764.png');
+    });
+
+    test('returns null for unknown grapheme', () {
+      expect(openMojiAssetFor('x'), isNull);
+    });
+  });
+
   group('skin tones', () {
     test('applySkinTone inserts the modifier for a supporting emoji', () {
       expect(applySkinTone('\u{1F44D}', SkinTone.dark), '\u{1F44D}\u{1F3FF}');
       expect(
-        openMojiNameFor(applySkinTone('\u{1F44D}', SkinTone.dark)),
-        '1F44D-1F3FF',
+        openMojiAssetFor(applySkinTone('\u{1F44D}', SkinTone.dark)),
+        'assets/openmoji/1F44D-1F3FF.png',
       );
     });
 

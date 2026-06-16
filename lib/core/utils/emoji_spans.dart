@@ -68,7 +68,8 @@ List<InlineSpan> buildEmojiSpans(String text, TextStyle? style) {
 /// Builds the span for a single emoji [run]: an OpenMoji image when one is
 /// bundled, otherwise a font-fallback [TextSpan].
 InlineSpan _emojiSpan(String run, TextStyle? style) {
-  if (openMojiNameFor(run) == null) return _fallbackSpan(run, style);
+  final asset = openMojiAssetFor(run);
+  if (asset == null) return _fallbackSpan(run, style);
 
   final fontSize = style?.fontSize ?? 14;
   final size = fontSize * (style?.height ?? _defaultEmojiHeight);

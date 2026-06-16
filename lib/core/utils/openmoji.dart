@@ -1,20 +1,6 @@
-import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/openmoji_manifest.g.dart';
 
-/// Font family of the bundled OpenMoji color font (`assets/fonts`, declared in
-/// `pubspec.yaml`). Emoji in [kOpenMojiNames] render through this family;
-/// anything else falls back to the platform emoji font.
-const openMojiFontFamily = 'OpenMoji';
-
-/// Whether to render emoji through the bundled OpenMoji COLRv1 color font.
-///
-/// Disabled on native iOS: the Impeller renderer does not paint COLRv1 color
-/// glyphs, so the selected OpenMoji glyph renders blank (transparent) rather
-/// than falling through to the platform emoji font. There we render emoji with
-/// the system color emoji font instead. Flutter web (CanvasKit/Skia, even on
-/// iOS Safari) and every other platform render COLRv1 correctly.
-bool get useBundledOpenMoji =>
-    kIsWeb || defaultTargetPlatform != TargetPlatform.iOS;
+const _openMojiAssetDir = 'assets/openmoji';
 
 const _variationSelectors = {0xFE0E, 0xFE0F};
 
@@ -94,4 +80,11 @@ String? openMojiNameFor(String grapheme) {
   if (stripped != asIs && kOpenMojiNames.contains(stripped)) return stripped;
 
   return null;
+}
+
+/// Resolves the bundled OpenMoji asset path for a single emoji [grapheme], or
+/// `null` when no matching asset exists (caller should fall back to text).
+String? openMojiAssetFor(String grapheme) {
+  final name = openMojiNameFor(grapheme);
+  return name == null ? null : '$_openMojiAssetDir/$name.png';
 }

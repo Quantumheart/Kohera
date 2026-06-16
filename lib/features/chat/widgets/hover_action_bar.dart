@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/features/chat/widgets/openmoji_picker.dart';
+import 'package:kohera/shared/widgets/openmoji_image.dart';
 import 'package:provider/provider.dart';
 
 /// Emoji offered in the quick-react bar, in display order.
@@ -43,6 +46,16 @@ class _HoverActionBarState extends State<HoverActionBar> {
   OverlayEntry? _overlayEntry;
 
   bool _disposing = false;
+  bool _precached = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_precached && widget.onQuickReact != null) {
+      _precached = true;
+      unawaited(precacheOpenMoji(context, kQuickReactEmojis));
+    }
+  }
 
   @override
   void dispose() {

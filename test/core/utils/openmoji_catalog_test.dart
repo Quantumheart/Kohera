@@ -33,7 +33,7 @@ void main() {
     expect(categories.map((c) => c.key), ['smileys-emotion', 'flags']);
     expect(categories.first.emoji.length, 2);
     expect(categories.first.emoji.first.emoji, '😀');
-    expect(categories.first.emoji.first.name, '1F600');
+    expect(categories.first.emoji.first.asset, 'assets/openmoji/1F600.png');
   });
 
   test('all flattens every category', () async {

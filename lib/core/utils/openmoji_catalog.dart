@@ -24,6 +24,8 @@ class OpenMojiEmoji {
   /// Lowercased annotation + tags, used for search matching.
   final String search;
 
+  String get asset => 'assets/openmoji/$name.png';
+
   /// `:shortcode:`-style identifier derived from [annotation]
   /// (e.g. "grinning_face").
   String get shortcode => annotation
