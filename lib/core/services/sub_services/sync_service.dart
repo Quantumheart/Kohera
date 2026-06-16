@@ -63,6 +63,17 @@ class SyncService extends ChangeNotifier {
     }
   }
 
+  Future<void> pause() async {
+    if (!_syncing) return;
+    _client.backgroundSync = false;
+    await _client.abortSync();
+  }
+
+  void resume() {
+    if (_disposed || !_syncing) return;
+    _client.backgroundSync = true;
+  }
+
   void cancelSyncSub() {
     unawaited(_syncSub?.cancel());
     _syncSub = null;
