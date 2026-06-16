@@ -2,10 +2,9 @@
 """Generate assets/openmoji/metadata.json for the in-house emoji picker.
 
 Source: OpenMoji metadata (data/openmoji.json from the OpenMoji repo).
-Keeps base (no skin-tone) emoji from the standard Unicode groups, grouped and
-ordered for the picker. The bundled OpenMoji color font covers the full source
-set, so every base emoji in those groups is included. Each entry is
-{e: emoji, n: hexcode, a: annotation, s: search text}.
+Keeps base (no skin-tone) emoji from the standard Unicode groups that have a
+bundled PNG asset, grouped and ordered for the picker. Each entry is
+{e: emoji, n: hexcode/asset-name, a: annotation, s: search text}.
 
 Usage: python3 tool/gen_openmoji_metadata.py path/to/openmoji.json
 """
@@ -30,6 +29,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 def main(src):
     data = json.load(open(src))
+    available = {
+        f[:-4]
+        for f in os.listdir(os.path.join(ROOT, "assets/openmoji"))
+        if f.endswith(".png")
+    }
 
     buckets = {g: [] for g in GROUPS}
     for e in data:
@@ -39,6 +43,8 @@ def main(src):
         if g not in buckets:
             continue
         name = e["hexcode"]
+        if name not in available:
+            continue
         annotation = e.get("annotation", "")
         search = " ".join(filter(None, [annotation, e.get("tags", "")])).lower()
         buckets[g].append((

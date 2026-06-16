@@ -74,12 +74,8 @@ flutter:
   assets:
     - assets/audio/
     - assets/config/
-    - assets/openmoji/metadata.json
+    - assets/openmoji/
     - assets/vodozemac/
-  fonts:
-    - family: OpenMoji
-      fonts:
-        - asset: assets/fonts/OpenMoji-color.ttf
 
 dependency_overrides:
   flutter_webrtc:
