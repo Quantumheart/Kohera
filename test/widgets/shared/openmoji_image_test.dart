@@ -63,7 +63,7 @@ void main() {
     expect(tester.getSize(find.byType(OpenMojiImage)), const Size(16, 16));
   });
 
-  testWidgets('resizes at decode time to the painted physical size',
+  testWidgets('resizes at decode time with 2x headroom over the physical size',
       (tester) async {
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
@@ -74,9 +74,9 @@ void main() {
 
     final image = tester.widget<Image>(find.byType(Image));
     final provider = image.image as ResizeImage;
-    // 16 logical px * 2.0 dpr = 32 physical px, well below the 72px source.
-    expect(provider.width, 32);
-    expect(provider.height, 32);
+    // 16 logical px * 2.0 dpr * 2 headroom = 64 physical px, below the 72 source.
+    expect(provider.width, 64);
+    expect(provider.height, 64);
   });
 
   testWidgets('caps the decode at the 72px native source size',
