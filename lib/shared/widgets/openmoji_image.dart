@@ -33,14 +33,14 @@ class OpenMojiImage extends StatelessWidget {
     if (asset == null) return _fallback();
 
     final s = size;
-    // Resize at decode time so small targets (reaction chips, inline emoji) are
-    // downsampled with the decoder's high-quality resampling instead of being
-    // shrunk ~4x from the 72px source at draw time, which looks blurry. Cap the
-    // decode at the native source size so larger paints still upscale from the
-    // full 72px (avoids the blocky decode that motivated dropping cacheWidth).
+    // Decode with 2x headroom over the physical target so small paints (reaction
+    // chips, inline emoji) keep detail, then let Image's default medium-quality
+    // resampling downsample to the logical size. Decoding straight to the ~17px
+    // target box leaves nothing to filter and looks blocky. Cap the decode at the
+    // native source size so larger paints still upscale from the full 72px.
     final cacheSize = s == null
         ? null
-        : (s * (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0))
+        : (s * (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0) * 2)
             .round()
             .clamp(1, _openMojiSourcePx);
     final image = Image.asset(
