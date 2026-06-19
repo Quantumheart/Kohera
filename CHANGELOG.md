@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.2](https://github.com/Quantumheart/Kohera/compare/v1.6.1...v1.6.2) (2026-06-19)
+
+
+### Bug Fixes
+
+* decode OpenMoji with 2x headroom to stop blocky reaction emoji ([4306058](https://github.com/Quantumheart/Kohera/commit/430605826ec57b2ec4d86418b101c2d1206ea5ff))
+
 ## [1.6.1](https://github.com/Quantumheart/Kohera/compare/v1.6.0...v1.6.1) (2026-06-16)
 
 
