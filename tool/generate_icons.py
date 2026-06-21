@@ -14,10 +14,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SS = 4  # supersample factor — render large, downscale with LANCZOS for crisp edges
 
-# Match the in-app logo: light primaryContainer tile (#D4E3FF) with an
+# Match the in-app logo exactly: a flat primaryContainer tile (#D4E3FF) with an
 # onPrimaryContainer (#224876) mark, so the shipped icon and login logo are one.
-GRAD_TOP = (226, 243, 255)    # subtle light tint above #D4E3FF
-GRAD_BOTTOM = (198, 211, 240)  # subtle light shade below it
+GRAD_TOP = (212, 227, 255)    # #D4E3FF — flat fill (top == bottom, no gradient)
+GRAD_BOTTOM = (212, 227, 255)  # #D4E3FF
 FG = (34, 72, 118, 255)       # #224876 — onPrimaryContainer, the mark colour
 ACCENT = (34, 72, 118, 255)   # same as the mark — monochrome, matching the logo
 
