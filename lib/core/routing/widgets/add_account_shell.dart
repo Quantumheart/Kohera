@@ -17,12 +17,12 @@ import 'package:provider/provider.dart';
 class AddAccountShell extends StatefulWidget {
   const AddAccountShell({
     required this.manager,
-    required this.child,
+    required this.routerChild,
     super.key,
   });
 
   final ClientManager manager;
-  final Widget child;
+  final Widget routerChild;
 
   @override
   State<AddAccountShell> createState() => _AddAccountShellState();
@@ -41,7 +41,7 @@ class _AddAccountShellState extends State<AddAccountShell> {
     if (pending == null) return const SizedBox.shrink();
     return ChangeNotifierProvider<MatrixService>.value(
       value: pending,
-      child: widget.child,
+      child: widget.routerChild,
     );
   }
 }
