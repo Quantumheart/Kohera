@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor">
+<path d="M 20.00 26.00 A 30.00 20.00 0 0 1 80.00 26.00 Z"/>
+<polygon points="42.50,26.00 57.50,26.00 58.50,50.00 41.50,50.00"/>
+<ellipse cx="50.00" cy="50.00" rx="8.50" ry="5.95"/>
+<path d="M 50.00 50.00 L 26.00 71.00 L 10.00 92.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="10.00" cy="92.00" r="4.50"/>
+<path d="M 50.00 50.00 L 39.20 68.00 L 32.00 86.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="32.00" cy="86.00" r="4.50"/>
+<path d="M 50.00 50.00 L 52.40 72.00 L 54.00 94.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="54.00" cy="94.00" r="4.50"/>
+<path d="M 50.00 50.00 L 65.60 67.00 L 76.00 84.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="76.00" cy="84.00" r="4.50"/>
+<path d="M 50.00 50.00 L 75.20 70.00 L 92.00 90.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="92.00" cy="90.00" r="4.50"/>
+<circle cx="50.00" cy="50.00" r="5.00"/>
+</svg>

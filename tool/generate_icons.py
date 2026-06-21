@@ -14,8 +14,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SS = 4  # supersample factor — render large, downscale with LANCZOS for crisp edges
 
-GRAD_TOP = (33, 150, 243)     # #2196F3 — lighter blue at top
-GRAD_BOTTOM = (21, 101, 192)  # #1565C0 — deeper blue at bottom
+GRAD_TOP = (37, 133, 224)     # #2585E0 — subtle lift above the seed
+GRAD_BOTTOM = (13, 103, 196)  # #0D67C0 — subtle drop below the seed (midpoint = #1976D2)
 ACCENT = (25, 118, 210, 255)  # #1976D2 — interior strokes (the original accent)
 FG = (255, 255, 255, 255)     # white bubble
 
@@ -59,40 +59,88 @@ def _dot(d, x, y, r, fill):
     d.ellipse([x - r, y - r, x + r, y + r], fill=fill)
 
 
-def draw_mark(img, x0, y0, w, h, compact=False):
-    """Draw the mushroom cap + mycelial root network into a content box of size w×h.
+def _mark_geometry(x0, y0, w, h, compact):
+    """Compute the mark's coordinates once, shared by the PIL and SVG renderers.
 
-    When `compact`, draw fewer, bolder roots with larger nodes so the mark stays
+    When `compact`, use fewer, bolder roots with larger nodes so the mark stays
     legible at favicon / small-launcher sizes where thin threads turn to mush.
     """
-    d = ImageDraw.Draw(img)
     cx = x0 + w / 2
-
-    # ── Cap + stem (the fruiting body) ──
+    cap_top = y0 + h * 0.06
     cap_w, cap_h = w * 0.60, h * 0.20
-    gill = _cap_dome(d, cx, y0 + h * 0.06, cap_w, cap_h, FG)
+    gill = cap_top + cap_h
     base_y = y0 + h * 0.50
-    _stem(d, cx, gill, base_y, w * 0.15, w * 0.17, FG)
 
-    # ── Mycelial roots (the hidden network) ──
     if compact:
-        lw = max(2, int(w * 0.065))
+        lw = w * 0.065
         tips = [(-0.34, 0.90), (0.0, 0.95), (0.34, 0.90)]
-        tip_r, mid_r = w * 0.075, 0
+        tip_r, mid_r, base_r = w * 0.075, 0.0, w * 0.065
     else:
-        lw = max(2, int(w * 0.035))
+        lw = w * 0.035
         tips = [(-0.40, 0.92), (-0.18, 0.86), (0.04, 0.94), (0.26, 0.84), (0.42, 0.90)]
-        tip_r, mid_r = w * 0.045, w * 0.028
+        tip_r, mid_r, base_r = w * 0.045, w * 0.028, w * 0.05
 
+    roots = []
     for tx, ty in tips:
         ex, ey = x0 + w * (0.5 + tx), y0 + h * ty
         mx, my = (cx + ex) / 2 + w * tx * 0.10, (base_y + ey) / 2
-        d.line([(cx, base_y), (mx, my)], fill=FG, width=lw)
+        roots.append((mx, my, ex, ey))
+
+    return {
+        "cx": cx, "cap_top": cap_top, "cap_w": cap_w, "cap_h": cap_h, "gill": gill,
+        "base_y": base_y, "stem_top_w": w * 0.15, "stem_bot_w": w * 0.17,
+        "lw": lw, "tip_r": tip_r, "mid_r": mid_r, "base_r": base_r, "roots": roots,
+    }
+
+
+def draw_mark(img, x0, y0, w, h, compact=False):
+    """Render the mushroom cap + mycelial root network into a content box of size w×h."""
+    d = ImageDraw.Draw(img)
+    g = _mark_geometry(x0, y0, w, h, compact)
+    _cap_dome(d, g["cx"], g["cap_top"], g["cap_w"], g["cap_h"], FG)
+    _stem(d, g["cx"], g["gill"], g["base_y"], g["stem_top_w"], g["stem_bot_w"], FG)
+
+    lw = max(2, int(g["lw"]))
+    for mx, my, ex, ey in g["roots"]:
+        d.line([(g["cx"], g["base_y"]), (mx, my)], fill=FG, width=lw)
         d.line([(mx, my), (ex, ey)], fill=FG, width=lw)
-        _dot(d, ex, ey, tip_r, FG)
-        if mid_r:
-            _dot(d, mx, my, mid_r, ACCENT)
-    _dot(d, cx, base_y, w * (0.065 if compact else 0.05), ACCENT)
+        _dot(d, ex, ey, g["tip_r"], FG)
+        if g["mid_r"]:
+            _dot(d, mx, my, g["mid_r"], ACCENT)
+    _dot(d, g["cx"], g["base_y"], g["base_r"], ACCENT)
+
+
+def mark_svg():
+    """Emit the monochrome mark as an SVG string from the same shared geometry.
+
+    Single-colour (the consumer tints it via a colour filter) so the in-app logo
+    can follow the theme while staying in lockstep with the rasterized icons.
+    """
+    g = _mark_geometry(0, 0, 100, 100, compact=False)
+    cx, gill, base_y = g["cx"], g["gill"], g["base_y"]
+    rx, ry = g["cap_w"] / 2, g["cap_h"]
+    st, sb = g["stem_top_w"] / 2, g["stem_bot_w"] / 2
+
+    def n(v):
+        return f"{v:.2f}"
+
+    parts = [
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor">',
+        f'<path d="M {n(cx - rx)} {n(gill)} A {n(rx)} {n(ry)} 0 0 1 {n(cx + rx)} {n(gill)} Z"/>',
+        f'<polygon points="{n(cx - st)},{n(gill)} {n(cx + st)},{n(gill)} '
+        f'{n(cx + sb)},{n(base_y)} {n(cx - sb)},{n(base_y)}"/>',
+        f'<ellipse cx="{n(cx)}" cy="{n(base_y)}" rx="{n(sb)}" ry="{n(sb * 0.7)}"/>',
+    ]
+    for mx, my, ex, ey in g["roots"]:
+        parts.append(
+            f'<path d="M {n(cx)} {n(base_y)} L {n(mx)} {n(my)} L {n(ex)} {n(ey)}" '
+            f'fill="none" stroke="currentColor" stroke-width="{n(g["lw"])}" '
+            f'stroke-linecap="round" stroke-linejoin="round"/>'
+        )
+        parts.append(f'<circle cx="{n(ex)}" cy="{n(ey)}" r="{n(g["tip_r"])}"/>')
+    parts.append(f'<circle cx="{n(cx)}" cy="{n(base_y)}" r="{n(g["base_r"])}"/>')
+    parts.append("</svg>")
+    return "\n".join(parts)
 
 
 def render(size, mode):
@@ -207,6 +255,15 @@ def generate_linux():
     save(render(512, "rounded"), os.path.join(ROOT, "linux/io.github.quantumheart.kohera.png"))
 
 
+def generate_svg():
+    print("SVG asset:")
+    path = os.path.join(ROOT, "assets/icons/kohera_mark.svg")
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        f.write(mark_svg() + "\n")
+    print(f"  {os.path.relpath(path, ROOT)}")
+
+
 if __name__ == "__main__":
     print("Generating Kohera app icons — mushroom + mycelial network mark\n")
     generate_android()
@@ -215,4 +272,5 @@ if __name__ == "__main__":
     generate_web()
     generate_windows()
     generate_linux()
+    generate_svg()
     print("\nDone!")
