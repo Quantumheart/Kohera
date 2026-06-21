@@ -101,8 +101,7 @@
         },
         {
           "type": "file",
-          "path": "../macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png",
-          "dest-filename": "io.github.quantumheart.kohera.png"
+          "path": "../linux/io.github.quantumheart.kohera.png"
         }
       ]
     }
