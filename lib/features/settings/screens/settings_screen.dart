@@ -183,7 +183,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               : 'Not set up',
                   onTap: matrix.chatBackup.chatBackupLoading
                       ? () {}
-                      : () => context.go('/e2ee-setup'),
+                      : () => context.go(RoutePaths.e2eeSetup),
                 ),
                 const Divider(height: 1, indent: 56),
                 _SettingsTile(
@@ -248,7 +248,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _addAccount(BuildContext context, ClientManager manager) async {
     await manager.createLoginService();
-    if (context.mounted) context.go('/add-account');
+    if (context.mounted) context.go(RoutePaths.addAccount);
   }
 
   void _confirmLogout(BuildContext context) {
@@ -296,7 +296,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextButton(
               onPressed: () {
                 Navigator.pop(ctx);
-                context.go('/e2ee-setup');
+                context.go(RoutePaths.e2eeSetup);
               },
               child: const Text('Set up backup first'),
             ),

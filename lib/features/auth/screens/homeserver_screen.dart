@@ -108,7 +108,7 @@ class _HomeserverScreenState extends State<HomeserverScreen>
               forceMaterialTransparency: true,
               leading: IconButton(
                 icon: const Icon(Icons.close),
-                onPressed: () => context.go('/'),
+                onPressed: () => context.go(RoutePaths.home),
               ),
             )
           : null,

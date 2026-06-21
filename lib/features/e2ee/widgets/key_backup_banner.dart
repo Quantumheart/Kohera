@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:provider/provider.dart';
 
@@ -40,7 +41,7 @@ class _KeyBackupBannerContent extends StatelessWidget {
         label: 'Key backup not set up. Tap to configure.',
         button: true,
         child: InkWell(
-          onTap: () => context.go('/e2ee-setup'),
+          onTap: () => context.go(RoutePaths.e2eeSetup),
           child: Container(
           constraints: const BoxConstraints(minHeight: 48),
           padding: const EdgeInsets.only(left: 12, right: 4),
@@ -85,7 +86,7 @@ class _KeyBackupBannerContent extends StatelessWidget {
                 ),
               ),
               TextButton(
-                onPressed: () => context.go('/e2ee-setup'),
+                onPressed: () => context.go(RoutePaths.e2eeSetup),
                 style: TextButton.styleFrom(
                   foregroundColor: cs.onTertiaryContainer,
                 ),
