@@ -13,13 +13,13 @@ class ActiveMatrixListenable extends ChangeNotifier {
   }
 
   final ClientManager _manager;
-  MatrixService? _attached;
+  MatrixService? _attachedService;
 
   void _onManagerChanged() {
-    final next = _manager.activeService;
-    if (!identical(next, _attached)) {
+    final nextService = _manager.activeService;
+    if (!identical(nextService, _attachedService)) {
       _detach();
-      _attach(next);
+      _attach(nextService);
     }
     notifyListeners();
   }
@@ -27,15 +27,15 @@ class ActiveMatrixListenable extends ChangeNotifier {
   void _attach(MatrixService service) {
     service.addListener(notifyListeners);
     service.chatBackup.addListener(notifyListeners);
-    _attached = service;
+    _attachedService = service;
   }
 
   void _detach() {
-    final prev = _attached;
-    if (prev == null) return;
-    prev.removeListener(notifyListeners);
-    prev.chatBackup.removeListener(notifyListeners);
-    _attached = null;
+    final previousService = _attachedService;
+    if (previousService == null) return;
+    previousService.removeListener(notifyListeners);
+    previousService.chatBackup.removeListener(notifyListeners);
+    _attachedService = null;
   }
 
   @override

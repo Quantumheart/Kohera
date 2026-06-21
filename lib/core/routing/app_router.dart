@@ -112,7 +112,7 @@ GoRouter buildRouter(ClientManager manager) {
       // shell never builds with a null one.
       ShellRoute(
         builder: (context, state, child) =>
-            AddAccountShell(manager: manager, child: child),
+            AddAccountShell(manager: manager, routerChild: child),
         routes: [
           GoRoute(
             path: RoutePaths.addAccount,

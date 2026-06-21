@@ -12,13 +12,13 @@ import 'package:kohera/core/services/matrix_service.dart';
 /// `_dependents.isEmpty` assertion. Redirecting `/rooms/...` to `/` tears the
 /// chat subtree down cleanly before the swap reconciles.
 class AccountSwitchRedirector {
-  AccountSwitchRedirector(this._active);
+  AccountSwitchRedirector(this._activeService);
 
-  MatrixService _active;
+  MatrixService _activeService;
 
-  String? redirectFor(MatrixService current, String location) {
-    if (identical(current, _active)) return null;
-    _active = current;
+  String? redirectFor(MatrixService currentService, String location) {
+    if (identical(currentService, _activeService)) return null;
+    _activeService = currentService;
     return location.startsWith(RoutePaths.roomPrefix) ? RoutePaths.home : null;
   }
 }
