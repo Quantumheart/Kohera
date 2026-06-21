@@ -291,8 +291,8 @@ class InboxController extends ChangeNotifier {
         if (g.roomId != roomId) g,
     ];
     _updateUnreadCount();
-    final remainingBadge =
-        (totalUnreadCount(_client) - room.notificationCount).clamp(0, 1 << 30);
+    final remainingUnread = totalUnreadCount(_client) - room.notificationCount;
+    final remainingBadge = remainingUnread < 0 ? 0 : remainingUnread;
     unawaited(ApnsPushService.setBadge(remainingBadge));
     if (!_disposed) notifyListeners();
 
