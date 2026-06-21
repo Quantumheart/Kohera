@@ -203,6 +203,10 @@ import UserNotifications
       case "clearBadge":
         UIApplication.shared.applicationIconBadgeNumber = 0
         result(nil)
+      case "setBadge":
+        let count = (call.arguments as? [String: Any])?["count"] as? Int ?? 0
+        UIApplication.shared.applicationIconBadgeNumber = count
+        result(nil)
       case "getAppGroupPath":
         let path = FileManager.default.containerURL(
           forSecurityApplicationGroupIdentifier: "group.io.github.quantumheart.kohera"

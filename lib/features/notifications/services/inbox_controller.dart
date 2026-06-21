@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/core/utils/notification_filter.dart';
 import 'package:kohera/core/utils/word_boundary.dart';
 import 'package:kohera/features/notifications/services/apns_push_service.dart';
 import 'package:matrix/matrix.dart' as matrix_sdk;
@@ -290,7 +291,9 @@ class InboxController extends ChangeNotifier {
         if (g.roomId != roomId) g,
     ];
     _updateUnreadCount();
-    unawaited(ApnsPushService.clearBadge());
+    final remainingBadge =
+        (totalUnreadCount(_client) - room.notificationCount).clamp(0, 1 << 30);
+    unawaited(ApnsPushService.setBadge(remainingBadge));
     if (!_disposed) notifyListeners();
 
     final maxThreadTs = perThread.values.fold<int>(
