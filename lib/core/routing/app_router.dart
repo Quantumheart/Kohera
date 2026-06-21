@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
+import 'package:kohera/core/routing/account_switch_redirector.dart';
+import 'package:kohera/core/routing/active_matrix_listenable.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/core/routing/widgets/add_account_shell.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -9,8 +12,7 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/auth/screens/homeserver_screen.dart';
 import 'package:kohera/features/auth/screens/login_screen.dart';
 import 'package:kohera/features/auth/screens/registration_screen.dart';
-import 'package:kohera/features/calling/screens/call_pane.dart';
-import 'package:kohera/features/calling/screens/call_screen.dart';
+import 'package:kohera/features/calling/screens/adaptive_call_screen.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/features/chat/screens/thread_list_screen.dart';
 import 'package:kohera/features/chat/screens/thread_screen.dart';
@@ -38,7 +40,7 @@ import 'package:provider/provider.dart';
 /// [manager] so that account switches don't require recreating the router
 /// (which would reset the navigation stack and cause a visible flash).
 GoRouter buildRouter(ClientManager manager) {
-  final refreshListenable = _ActiveMatrixListenable(manager);
+  final refreshListenable = ActiveMatrixListenable(manager);
   final switchRedirector = AccountSwitchRedirector(manager.activeService);
   return GoRouter(
     refreshListenable: refreshListenable,
@@ -110,7 +112,7 @@ GoRouter buildRouter(ClientManager manager) {
       // shell never builds with a null one.
       ShellRoute(
         builder: (context, state, child) =>
-            _AddAccountShell(manager: manager, child: child),
+            AddAccountShell(manager: manager, child: child),
         routes: [
           GoRoute(
             path: RoutePaths.addAccount,
@@ -199,7 +201,7 @@ GoRouter buildRouter(ClientManager manager) {
                     name: Routes.call,
                     builder: (context, state) {
                       final roomId = state.pathParameters['roomId']!;
-                      return _AdaptiveCallScreen(roomId: roomId);
+                      return AdaptiveCallScreen(roomId: roomId);
                     },
                   ),
                   GoRoute(
@@ -317,72 +319,6 @@ GoRouter buildRouter(ClientManager manager) {
   );
 }
 
-/// A [Listenable] that forwards notifications from the currently active
-/// [MatrixService] (and its [ChatBackupService]), re-binding automatically
-/// when the active account changes. Lets the router use a stable
-/// `refreshListenable` across account switches.
-class _ActiveMatrixListenable extends ChangeNotifier {
-  _ActiveMatrixListenable(this._manager) {
-    _manager.addListener(_onManagerChanged);
-    _attach(_manager.activeService);
-  }
-
-  final ClientManager _manager;
-  MatrixService? _attached;
-
-  void _onManagerChanged() {
-    final next = _manager.activeService;
-    if (!identical(next, _attached)) {
-      _detach();
-      _attach(next);
-    }
-    notifyListeners();
-  }
-
-  void _attach(MatrixService service) {
-    service.addListener(notifyListeners);
-    service.chatBackup.addListener(notifyListeners);
-    _attached = service;
-  }
-
-  void _detach() {
-    final prev = _attached;
-    if (prev == null) return;
-    prev.removeListener(notifyListeners);
-    prev.chatBackup.removeListener(notifyListeners);
-    _attached = null;
-  }
-
-  @override
-  void dispose() {
-    _manager.removeListener(_onManagerChanged);
-    _detach();
-    super.dispose();
-  }
-}
-
-/// Detects active-account switches and falls back to the room list when a
-/// room route is still mounted.
-///
-/// Switching accounts swaps the per-account providers ([MatrixService] and
-/// friends) for different instances while the keyed `ChatScreen` subtree is
-/// still mounted and depends on them via `context.watch`. Reconciling the
-/// keyed subtree onto the swapped providers deactivates an `InheritedElement`
-/// before its dependent is released, tripping the framework's
-/// `_dependents.isEmpty` assertion. Redirecting `/rooms/...` to `/` tears the
-/// chat subtree down cleanly before the swap reconciles.
-class AccountSwitchRedirector {
-  AccountSwitchRedirector(this._active);
-
-  MatrixService _active;
-
-  String? redirectFor(MatrixService current, String location) {
-    if (identical(current, _active)) return null;
-    _active = current;
-    return location.startsWith('/rooms/') ? '/' : null;
-  }
-}
-
 /// Reads the homeserver for a registration route from the navigation extra,
 /// falling back to the user's preferred default and then the app default.
 String _homeserverFrom(BuildContext context, GoRouterState state) =>
@@ -395,61 +331,3 @@ String _homeserverFrom(BuildContext context, GoRouterState state) =>
 ServerAuthCapabilities _capabilitiesFrom(GoRouterState state) =>
     state.extra as ServerAuthCapabilities? ??
     const ServerAuthCapabilities(supportsPassword: true);
-
-/// Owns the pending-service lifecycle for the entire add-account flow.
-///
-/// As a [ShellRoute] host this widget persists across the entry, server, and
-/// register sub-routes and is disposed only when the flow is left, so it is
-/// the single place that:
-///   * provides the pending [MatrixService] to the shadowed subtree, and
-///   * cancels the pending service on exit (a no-op once committed).
-///
-/// Intra-flow navigation (including Back) no longer tears down the pending
-/// service, and the top-level redirect guarantees a pending service exists
-/// before this builds.
-class _AddAccountShell extends StatefulWidget {
-  const _AddAccountShell({required this.manager, required this.child});
-
-  final ClientManager manager;
-  final Widget child;
-
-  @override
-  State<_AddAccountShell> createState() => _AddAccountShellState();
-}
-
-class _AddAccountShellState extends State<_AddAccountShell> {
-  @override
-  void dispose() {
-    widget.manager.cancelPendingService();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final pending = widget.manager.pendingService;
-    if (pending == null) return const SizedBox.shrink();
-    return ChangeNotifierProvider<MatrixService>.value(
-      value: pending,
-      child: widget.child,
-    );
-  }
-}
-
-class _AdaptiveCallScreen extends StatelessWidget {
-  const _AdaptiveCallScreen({required this.roomId});
-
-  final String roomId;
-
-  @override
-  Widget build(BuildContext context) {
-    final isWide =
-        MediaQuery.sizeOf(context).width >= HomeShell.wideBreakpoint;
-    if (isWide) return const CallPane();
-    final room =
-        context.read<MatrixService>().client.getRoomById(roomId);
-    return CallScreen(
-      roomId: roomId,
-      displayName: room?.getLocalizedDisplayname() ?? 'Call',
-    );
-  }
-}
