@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/routing/app_router.dart';
+import 'package:kohera/core/routing/account_switch_redirector.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';

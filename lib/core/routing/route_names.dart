@@ -4,6 +4,7 @@
 /// and `context.go(...)` calls stay in sync with the route table.
 abstract class RoutePaths {
   static const home = '/';
+  static const roomPrefix = '/rooms/';
   static const login = '/login';
   static const register = '/register';
   static const e2eeSetup = '/e2ee-setup';
