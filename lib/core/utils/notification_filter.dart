@@ -4,6 +4,15 @@ import 'package:matrix/matrix.dart';
 
 // ── Notification-level-aware unread count ───────────────────
 
+/// Total unread notification count across all rooms.
+///
+/// Mirrors the server-computed APNs badge: the authoritative unread state
+/// shared across chat rooms, the inbox, and the OS app icon badge. Prefer
+/// this over any locally-cached subset (e.g. paged inbox notifications).
+int totalUnreadCount(Client client) => client.rooms
+    .where((r) => r.notificationCount > 0)
+    .fold<int>(0, (sum, r) => sum + r.notificationCount);
+
 /// Effective unread count filtered by the global notification level.
 /// Shared between the room list UI and the OS notification service.
 int effectiveUnreadCount(Room room, PreferencesService prefs) {

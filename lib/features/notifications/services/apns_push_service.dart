@@ -213,6 +213,19 @@ class ApnsPushService {
     }
   }
 
+  static Future<void> setBadge(int count) async {
+    if (count <= 0) {
+      await clearBadge();
+      return;
+    }
+    if (!isNativeIOS) return;
+    try {
+      await _channel.invokeMethod<void>('setBadge', {'count': count});
+    } catch (e) {
+      debugPrint('[Kohera] Failed to set badge: $e');
+    }
+  }
+
   // ── Gateway resolution ───────────────────────────────────────
 
   String? get _gatewayUrl => AppConfig.instance.apnsPushGatewayUrl;

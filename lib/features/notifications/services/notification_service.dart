@@ -490,9 +490,7 @@ class NotificationService {
     bool isGrouped = false,
   }) async {
     if (kIsWeb) {
-      final unreadCount = matrixService.client.rooms
-          .where((r) => r.notificationCount > 0)
-          .fold<int>(0, (sum, r) => sum + r.notificationCount);
+      final unreadCount = totalUnreadCount(matrixService.client);
       showWebNotification(
         title: title,
         body: senderName.isNotEmpty
