@@ -66,7 +66,7 @@ class _CallScreenState extends State<CallScreen> {
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.popOrGo(
             Routes.room,
-            pathParameters: {'roomId': widget.roomId},
+            pathParameters: {RouteParams.roomId: widget.roomId},
           ),
         ),
         title: Text(widget.displayName),

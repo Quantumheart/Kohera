@@ -231,7 +231,7 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
       if (mounted) {
         context.goNamed(
           Routes.room,
-          pathParameters: {'roomId': newRoomId},
+          pathParameters: {RouteParams.roomId: newRoomId},
         );
       }
     } catch (e) {

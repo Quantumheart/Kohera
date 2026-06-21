@@ -58,7 +58,7 @@ class CallPane extends StatelessWidget {
               icon: const Icon(Icons.arrow_back_rounded),
               onPressed: () => context.goNamed(
                 Routes.room,
-                pathParameters: {'roomId': roomId},
+                pathParameters: {RouteParams.roomId: roomId},
               ),
             ),
             title: Text(_resolveRoomName(context, callService)),

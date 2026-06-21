@@ -191,7 +191,7 @@ class WebPushService {
             final roomId = obj.getProperty<JSString>('roomId'.toJS).toDart;
             if (roomId.isNotEmpty) {
               if (router != null) {
-                router!.goNamed(Routes.room, pathParameters: {'roomId': roomId});
+                router!.goNamed(Routes.room, pathParameters: {RouteParams.roomId: roomId});
               } else {
                 matrixService.selection.selectRoom(roomId);
               }

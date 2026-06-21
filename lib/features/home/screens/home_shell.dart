@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/calling/widgets/voice_banner.dart';
@@ -35,7 +36,7 @@ class _HomeShellState extends State<HomeShell> {
 
   // ── Route → MatrixService sync ──────────────────────────────
 
-  String? get _routeRoomId => widget.routerState.pathParameters['roomId'];
+  String? get _routeRoomId => widget.routerState.pathParameters[RouteParams.roomId];
   String? get _routeName => widget.routerState.topRoute?.name;
 
   void _syncRoomSelection() {
@@ -55,7 +56,7 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void didUpdateWidget(covariant HomeShell old) {
     super.didUpdateWidget(old);
-    final oldRoomId = old.routerState.pathParameters['roomId'];
+    final oldRoomId = old.routerState.pathParameters[RouteParams.roomId];
     final newRoomId = _routeRoomId;
 
     if (oldRoomId != newRoomId) {

@@ -163,7 +163,7 @@ Future<void> showSpaceContextMenu(
       if (context.mounted) {
         context.goNamed(
           Routes.spaceDetails,
-          pathParameters: {'spaceId': space.id},
+          pathParameters: {RouteParams.spaceId: space.id},
         );
       }
     case SpaceContextAction.createSubspace:

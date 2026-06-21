@@ -245,14 +245,14 @@ class _NotificationGroupTile extends StatelessWidget {
                         context.goNamed(
                           Routes.roomThread,
                           pathParameters: {
-                            'roomId': group.roomId,
-                            'eventId': singleThread,
+                            RouteParams.roomId: group.roomId,
+                            RouteParams.eventId: singleThread,
                           },
                         );
                       } else {
                         context.goNamed(
                           Routes.room,
-                          pathParameters: {'roomId': group.roomId},
+                          pathParameters: {RouteParams.roomId: group.roomId},
                         );
                       }
                     },
@@ -408,14 +408,14 @@ class _NotificationTile extends StatelessWidget {
           context.goNamed(
             Routes.roomThread,
             pathParameters: {
-              'roomId': notification.roomId,
-              'eventId': tid,
+              RouteParams.roomId: notification.roomId,
+              RouteParams.eventId: tid,
             },
           );
         } else {
           context.goNamed(
             Routes.room,
-            pathParameters: {'roomId': notification.roomId},
+            pathParameters: {RouteParams.roomId: notification.roomId},
           );
         }
       },

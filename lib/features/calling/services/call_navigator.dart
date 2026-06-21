@@ -37,7 +37,7 @@ abstract class CallNavigator {
     if (context.mounted) {
       context.pushOrGo(
         Routes.call,
-        pathParameters: {'roomId': roomId},
+        pathParameters: {RouteParams.roomId: roomId},
       );
     }
   }
@@ -47,7 +47,7 @@ abstract class CallNavigator {
     if (id != null && context.mounted) {
       context.pushOrGo(
         Routes.call,
-        pathParameters: {'roomId': id},
+        pathParameters: {RouteParams.roomId: id},
       );
     }
   }

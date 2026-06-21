@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
@@ -296,10 +297,10 @@ void main() {
             ),
           ),
           GoRoute(
-            path: '/spaces/:spaceId/details',
+            path: '/${RouteSegments.spaceDetails}',
             name: 'space-details',
             builder: (context, state) => Scaffold(
-              body: Text('Space details for ${state.pathParameters['spaceId']}'),
+              body: Text('Space details for ${state.pathParameters[RouteParams.spaceId]}'),
             ),
           ),
         ],

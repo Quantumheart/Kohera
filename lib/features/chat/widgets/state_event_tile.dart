@@ -78,7 +78,7 @@ class StateEventTile extends StatelessWidget {
       if (existing == null) {
         await matrix.client.joinRoom(replacement);
       }
-      router.goNamed(Routes.room, pathParameters: {'roomId': replacement});
+      router.goNamed(Routes.room, pathParameters: {RouteParams.roomId: replacement});
     } catch (e) {
       debugPrint('[Kohera] Failed to open replacement room: $e');
       scaffold.showSnackBar(

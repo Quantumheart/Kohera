@@ -47,7 +47,7 @@ class _InviteTileState extends State<InviteTile> {
       // Timeout is fine — the join already succeeded server-side.
     }
     if (mounted) {
-      context.goNamed(Routes.room, pathParameters: {'roomId': widget.room.id});
+      context.goNamed(Routes.room, pathParameters: {RouteParams.roomId: widget.room.id});
       setState(() => _isJoining = false);
     }
   }

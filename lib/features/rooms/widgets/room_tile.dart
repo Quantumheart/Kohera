@@ -118,7 +118,7 @@ class _RoomTileState extends State<RoomTile> {
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           mouseCursor: SystemMouseCursors.click,
-          onTap: () => context.goNamed(Routes.room, pathParameters: {'roomId': room.id}),
+          onTap: () => context.goNamed(Routes.room, pathParameters: {RouteParams.roomId: room.id}),
           onSecondaryTapUp: hasMenu
               ? (details) {
                   final overlay = Overlay.of(context).context

@@ -231,8 +231,8 @@ class _ChatScreenState extends State<ChatScreen>
     unawaited(context.pushNamed(
       Routes.roomThread,
       pathParameters: {
-        'roomId': widget.roomId,
-        'eventId': rootEvent.eventId,
+        RouteParams.roomId: widget.roomId,
+        RouteParams.eventId: rootEvent.eventId,
       },
     ),);
   }
@@ -255,7 +255,7 @@ class _ChatScreenState extends State<ChatScreen>
     }
     unawaited(context.pushNamed(
       Routes.roomThreads,
-      pathParameters: {'roomId': widget.roomId},
+      pathParameters: {RouteParams.roomId: widget.roomId},
     ),);
   }
 

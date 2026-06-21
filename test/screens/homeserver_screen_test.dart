@@ -92,10 +92,10 @@ void main() {
           builder: (context, state) => const HomeserverScreen(),
           routes: [
             GoRoute(
-              path: ':homeserver',
+              path: RouteSegments.loginServer,
               name: Routes.loginServer,
               builder: (context, state) {
-                final homeserver = state.pathParameters['homeserver']!;
+                final homeserver = state.pathParameters[RouteParams.homeserver]!;
                 final capabilities =
                     state.extra as ServerAuthCapabilities? ??
                         const ServerAuthCapabilities(supportsPassword: true);

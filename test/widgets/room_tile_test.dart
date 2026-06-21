@@ -105,12 +105,12 @@ void main() {
           ),
           routes: [
             GoRoute(
-              path: 'rooms/:roomId',
+              path: RouteSegments.room,
               name: Routes.room,
               builder: (context, state) {
-                lastNavigatedRoom = state.pathParameters['roomId'];
+                lastNavigatedRoom = state.pathParameters[RouteParams.roomId];
                 return Scaffold(
-                  body: Text('Room ${state.pathParameters['roomId']}'),
+                  body: Text('Room ${state.pathParameters[RouteParams.roomId]}'),
                 );
               },
             ),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
@@ -134,9 +135,9 @@ void main() {
       initialLocation: '/rooms/$roomId',
       routes: [
         GoRoute(
-          path: '/rooms/:roomId',
+          path: '/${RouteSegments.room}',
           builder: (_, state) =>
-              ChatScreen(roomId: state.pathParameters['roomId']!),
+              ChatScreen(roomId: state.pathParameters[RouteParams.roomId]!),
           routes: [
             GoRoute(
               path: 'details',
