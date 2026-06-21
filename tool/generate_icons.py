@@ -14,10 +14,12 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SS = 4  # supersample factor — render large, downscale with LANCZOS for crisp edges
 
-GRAD_TOP = (37, 133, 224)     # #2585E0 — subtle lift above the seed
-GRAD_BOTTOM = (13, 103, 196)  # #0D67C0 — subtle drop below the seed (midpoint = #1976D2)
-ACCENT = (25, 118, 210, 255)  # #1976D2 — interior strokes (the original accent)
-FG = (255, 255, 255, 255)     # white bubble
+# Match the in-app logo: light primaryContainer tile (#D4E3FF) with an
+# onPrimaryContainer (#224876) mark, so the shipped icon and login logo are one.
+GRAD_TOP = (226, 243, 255)    # subtle light tint above #D4E3FF
+GRAD_BOTTOM = (198, 211, 240)  # subtle light shade below it
+FG = (34, 72, 118, 255)       # #224876 — onPrimaryContainer, the mark colour
+ACCENT = (34, 72, 118, 255)   # same as the mark — monochrome, matching the logo
 
 
 def lerp(a, b, t):
