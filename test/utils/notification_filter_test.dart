@@ -59,8 +59,8 @@ void main() {
       when(stillUnread.notificationCount).thenReturn(6);
       when(mockClient.rooms).thenReturn([read, stillUnread]);
 
-      final remaining =
-          (totalUnreadCount(mockClient) - read.notificationCount).clamp(0, 1 << 30);
+      final raw = totalUnreadCount(mockClient) - read.notificationCount;
+      final remaining = raw < 0 ? 0 : raw;
       expect(remaining, 6);
     });
   });
