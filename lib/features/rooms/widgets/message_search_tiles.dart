@@ -85,7 +85,7 @@ class MessageSearchResultTile extends StatelessWidget {
           mouseCursor: SystemMouseCursors.click,
           onTap: () => context.goNamed(
             Routes.room,
-            pathParameters: {'roomId': result.roomId},
+            pathParameters: {RouteParams.roomId: result.roomId},
             extra: result.eventId,
           ),
           child: Padding(

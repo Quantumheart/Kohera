@@ -45,7 +45,7 @@ class _IncomingCallOverlayState extends State<IncomingCallOverlay> {
         if (mounted) {
           widget.router.goNamed(
             Routes.call,
-            pathParameters: {'roomId': roomId},
+            pathParameters: {RouteParams.roomId: roomId},
           );
         }
       });
@@ -96,7 +96,7 @@ class _IncomingCallOverlayState extends State<IncomingCallOverlay> {
     if (roomId != null) {
       widget.router.goNamed(
         Routes.call,
-        pathParameters: {'roomId': roomId},
+        pathParameters: {RouteParams.roomId: roomId},
       );
     }
   }

@@ -218,7 +218,7 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
           trailing: const Icon(Icons.chevron_right_rounded),
           onTap: () => context.goNamed(
             Routes.roomPermissions,
-            pathParameters: {'roomId': room.id},
+            pathParameters: {RouteParams.roomId: room.id},
           ),
         ),
 

@@ -87,10 +87,10 @@ GoRouter buildRouter(ClientManager manager) {
         builder: (context, state) => HomeserverScreen(key: ValueKey(state.uri)),
         routes: [
           GoRoute(
-            path: ':homeserver',
+            path: RouteSegments.loginServer,
             name: Routes.loginServer,
             builder: (context, state) => LoginScreen(
-              homeserver: state.pathParameters['homeserver']!,
+              homeserver: state.pathParameters[RouteParams.homeserver]!,
               capabilities: _capabilitiesFrom(state),
             ),
           ),
@@ -131,7 +131,7 @@ GoRouter buildRouter(ClientManager manager) {
             path: RoutePaths.addAccountServer,
             name: Routes.addAccountServer,
             builder: (context, state) => LoginScreen(
-              homeserver: state.pathParameters['homeserver']!,
+              homeserver: state.pathParameters[RouteParams.homeserver]!,
               capabilities: _capabilitiesFrom(state),
               isAddAccount: true,
             ),
@@ -157,10 +157,10 @@ GoRouter buildRouter(ClientManager manager) {
             builder: (context, state) => const RoomList(),
             routes: [
               GoRoute(
-                path: 'rooms/:roomId',
+                path: RouteSegments.room,
                 name: Routes.room,
                 builder: (context, state) {
-                  final roomId = state.pathParameters['roomId']!;
+                  final roomId = state.pathParameters[RouteParams.roomId]!;
                   final eventId = state.extra as String?;
                   return ChatScreen(
                     roomId: roomId,
@@ -172,10 +172,10 @@ GoRouter buildRouter(ClientManager manager) {
                 },
                 routes: [
                   GoRoute(
-                    path: 'details',
+                    path: RouteSegments.roomDetails,
                     name: Routes.roomDetails,
                     builder: (context, state) {
-                      final roomId = state.pathParameters['roomId']!;
+                      final roomId = state.pathParameters[RouteParams.roomId]!;
                       return RoomDetailsPanel(
                         roomId: roomId,
                         isFullPage: true,
@@ -184,10 +184,10 @@ GoRouter buildRouter(ClientManager manager) {
                     },
                     routes: [
                       GoRoute(
-                        path: 'permissions',
+                        path: RouteSegments.roomPermissions,
                         name: Routes.roomPermissions,
                         builder: (context, state) {
-                          final roomId = state.pathParameters['roomId']!;
+                          final roomId = state.pathParameters[RouteParams.roomId]!;
                           return RoomPermissionsScreen(
                             roomId: roomId,
                             key: ValueKey('permissions-$roomId'),
@@ -197,19 +197,19 @@ GoRouter buildRouter(ClientManager manager) {
                     ],
                   ),
                   GoRoute(
-                    path: 'call',
+                    path: RouteSegments.call,
                     name: Routes.call,
                     builder: (context, state) {
-                      final roomId = state.pathParameters['roomId']!;
+                      final roomId = state.pathParameters[RouteParams.roomId]!;
                       return AdaptiveCallScreen(roomId: roomId);
                     },
                   ),
                   GoRoute(
-                    path: 'thread/:eventId',
+                    path: RouteSegments.roomThread,
                     name: Routes.roomThread,
                     builder: (context, state) {
-                      final roomId = state.pathParameters['roomId']!;
-                      final eventId = state.pathParameters['eventId']!;
+                      final roomId = state.pathParameters[RouteParams.roomId]!;
+                      final eventId = state.pathParameters[RouteParams.eventId]!;
                       return ThreadScreen(
                         roomId: roomId,
                         threadRootEventId: eventId,
@@ -218,18 +218,18 @@ GoRouter buildRouter(ClientManager manager) {
                     },
                   ),
                   GoRoute(
-                    path: 'threads',
+                    path: RouteSegments.roomThreads,
                     name: Routes.roomThreads,
                     builder: (context, state) {
-                      final roomId = state.pathParameters['roomId']!;
+                      final roomId = state.pathParameters[RouteParams.roomId]!;
                       return ThreadListScreen(
                         roomId: roomId,
                         key: ValueKey('threads-$roomId'),
                         onOpenThread: (eventId) =>
                             context.pushNamed(Routes.roomThread,
                                 pathParameters: {
-                                  'roomId': roomId,
-                                  'eventId': eventId,
+                                  RouteParams.roomId: roomId,
+                                  RouteParams.eventId: eventId,
                                 },),
                       );
                     },
@@ -237,15 +237,15 @@ GoRouter buildRouter(ClientManager manager) {
                 ],
               ),
               GoRoute(
-                path: 'spaces',
+                path: RouteSegments.spaces,
                 name: Routes.spaces,
                 builder: (context, state) => const SizedBox.shrink(),
               ),
               GoRoute(
-                path: 'spaces/:spaceId/details',
+                path: RouteSegments.spaceDetails,
                 name: Routes.spaceDetails,
                 builder: (context, state) {
-                  final spaceId = state.pathParameters['spaceId']!;
+                  final spaceId = state.pathParameters[RouteParams.spaceId]!;
                   return SpaceDetailsPanel(
                     spaceId: spaceId,
                     isFullPage: true,
@@ -254,57 +254,57 @@ GoRouter buildRouter(ClientManager manager) {
                 },
               ),
               GoRoute(
-                path: 'inbox',
+                path: RouteSegments.inbox,
                 name: Routes.inbox,
                 builder: (context, state) => const InboxScreen(),
               ),
               GoRoute(
-                path: 'whats-new',
+                path: RouteSegments.whatsNew,
                 name: Routes.whatsNew,
                 builder: (context, state) => const WhatsNewScreen(),
               ),
               GoRoute(
-                path: 'settings',
+                path: RouteSegments.settings,
                 name: Routes.settings,
                 builder: (context, state) => const SettingsScreen(),
                 routes: [
                   GoRoute(
-                    path: 'appearance',
+                    path: RouteSegments.settingsAppearance,
                     name: Routes.settingsAppearance,
                     builder: (context, state) =>
                         const AppearanceScreen(),
                   ),
                   GoRoute(
-                    path: 'notifications',
+                    path: RouteSegments.settingsNotifications,
                     name: Routes.settingsNotifications,
                     builder: (context, state) =>
                         const NotificationSettingsScreen(),
                   ),
                   GoRoute(
-                    path: 'devices',
+                    path: RouteSegments.settingsDevices,
                     name: Routes.settingsDevices,
                     builder: (context, state) => const DevicesScreen(),
                   ),
                   GoRoute(
-                    path: 'voice-video',
+                    path: RouteSegments.settingsVoiceVideo,
                     name: Routes.settingsVoiceVideo,
                     builder: (context, state) =>
                         const VoiceVideoSettingsScreen(),
                   ),
                   GoRoute(
-                    path: 'recovery-key',
+                    path: RouteSegments.settingsRecoveryKey,
                     name: Routes.settingsRecoveryKey,
                     builder: (context, state) =>
                         const ShowRecoveryKeyScreen(),
                   ),
                   GoRoute(
-                    path: 'sticker-packs',
+                    path: RouteSegments.settingsStickerPacks,
                     name: Routes.settingsStickerPacks,
                     builder: (context, state) =>
                         const StickerPacksScreen(),
                   ),
                   GoRoute(
-                    path: 'emoji-gg-browse',
+                    path: RouteSegments.settingsEmojiGgBrowse,
                     name: Routes.settingsEmojiGgBrowse,
                     builder: (context, state) =>
                         const EmojiGgBrowseScreen(),

@@ -151,7 +151,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                   } else {
                     context.pushOrGo(
                       Routes.roomDetails,
-                      pathParameters: {'roomId': room.id},
+                      pathParameters: {RouteParams.roomId: room.id},
                     );
                   }
               }
@@ -338,7 +338,7 @@ class _CallButtonState extends State<_CallButton> {
           if (value == 'go') {
             context.pushOrGo(
               Routes.call,
-              pathParameters: {'roomId': widget.room.id},
+              pathParameters: {RouteParams.roomId: widget.room.id},
             );
           } else if (value == 'leave') {
             unawaited(CallNavigator.endCall(context));

@@ -82,7 +82,7 @@ class _HomeserverScreenState extends State<HomeserverScreen>
     );
     context.goNamed(
       widget.isAddAccount ? Routes.addAccountServer : Routes.loginServer,
-      pathParameters: {'homeserver': text},
+      pathParameters: {RouteParams.homeserver: text},
       extra: caps,
     );
   }

@@ -178,7 +178,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
             icon: const Icon(Icons.arrow_back),
             onPressed: () => context.popOrGo(
               Routes.room,
-              pathParameters: {'roomId': widget.roomId},
+              pathParameters: {RouteParams.roomId: widget.roomId},
             ),
           ),
           title: Text(room.getLocalizedDisplayname()),

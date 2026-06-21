@@ -639,7 +639,7 @@ class NotificationService {
 
   void navigateToRoom(String roomId) {
     if (router != null) {
-      router!.goNamed(Routes.room, pathParameters: {'roomId': roomId});
+      router!.goNamed(Routes.room, pathParameters: {RouteParams.roomId: roomId});
     } else {
       matrixService.selection.selectRoom(roomId);
     }

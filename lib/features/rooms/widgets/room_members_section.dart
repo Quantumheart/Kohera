@@ -303,7 +303,7 @@ class _MemberTileState extends State<_MemberTile> {
                   selection.selectRoom(dmRoomId);
                   router.goNamed(
                     Routes.room,
-                    pathParameters: {'roomId': dmRoomId},
+                    pathParameters: {RouteParams.roomId: dmRoomId},
                   );
                 } catch (e) {
                   debugPrint('[Kohera] Start DM failed: $e');
