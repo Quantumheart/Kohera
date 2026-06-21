@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/features/e2ee/widgets/bootstrap_controller.dart';
@@ -167,7 +168,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
   Future<void> _finishSetup() async {
     final shouldClearClipboard = _controller?.keyCopied ?? false;
     _matrixService.skipSetup();
-    if (mounted) context.go('/');
+    if (mounted) context.go(RoutePaths.home);
     if (shouldClearClipboard) {
       unawaited(Clipboard.setData(const ClipboardData(text: '')));
     }
@@ -175,7 +176,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
 
   void _skip() {
     _matrixService.skipSetup();
-    context.go('/');
+    context.go(RoutePaths.home);
   }
 
   // ── Build ─────────────────────────────────────────────────────
@@ -226,7 +227,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
                 leading: BackButton(
                   onPressed: () {
                     if (_localStep != null) {
-                      context.go('/');
+                      context.go(RoutePaths.home);
                     } else {
                       setState(() => _localStep = _ScreenStep.skipConfirm);
                     }
@@ -342,7 +343,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
                 onPressed: () async {
                   await _matrixService.chatBackup.disableChatBackup();
                   _matrixService.skipSetup();
-                  if (mounted) context.go('/');
+                  if (mounted) context.go(RoutePaths.home);
                 },
                 style: FilledButton.styleFrom(
                   backgroundColor: Theme.of(context).colorScheme.error,
@@ -398,7 +399,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             TextButton(
-              onPressed: () => context.go('/'),
+              onPressed: () => context.go(RoutePaths.home),
               child: const Text('Close'),
             ),
             FilledButton(
@@ -735,7 +736,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
           ),
           const SizedBox(height: 32),
           OutlinedButton(
-            onPressed: () => context.go('/settings/recovery-key'),
+            onPressed: () => context.go(RoutePaths.settingsRecoveryKey),
             child: const Text('Show recovery key'),
           ),
           const SizedBox(height: 8),

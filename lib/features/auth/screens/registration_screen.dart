@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -85,7 +86,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
     if (_controller.state == RegistrationState.done) {
       // Registration complete — the router's redirect will send us
       // to '/' once MatrixService.isLoggedIn becomes true.
-      context.go('/');
+      context.go(RoutePaths.home);
       return;
     }
     setState(() {});

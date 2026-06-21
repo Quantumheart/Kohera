@@ -42,21 +42,29 @@ GoRouter buildRouter(ClientManager manager) {
   final switchRedirector = AccountSwitchRedirector(manager.activeService);
   return GoRouter(
     refreshListenable: refreshListenable,
-    initialLocation: '/',
+    initialLocation: RoutePaths.home,
     redirect: (context, state) {
       final matrixService = manager.activeService;
       final loggedIn = matrixService.isLoggedIn;
       final loc = state.matchedLocation;
-      final onAuthRoute =
-          loc.startsWith('/login') || loc.startsWith('/register');
-      final onSetupRoute = loc == '/e2ee-setup';
-      final onAddAccountRoute = loc.startsWith('/add-account');
+      final onAuthRoute = loc.startsWith(RoutePaths.login) ||
+          loc.startsWith(RoutePaths.register);
+      final onSetupRoute = loc == RoutePaths.e2eeSetup;
+      final onAddAccountRoute = loc.startsWith(RoutePaths.addAccount);
 
       final switchRedirect = switchRedirector.redirectFor(matrixService, loc);
       if (switchRedirect != null) return switchRedirect;
 
-      if (!loggedIn && !onAuthRoute) return '/login';
-      if (loggedIn && onAuthRoute && !onAddAccountRoute) return '/';
+      // The add-account flow drives login against a pending service. If there
+      // is none (genuine stray entry, or the moment after a successful commit
+      // clears it), there is nothing to add — leave the flow before any
+      // builder dereferences it.
+      if (onAddAccountRoute && manager.pendingService == null) {
+        return RoutePaths.home;
+      }
+
+      if (!loggedIn && !onAuthRoute) return RoutePaths.login;
+      if (loggedIn && onAuthRoute && !onAddAccountRoute) return RoutePaths.home;
 
       if (loggedIn &&
           !onSetupRoute &&
@@ -64,7 +72,7 @@ GoRouter buildRouter(ClientManager manager) {
           !onAddAccountRoute &&
           matrixService.chatBackup.chatBackupNeeded == true &&
           !matrixService.hasSkippedSetup) {
-        return '/e2ee-setup';
+        return RoutePaths.e2eeSetup;
       }
 
       return null;
@@ -72,97 +80,66 @@ GoRouter buildRouter(ClientManager manager) {
     routes: [
       // ── Auth routes ──────────────────────────────────────────
       GoRoute(
-        path: '/login',
+        path: RoutePaths.login,
         name: Routes.login,
         builder: (context, state) => HomeserverScreen(key: ValueKey(state.uri)),
         routes: [
           GoRoute(
             path: ':homeserver',
             name: Routes.loginServer,
-            builder: (context, state) {
-              final homeserver = state.pathParameters['homeserver']!;
-              final capabilities =
-                  state.extra as ServerAuthCapabilities? ??
-                      const ServerAuthCapabilities(supportsPassword: true);
-              return LoginScreen(
-                homeserver: homeserver,
-                capabilities: capabilities,
-              );
-            },
+            builder: (context, state) => LoginScreen(
+              homeserver: state.pathParameters['homeserver']!,
+              capabilities: _capabilitiesFrom(state),
+            ),
           ),
         ],
       ),
       GoRoute(
-        path: '/register',
+        path: RoutePaths.register,
         name: Routes.register,
-        builder: (context, state) {
-          final homeserver = state.extra as String? ??
-              context.read<PreferencesService>().defaultHomeserver ??
-              AppConfig.instance.defaultHomeserver;
-          return RegistrationScreen(initialHomeserver: homeserver);
-        },
+        builder: (context, state) =>
+            RegistrationScreen(initialHomeserver: _homeserverFrom(context, state)),
       ),
 
-      // ── Add-account login flow (outside shell) ──────────────
-      GoRoute(
-        path: '/add-account',
-        name: Routes.addAccount,
-        builder: (context, state) {
-          final manager = context.read<ClientManager>();
-          return _AddAccountGuard(
-            manager: manager,
-            child: ChangeNotifierProvider<MatrixService>.value(
-              value: manager.pendingService!,
-              child: const HomeserverScreen(isAddAccount: true),
-            ),
-          );
-        },
+      // ── Add-account login flow (outside the main app shell) ──
+      //
+      // A single shell owns the pending service for the whole flow: it
+      // provides the shadowed [MatrixService] once and cancels the pending
+      // service exactly when the flow is left (the shell is disposed). The
+      // top-level redirect handles entry without a pending service, so the
+      // shell never builds with a null one.
+      ShellRoute(
+        builder: (context, state, child) =>
+            _AddAccountShell(manager: manager, child: child),
         routes: [
           GoRoute(
-            path: 'register',
-            name: Routes.addAccountRegister,
-            builder: (context, state) {
-              final homeserver = state.extra as String? ??
-                  context.read<PreferencesService>().defaultHomeserver ??
-                  AppConfig.instance.defaultHomeserver;
-              final manager = context.read<ClientManager>();
-              return _AddAccountGuard(
-                manager: manager,
-                child: ChangeNotifierProvider<MatrixService>.value(
-                  value: manager.pendingService!,
-                  child: RegistrationScreen(initialHomeserver: homeserver),
-                ),
-              );
-            },
+            path: RoutePaths.addAccount,
+            name: Routes.addAccount,
+            builder: (context, state) =>
+                const HomeserverScreen(isAddAccount: true),
           ),
           GoRoute(
-            path: ':homeserver',
+            path: RoutePaths.addAccountRegister,
+            name: Routes.addAccountRegister,
+            builder: (context, state) => RegistrationScreen(
+              initialHomeserver: _homeserverFrom(context, state),
+            ),
+          ),
+          GoRoute(
+            path: RoutePaths.addAccountServer,
             name: Routes.addAccountServer,
-            builder: (context, state) {
-              final homeserver = state.pathParameters['homeserver']!;
-              final capabilities =
-                  state.extra as ServerAuthCapabilities? ??
-                      const ServerAuthCapabilities(supportsPassword: true);
-              final manager = context.read<ClientManager>();
-              return _AddAccountGuard(
-                manager: manager,
-                child: ChangeNotifierProvider<MatrixService>.value(
-                  value: manager.pendingService!,
-                  child: LoginScreen(
-                    homeserver: homeserver,
-                    capabilities: capabilities,
-                    isAddAccount: true,
-                  ),
-                ),
-              );
-            },
+            builder: (context, state) => LoginScreen(
+              homeserver: state.pathParameters['homeserver']!,
+              capabilities: _capabilitiesFrom(state),
+              isAddAccount: true,
+            ),
           ),
         ],
       ),
 
       // ── E2EE setup (full-page, outside shell) ────────────────
       GoRoute(
-        path: '/e2ee-setup',
+        path: RoutePaths.e2eeSetup,
         name: Routes.e2eeSetup,
         builder: (context, state) => const E2eeSetupScreen(),
       ),
@@ -173,7 +150,7 @@ GoRouter buildRouter(ClientManager manager) {
             HomeShell(routerChild: child, routerState: state),
         routes: [
           GoRoute(
-            path: '/',
+            path: RoutePaths.home,
             name: Routes.home,
             builder: (context, state) => const RoomList(),
             routes: [
@@ -406,17 +383,41 @@ class AccountSwitchRedirector {
   }
 }
 
-class _AddAccountGuard extends StatefulWidget {
-  const _AddAccountGuard({required this.manager, required this.child});
+/// Reads the homeserver for a registration route from the navigation extra,
+/// falling back to the user's preferred default and then the app default.
+String _homeserverFrom(BuildContext context, GoRouterState state) =>
+    state.extra as String? ??
+    context.read<PreferencesService>().defaultHomeserver ??
+    AppConfig.instance.defaultHomeserver;
+
+/// Reads the server capabilities for a login route from the navigation extra,
+/// falling back to password-only auth before a .well-known lookup completes.
+ServerAuthCapabilities _capabilitiesFrom(GoRouterState state) =>
+    state.extra as ServerAuthCapabilities? ??
+    const ServerAuthCapabilities(supportsPassword: true);
+
+/// Owns the pending-service lifecycle for the entire add-account flow.
+///
+/// As a [ShellRoute] host this widget persists across the entry, server, and
+/// register sub-routes and is disposed only when the flow is left, so it is
+/// the single place that:
+///   * provides the pending [MatrixService] to the shadowed subtree, and
+///   * cancels the pending service on exit (a no-op once committed).
+///
+/// Intra-flow navigation (including Back) no longer tears down the pending
+/// service, and the top-level redirect guarantees a pending service exists
+/// before this builds.
+class _AddAccountShell extends StatefulWidget {
+  const _AddAccountShell({required this.manager, required this.child});
 
   final ClientManager manager;
   final Widget child;
 
   @override
-  State<_AddAccountGuard> createState() => _AddAccountGuardState();
+  State<_AddAccountShell> createState() => _AddAccountShellState();
 }
 
-class _AddAccountGuardState extends State<_AddAccountGuard> {
+class _AddAccountShellState extends State<_AddAccountShell> {
   @override
   void dispose() {
     widget.manager.cancelPendingService();
@@ -424,7 +425,14 @@ class _AddAccountGuardState extends State<_AddAccountGuard> {
   }
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) {
+    final pending = widget.manager.pendingService;
+    if (pending == null) return const SizedBox.shrink();
+    return ChangeNotifierProvider<MatrixService>.value(
+      value: pending,
+      child: widget.child,
+    );
+  }
 }
 
 class _AdaptiveCallScreen extends StatelessWidget {

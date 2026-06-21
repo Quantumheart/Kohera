@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/auth/widgets/login_controller.dart';
@@ -69,7 +70,7 @@ class _LoginScreenState extends State<LoginScreen>
     if (_controller.state == LoginState.done) {
       // The router's redirect will automatically send us to '/'
       // once MatrixService.isLoggedIn becomes true.
-      context.go('/');
+      context.go(RoutePaths.home);
       return;
     }
     setState(() {});

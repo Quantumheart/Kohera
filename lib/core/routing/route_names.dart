@@ -1,3 +1,20 @@
+/// Absolute route paths for go_router navigation and redirect checks.
+///
+/// Use these instead of inline string literals so the path is defined once
+/// and `context.go(...)` calls stay in sync with the route table.
+abstract class RoutePaths {
+  static const home = '/';
+  static const login = '/login';
+  static const register = '/register';
+  static const e2eeSetup = '/e2ee-setup';
+  static const settingsRecoveryKey = '/settings/recovery-key';
+
+  // ── Add-account flow ──────────────────────────────────────────
+  static const addAccount = '/add-account';
+  static const addAccountRegister = '/add-account/register';
+  static const addAccountServer = '/add-account/:homeserver';
+}
+
 /// Named route constants for go_router navigation.
 abstract class Routes {
   static const login = 'login';
