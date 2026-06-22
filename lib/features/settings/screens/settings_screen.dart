@@ -12,6 +12,7 @@ import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/features/settings/widgets/account_switcher.dart';
 import 'package:kohera/features/settings/widgets/profile_avatar_card.dart';
+import 'package:kohera/shared/widgets/kohera_mark.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -205,6 +206,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 _SettingsTile(
                   icon: Icons.info_outline_rounded,
+                  leading: const KoheraMark(size: 24),
                   title: 'Kohera',
                   subtitle: prefs.currentVersion != null
                       ? "v${prefs.currentVersion} · What's new"
@@ -326,18 +328,20 @@ class _SettingsTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.leading,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return ListTile(
-      leading: Icon(icon, color: cs.onSurfaceVariant),
+      leading: leading ?? Icon(icon, color: cs.onSurfaceVariant),
       title: Text(title),
       subtitle: Text(subtitle),
       trailing: Icon(Icons.chevron_right, color: cs.onSurfaceVariant),

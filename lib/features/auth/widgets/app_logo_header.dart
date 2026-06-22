@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+
+import 'package:kohera/shared/widgets/kohera_mark.dart';
 
 class AppLogoHeader extends StatelessWidget {
   const AppLogoHeader({required this.subtitle, super.key});
@@ -21,12 +22,7 @@ class AppLogoHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
           ),
           child: Center(
-            child: SvgPicture.asset(
-              'assets/icons/kohera_mark.svg',
-              width: 42,
-              height: 42,
-              colorFilter: ColorFilter.mode(cs.onPrimaryContainer, BlendMode.srcIn),
-            ),
+            child: KoheraMark(size: 42, color: cs.onPrimaryContainer),
           ),
         ),
         const SizedBox(height: 20),

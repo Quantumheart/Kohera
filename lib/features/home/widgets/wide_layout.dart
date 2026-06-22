@@ -8,6 +8,7 @@ import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/features/rooms/widgets/room_details_panel.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/spaces/widgets/space_rail.dart';
+import 'package:kohera/shared/widgets/kohera_mark.dart';
 import 'package:provider/provider.dart';
 
 // coverage:ignore-start
@@ -173,8 +174,10 @@ class _WideLayoutState extends State<WideLayout> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.chat_bubble_outline_rounded,
-              size: 56, color: cs.onSurfaceVariant.withValues(alpha: 0.3),),
+          KoheraMark(
+            size: 72,
+            color: cs.onSurfaceVariant.withValues(alpha: 0.3),
+          ),
           const SizedBox(height: 16),
           Text(
             'Select a conversation',
