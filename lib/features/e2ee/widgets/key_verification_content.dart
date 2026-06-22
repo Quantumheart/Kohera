@@ -214,8 +214,8 @@ class KeyVerificationContent extends StatelessWidget {
         if (canCompareSas)
           TextButton.icon(
             onPressed: onChooseCompareSas,
-            icon: const Icon(Icons.emoji_symbols),
-            label: const Text('Compare emoji instead'),
+            icon: const Icon(Icons.numbers),
+            label: const Text('Compare numbers instead'),
           ),
       ],
     );
