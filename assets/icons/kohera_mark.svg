@@ -1,16 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="currentColor">
-<path d="M 20.00 26.00 A 30.00 20.00 0 0 1 80.00 26.00 Z"/>
-<polygon points="42.50,26.00 57.50,26.00 58.50,50.00 41.50,50.00"/>
-<ellipse cx="50.00" cy="50.00" rx="8.50" ry="5.95"/>
-<path d="M 50.00 50.00 L 26.00 71.00 L 10.00 92.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="10.00" cy="92.00" r="4.50"/>
-<path d="M 50.00 50.00 L 39.20 68.00 L 32.00 86.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="32.00" cy="86.00" r="4.50"/>
-<path d="M 50.00 50.00 L 52.40 72.00 L 54.00 94.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="54.00" cy="94.00" r="4.50"/>
-<path d="M 50.00 50.00 L 65.60 67.00 L 76.00 84.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="76.00" cy="84.00" r="4.50"/>
-<path d="M 50.00 50.00 L 75.20 70.00 L 92.00 90.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
-<circle cx="92.00" cy="90.00" r="4.50"/>
-<circle cx="50.00" cy="50.00" r="5.00"/>
+<path d="M 17.00 28.00 C 15.00 7.00 39.00 3.00 51.00 5.00 C 67.00 7.00 86.00 12.00 81.00 27.00 Z"/>
+<path d="M 43.00 27.00 C 46.00 36.00 47.00 44.00 46.00 50.00 L 55.00 50.00 C 59.00 44.00 58.00 36.00 56.00 27.00 Z"/>
+<path d="M 47.80 50.00 C 47.00 62.00 30.00 75.00 11.00 89.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 49.15 50.00 C 48.50 63.00 37.00 80.00 30.00 90.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 50.50 50.00 C 50.50 58.00 51.00 65.00 51.00 71.00 C 50.00 80.00 46.00 88.00 41.00 93.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 50.50 50.00 C 50.50 58.00 51.00 65.00 51.00 71.00 C 53.00 80.00 57.00 88.00 61.00 91.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 51.85 50.00 C 52.50 63.00 64.00 78.00 71.00 90.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 53.20 50.00 C 54.00 62.00 72.00 74.00 90.00 89.00" fill="none" stroke="currentColor" stroke-width="3.50" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="51.00" cy="71.00" r="2.60"/>
+<circle cx="11.00" cy="89.00" r="4.60"/>
+<circle cx="30.00" cy="90.00" r="4.00"/>
+<circle cx="41.00" cy="93.00" r="5.00"/>
+<circle cx="61.00" cy="91.00" r="4.30"/>
+<circle cx="71.00" cy="90.00" r="4.50"/>
+<circle cx="90.00" cy="89.00" r="3.90"/>
 </svg>
