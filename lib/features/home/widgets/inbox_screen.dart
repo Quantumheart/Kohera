@@ -154,7 +154,7 @@ class _InboxScreenState extends State<InboxScreen> {
                                 ),
                               )
                             : RefreshIndicator(
-                                onRefresh: controller.fetch,
+                                onRefresh: controller.refresh,
                                 child: ListView.builder(
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 4,),

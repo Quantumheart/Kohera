@@ -75,7 +75,6 @@ class InboxController extends ChangeNotifier {
 
   int _fetchGeneration = 0;
   int _cachedUnreadCount = 0;
-  int _loadedPages = 1;
 
   final Map<String, Map<String, Object?>> _decryptedContent = {};
 
@@ -111,42 +110,60 @@ class InboxController extends ChangeNotifier {
 
   // ── Fetch ──────────────────────────────────────────────────
 
-  /// Loads the first page, resetting any accumulated pagination.
-  Future<void> fetch() => _load(pages: 1);
+  List<matrix_sdk.Notification> get _flatNotifications => [
+        for (final group in _grouped) ...group.notifications,
+      ];
 
-  /// Re-fetches the pages the user has already loaded.
-  ///
-  /// Used by the sync-driven background refresh so an incoming event or
-  /// receipt does not discard pages already paged in with [loadMore] and
-  /// collapse the list back to the first 30 notifications.
-  Future<void> refresh() => _load(pages: _loadedPages < 1 ? 1 : _loadedPages);
+  Future<void> fetch() => _withLoad((gen) async {
+        final response = await _client.getNotifications(limit: 30);
+        if (_disposed || gen != _fetchGeneration) return null;
+        final grouped = await _groupByRoom(response.notifications);
+        return (grouped: grouped, token: response.nextToken);
+      });
 
-  Future<void> _load({required int pages}) async {
+  Future<void> refresh() => _withLoad((gen) async {
+        final response = await _client.getNotifications(limit: 30);
+        if (_disposed || gen != _fetchGeneration) return null;
+        final headIds =
+            response.notifications.map((n) => n.event.eventId).toSet();
+        final grouped = await _groupByRoom([
+          ...response.notifications,
+          for (final n in _flatNotifications)
+            if (!headIds.contains(n.event.eventId)) n,
+        ]);
+        return (grouped: grouped, token: _nextToken);
+      });
+
+  Future<void> loadMore() async {
+    if (_nextToken == null || _isLoading) return;
+    await _withLoad((gen) async {
+      final response = await _client.getNotifications(
+        limit: 30,
+        from: _nextToken,
+      );
+      if (_disposed || gen != _fetchGeneration) return null;
+      final grouped = await _groupByRoom([
+        ..._flatNotifications,
+        ...response.notifications,
+      ]);
+      return (grouped: grouped, token: response.nextToken);
+    });
+  }
+
+  Future<void> _withLoad(
+    Future<({List<NotificationGroup> grouped, String? token})?> Function(int gen)
+        build,
+  ) async {
     final gen = ++_fetchGeneration;
     _isLoading = true;
     _error = null;
     if (!_disposed) notifyListeners();
 
     try {
-      final all = <matrix_sdk.Notification>[];
-      String? token;
-      var fetched = 0;
-      for (var page = 0; page < pages; page++) {
-        final response = await _client.getNotifications(
-          limit: 30,
-          from: page == 0 ? null : token,
-        );
-        if (_disposed || gen != _fetchGeneration) return;
-        all.addAll(response.notifications);
-        fetched++;
-        token = response.nextToken;
-        if (token == null) break;
-      }
-      final grouped = await _groupByRoom(all);
-      if (_disposed || gen != _fetchGeneration) return;
-      _nextToken = token;
-      _loadedPages = fetched < 1 ? 1 : fetched;
-      _grouped = grouped;
+      final result = await build(gen);
+      if (result == null || _disposed || gen != _fetchGeneration) return;
+      _nextToken = result.token;
+      _grouped = result.grouped;
       _updateUnreadCount();
     } catch (e) {
       if (_disposed || gen != _fetchGeneration) return;
@@ -157,47 +174,7 @@ class InboxController extends ChangeNotifier {
         return;
       }
       _error = e.toString();
-      debugPrint('[Kohera] Inbox fetch error: $e');
-    } finally {
-      if (!_disposed && gen == _fetchGeneration) {
-        _isLoading = false;
-        notifyListeners();
-      }
-    }
-  }
-
-  Future<void> loadMore() async {
-    if (_nextToken == null || _isLoading) return;
-
-    final gen = ++_fetchGeneration;
-    _isLoading = true;
-    _error = null;
-    if (!_disposed) notifyListeners();
-
-    try {
-      final response = await _client.getNotifications(
-        limit: 30,
-        from: _nextToken,
-      );
-      if (_disposed || gen != _fetchGeneration) return;
-
-      // Merge new notifications into existing groups. Duplicates straddling
-      // a token boundary are deduped by event id in _groupByRoom.
-      final all = <matrix_sdk.Notification>[];
-      for (final group in _grouped) {
-        all.addAll(group.notifications);
-      }
-      all.addAll(response.notifications);
-      final grouped = await _groupByRoom(all);
-      if (_disposed || gen != _fetchGeneration) return;
-      _nextToken = response.nextToken;
-      _loadedPages++;
-      _grouped = grouped;
-      _updateUnreadCount();
-    } catch (e) {
-      if (_disposed || gen != _fetchGeneration) return;
-      _error = e.toString();
-      debugPrint('[Kohera] Inbox loadMore error: $e');
+      debugPrint('[Kohera] Inbox load error: $e');
     } finally {
       if (!_disposed && gen == _fetchGeneration) {
         _isLoading = false;
@@ -220,7 +197,6 @@ class InboxController extends ChangeNotifier {
     }
     _grouped = [];
     _nextToken = null;
-    _loadedPages = 1;
     _updateUnreadCount();
     if (!_disposed) notifyListeners();
     unawaited(fetch().catchError((Object e) => debugPrint('[Kohera] Inbox fetch error: $e')));
@@ -370,7 +346,6 @@ class InboxController extends ChangeNotifier {
     _grouped = [];
     _decryptedContent.clear();
     _nextToken = null;
-    _loadedPages = 1;
     _isLoading = false;
     _error = null;
     _updateUnreadCount();
