@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.8.0](https://github.com/Quantumheart/Kohera/compare/v1.7.0...v1.8.0) (2026-06-22)
+
+
+### Features
+
+* add QR-code device verification alongside SAS emoji ([aadc1b8](https://github.com/Quantumheart/Kohera/commit/aadc1b894ee43814627190dcd528c7e6d5970676)), closes [#623](https://github.com/Quantumheart/Kohera/issues/623) [#626](https://github.com/Quantumheart/Kohera/issues/626)
+* default device verification to decimal SAS over emoji ([48f5c14](https://github.com/Quantumheart/Kohera/commit/48f5c1439fec1a85971dcb5cc47080bd2d16477a)), closes [#623](https://github.com/Quantumheart/Kohera/issues/623)
+
+
+### Bug Fixes
+
+* label QR chooser fallback "Compare numbers instead" ([f6e7b5d](https://github.com/Quantumheart/Kohera/commit/f6e7b5d82b2dffccfb9355b4b8d3d047b8b49584)), closes [#623](https://github.com/Quantumheart/Kohera/issues/623)
+
 ## [1.7.0](https://github.com/Quantumheart/Kohera/compare/v1.6.2...v1.7.0) (2026-06-22)
 
 
