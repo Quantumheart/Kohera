@@ -26,6 +26,7 @@ import 'package:kohera/features/chat/services/opengraph_service.dart';
 import 'package:kohera/features/e2ee/widgets/verification_request_listener.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/features/notifications/widgets/notification_lifecycle_observer.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 
@@ -56,6 +57,8 @@ class _KoheraAppState extends State<KoheraApp> {
   }
 
   Future<void> _init() async {
+    // Keep the branded splash up long enough for its growth animation to play.
+    final minSplash = Future<void>.delayed(const Duration(seconds: 3));
     try {
       MediaKit.ensureInitialized();
 
@@ -73,6 +76,7 @@ class _KoheraAppState extends State<KoheraApp> {
         );
       }
 
+      await minSplash;
       if (!mounted) return;
       clientManager.addListener(_onActiveServiceChanged);
       setState(() {
@@ -139,7 +143,9 @@ class _KoheraAppState extends State<KoheraApp> {
                       ),
                     ],
                   )
-                : const CircularProgressIndicator.adaptive(),
+                // Brand seed colour — this splash renders before the Kohera
+                // theme is applied, so the default scheme would be wrong.
+                : const KoheraLoader(size: 96, color: Color(0xFF1976D2)),
           ),
         ),
       );

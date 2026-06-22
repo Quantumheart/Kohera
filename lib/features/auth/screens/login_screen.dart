@@ -8,6 +8,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/auth/widgets/login_controller.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -138,7 +139,7 @@ class _LoginScreenState extends State<LoginScreen>
                   // ── SSO waiting state ──
                   if (isSsoInProgress) ...[
                     const SizedBox(height: 16),
-                    const CircularProgressIndicator(),
+                    const KoheraLoader(),
                     const SizedBox(height: 16),
                     Text(
                       'Complete sign-in in your browser,\n'

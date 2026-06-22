@@ -6,6 +6,7 @@ import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/emoji_gg_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
 
 class EmojiGgBrowseScreen extends StatefulWidget {
@@ -170,7 +171,7 @@ class _EmojiGgBrowseScreenState extends State<EmojiGgBrowseScreen> {
 
   Widget _buildBody(ColorScheme cs) {
     if (_packs == null && !_loadError) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: KoheraLoader());
     }
 
     if (_loadError) {

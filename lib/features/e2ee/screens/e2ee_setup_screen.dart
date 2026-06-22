@@ -8,6 +8,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/features/e2ee/widgets/bootstrap_controller.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_inline.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -203,7 +204,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
 
     if (backupNeeded == null) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: KoheraLoader()),
       );
     }
 
@@ -469,7 +470,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const CircularProgressIndicator(),
+          const KoheraLoader(),
           const SizedBox(height: 16),
           Text(_controller?.loadingMessage ?? 'Preparing...'),
         ],
@@ -657,7 +658,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(),
+            const KoheraLoader(),
             const SizedBox(height: 16),
             const Text('Starting verification...'),
             const SizedBox(height: 16),

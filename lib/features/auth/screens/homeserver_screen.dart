@@ -8,6 +8,7 @@ import 'package:kohera/core/services/matrix_service.dart' show MatrixService;
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/auth/widgets/app_logo_header.dart';
 import 'package:kohera/features/auth/widgets/homeserver_controller.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
 
 class HomeserverScreen extends StatefulWidget {
@@ -118,7 +119,7 @@ class _HomeserverScreenState extends State<HomeserverScreen>
           if (!_fadeCtrl.isCompleted)
             FadeTransition(
               opacity: ReverseAnimation(_fadeAnim),
-              child: const Center(child: CircularProgressIndicator()),
+              child: const Center(child: KoheraLoader()),
             ),
           Center(
             child: FadeTransition(

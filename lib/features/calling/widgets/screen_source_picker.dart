@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 
 // coverage:ignore-start
 
@@ -103,7 +104,7 @@ class _ScreenSourcePickerState extends State<_ScreenSourcePicker> {
               const SizedBox(height: 8),
               Expanded(
                 child: _loading
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const Center(child: KoheraLoader())
                     : TabBarView(
                         physics: const NeverScrollableScrollPhysics(),
                         children: [

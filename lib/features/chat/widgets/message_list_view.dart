@@ -11,6 +11,7 @@ import 'package:kohera/features/chat/widgets/read_receipts.dart';
 import 'package:kohera/features/chat/widgets/state_event_tile.dart';
 import 'package:kohera/features/chat/widgets/sticker_message_item.dart';
 import 'package:kohera/features/chat/widgets/unread_divider.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
@@ -487,7 +488,7 @@ class MessageListViewState extends State<MessageListView> {
   @override
   Widget build(BuildContext context) {
     if (_timeline == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: KoheraLoader());
     }
 
     final events = _visibleEvents;

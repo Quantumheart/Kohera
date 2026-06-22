@@ -5,6 +5,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/chat/services/thread_roots_service.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/widgets/thread_list_tile.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
 
 class ThreadListScreen extends StatefulWidget {
@@ -89,7 +90,7 @@ class _ThreadListScreenState extends State<ThreadListScreen> {
     final summaries = _summaries;
     final Widget body;
     if (_loading && summaries == null) {
-      body = const Center(child: CircularProgressIndicator());
+      body = const Center(child: KoheraLoader());
     } else if (_error != null && (summaries == null || summaries.isEmpty)) {
       body = _buildError(context);
     } else if (summaries == null || summaries.isEmpty) {

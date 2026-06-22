@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/encryption.dart';
 
 // ── Key verification content ────────────────────────────────────
@@ -124,7 +125,7 @@ class KeyVerificationContent extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const CircularProgressIndicator(),
+        const KoheraLoader(),
         const SizedBox(height: 16),
         Text(message),
       ],

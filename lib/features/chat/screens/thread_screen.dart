@@ -10,6 +10,7 @@ import 'package:kohera/features/chat/services/thread_roots_service.dart';
 import 'package:kohera/features/chat/widgets/compose_bar_section.dart';
 import 'package:kohera/features/chat/widgets/file_send_handler.dart';
 import 'package:kohera/features/chat/widgets/message_list_view.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
@@ -193,7 +194,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
     if (_loadingRoot) {
       return Scaffold(
         appBar: AppBar(title: const Text('Thread')),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const Center(child: KoheraLoader()),
       );
     }
 
