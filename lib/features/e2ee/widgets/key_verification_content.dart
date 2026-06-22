@@ -1,6 +1,58 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:kohera/features/e2ee/widgets/key_verification_flow.dart';
+import 'package:kohera/features/e2ee/widgets/qr_verification_views.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/encryption.dart';
+import 'package:matrix/matrix.dart';
+
+// ── Title ───────────────────────────────────────────────────────
+
+String verificationTitle(
+  KeyVerificationState state,
+  VerificationView view,
+  KeyVerification verification,
+) {
+  switch (view) {
+    case VerificationView.chooser:
+      return 'Verify device';
+    case VerificationView.showQr:
+      return 'Show QR code';
+    case VerificationView.scanQr:
+      return 'Scan QR code';
+    case VerificationView.standard:
+      break;
+  }
+  switch (state) {
+    case KeyVerificationState.askChoice:
+    case KeyVerificationState.waitingAccept:
+      return 'Verify device';
+    case KeyVerificationState.askAccept:
+      return 'Incoming verification';
+    case KeyVerificationState.askSas:
+      return _showsSasNumbers(verification)
+          ? 'Compare numbers'
+          : 'Compare emoji';
+    case KeyVerificationState.askSSSS:
+      return 'Unlocking secrets';
+    case KeyVerificationState.waitingSas:
+      return 'Waiting...';
+    case KeyVerificationState.showQRSuccess:
+    case KeyVerificationState.confirmQRScan:
+      return 'QR verification';
+    case KeyVerificationState.done:
+      return 'Verified';
+    case KeyVerificationState.error:
+      return 'Verification failed';
+  }
+}
+
+bool _showsSasNumbers(KeyVerification verification) {
+  final types = verification.sasTypes;
+  final emojiNegotiated = types.isEmpty || types.contains('emoji');
+  return !emojiNegotiated || verification.sasEmojis.isEmpty;
+}
 
 // ── Key verification content ────────────────────────────────────
 
@@ -8,40 +60,23 @@ class KeyVerificationContent extends StatelessWidget {
   const KeyVerificationContent({
     required this.state,
     required this.verification,
+    this.view = VerificationView.standard,
+    this.onChooseShowQr,
+    this.onChooseScanQr,
+    this.onChooseCompareSas,
+    this.onScanned,
     super.key,
   });
 
   final KeyVerificationState state;
   final KeyVerification verification;
+  final VerificationView view;
+  final VoidCallback? onChooseShowQr;
+  final VoidCallback? onChooseScanQr;
+  final VoidCallback? onChooseCompareSas;
+  final ValueChanged<Uint8List>? onScanned;
 
-  bool get _showSasNumbers {
-    final types = verification.sasTypes;
-    final emojiNegotiated = types.isEmpty || types.contains('emoji');
-    return !emojiNegotiated || verification.sasEmojis.isEmpty;
-  }
-
-  String get title {
-    switch (state) {
-      case KeyVerificationState.askChoice:
-      case KeyVerificationState.waitingAccept:
-        return 'Verify device';
-      case KeyVerificationState.askAccept:
-        return 'Incoming verification';
-      case KeyVerificationState.askSas:
-        return _showSasNumbers ? 'Compare numbers' : 'Compare emoji';
-      case KeyVerificationState.askSSSS:
-        return 'Unlocking secrets';
-      case KeyVerificationState.waitingSas:
-        return 'Waiting...';
-      case KeyVerificationState.showQRSuccess:
-      case KeyVerificationState.confirmQRScan:
-        return 'QR verification';
-      case KeyVerificationState.done:
-        return 'Verified';
-      case KeyVerificationState.error:
-        return 'Verification failed';
-    }
-  }
+  bool get _showSasNumbers => _showsSasNumbers(verification);
 
   @override
   Widget build(BuildContext context) {
@@ -54,6 +89,18 @@ class KeyVerificationContent extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context) {
+    switch (view) {
+      case VerificationView.chooser:
+        return _buildChooser(context);
+      case VerificationView.showQr:
+        return QrCodeView(
+          data: Uint8List.fromList(verification.qrCode!.qrDataRawBytes),
+        );
+      case VerificationView.scanQr:
+        return QrScannerView(onScanned: onScanned ?? (_) {});
+      case VerificationView.standard:
+        break;
+    }
     switch (state) {
       case KeyVerificationState.waitingAccept:
         return _buildWaiting('Waiting for the other device to accept...');
@@ -132,6 +179,48 @@ class KeyVerificationContent extends StatelessWidget {
     );
   }
 
+  Widget _buildChooser(BuildContext context) {
+    final canShowQr = verification.possibleMethods.contains(EventTypes.QRShow) &&
+        verification.qrCode != null;
+    final canScanQr =
+        verification.possibleMethods.contains(EventTypes.QRScan) &&
+            qrScanSupported;
+    final canCompareSas =
+        verification.possibleMethods.contains(EventTypes.Sas);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Choose how to verify this device.',
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        if (canScanQr)
+          FilledButton.icon(
+            onPressed: onChooseScanQr,
+            icon: const Icon(Icons.qr_code_scanner),
+            label: const Text('Scan QR code'),
+          ),
+        if (canScanQr) const SizedBox(height: 8),
+        if (canShowQr)
+          FilledButton.tonalIcon(
+            onPressed: onChooseShowQr,
+            icon: const Icon(Icons.qr_code_2),
+            label: const Text('Show QR code'),
+          ),
+        if (canShowQr) const SizedBox(height: 8),
+        if (canCompareSas)
+          TextButton.icon(
+            onPressed: onChooseCompareSas,
+            icon: const Icon(Icons.emoji_symbols),
+            label: const Text('Compare emoji instead'),
+          ),
+      ],
+    );
+  }
+
   Widget _buildSasNumbers(BuildContext context) {
     final numbers = verification.sasNumbers;
     return Column(
@@ -204,7 +293,13 @@ List<Widget> buildVerificationActions({
   required KeyVerification verification,
   required VoidCallback onCancel,
   required VoidCallback onDone,
+  VerificationView view = VerificationView.standard,
 }) {
+  if (view != VerificationView.standard) {
+    return [
+      TextButton(onPressed: onCancel, child: const Text('Cancel')),
+    ];
+  }
   switch (state) {
     case KeyVerificationState.waitingAccept:
     case KeyVerificationState.askChoice:

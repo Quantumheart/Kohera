@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_content.dart';
+import 'package:kohera/features/e2ee/widgets/key_verification_flow.dart';
 import 'package:matrix/encryption.dart';
-import 'package:matrix/matrix.dart';
 
 class KeyVerificationDialog extends StatefulWidget {
   final KeyVerification verification;
@@ -27,46 +27,25 @@ class KeyVerificationDialog extends StatefulWidget {
   State<KeyVerificationDialog> createState() => _KeyVerificationDialogState();
 }
 
-class _KeyVerificationDialogState extends State<KeyVerificationDialog> {
-  KeyVerificationState _state = KeyVerificationState.waitingAccept;
+class _KeyVerificationDialogState extends State<KeyVerificationDialog>
+    with KeyVerificationFlowMixin {
+  @override
+  KeyVerification get verification => widget.verification;
 
   @override
   void initState() {
     super.initState();
-    widget.verification.onUpdate = _onUpdate;
-    _state = widget.verification.state;
-    if (_state == KeyVerificationState.askChoice) {
-      unawaited(_autoSelectSas());
-    }
-  }
-
-  void _onUpdate() {
-    if (!mounted) return;
-    final newState = widget.verification.state;
-
-    if (newState == KeyVerificationState.askChoice) {
-      unawaited(_autoSelectSas());
-    }
-
-    setState(() => _state = newState);
-  }
-
-  Future<void> _autoSelectSas() async {
-    final methods = widget.verification.possibleMethods;
-    if (methods.contains(EventTypes.Sas)) {
-      debugPrint('[Verification] Auto-selecting SAS verification');
-      await widget.verification.continueVerification(EventTypes.Sas);
-    }
+    initVerificationFlow();
   }
 
   @override
   void dispose() {
-    widget.verification.onUpdate = null;
+    disposeVerificationFlow();
     super.dispose();
   }
 
   void _cancel() {
-    unawaited(widget.verification.cancel());
+    unawaited(verification.cancel());
     Navigator.pop(context, false);
   }
 
@@ -76,20 +55,24 @@ class _KeyVerificationDialogState extends State<KeyVerificationDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final content = KeyVerificationContent(
-      state: _state,
-      verification: widget.verification,
-    );
-
     return AlertDialog(
-      title: Text(content.title),
+      title: Text(verificationTitle(verificationState, view, verification)),
       content: SizedBox(
         width: 400,
-        child: content,
+        child: KeyVerificationContent(
+          state: verificationState,
+          verification: verification,
+          view: view,
+          onChooseShowQr: chooseShowQr,
+          onChooseScanQr: chooseScanQr,
+          onChooseCompareSas: chooseCompareSas,
+          onScanned: onQrScanned,
+        ),
       ),
       actions: buildVerificationActions(
-        state: _state,
-        verification: widget.verification,
+        state: verificationState,
+        verification: verification,
+        view: view,
         onCancel: _cancel,
         onDone: _done,
       ),

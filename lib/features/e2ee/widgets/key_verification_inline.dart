@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_content.dart';
+import 'package:kohera/features/e2ee/widgets/key_verification_flow.dart';
 import 'package:matrix/encryption.dart';
-import 'package:matrix/matrix.dart';
 
 class KeyVerificationInline extends StatefulWidget {
   const KeyVerificationInline({
@@ -21,51 +21,30 @@ class KeyVerificationInline extends StatefulWidget {
   State<KeyVerificationInline> createState() => _KeyVerificationInlineState();
 }
 
-class _KeyVerificationInlineState extends State<KeyVerificationInline> {
-  KeyVerificationState _state = KeyVerificationState.waitingAccept;
+class _KeyVerificationInlineState extends State<KeyVerificationInline>
+    with KeyVerificationFlowMixin {
+  @override
+  KeyVerification get verification => widget.verification;
 
   @override
   void initState() {
     super.initState();
-    widget.verification.onUpdate = _onUpdate;
-    _state = widget.verification.state;
-    if (_state == KeyVerificationState.askChoice) {
-      unawaited(_autoSelectSas());
-    }
-  }
-
-  void _onUpdate() {
-    if (!mounted) return;
-    final newState = widget.verification.state;
-
-    if (newState == KeyVerificationState.askChoice) {
-      unawaited(_autoSelectSas());
-    }
-
-    setState(() => _state = newState);
-  }
-
-  Future<void> _autoSelectSas() async {
-    final methods = widget.verification.possibleMethods;
-    if (methods.contains(EventTypes.Sas)) {
-      debugPrint('[Verification] Auto-selecting SAS verification');
-      await widget.verification.continueVerification(EventTypes.Sas);
-    }
+    initVerificationFlow();
   }
 
   @override
   void dispose() {
-    widget.verification.onUpdate = null;
+    disposeVerificationFlow();
     super.dispose();
   }
 
   void _handleCancel() {
-    unawaited(widget.verification.cancel());
+    unawaited(verification.cancel());
     widget.onCancel();
   }
 
   void _handleDone() {
-    widget.onDone(_state == KeyVerificationState.done);
+    widget.onDone(verificationState == KeyVerificationState.done);
   }
 
   @override
@@ -75,15 +54,21 @@ class _KeyVerificationInlineState extends State<KeyVerificationInline> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         KeyVerificationContent(
-          state: _state,
-          verification: widget.verification,
+          state: verificationState,
+          verification: verification,
+          view: view,
+          onChooseShowQr: chooseShowQr,
+          onChooseScanQr: chooseScanQr,
+          onChooseCompareSas: chooseCompareSas,
+          onScanned: onQrScanned,
         ),
         const SizedBox(height: 24),
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: buildVerificationActions(
-            state: _state,
-            verification: widget.verification,
+            state: verificationState,
+            verification: verification,
+            view: view,
             onCancel: _handleCancel,
             onDone: _handleDone,
           ).map((w) => Padding(

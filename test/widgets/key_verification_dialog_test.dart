@@ -41,6 +41,9 @@ class FakeKeyVerification extends Fake implements KeyVerification {
   @override
   List<String> possibleMethods = [];
 
+  @override
+  QRCode? qrCode;
+
   bool cancelCalled = false;
   bool acceptVerificationCalled = false;
   bool acceptSasCalled = false;
@@ -278,24 +281,40 @@ void main() {
       expect(find.text('Unlocking encryption secrets...'), findsOneWidget);
     });
 
-    testWidgets('askChoice auto-selects SAS verification', (tester) async {
-      final verification = FakeKeyVerification(
-        
-      );
-      verification.possibleMethods = [EventTypes.Sas, EventTypes.QRShow];
+    testWidgets('askChoice shows the QR/emoji chooser when QR is possible',
+        (tester) async {
+      final verification = FakeKeyVerification();
+      verification.possibleMethods = [EventTypes.Sas, EventTypes.QRScan];
 
       await openDialog(tester, verification: verification);
 
-      // Transition to askChoice (e.g. other device supports QR + SAS)
       verification.simulateStateChange(KeyVerificationState.askChoice);
       await tester.pump();
       await tester.pump();
 
-      // Should have auto-selected SAS
+      // A chooser is offered instead of auto-selecting a method.
+      expect(verification.continueVerificationMethod, isNull);
+      expect(find.text('Scan QR code'), findsOneWidget);
+      expect(find.text('Compare emoji instead'), findsOneWidget);
+    });
+
+    testWidgets('chooser "Compare emoji instead" selects SAS', (tester) async {
+      final verification = FakeKeyVerification(
+        state: KeyVerificationState.askChoice,
+      );
+      verification.possibleMethods = [EventTypes.Sas, EventTypes.QRScan];
+
+      await openDialog(tester, verification: verification);
+      await tester.pump();
+
+      await tester.tap(find.text('Compare emoji instead'));
+      await tester.pump();
+
       expect(verification.continueVerificationMethod, EventTypes.Sas);
     });
 
-    testWidgets('askChoice at dialog open auto-selects SAS', (tester) async {
+    testWidgets('askChoice auto-selects SAS when QR is not possible',
+        (tester) async {
       final verification = FakeKeyVerification(
         state: KeyVerificationState.askChoice,
       );
@@ -305,6 +324,7 @@ void main() {
       await tester.pump();
 
       expect(verification.continueVerificationMethod, EventTypes.Sas);
+      expect(find.text('Scan QR code'), findsNothing);
     });
 
     testWidgets('state transitions update the UI', (tester) async {
