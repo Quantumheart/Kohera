@@ -8,6 +8,7 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/features/settings/screens/settings_screen.dart';
+import 'package:kohera/shared/widgets/kohera_mark.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
@@ -259,7 +260,7 @@ void main() {
       expect(find.text('ABOUT'), findsOneWidget);
       expect(find.text('Kohera'), findsOneWidget);
       expect(find.textContaining("What's new"), findsOneWidget);
-      expect(find.byIcon(Icons.info_outline_rounded), findsOneWidget);
+      expect(find.byType(KoheraMark), findsOneWidget);
     });
   });
 

@@ -9,6 +9,7 @@ import 'package:http/testing.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/features/whats_new/screens/whats_new_screen.dart';
 import 'package:kohera/features/whats_new/widgets/release_notes_markdown.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
 
 const _sampleMarkdown = '''
@@ -162,7 +163,7 @@ void main() {
       await tester.pumpWidget(_screenHarness(svc));
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(KoheraLoader), findsOneWidget);
       expect(find.text("What's new"), findsOneWidget);
 
       completer.complete(http.Response('{}', 500));

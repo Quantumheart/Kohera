@@ -6,6 +6,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/home/widgets/inbox_screen.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/matrix.dart' as matrix_sdk;
 import 'package:matrix/matrix.dart' show Client, GetNotificationsResponse, MatrixEvent, Membership, Room, SyncUpdate, User;
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -132,7 +133,7 @@ void main() {
       ),).called(greaterThanOrEqualTo(1));
     });
 
-    testWidgets('loading state shows CircularProgressIndicator',
+    testWidgets('loading state shows KoheraLoader',
         (tester) async {
       // Use a completer to hold the fetch indefinitely
       final completer = Completer<GetNotificationsResponse>();
@@ -146,7 +147,7 @@ void main() {
       // Pump once to let initState's fetch trigger isLoading
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(KoheraLoader), findsOneWidget);
 
       // Complete to avoid pending timers
       completer.complete(_makeResponse([]));
