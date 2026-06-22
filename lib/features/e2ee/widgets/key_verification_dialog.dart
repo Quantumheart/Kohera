@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_content.dart';
-import 'package:kohera/features/e2ee/widgets/key_verification_flow.dart';
+import 'package:kohera/features/e2ee/widgets/key_verification_controller.dart';
 import 'package:matrix/encryption.dart';
 
 class KeyVerificationDialog extends StatefulWidget {
