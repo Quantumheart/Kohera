@@ -50,8 +50,8 @@ String verificationTitle(
 
 bool _showsSasNumbers(KeyVerification verification) {
   final types = verification.sasTypes;
-  final emojiNegotiated = types.isEmpty || types.contains('emoji');
-  return !emojiNegotiated || verification.sasEmojis.isEmpty;
+  final decimalNegotiated = types.isEmpty || types.contains('decimal');
+  return decimalNegotiated && verification.sasNumbers.isNotEmpty;
 }
 
 // ── Key verification content ────────────────────────────────────
