@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
 import 'package:kohera/features/e2ee/widgets/qr_verification_views.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
@@ -10,13 +9,20 @@ import 'package:matrix/matrix.dart';
 /// user is choosing how to verify ([KeyVerificationState.askChoice]).
 enum VerificationView { standard, chooser, showQr, scanQr }
 
-/// Shared verification-flow state for the dialog and inline hosts.
+/// Drives a single key-verification session for the dialog and inline hosts.
 ///
 /// Owns the [KeyVerification.onUpdate] subscription, the current SDK state, and
 /// the QR sub-view, and exposes the actions the UI binds to (choose to scan,
-/// show, or compare emoji).
-mixin KeyVerificationFlowMixin<T extends StatefulWidget> on State<T> {
-  KeyVerification get verification;
+/// show, or compare numbers). Hosts listen via [ChangeNotifier] and supply
+/// only their own chrome and done/cancel handling.
+class KeyVerificationController extends ChangeNotifier {
+  KeyVerificationController(this.verification) {
+    verification.onUpdate = _onVerificationUpdate;
+    verificationState = verification.state;
+    _resolveView(verificationState);
+  }
+
+  final KeyVerification verification;
 
   KeyVerificationState verificationState = KeyVerificationState.waitingAccept;
   VerificationView view = VerificationView.standard;
@@ -32,21 +38,10 @@ mixin KeyVerificationFlowMixin<T extends StatefulWidget> on State<T> {
   bool get canCompareSas =>
       verification.possibleMethods.contains(EventTypes.Sas);
 
-  void initVerificationFlow() {
-    verification.onUpdate = _onVerificationUpdate;
+  void _onVerificationUpdate() {
     verificationState = verification.state;
     _resolveView(verificationState);
-  }
-
-  void disposeVerificationFlow() {
-    verification.onUpdate = null;
-  }
-
-  void _onVerificationUpdate() {
-    if (!mounted) return;
-    final newState = verification.state;
-    _resolveView(newState);
-    setState(() => verificationState = newState);
+    notifyListeners();
   }
 
   void _resolveView(KeyVerificationState state) {
@@ -56,7 +51,7 @@ mixin KeyVerificationFlowMixin<T extends StatefulWidget> on State<T> {
     }
     if (!canShowQr && !canScanQr) {
       // No QR path available between these devices: keep the previous
-      // friction-free behaviour and compare emoji/numbers automatically.
+      // friction-free behaviour and compare numbers/emoji automatically.
       view = VerificationView.standard;
       if (canCompareSas) {
         debugPrint('[Kohera] Verification: no QR available, selecting SAS');
@@ -67,12 +62,19 @@ mixin KeyVerificationFlowMixin<T extends StatefulWidget> on State<T> {
     view = VerificationView.chooser;
   }
 
-  void chooseShowQr() => setState(() => view = VerificationView.showQr);
+  void chooseShowQr() {
+    view = VerificationView.showQr;
+    notifyListeners();
+  }
 
-  void chooseScanQr() => setState(() => view = VerificationView.scanQr);
+  void chooseScanQr() {
+    view = VerificationView.scanQr;
+    notifyListeners();
+  }
 
   void chooseCompareSas() {
-    setState(() => view = VerificationView.standard);
+    view = VerificationView.standard;
+    notifyListeners();
     unawaited(verification.continueVerification(EventTypes.Sas));
   }
 
@@ -83,5 +85,11 @@ mixin KeyVerificationFlowMixin<T extends StatefulWidget> on State<T> {
         qrDataRawBytes: bytes,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    verification.onUpdate = null;
+    super.dispose();
   }
 }
