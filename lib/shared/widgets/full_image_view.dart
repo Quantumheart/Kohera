@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/media_auth.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/media_viewer_shell.dart';
 import 'package:matrix/matrix.dart';
 
@@ -67,7 +68,7 @@ class _FullImageContentState extends State<_FullImageContent> {
     final cs = Theme.of(context).colorScheme;
 
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: KoheraLoader());
     }
 
     final image = _imageBytes != null

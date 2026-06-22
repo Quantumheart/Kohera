@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/features/auth/widgets/registration_controller.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 // coverage:ignore-start
@@ -43,7 +44,7 @@ Widget _buildRecaptchaView(
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const CircularProgressIndicator(),
+        const KoheraLoader(),
         const SizedBox(height: 16),
         Text(
           'Complete the verification in your browser,\n'

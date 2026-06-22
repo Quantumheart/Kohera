@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/features/whats_new/widgets/release_notes_markdown.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -142,8 +143,7 @@ class _LoadingView extends StatelessWidget {
   const _LoadingView();
 
   @override
-  Widget build(BuildContext context) =>
-      const CircularProgressIndicator.adaptive();
+  Widget build(BuildContext context) => const KoheraLoader();
 }
 
 class _ErrorView extends StatelessWidget {

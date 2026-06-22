@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/features/chat/services/chat_search_controller.dart';
 import 'package:kohera/features/chat/widgets/search_result_tile.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/matrix.dart';
 
 /// Displays search results for in-room message search.
@@ -61,7 +62,7 @@ class SearchResultsBody extends StatelessWidget {
 
     // Loading first batch.
     if (search.isLoading && search.results.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: KoheraLoader());
     }
 
     // Empty results.

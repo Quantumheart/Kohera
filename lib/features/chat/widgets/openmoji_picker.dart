@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/core/utils/openmoji_catalog.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
 
 // ── OpenMojiPicker ───────────────────────────────────────────
@@ -84,7 +85,7 @@ class _OpenMojiPickerState extends State<OpenMojiPicker> {
     final cs = Theme.of(context).colorScheme;
     final categories = _categories;
     if (categories == null) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: KoheraLoader());
     }
 
     return Stack(

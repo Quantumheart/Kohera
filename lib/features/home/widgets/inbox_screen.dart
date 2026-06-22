@@ -11,6 +11,7 @@ import 'package:kohera/features/home/widgets/mobile_space_drawer.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/features/rooms/widgets/invite_tile.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:matrix/matrix.dart' as matrix_sdk;
 import 'package:provider/provider.dart';
@@ -108,7 +109,7 @@ class _InboxScreenState extends State<InboxScreen> {
             child: controller.filter == InboxFilter.invitations
                 ? _InvitationsView(cs: cs, tt: tt)
                 : controller.isLoading && controller.grouped.isEmpty
-                    ? const Center(child: CircularProgressIndicator())
+                    ? const Center(child: KoheraLoader())
                     : controller.error != null && controller.grouped.isEmpty
                         ? Center(
                             child: Column(

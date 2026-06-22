@@ -7,6 +7,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:kohera/features/settings/widgets/device_list_item.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/msc_extensions/msc_3814_dehydrated_devices/api.dart';
@@ -349,7 +350,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: KoheraLoader());
     }
     if (_error != null) {
       return _buildError();
