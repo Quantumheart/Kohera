@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.7.0](https://github.com/Quantumheart/Kohera/compare/v1.6.2...v1.7.0) (2026-06-22)
+
+
+### Features
+
+* add shared Kohera mark and animated loader widgets ([93a6cdc](https://github.com/Quantumheart/Kohera/commit/93a6cdc1a60522d80ddf6f52f37d37d9b78c70e4))
+* brand prominent loaders with the animated mushroom loader ([e573422](https://github.com/Quantumheart/Kohera/commit/e573422423505e4b32cda2916e3165330303b80c))
+* drive in-app logo from a generated SVG and align icon gradient ([a2e3fa1](https://github.com/Quantumheart/Kohera/commit/a2e3fa141aac9f1f8b916059867f9aa010142ad1))
+* place the Kohera mark in the auth logo, empty chat pane, and settings ([f682376](https://github.com/Quantumheart/Kohera/commit/f6823767cb101884ca0a40bd1c0f1e15438ea0c1))
+* redesign app icon as mushroom + mycelial network ([1924ef3](https://github.com/Quantumheart/Kohera/commit/1924ef3925d2dce89022deb458e840fdf3cb8ed0))
+
+
+### Bug Fixes
+
+* **#639:** own add-account pending service in a single shell ([3807535](https://github.com/Quantumheart/Kohera/commit/38075351f15e6bfb3c1b9bb92396114f24ea0480)), closes [#639](https://github.com/Quantumheart/Kohera/issues/639)
+* reflect remaining unread in APNs badge on inbox mark-read ([6afe6f9](https://github.com/Quantumheart/Kohera/commit/6afe6f9f328995f78529e447778a4545cfb21fe3)), closes [#630](https://github.com/Quantumheart/Kohera/issues/630)
+
 ## [1.6.2](https://github.com/Quantumheart/Kohera/compare/v1.6.1...v1.6.2) (2026-06-19)
 
 
