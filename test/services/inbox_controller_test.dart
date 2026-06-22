@@ -306,6 +306,112 @@ void main() {
       expect(controller.grouped, hasLength(1));
       expect(controller.grouped[0].roomId, '!new:x');
     });
+
+    test('dedups notifications by event id across a page boundary', () async {
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse(
+            [_makeNotification(eventId: 'e1', roomId: '!r1:x')],
+            nextToken: 'page2',
+          ),);
+
+      await controller.fetch();
+
+      // Page two repeats e1 (straddling the token boundary) plus a new e2.
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        from: 'page2',
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(eventId: 'e1', roomId: '!r1:x'),
+            _makeNotification(eventId: 'e2', roomId: '!r1:x', ts: 2000),
+          ]),);
+
+      await controller.loadMore();
+
+      expect(controller.grouped, hasLength(1));
+      expect(controller.grouped[0].notifications, hasLength(2));
+    });
+  });
+
+  // ── sync refresh preserves pagination (#625) ────────────────
+
+  group('sync-driven refresh', () {
+    void stubTwoPages() {
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse(
+            [_makeNotification(eventId: 'e1', roomId: '!r1:x')],
+            nextToken: 'page2',
+          ),);
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        from: 'page2',
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse(
+            [_makeNotification(eventId: 'e2', roomId: '!r2:x', ts: 2000)],
+            nextToken: 'page3',
+          ),);
+    }
+
+    test('refresh re-fetches the loaded depth instead of collapsing', () async {
+      stubTwoPages();
+
+      await controller.fetch();
+      await controller.loadMore();
+      expect(controller.grouped, hasLength(2));
+      expect(controller.hasMore, isTrue);
+
+      await controller.refresh();
+
+      // Both pages retained; pagination token preserved at the loaded depth.
+      expect(controller.grouped, hasLength(2));
+      expect(controller.grouped.map((g) => g.roomId), ['!r2:x', '!r1:x']);
+      expect(controller.hasMore, isTrue);
+    });
+
+    test('sync update does not collapse paged-in list', () {
+      fakeAsync((async) {
+        stubTwoPages();
+
+        unawaited(controller.fetch());
+        async.flushMicrotasks();
+        unawaited(controller.loadMore());
+        async.flushMicrotasks();
+        expect(controller.grouped, hasLength(2));
+
+        controller.startPolling();
+        async.flushMicrotasks();
+        syncCtl.add(SyncUpdate(
+          nextBatch: 'tok',
+          rooms: RoomsUpdate(
+            join: {
+              '!r1:x': JoinedRoomUpdate(
+                timeline: TimelineUpdate(events: [
+                  MatrixEvent(
+                    type: 'm.room.message',
+                    content: const {'body': 'hi', 'msgtype': 'm.text'},
+                    senderId: '@bob:example.com',
+                    eventId: 'sync-evt',
+                    originServerTs: DateTime.fromMillisecondsSinceEpoch(1000),
+                    roomId: '!r1:x',
+                  ),
+                ],),
+              ),
+            },
+          ),
+        ),);
+        async.elapse(const Duration(seconds: 1));
+        async.flushMicrotasks();
+        controller.stopPolling();
+
+        // The debounced refresh kept both pages rather than resetting to 30.
+        expect(controller.grouped, hasLength(2));
+        expect(controller.hasMore, isTrue);
+      });
+    });
   });
 
   // ── markRoomAsRead() ────────────────────────────────────────
