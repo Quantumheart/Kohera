@@ -25,6 +25,8 @@ Client buildClient(
     verificationMethods: {
       KeyVerificationMethod.emoji,
       KeyVerificationMethod.numbers,
+      KeyVerificationMethod.qrShow,
+      KeyVerificationMethod.qrScan,
     },
     enableDehydratedDevices: true,
     nativeImplementations: nativeImplementations,
