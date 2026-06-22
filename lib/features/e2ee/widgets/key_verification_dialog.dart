@@ -27,25 +27,23 @@ class KeyVerificationDialog extends StatefulWidget {
   State<KeyVerificationDialog> createState() => _KeyVerificationDialogState();
 }
 
-class _KeyVerificationDialogState extends State<KeyVerificationDialog>
-    with KeyVerificationFlowMixin {
-  @override
-  KeyVerification get verification => widget.verification;
+class _KeyVerificationDialogState extends State<KeyVerificationDialog> {
+  late final KeyVerificationController _controller;
 
   @override
   void initState() {
     super.initState();
-    initVerificationFlow();
+    _controller = KeyVerificationController(widget.verification);
   }
 
   @override
   void dispose() {
-    disposeVerificationFlow();
+    _controller.dispose();
     super.dispose();
   }
 
   void _cancel() {
-    unawaited(verification.cancel());
+    unawaited(widget.verification.cancel());
     Navigator.pop(context, false);
   }
 
@@ -55,26 +53,35 @@ class _KeyVerificationDialogState extends State<KeyVerificationDialog>
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(verificationTitle(verificationState, view, verification)),
-      content: SizedBox(
-        width: 400,
-        child: KeyVerificationContent(
-          state: verificationState,
-          verification: verification,
-          view: view,
-          onChooseShowQr: chooseShowQr,
-          onChooseScanQr: chooseScanQr,
-          onChooseCompareSas: chooseCompareSas,
-          onScanned: onQrScanned,
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, _) => AlertDialog(
+        title: Text(
+          verificationTitle(
+            _controller.verificationState,
+            _controller.view,
+            widget.verification,
+          ),
         ),
-      ),
-      actions: buildVerificationActions(
-        state: verificationState,
-        verification: verification,
-        view: view,
-        onCancel: _cancel,
-        onDone: _done,
+        content: SizedBox(
+          width: 400,
+          child: KeyVerificationContent(
+            state: _controller.verificationState,
+            verification: widget.verification,
+            view: _controller.view,
+            onChooseShowQr: _controller.chooseShowQr,
+            onChooseScanQr: _controller.chooseScanQr,
+            onChooseCompareSas: _controller.chooseCompareSas,
+            onScanned: _controller.onQrScanned,
+          ),
+        ),
+        actions: buildVerificationActions(
+          state: _controller.verificationState,
+          verification: widget.verification,
+          view: _controller.view,
+          onCancel: _cancel,
+          onDone: _done,
+        ),
       ),
     );
   }
