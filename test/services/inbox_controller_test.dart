@@ -356,7 +356,7 @@ void main() {
           ),);
     }
 
-    test('refresh re-fetches the loaded depth instead of collapsing', () async {
+    test('refresh merges the head and keeps loaded pages', () async {
       stubTwoPages();
 
       await controller.fetch();
@@ -364,12 +364,24 @@ void main() {
       expect(controller.grouped, hasLength(2));
       expect(controller.hasMore, isTrue);
 
+      clearInteractions(mockClient);
       await controller.refresh();
 
-      // Both pages retained; pagination token preserved at the loaded depth.
+      // Both pages retained; deep pagination token preserved.
       expect(controller.grouped, hasLength(2));
       expect(controller.grouped.map((g) => g.roomId), ['!r2:x', '!r1:x']);
       expect(controller.hasMore, isTrue);
+
+      // Only the first page is re-fetched, not the whole loaded depth.
+      verify(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).called(1);
+      verifyNever(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        from: 'page2',
+        only: anyNamed('only'),
+      ),);
     });
 
     test('sync update does not collapse paged-in list', () {
