@@ -295,10 +295,10 @@ void main() {
       // A chooser is offered instead of auto-selecting a method.
       expect(verification.continueVerificationMethod, isNull);
       expect(find.text('Scan QR code'), findsOneWidget);
-      expect(find.text('Compare emoji instead'), findsOneWidget);
+      expect(find.text('Compare numbers instead'), findsOneWidget);
     });
 
-    testWidgets('chooser "Compare emoji instead" selects SAS', (tester) async {
+    testWidgets('chooser "Compare numbers instead" selects SAS', (tester) async {
       final verification = FakeKeyVerification(
         state: KeyVerificationState.askChoice,
       );
@@ -307,7 +307,7 @@ void main() {
       await openDialog(tester, verification: verification);
       await tester.pump();
 
-      await tester.tap(find.text('Compare emoji instead'));
+      await tester.tap(find.text('Compare numbers instead'));
       await tester.pump();
 
       expect(verification.continueVerificationMethod, EventTypes.Sas);
