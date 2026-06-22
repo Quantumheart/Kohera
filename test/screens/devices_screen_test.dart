@@ -6,6 +6,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/features/settings/screens/devices_screen.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -57,7 +58,7 @@ void main() {
 
       await tester.pumpWidget(buildTestWidget());
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(KoheraLoader), findsOneWidget);
     });
 
     testWidgets('shows error state on failure', (tester) async {

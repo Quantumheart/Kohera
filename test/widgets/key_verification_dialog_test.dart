@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 
@@ -149,7 +150,7 @@ void main() {
       );
       await openDialog(tester, verification: verification);
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(KoheraLoader), findsOneWidget);
       expect(find.text('Waiting for the other device to accept...'),
           findsOneWidget,);
     });

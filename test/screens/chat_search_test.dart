@@ -8,6 +8,7 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
+import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
@@ -209,7 +210,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 600));
       await tester.pump(); // Trigger the search.
 
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(KoheraLoader), findsOneWidget);
 
       // Complete the future to avoid pending timers.
       completer.complete((
