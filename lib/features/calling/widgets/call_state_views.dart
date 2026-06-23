@@ -3,19 +3,14 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/call_service.dart';
+import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/shared/widgets/pulsing_avatar.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:matrix/matrix.dart';
 
 // coverage:ignore-start
 
-String formatCallElapsed(Duration d) {
-  final hours = d.inHours;
-  final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-  final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-  if (hours > 0) return '$hours:$minutes:$seconds';
-  return '$minutes:$seconds';
-}
+String formatCallElapsed(Duration d) => formatClockDuration(d);
 
 const _authenticatingPhrases = [
   'Cracking the mainframe...',

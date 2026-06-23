@@ -13,6 +13,7 @@ import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
+import 'package:kohera/shared/widgets/detail_action_button.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
@@ -257,22 +258,22 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _ActionButton(
+          DetailActionButton(
             icon: isMuted ? Icons.notifications_off_outlined : Icons.notifications_outlined,
             label: isMuted ? 'Unmute' : 'Mute',
             onTap: _busy('mute') ? null : () => _toggleMute(room),
           ),
-          _ActionButton(
+          DetailActionButton(
             icon: room.isFavourite ? Icons.star_rounded : Icons.star_border_rounded,
             label: room.isFavourite ? 'Starred' : 'Star',
             onTap: _busy('favourite') ? null : () => _toggleFavourite(room),
           ),
-          _ActionButton(
+          DetailActionButton(
             icon: Icons.person_add_outlined,
             label: 'Invite',
             onTap: _busy('invite') ? null : () => _showInviteDialog(room),
           ),
-          _ActionButton(
+          DetailActionButton(
             icon: Icons.exit_to_app_rounded,
             label: 'Leave',
             color: cs.error,
@@ -446,49 +447,6 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
           ),
         ),
       ],
-    );
-  }
-}
-
-// ── Action button ──────────────────────────────────────────────
-
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.icon,
-    required this.label,
-    this.color,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color? color;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final effectiveColor = color ?? cs.onSurfaceVariant;
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: onTap != null ? effectiveColor : effectiveColor.withValues(alpha: 0.4)),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: onTap != null ? effectiveColor : effectiveColor.withValues(alpha: 0.4),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

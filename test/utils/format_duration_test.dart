@@ -23,4 +23,31 @@ void main() {
       expect(formatDuration(const Duration(hours: 1, minutes: 5, seconds: 3)), '65:03');
     });
   });
+
+  group('formatClockDuration', () {
+    test('pads minutes by default below an hour', () {
+      expect(formatClockDuration(const Duration(minutes: 5, seconds: 3)), '05:03');
+      expect(formatClockDuration(const Duration(seconds: 9)), '00:09');
+    });
+
+    test('omits minute padding when padMinutes is false', () {
+      expect(
+        formatClockDuration(const Duration(minutes: 5, seconds: 3),
+            padMinutes: false),
+        '5:03',
+      );
+    });
+
+    test('adds an hours segment with padded minutes', () {
+      expect(
+        formatClockDuration(const Duration(hours: 1, minutes: 5, seconds: 3)),
+        '1:05:03',
+      );
+      expect(
+        formatClockDuration(const Duration(hours: 2, minutes: 5, seconds: 3),
+            padMinutes: false),
+        '2:05:03',
+      );
+    });
+  });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/core/utils/time_format.dart';
 import 'package:kohera/features/calling/models/call_constants.dart';
 import 'package:matrix/matrix.dart';
@@ -89,7 +90,8 @@ class CallEventTile extends StatelessWidget {
           return (Icons.call_missed_rounded, 'Missed call from $sender');
         }
         final label = duration != null
-            ? 'Call ended \u2014 ${_formatDuration(duration!)}'
+            ? 'Call ended \u2014 '
+                '${formatClockDuration(duration!, padMinutes: false)}'
             : 'Call ended';
         return (Icons.call_end_rounded, label);
 
@@ -104,13 +106,4 @@ class CallEventTile extends StatelessWidget {
     }
   }
 
-  static String _formatDuration(Duration d) {
-    final hours = d.inHours;
-    final minutes = d.inMinutes.remainder(60);
-    final seconds = d.inSeconds.remainder(60);
-    if (hours > 0) {
-      return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    }
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
 }
