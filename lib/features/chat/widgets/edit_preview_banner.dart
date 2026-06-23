@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/core/utils/reply_fallback.dart';
+import 'package:kohera/features/chat/widgets/compose_preview_banner.dart';
 import 'package:matrix/matrix.dart';
 
 class EditPreviewBanner extends StatelessWidget {
@@ -12,55 +12,12 @@ class EditPreviewBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
-    return Container(
-      constraints: const BoxConstraints(minHeight: 48),
-      padding: const EdgeInsets.only(left: 12, right: 4),
-      decoration: BoxDecoration(
-        border: Border(left: BorderSide(color: cs.primary, width: 3)),
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.edit_rounded, size: 18, color: cs.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Editing',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: tt.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: cs.primary,
-                  ),
-                ),
-                Text(
-                  event.messageType == MessageTypes.BadEncrypted
-                      ? 'Unable to decrypt'
-                      : stripReplyFallback(event.body),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: tt.bodySmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close_rounded, size: 18),
-            onPressed: onCancel,
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-          ),
-        ],
-      ),
+    return ComposePreviewBanner(
+      icon: Icons.edit_rounded,
+      accentColor: Theme.of(context).colorScheme.primary,
+      title: 'Editing',
+      event: event,
+      onCancel: onCancel,
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -135,6 +136,3 @@ class EmojiGgService {
     }
   }
 }
-
-// Dart 3 unawaited helper (mirrors dart:async behaviour).
-void unawaited(Future<void> future) => future.ignore();

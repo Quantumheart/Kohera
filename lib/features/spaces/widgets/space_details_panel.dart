@@ -10,6 +10,7 @@ import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:kohera/features/spaces/widgets/notification_radio_group.dart';
 import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
+import 'package:kohera/shared/widgets/detail_action_button.dart';
 import 'package:matrix/matrix.dart' hide Visibility;
 import 'package:provider/provider.dart';
 
@@ -208,61 +209,18 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           if (space.canInvite)
-            _ActionButton(
+            DetailActionButton(
               icon: Icons.person_add_outlined,
               label: 'Invite',
               onTap: _busy('invite') ? null : () => _showInviteDialog(space),
             ),
-          _ActionButton(
+          DetailActionButton(
             icon: Icons.exit_to_app_rounded,
             label: 'Leave',
             color: cs.error,
             onTap: _busy('leave') ? null : () => _confirmLeave(space),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ── Action button ──────────────────────────────────────────────
-
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({
-    required this.icon,
-    required this.label,
-    this.color,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color? color;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final effectiveColor = color ?? cs.onSurfaceVariant;
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: onTap != null ? effectiveColor : effectiveColor.withValues(alpha: 0.4)),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: onTap != null ? effectiveColor : effectiveColor.withValues(alpha: 0.4),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
