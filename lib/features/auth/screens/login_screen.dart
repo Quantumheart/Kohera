@@ -9,6 +9,7 @@ import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/auth/widgets/login_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
+import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -235,16 +236,11 @@ class _LoginScreenState extends State<LoginScreen>
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        child: isLoggingIn
-                            ? SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: cs.onPrimary,
-                                ),
-                              )
-                            : const Text('Sign In'),
+                        child: LoadingButtonChild(
+                          loading: isLoggingIn,
+                          color: cs.onPrimary,
+                          child: const Text('Sign In'),
+                        ),
                       ),
                     ),
                   ],

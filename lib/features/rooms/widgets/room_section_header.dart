@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
@@ -267,11 +268,7 @@ class RoomSectionHeader extends StatelessWidget {
       selection.invalidateSpaceTree();
     } catch (e) {
       debugPrint('[Kohera] Reparent failed: $e');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to move: $e')),
-        );
-      }
+      if (context.mounted) context.showSnack('Failed to move: $e');
     }
   }
 }

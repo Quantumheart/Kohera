@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/known_contacts.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
+import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:matrix/matrix.dart';
 
 // ── New Room dialog ───────────────────────────────────────────
@@ -378,12 +380,8 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
         }
         widget.matrixService.selection.invalidateSpaceTree();
         if (spaceFailures > 0 && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Room created, but failed to add to $spaceFailures space(s)',
-              ),
-            ),
+          context.showSnack(
+            'Room created, but failed to add to $spaceFailures space(s)',
           );
         }
       }
@@ -552,13 +550,10 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
         ),
         FilledButton(
           onPressed: _loading ? null : _submit,
-          child: _loading
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2.5),
-                )
-              : const Text('Create'),
+          child: LoadingButtonChild(
+            loading: _loading,
+            child: const Text('Create'),
+          ),
         ),
       ],
     );

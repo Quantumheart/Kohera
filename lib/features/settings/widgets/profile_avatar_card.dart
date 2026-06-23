@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
@@ -72,8 +73,9 @@ class _ProfileAvatarCardState extends State<ProfileAvatarCard> {
     } catch (e) {
       debugPrint('[Kohera] Display name update failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update display name: ${MatrixService.friendlyAuthError(e)}')),
+        context.showSnack(
+          'Failed to update display name: '
+          '${MatrixService.friendlyAuthError(e)}',
         );
       }
     } finally {
@@ -101,8 +103,8 @@ class _ProfileAvatarCardState extends State<ProfileAvatarCard> {
     } catch (e) {
       debugPrint('[Kohera] Avatar upload failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to upload avatar: ${MatrixService.friendlyAuthError(e)}')),
+        context.showSnack(
+          'Failed to upload avatar: ${MatrixService.friendlyAuthError(e)}',
         );
       }
     } finally {
@@ -120,8 +122,8 @@ class _ProfileAvatarCardState extends State<ProfileAvatarCard> {
     } catch (e) {
       debugPrint('[Kohera] Avatar removal failed: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to remove avatar: ${MatrixService.friendlyAuthError(e)}')),
+        context.showSnack(
+          'Failed to remove avatar: ${MatrixService.friendlyAuthError(e)}',
         );
       }
     } finally {

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart' hide Visibility;
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
+import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:matrix/matrix.dart';
 
 /// Dialog to create a new subspace within a parent space.
@@ -230,13 +231,10 @@ class _CreateSubspaceDialogState extends State<CreateSubspaceDialog> {
         ),
         FilledButton(
           onPressed: _loading ? null : _submit,
-          child: _loading
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2.5),
-                )
-              : const Text('Create'),
+          child: LoadingButtonChild(
+            loading: _loading,
+            child: const Text('Create'),
+          ),
         ),
       ],
     );

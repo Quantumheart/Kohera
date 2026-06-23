@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
@@ -11,6 +12,7 @@ import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_dialog.dart';
 import 'package:kohera/features/spaces/widgets/notification_radio_group.dart';
 import 'package:kohera/features/spaces/widgets/space_details_panel.dart' show SpaceDetailsPanel;
+import 'package:kohera/shared/widgets/popup_menu_item_row.dart';
 import 'package:matrix/matrix.dart' hide Visibility;
 import 'package:provider/provider.dart';
 
@@ -44,90 +46,45 @@ Future<void> showSpaceContextMenu(
     color: cs.surfaceContainer,
     constraints: const BoxConstraints(minWidth: 200, maxWidth: 320),
     items: [
-      const PopupMenuItem(
-        value: SpaceContextAction.markAsRead,
-        child: Row(
-          children: [
-            Icon(Icons.done_all_rounded, size: 18),
-            SizedBox(width: 8),
-            Text('Mark as read'),
-          ],
-        ),
-      ),
+      menuItemRow(
+        Icons.done_all_rounded, 'Mark as read', SpaceContextAction.markAsRead,),
       if (canInvite)
-        const PopupMenuItem(
-          value: SpaceContextAction.invitePeople,
-          child: Row(
-            children: [
-              Icon(Icons.person_add_outlined, size: 18),
-              SizedBox(width: 8),
-              Text('Invite people'),
-            ],
-          ),
+        menuItemRow(
+          Icons.person_add_outlined,
+          'Invite people',
+          SpaceContextAction.invitePeople,
         ),
       if (canEditName)
-        const PopupMenuItem(
-          value: SpaceContextAction.spaceSettings,
-          child: Row(
-            children: [
-              Icon(Icons.settings_outlined, size: 18),
-              SizedBox(width: 8),
-              Text('Space settings'),
-            ],
-          ),
+        menuItemRow(
+          Icons.settings_outlined,
+          'Space settings',
+          SpaceContextAction.spaceSettings,
         ),
       if (canManageChildren) ...[
-        const PopupMenuItem(
-          value: SpaceContextAction.createRoom,
-          child: Row(
-            children: [
-              Icon(Icons.add_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('Create room'),
-            ],
-          ),
+        menuItemRow(
+          Icons.add_rounded, 'Create room', SpaceContextAction.createRoom,),
+        menuItemRow(
+          Icons.workspaces_outlined,
+          'Create subspace',
+          SpaceContextAction.createSubspace,
         ),
-        const PopupMenuItem(
-          value: SpaceContextAction.createSubspace,
-          child: Row(
-            children: [
-              Icon(Icons.workspaces_outlined, size: 18),
-              SizedBox(width: 8),
-              Text('Create subspace'),
-            ],
-          ),
-        ),
-        const PopupMenuItem(
-          value: SpaceContextAction.addExistingRoom,
-          child: Row(
-            children: [
-              Icon(Icons.link_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('Add existing room'),
-            ],
-          ),
+        menuItemRow(
+          Icons.link_rounded,
+          'Add existing room',
+          SpaceContextAction.addExistingRoom,
         ),
       ],
-      const PopupMenuItem(
-        value: SpaceContextAction.notifications,
-        child: Row(
-          children: [
-            Icon(Icons.notifications_outlined, size: 18),
-            SizedBox(width: 8),
-            Text('Notifications'),
-          ],
-        ),
+      menuItemRow(
+        Icons.notifications_outlined,
+        'Notifications',
+        SpaceContextAction.notifications,
       ),
       const PopupMenuDivider(),
-      PopupMenuItem(
-        value: SpaceContextAction.leaveSpace,
-        child: Row(
-          children: [
-            Icon(Icons.logout_rounded, size: 18, color: cs.error),
-            const SizedBox(width: 8),
-            Text('Leave space', style: TextStyle(color: cs.error)),
-          ],
-        ),
+      menuItemRow(
+        Icons.logout_rounded,
+        'Leave space',
+        SpaceContextAction.leaveSpace,
+        color: cs.error,
       ),
     ],
   );
@@ -219,16 +176,10 @@ Future<void> _handleNotifications(BuildContext context, Room space) async {
 
   try {
     await space.setPushRuleState(result);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Notifications updated')),
-      );
-    }
+    if (context.mounted) context.showSnack('Notifications updated');
   } catch (e) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update notifications: $e')),
-      );
+      context.showSnack('Failed to update notifications: $e');
     }
   }
 }
@@ -273,17 +224,9 @@ Future<void> _handleInvite(BuildContext context, Room space) async {
 
   try {
     await space.invite(mxid);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invited $mxid')),
-      );
-    }
+    if (context.mounted) context.showSnack('Invited $mxid');
   } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to invite: $e')),
-      );
-    }
+    if (context.mounted) context.showSnack('Failed to invite: $e');
   }
 }
 
@@ -364,16 +307,10 @@ Future<void> _handleLeave(BuildContext context, Room space) async {
       }
     }
     if (failCount > 0 && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to leave $failCount room(s)')),
-      );
+      context.showSnack('Failed to leave $failCount room(s)');
     }
   } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to leave space: $e')),
-      );
-    }
+    if (context.mounted) context.showSnack('Failed to leave space: $e');
   }
 }
 

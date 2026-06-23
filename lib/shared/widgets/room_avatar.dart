@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cached_network_image_platform_interface/cached_network_image_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/media_auth.dart';
+import 'package:kohera/core/utils/sender_color.dart';
 import 'package:matrix/matrix.dart';
 
 /// Displays a room's avatar with a colored-initial fallback.
@@ -63,7 +64,7 @@ class _RoomAvatarWidgetState extends State<RoomAvatarWidget> {
     final cs = Theme.of(context).colorScheme;
     final name = widget.room.getLocalizedDisplayname();
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '#';
-    final bgColor = _colorFromString(name, cs);
+    final bgColor = senderColor(name, cs, fallback: cs.primaryContainer);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(widget.size * 0.28),
@@ -100,21 +101,6 @@ class _RoomAvatarWidgetState extends State<RoomAvatarWidget> {
     );
   }
 
-  Color _colorFromString(String str, ColorScheme cs) {
-    if (str.isEmpty) return cs.primaryContainer;
-    final hash = str.codeUnits.fold<int>(0, (h, c) => h + c);
-    final palette = [
-      cs.primary,
-      cs.tertiary,
-      cs.secondary,
-      cs.error,
-      const Color(0xFF6750A4),
-      const Color(0xFFB4846C),
-      const Color(0xFF7C9A6E),
-      const Color(0xFFC17B5F),
-    ];
-    return palette[hash % palette.length];
-  }
 }
 
 class _Fallback extends StatelessWidget {

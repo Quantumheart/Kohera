@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/call_service.dart';
@@ -41,9 +42,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _lastShownError = error;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error)),
-        );
+        context.showSnack(error);
       });
     } else if (error == null) {
       _lastShownError = null;

@@ -9,6 +9,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/auth/widgets/app_logo_header.dart';
 import 'package:kohera/features/auth/widgets/registration_controller.dart';
 import 'package:kohera/features/auth/widgets/registration_views.dart';
+import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:provider/provider.dart';
 
 class RegistrationScreen extends StatefulWidget {
@@ -301,16 +302,11 @@ class _RegistrationScreenState extends State<RegistrationScreen>
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: isRegistering
-                          ? SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: cs.onPrimary,
-                              ),
-                            )
-                          : const Text('Create Account'),
+                      child: LoadingButtonChild(
+                        loading: isRegistering,
+                        color: cs.onPrimary,
+                        child: const Text('Create Account'),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),

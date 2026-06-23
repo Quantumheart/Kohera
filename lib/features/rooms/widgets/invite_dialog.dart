@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -52,26 +53,13 @@ class _InviteDialogState extends State<InviteDialog> {
   }
 
   Future<void> _decline() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Decline invite'),
-        content: Text(
-          'Decline invite to ${widget.room.getLocalizedDisplayname()}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Decline'),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: 'Decline invite',
+      message: 'Decline invite to ${widget.room.getLocalizedDisplayname()}?',
+      confirmLabel: 'Decline',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     setState(() { _declining = true; _error = null; });
     try {

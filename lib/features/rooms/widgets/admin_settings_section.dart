@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:matrix/matrix.dart';
 
 /// Admin settings for a room: edit name, topic, encryption,
@@ -91,33 +92,16 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
   }
 
   Future<void> _enableEncryption() async {
-    final cs = Theme.of(context).colorScheme;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Enable encryption?'),
-        content: const Text(
-          'This action is irreversible. Once encryption is enabled, '
+    final confirmed = await confirmDialog(
+      context,
+      title: 'Enable encryption?',
+      message: 'This action is irreversible. Once encryption is enabled, '
           'it cannot be disabled.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: cs.error,
-              foregroundColor: cs.onError,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Enable'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Enable',
+      destructive: true,
     );
 
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     await _run('encryption', () => widget.room.enableEncryption(), successMessage: 'Encryption enabled');
   }
 

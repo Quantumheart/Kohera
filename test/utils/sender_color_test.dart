@@ -35,5 +35,19 @@ void main() {
       }
       expect(colors.length, greaterThan(1));
     });
+
+    test('returns fallback for empty sender when provided', () {
+      expect(
+        senderColor('', cs, fallback: cs.primaryContainer),
+        equals(cs.primaryContainer),
+      );
+    });
+
+    test('ignores fallback for non-empty sender', () {
+      expect(
+        senderColor('@alice:example.com', cs, fallback: cs.primaryContainer),
+        isNot(equals(cs.primaryContainer)),
+      );
+    });
   });
 }

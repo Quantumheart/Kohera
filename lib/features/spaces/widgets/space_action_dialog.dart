@@ -4,8 +4,10 @@ import 'package:flutter/material.dart' hide Visibility;
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
+import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -264,13 +266,10 @@ class _CreateSpaceDialogState extends State<CreateSpaceDialog> {
                   ),
                   FilledButton(
                     onPressed: _loading ? null : _submit,
-                    child: _loading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2.5),
-                          )
-                        : const Text('Create'),
+                    child: LoadingButtonChild(
+                      loading: _loading,
+                      child: const Text('Create'),
+                    ),
                   ),
                 ],
               ),
@@ -398,13 +397,10 @@ class _JoinSpaceDialogState extends State<JoinSpaceDialog> {
                   ),
                   FilledButton(
                     onPressed: _loading ? null : _submit,
-                    child: _loading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2.5),
-                          )
-                        : const Text('Join'),
+                    child: LoadingButtonChild(
+                      loading: _loading,
+                      child: const Text('Join'),
+                    ),
                   ),
                 ],
               ),
@@ -590,24 +586,13 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
 
   Future<void> _confirmRemoveServer(String host) async {
     final prefs = context.read<PreferencesService>();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Remove server?'),
-        content: Text('Remove "$host" from your browse list?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
+    final ok = await confirmDialog(
+      context,
+      title: 'Remove server?',
+      message: 'Remove "$host" from your browse list?',
+      confirmLabel: 'Remove',
     );
-    if (ok != true || !mounted) return;
+    if (!ok || !mounted) return;
     final next =
         prefs.browseServers.where((h) => h != host).toList(growable: false);
     await prefs.setBrowseServers(next);

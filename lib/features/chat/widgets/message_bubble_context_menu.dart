@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
+import 'package:kohera/shared/widgets/popup_menu_item_row.dart';
 import 'package:matrix/matrix.dart';
 
 Future<void> showMessageContextMenu(
@@ -22,31 +23,31 @@ Future<void> showMessageContextMenu(
   final isFailed = event.status.isError;
   final items = <PopupMenuItem<String>>[
     if (isFailed) ...[
-      _menuItem(Icons.refresh_rounded, 'Retry sending', 'outbox_retry'),
-      _menuItem(
+      menuItemRow(Icons.refresh_rounded, 'Retry sending', 'outbox_retry'),
+      menuItemRow(
         Icons.delete_outline_rounded,
         'Discard message',
         'outbox_discard',
         color: cs.error,
       ),
     ] else ...[
-      if (onReply != null) _menuItem(Icons.reply_rounded, 'Reply', 'reply'),
+      if (onReply != null) menuItemRow(Icons.reply_rounded, 'Reply', 'reply'),
       if (onReplyInThread != null)
-        _menuItem(Icons.forum_outlined, 'Reply in thread', 'reply_in_thread'),
-      if (onEdit != null) _menuItem(Icons.edit_rounded, 'Edit', 'edit'),
+        menuItemRow(Icons.forum_outlined, 'Reply in thread', 'reply_in_thread'),
+      if (onEdit != null) menuItemRow(Icons.edit_rounded, 'Edit', 'edit'),
       if (onReact != null)
-        _menuItem(Icons.add_reaction_outlined, 'React', 'react'),
-      if (!event.redacted) _menuItem(Icons.copy_rounded, 'Copy', 'copy'),
+        menuItemRow(Icons.add_reaction_outlined, 'React', 'react'),
+      if (!event.redacted) menuItemRow(Icons.copy_rounded, 'Copy', 'copy'),
       if (onForward != null)
-        _menuItem(Icons.forward_rounded, 'Forward', 'forward'),
+        menuItemRow(Icons.forward_rounded, 'Forward', 'forward'),
       if (onPin != null)
-        _menuItem(
+        menuItemRow(
           isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
           isPinned ? 'Unpin' : 'Pin',
           'pin',
         ),
       if (onDelete != null)
-        _menuItem(
+        menuItemRow(
           Icons.delete_outline_rounded,
           isMe ? 'Delete' : 'Remove',
           'delete',
@@ -92,22 +93,4 @@ Future<void> showMessageContextMenu(
         ClipboardData(text: stripReplyFallback(displayEvent.body)),);
   }
   if (value == 'delete') onDelete?.call();
-}
-
-PopupMenuItem<String> _menuItem(
-  IconData icon,
-  String label,
-  String value, {
-  Color? color,
-}) {
-  return PopupMenuItem<String>(
-    value: value,
-    child: Row(
-      children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(width: 8),
-        Text(label, style: color == null ? null : TextStyle(color: color)),
-      ],
-    ),
-  );
 }

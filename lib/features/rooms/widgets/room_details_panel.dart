@@ -5,6 +5,7 @@ import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
@@ -118,30 +119,15 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
   }
 
   Future<void> _confirmLeave(Room room) async {
-    final cs = Theme.of(context).colorScheme;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Leave room?'),
-        content: Text('You will leave "${room.getLocalizedDisplayname()}".'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: cs.error,
-              foregroundColor: cs.onError,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Leave'),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: 'Leave room?',
+      message: 'You will leave "${room.getLocalizedDisplayname()}".',
+      confirmLabel: 'Leave',
+      destructive: true,
     );
 
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     final selectionService = context.read<SelectionService>();
     final navigator = Navigator.of(context);

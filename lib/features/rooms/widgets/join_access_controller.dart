@@ -6,6 +6,7 @@ import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
+import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -179,27 +180,14 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
       return;
     }
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Upgrade room?'),
-        content: Text(
-          'Upgrading this room creates a replacement room (v$newVersion). '
+    final confirmed = await confirmDialog(
+      context,
+      title: 'Upgrade room?',
+      message: 'Upgrading this room creates a replacement room (v$newVersion). '
           'Members will need to rejoin via the tombstone. Continue?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Upgrade'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Upgrade',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     final selection = context.read<MatrixService>().selection;
     final parents = selection.parentSpacesOf(widget.room);
