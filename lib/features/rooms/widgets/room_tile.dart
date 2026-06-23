@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -799,11 +800,7 @@ class _ReorderDragTargetState extends State<_ReorderDragTarget> {
       selection.invalidateSpaceTree();
     } catch (e) {
       debugPrint('[Kohera] Drag reorder failed: $e');
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to reorder: $e')),
-        );
-      }
+      if (context.mounted) context.showSnack('Failed to reorder: $e');
     }
   }
 }

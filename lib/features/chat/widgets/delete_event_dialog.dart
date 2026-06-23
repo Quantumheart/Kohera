@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -39,8 +40,8 @@ Future<void> confirmAndDeleteEvent(BuildContext context, Event event) async {
     await event.room.redactEvent(event.eventId);
   } catch (e) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to delete: ${MatrixService.friendlyAuthError(e)}')),
+      context.showSnack(
+        'Failed to delete: ${MatrixService.friendlyAuthError(e)}',
       );
     }
   }

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart'
 import 'package:flutter/material.dart';
 import 'package:giphy_get/giphy_get.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/core/models/upload_state.dart';
@@ -363,13 +364,11 @@ class _ChatScreenState extends State<ChatScreen>
       case AddAttachmentResult.ok:
         return;
       case AddAttachmentResult.tooMany:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Maximum ${ComposeStateController.maxAttachments} attachments allowed')),
+        context.showSnack(
+          'Maximum ${ComposeStateController.maxAttachments} attachments allowed',
         );
       case AddAttachmentResult.tooLarge:
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('File exceeds 25 MB limit')),
-        );
+        context.showSnack('File exceeds 25 MB limit');
     }
   }
 
@@ -517,12 +516,8 @@ class _ChatScreenState extends State<ChatScreen>
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Failed to send sticker: ${MatrixService.friendlyAuthError(e)}',
-            ),
-          ),
+        context.showSnack(
+          'Failed to send sticker: ${MatrixService.friendlyAuthError(e)}',
         );
       }
     }

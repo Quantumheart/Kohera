@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
@@ -184,11 +185,7 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
         if (_pinnedEvents?.isEmpty ?? true) widget.onClose();
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to unpin message')),
-        );
-      }
+      if (mounted) context.showSnack('Failed to unpin message');
     }
   }
 

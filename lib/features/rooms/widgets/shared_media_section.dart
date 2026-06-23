@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/core/utils/media_auth.dart';
 import 'package:kohera/shared/widgets/full_image_view.dart';
 import 'package:matrix/matrix.dart';
@@ -152,7 +153,10 @@ class _SharedMediaSectionState extends State<SharedMediaSection> {
                 style: tt.bodyMedium,
               ),
               subtitle: Text(
-                _formatFileSize((file.infoMap['size'] as num?)?.toInt()),
+                switch ((file.infoMap['size'] as num?)?.toInt()) {
+                  final size? => formatFileSize(size),
+                  _ => '',
+                },
                 style: tt.bodySmall,
               ),
             ),
@@ -179,12 +183,6 @@ class _SharedMediaSectionState extends State<SharedMediaSection> {
     );
   }
 
-  String _formatFileSize(int? bytes) {
-    if (bytes == null) return '';
-    if (bytes < 1024) return '$bytes B';
-    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
 }
 
 

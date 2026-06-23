@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:matrix/matrix.dart' hide Visibility;
 
@@ -74,9 +76,7 @@ class _AddRoomToSpaceDialogState extends State<AddRoomToSpaceDialog> {
     if (!mounted) return;
 
     if (failures > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add room to $failures space(s)')),
-      );
+      context.showSnack('Failed to add room to $failures space(s)');
     }
 
     Navigator.pop(context);
@@ -142,13 +142,10 @@ class _AddRoomToSpaceDialogState extends State<AddRoomToSpaceDialog> {
         if (eligible.isNotEmpty)
           FilledButton(
             onPressed: _loading || !_hasSelection ? null : _submit,
-            child: _loading
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
-                  )
-                : const Text('Add'),
+            child: LoadingButtonChild(
+              loading: _loading,
+              child: const Text('Add'),
+            ),
           ),
       ],
     );

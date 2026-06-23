@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/chat/services/message_forwarder.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
@@ -74,12 +75,8 @@ class _ForwardMessageDialogState extends State<ForwardMessageDialog> {
       debugPrint('[Kohera] Failed to forward message: $e');
       if (!mounted) return;
       setState(() => _sending = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Failed to forward: ${MatrixService.friendlyAuthError(e)}',
-          ),
-        ),
+      context.showSnack(
+        'Failed to forward: ${MatrixService.friendlyAuthError(e)}',
       );
       return;
     }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/emoji_gg_pack.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
@@ -67,9 +68,7 @@ class _EmojiGgBrowseScreenState extends State<EmojiGgBrowseScreen> {
 
   Future<void> _importPack(EmojiGgPack pack) async {
     if (pack.emojiSlugs.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pack details not available — try again later')),
-      );
+      context.showSnack('Pack details not available — try again later');
       return;
     }
 
@@ -91,14 +90,11 @@ class _EmojiGgBrowseScreenState extends State<EmojiGgBrowseScreen> {
       _importedSlugs = service.importedEmojiGgSlugs;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          succeeded == 0
-              ? 'Import failed — no images could be uploaded'
-              : 'Imported $succeeded sticker${succeeded == 1 ? '' : 's'} from ${pack.name}',
-        ),
-      ),
+    context.showSnack(
+      succeeded == 0
+          ? 'Import failed — no images could be uploaded'
+          : 'Imported $succeeded sticker${succeeded == 1 ? '' : 's'} '
+              'from ${pack.name}',
     );
   }
 

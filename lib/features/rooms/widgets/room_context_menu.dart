@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/core/utils/order_utils.dart' as order_utils;
 import 'package:kohera/features/rooms/widgets/add_room_to_space_dialog.dart';
+import 'package:kohera/shared/widgets/popup_menu_item_row.dart';
 import 'package:matrix/matrix.dart' hide Visibility;
 import 'package:provider/provider.dart';
 
@@ -65,38 +68,17 @@ Future<void> showRoomContextMenu(
     constraints: const BoxConstraints(minWidth: 200, maxWidth: 320),
     items: [
       if (canMoveUp)
-        const PopupMenuItem(
-          value: _RoomContextAction.moveUp,
-          child: Row(
-            children: [
-              Icon(Icons.arrow_upward_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('Move up'),
-            ],
-          ),
-        ),
+        menuItemRow(
+          Icons.arrow_upward_rounded, 'Move up', _RoomContextAction.moveUp,),
       if (canMoveDown)
-        const PopupMenuItem(
-          value: _RoomContextAction.moveDown,
-          child: Row(
-            children: [
-              Icon(Icons.arrow_downward_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('Move down'),
-            ],
-          ),
+        menuItemRow(
+          Icons.arrow_downward_rounded,
+          'Move down',
+          _RoomContextAction.moveDown,
         ),
       if (canAdd)
-        const PopupMenuItem(
-          value: _RoomContextAction.addToSpace,
-          child: Row(
-            children: [
-              Icon(Icons.add_link_rounded, size: 18),
-              SizedBox(width: 8),
-              Text('Add to space'),
-            ],
-          ),
-        ),
+        menuItemRow(
+          Icons.add_link_rounded, 'Add to space', _RoomContextAction.addToSpace,),
       if (canRemove)
         PopupMenuItem(
           value: _RoomContextAction.removeFromSpace,
@@ -181,11 +163,7 @@ Future<void> _handleReorder(
     selection.invalidateSpaceTree();
   } catch (e) {
     debugPrint('[Kohera] Reorder failed: $e');
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to reorder: $e')),
-      );
-    }
+    if (context.mounted) context.showSnack('Failed to reorder: $e');
   }
 }
 
@@ -194,39 +172,22 @@ Future<void> _handleRemoveFromSpace(
   Room space,
   Room room,
 ) async {
-  final confirmed = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Remove from space?'),
-      content: Text(
-        'Remove "${room.getLocalizedDisplayname()}" from '
+  final confirmed = await confirmDialog(
+    context,
+    title: 'Remove from space?',
+    message: 'Remove "${room.getLocalizedDisplayname()}" from '
         '"${space.getLocalizedDisplayname()}"? The room won\'t be deleted, '
         'just unlinked from the space.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Remove'),
-        ),
-      ],
-    ),
+    confirmLabel: 'Remove',
   );
 
-  if (confirmed != true || !context.mounted) return;
+  if (!confirmed || !context.mounted) return;
 
   try {
     final selection = context.read<SelectionService>();
     await space.removeSpaceChild(room.id);
     selection.invalidateSpaceTree();
   } catch (e) {
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to remove room: $e')),
-      );
-    }
+    if (context.mounted) context.showSnack('Failed to remove room: $e');
   }
 }

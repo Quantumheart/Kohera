@@ -1,10 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/extensions/device_extension.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:kohera/features/settings/widgets/device_list_item.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
@@ -164,40 +166,22 @@ class _DevicesScreenState extends State<DevicesScreen> {
     } catch (e) {
       debugPrint('[Kohera] Failed to rename device: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to rename device')),
-      );
+      context.showSnack('Failed to rename device');
     }
   }
 
   // ── Remove Device ──────────────────────────────────────────
 
   Future<void> _removeDevice(Device device) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Remove device?'),
-        content: Text(
-          'Remove "${device.displayNameOrId}"? '
+    final confirmed = await confirmDialog(
+      context,
+      title: 'Remove device?',
+      message: 'Remove "${device.displayNameOrId}"? '
           'This will sign out that device.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-              foregroundColor: Theme.of(ctx).colorScheme.onError,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Remove',
+      destructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       if (!mounted) return;
@@ -209,9 +193,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
     } catch (e) {
       debugPrint('[Kohera] Failed to remove device: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to remove device')),
-      );
+      context.showSnack('Failed to remove device');
     }
   }
 
@@ -227,31 +209,15 @@ class _DevicesScreenState extends State<DevicesScreen> {
         [];
     if (otherIds.isEmpty) return;
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Remove all other devices?'),
-        content: Text(
-          'This will sign out ${otherIds.length} other '
+    final confirmed = await confirmDialog(
+      context,
+      title: 'Remove all other devices?',
+      message: 'This will sign out ${otherIds.length} other '
           '${otherIds.length == 1 ? 'device' : 'devices'}.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.error,
-              foregroundColor: Theme.of(ctx).colorScheme.onError,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove all'),
-          ),
-        ],
-      ),
+      confirmLabel: 'Remove all',
+      destructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       final client = matrix.client;
@@ -262,9 +228,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
     } catch (e) {
       debugPrint('[Kohera] Failed to remove devices: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to remove devices')),
-      );
+      context.showSnack('Failed to remove devices');
     }
   }
 
@@ -281,9 +245,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
           client.userDeviceKeys[userId]?.deviceKeys[device.deviceId];
       if (deviceKeys == null) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No encryption keys found for device')),
-        );
+        context.showSnack('No encryption keys found for device');
         return;
       }
 
@@ -294,9 +256,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
     } catch (e) {
       debugPrint('[Kohera] Failed to start verification: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to start verification')),
-      );
+      context.showSnack('Failed to start verification');
     }
   }
 
@@ -317,9 +277,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
     } catch (e) {
       debugPrint('[Kohera] Failed to toggle block: $e');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to update device')),
-      );
+      context.showSnack('Failed to update device');
     }
   }
 

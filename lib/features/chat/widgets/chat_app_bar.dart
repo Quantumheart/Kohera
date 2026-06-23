@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/call_service.dart';
@@ -295,11 +296,7 @@ class _CallButtonState extends State<_CallButton> {
         type: type,
       );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to start call')),
-        );
-      }
+      if (mounted) context.showSnack('Failed to start call');
     } finally {
       if (mounted) setState(() => _starting = false);
     }

@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/rooms/models/room_role.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
@@ -380,31 +382,14 @@ class _MemberSheetDialogState extends State<_MemberSheetDialog> {
     // Require explicit confirmation before demoting another admin.
     if (currentPowerLevel >= 100) {
       final displayName = widget.user.displayName ?? widget.user.id;
-      final cs = Theme.of(context).colorScheme;
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Demote admin?'),
-          content: Text(
-            'This will demote $displayName from admin. Are you sure?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: cs.error,
-                foregroundColor: cs.onError,
-              ),
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Demote'),
-            ),
-          ],
-        ),
+      final confirmed = await confirmDialog(
+        context,
+        title: 'Demote admin?',
+        message: 'This will demote $displayName from admin. Are you sure?',
+        confirmLabel: 'Demote',
+        destructive: true,
       );
-      if (confirmed != true || !mounted) return;
+      if (!confirmed || !mounted) return;
     }
 
     setState(() {
@@ -489,24 +474,13 @@ class _MemberSheetDialogState extends State<_MemberSheetDialog> {
 
   Future<void> _unban() async {
     final displayName = widget.user.displayName ?? widget.user.id;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Unban member?'),
-        content: Text('Allow $displayName to rejoin the room?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Unban'),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: 'Unban member?',
+      message: 'Allow $displayName to rejoin the room?',
+      confirmLabel: 'Unban',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
     setState(() {
       _actionLoading = true;
       _actionError = null;
@@ -645,9 +619,7 @@ class _MemberSheetDialogState extends State<_MemberSheetDialog> {
                 color: cs.onSurfaceVariant,
                 onPressed: () {
                   unawaited(Clipboard.setData(ClipboardData(text: user.id)));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Copied to clipboard')),
-                  );
+                  context.showSnack('Copied to clipboard');
                 },
               ),
             ],

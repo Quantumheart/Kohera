@@ -9,6 +9,7 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/auth/widgets/app_logo_header.dart';
 import 'package:kohera/features/auth/widgets/homeserver_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
+import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:provider/provider.dart';
 
 class HomeserverScreen extends StatefulWidget {
@@ -207,16 +208,11 @@ class _HomeserverScreenState extends State<HomeserverScreen>
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                          child: isChecking
-                              ? SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                    color: cs.onPrimary,
-                                  ),
-                                )
-                              : const Text('Continue'),
+                          child: LoadingButtonChild(
+                            loading: isChecking,
+                            color: cs.onPrimary,
+                            child: const Text('Continue'),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),

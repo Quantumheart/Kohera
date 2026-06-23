@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
@@ -101,9 +102,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
       if (!mounted) return;
       setState(() => _loadingRoot = false);
       _scheduleFocusReady();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not load thread')),
-      );
+      context.showSnack('Could not load thread');
     }
   }
 
@@ -151,17 +150,11 @@ class _ThreadScreenState extends State<ThreadScreen> {
   void _addAttachment(PendingAttachment attachment) {
     final result = _compose.addAttachment(attachment);
     if (result == AddAttachmentResult.tooMany) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Maximum ${ComposeStateController.maxAttachments} attachments allowed',
-          ),
-        ),
+      context.showSnack(
+        'Maximum ${ComposeStateController.maxAttachments} attachments allowed',
       );
     } else if (result == AddAttachmentResult.tooLarge) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('File exceeds 25 MB limit')),
-      );
+      context.showSnack('File exceeds 25 MB limit');
     }
   }
 

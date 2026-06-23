@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -30,11 +32,7 @@ class _InviteTileState extends State<InviteTile> {
       await widget.room.join();
     } catch (e) {
       debugPrint('[Kohera] Accept invite failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(MatrixService.friendlyAuthError(e))),
-        );
-      }
+      if (mounted) context.showSnack(MatrixService.friendlyAuthError(e));
       if (mounted) setState(() => _isJoining = false);
       return;
     }
@@ -54,37 +52,20 @@ class _InviteTileState extends State<InviteTile> {
 
   Future<void> _decline() async {
     if (_inFlight) return;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Decline invite'),
-        content: Text(
-          'Decline invite to ${widget.room.getLocalizedDisplayname()}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Decline'),
-          ),
-        ],
-      ),
+    final confirmed = await confirmDialog(
+      context,
+      title: 'Decline invite',
+      message: 'Decline invite to ${widget.room.getLocalizedDisplayname()}?',
+      confirmLabel: 'Decline',
     );
-    if (confirmed != true || !mounted) return;
+    if (!confirmed || !mounted) return;
 
     setState(() => _isDeclining = true);
     try {
       await widget.room.leave();
     } catch (e) {
       debugPrint('[Kohera] Decline invite failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(MatrixService.friendlyAuthError(e))),
-        );
-      }
+      if (mounted) context.showSnack(MatrixService.friendlyAuthError(e));
     } finally {
       if (mounted) setState(() => _isDeclining = false);
     }

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/e2ee/widgets/bootstrap_controller.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_inline.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
@@ -16,30 +17,17 @@ import 'package:url_launcher/url_launcher.dart';
 const String _recoveryKeyDocsUrl =
     'https://github.com/Quantumheart/Kohera/blob/master/docs/recovery-key-storage.md';
 
-Future<bool> showRecoveryKeySavedConfirmation(BuildContext context) async {
-  final result = await showDialog<bool>(
-    context: context,
-    barrierDismissible: false,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Have you saved your recovery key?'),
-      content: const Text(
-        'If you lose this key, your encrypted messages cannot be '
+Future<bool> showRecoveryKeySavedConfirmation(BuildContext context) {
+  return confirmDialog(
+    context,
+    title: 'Have you saved your recovery key?',
+    message: 'If you lose this key, your encrypted messages cannot be '
         "recovered. Make sure it's stored somewhere you'll still have "
         'access to if you lose this device.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Not yet'),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(ctx, true),
-          child: const Text("I've saved it"),
-        ),
-      ],
-    ),
+    confirmLabel: "I've saved it",
+    cancelLabel: 'Not yet',
+    barrierDismissible: false,
   );
-  return result ?? false;
 }
 
 // ── Screen-local steps (outside bootstrap lifecycle) ───────────

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
@@ -16,9 +17,7 @@ mixin VoiceRecordingMixin<T extends StatefulWidget> on State<T> {
     context.read<MediaPlaybackService>().pauseActive();
     final started = await voiceController!.startRecording();
     if (!started && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Microphone permission denied')),
-      );
+      context.showSnack('Microphone permission denied');
     }
   }
 

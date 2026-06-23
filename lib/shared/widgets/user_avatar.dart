@@ -5,6 +5,7 @@ import 'package:cached_network_image_platform_interface/cached_network_image_pla
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/utils/media_auth.dart';
+import 'package:kohera/core/utils/sender_color.dart';
 import 'package:kohera/shared/widgets/presence_dot.dart';
 import 'package:matrix/matrix.dart';
 
@@ -71,7 +72,8 @@ class _UserAvatarState extends State<UserAvatar> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final initial = _userInitial(widget.userId);
-    final bgColor = _colorFromString(widget.userId ?? '', cs);
+    final bgColor =
+        senderColor(widget.userId ?? '', cs, fallback: cs.primaryContainer);
 
     final avatar = ClipOval(
       child: SizedBox(
@@ -115,21 +117,6 @@ class _UserAvatarState extends State<UserAvatar> {
     return (userId ?? '?')[0].toUpperCase();
   }
 
-  static Color _colorFromString(String str, ColorScheme cs) {
-    if (str.isEmpty) return cs.primaryContainer;
-    final hash = str.codeUnits.fold<int>(0, (h, c) => h + c);
-    final palette = [
-      cs.primary,
-      cs.tertiary,
-      cs.secondary,
-      cs.error,
-      const Color(0xFF6750A4),
-      const Color(0xFFB4846C),
-      const Color(0xFF7C9A6E),
-      const Color(0xFFC17B5F),
-    ];
-    return palette[hash % palette.length];
-  }
 }
 
 class _Fallback extends StatelessWidget {
