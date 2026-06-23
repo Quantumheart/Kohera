@@ -32,8 +32,10 @@ void main() {
 
     test('omits minute padding when padMinutes is false', () {
       expect(
-        formatClockDuration(const Duration(minutes: 5, seconds: 3),
-            padMinutes: false),
+        formatClockDuration(
+          const Duration(minutes: 5, seconds: 3),
+          padMinutes: false,
+        ),
         '5:03',
       );
     });
@@ -44,8 +46,10 @@ void main() {
         '1:05:03',
       );
       expect(
-        formatClockDuration(const Duration(hours: 2, minutes: 5, seconds: 3),
-            padMinutes: false),
+        formatClockDuration(
+          const Duration(hours: 2, minutes: 5, seconds: 3),
+          padMinutes: false,
+        ),
         '2:05:03',
       );
     });
