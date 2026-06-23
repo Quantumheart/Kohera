@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.1](https://github.com/Quantumheart/Kohera/compare/v1.8.0...v1.8.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* **ios:** strip unused permission_handler permissions to clear ITMS-90683 ([20f3afd](https://github.com/Quantumheart/Kohera/commit/20f3afd90c6ea64ee216bf5ea7167463a81785b7)), closes [#661](https://github.com/Quantumheart/Kohera/issues/661)
+* preserve inbox pagination on sync-driven refresh ([7a2db1c](https://github.com/Quantumheart/Kohera/commit/7a2db1ce0aff1eba3e273ef660b9ed2300f0f1e7)), closes [#625](https://github.com/Quantumheart/Kohera/issues/625)
+
 ## [1.8.0](https://github.com/Quantumheart/Kohera/compare/v1.7.0...v1.8.0) (2026-06-22)
 
 
