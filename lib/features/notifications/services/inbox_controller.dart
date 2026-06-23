@@ -2,58 +2,23 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/notification_filter.dart';
-import 'package:kohera/core/utils/word_boundary.dart';
 import 'package:kohera/features/notifications/services/apns_push_service.dart';
+import 'package:kohera/features/notifications/services/notification_grouper.dart';
 import 'package:matrix/matrix.dart' as matrix_sdk;
-import 'package:matrix/matrix.dart'
-    show Client, Event, EventTypes, MatrixException, Membership;
+import 'package:matrix/matrix.dart' show Client, MatrixException, Membership;
 
-// ── Push-action helper ───────────────────────────────────────
-
-bool _hasHighlightAction(List<Object?> actions) {
-  for (final action in actions) {
-    if (action is Map && action['set_tweak'] == 'highlight') {
-      final value = action['value'];
-      if (value == null || value == true) return true;
-    }
-  }
-  return false;
-}
-
-// ── Filter enum ──────────────────────────────────────────────
-enum InboxFilter { all, mentions, threads, invitations }
-
-// ── Grouped notification model ───────────────────────────────
-class ThreadSubGroup {
-  final String? threadRootId;
-  final List<matrix_sdk.Notification> notifications;
-
-  const ThreadSubGroup({
-    required this.threadRootId,
-    required this.notifications,
-  });
-}
-
-class NotificationGroup {
-  final String roomId;
-  final String roomName;
-  final List<matrix_sdk.Notification> notifications;
-  final List<ThreadSubGroup> subGroups;
-
-  const NotificationGroup({
-    required this.roomId,
-    required this.roomName,
-    required this.notifications,
-    required this.subGroups,
-  });
-}
+export 'package:kohera/features/notifications/services/notification_grouper.dart'
+    show InboxFilter, NotificationGroup, ThreadSubGroup;
 
 // ── InboxController ──────────────────────────────────────────
 class InboxController extends ChangeNotifier {
-  InboxController({required Client client}) : _client = client;
+  InboxController({required Client client})
+      : _client = client,
+        _grouper = NotificationGrouper(client);
 
   Client _client;
   Client get client => _client;
+  final NotificationGrouper _grouper;
   bool _disposed = false;
 
   List<NotificationGroup> _grouped = [];
@@ -76,8 +41,6 @@ class InboxController extends ChangeNotifier {
   int _fetchGeneration = 0;
   int _cachedUnreadCount = 0;
 
-  final Map<String, Map<String, Object?>> _decryptedContent = {};
-
   // ── Public getters ─────────────────────────────────────────
 
   int get unreadCount => _cachedUnreadCount;
@@ -85,18 +48,12 @@ class InboxController extends ChangeNotifier {
   bool get hasMore => _nextToken != null;
 
   Map<String, Object?>? decryptedContentFor(String eventId) =>
-      _decryptedContent[eventId];
+      _grouper.decryptedContentFor(eventId);
 
-  String? threadRootIdFor(matrix_sdk.Notification n) {
-    final content = _decryptedContent[n.event.eventId] ?? n.event.content;
-    final relatesTo = content['m.relates_to'];
-    if (relatesTo is Map &&
-        relatesTo['rel_type'] == matrix_sdk.RelationshipTypes.thread) {
-      final id = relatesTo['event_id'];
-      if (id is String) return id;
-    }
-    return null;
-  }
+  String? threadRootIdFor(matrix_sdk.Notification n) =>
+      _grouper.threadRootIdFor(n);
+
+  bool isMention(matrix_sdk.Notification n) => _grouper.isMention(n);
 
   // ── Unread count cache helper ──────────────────────────────
 
@@ -117,7 +74,7 @@ class InboxController extends ChangeNotifier {
   Future<void> fetch() => _withLoad((gen) async {
         final response = await _client.getNotifications(limit: 30);
         if (_disposed || gen != _fetchGeneration) return null;
-        final grouped = await _groupByRoom(response.notifications);
+        final grouped = await _grouper.group(response.notifications, _filter);
         return (grouped: grouped, token: response.nextToken);
       });
 
@@ -126,11 +83,11 @@ class InboxController extends ChangeNotifier {
         if (_disposed || gen != _fetchGeneration) return null;
         final headIds =
             response.notifications.map((n) => n.event.eventId).toSet();
-        final grouped = await _groupByRoom([
+        final grouped = await _grouper.group([
           ...response.notifications,
           for (final n in _flatNotifications)
             if (!headIds.contains(n.event.eventId)) n,
-        ]);
+        ], _filter,);
         return (grouped: grouped, token: _nextToken);
       });
 
@@ -142,10 +99,10 @@ class InboxController extends ChangeNotifier {
         from: _nextToken,
       );
       if (_disposed || gen != _fetchGeneration) return null;
-      final grouped = await _groupByRoom([
+      final grouped = await _grouper.group([
         ..._flatNotifications,
         ...response.notifications,
-      ]);
+      ], _filter,);
       return (grouped: grouped, token: response.nextToken);
     });
   }
@@ -195,11 +152,9 @@ class InboxController extends ChangeNotifier {
       if (!_disposed) notifyListeners();
       return;
     }
-    _grouped = [];
-    _nextToken = null;
-    _updateUnreadCount();
+    _resetList();
     if (!_disposed) notifyListeners();
-    unawaited(fetch().catchError((Object e) => debugPrint('[Kohera] Inbox fetch error: $e')));
+    _startFetch();
   }
 
   // ── Sync-driven invalidation ───────────────────────────────
@@ -276,7 +231,7 @@ class InboxController extends ChangeNotifier {
     for (final group in _grouped) {
       if (group.roomId != roomId) continue;
       for (final n in group.notifications) {
-        final threadId = threadRootIdFor(n);
+        final threadId = _grouper.threadRootIdFor(n);
         if (threadId != null) {
           final cur = perThread[threadId];
           if (cur == null || n.ts > cur.ts) {
@@ -343,146 +298,33 @@ class InboxController extends ChangeNotifier {
     final wasActive = _pollingRefCount > 0;
     _unbindSync();
     _client = newClient;
-    _grouped = [];
-    _decryptedContent.clear();
-    _nextToken = null;
+    _grouper
+      ..client = newClient
+      ..clearCache();
+    _resetList();
     _isLoading = false;
     _error = null;
-    _updateUnreadCount();
     if (wasActive) _bindSync();
     if (!_disposed) notifyListeners();
-    unawaited(fetch().catchError((Object e) => debugPrint('[Kohera] Inbox fetch error: $e')));
+    _startFetch();
   }
 
-  // ── Token expiry guard ─────────────────────────────────────
+  // ── State helpers ──────────────────────────────────────────
+
+  void _resetList() {
+    _grouped = [];
+    _nextToken = null;
+    _updateUnreadCount();
+  }
+
+  void _startFetch() => unawaited(
+        fetch().catchError(
+          (Object e) => debugPrint('[Kohera] Inbox fetch error: $e'),
+        ),
+      );
 
   static bool _isTokenExpired(Object e) =>
       e is MatrixException && e.errcode == 'M_UNKNOWN_TOKEN';
-
-  // ── Mention detection ──────────────────────────────────────
-
-  bool isMention(matrix_sdk.Notification n) {
-    final userId = _client.userID;
-    if (userId == null) return false;
-
-    if (_hasHighlightAction(n.actions)) return true;
-
-    final content =
-        _decryptedContent[n.event.eventId] ?? n.event.content;
-
-    final mentions = content['m.mentions'];
-    if (mentions is Map) {
-      final userIds = mentions['user_ids'];
-      if (userIds is List && userIds.contains(userId)) return true;
-      return mentions['room'] == true;
-    }
-
-    if (n.event.type != EventTypes.Encrypted) return false;
-
-    final body = content['body'];
-    if (body is! String) return false;
-
-    final lower = body.toLowerCase();
-    if (lower.contains(userId.toLowerCase())) return true;
-
-    final displayName = _client
-        .getRoomById(n.roomId)
-        ?.unsafeGetUserFromMemoryOrFallback(userId)
-        .calcDisplayname();
-    return displayName != null &&
-        displayName.length >= 2 &&
-        containsWord(lower, displayName.toLowerCase());
-  }
-
-  // ── Helpers ────────────────────────────────────────────────
-
-  Future<Map<String, Object?>?> _tryDecrypt(matrix_sdk.Notification n) async {
-    if (n.event.type != EventTypes.Encrypted) return null;
-    final cached = _decryptedContent[n.event.eventId];
-    if (cached != null) return cached;
-    final room = _client.getRoomById(n.roomId);
-    if (room == null) return null;
-    try {
-      final event = Event.fromMatrixEvent(n.event, room);
-      final decrypted = await room.client.encryption
-          ?.decryptRoomEvent(event)
-          .timeout(const Duration(seconds: 3));
-      if (decrypted != null) {
-        _decryptedContent[n.event.eventId] = decrypted.content;
-        return decrypted.content;
-      }
-    } catch (_) {}
-    return null;
-  }
-
-  Future<List<NotificationGroup>> _groupByRoom(
-      List<matrix_sdk.Notification> notifications,) async {
-    final map = <String, List<matrix_sdk.Notification>>{};
-    final order = <String>[];
-    final seen = <String>{};
-
-    for (final n in notifications) {
-      if (n.read) continue;
-      if (!seen.add(n.event.eventId)) continue;
-      final room = _client.getRoomById(n.roomId);
-      if (room == null || room.membership != Membership.join) continue;
-      await _tryDecrypt(n);
-      if (_filter == InboxFilter.mentions && !isMention(n)) continue;
-      if (_filter == InboxFilter.threads && threadRootIdFor(n) == null) {
-        continue;
-      }
-      map.putIfAbsent(n.roomId, () {
-        order.add(n.roomId);
-        return [];
-      });
-      map[n.roomId]!.add(n);
-    }
-
-    final insertionIndex = <String, int>{
-      for (var i = 0; i < order.length; i++) order[i]: i,
-    };
-    int maxTs(String roomId) =>
-        map[roomId]!.map((n) => n.ts).reduce((a, b) => a > b ? a : b);
-    order.sort((a, b) {
-      final cmp = maxTs(b).compareTo(maxTs(a));
-      if (cmp != 0) return cmp;
-      return insertionIndex[a]!.compareTo(insertionIndex[b]!);
-    });
-
-    return order.map((roomId) {
-      final room = _client.getRoomById(roomId);
-      final notifications = map[roomId]!;
-      return NotificationGroup(
-        roomId: roomId,
-        roomName: room?.getLocalizedDisplayname() ?? roomId,
-        notifications: notifications,
-        subGroups: _buildSubGroups(notifications),
-      );
-    }).toList();
-  }
-
-  List<ThreadSubGroup> _buildSubGroups(
-    List<matrix_sdk.Notification> notifications,
-  ) {
-    const mainKey = '__main__';
-    final buckets = <String, List<matrix_sdk.Notification>>{};
-    final order = <String>[];
-    for (final n in notifications) {
-      final key = threadRootIdFor(n) ?? mainKey;
-      if (!buckets.containsKey(key)) order.add(key);
-      buckets.putIfAbsent(key, () => []).add(n);
-    }
-    int maxTs(String k) =>
-        buckets[k]!.map((n) => n.ts).reduce((a, b) => a > b ? a : b);
-    order.sort((a, b) => maxTs(b).compareTo(maxTs(a)));
-    return [
-      for (final key in order)
-        ThreadSubGroup(
-          threadRootId: key == mainKey ? null : key,
-          notifications: buckets[key]!,
-        ),
-    ];
-  }
 
   @override
   void dispose() {
