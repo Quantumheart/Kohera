@@ -163,7 +163,7 @@ class NotificationGrouper {
     }
     final rank = {for (var i = 0; i < order.length; i++) order[i]: i};
     order.sort((a, b) {
-      final cmp = _maxTs(buckets[b]!).compareTo(_maxTs(buckets[a]!));
+      final cmp = _mostRecentTimestamp(buckets[b]!).compareTo(_mostRecentTimestamp(buckets[a]!));
       return cmp != 0 ? cmp : rank[a]!.compareTo(rank[b]!);
     });
     return [for (final key in order) MapEntry(key, buckets[key]!)];
@@ -201,5 +201,5 @@ bool _hasHighlightAction(List<Object?> actions) {
   return false;
 }
 
-int _maxTs(Iterable<matrix_sdk.Notification> notifications) =>
+int _mostRecentTimestamp(Iterable<matrix_sdk.Notification> notifications) =>
     notifications.map((n) => n.ts).reduce((a, b) => a > b ? a : b);
