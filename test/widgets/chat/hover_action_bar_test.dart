@@ -59,6 +59,28 @@ void main() {
       expect(find.byIcon(Icons.reply_rounded), findsOneWidget);
     });
 
+    testWidgets('action buttons use a clickable pointer cursor',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget(
+        onQuickReact: (_) {},
+        onReply: () {},
+      ),);
+
+      for (final icon in [
+        Icons.add_reaction_outlined,
+        Icons.reply_rounded,
+        Icons.more_horiz_rounded,
+      ]) {
+        final inkWell = tester.widget<InkWell>(
+          find.ancestor(
+            of: find.byIcon(icon),
+            matching: find.byType(InkWell),
+          ),
+        );
+        expect(inkWell.mouseCursor, SystemMouseCursors.click);
+      }
+    });
+
     testWidgets('hides reply icon when onReply is null', (tester) async {
       await tester.pumpWidget(buildTestWidget());
       expect(find.byIcon(Icons.reply_rounded), findsNothing);
