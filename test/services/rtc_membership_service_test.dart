@@ -48,6 +48,23 @@ void main() {
       expect(firstFoci['livekit_service_url'], 'https://lk.example.com');
       expect(firstFoci['livekit_alias'], 'room-alias');
     });
+
+    test('omits created_ts when not provided', () {
+      final content = service.makeMembershipContent(
+        'https://lk.example.com',
+        'room-alias',
+      );
+      expect(content.containsKey('created_ts'), false);
+    });
+
+    test('includes created_ts when provided', () {
+      final content = service.makeMembershipContent(
+        'https://lk.example.com',
+        'room-alias',
+        createdTimeStamp: 1700000000000,
+      );
+      expect(content['created_ts'], 1700000000000);
+    });
   });
 
   // ── sendMembershipEvent ─────────────────────────────────────
@@ -173,6 +190,199 @@ void main() {
         expect(() => async.elapse(const Duration(minutes: 5)), returnsNormally);
         service.cancelMembershipRenewal();
       });
+    });
+  });
+
+  // ── selectOldestFocus ───────────────────────────────────────
+
+  group('selectOldestFocus', () {
+    Map<String, dynamic> focusContent(
+      String url,
+      String alias, {
+      required int createdTs,
+      required int expiresTs,
+    }) => {
+      'created_ts': createdTs,
+      'expires_ts': expiresTs,
+      'foci_preferred': [
+        {
+          'type': 'livekit',
+          'livekit_service_url': url,
+          'livekit_alias': alias,
+        },
+      ],
+    };
+
+    test('null room returns null', () {
+      when(mockClient.getRoomById(any)).thenReturn(null);
+      expect(
+        RtcMembershipService.selectOldestFocus(mockClient, '!r:x'),
+        isNull,
+      );
+    });
+
+    test('no states returns null', () {
+      final mockRoom = MockRoom();
+      when(mockClient.getRoomById('!r:x')).thenReturn(mockRoom);
+      when(mockRoom.states).thenReturn({});
+      expect(
+        RtcMembershipService.selectOldestFocus(mockClient, '!r:x'),
+        isNull,
+      );
+    });
+
+    test('picks focus of the oldest membership by created_ts', () {
+      final mockRoom = MockRoom();
+      when(mockClient.getRoomById('!r:x')).thenReturn(mockRoom);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      when(mockRoom.states).thenReturn({
+        callMemberEventType: {
+          '_@bob:matrix.org_D1_m.call': FakeEvent(
+            content: focusContent(
+              'https://sfu.matrix.org',
+              '!r:x',
+              createdTs: now - 100000,
+              expiresTs: now + 60000,
+            ),
+            originServerTs: now,
+          ),
+          '_@carol:quantum.xyz_D2_m.call': FakeEvent(
+            content: focusContent(
+              'https://sfu.quantum.xyz',
+              '!r:x',
+              createdTs: now - 50000,
+              expiresTs: now + 60000,
+            ),
+            originServerTs: now,
+          ),
+        },
+      });
+      final focus =
+          RtcMembershipService.selectOldestFocus(mockClient, '!r:x');
+      expect(focus?.url, 'https://sfu.matrix.org');
+      expect(focus?.alias, '!r:x');
+    });
+
+    test('ignores expired memberships when selecting oldest', () {
+      final mockRoom = MockRoom();
+      when(mockClient.getRoomById('!r:x')).thenReturn(mockRoom);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      when(mockRoom.states).thenReturn({
+        callMemberEventType: {
+          '_@bob:matrix.org_D1_m.call': FakeEvent(
+            content: focusContent(
+              'https://sfu.matrix.org',
+              '!r:x',
+              createdTs: now - 100000,
+              expiresTs: now - 1,
+            ),
+            originServerTs: now,
+          ),
+          '_@carol:quantum.xyz_D2_m.call': FakeEvent(
+            content: focusContent(
+              'https://sfu.quantum.xyz',
+              '!r:x',
+              createdTs: now - 50000,
+              expiresTs: now + 60000,
+            ),
+            originServerTs: now,
+          ),
+        },
+      });
+      final focus =
+          RtcMembershipService.selectOldestFocus(mockClient, '!r:x');
+      expect(focus?.url, 'https://sfu.quantum.xyz');
+    });
+
+    test('excludeUserId skips the local user even if oldest', () {
+      final mockRoom = MockRoom();
+      when(mockClient.getRoomById('!r:x')).thenReturn(mockRoom);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      when(mockRoom.states).thenReturn({
+        callMemberEventType: {
+          '_@alice:example.com_DEV1_m.call': FakeEvent(
+            content: focusContent(
+              'https://sfu.example.com',
+              '!r:x',
+              createdTs: now - 100000,
+              expiresTs: now + 60000,
+            ),
+            originServerTs: now,
+          ),
+          '_@bob:matrix.org_D1_m.call': FakeEvent(
+            content: focusContent(
+              'https://sfu.matrix.org',
+              '!r:x',
+              createdTs: now - 50000,
+              expiresTs: now + 60000,
+            ),
+            originServerTs: now,
+          ),
+        },
+      });
+      final focus = RtcMembershipService.selectOldestFocus(
+        mockClient,
+        '!r:x',
+        excludeUserId: '@alice:example.com',
+      );
+      expect(focus?.url, 'https://sfu.matrix.org');
+    });
+
+    test('falls back to originServerTs when created_ts absent', () {
+      final mockRoom = MockRoom();
+      when(mockClient.getRoomById('!r:x')).thenReturn(mockRoom);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      when(mockRoom.states).thenReturn({
+        callMemberEventType: {
+          '_@bob:matrix.org_D1_m.call': FakeEvent(
+            content: {
+              'expires_ts': now + 60000,
+              'foci_preferred': [
+                {
+                  'type': 'livekit',
+                  'livekit_service_url': 'https://sfu.matrix.org',
+                  'livekit_alias': '!r:x',
+                },
+              ],
+            },
+            originServerTs: now - 100000,
+          ),
+          '_@carol:quantum.xyz_D2_m.call': FakeEvent(
+            content: {
+              'expires_ts': now + 60000,
+              'foci_preferred': [
+                {
+                  'type': 'livekit',
+                  'livekit_service_url': 'https://sfu.quantum.xyz',
+                  'livekit_alias': '!r:x',
+                },
+              ],
+            },
+            originServerTs: now - 50000,
+          ),
+        },
+      });
+      final focus =
+          RtcMembershipService.selectOldestFocus(mockClient, '!r:x');
+      expect(focus?.url, 'https://sfu.matrix.org');
+    });
+
+    test('returns null when memberships lack a livekit focus', () {
+      final mockRoom = MockRoom();
+      when(mockClient.getRoomById('!r:x')).thenReturn(mockRoom);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      when(mockRoom.states).thenReturn({
+        callMemberEventType: {
+          '_@bob:matrix.org_D1_m.call': FakeEvent(
+            content: {'expires_ts': now + 60000},
+            originServerTs: now,
+          ),
+        },
+      });
+      expect(
+        RtcMembershipService.selectOldestFocus(mockClient, '!r:x'),
+        isNull,
+      );
     });
   });
 
