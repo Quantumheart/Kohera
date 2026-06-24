@@ -103,4 +103,23 @@ void main() {
     expect(find.byType(Image), findsNothing);
     expect(find.text('x'), findsOneWidget);
   });
+
+  testWidgets('precacheOpenMoji bails out on a deactivated context',
+      (tester) async {
+    late BuildContext captured;
+    await tester.pumpWidget(_wrap(Builder(
+      builder: (ctx) {
+        captured = ctx;
+        return const SizedBox();
+      },
+    ),),);
+
+    // Tear the owning element out of the tree so its context deactivates,
+    // mirroring a HoverActionBar disposed mid-precache.
+    await tester.pumpWidget(_wrap(const SizedBox()));
+
+    // Without the context.mounted guard this throws "Looking up a deactivated
+    // widget's ancestor is unsafe" from precacheImage.
+    await precacheOpenMoji(captured, const ['\u{1F44D}']);
+  });
 }
