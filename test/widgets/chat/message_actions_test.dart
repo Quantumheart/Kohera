@@ -6,10 +6,12 @@ import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
+import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/features/chat/widgets/edit_preview_banner.dart';
 import 'package:kohera/features/chat/widgets/message_bubble.dart';
+import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
@@ -121,6 +123,32 @@ Widget _buildBubble({
   );
 }
 
+Widget _buildBubbleWithProviders({
+  required MockEvent event,
+  required bool isMe,
+  required MockMatrixService mockMatrix,
+  required SelectionService selectionService,
+}) {
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
+      ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+      ChangeNotifierProvider<PreferencesService>.value(
+        value: PreferencesService(),
+      ),
+    ],
+    child: MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
+      home: Scaffold(
+        body: SizedBox(
+          width: 800,
+          child: MessageBubble(event: event, isMe: isMe, isFirst: true),
+        ),
+      ),
+    ),
+  );
+}
+
 void main() {
   late MockClient mockClient;
   late MockMatrixService mockMatrix;
@@ -138,11 +166,13 @@ void main() {
     _mockRoom = mockRoom;
 
     when(mockClient.onSync).thenReturn(CachedStreamController());
+    when(mockClient.onPresenceChanged).thenReturn(CachedStreamController());
     when(mockClient.rooms).thenReturn([]);
     selectionService = SelectionService(client: mockClient);
 
     when(mockMatrix.client).thenReturn(mockClient);
     when(mockMatrix.selection).thenReturn(selectionService);
+    when(mockMatrix.presence).thenReturn(PresenceService(client: mockClient));
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
     when(mockClient.userID).thenReturn('@me:example.com');
     when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
@@ -781,6 +811,61 @@ void main() {
   });
 
   // ── Edit events filtered from timeline ─────────────────────
+
+  group('Sender avatar profile sheet', () {
+    testWidgets('tapping a sender avatar opens the member profile sheet',
+        (tester) async {
+      final event = _makeEvent(
+        eventId: r'$evt1',
+        senderId: '@alice:example.com',
+        body: 'Hi there',
+      );
+      final sender = event.senderFromMemoryOrFallback;
+      when(sender.id).thenReturn('@alice:example.com');
+      when(sender.membership).thenReturn(Membership.join);
+
+      await tester.pumpWidget(_buildBubbleWithProviders(
+        event: event,
+        isMe: false,
+        mockMatrix: mockMatrix,
+        selectionService: selectionService,
+      ),);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(UserAvatar), findsOneWidget);
+      await tester.tap(find.byType(UserAvatar));
+      await tester.pumpAndSettle();
+
+      // The profile sheet shows the Matrix ID and a Send message action.
+      expect(find.text('@alice:example.com'), findsOneWidget);
+      expect(find.text('Send message'), findsOneWidget);
+    });
+
+    testWidgets('own avatar sheet hides Send message action', (tester) async {
+      final event = _makeEvent(
+        eventId: r'$evt1',
+        senderId: '@me:example.com',
+        body: 'My own message',
+      );
+      final sender = event.senderFromMemoryOrFallback;
+      when(sender.id).thenReturn('@me:example.com');
+      when(sender.membership).thenReturn(Membership.join);
+
+      await tester.pumpWidget(_buildBubbleWithProviders(
+        event: event,
+        isMe: false,
+        mockMatrix: mockMatrix,
+        selectionService: selectionService,
+      ),);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(UserAvatar));
+      await tester.pumpAndSettle();
+
+      expect(find.text('@me:example.com'), findsOneWidget);
+      expect(find.text('Send message'), findsNothing);
+    });
+  });
 
   group('Edit events filtered from visible timeline', () {
     testWidgets('edit relation events are not shown in message list',
