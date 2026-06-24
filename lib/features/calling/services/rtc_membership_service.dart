@@ -29,12 +29,14 @@ class RtcMembershipService {
     String livekitAlias, {
     bool isVideo = false,
     int expiresMs = membershipExpiresMs,
+    int? createdTimeStamp,
   }) => {
     'application': 'm.call',
     'call_id': '',
     'scope': 'm.room',
     'device_id': _client.deviceID,
     'expires': expiresMs,
+    if (createdTimeStamp != null) 'created_ts': createdTimeStamp,
     kIoKoheraIsVideo: isVideo,
     'focus_active': {
       'type': 'livekit',
@@ -55,6 +57,7 @@ class RtcMembershipService {
     required String livekitServiceUrl,
     bool isVideo = false,
     int expiresMs = membershipExpiresMs,
+    int? createdTimeStamp,
   }) async {
     await _client.setRoomStateWithKey(
       roomId,
@@ -65,6 +68,7 @@ class RtcMembershipService {
         livekitAlias,
         isVideo: isVideo,
         expiresMs: expiresMs,
+        createdTimeStamp: createdTimeStamp,
       ),
     );
   }
@@ -83,6 +87,7 @@ class RtcMembershipService {
     String livekitAlias, {
     required String livekitServiceUrl,
     bool isVideo = false,
+    int? createdTimeStamp,
   }) {
     cancelMembershipRenewal();
     _membershipRenewalTimer = Timer.periodic(
@@ -92,6 +97,7 @@ class RtcMembershipService {
         livekitAlias,
         livekitServiceUrl: livekitServiceUrl,
         isVideo: isVideo,
+        createdTimeStamp: createdTimeStamp,
       ).catchError(
         (Object e) => debugPrint('[Kohera] Failed to renew membership: $e'),
       ),
@@ -199,6 +205,72 @@ class RtcMembershipService {
     return memberships
         .where((m) => (m['call_id'] as String? ?? '') == groupCallId)
         .length;
+  }
+
+  // ── Focus Selection (oldest_membership) ─────────────────────
+
+  static ({String url, String alias})? _livekitFocus(Map<String, dynamic> mem) {
+    final foci = mem['foci_preferred'];
+    if (foci is! List) return null;
+    for (final focus in foci) {
+      if (focus is Map<String, dynamic> && focus['type'] == 'livekit') {
+        final url = focus['livekit_service_url'] as String?;
+        if (url != null && url.isNotEmpty) {
+          return (url: url, alias: focus['livekit_alias'] as String? ?? '');
+        }
+      }
+    }
+    return null;
+  }
+
+  static int _membershipCreatedTimeStamp(
+    Map<String, dynamic> mem,
+    int originTs,
+  ) =>
+      mem['created_ts'] as int? ?? originTs;
+
+  static ({String url, String alias})? selectOldestFocus(
+    Client client,
+    String roomId, {
+    String? excludeUserId,
+  }) {
+    final room = client.getRoomById(roomId);
+    if (room == null) return null;
+    final states = room.states[callMemberEventType];
+    if (states == null) return null;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    ({String url, String alias})? oldestFocus;
+    int? oldestTimeStamp;
+
+    for (final entry in states.entries) {
+      if (excludeUserId != null &&
+          userIdFromStateKey(entry.key) == excludeUserId) {
+        continue;
+      }
+      final stateEvent = entry.value;
+      final content = stateEvent.content;
+      if (content.isEmpty) continue;
+      final originTs = stateEvent is Event
+          ? stateEvent.originServerTs.millisecondsSinceEpoch
+          : now;
+
+      final memberships = content['memberships'];
+      final entries = memberships is List
+          ? memberships.whereType<Map<String, dynamic>>()
+          : [content];
+      for (final mem in entries) {
+        if (!isMembershipActive(mem, originTs, now)) continue;
+        final focus = _livekitFocus(mem);
+        if (focus == null) continue;
+        final createdTimeStamp = _membershipCreatedTimeStamp(mem, originTs);
+        if (oldestTimeStamp == null || createdTimeStamp < oldestTimeStamp) {
+          oldestTimeStamp = createdTimeStamp;
+          oldestFocus = focus;
+        }
+      }
+    }
+    return oldestFocus;
   }
 
   static List<Map<String, dynamic>> _getActiveRtcMemberships(Room room) {

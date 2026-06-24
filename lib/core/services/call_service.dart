@@ -529,27 +529,46 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     if (_liveKit.cachedLivekitServiceUrl == null) {
       await _liveKit.fetchWellKnownLiveKit();
     }
-    final livekitServiceUrl = _liveKit.cachedLivekitServiceUrl;
-    if (livekitServiceUrl == null) {
+    final ownServiceUrl = _liveKit.cachedLivekitServiceUrl;
+    if (ownServiceUrl == null) {
       throw Exception('LiveKit service URL not found in well-known');
     }
 
-    final livekitAlias =
+    final ownAlias =
         room.canonicalAlias.isNotEmpty ? room.canonicalAlias : room.id;
+
+    final oldestFocus = RtcMembershipService.selectOldestFocus(
+      _client,
+      roomId,
+      excludeUserId: _client.userID,
+    );
+    final connectUrl = oldestFocus?.url ?? ownServiceUrl;
+    final connectAlias =
+        (oldestFocus?.alias.isNotEmpty ?? false) ? oldestFocus!.alias : ownAlias;
+    if (oldestFocus != null && connectUrl != ownServiceUrl) {
+      debugPrint(
+        '[Kohera] Joining existing call focus $connectUrl (own SFU '
+        '$ownServiceUrl)',
+      );
+    }
+
+    final createdTimeStamp = DateTime.now().millisecondsSinceEpoch;
 
     _activeCallRoomId = roomId;
 
     _rtcMembership.startMembershipRenewal(
       roomId,
-      livekitAlias,
-      livekitServiceUrl: livekitServiceUrl,
+      ownAlias,
+      livekitServiceUrl: ownServiceUrl,
+      createdTimeStamp: createdTimeStamp,
     );
 
     final membershipFuture = _rtcMembership
         .sendMembershipEvent(
       roomId,
-      livekitAlias,
-      livekitServiceUrl: livekitServiceUrl,
+      ownAlias,
+      livekitServiceUrl: ownServiceUrl,
+      createdTimeStamp: createdTimeStamp,
     )
         .catchError((Object e) {
       debugPrint('[Kohera] Initial membership send failed: $e');
@@ -563,8 +582,8 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
         }
       }),
       _liveKit.connectLiveKit(
-        livekitServiceUrl: livekitServiceUrl,
-        livekitAlias: livekitAlias,
+        livekitServiceUrl: connectUrl,
+        livekitAlias: connectAlias,
         currentState: () => _callState,
         autoMuteOnJoin: _prefs?.autoMuteOnJoin ?? false,
         noiseSuppression: _prefs?.noiseSuppression ?? true,
@@ -765,6 +784,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
         livekitServiceUrl: livekitServiceUrl,
         isVideo: isVideo,
         expiresMs: ringPhaseExpiresMs,
+        createdTimeStamp: DateTime.now().millisecondsSinceEpoch,
       );
       debugPrint('[Kohera] Ring-phase m.call.member sent for $roomId');
       if (_callState != KoheraCallState.ringingOutgoing) {
