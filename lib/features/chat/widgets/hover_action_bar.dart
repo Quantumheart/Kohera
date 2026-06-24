@@ -170,6 +170,7 @@ class _ActionIcon extends StatelessWidget {
     return InkWell(
       borderRadius: borderRadius ?? BorderRadius.zero,
       onTap: onTap,
+      mouseCursor: SystemMouseCursors.click,
       child: Padding(
         padding: const EdgeInsets.all(6),
         child: Icon(icon, size: 16, color: cs.onSurfaceVariant),
