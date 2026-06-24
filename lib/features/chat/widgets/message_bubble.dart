@@ -243,6 +243,7 @@ class _MessageBubbleState extends State<MessageBubble> {
         ),
         child: InkResponse(
           radius: metrics.avatarRadius,
+          mouseCursor: SystemMouseCursors.click,
           onTap: _showSenderSheet,
           child: UserAvatar(
             client: widget.event.room.client,

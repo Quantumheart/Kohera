@@ -833,6 +833,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(UserAvatar), findsOneWidget);
+
+      // The avatar shows a clickable (pointer) cursor on hover.
+      final inkResponse = tester.widget<InkResponse>(
+        find.ancestor(
+          of: find.byType(UserAvatar),
+          matching: find.byType(InkResponse),
+        ),
+      );
+      expect(inkResponse.mouseCursor, SystemMouseCursors.click);
+
       await tester.tap(find.byType(UserAvatar));
       await tester.pumpAndSettle();
 
