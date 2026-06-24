@@ -148,10 +148,11 @@ class RtcMembershipService {
     final userIds = <String>{};
 
     for (final entry in states.entries) {
-      final content = entry.value.content;
+      final stateEvent = entry.value;
+      final content = stateEvent.content;
       if (content.isEmpty) continue;
-      final originTs = entry.value is Event
-          ? (entry.value as Event).originServerTs.millisecondsSinceEpoch
+      final originTs = stateEvent is Event
+          ? stateEvent.originServerTs.millisecondsSinceEpoch
           : now;
 
       final memberships = content['memberships'];
@@ -167,8 +168,9 @@ class RtcMembershipService {
       }
 
       if (hasActive) {
-        final match = _stateKeyUserIdRegex.firstMatch(entry.key);
-        if (match != null) userIds.add(match.group(1)!);
+        final userId = userIdFromStateKey(entry.key) ??
+            (stateEvent.senderId.isNotEmpty ? stateEvent.senderId : null);
+        if (userId != null) userIds.add(userId);
       }
     }
     return userIds;
