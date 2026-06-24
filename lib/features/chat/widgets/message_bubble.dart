@@ -9,6 +9,7 @@ import 'package:kohera/features/chat/widgets/message_bubble_content.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_hover_bar_slot.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_skin.dart';
+import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -234,19 +235,32 @@ class _MessageBubbleState extends State<MessageBubble> {
     required DensityMetrics metrics,
   }) {
     if (showAvatar) {
+      final diameter = metrics.avatarRadius * 2;
       return Padding(
         padding: EdgeInsets.only(
           left: widget.isMe ? 8 : 0,
           right: widget.isMe ? 0 : 8,
         ),
-        child: UserAvatar(
-          client: widget.event.room.client,
-          avatarUrl: widget.event.senderFromMemoryOrFallback.avatarUrl,
-          userId: widget.event.senderId,
-          size: metrics.avatarRadius * 2,
+        child: InkResponse(
+          radius: metrics.avatarRadius,
+          onTap: _showSenderSheet,
+          child: UserAvatar(
+            client: widget.event.room.client,
+            avatarUrl: widget.event.senderFromMemoryOrFallback.avatarUrl,
+            userId: widget.event.senderId,
+            size: diameter,
+          ),
         ),
       );
     }
     return SizedBox(width: metrics.avatarRadius * 2 + 8);
+  }
+
+  void _showSenderSheet() {
+    unawaited(showMemberSheet(
+      context,
+      room: widget.event.room,
+      user: widget.event.senderFromMemoryOrFallback,
+    ),);
   }
 }
