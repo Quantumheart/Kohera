@@ -679,5 +679,72 @@ void main() {
       );
       expect(userIds, {'@alice:example.com'});
     });
+
+    test('falls back to senderId when state key is unparseable', () {
+      final mockRoom = MockRoom();
+      when(mockClient.getRoomById('!r:x')).thenReturn(mockRoom);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      when(mockRoom.states).thenReturn({
+        callMemberEventType: {
+          '@poly:example.com': FakeEvent(
+            content: {'expires_ts': now + 60000},
+            originServerTs: now,
+            senderId: '@poly:example.com',
+          ),
+        },
+      });
+
+      final userIds = RtcMembershipService.activeCallParticipantUserIds(
+        mockClient,
+        '!r:x',
+      );
+      expect(userIds, {'@poly:example.com'});
+    });
+
+    test('parseable key and senderId both present yield one id', () {
+      final mockRoom = MockRoom();
+      when(mockClient.getRoomById('!r:x')).thenReturn(mockRoom);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      when(mockRoom.states).thenReturn({
+        callMemberEventType: {
+          '_@alice:example.com_DEV1_m.call': FakeEvent(
+            content: {'expires_ts': now + 60000},
+            originServerTs: now,
+            senderId: '@alice:example.com',
+          ),
+          'opaque-foreign-key': FakeEvent(
+            content: {'expires_ts': now + 60000},
+            originServerTs: now,
+            senderId: '@bob:server.org',
+          ),
+        },
+      });
+
+      final userIds = RtcMembershipService.activeCallParticipantUserIds(
+        mockClient,
+        '!r:x',
+      );
+      expect(userIds, {'@alice:example.com', '@bob:server.org'});
+    });
+
+    test('skips entry with unparseable key and empty senderId', () {
+      final mockRoom = MockRoom();
+      when(mockClient.getRoomById('!r:x')).thenReturn(mockRoom);
+      final now = DateTime.now().millisecondsSinceEpoch;
+      when(mockRoom.states).thenReturn({
+        callMemberEventType: {
+          'opaque-foreign-key': FakeEvent(
+            content: {'expires_ts': now + 60000},
+            originServerTs: now,
+          ),
+        },
+      });
+
+      final userIds = RtcMembershipService.activeCallParticipantUserIds(
+        mockClient,
+        '!r:x',
+      );
+      expect(userIds, isEmpty);
+    });
   });
 }
