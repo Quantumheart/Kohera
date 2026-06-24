@@ -72,6 +72,7 @@ Future<void> precacheOpenMoji(
   Iterable<String> graphemes,
 ) async {
   for (final g in graphemes) {
+    if (!context.mounted) return;
     final asset = openMojiAssetFor(g);
     if (asset != null) {
       await precacheImage(AssetImage(asset), context);
