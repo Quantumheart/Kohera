@@ -542,12 +542,12 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
       roomId,
       excludeUserId: _client.userID,
     );
-    final connectUrl = oldestFocus?.url ?? ownServiceUrl;
-    final connectAlias =
+    final activeUrl = oldestFocus?.url ?? ownServiceUrl;
+    final activeAlias =
         (oldestFocus?.alias.isNotEmpty ?? false) ? oldestFocus!.alias : ownAlias;
-    if (oldestFocus != null && connectUrl != ownServiceUrl) {
+    if (oldestFocus != null && activeUrl != ownServiceUrl) {
       debugPrint(
-        '[Kohera] Joining existing call focus $connectUrl (own SFU '
+        '[Kohera] Joining existing call focus $activeUrl (own SFU '
         '$ownServiceUrl)',
       );
     }
@@ -558,16 +558,16 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
 
     _rtcMembership.startMembershipRenewal(
       roomId,
-      ownAlias,
-      livekitServiceUrl: ownServiceUrl,
+      activeAlias,
+      livekitServiceUrl: activeUrl,
       createdTimeStamp: createdTimeStamp,
     );
 
     final membershipFuture = _rtcMembership
         .sendMembershipEvent(
       roomId,
-      ownAlias,
-      livekitServiceUrl: ownServiceUrl,
+      activeAlias,
+      livekitServiceUrl: activeUrl,
       createdTimeStamp: createdTimeStamp,
     )
         .catchError((Object e) {
@@ -582,8 +582,8 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
         }
       }),
       _liveKit.connectLiveKit(
-        livekitServiceUrl: connectUrl,
-        livekitAlias: connectAlias,
+        livekitServiceUrl: activeUrl,
+        livekitAlias: activeAlias,
         currentState: () => _callState,
         autoMuteOnJoin: _prefs?.autoMuteOnJoin ?? false,
         noiseSuppression: _prefs?.noiseSuppression ?? true,

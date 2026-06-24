@@ -119,6 +119,64 @@ void main() {
       ).called(1);
     });
 
+    test('joins existing remote SFU and advertises it (sticky focus)',
+        () async {
+      setupLiveKitMocks();
+      final mockRoom = setupMockRoom();
+      final now = DateTime.now().millisecondsSinceEpoch;
+      when(mockRoom.states).thenReturn({
+        'org.matrix.msc3401.call.member': {
+          '_@bob:matrix.org_D1_m.call': FakeEvent(
+            content: {
+              'created_ts': now - 100000,
+              'expires_ts': now + 600000,
+              'foci_preferred': [
+                {
+                  'type': 'livekit',
+                  'livekit_service_url': 'https://sfu.matrix.org',
+                  'livekit_alias': '#room:example.com',
+                },
+              ],
+            },
+            originServerTs: now,
+          ),
+        },
+      });
+
+      String? postUrl;
+      service.httpPostForTest = (client, url, {headers, body}) async {
+        postUrl = url.toString();
+        return http.Response(
+          jsonEncode({'url': 'wss://lk.example.com', 'jwt': 'lk_token'}),
+          200,
+        );
+      };
+
+      await service.joinCall('!room:example.com');
+
+      expect(service.callState, KoheraCallState.connected);
+      expect(postUrl, 'https://sfu.matrix.org/sfu/get');
+
+      verify(
+        mockClient.setRoomStateWithKey(
+          '!room:example.com',
+          'org.matrix.msc3401.call.member',
+          '_@user:example.com_DEVICE1_m.call',
+          argThat(
+            containsPair(
+              'foci_preferred',
+              [
+                containsPair(
+                  'livekit_service_url',
+                  'https://sfu.matrix.org',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ).called(1);
+    });
+
     test('requires LiveKit service URL', () async {
       setupLiveKitMocks();
       setupMockRoom();
