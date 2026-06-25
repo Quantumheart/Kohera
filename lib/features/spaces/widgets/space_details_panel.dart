@@ -11,6 +11,7 @@ import 'package:kohera/features/spaces/widgets/notification_radio_group.dart';
 import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
 import 'package:kohera/shared/widgets/detail_action_button.dart';
+import 'package:kohera/shared/widgets/joined_member_count.dart';
 import 'package:matrix/matrix.dart' hide Visibility;
 import 'package:provider/provider.dart';
 
@@ -168,7 +169,6 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
   // ── Header ─────────────────────────────────────────────────
 
   Widget _buildHeader(Room space, ColorScheme cs, TextTheme tt) {
-    final memberCount = space.summary.mJoinedMemberCount ?? 0;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -191,9 +191,12 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
             ),
           ],
           const SizedBox(height: 4),
-          Text(
-            memberCount == 1 ? '1 member' : '$memberCount members',
-            style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+          JoinedMemberCount(
+            room: space,
+            builder: (context, memberCount) => Text(
+              memberCount == 1 ? '1 member' : '$memberCount members',
+              style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+            ),
           ),
         ],
       ),

@@ -11,6 +11,7 @@ import 'package:kohera/features/calling/models/incoming_call_info.dart' as model
 import 'package:kohera/features/calling/services/call_navigator.dart';
 import 'package:kohera/features/chat/widgets/pinned_messages_popup.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
+import 'package:kohera/shared/widgets/joined_member_count.dart';
 import 'package:kohera/shared/widgets/presence_dot.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:matrix/matrix.dart';
@@ -223,26 +224,31 @@ class _HeaderSubtitle extends StatelessWidget {
     final presence = this.presence;
     final userId = this.userId;
     if (presence == null || userId == null) {
-      return Text(_memberCountLabel(room), style: style);
+      return JoinedMemberCount(
+        room: room,
+        builder: (context, count) => Text(_memberCountLabel(count), style: style),
+      );
     }
-    return ListenableBuilder(
-      listenable: presence,
-      builder: (context, _) {
-        final label =
-            _presenceLabel(presence.presenceFor(userId)) ?? _memberCountLabel(room);
-        return Text(
-          label,
-          style: style,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        );
-      },
+    return JoinedMemberCount(
+      room: room,
+      builder: (context, count) => ListenableBuilder(
+        listenable: presence,
+        builder: (context, _) {
+          final label =
+              _presenceLabel(presence.presenceFor(userId)) ?? _memberCountLabel(count);
+          return Text(
+            label,
+            style: style,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          );
+        },
+      ),
     );
   }
 }
 
-String _memberCountLabel(Room room) {
-  final count = room.summary.mJoinedMemberCount ?? 0;
+String _memberCountLabel(int count) {
   if (count == 0) return '';
   if (count == 1) return '1 member';
   return '$count members';

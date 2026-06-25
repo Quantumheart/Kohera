@@ -14,6 +14,7 @@ import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
 import 'package:kohera/shared/widgets/detail_action_button.dart';
+import 'package:kohera/shared/widgets/joined_member_count.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
@@ -217,7 +218,6 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
   // ── Header ─────────────────────────────────────────────────
 
   Widget _buildHeader(Room room, ColorScheme cs, TextTheme tt) {
-    final memberCount = room.summary.mJoinedMemberCount ?? 0;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -240,9 +240,12 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
             ),
           ],
           const SizedBox(height: 4),
-          Text(
-            memberCount == 1 ? '1 member' : '$memberCount members',
-            style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+          JoinedMemberCount(
+            room: room,
+            builder: (context, memberCount) => Text(
+              memberCount == 1 ? '1 member' : '$memberCount members',
+              style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+            ),
           ),
         ],
       ),
