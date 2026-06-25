@@ -26,6 +26,8 @@ import 'package:kohera/features/chat/services/opengraph_service.dart';
 import 'package:kohera/features/e2ee/widgets/verification_request_listener.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/features/notifications/widgets/notification_lifecycle_observer.dart';
+import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
+import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
@@ -186,6 +188,17 @@ class _KoheraAppState extends State<KoheraApp> {
                   ChangeNotifierProvider<SelectionService>.value(
                     value: matrix.selection,
                   ),
+                  Provider<LiveSpaceDiscoveryDataSource>(
+                    create: (cxt) =>
+                        LiveSpaceDiscoveryDataSource(matrix.client),
+                  ),
+                  ChangeNotifierProvider<SpaceRoomsController>(
+                    create: (ctx) => SpaceRoomsController(
+                      dataSource: ctx.read<SpaceDiscoveryDataSource>(),
+                      selection: ctx.read<SelectionService>(),
+                      client: matrix.client,
+                    ),
+                  ),
                   ChangeNotifierProvider<ChatBackupService>.value(
                     value: matrix.chatBackup,
                   ),
@@ -247,8 +260,7 @@ class _KoheraAppState extends State<KoheraApp> {
                       final isCustom = prefs.themePreset == 'custom';
                       final preset =
                           isCustom ? null : getPreset(prefs.themePreset);
-                      final customScheme =
-                          isCustom ? prefs.customTheme : null;
+                      final customScheme = isCustom ? prefs.customTheme : null;
 
                       final theme = customScheme != null
                           ? KoheraTheme.light(
