@@ -28,6 +28,9 @@ class SpaceRoomsController extends ChangeNotifier {
     return _cache[spaceId] ?? SpaceRoomsState.empty();
   }
 
+  /// True if the controller has a cached state for [spaceId].
+  bool isCached(String spaceId) => _cache.containsKey(spaceId);
+
   /// Fetches the child room hierarchy for a given space and updates its
   /// cached state.
   Future<void> fetchSpaceRooms(String spaceId) async {

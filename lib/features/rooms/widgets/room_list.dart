@@ -15,6 +15,9 @@ import 'package:kohera/features/rooms/widgets/room_list_builder.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
 import 'package:kohera/features/rooms/widgets/room_section_header.dart';
 import 'package:kohera/features/rooms/widgets/room_tile.dart';
+import 'package:kohera/features/spaces/models/space_rooms_model.dart';
+import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
+import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
 import 'package:kohera/features/whats_new/widgets/whats_new_banner.dart';
 import 'package:kohera/shared/widgets/speed_dial_item.dart';
 import 'package:provider/provider.dart';
@@ -138,9 +141,22 @@ class _RoomListState extends State<RoomList>
     final selection = context.watch<SelectionService>();
     final matrix = context.read<MatrixService>();
     final prefs = context.watch<PreferencesService>();
+    final spaceRoomsController = context.watch<SpaceRoomsController>();
     final cs = Theme.of(context).colorScheme;
 
-    final items = buildSectionItems(selection, prefs, _query);
+    final items = buildSectionItems(selection, prefs, _query,
+        spaceRoomsController: spaceRoomsController,);
+
+    // Trigger hierarchy fetch for selected spaces not yet cached.
+    for (final spaceId in selection.selectedSpaceIds) {
+      if (!spaceRoomsController.isCached(spaceId)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            unawaited(spaceRoomsController.fetchSpaceRooms(spaceId));
+          }
+        });
+      }
+    }
 
     // Pre-compute context menu eligibility data once for all tiles.
     final selectedSpaceCanManage = selection.selectedSpaceIds.any((id) {
@@ -312,6 +328,49 @@ class _RoomListState extends State<RoomList>
                                 onPressed: () => _messageSearch.performSearch(
                                     loadMore: true,),
                               ),
+                            UnjoinedRoomGroupHeaderItem() =>
+                              _UnjoinedGroupHeader(item: item,
+                                  matrixService: matrix,),
+                            UnjoinedRoomItem() => Padding(
+                                padding: EdgeInsets.only(
+                                    left: item.depth * 16.0,),
+                                child: _UnjoinedRoomTile(
+                                  metadata: item.metadata,
+                                  parentSpaceId: item.parentSpaceId,
+                                  controller: spaceRoomsController,
+                                ),),
+                            SubspaceOpenItem() => Padding(
+                                padding: EdgeInsets.only(
+                                    left: item.depth * 16.0,),
+                                child: _SubspaceOpenTile(
+                                  metadata: item.metadata,
+                                  parentSpaceId: item.parentSpaceId,
+                                  matrixService: matrix,
+                                ),),
+                            UnjoinedRoomLoadingItem() => Padding(
+                                padding: EdgeInsets.only(
+                                    left: item.depth * 16.0 + 10,),
+                                child: const SizedBox(
+                                  height: 32,
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                                ),),
+                            UnjoinedRoomErrorItem() => Padding(
+                                padding: EdgeInsets.only(
+                                    left: item.depth * 16.0,),
+                                child: _UnjoinedErrorTile(item: item,
+                                    controller: spaceRoomsController,),),
+                            UnjoinedRoomForbiddenItem() => Padding(
+                                padding: EdgeInsets.only(
+                                    left: item.depth * 16.0 + 10,),
+                                child: const _UnjoinedForbiddenTile(),),
                           };
                         },
                       ),
@@ -387,6 +446,269 @@ class _RoomListState extends State<RoomList>
           ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ── Unjoined group header ────────────────────────────────
+
+class _UnjoinedGroupHeader extends StatelessWidget {
+  const _UnjoinedGroupHeader({required this.item, required this.matrixService});
+
+  final UnjoinedRoomGroupHeaderItem item;
+  final MatrixService matrixService;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final space = matrixService.client.getRoomById(item.spaceId);
+
+    return Padding(
+      padding: const EdgeInsets.only(left: 10, right: 10, top: 8, bottom: 2),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'MORE ROOMS TO JOIN'
+              .toUpperCase(),
+              style: tt.labelSmall?.copyWith(
+                color: cs.onSurfaceVariant,
+                letterSpacing: 1.2,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          TextButton.icon(
+            onPressed: () {
+              if (space == null) return;
+              unawaited(SpaceDiscoveryDialog.showSpaceRooms(
+                context,
+                matrixService: matrixService,
+                roomId: space.id,
+                name: space.getLocalizedDisplayname(),
+                avatar: space.avatar,
+                canonicalAlias: space.canonicalAlias,
+              ),);
+            },
+            icon: const Icon(Icons.open_in_new, size: 14),
+            label: const Text('Browse all'),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 28),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Unjoined room tile ─────────────────────────────────────
+
+class _UnjoinedRoomTile extends StatefulWidget {
+  const _UnjoinedRoomTile({
+    required this.metadata,
+    required this.parentSpaceId,
+    required this.controller,
+  });
+
+  final SpaceRoomMetadata metadata;
+  final String parentSpaceId;
+  final SpaceRoomsController controller;
+
+  @override
+  State<_UnjoinedRoomTile> createState() => _UnjoinedRoomTileState();
+}
+
+class _UnjoinedRoomTileState extends State<_UnjoinedRoomTile> {
+  bool _isJoining = false;
+  bool _joinError = false;
+
+  Future<void> _join() async {
+    setState(() {
+      _isJoining = true;
+      _joinError = false;
+    });
+    final result = await widget.controller.join(
+      roomId: widget.metadata.roomId,
+      parentSpaceId: widget.parentSpaceId,
+    );
+    if (!mounted) return;
+    setState(() {
+      _isJoining = false;
+      _joinError = result == null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final name = widget.metadata.name ?? widget.metadata.roomId;
+
+    return ListTile(
+      leading: Opacity(
+        opacity: 0.5,
+        child: CircleAvatar(
+          radius: 20,
+          backgroundColor: cs.surfaceContainerHighest,
+          child: Text(
+            name.isNotEmpty ? name[0].toUpperCase() : '#',
+            style: TextStyle(color: cs.onSurfaceVariant),
+          ),
+        ),
+      ),
+      title: Text(
+        name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: tt.bodyMedium?.copyWith(color: cs.onSurface),
+      ),
+      subtitle: Text(
+        '${widget.metadata.memberCount} members',
+        style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+      ),
+      trailing: _isJoining
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : _joinError
+              ? TextButton(
+                  onPressed: _join,
+                  child: const Text('Retry'),
+                )
+              : FilledButton.tonal(
+                  onPressed: _join,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(64, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text('Join'),
+                ),
+    );
+  }
+}
+
+// ── Subspace "Open" tile ───────────────────────────────────
+
+class _SubspaceOpenTile extends StatelessWidget {
+  const _SubspaceOpenTile({
+    required this.metadata,
+    required this.parentSpaceId,
+    required this.matrixService,
+  });
+
+  final SpaceRoomMetadata metadata;
+  final String parentSpaceId;
+  final MatrixService matrixService;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final name = metadata.name ?? metadata.roomId;
+
+    return ListTile(
+      leading: Opacity(
+        opacity: 0.5,
+        child: CircleAvatar(
+          radius: 20,
+          backgroundColor: cs.surfaceContainerHighest,
+          child: Icon(Icons.workspaces_outlined, color: cs.onSurfaceVariant),
+        ),
+      ),
+      title: Text(
+        name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: tt.bodyMedium?.copyWith(color: cs.onSurface),
+      ),
+      subtitle: Text(
+        'Subspace · ${metadata.memberCount} members',
+        style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+      ),
+      trailing: OutlinedButton(
+        onPressed: () {
+          unawaited(SpaceDiscoveryDialog.showSpaceRooms(
+            context,
+            matrixService: matrixService,
+            roomId: metadata.roomId,
+            name: name,
+            avatar: metadata.avatar,
+          ),);
+        },
+        child: const Text('Open'),
+      ),
+    );
+  }
+}
+
+// ── Unjoined error tile ──────────────────────────────────────
+
+class _UnjoinedErrorTile extends StatelessWidget {
+  const _UnjoinedErrorTile({required this.item, required this.controller});
+
+  final UnjoinedRoomErrorItem item;
+  final SpaceRoomsController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, size: 16, color: cs.error),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Could not load rooms',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: cs.onSurfaceVariant,
+                  ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              unawaited(controller.fetchSpaceRooms(item.spaceId));
+            },
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Unjoined forbidden tile ──────────────────────────────────
+
+class _UnjoinedForbiddenTile extends StatelessWidget {
+  const _UnjoinedForbiddenTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Icon(Icons.lock_outline, size: 16, color: cs.onSurfaceVariant),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'This space hides its room list',
+              style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+            ),
+          ),
+        ],
       ),
     );
   }
