@@ -9,6 +9,8 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
+import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
+import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
@@ -103,6 +105,15 @@ void main() {
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),
+        Provider<SpaceDiscoveryDataSource>(
+          create: (ctx) => FakeSpaceDiscoveryDataSource(delay: Duration.zero),
+        ),
+        ChangeNotifierProvider<SpaceRoomsController>(
+          create: (ctx) => SpaceRoomsController(
+            dataSource: ctx.read<SpaceDiscoveryDataSource>(),
+            client: ctx.read<MatrixService>().client,
+          ),
+        ),
       ],
       child: MaterialApp.router(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),
