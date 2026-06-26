@@ -195,7 +195,6 @@ class _KoheraAppState extends State<KoheraApp> {
                   ChangeNotifierProvider<SpaceRoomsController>(
                     create: (ctx) => SpaceRoomsController(
                       dataSource: ctx.read<SpaceDiscoveryDataSource>(),
-                      selection: ctx.read<SelectionService>(),
                       client: matrix.client,
                     ),
                   ),

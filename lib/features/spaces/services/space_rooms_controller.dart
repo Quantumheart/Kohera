@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/spaces/models/space_rooms_model.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
 import 'package:matrix/matrix.dart';
@@ -9,17 +8,14 @@ import 'package:matrix/matrix.dart';
 /// Controller that manages the hierarchy of rooms within a space for previewing purposes.
 /// It handles fetching, filtering, ordering, and automatic synchronization of unjoined rooms and subspaces.
 class SpaceRoomsController extends ChangeNotifier {
-  SpaceDiscoveryDataSource _dataSource;
-  SelectionService _selection;
-  Client _client;
+  final SpaceDiscoveryDataSource _dataSource;
+  final Client _client;
 
   SpaceRoomsController({
     required SpaceDiscoveryDataSource dataSource,
-    required SelectionService selection,
     required Client client,
   })  : _client = client,
-        _dataSource = dataSource,
-        _selection = selection;
+        _dataSource = dataSource;
 
   /// Internal cache mapping space ID to its current preview state.
   final Map<String, SpaceRoomsState> _cache = {};
@@ -37,8 +33,11 @@ class SpaceRoomsController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _dataSource.getSpaceHierarchy(spaceId,
-          maxDepth: 1, suggestedOnly: false);
+      final response = await _dataSource.getSpaceHierarchy(
+        spaceId,
+        maxDepth: 1,
+        suggestedOnly: false,
+      );
 
       final unjoined = <SpaceRoomMetadata>[];
       final subspaces = <SpaceRoomMetadata>[];
