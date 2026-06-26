@@ -18,23 +18,24 @@ class SpaceRoomMetadata {
     this.isSuggested = false,
   });
 
-  factory SpaceRoomMetadata.fromHierarchy(SpaceRoomsChunk$2 chunk) {
+  /// Creates metadata from a hierarchy chunk.
+  ///
+  /// [isSuggested] should be extracted from the parent space's
+  /// `m.space.child` state event for this room (the `suggested` content
+  /// field). Defaults to `false` when not provided.
+  factory SpaceRoomMetadata.fromHierarchy(
+    SpaceRoomsChunk$2 chunk, {
+    bool isSuggested = false,
+  }) {
     return SpaceRoomMetadata(
       roomId: chunk.roomId,
       name: chunk.name,
       avatar: chunk.avatarUrl,
       memberCount: chunk.numJoinedMembers,
       roomType: chunk.roomType ?? 'm.room',
-      // isSuggested always false for now; the current SDK's SpaceRoomsChunk$2
-      // does not expose a suggested flag. See class comment above.
+      isSuggested: isSuggested,
     );
   }
-
-  // Note on isSuggested: The spec says "suggested flag". Looking at [SpaceRoomsChunk$2],
-  // it doesn't explicitly have a 'suggested' boolean in the current version of the Dart SDK for matrix used here.
-  // However, often "suggested" is handled via a specific property in some versions of the API or by position in the hierarchy response.
-  // For now, I'll ensure this field exists in the model to satisfy the requirements and I'll check for
-  // any indicators during implementation or mapping logic.
 }
 
 /// State representing a space's child room hierarchy preview.
@@ -74,7 +75,7 @@ class SpaceRoomsState {
         subspaces: subspaces,
       );
 
-  // Added as a helper to create a state where everything is empty/default but not loading/forbidden/error.
-  // Useful for initial states of specific space IDs in the map before fetch starts.
+  /// Create an empty state (not loading, not error, not forbidden).
+  /// Useful for initial states before a fetch is triggered.
   factory SpaceRoomsState.empty() => const SpaceRoomsState();
 }
