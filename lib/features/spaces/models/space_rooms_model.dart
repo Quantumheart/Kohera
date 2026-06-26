@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:matrix/matrix.dart';
 
 /// Metadata for a room as it appears in a space's hierarchy preview.
@@ -23,13 +22,11 @@ class SpaceRoomMetadata {
     return SpaceRoomMetadata(
       roomId: chunk.roomId,
       name: chunk.name,
-      avatar: chunk
-          .avatarUrl, // Hierarchy API doesn't seem to return avatars directly here yet.
+      avatar: chunk.avatarUrl,
       memberCount: chunk.numJoinedMembers,
-      roomType:
-          chunk.roomType ?? 'm.room', // Default to room if type not provided.
-      isSuggested:
-          false, // To be determined from API response fields if available.
+      roomType: chunk.roomType ?? 'm.room',
+      // isSuggested always false for now; the current SDK's SpaceRoomsChunk$2
+      // does not expose a suggested flag. See class comment above.
     );
   }
 
@@ -72,7 +69,10 @@ class SpaceRoomsState {
     required List<SpaceRoomMetadata> unjoinedRooms,
     required List<SpaceRoomMetadata> subspaces,
   }) =>
-      SpaceRoomsState(unjoinedRooms: unjoinedRooms, subspaces: subspaces);
+      SpaceRoomsState(
+        unjoinedRooms: unjoinedRooms,
+        subspaces: subspaces,
+      );
 
   // Added as a helper to create a state where everything is empty/default but not loading/forbidden/error.
   // Useful for initial states of specific space IDs in the map before fetch starts.
