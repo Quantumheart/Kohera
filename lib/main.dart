@@ -188,7 +188,7 @@ class _KoheraAppState extends State<KoheraApp> {
                   ChangeNotifierProvider<SelectionService>.value(
                     value: matrix.selection,
                   ),
-                  Provider<LiveSpaceDiscoveryDataSource>(
+                  Provider<SpaceDiscoveryDataSource>(
                     create: (cxt) =>
                         LiveSpaceDiscoveryDataSource(matrix.client),
                   ),

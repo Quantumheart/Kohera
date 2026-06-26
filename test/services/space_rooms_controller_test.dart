@@ -11,7 +11,7 @@ import 'space_rooms_controller_test.mocks.dart';
 
 void main() {
   late SpaceRoomsController controller;
-  late FakeSpaceDiscoveryDataSource dataSource;
+  late SpaceDiscoveryDataSource dataSource;
   late MockClient mockClient;
 
   setUp(() {
@@ -263,10 +263,7 @@ void main() {
         );
       });
 
-      test('returns null on join failure', () async {
-        // Use a room that the fake can resolve but is already "joined"
-        // — the fake's joinRoom doesn't actually fail, so let's test
-        // with the broken data source to get an exception.
+      test('returns joined ID even when parent refresh fails', () async {
         dataSource = FakeSpaceDiscoveryDataSource(
           delay: Duration.zero,
           failHierarchyForRoomId: null,
@@ -276,20 +273,63 @@ void main() {
           client: mockClient,
         );
 
-        // joinRoom itself doesn't throw in the fake, but we can verify
-        // the method returns null when an exception occurs by using a
-        // data source that throws on joinRoom. For now, verify the
-        // happy path returns the joined ID and the error path returns null
-        // when parentSpaceId hierarchy fetch fails (which triggers refresh).
+        // joinRoom succeeds, but the refresh of the broken parent fails.
+        // join still returns the joined ID.
         final joinedId = await controller.join(
           roomId: '!fake-room-lounge:example.org',
           parentSpaceId: '!fake-broken:example.org',
         );
 
-        // joinRoom succeeds (returns the ID), but the refresh of the
-        // broken parent will fail — join still returns the joined ID.
         expect(joinedId, isNotNull);
+      });
+
+      test('returns null when joinRoom throws', () async {
+        dataSource = _ThrowingJoinDataSource();
+        controller = SpaceRoomsController(
+          dataSource: dataSource,
+          client: mockClient,
+        );
+
+        final joinedId = await controller.join(
+          roomId: '!fake-room-lounge:example.org',
+          parentSpaceId: '!fake-space-0:example.org',
+        );
+
+        expect(joinedId, isNull);
       });
     });
   });
+}
+
+/// A fake data source whose joinRoom always throws.
+class _ThrowingJoinDataSource implements SpaceDiscoveryDataSource {
+  @override
+  Future<QueryPublicRoomsResponse> queryPublicRooms({
+    int? limit,
+    String? since,
+    String? server,
+    PublicRoomQueryFilter? filter,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<GetSpaceHierarchyResponse> getSpaceHierarchy(
+    String roomId, {
+    int? maxDepth,
+    bool? suggestedOnly,
+  }) async {
+    return GetSpaceHierarchyResponse(rooms: []);
+  }
+
+  @override
+  Future<String> joinRoom(String roomIdOrAlias, {List<String>? via}) async {
+    throw Exception('Join failed');
+  }
+
+  @override
+  bool isMember(String roomId) => false;
+
+  @override
+  bool isSpace(String roomId) => false;
 }
