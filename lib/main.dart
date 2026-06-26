@@ -193,10 +193,14 @@ class _KoheraAppState extends State<KoheraApp> {
                         LiveSpaceDiscoveryDataSource(matrix.client),
                   ),
                   ChangeNotifierProvider<SpaceRoomsController>(
-                    create: (ctx) => SpaceRoomsController(
-                      dataSource: ctx.read<SpaceDiscoveryDataSource>(),
-                      client: matrix.client,
-                    ),
+                    create: (ctx) {
+                      final controller = SpaceRoomsController(
+                        dataSource: ctx.read<SpaceDiscoveryDataSource>(),
+                        client: matrix.client,
+                      );
+                      controller.listenToSync();
+                      return controller;
+                    },
                   ),
                   ChangeNotifierProvider<ChatBackupService>.value(
                     value: matrix.chatBackup,

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/matrix_api_lite/model/children_state.dart';
 
 abstract class SpaceDiscoveryDataSource {
   Future<QueryPublicRoomsResponse> queryPublicRooms({
@@ -90,11 +91,13 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
   FakeSpaceDiscoveryDataSource({
     this.delay = const Duration(milliseconds: 400),
     this.failHierarchyForRoomId = '!fake-broken:example.org',
+    this.forbiddenHierarchyForRoomId,
     this.failingServers = const {},
   });
 
   final Duration delay;
-  final String failHierarchyForRoomId;
+  final String? failHierarchyForRoomId;
+  final String? forbiddenHierarchyForRoomId;
   final Set<String> failingServers;
   final Set<String> _joined = {};
 
@@ -161,6 +164,12 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
     bool? suggestedOnly,
   }) async {
     await Future<void>.delayed(delay);
+    if (roomId == forbiddenHierarchyForRoomId) {
+      throw MatrixException.fromJson(<String, Object?>{
+        'errcode': 'M_FORBIDDEN',
+        'error': 'Preview not allowed for $roomId',
+      });
+    }
     if (roomId == failHierarchyForRoomId) {
       throw Exception('Fake hierarchy failure for $roomId');
     }
@@ -307,13 +316,52 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
     // Quantum HQ — rich hierarchy with a subspace.
     out['!fake-space-0:example.org'] = GetSpaceHierarchyResponse(
       rooms: [
-        chunk(
+        SpaceRoomsChunk$2(
+          guestCanJoin: false,
+          numJoinedMembers: 1247,
           roomId: '!fake-space-0:example.org',
+          worldReadable: true,
+          childrenState: [
+            ChildrenState(
+              type: EventTypes.SpaceChild,
+              content: {'suggested': true, 'order': 'a'},
+              senderId: '@admin:example.org',
+              stateKey: '!fake-room-lounge:example.org',
+              originServerTs: DateTime(2024),
+            ),
+            ChildrenState(
+              type: EventTypes.SpaceChild,
+              content: {'order': 'b'},
+              senderId: '@admin:example.org',
+              stateKey: '!fake-room-offtopic:example.org',
+              originServerTs: DateTime(2024),
+            ),
+            ChildrenState(
+              type: EventTypes.SpaceChild,
+              content: {'suggested': true, 'order': 'c'},
+              senderId: '@admin:example.org',
+              stateKey: '!fake-room-devtalk:example.org',
+              originServerTs: DateTime(2024),
+            ),
+            ChildrenState(
+              type: EventTypes.SpaceChild,
+              content: <String, Object?>{},
+              senderId: '@admin:example.org',
+              stateKey: '!fake-subspace-tech:example.org',
+              originServerTs: DateTime(2024),
+            ),
+            ChildrenState(
+              type: EventTypes.SpaceChild,
+              content: {'order': 'd'},
+              senderId: '@admin:example.org',
+              stateKey: '!fake-room-announcements:example.org',
+              originServerTs: DateTime(2024),
+            ),
+          ],
           name: 'Quantum HQ',
           topic: 'Default home for quantum-matrix users.',
-          members: 1247,
+          canonicalAlias: '#quantum-hq:example.org',
           roomType: 'm.space',
-          alias: '#quantum-hq:example.org',
         ),
         chunk(
           roomId: '!fake-room-lounge:example.org',
