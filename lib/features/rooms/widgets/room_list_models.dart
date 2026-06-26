@@ -1,4 +1,5 @@
 import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
+import 'package:kohera/features/spaces/models/space_rooms_model.dart';
 import 'package:matrix/matrix.dart';
 
 // ── List item types for the flat interleaved list ──────────
@@ -60,4 +61,62 @@ class MessageSearchResultItem extends ListItem {
 class LoadMoreMessagesItem extends ListItem {
   final bool isLoading;
   LoadMoreMessagesItem({required this.isLoading});
+}
+
+// ── Unjoined room group (inline in space sections) ──────────
+
+class UnjoinedRoomGroupHeaderItem extends ListItem {
+  final String spaceId;
+  final int unjoinedCount;
+
+  UnjoinedRoomGroupHeaderItem({
+    required this.spaceId,
+    required this.unjoinedCount,
+  });
+}
+
+class UnjoinedRoomItem extends ListItem {
+  final SpaceRoomMetadata metadata;
+  final String parentSpaceId;
+  final int depth;
+
+  UnjoinedRoomItem({
+    required this.metadata,
+    required this.parentSpaceId,
+    this.depth = 0,
+  });
+}
+
+class SubspaceOpenItem extends ListItem {
+  final SpaceRoomMetadata metadata;
+  final String parentSpaceId;
+  final int depth;
+
+  SubspaceOpenItem({
+    required this.metadata,
+    required this.parentSpaceId,
+    this.depth = 0,
+  });
+}
+
+class UnjoinedRoomLoadingItem extends ListItem {
+  final int depth;
+  UnjoinedRoomLoadingItem({this.depth = 0});
+}
+
+class UnjoinedRoomErrorItem extends ListItem {
+  final String error;
+  final String spaceId;
+  final int depth;
+
+  UnjoinedRoomErrorItem({
+    required this.error,
+    required this.spaceId,
+    this.depth = 0,
+  });
+}
+
+class UnjoinedRoomForbiddenItem extends ListItem {
+  final int depth;
+  UnjoinedRoomForbiddenItem({this.depth = 0});
 }

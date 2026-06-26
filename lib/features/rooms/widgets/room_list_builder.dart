@@ -2,6 +2,8 @@ import 'package:kohera/core/models/space_node.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
+import 'package:kohera/features/spaces/models/space_rooms_model.dart';
+import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 import 'package:matrix/matrix.dart';
 
 // ── Section-building helpers for the room list ──────────
@@ -44,8 +46,9 @@ Set<String>? spaceRoomIds(SelectionService matrix) {
 List<ListItem> buildSectionItems(
   SelectionService matrix,
   PreferencesService prefs,
-  String query,
-) {
+  String query, {
+  SpaceRoomsController? spaceRoomsController,
+}) {
   final collapsed = prefs.collapsedSpaceSections;
   final selectedIds = matrix.selectedSpaceIds;
   final tree = matrix.spaceTree;
@@ -65,7 +68,8 @@ List<ListItem> buildSectionItems(
         .where((n) => selectedIds.contains(n.room.id))
         .toList();
     for (final node in visibleNodes) {
-      _addSpaceSection(items, node, 0, matrix, collapsed, pinnedIds, query);
+      _addSpaceSection(items, node, 0, matrix, collapsed, pinnedIds, query,
+          spaceRoomsController,);
     }
   } else {
     // No space selected (Home): Pinned → DMs → Unsorted
@@ -134,8 +138,9 @@ void _addSpaceSection(
   SelectionService matrix,
   Set<String> collapsed,
   Set<String> pinnedIds,
-  String query,
-) {
+  String query, [
+  SpaceRoomsController? spaceRoomsController,
+]) {
   // Single pass: collect subspace room IDs (for dedup) and count them.
   final subspaceRoomIds = <String>{};
   void collectSubspaces(List<SpaceNode> subs) {
@@ -156,8 +161,16 @@ void _addSpaceSection(
   final totalRooms = rooms.length + subspaceRoomIds.length;
 
   // Always show subspace headers so users can see and manage newly created
-  // (empty) subspaces. Only skip empty top-level space sections.
-  if (totalRooms == 0 && node.subspaces.isEmpty && depth == 0) return;
+  // (empty) subspaces. Only skip empty top-level space sections when there
+  // are no matching unjoined rooms either.
+  final hasMatchingUnjoined = spaceRoomsController != null &&
+      _hasMatchingUnjoined(spaceRoomsController, node.room.id, query);
+  if (totalRooms == 0 &&
+      node.subspaces.isEmpty &&
+      depth == 0 &&
+      !hasMatchingUnjoined) {
+    return;
+  }
 
   items.add(HeaderItem(
     name: node.room.getLocalizedDisplayname(),
@@ -178,7 +191,103 @@ void _addSpaceSection(
     }
     for (final sub in node.subspaces) {
       _addSpaceSection(
-          items, sub, depth + 1, matrix, collapsed, pinnedIds, query,);
+          items, sub, depth + 1, matrix, collapsed, pinnedIds, query,
+          spaceRoomsController,);
     }
+    _addUnjoinedGroup(items, node, depth, spaceRoomsController, query);
   }
+}
+
+void _addUnjoinedGroup(
+  List<ListItem> items,
+  SpaceNode node,
+  int depth,
+  SpaceRoomsController? controller,
+  String query,
+) {
+  if (controller == null) return;
+
+  final state = controller.getRoomState(node.room.id);
+  final q = query.toLowerCase();
+
+  // Not yet fetched — show a slim loader.
+  if (!controller.isCached(node.room.id) || state.loading) {
+    items.add(UnjoinedRoomLoadingItem(depth: depth));
+    return;
+  }
+
+  // Error states.
+  if (state.previewForbidden) {
+    items.add(UnjoinedRoomForbiddenItem(depth: depth));
+    return;
+  }
+  if (state.error != null) {
+    items.add(UnjoinedRoomErrorItem(
+      error: state.error!,
+      spaceId: node.room.id,
+      depth: depth,
+    ),);
+    return;
+  }
+
+  // Filter by search query.
+  bool metadataMatchesQuery(SpaceRoomMetadata m) {
+    if (q.isEmpty) return true;
+    final name = (m.name ?? m.roomId).toLowerCase();
+    if (name.contains(q)) return true;
+    return false;
+  }
+
+  final unjoinedRooms = state.unjoinedRooms
+      .where(metadataMatchesQuery)
+      .toList();
+  final subspaces = state.subspaces
+      .where(metadataMatchesQuery)
+      .toList();
+
+  // Nothing to show.
+  if (unjoinedRooms.isEmpty && subspaces.isEmpty) return;
+
+  // Group header.
+  items.add(UnjoinedRoomGroupHeaderItem(
+    spaceId: node.room.id,
+    unjoinedCount: unjoinedRooms.length + subspaces.length,
+  ),);
+
+  // Unjoined room tiles.
+  for (final m in unjoinedRooms) {
+    items.add(UnjoinedRoomItem(
+      metadata: m,
+      parentSpaceId: node.room.id,
+      depth: depth,
+    ),);
+  }
+
+  // Unjoined subspace tiles with "Open" affordance.
+  for (final m in subspaces) {
+    items.add(SubspaceOpenItem(
+      metadata: m,
+      parentSpaceId: node.room.id,
+      depth: depth,
+    ),);
+  }
+}
+
+bool _hasMatchingUnjoined(
+  SpaceRoomsController controller,
+  String spaceId,
+  String query,
+) {
+  if (!controller.isCached(spaceId)) return false;
+  final state = controller.getRoomState(spaceId);
+  if (state.loading || state.error != null || state.previewForbidden) {
+    return true;
+  }
+  final q = query.toLowerCase();
+  bool matches(SpaceRoomMetadata m) {
+    if (q.isEmpty) return true;
+    return (m.name ?? m.roomId).toLowerCase().contains(q);
+  }
+  return state.unjoinedRooms.any(matches) ||
+      state.subspaces.any(matches);
 }
