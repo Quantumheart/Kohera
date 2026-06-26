@@ -2,6 +2,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -263,6 +264,94 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Join Space'), findsNothing);
+    });
+  });
+
+  group('SpaceDiscoveryDialog.showSpaceRooms', () {
+    late FakeSpaceDiscoveryDataSource dataSource;
+
+    setUp(() {
+      dataSource = FakeSpaceDiscoveryDataSource(delay: Duration.zero);
+    });
+
+    Widget buildTestWidget() {
+      return MultiProvider(
+        providers: [
+          ChangeNotifierProvider<MatrixService>.value(
+            value: mockMatrixService,
+          ),
+          ChangeNotifierProvider<SelectionService>.value(
+            value: selectionService,
+          ),
+        ],
+        child: MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () => SpaceDiscoveryDialog.showSpaceRooms(
+                  context,
+                  matrixService: mockMatrixService,
+                  roomId: '!fake-space-0:example.org',
+                  name: 'Quantum HQ',
+                  dataSource: dataSource,
+                ),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('opens directly to space preview', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Explore spaces'), findsNothing);
+      expect(find.text('Quantum HQ'), findsWidgets);
+      expect(find.text('Rooms in this space'), findsOneWidget);
+    });
+
+    testWidgets('shows Open header for a joined space', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.runAsync(() => dataSource.joinRoom('!fake-space-0:example.org'));
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Join space'), findsNothing);
+      expect(
+        find.widgetWithText(OutlinedButton, 'Open'),
+        findsAtLeastNWidgets(1),
+      );
+    });
+
+    testWidgets('shows Join for unjoined child rooms', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.runAsync(() => dataSource.joinRoom('!fake-space-0:example.org'));
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Join'), findsAtLeastNWidgets(1));
+    });
+
+    testWidgets('back button closes seeded preview', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.runAsync(() => dataSource.joinRoom('!fake-space-0:example.org'));
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Quantum HQ'), findsWidgets);
+
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Quantum HQ'), findsNothing);
+      expect(find.text('Explore spaces'), findsNothing);
     });
   });
 }

@@ -105,10 +105,11 @@ void main() {
       expect(find.text('Space not found'), findsOneWidget);
     });
 
-    testWidgets('shows Invite and Leave actions', (tester) async {
+    testWidgets('shows Browse rooms, Invite and Leave actions', (tester) async {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
+      expect(find.text('Browse rooms'), findsOneWidget);
       expect(find.text('Invite'), findsOneWidget);
       expect(find.text('Leave'), findsOneWidget);
     });
@@ -121,6 +122,36 @@ void main() {
 
       expect(find.text('Invite'), findsNothing);
       expect(find.text('Leave'), findsOneWidget);
+    });
+
+    testWidgets('Browse rooms opens space preview dialog', (tester) async {
+      when(mockClient.getSpaceHierarchy(
+        '!space:example.com',
+        maxDepth: anyNamed('maxDepth'),
+        suggestedOnly: anyNamed('suggestedOnly'),
+      ),).thenAnswer((_) async => GetSpaceHierarchyResponse(
+        rooms: [
+          SpaceRoomsChunk$2(
+            guestCanJoin: false,
+            numJoinedMembers: 5,
+            roomId: '!space:example.com',
+            worldReadable: true,
+            childrenState: const [],
+            name: 'Test Space',
+            canonicalAlias: '#test-space:example.com',
+            roomType: 'm.space',
+          ),
+        ],
+      ),);
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Browse rooms'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Test Space'), findsWidgets);
+      expect(find.text('This space has no rooms yet.'), findsOneWidget);
     });
 
     testWidgets('renders as Scaffold when isFullPage is true', (tester) async {

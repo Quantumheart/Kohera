@@ -8,6 +8,7 @@ import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
 import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:kohera/features/spaces/widgets/notification_radio_group.dart';
+import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
 import 'package:kohera/shared/widgets/detail_action_button.dart';
@@ -211,6 +212,11 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
+          DetailActionButton(
+            icon: Icons.meeting_room_outlined,
+            label: 'Browse rooms',
+            onTap: () => _browseSpaceRooms(space),
+          ),
           if (space.canInvite)
             DetailActionButton(
               icon: Icons.person_add_outlined,
@@ -225,6 +231,17 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _browseSpaceRooms(Room space) async {
+    await SpaceDiscoveryDialog.showSpaceRooms(
+      context,
+      matrixService: context.read<MatrixService>(),
+      roomId: space.id,
+      name: space.getLocalizedDisplayname(),
+      avatar: space.avatar,
+      canonicalAlias: space.canonicalAlias,
     );
   }
 }

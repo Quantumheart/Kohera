@@ -418,10 +418,12 @@ class SpaceDiscoveryDialog extends StatefulWidget {
   const SpaceDiscoveryDialog._({
     required this.matrixService,
     required this.dataSource,
+    this.initialFrame,
   });
 
   final MatrixService matrixService;
   final SpaceDiscoveryDataSource dataSource;
+  final PreviewFrame? initialFrame;
 
   static Future<void> show(
     BuildContext context, {
@@ -439,12 +441,40 @@ class SpaceDiscoveryDialog extends StatefulWidget {
     );
   }
 
+  /// Opens the dialog directly to the preview for a specific space,
+  /// bypassing the public search list. Use this for joined spaces.
+  static Future<void> showSpaceRooms(
+    BuildContext context, {
+    required MatrixService matrixService,
+    required String roomId,
+    String? name,
+    Uri? avatar,
+    String? canonicalAlias,
+    SpaceDiscoveryDataSource? dataSource,
+  }) {
+    final ds = dataSource ??
+        defaultSpaceDiscoveryDataSource(matrixService.client);
+    return showDialog(
+      context: context,
+      builder: (_) => SpaceDiscoveryDialog._(
+        matrixService: matrixService,
+        dataSource: ds,
+        initialFrame: PreviewFrame(
+          roomId: roomId,
+          fallbackName: name,
+          fallbackAvatar: avatar,
+          canonicalAlias: canonicalAlias,
+        ),
+      ),
+    );
+  }
+
   @override
   State<SpaceDiscoveryDialog> createState() => _SpaceDiscoveryDialogState();
 }
 
-class _PreviewFrame {
-  _PreviewFrame({
+class PreviewFrame {
+  PreviewFrame({
     required this.roomId,
     this.fallbackName,
     this.fallbackAvatar,
@@ -470,7 +500,8 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
   String? _error;
   String? _joiningRoomId;
   String? _joinError;
-  final List<_PreviewFrame> _previewStack = [];
+  final List<PreviewFrame> _previewStack = [];
+  bool _directlySeeded = false;
 
   String? _nextBatch;
   bool _loadingMore = false;
@@ -605,7 +636,14 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
   @override
   void initState() {
     super.initState();
-    unawaited(_load());
+    final initial = widget.initialFrame;
+    if (initial != null) {
+      _directlySeeded = true;
+      _previewStack.add(initial);
+      unawaited(_loadHierarchy(initial));
+    } else {
+      unawaited(_load());
+    }
   }
 
   @override
@@ -760,7 +798,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
 
   void _openPreview(PublishedRoomsChunk chunk) {
     debugPrint('[Kohera] Space preview opened: ${chunk.roomId}');
-    final frame = _PreviewFrame(
+    final frame = PreviewFrame(
       roomId: chunk.roomId,
       fallbackName: chunk.name ?? chunk.canonicalAlias,
       fallbackAvatar: chunk.avatarUrl,
@@ -779,7 +817,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
       return;
     }
     debugPrint('[Kohera] Space subspace opened: ${child.roomId}');
-    final frame = _PreviewFrame(
+    final frame = PreviewFrame(
       roomId: child.roomId,
       fallbackName: child.name ?? child.canonicalAlias,
       fallbackAvatar: child.avatarUrl,
@@ -794,13 +832,17 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
 
   void _popPreview() {
     if (_previewStack.isEmpty) return;
+    if (_directlySeeded && _previewStack.length == 1) {
+      Navigator.pop(context);
+      return;
+    }
     setState(() {
       _previewStack.removeLast();
       _joinError = null;
     });
   }
 
-  Future<void> _loadHierarchy(_PreviewFrame frame) async {
+  Future<void> _loadHierarchy(PreviewFrame frame) async {
     try {
       final resp = await widget.dataSource.getSpaceHierarchy(
         frame.roomId,
@@ -820,7 +862,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
     }
   }
 
-  Future<void> _retryHierarchy(_PreviewFrame frame) async {
+  Future<void> _retryHierarchy(PreviewFrame frame) async {
     setState(() {
       frame.error = null;
       frame.hierarchy = null;
@@ -877,6 +919,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
     final size = MediaQuery.sizeOf(context);
     final isWide = size.width >= HomeShell.wideBreakpoint;
     final inPreview = _previewStack.isNotEmpty;
+    final atRootPreview = _directlySeeded && _previewStack.length == 1;
     final isJoiningAny = _joiningRoomId != null;
 
     final Widget content;
@@ -892,6 +935,15 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
         tooltip: 'Back',
         onPressed: isJoiningAny ? null : _popPreview,
       );
+    } else if (_directlySeeded) {
+      // Seeded preview was popped; close the dialog since there's no
+      // underlying search list to return to.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) Navigator.pop(context);
+      });
+      content = const SizedBox.shrink();
+      title = '';
+      leading = null;
     } else {
       content = _buildList();
       title = 'Explore spaces';
@@ -899,7 +951,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
     }
 
     return PopScope(
-      canPop: !isJoiningAny && !inPreview,
+      canPop: !isJoiningAny && (!inPreview || atRootPreview),
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && inPreview && !isJoiningAny) _popPreview();
       },
@@ -1057,7 +1109,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
 
   // ── Preview view ────────────────────────────────────────────────
 
-  Widget _buildPreview(_PreviewFrame frame) {
+  Widget _buildPreview(PreviewFrame frame) {
     final cs = Theme.of(context).colorScheme;
 
     if (frame.error != null) {
