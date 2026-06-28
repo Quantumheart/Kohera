@@ -653,7 +653,13 @@ void main() {
   // ── unreadCount ────────────────────────────────────────────
 
   group('unreadCount', () {
-    test('cached count matches actual unread after fetch', () async {
+    test('reflects totalUnreadCount from SDK room state, not paged notifications', () async {
+      final room1 = MockRoom();
+      final room2 = MockRoom();
+      when(room1.notificationCount).thenReturn(3);
+      when(room2.notificationCount).thenReturn(5);
+      when(mockClient.rooms).thenReturn([room1, room2]);
+
       when(mockClient.getNotifications(
         limit: anyNamed('limit'),
         only: anyNamed('only'),
@@ -663,35 +669,89 @@ void main() {
             _makeNotification(eventId: 'e3', roomId: '!r2:x'),
           ]),);
 
-      expect(controller.unreadCount, 0);
+      expect(controller.unreadCount, 8);
 
       await controller.fetch();
 
-      expect(controller.unreadCount, 2);
+      expect(controller.unreadCount, 8);
     });
 
-    test('unreadCount updates after loadMore', () async {
-      when(mockClient.getNotifications(
-        limit: anyNamed('limit'),
-        only: anyNamed('only'),
-      ),).thenAnswer((_) async => _makeResponse(
-            [_makeNotification(eventId: 'e1', roomId: '!r1:x')],
-            nextToken: 'page2',
-          ),);
-
-      await controller.fetch();
-      expect(controller.unreadCount, 1);
+    test('is independent of inbox filter changes', () async {
+      final room1 = MockRoom();
+      final room2 = MockRoom();
+      when(room1.notificationCount).thenReturn(2);
+      when(room2.notificationCount).thenReturn(1);
+      when(mockClient.rooms).thenReturn([room1, room2]);
+      when(mockClient.userID).thenReturn('@me:example.com');
 
       when(mockClient.getNotifications(
         limit: anyNamed('limit'),
-        from: 'page2',
         only: anyNamed('only'),
       ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(eventId: 'e1', roomId: '!r1:x'),
             _makeNotification(eventId: 'e2', roomId: '!r2:x'),
           ]),);
 
-      await controller.loadMore();
-      expect(controller.unreadCount, 2);
+      await controller.fetch();
+      expect(controller.unreadCount, 3);
+
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(
+              eventId: 'm1',
+              roomId: '!r1:x',
+              actions: [
+                'notify',
+                {'set_tweak': 'highlight'},
+              ],
+            ),
+          ]),);
+
+      controller.setFilter(InboxFilter.mentions);
+
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.grouped, hasLength(1));
+      expect(controller.unreadCount, 3);
+    });
+
+    test('does not drop to zero when filter clears grouped list', () async {
+      final room1 = MockRoom();
+      when(room1.notificationCount).thenReturn(4);
+      when(mockClient.rooms).thenReturn([room1]);
+
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([
+            _makeNotification(eventId: 'e1', roomId: '!r1:x'),
+          ]),);
+
+      await controller.fetch();
+      expect(controller.unreadCount, 4);
+
+      final completer = Completer<GetNotificationsResponse>();
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) => completer.future);
+
+      controller.setFilter(InboxFilter.threads);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.grouped, isEmpty);
+      expect(controller.unreadCount, 4);
+
+      completer.complete(_makeResponse([
+        _makeNotification(eventId: 't1', roomId: '!r1:x'),
+      ]),);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(controller.unreadCount, 4);
     });
   });
 
