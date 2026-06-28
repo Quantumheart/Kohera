@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.9.0](https://github.com/Quantumheart/Kohera/compare/v1.8.1...v1.9.0) (2026-06-28)
+
+
+### Features
+
+* **chat:** open user profile sheet on tapping sender avatar ([40054d0](https://github.com/Quantumheart/Kohera/commit/40054d07b7905ae82a9962b65bfb576efa2a1c12)), closes [#669](https://github.com/Quantumheart/Kohera/issues/669)
+* empty state for joined space with zero joined rooms ([#681](https://github.com/Quantumheart/Kohera/issues/681)) ([b16c1e5](https://github.com/Quantumheart/Kohera/commit/b16c1e55af86fb80a6396fe3fda619ab277a10d8)), closes [#682](https://github.com/Quantumheart/Kohera/issues/682)
+* implement showSpaceRooms for direct space preview access ([fc4b8bd](https://github.com/Quantumheart/Kohera/commit/fc4b8bda7b70e4f9a68c68bedd023eab24349d4d)), closes [#679](https://github.com/Quantumheart/Kohera/issues/679)
+* inline unjoined child rooms in room list with one-tap Join ([#680](https://github.com/Quantumheart/Kohera/issues/680)) ([2513148](https://github.com/Quantumheart/Kohera/commit/2513148d243d27a82f8ccb3d372e41ff71796083))
+* resolve accurate joined-member count in room/space headers ([048796c](https://github.com/Quantumheart/Kohera/commit/048796ca1cea352bc93baa6260101617549e956f))
+* **spaces:** implement space child room hierarchy data layer (Issue [#678](https://github.com/Quantumheart/Kohera/issues/678)) ([5af5dbc](https://github.com/Quantumheart/Kohera/commit/5af5dbcd546c9d671546507634d089792c48d5c8))
+
+
+### Bug Fixes
+
+* **calling:** advertise the connected SFU so the focus stays sticky ([e2af045](https://github.com/Quantumheart/Kohera/commit/e2af045f1da09768a11c93f95ae910ad3d4cc453)), closes [#668](https://github.com/Quantumheart/Kohera/issues/668)
+* **calling:** converge federated calls on the oldest member's SFU ([bab21c7](https://github.com/Quantumheart/Kohera/commit/bab21c77168be4c1ec26e7e99393100c22e4c961)), closes [#668](https://github.com/Quantumheart/Kohera/issues/668)
+* **chat:** guard OpenMoji precache against deactivated context ([b6f9e0d](https://github.com/Quantumheart/Kohera/commit/b6f9e0de9d57a36129dfdea9c3a5993f44a9ed7d))
+* **chat:** show pointer cursor on hover action bar buttons ([42e3edc](https://github.com/Quantumheart/Kohera/commit/42e3edc6881496844be0fe9e2ed51d332a1187fc))
+* **chat:** show pointer cursor on tappable sender avatar ([f7dfe93](https://github.com/Quantumheart/Kohera/commit/f7dfe9353711090ffdb1abc37684e88ae32e6e88))
+* identify call participants by sender, not state-key regex ([e7788b0](https://github.com/Quantumheart/Kohera/commit/e7788b0a2f4af06a0f3f2317c3d56bd4bfe91a3c)), closes [#191](https://github.com/Quantumheart/Kohera/issues/191)
+* pass via servers and alias to join from room tile ([31fba06](https://github.com/Quantumheart/Kohera/commit/31fba064a163a4eee923c46293e6df43e6fb4607)), closes [#687](https://github.com/Quantumheart/Kohera/issues/687) [#682](https://github.com/Quantumheart/Kohera/issues/682)
+* **spaces:** meet all acceptance criteria for issue [#678](https://github.com/Quantumheart/Kohera/issues/678) ([0ff5565](https://github.com/Quantumheart/Kohera/commit/0ff556586f86053f4fcfb2ae46ff23d0f929b2e7))
+* **spaces:** provider type mismatch + real join-failure test ([9b484e3](https://github.com/Quantumheart/Kohera/commit/9b484e3e7f0647829efa6867fd731d16efe31ce5))
+* **spaces:** resolve analyzer warnings in space rooms hierarchy ([ec1d40e](https://github.com/Quantumheart/Kohera/commit/ec1d40ef9221165f84b0b94a2954fac174a0a309))
+
 ## [1.8.1](https://github.com/Quantumheart/Kohera/compare/v1.8.0...v1.8.1) (2026-06-23)
 
 
