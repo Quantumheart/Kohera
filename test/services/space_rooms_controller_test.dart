@@ -122,6 +122,19 @@ void main() {
         expect(announcements.isSuggested, false);
       });
 
+      test('populates canonicalAlias and viaServers from hierarchy', () async {
+        const parentId = '!fake-space-0:example.org';
+
+        await controller.fetchSpaceRooms(parentId);
+
+        final state = controller.getRoomState(parentId);
+
+        final lounge = state.unjoinedRooms.firstWhere(
+          (r) => r.roomId == '!fake-room-lounge:example.org',
+        );
+        expect(lounge.canonicalAlias, '#lounge:example.org');
+      });
+
       test('sorts suggested-first then by m.space.child order', () async {
         const parentId = '!fake-space-0:example.org';
 

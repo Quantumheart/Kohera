@@ -4,36 +4,38 @@ import 'package:matrix/matrix.dart';
 class SpaceRoomMetadata {
   final String roomId;
   final String? name;
+  final String? canonicalAlias;
   final Uri? avatar;
   final int memberCount;
   final String roomType;
   final bool isSuggested;
+  final List<String> viaServers;
 
   const SpaceRoomMetadata({
     required this.roomId,
     required this.name,
     required this.memberCount,
     required this.roomType,
+    this.canonicalAlias,
     this.avatar,
     this.isSuggested = false,
+    this.viaServers = const [],
   });
 
-  /// Creates metadata from a hierarchy chunk.
-  ///
-  /// [isSuggested] should be extracted from the parent space's
-  /// `m.space.child` state event for this room (the `suggested` content
-  /// field). Defaults to `false` when not provided.
   factory SpaceRoomMetadata.fromHierarchy(
     SpaceRoomsChunk$2 chunk, {
     bool isSuggested = false,
+    List<String> viaServers = const [],
   }) {
     return SpaceRoomMetadata(
       roomId: chunk.roomId,
       name: chunk.name,
+      canonicalAlias: chunk.canonicalAlias,
       avatar: chunk.avatarUrl,
       memberCount: chunk.numJoinedMembers,
       roomType: chunk.roomType ?? 'm.room',
       isSuggested: isSuggested,
+      viaServers: viaServers,
     );
   }
 }

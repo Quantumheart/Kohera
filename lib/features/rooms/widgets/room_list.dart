@@ -574,6 +574,10 @@ class _UnjoinedRoomTileState extends State<_UnjoinedRoomTile> {
     });
     final result = await widget.controller.join(
       roomId: widget.metadata.roomId,
+      alias: widget.metadata.canonicalAlias,
+      via: widget.metadata.viaServers.isNotEmpty
+          ? widget.metadata.viaServers
+          : null,
       parentSpaceId: widget.parentSpaceId,
     );
     if (!mounted) return;
