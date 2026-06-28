@@ -50,6 +50,7 @@ class SpaceRoomsController extends ChangeNotifier {
       // m.space.child state events (childrenState on the parent's chunk).
       final childSuggested = <String, bool>{};
       final childOrder = <String, String>{};
+      final childVia = <String, List<String>>{};
       for (final chunk in response.rooms) {
         if (chunk.roomId == spaceId) {
           for (final child in chunk.childrenState) {
@@ -59,6 +60,10 @@ class SpaceRoomsController extends ChangeNotifier {
               final order = child.content.tryGet<String>('order') ?? '';
               if (order.isNotEmpty) {
                 childOrder[child.stateKey!] = order;
+              }
+              final viaList = child.content.tryGetList<String>('via');
+              if (viaList != null && viaList.isNotEmpty) {
+                childVia[child.stateKey!] = viaList;
               }
             }
           }
@@ -79,6 +84,7 @@ class SpaceRoomsController extends ChangeNotifier {
         final metadata = SpaceRoomMetadata.fromHierarchy(
           chunk,
           isSuggested: childSuggested[chunk.roomId] ?? false,
+          viaServers: childVia[chunk.roomId] ?? const [],
         );
 
         if (chunk.roomType == 'm.space') {
