@@ -20,6 +20,7 @@ import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
 import 'package:kohera/features/whats_new/widgets/whats_new_banner.dart';
 import 'package:kohera/shared/widgets/speed_dial_item.dart';
+import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 class RoomList extends StatefulWidget {
@@ -136,6 +137,39 @@ class _RoomListState extends State<RoomList>
     return '${ids.length} spaces';
   }
 
+  /// Returns the selected [Room] if it is a space with zero joined rooms
+  /// and the hierarchy has (or is fetching) unjoined children.
+  /// Returns `null` otherwise, falling back to the default empty state.
+  Room? _spaceWithNoJoinedRooms(
+    SelectionService selection,
+    MatrixService matrix,
+    SpaceRoomsController spaceRoomsController,
+  ) {
+    // Only applies when exactly one space is selected and no search is active.
+    if (selection.selectedSpaceIds.length != 1) return null;
+    if (_query.isNotEmpty) return null;
+
+    final spaceId = selection.selectedSpaceIds.first;
+    final space = matrix.client.getRoomById(spaceId);
+    if (space == null || !space.isSpace) return null;
+
+    // Must have zero joined rooms in this space.
+    final joinedRooms = selection.roomsForSpace(spaceId);
+    if (joinedRooms.isNotEmpty) return null;
+
+    // Check the hierarchy state — loading / error / forbidden also show the
+    // empty state (with appropriate messaging) so the user doesn't see a
+    // blank pane.  If the hierarchy is loaded and has no children, fall back
+    // to the default empty treatment.
+    final state = spaceRoomsController.getRoomState(spaceId);
+    if (!spaceRoomsController.isCached(spaceId)) return space;
+    if (state.loading || state.error != null || state.previewForbidden) {
+      return space;
+    }
+    if (state.unjoinedRooms.isEmpty && state.subspaces.isEmpty) return null;
+    return space;
+  }
+
   @override
   Widget build(BuildContext context) {
     final selection = context.watch<SelectionService>();
@@ -191,6 +225,16 @@ class _RoomListState extends State<RoomList>
     final isEmpty = !hasRoomItems && !hasMessageResults && !isMessageSearchActive;
     final isNarrow =
         MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
+
+    // Check if we should show the centered empty state for a space with
+    // zero joined rooms (issue #681).  This takes priority over the normal
+    // list rendering so the user sees a clear CTA instead of a header with
+    // an inline unjoined group.
+    final spaceEmpty = _spaceWithNoJoinedRooms(
+      selection,
+      matrix,
+      spaceRoomsController,
+    );
 
     return PopScope(
       canPop: !_searchOpen,
@@ -269,22 +313,28 @@ class _RoomListState extends State<RoomList>
               const WhatsNewBanner(),
               // ── Sectioned room list ──
               Expanded(
-                child: isEmpty && items.isEmpty
-                    ? Center(
-                        child: Text(
-                          _query.isNotEmpty
-                              ? 'No results for "$_query"'
-                              : 'No rooms yet',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(
-                                color: cs.onSurfaceVariant
-                                    .withValues(alpha: 0.6),
-                              ),
-                        ),
+                child: spaceEmpty != null
+                    ? _SpaceEmptyState(
+                        space: spaceEmpty,
+                        controller: spaceRoomsController,
+                        matrixService: matrix,
                       )
-                    : ListView.builder(
+                    : isEmpty && items.isEmpty
+                        ? Center(
+                            child: Text(
+                              _query.isNotEmpty
+                                  ? 'No results for "$_query"'
+                                  : 'No rooms yet',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: cs.onSurfaceVariant
+                                        .withValues(alpha: 0.6),
+                                  ),
+                            ),
+                          )
+                        : ListView.builder(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 8, vertical: 4,),
                         itemCount: items.length,
@@ -709,6 +759,195 @@ class _UnjoinedForbiddenTile extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Empty state for a space with zero joined rooms ─────────────────────────
+
+class _SpaceEmptyState extends StatelessWidget {
+  const _SpaceEmptyState({
+    required this.space,
+    required this.controller,
+    required this.matrixService,
+  });
+
+  final Room space;
+  final SpaceRoomsController controller;
+  final MatrixService matrixService;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final state = controller.getRoomState(space.id);
+
+    // ── Loading ──
+    if (!controller.isCached(space.id) || state.loading) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Loading rooms…',
+              style: tt.bodyMedium?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // ── Error ──
+    if (state.error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 40, color: cs.error),
+              const SizedBox(height: 16),
+              Text('Could not load rooms', style: tt.titleMedium),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  unawaited(controller.fetchSpaceRooms(space.id));
+                },
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // ── Forbidden ──
+    if (state.previewForbidden) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.lock_outline, size: 40, color: cs.onSurfaceVariant),
+              const SizedBox(height: 16),
+              Text(
+                "You're in the ${space.getLocalizedDisplayname()} space",
+                style: tt.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'This space hides its room list. '
+                'Join rooms to start seeing messages.',
+                style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () {
+                  unawaited(SpaceDiscoveryDialog.showSpaceRooms(
+                    context,
+                    matrixService: matrixService,
+                    roomId: space.id,
+                    name: space.getLocalizedDisplayname(),
+                    avatar: space.avatar,
+                    canonicalAlias: space.canonicalAlias,
+                  ),);
+                },
+                child: const Text('Browse rooms'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // ── Success: unjoined children available ──
+    final totalRooms = state.unjoinedRooms.length + state.subspaces.length;
+
+    return Center(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Space avatar
+              CircleAvatar(
+                radius: 40,
+                backgroundColor: cs.surfaceContainerHighest,
+                child: Icon(Icons.workspaces_outlined,
+                    size: 40, color: cs.onSurfaceVariant,),
+              ),
+              const SizedBox(height: 24),
+
+              // Title
+              Text(
+                "You're in the ${space.getLocalizedDisplayname()} space",
+                style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+
+              // Description
+              Text(
+                'Join rooms to start seeing messages',
+                style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+
+              // Browse rooms button
+              FilledButton(
+                onPressed: () {
+                  unawaited(SpaceDiscoveryDialog.showSpaceRooms(
+                    context,
+                    matrixService: matrixService,
+                    roomId: space.id,
+                    name: space.getLocalizedDisplayname(),
+                    avatar: space.avatar,
+                    canonicalAlias: space.canonicalAlias,
+                  ),);
+                },
+                child: Text('Browse $totalRooms rooms'),
+              ),
+              const SizedBox(height: 24),
+
+              // Inline join list
+              Text(
+                'or join directly',
+                style: tt.labelMedium?.copyWith(color: cs.onSurfaceVariant),
+              ),
+              const SizedBox(height: 8),
+
+              // Unjoined room tiles
+              for (final metadata in state.unjoinedRooms.take(5))
+                _UnjoinedRoomTile(
+                  metadata: metadata,
+                  parentSpaceId: space.id,
+                  controller: controller,
+                ),
+
+              // Subspace tiles
+              for (final metadata in state.subspaces.take(3))
+                _SubspaceOpenTile(
+                  metadata: metadata,
+                  parentSpaceId: space.id,
+                  matrixService: matrixService,
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
