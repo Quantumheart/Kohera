@@ -268,7 +268,7 @@ void main() {
       await tester.pumpWidget(buildSpaceTestApp());
       await tester.pumpAndSettle();
 
-      expect(find.text('5'), findsOneWidget);
+      expect(find.text('5'), findsNWidgets(2));
     });
 
     testWidgets('no badge when child rooms have zero notifications',
