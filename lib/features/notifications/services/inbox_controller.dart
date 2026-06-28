@@ -39,11 +39,10 @@ class InboxController extends ChangeNotifier {
   static const _debounceDelay = Duration(milliseconds: 750);
 
   int _fetchGeneration = 0;
-  int _cachedUnreadCount = 0;
 
   // ── Public getters ─────────────────────────────────────────
 
-  int get unreadCount => _cachedUnreadCount;
+  int get unreadCount => totalUnreadCount(_client);
 
   bool get hasMore => _nextToken != null;
 
@@ -54,16 +53,6 @@ class InboxController extends ChangeNotifier {
       _grouper.threadRootIdFor(n);
 
   bool isMention(matrix_sdk.Notification n) => _grouper.isMention(n);
-
-  // ── Unread count cache helper ──────────────────────────────
-
-  void _updateUnreadCount() {
-    var count = 0;
-    for (final group in _grouped) {
-      count += group.notifications.where((n) => !n.read).length;
-    }
-    _cachedUnreadCount = count;
-  }
 
   // ── Fetch ──────────────────────────────────────────────────
 
@@ -121,7 +110,6 @@ class InboxController extends ChangeNotifier {
       if (result == null || _disposed || gen != _fetchGeneration) return;
       _nextToken = result.token;
       _grouped = result.grouped;
-      _updateUnreadCount();
     } catch (e) {
       if (_disposed || gen != _fetchGeneration) return;
       if (_isTokenExpired(e)) {
@@ -252,7 +240,6 @@ class InboxController extends ChangeNotifier {
       for (final g in _grouped)
         if (g.roomId != roomId) g,
     ];
-    _updateUnreadCount();
     final remainingUnread = totalUnreadCount(_client) - room.notificationCount;
     final remainingBadge = remainingUnread < 0 ? 0 : remainingUnread;
     unawaited(ApnsPushService.setBadge(remainingBadge));
@@ -314,7 +301,6 @@ class InboxController extends ChangeNotifier {
   void _resetList() {
     _grouped = [];
     _nextToken = null;
-    _updateUnreadCount();
   }
 
   void _startFetch() => unawaited(
