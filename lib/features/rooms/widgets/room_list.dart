@@ -145,7 +145,6 @@ class _RoomListState extends State<RoomList>
     MatrixService matrix,
     SpaceRoomsController spaceRoomsController,
   ) {
-    // Only applies when exactly one space is selected and no search is active.
     if (selection.selectedSpaceIds.length != 1) return null;
     if (_query.isNotEmpty) return null;
 
@@ -153,14 +152,9 @@ class _RoomListState extends State<RoomList>
     final space = matrix.client.getRoomById(spaceId);
     if (space == null || !space.isSpace) return null;
 
-    // Must have zero joined rooms in this space.
     final joinedRooms = selection.roomsForSpace(spaceId);
     if (joinedRooms.isNotEmpty) return null;
 
-    // Check the hierarchy state — loading / error / forbidden also show the
-    // empty state (with appropriate messaging) so the user doesn't see a
-    // blank pane.  If the hierarchy is loaded and has no children, fall back
-    // to the default empty treatment.
     final state = spaceRoomsController.getRoomState(spaceId);
     if (!spaceRoomsController.isCached(spaceId)) return space;
     if (state.loading || state.error != null || state.previewForbidden) {
@@ -226,10 +220,6 @@ class _RoomListState extends State<RoomList>
     final isNarrow =
         MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
 
-    // Check if we should show the centered empty state for a space with
-    // zero joined rooms (issue #681).  This takes priority over the normal
-    // list rendering so the user sees a clear CTA instead of a header with
-    // an inline unjoined group.
     final spaceEmpty = _spaceWithNoJoinedRooms(
       selection,
       matrix,
@@ -783,6 +773,17 @@ class _SpaceEmptyState extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     final state = controller.getRoomState(space.id);
 
+    void browseRooms() {
+      unawaited(SpaceDiscoveryDialog.showSpaceRooms(
+        context,
+        matrixService: matrixService,
+        roomId: space.id,
+        name: space.getLocalizedDisplayname(),
+        avatar: space.avatar,
+        canonicalAlias: space.canonicalAlias,
+      ),);
+    }
+
     // ── Loading ──
     if (!controller.isCached(space.id) || state.loading) {
       return Center(
@@ -854,16 +855,7 @@ class _SpaceEmptyState extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               FilledButton(
-                onPressed: () {
-                  unawaited(SpaceDiscoveryDialog.showSpaceRooms(
-                    context,
-                    matrixService: matrixService,
-                    roomId: space.id,
-                    name: space.getLocalizedDisplayname(),
-                    avatar: space.avatar,
-                    canonicalAlias: space.canonicalAlias,
-                  ),);
-                },
+                onPressed: browseRooms,
                 child: const Text('Browse rooms'),
               ),
             ],
@@ -882,7 +874,6 @@ class _SpaceEmptyState extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Space avatar
               CircleAvatar(
                 radius: 40,
                 backgroundColor: cs.surfaceContainerHighest,
@@ -890,55 +881,34 @@ class _SpaceEmptyState extends StatelessWidget {
                     size: 40, color: cs.onSurfaceVariant,),
               ),
               const SizedBox(height: 24),
-
-              // Title
               Text(
                 "You're in the ${space.getLocalizedDisplayname()} space",
                 style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-
-              // Description
               Text(
                 'Join rooms to start seeing messages',
                 style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-
-              // Browse rooms button
               FilledButton(
-                onPressed: () {
-                  unawaited(SpaceDiscoveryDialog.showSpaceRooms(
-                    context,
-                    matrixService: matrixService,
-                    roomId: space.id,
-                    name: space.getLocalizedDisplayname(),
-                    avatar: space.avatar,
-                    canonicalAlias: space.canonicalAlias,
-                  ),);
-                },
+                onPressed: browseRooms,
                 child: Text('Browse $totalRooms rooms'),
               ),
               const SizedBox(height: 24),
-
-              // Inline join list
               Text(
                 'or join directly',
                 style: tt.labelMedium?.copyWith(color: cs.onSurfaceVariant),
               ),
               const SizedBox(height: 8),
-
-              // Unjoined room tiles
               for (final metadata in state.unjoinedRooms.take(5))
                 _UnjoinedRoomTile(
                   metadata: metadata,
                   parentSpaceId: space.id,
                   controller: controller,
                 ),
-
-              // Subspace tiles
               for (final metadata in state.subspaces.take(3))
                 _SubspaceOpenTile(
                   metadata: metadata,
