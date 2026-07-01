@@ -231,7 +231,7 @@ class RegistrationController extends ChangeNotifier {
 
       await matrixService.completeRegistration(response, password: _password);
       if (!clientManager.services.contains(matrixService)) {
-        clientManager.commitPendingService();
+        await clientManager.commitPendingService();
       }
       _clearCredentials();
       _state = RegistrationState.done;
