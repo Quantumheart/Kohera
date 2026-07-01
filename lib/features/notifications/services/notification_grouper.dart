@@ -1,36 +1,10 @@
+import 'package:clock/clock.dart';
 import 'package:kohera/core/utils/word_boundary.dart';
+import 'package:kohera/features/notifications/enum/inbox_filter.dart';
+import 'package:kohera/features/notifications/models/notification_group.dart';
+import 'package:kohera/features/notifications/models/thread_sub_group.dart';
 import 'package:matrix/matrix.dart' as matrix_sdk;
 import 'package:matrix/matrix.dart' show Client, Event, EventTypes, Membership;
-
-// ── Filter enum ──────────────────────────────────────────────
-
-enum InboxFilter { all, mentions, threads, invitations }
-
-// ── Grouped notification model ───────────────────────────────
-
-class ThreadSubGroup {
-  final String? threadRootId;
-  final List<matrix_sdk.Notification> notifications;
-
-  const ThreadSubGroup({
-    required this.threadRootId,
-    required this.notifications,
-  });
-}
-
-class NotificationGroup {
-  final String roomId;
-  final String roomName;
-  final List<matrix_sdk.Notification> notifications;
-  final List<ThreadSubGroup> subGroups;
-
-  const NotificationGroup({
-    required this.roomId,
-    required this.roomName,
-    required this.notifications,
-    required this.subGroups,
-  });
-}
 
 // ── NotificationGrouper ──────────────────────────────────────
 
@@ -42,10 +16,16 @@ class NotificationGrouper {
 
   final Map<String, Map<String, Object?>> _decryptedContent = {};
 
+  final Map<String, DateTime> _decryptionFailedAt = {};
+  static const _negativeCacheTtl = Duration(seconds: 30);
+
   Map<String, Object?>? decryptedContentFor(String eventId) =>
       _decryptedContent[eventId];
 
-  void clearCache() => _decryptedContent.clear();
+  void clearCache() {
+    _decryptedContent.clear();
+    _decryptionFailedAt.clear();
+  }
 
   // ── Queries ────────────────────────────────────────────────
 
@@ -120,18 +100,33 @@ class NotificationGrouper {
     List<matrix_sdk.Notification> notifications,
     InboxFilter filter,
   ) async {
+    final candidates = _collectCandidates(notifications);
+
+    await Future.wait(candidates.map(_tryDecrypt));
+
     final visible = <matrix_sdk.Notification>[];
+    for (final n in candidates) {
+      if (filter == InboxFilter.mentions && !isMention(n)) continue;
+      if (filter == InboxFilter.threads && threadRootIdFor(n) == null) {
+        continue;
+      }
+      visible.add(n);
+    }
+    return visible;
+  }
+
+  List<matrix_sdk.Notification> _collectCandidates(
+    List<matrix_sdk.Notification> notifications,
+  ) {
+    final candidates = <matrix_sdk.Notification>[];
     final seen = <String>{};
     for (final n in notifications) {
       if (n.read || !seen.add(n.event.eventId)) continue;
       final room = _client.getRoomById(n.roomId);
       if (room == null || room.membership != Membership.join) continue;
-      await _tryDecrypt(n);
-      if (filter == InboxFilter.mentions && !isMention(n)) continue;
-      if (filter == InboxFilter.threads && threadRootIdFor(n) == null) continue;
-      visible.add(n);
+      candidates.add(n);
     }
-    return visible;
+    return candidates;
   }
 
   List<ThreadSubGroup> _buildSubGroups(
@@ -171,8 +166,10 @@ class NotificationGrouper {
 
   Future<Map<String, Object?>?> _tryDecrypt(matrix_sdk.Notification n) async {
     if (n.event.type != EventTypes.Encrypted) return null;
-    final cached = _decryptedContent[n.event.eventId];
+    final eventId = n.event.eventId;
+    final cached = _decryptedContent[eventId];
     if (cached != null) return cached;
+    if (_isFailureCached(eventId)) return null;
     final room = _client.getRoomById(n.roomId);
     if (room == null) return null;
     try {
@@ -181,11 +178,23 @@ class NotificationGrouper {
           ?.decryptRoomEvent(event)
           .timeout(const Duration(seconds: 3));
       if (decrypted != null) {
-        _decryptedContent[n.event.eventId] = decrypted.content;
+        _decryptedContent[eventId] = decrypted.content;
+        _decryptionFailedAt.remove(eventId);
         return decrypted.content;
       }
     } catch (_) {}
+    _decryptionFailedAt[eventId] = clock.now();
     return null;
+  }
+
+  bool _isFailureCached(String eventId) {
+    final failedAt = _decryptionFailedAt[eventId];
+    if (failedAt == null) return false;
+    if (clock.now().difference(failedAt) > _negativeCacheTtl) {
+      _decryptionFailedAt.remove(eventId);
+      return false;
+    }
+    return true;
   }
 }
 
