@@ -16,14 +16,26 @@ class NotificationGrouper {
 
   final Map<String, Map<String, Object?>> _decryptedContent = {};
 
+  // ── Thread-root preview cache ─────────────────────────────
+  // Moved here from _SubGroupSectionState so it is scoped to the active
+  // client/controller and cleared on account switch instead of being a
+  // static map that persists forever.
+  final Map<String, String> _rootPreviewCache = {};
+
   final Map<String, DateTime> _decryptionFailedAt = {};
   static const _negativeCacheTtl = Duration(seconds: 30);
 
   Map<String, Object?>? decryptedContentFor(String eventId) =>
       _decryptedContent[eventId];
 
+  String? rootPreviewFor(String eventId) => _rootPreviewCache[eventId];
+
+  void setRootPreview(String eventId, String preview) =>
+      _rootPreviewCache[eventId] = preview;
+
   void clearCache() {
     _decryptedContent.clear();
+    _rootPreviewCache.clear();
     _decryptionFailedAt.clear();
   }
 

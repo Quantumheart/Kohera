@@ -272,6 +272,7 @@ class _NotificationGroupTile extends StatelessWidget {
                 roomId: group.roomId,
                 subGroup: sub,
                 client: client,
+                controller: controller,
               ),
           ],
         ),
@@ -286,18 +287,19 @@ class _SubGroupSection extends StatefulWidget {
     required this.roomId,
     required this.subGroup,
     required this.client,
+    required this.controller,
   });
 
   final String roomId;
   final ThreadSubGroup subGroup;
   final matrix_sdk.Client client;
+  final InboxController controller;
 
   @override
   State<_SubGroupSection> createState() => _SubGroupSectionState();
 }
 
 class _SubGroupSectionState extends State<_SubGroupSection> {
-  static final Map<String, String> _rootPreviewCache = {};
   String? _rootPreview;
 
   @override
@@ -305,7 +307,7 @@ class _SubGroupSectionState extends State<_SubGroupSection> {
     super.initState();
     final id = widget.subGroup.threadRootId;
     if (id != null) {
-      _rootPreview = _rootPreviewCache[id];
+      _rootPreview = widget.controller.rootPreviewFor(id);
       if (_rootPreview == null) unawaited(_loadRoot(id));
     }
   }
@@ -320,7 +322,7 @@ class _SubGroupSectionState extends State<_SubGroupSection> {
       if (body.isEmpty) return;
       final truncated = body.length > 80 ? '${body.substring(0, 80)}…' : body;
       final preview = InboxText.inReplyTo(truncated);
-      _rootPreviewCache[eventId] = preview;
+      widget.controller.setRootPreview(eventId, preview);
       if (mounted) setState(() => _rootPreview = preview);
     } catch (_) {}
   }
