@@ -5,6 +5,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/calling/models/call_constants.dart';
+import 'package:kohera/features/chat/services/state_event_resolver.dart';
 import 'package:kohera/features/chat/widgets/call_event_tile.dart';
 import 'package:kohera/features/chat/widgets/chat_message_item.dart';
 import 'package:kohera/features/chat/widgets/read_receipts.dart';
@@ -543,7 +544,9 @@ class MessageListViewState extends State<MessageListView> {
               duration: _callDuration(event),
             );
           } else if (_isStateEvent(event)) {
-            tile = StateEventTile(event: event);
+            tile = StateEventTile(
+              item: const StateEventResolver()(event),
+            );
           } else if (event.type == EventTypes.Sticker) {
             final isMe = event.senderId == widget.matrix.client.userID;
             tile = StickerMessageItem(
