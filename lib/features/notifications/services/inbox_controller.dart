@@ -50,6 +50,11 @@ class InboxController extends ChangeNotifier {
   Map<String, Object?>? decryptedContentFor(String eventId) =>
       _grouper.decryptedContentFor(eventId);
 
+  // ── Thread-root preview cache (cleared on account switch) ─────
+  String? rootPreviewFor(String eventId) => _grouper.rootPreviewFor(eventId);
+  void setRootPreview(String eventId, String preview) =>
+      _grouper.setRootPreview(eventId, preview);
+
   String? threadRootIdFor(matrix_sdk.Notification n) =>
       _grouper.threadRootIdFor(n);
 
