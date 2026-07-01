@@ -2,13 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/notification_filter.dart';
+import 'package:kohera/features/notifications/enum/inbox_filter.dart';
+import 'package:kohera/features/notifications/models/notification_group.dart';
 import 'package:kohera/features/notifications/services/apns_push_service.dart';
 import 'package:kohera/features/notifications/services/notification_grouper.dart';
 import 'package:matrix/matrix.dart' as matrix_sdk;
 import 'package:matrix/matrix.dart' show Client, MatrixException, Membership;
 
-export 'package:kohera/features/notifications/services/notification_grouper.dart'
-    show InboxFilter, NotificationGroup, ThreadSubGroup;
+export 'package:kohera/features/notifications/services/notification_grouper.dart';
 
 // ── InboxController ──────────────────────────────────────────
 class InboxController extends ChangeNotifier {

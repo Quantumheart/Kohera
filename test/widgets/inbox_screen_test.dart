@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/home/widgets/inbox_screen.dart';
+import 'package:kohera/features/notifications/enum/inbox_filter.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/matrix.dart' as matrix_sdk;
