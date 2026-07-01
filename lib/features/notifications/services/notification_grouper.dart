@@ -1,6 +1,9 @@
 import 'package:clock/clock.dart';
+import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/core/utils/word_boundary.dart';
 import 'package:kohera/features/notifications/enum/inbox_filter.dart';
+import 'package:kohera/features/notifications/models/kohera_notification_item.dart';
+import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/models/notification_group.dart';
 import 'package:kohera/features/notifications/models/thread_sub_group.dart';
 import 'package:matrix/matrix.dart' as matrix_sdk;
@@ -95,9 +98,19 @@ class NotificationGrouper {
     List<matrix_sdk.Notification> notifications,
     InboxFilter filter,
   ) async {
-    final visible = await _filterVisible(notifications, filter);
+    final candidates = _collectCandidates(notifications);
+    await Future.wait(candidates.map(_tryDecrypt));
+
+    final items = <KoheraNotificationItem>[];
+    for (final n in candidates) {
+      final item = _toItem(n);
+      if (filter == InboxFilter.mentions && !item.isMention) continue;
+      if (filter == InboxFilter.threads && item.threadRootId == null) continue;
+      items.add(item);
+    }
+
     return [
-      for (final bucket in _bucketByRecency(visible, (n) => n.roomId))
+      for (final bucket in _bucketByRecency(items, (n) => n.roomId))
         NotificationGroup(
           roomId: bucket.key,
           roomName: _client.getRoomById(bucket.key)?.getLocalizedDisplayname() ??
@@ -106,25 +119,6 @@ class NotificationGrouper {
           subGroups: _buildSubGroups(bucket.value),
         ),
     ];
-  }
-
-  Future<List<matrix_sdk.Notification>> _filterVisible(
-    List<matrix_sdk.Notification> notifications,
-    InboxFilter filter,
-  ) async {
-    final candidates = _collectCandidates(notifications);
-
-    await Future.wait(candidates.map(_tryDecrypt));
-
-    final visible = <matrix_sdk.Notification>[];
-    for (final n in candidates) {
-      if (filter == InboxFilter.mentions && !isMention(n)) continue;
-      if (filter == InboxFilter.threads && threadRootIdFor(n) == null) {
-        continue;
-      }
-      visible.add(n);
-    }
-    return visible;
   }
 
   List<matrix_sdk.Notification> _collectCandidates(
@@ -141,13 +135,45 @@ class NotificationGrouper {
     return candidates;
   }
 
-  List<ThreadSubGroup> _buildSubGroups(
-    List<matrix_sdk.Notification> notifications,
-  ) {
+  KoheraNotificationItem _toItem(matrix_sdk.Notification n) {
+    final content = _decryptedContent[n.event.eventId] ?? n.event.content;
+    return KoheraNotificationItem(
+      eventId: n.event.eventId,
+      roomId: n.roomId,
+      senderName: _senderName(n),
+      body: _extractBody(content),
+      timestamp: n.ts,
+      isRead: n.read,
+      isMention: isMention(n),
+      threadRootId: threadRootIdFor(n),
+    );
+  }
+
+  String _senderName(matrix_sdk.Notification n) {
+    final room = _client.getRoomById(n.roomId);
+    return room?.unsafeGetUserFromMemoryOrFallback(n.event.senderId)
+            .calcDisplayname() ??
+        n.event.senderId;
+  }
+
+  String _extractBody(Map<String, Object?> content) {
+    final msgtype = content['msgtype'];
+    if (msgtype == matrix_sdk.MessageTypes.Image) return InboxText.mediaImage;
+    if (msgtype == matrix_sdk.MessageTypes.Video) return InboxText.mediaVideo;
+    if (msgtype == matrix_sdk.MessageTypes.Audio) return InboxText.mediaAudio;
+    if (msgtype == matrix_sdk.MessageTypes.File) return InboxText.mediaFile;
+
+    final body = content['body'];
+    if (body is String) return stripReplyFallback(body);
+
+    return '';
+  }
+
+  List<ThreadSubGroup> _buildSubGroups(List<KoheraNotificationItem> items) {
     const mainKey = '__main__';
     return [
       for (final bucket
-          in _bucketByRecency(notifications, (n) => threadRootIdFor(n) ?? mainKey))
+          in _bucketByRecency(items, (n) => n.threadRootId ?? mainKey))
         ThreadSubGroup(
           threadRootId: bucket.key == mainKey ? null : bucket.key,
           notifications: bucket.value,
@@ -155,13 +181,13 @@ class NotificationGrouper {
     ];
   }
 
-  List<MapEntry<String, List<matrix_sdk.Notification>>> _bucketByRecency(
-    List<matrix_sdk.Notification> notifications,
-    String Function(matrix_sdk.Notification) keyOf,
+  List<MapEntry<String, List<KoheraNotificationItem>>> _bucketByRecency(
+    List<KoheraNotificationItem> items,
+    String Function(KoheraNotificationItem) keyOf,
   ) {
-    final buckets = <String, List<matrix_sdk.Notification>>{};
+    final buckets = <String, List<KoheraNotificationItem>>{};
     final order = <String>[];
-    for (final n in notifications) {
+    for (final n in items) {
       final key = keyOf(n);
       buckets.putIfAbsent(key, () {
         order.add(key);
@@ -222,5 +248,5 @@ bool _hasHighlightAction(List<Object?> actions) {
   return false;
 }
 
-int _mostRecentTimestamp(Iterable<matrix_sdk.Notification> notifications) =>
-    notifications.map((n) => n.ts).reduce((a, b) => a > b ? a : b);
+int _mostRecentTimestamp(Iterable<KoheraNotificationItem> items) =>
+    items.map((n) => n.timestamp).reduce((a, b) => a > b ? a : b);

@@ -98,6 +98,9 @@ void main() {
     when(mockClient.getRoomById(any)).thenReturn(mockRoom);
     when(mockClient.encryption).thenReturn(mockEncryption);
     when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
+    when(mockRoom.unsafeGetUserFromMemoryOrFallback(any)).thenReturn(
+      User('@alice:example.com', displayName: 'Alice', room: mockRoom),
+    );
 
     grouper = NotificationGrouper(mockClient);
   });
@@ -141,6 +144,9 @@ void main() {
       final groups = await groupFuture;
       expect(groups, hasLength(1));
       expect(groups[0].notifications, hasLength(3));
+      expect(groups[0].notifications[0].eventId, 'e1');
+      expect(groups[0].notifications[0].body, 'decrypted text');
+      expect(groups[0].notifications[0].senderName, 'Alice');
     });
   });
 
