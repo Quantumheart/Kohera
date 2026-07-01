@@ -94,7 +94,6 @@ class NotificationGroupTile extends StatelessWidget {
               SubGroupSection(
                 roomId: group.roomId,
                 subGroup: sub,
-                client: client,
                 controller: controller,
               ),
           ],

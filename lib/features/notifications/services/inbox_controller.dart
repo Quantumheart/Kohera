@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/notification_filter.dart';
+import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/notifications/enum/inbox_filter.dart';
+import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/models/notification_group.dart';
 import 'package:kohera/features/notifications/services/apns_push_service.dart';
 import 'package:kohera/features/notifications/services/notification_grouper.dart';
@@ -40,6 +42,7 @@ class InboxController extends ChangeNotifier {
   static const _debounceDelay = Duration(milliseconds: 750);
 
   int _fetchGeneration = 0;
+  List<matrix_sdk.Notification> _rawNotifications = [];
 
   // ── Public getters ─────────────────────────────────────────
 
@@ -47,28 +50,38 @@ class InboxController extends ChangeNotifier {
 
   bool get hasMore => _nextToken != null;
 
-  Map<String, Object?>? decryptedContentFor(String eventId) =>
-      _grouper.decryptedContentFor(eventId);
-
   // ── Thread-root preview cache (cleared on account switch) ─────
   String? rootPreviewFor(String eventId) => _grouper.rootPreviewFor(eventId);
   void setRootPreview(String eventId, String preview) =>
       _grouper.setRootPreview(eventId, preview);
 
-  String? threadRootIdFor(matrix_sdk.Notification n) =>
-      _grouper.threadRootIdFor(n);
-
-  bool isMention(matrix_sdk.Notification n) => _grouper.isMention(n);
+  Future<String?> loadRootPreview(String roomId, String eventId) async {
+    final cached = _grouper.rootPreviewFor(eventId);
+    if (cached != null) return cached;
+    final room = _client.getRoomById(roomId);
+    if (room == null) return null;
+    try {
+      final event = await room.getEventById(eventId);
+      if (event == null) return null;
+      final body = stripReplyFallback(event.body).trim();
+      if (body.isEmpty) return null;
+      final truncated =
+          body.length > 80 ? '${body.substring(0, 80)}…' : body;
+      final preview = InboxText.inReplyTo(truncated);
+      _grouper.setRootPreview(eventId, preview);
+      return preview;
+    } catch (_) {
+      return null;
+    }
+  }
 
   // ── Fetch ──────────────────────────────────────────────────
 
-  List<matrix_sdk.Notification> get _flatNotifications => [
-        for (final group in _grouped) ...group.notifications,
-      ];
 
   Future<void> fetch() => _withLoad((gen) async {
         final response = await _client.getNotifications(limit: 30);
         if (_disposed || gen != _fetchGeneration) return null;
+        _rawNotifications = response.notifications;
         final grouped = await _grouper.group(response.notifications, _filter);
         return (grouped: grouped, token: response.nextToken);
       });
@@ -78,11 +91,13 @@ class InboxController extends ChangeNotifier {
         if (_disposed || gen != _fetchGeneration) return null;
         final headIds =
             response.notifications.map((n) => n.event.eventId).toSet();
-        final grouped = await _grouper.group([
+        final merged = [
           ...response.notifications,
-          for (final n in _flatNotifications)
+          for (final n in _rawNotifications)
             if (!headIds.contains(n.event.eventId)) n,
-        ], _filter,);
+        ];
+        _rawNotifications = merged;
+        final grouped = await _grouper.group(merged, _filter);
         return (grouped: grouped, token: _nextToken);
       });
 
@@ -94,10 +109,9 @@ class InboxController extends ChangeNotifier {
         from: _nextToken,
       );
       if (_disposed || gen != _fetchGeneration) return null;
-      final grouped = await _grouper.group([
-        ..._flatNotifications,
-        ...response.notifications,
-      ], _filter,);
+      final merged = [..._rawNotifications, ...response.notifications];
+      _rawNotifications = merged;
+      final grouped = await _grouper.group(merged, _filter);
       return (grouped: grouped, token: response.nextToken);
     });
   }
@@ -225,15 +239,15 @@ class InboxController extends ChangeNotifier {
     for (final group in _grouped) {
       if (group.roomId != roomId) continue;
       for (final n in group.notifications) {
-        final threadId = _grouper.threadRootIdFor(n);
+        final threadId = n.threadRootId;
         if (threadId != null) {
           final cur = perThread[threadId];
-          if (cur == null || n.ts > cur.ts) {
-            perThread[threadId] = (eventId: n.event.eventId, ts: n.ts);
+          if (cur == null || n.timestamp > cur.ts) {
+            perThread[threadId] = (eventId: n.eventId, ts: n.timestamp);
           }
-        } else if (n.ts > mainTs) {
-          mainTs = n.ts;
-          mainEventId = n.event.eventId;
+        } else if (n.timestamp > mainTs) {
+          mainTs = n.timestamp;
+          mainEventId = n.eventId;
         }
       }
       break;
@@ -245,6 +259,10 @@ class InboxController extends ChangeNotifier {
     _grouped = [
       for (final g in _grouped)
         if (g.roomId != roomId) g,
+    ];
+    _rawNotifications = [
+      for (final n in _rawNotifications)
+        if (n.roomId != roomId) n,
     ];
     final remainingUnread = totalUnreadCount(_client) - room.notificationCount;
     final remainingBadge = remainingUnread < 0 ? 0 : remainingUnread;
@@ -307,6 +325,7 @@ class InboxController extends ChangeNotifier {
   void _resetList() {
     _grouped = [];
     _nextToken = null;
+    _rawNotifications = [];
   }
 
   void _startFetch() => unawaited(

@@ -1,8 +1,8 @@
-import 'package:matrix/matrix.dart' as matrix_sdk;
+import 'package:kohera/features/notifications/models/kohera_notification_item.dart';
 
 class ThreadSubGroup {
   final String? threadRootId;
-  final List<matrix_sdk.Notification> notifications;
+  final List<KoheraNotificationItem> notifications;
 
   const ThreadSubGroup({
     required this.threadRootId,

@@ -1,41 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/core/utils/time_format.dart';
+import 'package:kohera/features/notifications/models/kohera_notification_item.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
-import 'package:kohera/features/notifications/services/inbox_controller.dart';
-import 'package:matrix/matrix.dart' as matrix_sdk;
-import 'package:provider/provider.dart';
 
 class NotificationTile extends StatelessWidget {
   const NotificationTile({
-    required this.notification,
-    required this.client,
+    required this.item,
     required this.threadRootId,
     super.key,
   });
 
-  final matrix_sdk.Notification notification;
-  final matrix_sdk.Client client;
+  final KoheraNotificationItem item;
   final String? threadRootId;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final event = notification.event;
 
-    final senderId = event.senderId;
-    final room = client.getRoomById(notification.roomId);
-    final senderName =
-        room?.unsafeGetUserFromMemoryOrFallback(senderId).calcDisplayname() ??
-            senderId;
-
-    final controller = context.read<InboxController>();
-    final body = _extractBody(context, event);
-    final ts = DateTime.fromMillisecondsSinceEpoch(notification.ts);
-    final isMention = controller.isMention(notification);
+    final body = item.body;
+    final ts = DateTime.fromMillisecondsSinceEpoch(item.timestamp);
 
     return InkWell(
       mouseCursor: SystemMouseCursors.click,
@@ -46,14 +32,14 @@ class NotificationTile extends StatelessWidget {
           context.goNamed(
             Routes.roomThread,
             pathParameters: {
-              RouteParams.roomId: notification.roomId,
+              RouteParams.roomId: item.roomId,
               RouteParams.eventId: tid,
             },
           );
         } else {
           context.goNamed(
             Routes.room,
-            pathParameters: {RouteParams.roomId: notification.roomId},
+            pathParameters: {RouteParams.roomId: item.roomId},
           );
         }
       },
@@ -63,7 +49,7 @@ class NotificationTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Unread indicator
-            if (!notification.read)
+            if (!item.isRead)
               Padding(
                 padding: const EdgeInsets.only(top: 6, right: 6),
                 child: Container(
@@ -86,7 +72,7 @@ class NotificationTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          senderName,
+                          item.senderName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: tt.labelMedium?.copyWith(
@@ -95,7 +81,7 @@ class NotificationTile extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (isMention) ...[
+                      if (item.isMention) ...[
                         Icon(Icons.alternate_email_rounded,
                             size: 12, color: cs.primary,),
                         const SizedBox(width: 2),
@@ -139,22 +125,5 @@ class NotificationTile extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _extractBody(BuildContext context, matrix_sdk.MatrixEvent event) {
-    final controller = context.read<InboxController>();
-    final content =
-        controller.decryptedContentFor(event.eventId) ?? event.content;
-    final msgtype = content['msgtype'];
-
-    if (msgtype == matrix_sdk.MessageTypes.Image) return InboxText.mediaImage;
-    if (msgtype == matrix_sdk.MessageTypes.Video) return InboxText.mediaVideo;
-    if (msgtype == matrix_sdk.MessageTypes.Audio) return InboxText.mediaAudio;
-    if (msgtype == matrix_sdk.MessageTypes.File) return InboxText.mediaFile;
-
-    final body = content['body'];
-    if (body is String) return stripReplyFallback(body);
-
-    return '';
   }
 }

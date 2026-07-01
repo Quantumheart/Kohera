@@ -68,6 +68,11 @@ void main() {
     when(defaultRoom.membership).thenReturn(Membership.join);
     when(mockClient.getRoomById(any)).thenReturn(defaultRoom);
     when(mockClient.onSync).thenReturn(syncCtl);
+    when(defaultRoom.client).thenReturn(mockClient);
+    when(defaultRoom.getLocalizedDisplayname()).thenReturn('Test Room');
+    when(defaultRoom.unsafeGetUserFromMemoryOrFallback(any)).thenReturn(
+      User('@alice:example.com', displayName: 'Alice', room: defaultRoom),
+    );
     controller = InboxController(client: mockClient);
   });
 
@@ -433,6 +438,11 @@ void main() {
     test('calls setReadMarker with latest eventId and refreshes', () async {
       final mockRoom = MockRoom();
       when(mockRoom.membership).thenReturn(Membership.join);
+      when(mockRoom.client).thenReturn(mockClient);
+      when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
+      when(mockRoom.unsafeGetUserFromMemoryOrFallback(any)).thenReturn(
+        User('@alice:example.com', displayName: 'Alice', room: mockRoom),
+      );
       when(mockRoom.lastEvent).thenReturn(null);
       when(mockRoom.setReadMarker(any, mRead: anyNamed('mRead'))).thenAnswer((_) async {});
       when(mockClient.getRoomById('!r1:x')).thenReturn(mockRoom);
@@ -454,6 +464,11 @@ void main() {
     test('optimistically removes group before server call', () async {
       final mockRoom = MockRoom();
       when(mockRoom.membership).thenReturn(Membership.join);
+      when(mockRoom.client).thenReturn(mockClient);
+      when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
+      when(mockRoom.unsafeGetUserFromMemoryOrFallback(any)).thenReturn(
+        User('@alice:example.com', displayName: 'Alice', room: mockRoom),
+      );
       when(mockRoom.lastEvent).thenReturn(null);
       when(mockRoom.setReadMarker(any, mRead: anyNamed('mRead'))).thenAnswer((_) async {});
       when(mockClient.getRoomById('!r1:x')).thenReturn(mockRoom);
@@ -819,7 +834,7 @@ void main() {
 
         expect(controller.grouped, hasLength(1));
         expect(controller.grouped[0].notifications, hasLength(1));
-        expect(controller.grouped[0].notifications[0].event.eventId, 'e2');
+        expect(controller.grouped[0].notifications[0].eventId, 'e2');
       });
     });
     test('excludes notifications for rooms with non-join membership', () async {
@@ -865,6 +880,11 @@ void main() {
     test('uses notification with highest ts, not last in list', () async {
       final mockRoom = MockRoom();
       when(mockRoom.membership).thenReturn(Membership.join);
+      when(mockRoom.client).thenReturn(mockClient);
+      when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
+      when(mockRoom.unsafeGetUserFromMemoryOrFallback(any)).thenReturn(
+        User('@alice:example.com', displayName: 'Alice', room: mockRoom),
+      );
       when(mockRoom.lastEvent).thenReturn(null);
       when(mockRoom.setReadMarker(any, mRead: anyNamed('mRead'))).thenAnswer((_) async {});
       when(mockClient.getRoomById('!r1:x')).thenReturn(mockRoom);
@@ -1219,7 +1239,14 @@ void main() {
           .thenReturn(user);
     }
 
-    test('true for highlight action without value', () {
+    void stubFetch(Notification n) {
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([n]));
+    }
+
+    test('true for highlight action without value', () async {
       stubDisplayName('Me');
       final n = _makeNotification(
         eventId: 'e1',
@@ -1229,10 +1256,12 @@ void main() {
           {'set_tweak': 'highlight'},
         ],
       );
-      expect(controller.isMention(n), isTrue);
+      stubFetch(n);
+      await controller.fetch();
+      expect(controller.grouped[0].notifications[0].isMention, isTrue);
     });
 
-    test('true for highlight action with value true', () {
+    test('true for highlight action with value true', () async {
       stubDisplayName('Me');
       final n = _makeNotification(
         eventId: 'e1',
@@ -1242,10 +1271,12 @@ void main() {
           {'set_tweak': 'highlight', 'value': true},
         ],
       );
-      expect(controller.isMention(n), isTrue);
+      stubFetch(n);
+      await controller.fetch();
+      expect(controller.grouped[0].notifications[0].isMention, isTrue);
     });
 
-    test('false for highlight action with value false', () {
+    test('false for highlight action with value false', () async {
       stubDisplayName('Me');
       final n = _makeNotification(
         eventId: 'e1',
@@ -1255,10 +1286,12 @@ void main() {
           {'set_tweak': 'highlight', 'value': false},
         ],
       );
-      expect(controller.isMention(n), isFalse);
+      stubFetch(n);
+      await controller.fetch();
+      expect(controller.grouped[0].notifications[0].isMention, isFalse);
     });
 
-    test('true when m.mentions lists the user', () {
+    test('true when m.mentions lists the user', () async {
       stubDisplayName('Me');
       final n = _makeNotification(
         eventId: 'e1',
@@ -1271,10 +1304,12 @@ void main() {
           },
         },
       );
-      expect(controller.isMention(n), isTrue);
+      stubFetch(n);
+      await controller.fetch();
+      expect(controller.grouped[0].notifications[0].isMention, isTrue);
     });
 
-    test('true when m.mentions flags a room mention', () {
+    test('true when m.mentions flags a room mention', () async {
       stubDisplayName('Me');
       final n = _makeNotification(
         eventId: 'e1',
@@ -1286,10 +1321,12 @@ void main() {
           'm.mentions': {'room': true},
         },
       );
-      expect(controller.isMention(n), isTrue);
+      stubFetch(n);
+      await controller.fetch();
+      expect(controller.grouped[0].notifications[0].isMention, isTrue);
     });
 
-    test('false when m.mentions is present without the user, even if the body matches', () {
+    test('false when m.mentions is present without the user, even if the body matches', () async {
       stubDisplayName('Me');
       final n = _makeNotification(
         eventId: 'e1',
@@ -1303,20 +1340,24 @@ void main() {
           },
         },
       );
-      expect(controller.isMention(n), isFalse);
+      stubFetch(n);
+      await controller.fetch();
+      expect(controller.grouped[0].notifications[0].isMention, isFalse);
     });
 
-    test('false for plaintext body match without highlight action', () {
+    test('false for plaintext body match without highlight action', () async {
       stubDisplayName('Will');
       final n = _makeNotification(
         eventId: 'e1',
         roomId: '!r1:x',
         content: {'body': 'Will you join?', 'msgtype': 'm.text'},
       );
-      expect(controller.isMention(n), isFalse);
+      stubFetch(n);
+      await controller.fetch();
+      expect(controller.grouped[0].notifications[0].isMention, isFalse);
     });
 
-    test('encrypted fallback matches a word-bounded display name', () {
+    test('encrypted fallback matches a word-bounded display name', () async {
       stubDisplayName('Will');
       final n = _makeNotification(
         eventId: 'e1',
@@ -1324,10 +1365,12 @@ void main() {
         type: 'm.room.encrypted',
         content: {'body': 'Will, are you there?', 'msgtype': 'm.text'},
       );
-      expect(controller.isMention(n), isTrue);
+      stubFetch(n);
+      await controller.fetch();
+      expect(controller.grouped[0].notifications[0].isMention, isTrue);
     });
 
-    test('encrypted fallback ignores the display name inside a larger word', () {
+    test('encrypted fallback ignores the display name inside a larger word', () async {
       stubDisplayName('Will');
       final n = _makeNotification(
         eventId: 'e1',
@@ -1335,10 +1378,12 @@ void main() {
         type: 'm.room.encrypted',
         content: {'body': 'willpower beats talent', 'msgtype': 'm.text'},
       );
-      expect(controller.isMention(n), isFalse);
+      stubFetch(n);
+      await controller.fetch();
+      expect(controller.grouped[0].notifications[0].isMention, isFalse);
     });
 
-    test('encrypted fallback treats digits as word characters', () {
+    test('encrypted fallback treats digits as word characters', () async {
       stubDisplayName('Max');
       final n = _makeNotification(
         eventId: 'e1',
@@ -1346,10 +1391,12 @@ void main() {
         type: 'm.room.encrypted',
         content: {'body': 'Max99 said hi', 'msgtype': 'm.text'},
       );
-      expect(controller.isMention(n), isFalse);
+      stubFetch(n);
+      await controller.fetch();
+      expect(controller.grouped[0].notifications[0].isMention, isFalse);
     });
 
-    test('encrypted fallback is Unicode-aware for Cyrillic display names', () {
+    test('encrypted fallback is Unicode-aware for Cyrillic display names', () async {
       stubDisplayName('Вера');
       final bounded = _makeNotification(
         eventId: 'e1',
@@ -1363,8 +1410,13 @@ void main() {
         type: 'm.room.encrypted',
         content: {'body': 'проверая текст', 'msgtype': 'm.text'},
       );
-      expect(controller.isMention(bounded), isTrue);
-      expect(controller.isMention(embedded), isFalse);
+      when(mockClient.getNotifications(
+        limit: anyNamed('limit'),
+        only: anyNamed('only'),
+      ),).thenAnswer((_) async => _makeResponse([bounded, embedded]));
+      await controller.fetch();
+      expect(controller.grouped[0].notifications[0].isMention, isTrue);
+      expect(controller.grouped[0].notifications[1].isMention, isFalse);
     });
   });
 
@@ -1460,7 +1512,7 @@ void main() {
       expect(controller.grouped, hasLength(1));
       expect(controller.grouped[0].roomId, '!r1:x');
       expect(controller.grouped[0].notifications, hasLength(1));
-      expect(controller.grouped[0].notifications[0].event.eventId, 't1');
+      expect(controller.grouped[0].notifications[0].eventId, 't1');
     });
   });
 
@@ -1470,6 +1522,11 @@ void main() {
         () async {
       final mockRoom = MockRoom();
       when(mockRoom.membership).thenReturn(Membership.join);
+      when(mockRoom.client).thenReturn(mockClient);
+      when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
+      when(mockRoom.unsafeGetUserFromMemoryOrFallback(any)).thenReturn(
+        User('@alice:example.com', displayName: 'Alice', room: mockRoom),
+      );
       when(mockRoom.lastEvent).thenReturn(null);
       when(mockRoom.setReadMarker(any, mRead: anyNamed('mRead')))
           .thenAnswer((_) async {});
@@ -1528,6 +1585,11 @@ void main() {
     test('skips main receipt when thread reply is newer', () async {
       final mockRoom = MockRoom();
       when(mockRoom.membership).thenReturn(Membership.join);
+      when(mockRoom.client).thenReturn(mockClient);
+      when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
+      when(mockRoom.unsafeGetUserFromMemoryOrFallback(any)).thenReturn(
+        User('@alice:example.com', displayName: 'Alice', room: mockRoom),
+      );
       when(mockRoom.lastEvent).thenReturn(null);
       when(mockRoom.setReadMarker(any, mRead: anyNamed('mRead')))
           .thenAnswer((_) async {});
@@ -1560,6 +1622,11 @@ void main() {
     test('posts main receipt when no threads present', () async {
       final mockRoom = MockRoom();
       when(mockRoom.membership).thenReturn(Membership.join);
+      when(mockRoom.client).thenReturn(mockClient);
+      when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
+      when(mockRoom.unsafeGetUserFromMemoryOrFallback(any)).thenReturn(
+        User('@alice:example.com', displayName: 'Alice', room: mockRoom),
+      );
       when(mockRoom.lastEvent).thenReturn(null);
       when(mockRoom.setReadMarker(any, mRead: anyNamed('mRead')))
           .thenAnswer((_) async {});
