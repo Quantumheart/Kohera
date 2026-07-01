@@ -66,7 +66,9 @@ class SyncService extends ChangeNotifier {
   Future<void> pause() async {
     if (!_syncing) return;
     _client.backgroundSync = false;
-    await _client.abortSync();
+    if (!kIsWeb) {
+      await _client.abortSync();
+    }
   }
 
   void resume() {

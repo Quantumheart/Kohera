@@ -80,7 +80,7 @@ class LoginController extends ChangeNotifier {
 
     if (success) {
       if (!clientManager.services.contains(matrixService)) {
-        clientManager.commitPendingService();
+        await clientManager.commitPendingService();
       }
       _state = LoginState.done;
       _notify();
@@ -148,7 +148,7 @@ class LoginController extends ChangeNotifier {
 
       if (success) {
         if (!clientManager.services.contains(matrixService)) {
-          clientManager.commitPendingService();
+          await clientManager.commitPendingService();
         }
         _state = LoginState.done;
       } else {

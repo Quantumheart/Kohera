@@ -95,6 +95,14 @@ class ClientManager extends ChangeNotifier {
     }
 
     _activeIndex = 0;
+
+    // Only the active account should sync — pause all others.
+    await Future.wait([
+      for (int i = 0; i < _services.length; i++)
+        if (i != _activeIndex && _services[i].isLoggedIn)
+          _services[i].sync.pause(),
+    ]);
+
     await _persistClientNames();
     notifyListeners();
   }
@@ -103,8 +111,12 @@ class ClientManager extends ChangeNotifier {
 
   void setActiveAccount(int index) {
     if (index < 0 || index >= _services.length) return;
+    if (index == _activeIndex) return;
+    final oldActive = _services[_activeIndex];
     _activeIndex = index;
+    _services[index].sync.resume();
     notifyListeners();
+    unawaited(oldActive.sync.pause());
   }
 
   // ── Adding Accounts ───────────────────────────────────────────
@@ -125,12 +137,15 @@ class ClientManager extends ChangeNotifier {
   }
 
   /// Activates the pending service after a successful login.
-  void commitPendingService() {
+  Future<void> commitPendingService() async {
     if (_pendingService == null) return;
+    final oldActive = _services.isNotEmpty ? _services[_activeIndex] : null;
     _services.add(_pendingService!);
     _activeIndex = _services.length - 1;
+    // New active account's sync was already started by login().
     _pendingService = null;
-    unawaited(_persistClientNames());
+    if (oldActive != null) await oldActive.sync.pause();
+    await _persistClientNames();
     notifyListeners();
   }
 
@@ -146,8 +161,10 @@ class ClientManager extends ChangeNotifier {
 
   /// Adds a service (after successful login) and makes it active.
   Future<void> addService(MatrixService service) async {
+    final oldActive = _services.isNotEmpty ? _services[_activeIndex] : null;
     _services.add(service);
     _activeIndex = _services.length - 1;
+    if (oldActive != null) await oldActive.sync.pause();
     await _persistClientNames();
     notifyListeners();
   }
@@ -162,6 +179,7 @@ class ClientManager extends ChangeNotifier {
     if (index == -1) return;
     if (_services.length > 1 && index == _activeIndex) {
       _activeIndex = index == 0 ? 1 : 0;
+      _services[_activeIndex].sync.resume();
       notifyListeners();
     }
     await service.logout();
@@ -171,6 +189,8 @@ class ClientManager extends ChangeNotifier {
   Future<void> removeService(MatrixService service) async {
     final index = _services.indexOf(service);
     if (index == -1) return;
+
+    final wasActive = index == _activeIndex;
 
     _services.removeAt(index);
     final client = _clientMap.remove(service);
@@ -189,6 +209,11 @@ class ClientManager extends ChangeNotifier {
       _activeIndex = _services.length - 1;
     } else if (_activeIndex > index) {
       _activeIndex--;
+    }
+
+    // Resume sync for the new active account if the old active was removed.
+    if (wasActive && _services.isNotEmpty && _services[_activeIndex].isLoggedIn) {
+      _services[_activeIndex].sync.resume();
     }
 
     await _persistClientNames();

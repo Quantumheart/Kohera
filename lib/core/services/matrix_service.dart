@@ -124,6 +124,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
 
   bool _foregroundSyncStarted = false;
   bool _lifecycleObserverRegistered = false;
+  Timer? _pauseDebounce;
 
   bool get hasSkippedSetup => chatBackup.setupSkipped;
   void skipSetup() {
@@ -133,6 +134,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   @override
   void dispose() {
     _disposed = true;
+    _pauseDebounce?.cancel();
     if (_lifecycleObserverRegistered) {
       WidgetsBinding.instance.removeObserver(this);
       _lifecycleObserverRegistered = false;
@@ -156,14 +158,21 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.resumed:
+        _pauseDebounce?.cancel();
+        _pauseDebounce = null;
         sync.resume();
         _startForegroundSync();
         presence.setOnline();
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:
-        unawaited(sync.pause());
+        _pauseDebounce?.cancel();
+        _pauseDebounce = Timer(const Duration(seconds: 3), () {
+          unawaited(sync.pause());
+        });
         presence.setAway();
       case AppLifecycleState.detached:
+        _pauseDebounce?.cancel();
+        _pauseDebounce = null;
         unawaited(sync.pause());
         presence.setOffline();
       case AppLifecycleState.inactive:

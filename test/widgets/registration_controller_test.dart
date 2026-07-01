@@ -30,7 +30,7 @@ class _FakeClientManager extends ClientManager {
   List<MatrixService> get services => _registered;
 
   @override
-  void commitPendingService() => committed = true;
+  Future<void> commitPendingService() async => committed = true;
 }
 
 void main() {
