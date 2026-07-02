@@ -207,7 +207,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
           Expanded(
             child: MessageListView(
               key: _messageListKey,
-              room: room,
+              roomId: room.id,
               matrix: matrix,
               threadRootEventId: widget.threadRootEventId,
               extraEvents: _seedEvents,

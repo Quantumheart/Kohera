@@ -241,7 +241,15 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
           ],
           const SizedBox(height: 4),
           JoinedMemberCount(
-            room: room,
+            roomId: room.id,
+            summaryMemberCount: room.summary.mJoinedMemberCount ?? 0,
+            participantListComplete: room.participantListComplete,
+            resolveMemberCount: (id) async {
+              final r = room.client.getRoomById(id);
+              if (r == null) return null;
+              final members = await r.client.getJoinedMembersByRoom(id);
+              return members?.length;
+            },
             builder: (context, memberCount) => Text(
               memberCount == 1 ? '1 member' : '$memberCount members',
               style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),

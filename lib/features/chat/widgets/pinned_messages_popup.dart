@@ -3,21 +3,24 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
+import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
+import 'package:provider/provider.dart';
 
 /// Shows a popup panel anchored below the pin icon listing pinned messages.
 void showPinnedMessagesPopup(
   BuildContext context,
-  Room room, {
-  required void Function(Event event) onTap,
+  String roomId, {
+  required void Function(String eventId) onTap,
 }) {
+  final room = context.read<MatrixService>().client.getRoomById(roomId);
+  if (room == null) return;
   final button = context.findRenderObject()! as RenderBox;
-  final overlay =
-      Overlay.of(context).context.findRenderObject()! as RenderBox;
+  final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
   final buttonPos = button.localToGlobal(Offset.zero, ancestor: overlay);
   final anchor = Rect.fromLTWH(
     buttonPos.dx,
@@ -26,14 +29,16 @@ void showPinnedMessagesPopup(
     button.size.height,
   );
 
-  unawaited(Navigator.of(context).push(
-    _PinnedMessagesPopupRoute(
-      anchor: anchor,
-      overlaySize: overlay.size,
-      room: room,
-      onTap: onTap,
+  unawaited(
+    Navigator.of(context).push(
+      _PinnedMessagesPopupRoute(
+        anchor: anchor,
+        overlaySize: overlay.size,
+        room: room,
+        onTap: onTap,
+      ),
     ),
-  ),);
+  );
 }
 
 class _PinnedMessagesPopupRoute extends PopupRoute<void> {
@@ -47,7 +52,7 @@ class _PinnedMessagesPopupRoute extends PopupRoute<void> {
   final Rect anchor;
   final Size overlaySize;
   final Room room;
-  final void Function(Event event) onTap;
+  final void Function(String eventId) onTap;
 
   @override
   Color? get barrierColor => Colors.black26;
@@ -134,7 +139,7 @@ class _PinnedMessagesPanel extends StatefulWidget {
   });
 
   final Room room;
-  final void Function(Event event) onTap;
+  final void Function(String eventId) onTap;
   final VoidCallback onClose;
 
   @override
@@ -194,8 +199,7 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final canPin =
-        widget.room.canChangeStateEvent('m.room.pinned_events');
+    final canPin = widget.room.canChangeStateEvent('m.room.pinned_events');
 
     return Material(
       elevation: 8,
@@ -272,7 +276,7 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
                     canUnpin: canPin,
                     onOpen: () {
                       widget.onClose();
-                      widget.onTap(event);
+                      widget.onTap(event.eventId);
                     },
                     onUnpin: () => _unpin(event.eventId),
                   );
@@ -420,9 +424,8 @@ class _PinnedMessageTile extends StatelessWidget {
 
   static String _formatDateTime(DateTime ts) {
     final now = DateTime.now();
-    final isToday = ts.year == now.year &&
-        ts.month == now.month &&
-        ts.day == now.day;
+    final isToday =
+        ts.year == now.year && ts.month == now.month && ts.day == now.day;
     final h = ts.hour.toString().padLeft(2, '0');
     final m = ts.minute.toString().padLeft(2, '0');
     if (isToday) return '$h:$m';

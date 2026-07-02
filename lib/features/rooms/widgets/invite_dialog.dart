@@ -91,7 +91,12 @@ class _InviteDialogState extends State<InviteDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            RoomAvatarWidget(room: widget.room, size: 56),
+            RoomAvatarWidget(
+              avatarUrl: widget.room.avatar?.toString(),
+              displayname: widget.room.getLocalizedDisplayname(),
+              avatarResolver: context.read<MatrixService>().avatarResolver,
+              size: 56,
+            ),
             const SizedBox(height: 12),
             Text(name, style: tt.titleMedium),
             if (inviter != null)

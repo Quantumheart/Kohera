@@ -11,6 +11,7 @@ import 'package:kohera/features/rooms/widgets/invite_tile.dart';
 import 'package:kohera/features/rooms/widgets/message_search_tiles.dart';
 import 'package:kohera/features/rooms/widgets/new_dm_dialog.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
+import 'package:kohera/features/rooms/widgets/room_context_menu.dart';
 import 'package:kohera/features/rooms/widgets/room_list_builder.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
 import 'package:kohera/features/rooms/widgets/room_section_header.dart';
@@ -30,8 +31,7 @@ class RoomList extends StatefulWidget {
   State<RoomList> createState() => _RoomListState();
 }
 
-class _RoomListState extends State<RoomList>
-    with TickerProviderStateMixin {
+class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
   final _searchCtrl = TextEditingController();
   final _searchFocus = FocusNode(debugLabel: 'roomlist-search');
   String _query = '';
@@ -129,9 +129,7 @@ class _RoomListState extends State<RoomList>
     final ids = selection.selectedSpaceIds;
     if (ids.isEmpty) return 'Chats';
     if (ids.length == 1) {
-      return matrix.client
-              .getRoomById(ids.first)
-              ?.getLocalizedDisplayname() ??
+      return matrix.client.getRoomById(ids.first)?.getLocalizedDisplayname() ??
           'Space';
     }
     return '${ids.length} spaces';
@@ -172,8 +170,12 @@ class _RoomListState extends State<RoomList>
     final spaceRoomsController = context.watch<SpaceRoomsController>();
     final cs = Theme.of(context).colorScheme;
 
-    final items = buildSectionItems(selection, prefs, _query,
-        spaceRoomsController: spaceRoomsController,);
+    final items = buildSectionItems(
+      selection,
+      prefs,
+      _query,
+      spaceRoomsController: spaceRoomsController,
+    );
 
     // Trigger hierarchy fetch for selected spaces not yet cached.
     for (final spaceId in selection.selectedSpaceIds) {
@@ -198,11 +200,13 @@ class _RoomListState extends State<RoomList>
 
     // Append message search items when query is long enough
     if (_query.trim().length >= RoomListSearchController.minQueryLength) {
-      items.add(MessageSearchHeaderItem(
-        resultCount: _messageSearch.totalCount,
-        isLoading: _messageSearch.isLoading,
-        error: _messageSearch.error,
-      ),);
+      items.add(
+        MessageSearchHeaderItem(
+          resultCount: _messageSearch.totalCount,
+          isLoading: _messageSearch.isLoading,
+          error: _messageSearch.error,
+        ),
+      );
       for (final result in _messageSearch.results) {
         items.add(MessageSearchResultItem(result: result));
       }
@@ -212,11 +216,13 @@ class _RoomListState extends State<RoomList>
     }
 
     // Determine if the list is truly empty (no rooms AND no message results)
-    final hasRoomItems = items.any((i) =>
-        i is RoomItem || i is InviteItem || i is HeaderItem,);
+    final hasRoomItems = items.any(
+      (i) => i is RoomItem || i is InviteItem || i is HeaderItem,
+    );
     final hasMessageResults = _messageSearch.results.isNotEmpty;
     final isMessageSearchActive = _messageSearch.isLoading;
-    final isEmpty = !hasRoomItems && !hasMessageResults && !isMessageSearchActive;
+    final isEmpty =
+        !hasRoomItems && !hasMessageResults && !isMessageSearchActive;
     final isNarrow =
         MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
 
@@ -247,8 +253,10 @@ class _RoomListState extends State<RoomList>
                       focusNode: _searchFocus,
                       onChanged: (v) {
                         setState(() => _query = v);
-                        _messageSearch.onQueryChanged(v,
-                            scopeRoomIds: spaceRoomIds(selection),);
+                        _messageSearch.onQueryChanged(
+                          v,
+                          scopeRoomIds: spaceRoomIds(selection),
+                        );
                       },
                       decoration: InputDecoration(
                         hintText: 'Search\u2026',
@@ -300,190 +308,248 @@ class _RoomListState extends State<RoomList>
           children: [
             Column(
               children: [
-              const WhatsNewBanner(),
-              // ── Sectioned room list ──
-              Expanded(
-                child: spaceEmpty != null
-                    ? _SpaceEmptyState(
-                        space: spaceEmpty,
-                        controller: spaceRoomsController,
-                        matrixService: matrix,
-                      )
-                    : isEmpty && items.isEmpty
-                        ? Center(
-                            child: Text(
-                              _query.isNotEmpty
-                                  ? 'No results for "$_query"'
-                                  : 'No rooms yet',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    color: cs.onSurfaceVariant
-                                        .withValues(alpha: 0.6),
-                                  ),
-                            ),
-                          )
-                        : ListView.builder(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4,),
-                        itemCount: items.length,
-                        itemBuilder: (context, i) {
-                          final item = items[i];
-                          return switch (item) {
-                            InviteItem() =>
-                              InviteTile(room: item.room),
-                            HeaderItem() => RoomSectionHeader(
-                                item: item,
-                                prefs: prefs,
-                                selection: selection,
-                                matrixService: matrix,
+                const WhatsNewBanner(),
+                // ── Sectioned room list ──
+                Expanded(
+                  child: spaceEmpty != null
+                      ? _SpaceEmptyState(
+                          space: spaceEmpty,
+                          controller: spaceRoomsController,
+                          matrixService: matrix,
+                        )
+                      : isEmpty && items.isEmpty
+                          ? Center(
+                              child: Text(
+                                _query.isNotEmpty
+                                    ? 'No results for "$_query"'
+                                    : 'No rooms yet',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(
+                                      color: cs.onSurfaceVariant
+                                          .withValues(alpha: 0.6),
+                                    ),
                               ),
-                            RoomItem() => Padding(
-                                padding: EdgeInsets.only(
-                                    left: item.depth * 16.0,),
-                                child: Builder(builder: (_) {
-                                  final memberships = selection.spaceMemberships(item.room.id);
-                                  return RoomTile(
-                                    room: item.room,
-                                    isSelected: selection.selectedRoomId == item.room.id,
-                                    memberships: memberships,
-                                    hasContextMenu: selectedSpaceCanManage ||
-                                        manageableSpaceIds.isNotEmpty,
-                                    parentSpaceId: item.parentSpaceId,
-                                    sectionRooms: item.sectionRooms,
-                                  );
-                                },),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
                               ),
-                            MessageSearchHeaderItem() =>
-                              MessageSearchHeader(item: item),
-                            MessageSearchResultItem() =>
-                              MessageSearchResultTile(
-                                result: item.result,
-                                query: _query,
-                              ),
-                            LoadMoreMessagesItem() =>
-                              LoadMoreButton(
-                                isLoading: item.isLoading,
-                                onPressed: () => _messageSearch.performSearch(
-                                    loadMore: true,),
-                              ),
-                            UnjoinedRoomGroupHeaderItem() =>
-                              _UnjoinedGroupHeader(item: item,
-                                  matrixService: matrix,),
-                            UnjoinedRoomItem() => Padding(
-                                padding: EdgeInsets.only(
-                                    left: item.depth * 16.0,),
-                                child: _UnjoinedRoomTile(
-                                  metadata: item.metadata,
-                                  parentSpaceId: item.parentSpaceId,
-                                  controller: spaceRoomsController,
-                                ),),
-                            SubspaceOpenItem() => Padding(
-                                padding: EdgeInsets.only(
-                                    left: item.depth * 16.0,),
-                                child: _SubspaceOpenTile(
-                                  metadata: item.metadata,
-                                  parentSpaceId: item.parentSpaceId,
-                                  matrixService: matrix,
-                                ),),
-                            UnjoinedRoomLoadingItem() => Padding(
-                                padding: EdgeInsets.only(
-                                    left: item.depth * 16.0 + 10,),
-                                child: const SizedBox(
-                                  height: 32,
-                                  child: Center(
-                                    child: SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
+                              itemCount: items.length,
+                              itemBuilder: (context, i) {
+                                final item = items[i];
+                                return switch (item) {
+                                  InviteItem() => InviteTile(
+                                      summary: item.summary,
+                                      inviterName: () {
+                                        final room = matrix.client
+                                            .getRoomById(item.summary.roomId);
+                                        return room != null
+                                            ? selection.inviterDisplayName(room)
+                                            : null;
+                                      }(),
+                                    ),
+                                  HeaderItem() => RoomSectionHeader(
+                                      item: item,
+                                      prefs: prefs,
+                                      selection: selection,
+                                      matrixService: matrix,
+                                    ),
+                                  RoomItem() => Padding(
+                                      padding: EdgeInsets.only(
+                                        left: item.depth * 16.0,
+                                      ),
+                                      child: Builder(
+                                        builder: (_) {
+                                          final memberships =
+                                              selection.spaceMemberships(
+                                                  item.summary.roomId,);
+                                          return RoomTile(
+                                            summary: item.summary,
+                                            isSelected:
+                                                selection.selectedRoomId ==
+                                                    item.summary.roomId,
+                                            memberships: memberships,
+                                            hasContextMenu:
+                                                selectedSpaceCanManage ||
+                                                    manageableSpaceIds
+                                                        .isNotEmpty,
+                                            parentSpaceId: item.parentSpaceId,
+                                            sectionRoomIds: item.sectionRoomIds,
+                                            onContextMenu: (position) {
+                                              final room = matrix.client
+                                                  .getRoomById(
+                                                      item.summary.roomId,);
+                                              if (room != null) {
+                                                unawaited(showRoomContextMenu(
+                                                  context,
+                                                  position,
+                                                  room,
+                                                  parentSpaceId:
+                                                      item.parentSpaceId,
+                                                  sectionRooms: item
+                                                      .sectionRoomIds
+                                                      ?.map((id) => matrix
+                                                          .client
+                                                          .getRoomById(id),)
+                                                      .whereType<Room>()
+                                                      .toList(),
+                                                ),);
+                                              }
+                                            },
+                                          );
+                                        },
                                       ),
                                     ),
-                                  ),
-                                ),),
-                            UnjoinedRoomErrorItem() => Padding(
-                                padding: EdgeInsets.only(
-                                    left: item.depth * 16.0,),
-                                child: _UnjoinedErrorTile(item: item,
-                                    controller: spaceRoomsController,),),
-                            UnjoinedRoomForbiddenItem() => Padding(
-                                padding: EdgeInsets.only(
-                                    left: item.depth * 16.0 + 10,),
-                                child: const _UnjoinedForbiddenTile(),),
-                          };
-                        },
-                      ),
-              ),
-            ],
-          ),
-
-          // ── Scrim overlay to dismiss speed dial ──
-          if (_fabOpen)
-            Positioned.fill(
-              child: GestureDetector(
-                onTap: _closeFab,
-                child: const ColoredBox(
-                  color: Colors.black26,
-                ),
-              ),
-            ),
-
-          // ── FAB + speed dial ──
-          Positioned(
-            right: 16,
-            bottom: MediaQuery.paddingOf(context).bottom + 16,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                // ── Mini-FABs (speed dial) ──
-                SizeTransition(
-                  sizeFactor: _fabAnimation,
-                  alignment: Alignment.topCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SpeedDialItem(
-                          label: 'New Room',
-                          icon: Icons.group_add_rounded,
-                          onTap: () {
-                            _closeFab();
-                            unawaited(NewRoomDialog.show(context, matrixService: matrix));
-                          },
-                        ),
-                        const SizedBox(height: 8),
-                        SpeedDialItem(
-                          label: 'New Direct Message',
-                          icon: Icons.chat_bubble_outline_rounded,
-                          onTap: () {
-                            _closeFab();
-                            unawaited(NewDirectMessageDialog.show(
-                                context,
-                                matrixService: matrix,
-                            ),);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // ── Main FAB ──
-                FloatingActionButton(
-                  heroTag: 'compose',
-                  onPressed: _toggleFab,
-                  child: AnimatedRotation(
-                    turns: _fabOpen ? 0.125 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: const Icon(Icons.edit_rounded),
-                  ),
+                                  MessageSearchHeaderItem() =>
+                                    MessageSearchHeader(item: item),
+                                  MessageSearchResultItem() =>
+                                    MessageSearchResultTile(
+                                      result: item.result,
+                                      query: _query,
+                                    ),
+                                  LoadMoreMessagesItem() => LoadMoreButton(
+                                      isLoading: item.isLoading,
+                                      onPressed: () =>
+                                          _messageSearch.performSearch(
+                                        loadMore: true,
+                                      ),
+                                    ),
+                                  UnjoinedRoomGroupHeaderItem() =>
+                                    _UnjoinedGroupHeader(
+                                      item: item,
+                                      matrixService: matrix,
+                                    ),
+                                  UnjoinedRoomItem() => Padding(
+                                      padding: EdgeInsets.only(
+                                        left: item.depth * 16.0,
+                                      ),
+                                      child: _UnjoinedRoomTile(
+                                        metadata: item.metadata,
+                                        parentSpaceId: item.parentSpaceId,
+                                        controller: spaceRoomsController,
+                                      ),
+                                    ),
+                                  SubspaceOpenItem() => Padding(
+                                      padding: EdgeInsets.only(
+                                        left: item.depth * 16.0,
+                                      ),
+                                      child: _SubspaceOpenTile(
+                                        metadata: item.metadata,
+                                        parentSpaceId: item.parentSpaceId,
+                                        matrixService: matrix,
+                                      ),
+                                    ),
+                                  UnjoinedRoomLoadingItem() => Padding(
+                                      padding: EdgeInsets.only(
+                                        left: item.depth * 16.0 + 10,
+                                      ),
+                                      child: const SizedBox(
+                                        height: 32,
+                                        child: Center(
+                                          child: SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  UnjoinedRoomErrorItem() => Padding(
+                                      padding: EdgeInsets.only(
+                                        left: item.depth * 16.0,
+                                      ),
+                                      child: _UnjoinedErrorTile(
+                                        item: item,
+                                        controller: spaceRoomsController,
+                                      ),
+                                    ),
+                                  UnjoinedRoomForbiddenItem() => Padding(
+                                      padding: EdgeInsets.only(
+                                        left: item.depth * 16.0 + 10,
+                                      ),
+                                      child: const _UnjoinedForbiddenTile(),
+                                    ),
+                                };
+                              },
+                            ),
                 ),
               ],
             ),
-          ),
+
+            // ── Scrim overlay to dismiss speed dial ──
+            if (_fabOpen)
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: _closeFab,
+                  child: const ColoredBox(
+                    color: Colors.black26,
+                  ),
+                ),
+              ),
+
+            // ── FAB + speed dial ──
+            Positioned(
+              right: 16,
+              bottom: MediaQuery.paddingOf(context).bottom + 16,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // ── Mini-FABs (speed dial) ──
+                  SizeTransition(
+                    sizeFactor: _fabAnimation,
+                    alignment: Alignment.topCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SpeedDialItem(
+                            label: 'New Room',
+                            icon: Icons.group_add_rounded,
+                            onTap: () {
+                              _closeFab();
+                              unawaited(NewRoomDialog.show(context,
+                                  matrixService: matrix,),);
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          SpeedDialItem(
+                            label: 'New Direct Message',
+                            icon: Icons.chat_bubble_outline_rounded,
+                            onTap: () {
+                              _closeFab();
+                              unawaited(
+                                NewDirectMessageDialog.show(
+                                  context,
+                                  matrixService: matrix,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // ── Main FAB ──
+                  FloatingActionButton(
+                    heroTag: 'compose',
+                    onPressed: _toggleFab,
+                    child: AnimatedRotation(
+                      turns: _fabOpen ? 0.125 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: const Icon(Icons.edit_rounded),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -511,8 +577,7 @@ class _UnjoinedGroupHeader extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              'MORE ROOMS TO JOIN'
-              .toUpperCase(),
+              'MORE ROOMS TO JOIN'.toUpperCase(),
               style: tt.labelSmall?.copyWith(
                 color: cs.onSurfaceVariant,
                 letterSpacing: 1.2,
@@ -523,14 +588,16 @@ class _UnjoinedGroupHeader extends StatelessWidget {
           TextButton.icon(
             onPressed: () {
               if (space == null) return;
-              unawaited(SpaceDiscoveryDialog.showSpaceRooms(
-                context,
-                matrixService: matrixService,
-                roomId: space.id,
-                name: space.getLocalizedDisplayname(),
-                avatar: space.avatar,
-                canonicalAlias: space.canonicalAlias,
-              ),);
+              unawaited(
+                SpaceDiscoveryDialog.showSpaceRooms(
+                  context,
+                  matrixService: matrixService,
+                  roomId: space.id,
+                  name: space.getLocalizedDisplayname(),
+                  avatar: space.avatar,
+                  canonicalAlias: space.canonicalAlias,
+                ),
+              );
             },
             icon: const Icon(Icons.open_in_new, size: 14),
             label: const Text('Browse all'),
@@ -678,13 +745,15 @@ class _SubspaceOpenTile extends StatelessWidget {
       ),
       trailing: OutlinedButton(
         onPressed: () {
-          unawaited(SpaceDiscoveryDialog.showSpaceRooms(
-            context,
-            matrixService: matrixService,
-            roomId: metadata.roomId,
-            name: name,
-            avatar: metadata.avatar,
-          ),);
+          unawaited(
+            SpaceDiscoveryDialog.showSpaceRooms(
+              context,
+              matrixService: matrixService,
+              roomId: metadata.roomId,
+              name: name,
+              avatar: metadata.avatar,
+            ),
+          );
         },
         child: const Text('Open'),
       ),
@@ -778,14 +847,16 @@ class _SpaceEmptyState extends StatelessWidget {
     final state = controller.getRoomState(space.id);
 
     void browseRooms() {
-      unawaited(SpaceDiscoveryDialog.showSpaceRooms(
-        context,
-        matrixService: matrixService,
-        roomId: space.id,
-        name: space.getLocalizedDisplayname(),
-        avatar: space.avatar,
-        canonicalAlias: space.canonicalAlias,
-      ),);
+      unawaited(
+        SpaceDiscoveryDialog.showSpaceRooms(
+          context,
+          matrixService: matrixService,
+          roomId: space.id,
+          name: space.getLocalizedDisplayname(),
+          avatar: space.avatar,
+          canonicalAlias: space.canonicalAlias,
+        ),
+      );
     }
 
     // ── Loading ──
@@ -881,8 +952,11 @@ class _SpaceEmptyState extends StatelessWidget {
               CircleAvatar(
                 radius: 40,
                 backgroundColor: cs.surfaceContainerHighest,
-                child: Icon(Icons.workspaces_outlined,
-                    size: 40, color: cs.onSurfaceVariant,),
+                child: Icon(
+                  Icons.workspaces_outlined,
+                  size: 40,
+                  color: cs.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: 24),
               Text(

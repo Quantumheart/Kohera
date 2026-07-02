@@ -6,15 +6,9 @@ import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/features/rooms/widgets/room_tile.dart';
-import 'package:kohera/shared/widgets/presence_dot.dart';
-import 'package:matrix/matrix.dart';
-import 'package:matrix/src/utils/cached_stream_controller.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
+import 'package:kohera/shared/models/kohera_user_summary.dart';
 @GenerateNiceMocks([
   MockSpec<MatrixService>(),
   MockSpec<Room>(),
@@ -23,7 +17,56 @@ import 'package:shared_preferences/shared_preferences.dart';
   MockSpec<User>(),
   MockSpec<CallService>(),
 ])
+import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/shared/widgets/presence_dot.dart';
+import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'room_tile_test.mocks.dart';
+
+class _NullAvatarResolver implements AvatarResolver {
+  const _NullAvatarResolver();
+  @override
+  Future<AvatarThumbnail?> resolve(String? mxcUrl, {required double size}) async => null;
+}
+
+KoheraRoomSummary _summary({
+  String roomId = '!room:example.com',
+  String displayname = 'Test Room',
+  bool isDirectChat = false,
+  String? dmUserId,
+  int notificationCount = 0,
+  int highlightCount = 0,
+  List<String> typingDisplayNames = const [],
+  String lastEventPreview = 'Hello',
+  DateTime? lastEventTimestamp,
+  bool lastEventIsThreadReply = false,
+  bool isFavourite = false,
+  bool isSpace = false,
+  List<String> pinnedEventIds = const [],
+  int spaceChildCount = 0,
+}) => KoheraRoomSummary(
+  roomId: roomId,
+  displayname: displayname,
+  isDirectChat: isDirectChat,
+  dmUserId: dmUserId,
+  isEncrypted: false,
+  isSpace: isSpace,
+  notificationCount: notificationCount,
+  highlightCount: highlightCount,
+  typingDisplayNames: typingDisplayNames,
+  pinnedEventIds: pinnedEventIds,
+  spaceChildCount: spaceChildCount,
+  isFavourite: isFavourite,
+  lastEventPreview: lastEventPreview,
+  lastEventBody: lastEventPreview,
+  lastEventTimestamp: lastEventTimestamp,
+  lastEventIsThreadReply: lastEventIsThreadReply,
+);
 
 void main() {
   late MockMatrixService mockMatrix;
@@ -32,30 +75,6 @@ void main() {
   late MockCallService mockCallService;
   late PreferencesService prefs;
   String? lastNavigatedRoom;
-
-  MockEvent makeEvent({
-    String type = EventTypes.Message,
-    String messageType = MessageTypes.Text,
-    String body = 'Hello',
-    String senderId = '@alice:example.com',
-    DateTime? originServerTs,
-    bool redacted = false,
-    Map<String, Object?>? content,
-  }) {
-    final event = MockEvent();
-    when(event.type).thenReturn(type);
-    when(event.messageType).thenReturn(messageType);
-    when(event.body).thenReturn(body);
-    when(event.senderId).thenReturn(senderId);
-    when(event.originServerTs)
-        .thenReturn(originServerTs ?? DateTime.now());
-    when(event.redacted).thenReturn(redacted);
-    when(event.content)
-        .thenReturn(content ?? {'body': body, 'msgtype': messageType});
-    when(event.room).thenReturn(mockRoom);
-    when(event.redactedBecause).thenReturn(null);
-    return event;
-  }
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -68,7 +87,10 @@ void main() {
     mockCallService = MockCallService();
 
     when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.avatarResolver).thenReturn(const _NullAvatarResolver());
     when(mockClient.userID).thenReturn('@me:example.com');
+    when(mockClient.onPresenceChanged).thenReturn(CachedStreamController<CachedPresence>());
+    when(mockMatrix.presence).thenReturn(PresenceService(client: mockClient));
 
     when(mockRoom.id).thenReturn('!room:example.com');
     when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
@@ -86,8 +108,10 @@ void main() {
   });
 
   Widget buildTestWidget({
+    KoheraRoomSummary? summary,
     bool isSelected = false,
     Set<String> memberships = const {},
+    KoheraUserSummary? Function(String userId)? userLookup,
   }) {
     lastNavigatedRoom = null;
     final router = GoRouter(
@@ -97,10 +121,11 @@ void main() {
           path: '/',
           builder: (context, state) => Scaffold(
             body: RoomTile(
-              room: mockRoom,
+        summary: summary ?? _summary(),
               isSelected: isSelected,
               memberships: memberships,
               hasContextMenu: false,
+              userLookup: userLookup,
             ),
           ),
           routes: [
@@ -143,7 +168,7 @@ void main() {
 
     testWidgets('shows count when unread > 0', (tester) async {
       when(mockRoom.notificationCount).thenReturn(5);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(notificationCount: 5)));
       await tester.pumpAndSettle();
 
       expect(find.text('5'), findsOneWidget);
@@ -151,7 +176,7 @@ void main() {
 
     testWidgets('shows 99+ when count exceeds 99', (tester) async {
       when(mockRoom.notificationCount).thenReturn(150);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(notificationCount: 150)));
       await tester.pumpAndSettle();
 
       expect(find.text('99+'), findsOneWidget);
@@ -163,61 +188,49 @@ void main() {
   group('Last message preview', () {
     testWidgets('shows "No messages yet" when lastEvent is null',
         (tester) async {
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventPreview: 'No messages yet')));
       await tester.pumpAndSettle();
 
       expect(find.text('No messages yet'), findsOneWidget);
     });
 
     testWidgets('shows text body', (tester) async {
-      final evt = makeEvent(body: 'Hello world');
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventPreview: 'Hello world')));
       await tester.pumpAndSettle();
 
       expect(find.text('Hello world'), findsOneWidget);
     });
 
     testWidgets('shows image emoji for image message', (tester) async {
-      final evt = makeEvent(messageType: MessageTypes.Image);
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventPreview: '📷 Image')));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Image'), findsOneWidget);
     });
 
     testWidgets('shows video emoji for video message', (tester) async {
-      final evt = makeEvent(messageType: MessageTypes.Video);
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventPreview: '🎬 Video')));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Video'), findsOneWidget);
     });
 
     testWidgets('shows file emoji for file message', (tester) async {
-      final evt = makeEvent(messageType: MessageTypes.File);
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventPreview: '📎 File')));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('File'), findsOneWidget);
     });
 
     testWidgets('shows audio emoji for audio message', (tester) async {
-      final evt = makeEvent(messageType: MessageTypes.Audio);
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventPreview: '🎵 Audio')));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Audio'), findsOneWidget);
     });
 
     testWidgets('shows "Unable to decrypt" for BadEncrypted', (tester) async {
-      final evt = makeEvent(messageType: MessageTypes.BadEncrypted);
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventPreview: '🔒 Unable to decrypt')));
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Unable to decrypt'), findsOneWidget);
@@ -225,9 +238,7 @@ void main() {
 
     testWidgets('shows "You deleted this message" for own redacted',
         (tester) async {
-      final evt = makeEvent(redacted: true, senderId: '@me:example.com');
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventPreview: 'You deleted this message')));
       await tester.pumpAndSettle();
 
       expect(find.text('You deleted this message'), findsOneWidget);
@@ -235,32 +246,21 @@ void main() {
 
     testWidgets('shows "This message was deleted" for other redacted',
         (tester) async {
-      final redactEvt = makeEvent();
-      final evt = makeEvent(redacted: true);
-      when(evt.redactedBecause).thenReturn(redactEvt);
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventPreview: 'This message was deleted')));
       await tester.pumpAndSettle();
 
       expect(find.text('This message was deleted'), findsOneWidget);
     });
 
     testWidgets('shows "Call in progress" for call invite', (tester) async {
-      final evt = makeEvent(type: 'm.call.invite');
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventPreview: 'Call in progress')));
       await tester.pumpAndSettle();
 
       expect(find.text('Call in progress'), findsOneWidget);
     });
 
     testWidgets('shows "Call ended" for hangup', (tester) async {
-      final evt = makeEvent(
-        type: 'm.call.hangup',
-        content: {'reason': 'user_hangup'},
-      );
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventPreview: 'Call ended')));
       await tester.pumpAndSettle();
 
       expect(find.text('Call ended'), findsOneWidget);
@@ -268,12 +268,7 @@ void main() {
 
     testWidgets('shows "Missed call" for hangup with invite_timeout',
         (tester) async {
-      final evt = makeEvent(
-        type: 'm.call.hangup',
-        content: {'reason': 'invite_timeout'},
-      );
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventPreview: 'Missed call')));
       await tester.pumpAndSettle();
 
       expect(find.text('Missed call'), findsOneWidget);
@@ -289,12 +284,7 @@ void main() {
       final sp = await SharedPreferences.getInstance();
       prefs = PreferencesService(prefs: sp);
 
-      final typer = MockUser();
-      when(typer.displayName).thenReturn('Bob');
-      when(typer.id).thenReturn('@bob:example.com');
-      when(mockRoom.typingUsers).thenReturn([typer]);
-
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(typingDisplayNames: ['Bob'])));
       await tester.pumpAndSettle();
 
       expect(find.text('Bob is typing'), findsOneWidget);
@@ -305,14 +295,7 @@ void main() {
       final sp = await SharedPreferences.getInstance();
       prefs = PreferencesService(prefs: sp);
 
-      final typer = MockUser();
-      when(typer.displayName).thenReturn('Bob');
-      when(typer.id).thenReturn('@bob:example.com');
-      when(mockRoom.typingUsers).thenReturn([typer]);
-      final evt = makeEvent(body: 'Last msg');
-      when(mockRoom.lastEvent).thenReturn(evt);
-
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(typingDisplayNames: ['Bob'], lastEventPreview: 'Last msg')));
       await tester.pumpAndSettle();
 
       expect(find.text('Bob is typing'), findsNothing);
@@ -376,51 +359,35 @@ void main() {
 
   group('Timestamp', () {
     testWidgets('shows "now" for recent events', (tester) async {
-      final evt = makeEvent(originServerTs: DateTime.now());
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventTimestamp: DateTime.now())));
       await tester.pumpAndSettle();
 
       expect(find.text('now'), findsOneWidget);
     });
 
     testWidgets('shows minutes for events within the hour', (tester) async {
-      final evt = makeEvent(
-        originServerTs: DateTime.now().subtract(const Duration(minutes: 15)),
-      );
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventTimestamp: DateTime.now().subtract(const Duration(minutes: 15)))));
       await tester.pumpAndSettle();
 
       expect(find.text('15m'), findsOneWidget);
     });
 
     testWidgets('shows hours for events within the day', (tester) async {
-      final evt = makeEvent(
-        originServerTs: DateTime.now().subtract(const Duration(hours: 3)),
-      );
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventTimestamp: DateTime.now().subtract(const Duration(hours: 3)))));
       await tester.pumpAndSettle();
 
       expect(find.text('3h'), findsOneWidget);
     });
 
     testWidgets('shows days for events within the week', (tester) async {
-      final evt = makeEvent(
-        originServerTs: DateTime.now().subtract(const Duration(days: 2)),
-      );
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventTimestamp: DateTime.now().subtract(const Duration(days: 2)))));
       await tester.pumpAndSettle();
 
       expect(find.text('2d'), findsOneWidget);
     });
 
     testWidgets('shows DD/MM for events older than a week', (tester) async {
-      final evt = makeEvent(originServerTs: DateTime(2025, 3, 15));
-      when(mockRoom.lastEvent).thenReturn(evt);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(lastEventTimestamp: DateTime(2025, 3, 15))));
       await tester.pumpAndSettle();
 
       expect(find.text('15/03'), findsOneWidget);
@@ -498,13 +465,12 @@ void main() {
       when(mockCallService.callState).thenReturn(KoheraCallState.idle);
       when(mockCallService.callParticipantUserIds('!room:example.com'))
           .thenReturn({'@alice:example.com', '@bob:example.com'});
-      when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
-      when(mockRoom.unsafeGetUserFromMemoryOrFallback('@alice:example.com'))
-          .thenReturn(mockAlice);
-      when(mockRoom.unsafeGetUserFromMemoryOrFallback('@bob:example.com'))
-          .thenReturn(mockBob);
 
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(userLookup: (userId) {
+        if (userId == '@alice:example.com') return const KoheraUserSummary(userId: '@alice:example.com', displayname: 'Alice');
+        if (userId == '@bob:example.com') return const KoheraUserSummary(userId: '@bob:example.com', displayname: 'Bob');
+        return null;
+      },),);
       await tester.pumpAndSettle();
 
       final tooltips = tester.widgetList<Tooltip>(find.byType(Tooltip))
@@ -513,10 +479,6 @@ void main() {
     });
 
     testWidgets('shows You tooltip first when user is connected', (tester) async {
-      final mockMe = MockUser();
-      when(mockMe.displayName).thenReturn('Me');
-      when(mockMe.id).thenReturn('@me:example.com');
-
       when(mockCallService.roomHasActiveCall('!room:example.com'))
           .thenReturn(true);
       when(mockCallService.activeCallRoomId).thenReturn('!room:example.com');
@@ -525,13 +487,12 @@ void main() {
           .thenReturn(const Duration(seconds: 10));
       when(mockCallService.callParticipantUserIds('!room:example.com'))
           .thenReturn({'@alice:example.com', '@me:example.com'});
-      when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
-      when(mockRoom.unsafeGetUserFromMemoryOrFallback('@alice:example.com'))
-          .thenReturn(mockAlice);
-      when(mockRoom.unsafeGetUserFromMemoryOrFallback('@me:example.com'))
-          .thenReturn(mockMe);
 
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(userLookup: (userId) {
+        if (userId == '@alice:example.com') return const KoheraUserSummary(userId: '@alice:example.com', displayname: 'Alice');
+        if (userId == '@me:example.com') return const KoheraUserSummary(userId: '@me:example.com', displayname: 'Me');
+        return null;
+      },),);
       await tester.pump();
 
       final tooltips = tester.widgetList<Tooltip>(find.byType(Tooltip)).toList();
@@ -543,12 +504,7 @@ void main() {
     testWidgets('shows overflow indicator when more than 8 participants', (tester) async {
       final userIds = <String>{};
       for (var i = 0; i < 10; i++) {
-        final id = '@user$i:example.com';
-        userIds.add(id);
-        final user = MockUser();
-        when(user.displayName).thenReturn('User $i');
-        when(user.id).thenReturn(id);
-        when(mockRoom.unsafeGetUserFromMemoryOrFallback(id)).thenReturn(user);
+        userIds.add('@user$i:example.com');
       }
 
       when(mockCallService.roomHasActiveCall('!room:example.com'))
@@ -557,9 +513,14 @@ void main() {
       when(mockCallService.callState).thenReturn(KoheraCallState.idle);
       when(mockCallService.callParticipantUserIds('!room:example.com'))
           .thenReturn(userIds);
-      when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
 
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(userLookup: (userId) {
+        final match = RegExp(r'@user(\d+):').firstMatch(userId);
+        if (match != null) {
+          return KoheraUserSummary(userId: userId, displayname: 'User ${match.group(1)}');
+        }
+        return null;
+      },),);
       await tester.pumpAndSettle();
 
       expect(find.text('+2'), findsOneWidget);
@@ -568,12 +529,7 @@ void main() {
     testWidgets('expands on tap and shows collapse icon', (tester) async {
       final userIds = <String>{};
       for (var i = 0; i < 10; i++) {
-        final id = '@user$i:example.com';
-        userIds.add(id);
-        final user = MockUser();
-        when(user.displayName).thenReturn('User $i');
-        when(user.id).thenReturn(id);
-        when(mockRoom.unsafeGetUserFromMemoryOrFallback(id)).thenReturn(user);
+        userIds.add('@user$i:example.com');
       }
 
       when(mockCallService.roomHasActiveCall('!room:example.com'))
@@ -582,9 +538,14 @@ void main() {
       when(mockCallService.callState).thenReturn(KoheraCallState.idle);
       when(mockCallService.callParticipantUserIds('!room:example.com'))
           .thenReturn(userIds);
-      when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
 
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(userLookup: (userId) {
+        final match = RegExp(r'@user(\d+):').firstMatch(userId);
+        if (match != null) {
+          return KoheraUserSummary(userId: userId, displayname: 'User ${match.group(1)}');
+        }
+        return null;
+      },),);
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('+2'));
@@ -620,7 +581,7 @@ void main() {
       when(mockRoom.isDirectChat).thenReturn(true);
       when(mockRoom.directChatMatrixID).thenReturn('@bob:example.com');
 
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(isDirectChat: true, dmUserId: '@bob:example.com')));
       await tester.pumpAndSettle();
 
       presenceController.add(
@@ -648,7 +609,7 @@ void main() {
       when(mockRoom.isDirectChat).thenReturn(true);
       when(mockRoom.directChatMatrixID).thenReturn('@bob:example.com');
 
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(buildTestWidget(summary: _summary(isDirectChat: true, dmUserId: '@bob:example.com')));
       await tester.pumpAndSettle();
 
       expect(find.byType(PresenceDot), findsOneWidget);

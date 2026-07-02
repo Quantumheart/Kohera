@@ -7,19 +7,22 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
-import 'package:kohera/features/calling/models/incoming_call_info.dart' as model;
+import 'package:kohera/features/calling/models/incoming_call_info.dart'
+    as model;
 import 'package:kohera/features/calling/services/call_navigator.dart';
 import 'package:kohera/features/chat/widgets/pinned_messages_popup.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/shared/widgets/joined_member_count.dart';
 import 'package:kohera/shared/widgets/presence_dot.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   const ChatAppBar({
-    required this.room, required this.onSearch, super.key,
+    required this.summary,
+    required this.onSearch,
+    super.key,
     this.onBack,
     this.onShowDetails,
     this.onPinnedEvent,
@@ -27,11 +30,11 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.threadUnreadCount = 0,
   });
 
-  final Room room;
+  final KoheraRoomSummary summary;
   final VoidCallback? onBack;
   final VoidCallback? onShowDetails;
   final VoidCallback onSearch;
-  final void Function(Event event)? onPinnedEvent;
+  final void Function(String eventId)? onPinnedEvent;
   final VoidCallback? onShowThreads;
   final int threadUnreadCount;
 
@@ -45,9 +48,10 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
         MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
     final effectiveOnBack =
         onBack ?? (isNarrow ? () => context.popOrGo(Routes.home) : null);
-    final dmUserId = room.isDirectChat ? room.directChatMatrixID : null;
+    final dmUserId = summary.dmUserId;
     final presence =
         dmUserId != null ? context.read<MatrixService>().presence : null;
+    final pinnedCount = summary.pinnedEventIds.length;
 
     return AppBar(
       leading: effectiveOnBack != null
@@ -68,7 +72,13 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                   size: 34,
                   presence: presence,
                   userId: dmUserId,
-                  child: RoomAvatarWidget(room: room, size: 34),
+                  child: RoomAvatarWidget(
+                    avatarUrl: summary.avatarUrl,
+                    displayname: summary.displayname,
+                    avatarResolver:
+                        context.read<MatrixService>().avatarResolver,
+                    size: 34,
+                  ),
                 ),
                 const SizedBox(width: 12),
               ],
@@ -77,13 +87,14 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      room.getLocalizedDisplayname(),
+                      summary.displayname,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: tt.titleMedium,
                     ),
                     _HeaderSubtitle(
-                      room: room,
+                      roomId: summary.roomId,
+                      summaryMemberCount: summary.spaceChildCount,
                       presence: presence,
                       userId: dmUserId,
                       style: tt.bodyMedium?.copyWith(fontSize: 11),
@@ -96,24 +107,24 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
         },
       ),
       actions: [
-        if (!isNarrow && room.pinnedEventIds.isNotEmpty && onPinnedEvent != null)
+        if (!isNarrow && pinnedCount > 0 && onPinnedEvent != null)
           Builder(
             builder: (buttonContext) => IconButton(
               mouseCursor: SystemMouseCursors.click,
               icon: Badge.count(
-                count: room.pinnedEventIds.length,
+                count: pinnedCount,
                 child: const Icon(Icons.push_pin_rounded),
               ),
               tooltip: 'Pinned messages',
               onPressed: () => showPinnedMessagesPopup(
                 buttonContext,
-                room,
+                summary.roomId,
                 onTap: onPinnedEvent!,
               ),
             ),
           ),
         if (context.select<CallService, bool>((s) => s.isCallingAvailable))
-          _CallButton(room: room),
+          _CallButton(roomId: summary.roomId),
         if (!isNarrow && onShowThreads != null)
           IconButton(
             mouseCursor: SystemMouseCursors.click,
@@ -141,7 +152,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                   if (onPinnedEvent != null) {
                     showPinnedMessagesPopup(
                       buttonContext,
-                      room,
+                      summary.roomId,
                       onTap: onPinnedEvent!,
                     );
                   }
@@ -153,21 +164,19 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                   } else {
                     context.pushOrGo(
                       Routes.roomDetails,
-                      pathParameters: {RouteParams.roomId: room.id},
+                      pathParameters: {RouteParams.roomId: summary.roomId},
                     );
                   }
               }
             },
             itemBuilder: (context) => [
-              if (isNarrow &&
-                  room.pinnedEventIds.isNotEmpty &&
-                  onPinnedEvent != null)
+              if (isNarrow && pinnedCount > 0 && onPinnedEvent != null)
                 PopupMenuItem(
                   value: _ChatMenuAction.pinned,
                   child: ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: Badge.count(
-                      count: room.pinnedEventIds.length,
+                      count: pinnedCount,
                       child: const Icon(Icons.push_pin_rounded),
                     ),
                     title: const Text('Pinned messages'),
@@ -201,20 +210,21 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
       ],
     );
   }
-
 }
 
 /// App bar subtitle: the counterpart's presence for a DM, falling back to the
 /// member count when presence is unknown or the room is not a direct chat.
 class _HeaderSubtitle extends StatelessWidget {
   const _HeaderSubtitle({
-    required this.room,
+    required this.roomId,
+    required this.summaryMemberCount,
     required this.style,
     this.presence,
     this.userId,
   });
 
-  final Room room;
+  final String roomId;
+  final int summaryMemberCount;
   final TextStyle? style;
   final PresenceService? presence;
   final String? userId;
@@ -223,27 +233,36 @@ class _HeaderSubtitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final presence = this.presence;
     final userId = this.userId;
-    if (presence == null || userId == null) {
-      return JoinedMemberCount(
-        room: room,
-        builder: (context, count) => Text(_memberCountLabel(count), style: style),
-      );
-    }
+    final matrix = context.read<MatrixService>();
+    final room = matrix.client.getRoomById(roomId);
     return JoinedMemberCount(
-      room: room,
-      builder: (context, count) => ListenableBuilder(
-        listenable: presence,
-        builder: (context, _) {
-          final label =
-              _presenceLabel(presence.presenceFor(userId)) ?? _memberCountLabel(count);
-          return Text(
-            label,
-            style: style,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          );
-        },
-      ),
+      roomId: roomId,
+      summaryMemberCount: room?.summary.mJoinedMemberCount ?? 0,
+      participantListComplete: room?.participantListComplete ?? false,
+      resolveMemberCount: (id) async {
+        final r = matrix.client.getRoomById(id);
+        if (r == null) return null;
+        final members = await r.client.getJoinedMembersByRoom(id);
+        return members?.length;
+      },
+      builder: (context, count) {
+        if (presence == null || userId == null) {
+          return Text(_memberCountLabel(count), style: style);
+        }
+        return ListenableBuilder(
+          listenable: presence,
+          builder: (context, _) {
+            final label =
+                presence.presenceLabel(userId) ?? _memberCountLabel(count);
+            return Text(
+              label,
+              style: style,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -254,36 +273,10 @@ String _memberCountLabel(int count) {
   return '$count members';
 }
 
-/// Human-readable presence line for a DM counterpart, or null when unknown.
-/// A "last seen" suffix is appended only when the server provided a timestamp.
-String? _presenceLabel(CachedPresence? presence) {
-  if (presence == null) return null;
-  final lastSeen = presence.lastActiveTimestamp;
-  switch (presence.presence) {
-    case PresenceType.online:
-      return 'Online';
-    case PresenceType.unavailable:
-      return lastSeen != null ? 'Away · last seen ${_ago(lastSeen)}' : 'Away';
-    case PresenceType.offline:
-      return lastSeen != null
-          ? 'Offline · last seen ${_ago(lastSeen)}'
-          : 'Offline';
-  }
-}
-
-String _ago(DateTime ts) {
-  final diff = DateTime.now().difference(ts);
-  if (diff.inMinutes < 1) return 'just now';
-  if (diff.inHours < 1) return '${diff.inMinutes}m ago';
-  if (diff.inDays < 1) return '${diff.inHours}h ago';
-  if (diff.inDays < 30) return '${diff.inDays}d ago';
-  return '${(diff.inDays / 30).floor()}mo ago';
-}
-
 class _CallButton extends StatefulWidget {
-  const _CallButton({required this.room});
+  const _CallButton({required this.roomId});
 
-  final Room room;
+  final String roomId;
 
   @override
   State<_CallButton> createState() => _CallButtonState();
@@ -298,7 +291,7 @@ class _CallButtonState extends State<_CallButton> {
     try {
       await CallNavigator.startCall(
         context,
-        roomId: widget.room.id,
+        roomId: widget.roomId,
         type: type,
       );
     } catch (e) {
@@ -312,8 +305,8 @@ class _CallButtonState extends State<_CallButton> {
   Widget build(BuildContext context) {
     final callService = context.watch<CallService>();
     final callState = callService.callState;
-    final roomHasCall = callService.roomHasActiveCall(widget.room.id);
-    final isInCall = callService.activeCallRoomId == widget.room.id;
+    final roomHasCall = callService.roomHasActiveCall(widget.roomId);
+    final isInCall = callService.activeCallRoomId == widget.roomId;
     final busy = _starting ||
         (callState != KoheraCallState.idle &&
             callState != KoheraCallState.failed &&
@@ -335,39 +328,39 @@ class _CallButtonState extends State<_CallButton> {
       return MouseRegion(
         cursor: SystemMouseCursors.click,
         child: PopupMenuButton<String>(
-        icon: Icon(Icons.call_rounded, color: Colors.green.shade400),
-        tooltip: 'In call',
-        onSelected: (value) {
-          if (value == 'go') {
-            context.pushOrGo(
-              Routes.call,
-              pathParameters: {RouteParams.roomId: widget.room.id},
-            );
-          } else if (value == 'leave') {
-            unawaited(CallNavigator.endCall(context));
-          }
-        },
-        itemBuilder: (_) => const [
-          PopupMenuItem(
-            value: 'go',
-            child: ListTile(
-              leading: Icon(Icons.open_in_new_rounded),
-              title: Text('Go to call'),
-              dense: true,
-              contentPadding: EdgeInsets.zero,
+          icon: Icon(Icons.call_rounded, color: Colors.green.shade400),
+          tooltip: 'In call',
+          onSelected: (value) {
+            if (value == 'go') {
+              context.pushOrGo(
+                Routes.call,
+                pathParameters: {RouteParams.roomId: widget.roomId},
+              );
+            } else if (value == 'leave') {
+              unawaited(CallNavigator.endCall(context));
+            }
+          },
+          itemBuilder: (_) => const [
+            PopupMenuItem(
+              value: 'go',
+              child: ListTile(
+                leading: Icon(Icons.open_in_new_rounded),
+                title: Text('Go to call'),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
             ),
-          ),
-          PopupMenuItem(
-            value: 'leave',
-            child: ListTile(
-              leading: Icon(Icons.call_end_rounded, color: Colors.red),
-              title: Text('Leave call'),
-              dense: true,
-              contentPadding: EdgeInsets.zero,
+            PopupMenuItem(
+              value: 'leave',
+              child: ListTile(
+                leading: Icon(Icons.call_end_rounded, color: Colors.red),
+                title: Text('Leave call'),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       );
     }
 
@@ -382,7 +375,11 @@ class _CallButtonState extends State<_CallButton> {
 
 class ChatSearchAppBar extends StatelessWidget implements PreferredSizeWidget {
   const ChatSearchAppBar({
-    required this.controller, required this.focusNode, required this.onChanged, required this.onClose, super.key,
+    required this.controller,
+    required this.focusNode,
+    required this.onChanged,
+    required this.onClose,
+    super.key,
   });
 
   final TextEditingController controller;

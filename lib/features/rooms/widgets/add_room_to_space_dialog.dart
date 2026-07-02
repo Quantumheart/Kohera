@@ -106,7 +106,12 @@ class _AddRoomToSpaceDialogState extends State<AddRoomToSpaceDialog> {
                           : (v) => setState(
                               () => _selected[space.id] = v ?? false,
                             ),
-                      secondary: RoomAvatarWidget(room: space, size: 36),
+                      secondary: RoomAvatarWidget(
+                        avatarUrl: space.avatar?.toString(),
+                        displayname: space.getLocalizedDisplayname(),
+                        avatarResolver: widget.matrixService.avatarResolver,
+                        size: 36,
+                      ),
                       title: Text(
                         space.getLocalizedDisplayname(),
                         overflow: TextOverflow.ellipsis,

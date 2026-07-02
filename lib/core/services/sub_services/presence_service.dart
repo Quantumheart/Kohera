@@ -20,6 +20,32 @@ class PresenceService extends ChangeNotifier {
 
   CachedPresence? presenceFor(String userId) => _presences[userId];
 
+  /// Human-readable presence line for a user, or null when unknown.
+  String? presenceLabel(String userId) {
+    final p = _presences[userId];
+    if (p == null) return null;
+    final lastSeen = p.lastActiveTimestamp;
+    switch (p.presence) {
+      case PresenceType.online:
+        return 'Online';
+      case PresenceType.unavailable:
+        return lastSeen != null ? 'Away · last seen ${_ago(lastSeen)}' : 'Away';
+      case PresenceType.offline:
+        return lastSeen != null
+            ? 'Offline · last seen ${_ago(lastSeen)}'
+            : 'Offline';
+    }
+  }
+
+  static String _ago(DateTime ts) {
+    final diff = DateTime.now().difference(ts);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    if (diff.inDays < 30) return '${diff.inDays}d ago';
+    return '${(diff.inDays / 30).floor()}mo ago';
+  }
+
   void _onPresenceChanged(CachedPresence presence) {
     _presences[presence.userid] = presence;
     notifyListeners();
