@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/features/home/widgets/inbox/sub_group_section.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/models/notification_group.dart';
@@ -42,7 +43,12 @@ class NotificationGroupTile extends StatelessWidget {
               child: Row(
                 children: [
                   if (room != null) ...[
-                    RoomAvatarWidget(room: room, size: 32),
+                    RoomAvatarWidget(
+                      avatarUrl: room.avatar?.toString(),
+                      displayname: room.getLocalizedDisplayname(),
+                      avatarResolver: ClientAvatarResolver(room.client),
+                      size: 32,
+                    ),
                     const SizedBox(width: 10),
                   ],
                   Expanded(

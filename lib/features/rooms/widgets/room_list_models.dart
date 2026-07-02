@@ -1,6 +1,6 @@
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
 import 'package:kohera/features/spaces/models/space_rooms_model.dart';
-import 'package:matrix/matrix.dart';
 
 // ── List item types for the flat interleaved list ──────────
 sealed class ListItem {}
@@ -22,24 +22,23 @@ class HeaderItem extends ListItem {
 }
 
 class RoomItem extends ListItem {
-  final Room room;
+  final KoheraRoomSummary summary;
   final int depth;
   final String? parentSpaceId;
-  final List<Room>? sectionRooms;
+  final List<String>? sectionRoomIds;
 
   RoomItem({
-    required this.room,
+    required this.summary,
     this.depth = 0,
     this.parentSpaceId,
-    List<Room>? sectionRooms,
-  }) : sectionRooms = sectionRooms != null
-           ? List.unmodifiable(sectionRooms)
-           : null;
+    List<String>? sectionRoomIds,
+  }) : sectionRoomIds =
+            sectionRoomIds != null ? List.unmodifiable(sectionRoomIds) : null;
 }
 
 class InviteItem extends ListItem {
-  final Room room;
-  InviteItem({required this.room});
+  final KoheraRoomSummary summary;
+  InviteItem({required this.summary});
 }
 
 class MessageSearchHeaderItem extends ListItem {
@@ -48,7 +47,8 @@ class MessageSearchHeaderItem extends ListItem {
   final String? error;
 
   MessageSearchHeaderItem({
-    required this.isLoading, this.resultCount,
+    required this.isLoading,
+    this.resultCount,
     this.error,
   });
 }

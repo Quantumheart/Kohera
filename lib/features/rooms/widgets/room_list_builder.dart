@@ -38,7 +38,7 @@ Set<String>? spaceRoomIds(SelectionService matrix) {
     }
   }
   for (final node in matrix.spaceTree) {
-    if (selectedIds.contains(node.room.id)) collect(node);
+    if (selectedIds.contains(node.summary.roomId)) collect(node);
   }
   return ids;
 }
@@ -57,7 +57,7 @@ List<ListItem> buildSectionItems(
   // Invited rooms at the top (filtered by search)
   final invitedRooms = applySearch(matrix.invitedRooms, query);
   for (final room in invitedRooms) {
-    items.add(InviteItem(room: room));
+    items.add(InviteItem(summary: matrix.summaryFor(room)));
   }
 
   final pinnedIds = <String>{};
@@ -65,7 +65,7 @@ List<ListItem> buildSectionItems(
   if (selectedIds.isNotEmpty) {
     // Space selected: show only that space's rooms with subspace hierarchy
     final visibleNodes = tree
-        .where((n) => selectedIds.contains(n.room.id))
+        .where((n) => selectedIds.contains(n.summary.roomId))
         .toList();
     for (final node in visibleNodes) {
       _addSpaceSection(items, node, 0, matrix, collapsed, pinnedIds, query,
@@ -87,7 +87,7 @@ List<ListItem> buildSectionItems(
       ),);
       if (!collapsed.contains(PreferencesService.pinnedSectionKey)) {
         for (final room in pinnedRooms) {
-          items.add(RoomItem(room: room));
+          items.add(RoomItem(summary: matrix.summaryFor(room)));
         }
       }
     }
@@ -104,7 +104,7 @@ List<ListItem> buildSectionItems(
       ),);
       if (!collapsed.contains(PreferencesService.dmSectionKey)) {
         for (final room in dmRooms) {
-          items.add(RoomItem(room: room));
+          items.add(RoomItem(summary: matrix.summaryFor(room)));
         }
       }
     }
@@ -122,7 +122,7 @@ List<ListItem> buildSectionItems(
       ),);
       if (!collapsed.contains(PreferencesService.unsortedSectionKey)) {
         for (final room in orphans) {
-          items.add(RoomItem(room: room));
+          items.add(RoomItem(summary: matrix.summaryFor(room)));
         }
       }
     }
@@ -145,7 +145,7 @@ void _addSpaceSection(
   final subspaceRoomIds = <String>{};
   void collectSubspaces(List<SpaceNode> subs) {
     for (final sub in subs) {
-      final subRooms = applySearch(matrix.roomsForSpace(sub.room.id), query)
+      final subRooms = applySearch(matrix.roomsForSpace(sub.summary.roomId), query)
           .where((r) => !pinnedIds.contains(r.id));
       subspaceRoomIds.addAll(subRooms.map((r) => r.id));
       collectSubspaces(sub.subspaces);
@@ -153,7 +153,7 @@ void _addSpaceSection(
   }
   collectSubspaces(node.subspaces);
 
-  final rooms = applySearch(matrix.roomsForSpace(node.room.id), query)
+  final rooms = applySearch(matrix.roomsForSpace(node.summary.roomId), query)
       .where((r) => !pinnedIds.contains(r.id) &&
           !subspaceRoomIds.contains(r.id),)
       .toList();
@@ -164,7 +164,7 @@ void _addSpaceSection(
   // (empty) subspaces. Only skip empty top-level space sections when there
   // are no matching unjoined rooms either.
   final hasMatchingUnjoined = spaceRoomsController != null &&
-      _hasMatchingUnjoined(spaceRoomsController, node.room.id, query);
+      _hasMatchingUnjoined(spaceRoomsController, node.summary.roomId, query);
   if (totalRooms == 0 &&
       node.subspaces.isEmpty &&
       depth == 0 &&
@@ -173,20 +173,20 @@ void _addSpaceSection(
   }
 
   items.add(HeaderItem(
-    name: node.room.getLocalizedDisplayname(),
-    sectionKey: node.room.id,
+    name: node.summary.displayname,
+    sectionKey: node.summary.roomId,
     depth: depth,
     roomCount: totalRooms,
     isSpace: true,
   ),);
 
-  if (!collapsed.contains(node.room.id)) {
+  if (!collapsed.contains(node.summary.roomId)) {
     for (final room in rooms) {
       items.add(RoomItem(
-        room: room,
+        summary: matrix.summaryFor(room),
         depth: depth,
-        parentSpaceId: node.room.id,
-        sectionRooms: rooms,
+        parentSpaceId: node.summary.roomId,
+        sectionRoomIds: rooms.map((r) => r.id).toList(),
       ),);
     }
     for (final sub in node.subspaces) {
@@ -207,11 +207,11 @@ void _addUnjoinedGroup(
 ) {
   if (controller == null) return;
 
-  final state = controller.getRoomState(node.room.id);
+  final state = controller.getRoomState(node.summary.roomId);
   final q = query.toLowerCase();
 
   // Not yet fetched — show a slim loader.
-  if (!controller.isCached(node.room.id) || state.loading) {
+  if (!controller.isCached(node.summary.roomId) || state.loading) {
     items.add(UnjoinedRoomLoadingItem(depth: depth));
     return;
   }
@@ -224,7 +224,7 @@ void _addUnjoinedGroup(
   if (state.error != null) {
     items.add(UnjoinedRoomErrorItem(
       error: state.error!,
-      spaceId: node.room.id,
+      spaceId: node.summary.roomId,
       depth: depth,
     ),);
     return;
@@ -250,7 +250,7 @@ void _addUnjoinedGroup(
 
   // Group header.
   items.add(UnjoinedRoomGroupHeaderItem(
-    spaceId: node.room.id,
+    spaceId: node.summary.roomId,
     unjoinedCount: unjoinedRooms.length + subspaces.length,
   ),);
 
@@ -258,7 +258,7 @@ void _addUnjoinedGroup(
   for (final m in unjoinedRooms) {
     items.add(UnjoinedRoomItem(
       metadata: m,
-      parentSpaceId: node.room.id,
+      parentSpaceId: node.summary.roomId,
       depth: depth,
     ),);
   }
@@ -267,7 +267,7 @@ void _addUnjoinedGroup(
   for (final m in subspaces) {
     items.add(SubspaceOpenItem(
       metadata: m,
-      parentSpaceId: node.room.id,
+      parentSpaceId: node.summary.roomId,
       depth: depth,
     ),);
   }

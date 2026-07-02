@@ -1,34 +1,21 @@
-﻿import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/chat/widgets/typing_indicator.dart';
-import 'package:matrix/matrix.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-@GenerateNiceMocks([MockSpec<Room>(), MockSpec<User>()])
-import 'typing_indicator_test.mocks.dart';
-
-MockUser _makeUser(String id, String? displayName) {
-  final user = MockUser();
-  when(user.id).thenReturn(id);
-  when(user.displayName).thenReturn(displayName);
-  return user;
-}
-
-Widget _wrap(Room room, {String? myUserId, PreferencesService? prefs}) {
+Widget _wrap(
+  List<String> typingNames, {
+  PreferencesService? prefs,
+}) {
   return ChangeNotifierProvider<PreferencesService>.value(
     value: prefs ?? PreferencesService(),
     child: MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: TypingIndicator(
-          room: room,
-          myUserId: myUserId ?? '@me:example.com',
+          typingDisplayNamesProvider: () => typingNames,
           syncStream: const Stream.empty(),
         ),
       ),
@@ -38,101 +25,84 @@ Widget _wrap(Room room, {String? myUserId, PreferencesService? prefs}) {
 
 void main() {
   group('TypingIndicator', () {
-    late MockRoom mockRoom;
+    testWidgets('empty typing names renders nothing', (tester) async {
+      await tester.pumpWidget(_wrap([]));
+      await tester.pump(const Duration(milliseconds: 100));
 
-    setUp(() {
-      mockRoom = MockRoom();
-    });
-
-    testWidgets('empty typingUsers renders nothing', (tester) async {
-      when(mockRoom.typingUsers).thenReturn([]);
-      await tester.pumpWidget(_wrap(mockRoom));
-
+      expect(find.byType(TypingIndicator), findsOneWidget);
       expect(find.textContaining('typing'), findsNothing);
     });
 
-    testWidgets('1 user shows "Alice is typing"', (tester) async {
-      final alice = _makeUser('@alice:example.com', 'Alice');
-      when(mockRoom.typingUsers).thenReturn([alice]);
-      await tester.pumpWidget(_wrap(mockRoom));
-      await tester.pump();
+    testWidgets('single typer shows "X is typing"', (tester) async {
+      await tester.pumpWidget(_wrap(['Alice']));
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('Alice is typing'), findsOneWidget);
     });
 
-    testWidgets('2 users shows "Alice and Bob are typing"', (tester) async {
-      final alice = _makeUser('@alice:example.com', 'Alice');
-      final bob = _makeUser('@bob:example.com', 'Bob');
-      when(mockRoom.typingUsers).thenReturn([alice, bob]);
-      await tester.pumpWidget(_wrap(mockRoom));
-      await tester.pump();
+    testWidgets('two typers shows "X and Y are typing"', (tester) async {
+      await tester.pumpWidget(_wrap(['Alice', 'Bob']));
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('Alice and Bob are typing'), findsOneWidget);
     });
 
-    testWidgets('3 users shows all names', (tester) async {
-      final alice = _makeUser('@alice:example.com', 'Alice');
-      final bob = _makeUser('@bob:example.com', 'Bob');
-      final carol = _makeUser('@carol:example.com', 'Carol');
-      when(mockRoom.typingUsers).thenReturn([alice, bob, carol]);
-      await tester.pumpWidget(_wrap(mockRoom));
-      await tester.pump();
+    testWidgets('three typers shows all names', (tester) async {
+      await tester.pumpWidget(_wrap(['Alice', 'Bob', 'Charlie']));
+      await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Alice, Bob, and Carol are typing'), findsOneWidget);
+      expect(
+        find.text('Alice, Bob, and Charlie are typing'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('4+ users shows "N others"', (tester) async {
-      final alice = _makeUser('@alice:example.com', 'Alice');
-      final bob = _makeUser('@bob:example.com', 'Bob');
-      final carol = _makeUser('@carol:example.com', 'Carol');
-      final dave = _makeUser('@dave:example.com', 'Dave');
-      when(mockRoom.typingUsers).thenReturn([alice, bob, carol, dave]);
-      await tester.pumpWidget(_wrap(mockRoom));
-      await tester.pump();
+    testWidgets('four+ typers shows "+N others"', (tester) async {
+      await tester.pumpWidget(_wrap(['Alice', 'Bob', 'Charlie', 'Dave']));
+      await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Alice, Bob, and 2 others are typing'), findsOneWidget);
+      expect(
+        find.text('Alice, Bob, and 2 others are typing'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('own user is filtered out', (tester) async {
-      final me = _makeUser('@me:example.com', 'Me');
-      final alice = _makeUser('@alice:example.com', 'Alice');
-      when(mockRoom.typingUsers).thenReturn([me, alice]);
-      await tester.pumpWidget(_wrap(mockRoom, myUserId: '@me:example.com'));
-      await tester.pump();
-
-      expect(find.text('Alice is typing'), findsOneWidget);
-    });
-
-    testWidgets('null displayName falls back to user ID', (tester) async {
-      final noName = _makeUser('@anon:example.com', null);
-      when(mockRoom.typingUsers).thenReturn([noName]);
-      await tester.pumpWidget(_wrap(mockRoom));
-      await tester.pump();
-
-      expect(find.text('@anon:example.com is typing'), findsOneWidget);
-    });
-
-    testWidgets('only own user typing renders nothing', (tester) async {
-      final me = _makeUser('@me:example.com', 'Me');
-      when(mockRoom.typingUsers).thenReturn([me]);
-      await tester.pumpWidget(_wrap(mockRoom, myUserId: '@me:example.com'));
-      await tester.pump();
-
-      expect(find.textContaining('typing'), findsNothing);
-    });
-
-    testWidgets('hidden when typingIndicators preference is disabled',
-        (tester) async {
+    testWidgets('hidden when typing indicators disabled', (tester) async {
       SharedPreferences.setMockInitialValues({'typing_indicators': false});
       final sp = await SharedPreferences.getInstance();
       final prefs = PreferencesService(prefs: sp);
 
-      final alice = _makeUser('@alice:example.com', 'Alice');
-      when(mockRoom.typingUsers).thenReturn([alice]);
-      await tester.pumpWidget(_wrap(mockRoom, prefs: prefs));
-      await tester.pump();
+      await tester.pumpWidget(_wrap(['Alice'], prefs: prefs));
+      await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.textContaining('typing'), findsNothing);
+      expect(find.text('Alice is typing'), findsNothing);
+    });
+  });
+
+  group('TypingIndicator.formatTypers', () {
+    test('single name', () {
+      expect(TypingIndicator.formatTypers(['Alice']), 'Alice is typing');
+    });
+
+    test('two names', () {
+      expect(
+        TypingIndicator.formatTypers(['Alice', 'Bob']),
+        'Alice and Bob are typing',
+      );
+    });
+
+    test('three names', () {
+      expect(
+        TypingIndicator.formatTypers(['Alice', 'Bob', 'Charlie']),
+        'Alice, Bob, and Charlie are typing',
+      );
+    });
+
+    test('four names', () {
+      expect(
+        TypingIndicator.formatTypers(['Alice', 'Bob', 'Charlie', 'Dave']),
+        'Alice, Bob, and 2 others are typing',
+      );
     });
   });
 }

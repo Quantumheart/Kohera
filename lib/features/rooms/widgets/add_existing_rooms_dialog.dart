@@ -149,8 +149,12 @@ class _AddExistingRoomsDialogState extends State<AddExistingRoomsDialog> {
                                             _selected.remove(room.id);
                                           }
                                         }),
-                                secondary:
-                                    RoomAvatarWidget(room: room, size: 36),
+                                secondary: RoomAvatarWidget(
+                                  avatarUrl: room.avatar?.toString(),
+                                  displayname: room.getLocalizedDisplayname(),
+                                  avatarResolver: widget.matrixService.avatarResolver,
+                                  size: 36,
+                                ),
                                 title: Text(
                                   room.getLocalizedDisplayname(),
                                   overflow: TextOverflow.ellipsis,

@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/features/calling/services/call_navigator.dart';
-import 'package:matrix/matrix.dart';
 
 // coverage:ignore-start
 
 class JoinCallBanner extends StatelessWidget {
-  const JoinCallBanner({required this.room, required this.callService, super.key});
+  const JoinCallBanner({
+    required this.roomId,
+    required this.callService,
+    super.key,
+  });
 
-  final Room room;
+  final String roomId;
   final CallService callService;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final callIds = callService.activeCallIdsForRoom(room.id);
+    final callIds = callService.activeCallIdsForRoom(roomId);
     final participantCount = callIds.isNotEmpty
-        ? callService.callParticipantCount(room.id, callIds.first)
+        ? callService.callParticipantCount(roomId, callIds.first)
         : 0;
 
     return Material(
@@ -34,10 +37,7 @@ class JoinCallBanner extends StatelessWidget {
               ),
             ),
             FilledButton.tonal(
-              onPressed: () => CallNavigator.startCall(
-                context,
-                roomId: room.id,
-              ),
+              onPressed: () => CallNavigator.startCall(context, roomId: roomId),
               child: const Text('Join'),
             ),
           ],

@@ -3,16 +3,29 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 // ── Invite tile ─────────────────────────────────────────────
 class InviteTile extends StatefulWidget {
-  const InviteTile({required this.room, super.key});
-  final Room room;
+  const InviteTile({
+    required this.summary,
+    this.inviterName,
+    this.onJoin,
+    this.onDecline,
+    super.key,
+  });
+
+  final KoheraRoomSummary summary;
+  final String? inviterName;
+
+  /// Called when the user accepts the invite. The caller handles room.join().
+  final Future<void> Function()? onJoin;
+
+  /// Called when the user declines the invite. The caller handles room.leave().
+  final Future<void> Function()? onDecline;
 
   @override
   State<InviteTile> createState() => _InviteTileState();
@@ -29,7 +42,13 @@ class _InviteTileState extends State<InviteTile> {
     final matrix = context.read<MatrixService>();
     setState(() => _isJoining = true);
     try {
-      await widget.room.join();
+      if (widget.onJoin != null) {
+        await widget.onJoin!();
+      } else {
+        // Fallback: join via the client
+        final room = matrix.client.getRoomById(widget.summary.roomId);
+        if (room != null) await room.join();
+      }
     } catch (e) {
       debugPrint('[Kohera] Accept invite failed: $e');
       if (mounted) context.showSnack(MatrixService.friendlyAuthError(e));
@@ -37,7 +56,6 @@ class _InviteTileState extends State<InviteTile> {
       return;
     }
     // Join succeeded — wait briefly for the sync so the room appears as joined.
-    // A timeout here is not an error; the room will appear on the next sync.
     try {
       await matrix.client.onSync.stream.first
           .timeout(const Duration(seconds: 5));
@@ -45,7 +63,10 @@ class _InviteTileState extends State<InviteTile> {
       // Timeout is fine — the join already succeeded server-side.
     }
     if (mounted) {
-      context.goNamed(Routes.room, pathParameters: {RouteParams.roomId: widget.room.id});
+      context.goNamed(
+        Routes.room,
+        pathParameters: {RouteParams.roomId: widget.summary.roomId},
+      );
       setState(() => _isJoining = false);
     }
   }
@@ -55,14 +76,20 @@ class _InviteTileState extends State<InviteTile> {
     final confirmed = await confirmDialog(
       context,
       title: 'Decline invite',
-      message: 'Decline invite to ${widget.room.getLocalizedDisplayname()}?',
+      message: 'Decline invite to ${widget.summary.displayname}?',
       confirmLabel: 'Decline',
     );
     if (!confirmed || !mounted) return;
 
     setState(() => _isDeclining = true);
     try {
-      await widget.room.leave();
+      if (widget.onDecline != null) {
+        await widget.onDecline!();
+      } else {
+        final matrix = context.read<MatrixService>();
+        final room = matrix.client.getRoomById(widget.summary.roomId);
+        if (room != null) await room.leave();
+      }
     } catch (e) {
       debugPrint('[Kohera] Decline invite failed: $e');
       if (mounted) context.showSnack(MatrixService.friendlyAuthError(e));
@@ -73,10 +100,9 @@ class _InviteTileState extends State<InviteTile> {
 
   @override
   Widget build(BuildContext context) {
-    final selection = context.watch<SelectionService>();
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final inviter = selection.inviterDisplayName(widget.room);
+    final inviter = widget.inviterName;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -88,8 +114,7 @@ class _InviteTileState extends State<InviteTile> {
           mouseCursor: SystemMouseCursors.click,
           onTap: _inFlight ? null : _accept,
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Row(
               children: [
                 // Avatar
@@ -106,7 +131,13 @@ class _InviteTileState extends State<InviteTile> {
                     ),
                   )
                 else
-                  RoomAvatarWidget(room: widget.room, size: 48),
+                  RoomAvatarWidget(
+                    avatarUrl: widget.summary.avatarUrl,
+                    displayname: widget.summary.displayname,
+                    avatarResolver:
+                        context.read<MatrixService>().avatarResolver,
+                    size: 48,
+                  ),
 
                 const SizedBox(width: 12),
 
@@ -116,7 +147,7 @@ class _InviteTileState extends State<InviteTile> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        widget.room.getLocalizedDisplayname(),
+                        widget.summary.displayname,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: tt.titleMedium?.copyWith(
@@ -131,8 +162,7 @@ class _InviteTileState extends State<InviteTile> {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: tt.bodyMedium?.copyWith(
-                          color: cs.onTertiaryContainer
-                              .withValues(alpha: 0.7),
+                          color: cs.onTertiaryContainer.withValues(alpha: 0.7),
                         ),
                       ),
                     ],

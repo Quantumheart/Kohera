@@ -54,7 +54,10 @@ class InvitationsView extends StatelessWidget {
               ),
             ),
           ),
-          for (final space in invitedSpaces) InviteTile(room: space),
+          for (final space in invitedSpaces) InviteTile(
+            summary: selection.summaryFor(space),
+            inviterName: selection.inviterDisplayName(space),
+          ),
         ],
         if (invitedRooms.isNotEmpty) ...[
           Padding(
@@ -67,7 +70,10 @@ class InvitationsView extends StatelessWidget {
               ),
             ),
           ),
-          for (final room in invitedRooms) InviteTile(room: room),
+          for (final room in invitedRooms) InviteTile(
+            summary: selection.summaryFor(room),
+            inviterName: selection.inviterDisplayName(room),
+          ),
         ],
       ],
     );

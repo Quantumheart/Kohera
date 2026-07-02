@@ -1,33 +1,72 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/space_node.dart';
-import 'package:matrix/matrix.dart';
-import 'package:mockito/mockito.dart';
-
-class _MockRoom extends Mock implements Room {}
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 
 void main() {
   group('SpaceNode', () {
     test('creates with defaults', () {
-      final room = _MockRoom();
-      final node = SpaceNode(room: room);
-      expect(node.room, room);
+      const summary = KoheraRoomSummary(
+        roomId: '!space:x.com',
+        displayname: 'Test Space',
+        isDirectChat: false,
+        isEncrypted: false,
+        isSpace: true,
+        notificationCount: 0,
+        highlightCount: 0,
+        typingDisplayNames: [],
+        pinnedEventIds: [],
+        spaceChildCount: 0,
+        isFavourite: false,
+        lastEventPreview: 'No messages yet',
+        lastEventIsThreadReply: false,
+      );
+      const node = SpaceNode(summary: summary);
+      expect(node.summary, summary);
       expect(node.subspaces, isEmpty);
       expect(node.directChildRoomIds, isEmpty);
     });
 
     test('creates with subspaces and child room IDs', () {
-      final parent = _MockRoom();
-      final child = _MockRoom();
-      final childNode = SpaceNode(room: child);
+      const parentSummary = KoheraRoomSummary(
+        roomId: '!parent:x.com',
+        displayname: 'Parent',
+        isDirectChat: false,
+        isEncrypted: false,
+        isSpace: true,
+        notificationCount: 0,
+        highlightCount: 0,
+        typingDisplayNames: [],
+        pinnedEventIds: [],
+        spaceChildCount: 0,
+        isFavourite: false,
+        lastEventPreview: 'No messages yet',
+        lastEventIsThreadReply: false,
+      );
+      const childSummary = KoheraRoomSummary(
+        roomId: '!child:x.com',
+        displayname: 'Child',
+        isDirectChat: false,
+        isEncrypted: false,
+        isSpace: true,
+        notificationCount: 0,
+        highlightCount: 0,
+        typingDisplayNames: [],
+        pinnedEventIds: [],
+        spaceChildCount: 0,
+        isFavourite: false,
+        lastEventPreview: 'No messages yet',
+        lastEventIsThreadReply: false,
+      );
+      const childNode = SpaceNode(summary: childSummary);
 
-      final node = SpaceNode(
-        room: parent,
+      const node = SpaceNode(
+        summary: parentSummary,
         subspaces: [childNode],
         directChildRoomIds: ['!room1:x.com', '!room2:x.com'],
       );
 
       expect(node.subspaces, hasLength(1));
-      expect(node.subspaces[0].room, child);
+      expect(node.subspaces[0].summary, childSummary);
       expect(node.directChildRoomIds, ['!room1:x.com', '!room2:x.com']);
     });
   });

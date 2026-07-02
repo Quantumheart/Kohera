@@ -1,18 +1,28 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/space_node.dart';
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/features/spaces/widgets/space_reparent_controller.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([MockSpec<Room>()])
-import 'space_reparent_controller_test.mocks.dart';
 
-MockRoom _mockRoom(String id) {
-  final room = MockRoom();
-  when(room.id).thenReturn(id);
-  return room;
-}
+KoheraRoomSummary _summary(String id) => KoheraRoomSummary(
+  roomId: id,
+  displayname: id,
+  isDirectChat: false,
+  isEncrypted: false,
+  isSpace: true,
+  notificationCount: 0,
+  highlightCount: 0,
+  typingDisplayNames: const [],
+  pinnedEventIds: const [],
+  spaceChildCount: 0,
+  isFavourite: false,
+  lastEventPreview: 'No messages yet',
+  lastEventIsThreadReply: false,
+);
+
 
 void main() {
   // ── Controller state transitions ──────────────────────────
@@ -62,17 +72,17 @@ void main() {
     setUp(() {
       tree = [
         SpaceNode(
-          room: _mockRoom('!a:x'),
+          summary: _summary('!a:x'),
           subspaces: [
             SpaceNode(
-              room: _mockRoom('!b:x'),
+              summary: _summary('!b:x'),
               subspaces: [
-                SpaceNode(room: _mockRoom('!c:x')),
+                SpaceNode(summary: _summary('!c:x')),
               ],
             ),
           ],
         ),
-        SpaceNode(room: _mockRoom('!d:x')),
+        SpaceNode(summary: _summary('!d:x')),
       ];
     });
 

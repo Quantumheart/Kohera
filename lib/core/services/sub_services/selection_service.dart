@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/models/space_node.dart';
 import 'package:kohera/core/utils/order_utils.dart' as order_utils;
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
+import 'package:kohera/features/rooms/models/kohera_room_summary_mapper.dart';
 import 'package:matrix/matrix.dart';
 
 class SelectionService extends ChangeNotifier {
@@ -110,8 +112,20 @@ class SelectionService extends ChangeNotifier {
   List<Room>? _cachedRooms;
   bool _spaceTreeDirty = true;
 
+  final Map<String, KoheraRoomSummary> _summaryCache = {};
+
+  /// Converts a [Room] to a [KoheraRoomSummary], caching the result for the
+  /// current sync cycle. The cache is invalidated on every sync.
+  KoheraRoomSummary summaryFor(Room room) {
+    return _summaryCache.putIfAbsent(
+      room.id,
+      () => toKoheraRoomSummary(room, myUserId: _client.userID),
+    );
+  }
+
   void invalidateSpaceTree() {
     _spaceTreeDirty = true;
+    _summaryCache.clear();
   }
 
   void _rebuildSpaceTree() {
@@ -151,14 +165,13 @@ class SelectionService extends ChangeNotifier {
     SpaceNode buildNode(String spaceId) {
       final mutable = nodeMap[spaceId]!;
       return SpaceNode(
-        room: mutable.room,
+        summary: summaryFor(mutable.room),
         subspaces: mutable.subspaceIds
             .where(nodeMap.containsKey)
             .map(buildNode)
             .toList()
-          ..sort((a, b) => a.room
-              .getLocalizedDisplayname()
-              .compareTo(b.room.getLocalizedDisplayname()),),
+          ..sort((a, b) => a.summary.displayname
+              .compareTo(b.summary.displayname),),
         directChildRoomIds: mutable.directChildRoomIds,
       );
     }
@@ -168,8 +181,8 @@ class SelectionService extends ChangeNotifier {
           .where((id) => !childSpaceIds.contains(id))
           .map(buildNode)
           .toList(),
-      (n) => n.room.id,
-      (n) => n.room.getLocalizedDisplayname(),
+      (n) => n.summary.roomId,
+      (n) => n.summary.displayname,
     );
 
     final allRoomIds = <String>{};
@@ -178,7 +191,7 @@ class SelectionService extends ChangeNotifier {
     void walkTree(SpaceNode node) {
       for (final roomId in node.directChildRoomIds) {
         allRoomIds.add(roomId);
-        (roomToSpaces[roomId] ??= {}).add(node.room.id);
+        (roomToSpaces[roomId] ??= {}).add(node.summary.roomId);
       }
       for (final sub in node.subspaces) {
         walkTree(sub);
@@ -192,7 +205,7 @@ class SelectionService extends ChangeNotifier {
     final flatNodeMap = <String, SpaceNode>{};
     void indexNodes(List<SpaceNode> nodes) {
       for (final node in nodes) {
-        flatNodeMap[node.room.id] = node;
+        flatNodeMap[node.summary.roomId] = node;
         indexNodes(node.subspaces);
       }
     }
@@ -234,7 +247,10 @@ class SelectionService extends ChangeNotifier {
         (r) => r.getLocalizedDisplayname(),
       );
 
-  List<Room> get topLevelSpaces => spaceTree.map((n) => n.room).toList();
+  List<Room> get topLevelSpaces => spaceTree
+      .map((n) => _client.getRoomById(n.summary.roomId))
+      .whereType<Room>()
+      .toList();
 
   List<Room> get rooms {
     _ensureTreeFresh();

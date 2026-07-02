@@ -60,7 +60,7 @@ bool wouldCreateCycle(
   // Find the candidate node and check if newParentId is in its subtree.
   SpaceNode? findNode(List<SpaceNode> nodes, String id) {
     for (final node in nodes) {
-      if (node.room.id == id) return node;
+      if (node.summary.roomId == id) return node;
       final found = findNode(node.subspaces, id);
       if (found != null) return found;
     }
@@ -72,7 +72,7 @@ bool wouldCreateCycle(
 
   bool isDescendant(SpaceNode node, String targetId) {
     for (final sub in node.subspaces) {
-      if (sub.room.id == targetId) return true;
+      if (sub.summary.roomId == targetId) return true;
       if (isDescendant(sub, targetId)) return true;
     }
     return false;

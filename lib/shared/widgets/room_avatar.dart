@@ -3,21 +3,33 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cached_network_image_platform_interface/cached_network_image_platform_interface.dart';
 import 'package:flutter/material.dart';
-import 'package:kohera/core/utils/media_auth.dart';
 import 'package:kohera/core/utils/sender_color.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 
 /// Displays a room's avatar with a colored-initial fallback.
 ///
-/// Resolves the mxc:// avatar URL asynchronously via [getThumbnailUri]
-/// and passes auth headers for authenticated media endpoints.
+/// Resolves the mxc:// [avatarUrl] asynchronously via [avatarResolver] and
+/// passes auth headers for authenticated media endpoints.
 class RoomAvatarWidget extends StatefulWidget {
   const RoomAvatarWidget({
-    required this.room, super.key,
+    required this.avatarUrl,
+    required this.displayname,
+    this.avatarResolver,
     this.size = 44,
+    super.key,
   });
 
-  final Room room;
+  /// The raw `mxc://` avatar URI as a string, or `null` if the room has no
+  /// avatar.
+  final String? avatarUrl;
+
+  /// The room display name. Used for the initial fallback.
+  final String displayname;
+
+  /// Resolves [avatarUrl] to an HTTP thumbnail URL with auth headers.
+  /// If `null`, only the fallback initial is shown.
+  final AvatarResolver? avatarResolver;
+
   final double size;
 
   @override
@@ -26,7 +38,7 @@ class RoomAvatarWidget extends StatefulWidget {
 
 class _RoomAvatarWidgetState extends State<RoomAvatarWidget> {
   String? _resolvedUrl;
-  Uri? _lastAvatarUri;
+  Map<String, String>? _resolvedHeaders;
 
   @override
   void initState() {
@@ -37,23 +49,27 @@ class _RoomAvatarWidgetState extends State<RoomAvatarWidget> {
   @override
   void didUpdateWidget(RoomAvatarWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.room.avatar != _lastAvatarUri) {
+    if (oldWidget.avatarUrl != widget.avatarUrl) {
       _resolvedUrl = null;
+      _resolvedHeaders = null;
       unawaited(_resolveThumbnail());
     }
   }
 
   Future<void> _resolveThumbnail() async {
-    final avatarUri = widget.room.avatar;
-    _lastAvatarUri = avatarUri;
-    if (avatarUri == null) return;
+    final resolver = widget.avatarResolver;
+    if (resolver == null) return;
     try {
-      final uri = await avatarUri.getThumbnailUri(
-        widget.room.client,
-        width: (widget.size * 2).toInt(),
-        height: (widget.size * 2).toInt(),
+      final result = await resolver.resolve(
+        widget.avatarUrl,
+        size: widget.size,
       );
-      if (mounted) setState(() => _resolvedUrl = uri.toString());
+      if (mounted && result != null) {
+        setState(() {
+          _resolvedUrl = result.url;
+          _resolvedHeaders = result.headers;
+        });
+      }
     } catch (e) {
       debugPrint('[Kohera] Failed to resolve room avatar thumbnail: $e');
     }
@@ -62,7 +78,7 @@ class _RoomAvatarWidgetState extends State<RoomAvatarWidget> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final name = widget.room.getLocalizedDisplayname();
+    final name = widget.displayname;
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '#';
     final bgColor = senderColor(name, cs, fallback: cs.primaryContainer);
 
@@ -74,8 +90,7 @@ class _RoomAvatarWidgetState extends State<RoomAvatarWidget> {
         child: _resolvedUrl != null
             ? CachedNetworkImage(
                 imageUrl: _resolvedUrl!,
-                httpHeaders:
-                    mediaAuthHeaders(widget.room.client, _resolvedUrl!),
+                httpHeaders: _resolvedHeaders,
                 imageRenderMethodForWeb: ImageRenderMethodForWeb.HttpGet,
                 fit: BoxFit.cover,
                 placeholder: (_, __) => _Fallback(
@@ -100,7 +115,6 @@ class _RoomAvatarWidgetState extends State<RoomAvatarWidget> {
       ),
     );
   }
-
 }
 
 class _Fallback extends StatelessWidget {

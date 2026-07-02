@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
@@ -127,7 +128,12 @@ class MobileSpaceDrawer extends StatelessWidget {
                       ListTile(
                         leading: Opacity(
                           opacity: 0.7,
-                          child: RoomAvatarWidget(room: space, size: 36),
+                          child: RoomAvatarWidget(
+                          avatarUrl: space.avatar?.toString(),
+                          displayname: space.getLocalizedDisplayname(),
+                          avatarResolver: ClientAvatarResolver(space.client),
+                          size: 36,
+                        ),
                         ),
                         title: Text(space.getLocalizedDisplayname()),
                         onTap: () async {
@@ -219,7 +225,12 @@ class _SpaceTile extends StatelessWidget {
               ? null
               : (_) => onMenuRequested!(tileContext),
           child: ListTile(
-            leading: RoomAvatarWidget(room: space, size: 36),
+            leading: RoomAvatarWidget(
+                          avatarUrl: space.avatar?.toString(),
+                          displayname: space.getLocalizedDisplayname(),
+                          avatarResolver: ClientAvatarResolver(space.client),
+                          size: 36,
+                        ),
             title: Text(space.getLocalizedDisplayname()),
             selected: selected,
             trailing: trailing,
