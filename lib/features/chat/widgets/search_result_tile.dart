@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/utils/text_highlight.dart';
 import 'package:kohera/core/utils/time_format.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
@@ -31,9 +32,10 @@ class SearchResultTile extends StatelessWidget {
           children: [
             // Sender avatar
             UserAvatar(
-              client: event.room.client,
-              avatarUrl: event.senderFromMemoryOrFallback.avatarUrl,
+              avatarResolver: ClientAvatarResolver(event.room.client),
+              avatarUrl: event.senderFromMemoryOrFallback.avatarUrl?.toString(),
               userId: event.senderId,
+              displayname: event.senderFromMemoryOrFallback.calcDisplayname(),
               size: 36,
             ),
             const SizedBox(width: 12),

@@ -27,8 +27,9 @@ class AccountSwitcher extends StatelessWidget {
                 if (i > 0) const Divider(height: 1, indent: 56),
                 ListTile(
                   leading: UserAvatar(
-                    client: manager.services[i].client,
-                    userId: manager.services[i].client.userID,
+                    avatarResolver: manager.services[i].avatarResolver,
+                    userId: manager.services[i].client.userID ?? '',
+                    displayname: manager.services[i].client.userID ?? 'Unknown',
                     presence: manager.services[i].presence,
                     size: 36,
                   ),

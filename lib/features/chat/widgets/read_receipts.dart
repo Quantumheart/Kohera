@@ -1,22 +1,30 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
+import 'package:kohera/shared/models/kohera_user_summary_mapper.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
 
 // ── Receipt map builder ──────────────────────────────────────
 
-/// Builds a map from eventId → list of [Receipt] for other users.
+/// Builds a map from eventId → list of [KoheraReadReceipt] for other users.
+///
+/// This is the conversion boundary: it reads SDK receipt state from [room]
+/// and produces Kohera-owned [KoheraReadReceipt]s with pre-computed
+/// [KoheraUserSummary] fields. The consuming widgets (ReadReceiptsRow,
+/// showReadersSheet) never touch the Matrix SDK directly.
 ///
 /// Iterates [room.receiptState.global.otherUsers] (and optionally
 /// mainThread) once, so cost is O(N) where N = number of users with
 /// receipts, rather than O(N×M) if we queried per-event.
-Map<String, List<Receipt>> buildReceiptMap(
+Map<String, List<KoheraReadReceipt>> buildReceiptMap(
   Room room,
   String? myUserId, {
   String? threadRootId,
 }) {
-  final map = <String, List<Receipt>>{};
+  final map = <String, List<KoheraReadReceipt>>{};
   final seen = <String>{};
 
   void addReceipts(Map<String, LatestReceiptStateData> users) {
@@ -27,7 +35,10 @@ Map<String, List<Receipt>> buildReceiptMap(
 
       final data = entry.value;
       final user = room.unsafeGetUserFromMemoryOrFallback(userId);
-      final receipt = Receipt(user, data.timestamp);
+      final receipt = KoheraReadReceipt(
+        user: toKoheraUserSummary(user),
+        time: data.timestamp,
+      );
       (map[data.eventId] ??= []).add(receipt);
     }
   }
@@ -54,11 +65,14 @@ Map<String, List<Receipt>> buildReceiptMap(
 /// with a "+N" badge when more than 3 users have read it.
 class ReadReceiptsRow extends StatelessWidget {
   const ReadReceiptsRow({
-    required this.receipts, required this.client, required this.isMe, super.key,
+    required this.receipts,
+    required this.avatarResolver,
+    required this.isMe,
+    super.key,
   });
 
-  final List<Receipt> receipts;
-  final Client client;
+  final List<KoheraReadReceipt> receipts;
+  final AvatarResolver avatarResolver;
   final bool isMe;
 
   static const double _avatarSize = 16;
@@ -75,7 +89,7 @@ class ReadReceiptsRow extends StatelessWidget {
     final overflow = receipts.length - _maxVisible;
 
     return GestureDetector(
-      onTap: () => showReadersSheet(context, receipts, client),
+      onTap: () => showReadersSheet(context, receipts, avatarResolver),
       child: Padding(
         padding: const EdgeInsets.only(top: 2, bottom: 4),
         child: Row(
@@ -97,9 +111,10 @@ class ReadReceiptsRow extends StatelessWidget {
                       child: _AvatarBorder(
                         borderWidth: _borderWidth,
                         child: UserAvatar(
-                          client: client,
+                          avatarResolver: avatarResolver,
                           avatarUrl: receipts[i].user.avatarUrl,
-                          userId: receipts[i].user.id,
+                          userId: receipts[i].user.userId,
+                          displayname: receipts[i].user.displayname,
                           size: _avatarSize,
                         ),
                       ),
@@ -159,8 +174,8 @@ class _AvatarBorder extends StatelessWidget {
 /// Shows a modal bottom sheet listing all users who have read a message.
 void showReadersSheet(
   BuildContext context,
-  List<Receipt> receipts,
-  Client client,
+  List<KoheraReadReceipt> receipts,
+  AvatarResolver avatarResolver,
 ) {
   unawaited(showModalBottomSheet(
     context: context,
@@ -184,8 +199,7 @@ void showReadersSheet(
                 itemCount: receipts.length,
                 itemBuilder: (context, i) {
                   final receipt = receipts[i];
-                  final name =
-                      receipt.user.displayName ?? receipt.user.id;
+                  final name = receipt.user.displayname;
                   final timeOfDay =
                       TimeOfDay.fromDateTime(receipt.time.toLocal());
                   final timeStr =
@@ -193,9 +207,10 @@ void showReadersSheet(
 
                   return ListTile(
                     leading: UserAvatar(
-                      client: client,
+                      avatarResolver: avatarResolver,
                       avatarUrl: receipt.user.avatarUrl,
-                      userId: receipt.user.id,
+                      userId: receipt.user.userId,
+                      displayname: receipt.user.displayname,
                       size: 36,
                     ),
                     title: Text(name),

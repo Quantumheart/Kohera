@@ -148,9 +148,10 @@ class _ProfileAvatarCardState extends State<ProfileAvatarCard> {
                 Stack(
                   children: [
                     UserAvatar(
-                      client: client,
-                      avatarUrl: _avatarUrl,
-                      userId: client.userID,
+                      avatarResolver: matrix.avatarResolver,
+                      avatarUrl: _avatarUrl?.toString(),
+                      userId: client.userID ?? '',
+                      displayname: client.userID ?? 'Unknown',
                       size: 56,
                     ),
                     if (_avatarUploading)

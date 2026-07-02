@@ -617,9 +617,10 @@ class _CallParticipantList extends StatelessWidget {
                         ? 'You'
                         : user.displayName ?? id,
                     child: UserAvatar(
-                      client: client,
-                      avatarUrl: user.avatarUrl,
+                      avatarResolver: context.read<MatrixService>().avatarResolver,
+                      avatarUrl: user.avatarUrl?.toString(),
                       userId: id,
+                      displayname: user.displayName ?? id,
                       size: _avatarSize,
                     ),
                   );

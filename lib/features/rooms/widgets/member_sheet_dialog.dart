@@ -11,6 +11,8 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/rooms/models/room_role.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
+import 'package:kohera/shared/models/kohera_user_summary.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -23,11 +25,13 @@ import 'package:provider/provider.dart';
 Future<void> showMemberSheet(
   BuildContext context, {
   required Room room,
-  required User user,
+  required KoheraUserSummary user,
+  bool isBanned = false,
 }) {
   final matrix = context.read<MatrixService>();
-  final isMe = user.id == room.client.userID;
+  final isMe = user.userId == room.client.userID;
   final ownLevel = room.getPowerLevelByUserId(room.client.userID!);
+  final powerLevel = room.getPowerLevelByUserId(user.userId);
 
   Future<void> startDm() async {
     if (!context.mounted) return;
@@ -37,7 +41,7 @@ Future<void> showMemberSheet(
     try {
       final client = matrix.client;
       final dmRoomId = await client.startDirectChat(
-        user.id,
+        user.userId,
         enableEncryption: true,
       );
       if (client.getRoomById(dmRoomId) == null) {
@@ -69,7 +73,10 @@ Future<void> showMemberSheet(
       room: room,
       presence: matrix.presence,
       ownLevel: ownLevel,
+      powerLevel: powerLevel,
+      isBanned: isBanned,
       isMe: isMe,
+      avatarResolver: matrix.avatarResolver,
       onStartDm: isMe ? null : startDm,
     ),
   );
@@ -83,16 +90,22 @@ class MemberSheetDialog extends StatefulWidget {
     required this.room,
     required this.presence,
     required this.ownLevel,
+    required this.powerLevel,
+    required this.isBanned,
     required this.isMe,
+    required this.avatarResolver,
     this.onStartDm,
     super.key,
   });
 
-  final User user;
+  final KoheraUserSummary user;
   final Room room;
   final PresenceService presence;
   final int ownLevel;
+  final int powerLevel;
+  final bool isBanned;
   final bool isMe;
+  final AvatarResolver avatarResolver;
   final Future<void> Function()? onStartDm;
 
   @override
@@ -136,7 +149,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
 
     // Require explicit confirmation before demoting another admin.
     if (currentPowerLevel >= 100) {
-      final displayName = widget.user.displayName ?? widget.user.id;
+      final displayName = widget.user.displayname;
       final confirmed = await confirmDialog(
         context,
         title: 'Demote admin?',
@@ -154,7 +167,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
     try {
       await PowerLevelService.update(
         widget.room,
-        PowerLevelPatch(users: {widget.user.id: newRole.toPowerLevel()}),
+        PowerLevelPatch(users: {widget.user.userId: newRole.toPowerLevel()}),
       );
     } on PowerLevelException catch (e) {
       if (mounted) setState(() => _roleError = e.message);
@@ -164,7 +177,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
   }
 
   Future<void> _kick() async {
-    final displayName = widget.user.displayName ?? widget.user.id;
+    final displayName = widget.user.displayname;
     final cs = Theme.of(context).colorScheme;
     final reason = await _promptModerationReason(
       title: 'Kick member?',
@@ -180,7 +193,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
     try {
       await widget.room.client.kick(
         widget.room.id,
-        widget.user.id,
+        widget.user.userId,
         reason: reason.isEmpty ? null : reason,
       );
       if (mounted) Navigator.pop(context);
@@ -196,7 +209,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
   }
 
   Future<void> _ban() async {
-    final displayName = widget.user.displayName ?? widget.user.id;
+    final displayName = widget.user.displayname;
     final cs = Theme.of(context).colorScheme;
     final reason = await _promptModerationReason(
       title: 'Ban member?',
@@ -212,7 +225,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
     try {
       await widget.room.client.ban(
         widget.room.id,
-        widget.user.id,
+        widget.user.userId,
         reason: reason.isEmpty ? null : reason,
       );
       if (mounted) Navigator.pop(context);
@@ -228,7 +241,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
   }
 
   Future<void> _unban() async {
-    final displayName = widget.user.displayName ?? widget.user.id;
+    final displayName = widget.user.displayname;
     final confirmed = await confirmDialog(
       context,
       title: 'Unban member?',
@@ -241,7 +254,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
       _actionError = null;
     });
     try {
-      await widget.room.client.unban(widget.room.id, widget.user.id);
+      await widget.room.client.unban(widget.room.id, widget.user.userId);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       debugPrint('[Kohera] Unban failed: $e');
@@ -321,10 +334,10 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
     final tt = Theme.of(context).textTheme;
     final user = widget.user;
     final room = widget.room;
-    final powerLevel = room.getPowerLevelByUserId(user.id);
+    final powerLevel = widget.powerLevel;
     final currentRole = RoomRole.fromPowerLevel(powerLevel);
-    final displayName = user.displayName ?? user.id;
-    final isBanned = user.membership == Membership.ban;
+    final displayName = user.displayname;
+    final isBanned = widget.isBanned;
 
     final canChangeRole = !widget.isMe &&
         room.canChangePowerLevel &&
@@ -344,9 +357,10 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
       title: Column(
         children: [
           UserAvatar(
-            client: room.client,
-            userId: user.id,
+            avatarResolver: widget.avatarResolver,
+            userId: user.userId,
             avatarUrl: user.avatarUrl,
+            displayname: user.displayname,
             presence: widget.presence,
             size: 64,
           ),
@@ -361,7 +375,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
             children: [
               Flexible(
                 child: SelectableText(
-                  user.id,
+                  user.userId,
                   style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                   textAlign: TextAlign.center,
                 ),
@@ -373,7 +387,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
                 tooltip: 'Copy MXID',
                 color: cs.onSurfaceVariant,
                 onPressed: () {
-                  unawaited(Clipboard.setData(ClipboardData(text: user.id)));
+                  unawaited(Clipboard.setData(ClipboardData(text: user.userId)));
                   context.showSnack('Copied to clipboard');
                 },
               ),

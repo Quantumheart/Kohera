@@ -82,6 +82,7 @@ MockUser makeUser(String id, String displayName, {Room? room}) {
   final user = MockUser();
   when(user.id).thenReturn(id);
   when(user.displayName).thenReturn(displayName);
+  when(user.calcDisplayname()).thenReturn(displayName);
   when(user.room).thenReturn(room ?? MockRoom());
   when(user.membership).thenReturn(Membership.join);
   return user;

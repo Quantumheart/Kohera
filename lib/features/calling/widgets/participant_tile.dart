@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:kohera/core/services/call_service.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/features/calling/models/call_participant.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:livekit_client/livekit_client.dart' as livekit;
@@ -158,9 +159,10 @@ class _ParticipantTileState extends State<ParticipantTile> {
       color: cs.surfaceContainerHighest,
       child: Center(
         child: UserAvatar(
-          client: matrixClient,
-          avatarUrl: _resolvedAvatarUrl,
+          avatarResolver: ClientAvatarResolver(matrixClient),
+          avatarUrl: _resolvedAvatarUrl?.toString(),
           userId: widget.participant.id,
+          displayname: widget.participant.displayName,
           size: 64,
         ),
       ),

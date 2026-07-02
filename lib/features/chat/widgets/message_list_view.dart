@@ -5,6 +5,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/calling/models/call_constants.dart';
+import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
 import 'package:kohera/features/chat/services/state_event_resolver.dart';
 import 'package:kohera/features/chat/widgets/call_event_tile.dart';
 import 'package:kohera/features/chat/widgets/chat_message_item.dart';
@@ -515,7 +516,7 @@ class MessageListViewState extends State<MessageListView> {
             widget.matrix.client.userID,
             threadRootId: widget.threadRootEventId,
           )
-        : <String, List<Receipt>>{};
+        : <String, List<KoheraReadReceipt>>{};
     final hasLoadingIndicator = _loadingHistory || widget.extraLoading;
     final totalCount = events.length + (hasLoadingIndicator ? 1 : 0);
 
