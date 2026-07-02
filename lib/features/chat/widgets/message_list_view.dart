@@ -1,16 +1,23 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/calling/models/call_constants.dart';
 import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
+import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:kohera/features/chat/services/state_event_resolver.dart';
 import 'package:kohera/features/chat/widgets/call_event_tile.dart';
 import 'package:kohera/features/chat/widgets/chat_message_item.dart';
+import 'package:kohera/features/chat/widgets/emoji_picker_sheet.dart';
+import 'package:kohera/features/chat/widgets/message_action_sheet.dart';
+import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
+import 'package:kohera/features/chat/widgets/reaction_chips.dart';
 import 'package:kohera/features/chat/widgets/read_receipts.dart';
 import 'package:kohera/features/chat/widgets/state_event_tile.dart';
+import 'package:kohera/features/chat/widgets/sticker_bubble.dart';
 import 'package:kohera/features/chat/widgets/sticker_message_item.dart';
 import 'package:kohera/features/chat/widgets/unread_divider.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
@@ -538,9 +545,10 @@ class MessageListViewState extends State<MessageListView> {
           final event = events[i];
 
           final Widget tile;
+          final message = const MessageDisplayResolver()(event);
           if (_isCallEvent(event)) {
             tile = CallEventTile(
-              event: event,
+              message: message,
               isMe: event.senderId == widget.matrix.client.userID,
               duration: _callDuration(event),
             );
@@ -550,19 +558,42 @@ class MessageListViewState extends State<MessageListView> {
             );
           } else if (event.type == EventTypes.Sticker) {
             final isMe = event.senderId == widget.matrix.client.userID;
+            final stickerMessage = const MessageDisplayResolver()(
+              event,
+              timeline: _timeline,
+            );
+            final hasStickerReactions = _timeline != null &&
+                event.hasAggregatedEvents(
+                  _timeline!,
+                  RelationshipTypes.reaction,
+                );
             tile = StickerMessageItem(
               key: ValueKey(event.eventId),
-              event: event,
+              message: stickerMessage,
+              stickerWidget: StickerBubble(event: event, isMe: isMe),
               isMe: isMe,
               isMobile: isMobile,
-              timeline: _timeline,
-              client: widget.matrix.client,
-              onToggleReaction: widget.onToggleReaction,
-              onReply: widget.onReply,
-              onPin: widget.onPin,
-              onForward: widget.onForward == null
-                  ? null
-                  : (event) => widget.onForward!(event, _timeline),
+              reactionWidget: hasStickerReactions && _timeline != null
+                  ? ReactionChips(
+                      event: event,
+                      timeline: _timeline!,
+                      client: widget.matrix.client,
+                      isMe: isMe,
+                      onToggle: (emoji) =>
+                          widget.onToggleReaction(event, emoji),
+                    )
+                  : null,
+              onToggleReaction: (eventId, emoji) =>
+                  widget.onToggleReaction(event, emoji),
+              onReply: (eventId) => widget.onReply(event),
+              onPin: (eventId) => widget.onPin(event),
+              onForward: widget.onForward != null
+                  ? (eventId) => widget.onForward!(event, _timeline)
+                  : null,
+              onOpenContextMenu: (position) =>
+                  _showStickerContextMenu(context, event, isMe, position),
+              onShowMobileActions: (rect) =>
+                  _showStickerMobileActions(context, event, isMe, rect),
               highlightedEventId: widget.highlightedEventId,
               isPinned: event.room.pinnedEventIds.contains(event.eventId),
             );
@@ -617,5 +648,88 @@ class MessageListViewState extends State<MessageListView> {
     if (event.eventId != markerId) return false;
     if (index == 0) return false;
     return true;
+  }
+
+  void _showStickerContextMenu(
+    BuildContext context,
+    Event event,
+    bool isMe,
+    Offset position,
+  ) {
+    unawaited(showMessageContextMenu(
+      context,
+      event: event,
+      isMe: isMe,
+      isPinned: event.room.pinnedEventIds.contains(event.eventId),
+      timeline: _timeline,
+      position: position,
+      onReply: () => widget.onReply(event),
+      onReact: () => showEmojiPickerSheet(
+            context,
+            (emoji) => widget.onToggleReaction(event, emoji),
+          ),
+      onPin: () => widget.onPin(event),
+      onForward: widget.onForward != null
+          ? () => widget.onForward!(event, _timeline)
+          : null,
+    ),);
+  }
+
+  void _showStickerMobileActions(
+    BuildContext context,
+    Event event,
+    bool isMe,
+    Rect bubbleRect,
+  ) {
+    final cs = Theme.of(context).colorScheme;
+    final isPinned = event.room.pinnedEventIds.contains(event.eventId);
+    showMessageActionSheet(
+      context: context,
+      event: event,
+      isMe: isMe,
+      bubbleRect: bubbleRect,
+      timeline: _timeline,
+      onQuickReact: (emoji) => widget.onToggleReaction(event, emoji),
+      actions: [
+        MessageAction(
+          label: 'Reply',
+          icon: Icons.reply_rounded,
+          onTap: () => widget.onReply(event),
+        ),
+        MessageAction(
+          label: 'React',
+          icon: Icons.add_reaction_outlined,
+          onTap: () => showEmojiPickerSheet(
+            context,
+            (emoji) => widget.onToggleReaction(event, emoji),
+          ),
+        ),
+        if (widget.onForward != null)
+          MessageAction(
+            label: 'Forward',
+            icon: Icons.forward_rounded,
+            onTap: () => widget.onForward!(event, _timeline),
+          ),
+        MessageAction(
+          label: isPinned ? 'Unpin' : 'Pin',
+          icon: isPinned
+              ? Icons.push_pin_rounded
+              : Icons.push_pin_outlined,
+          onTap: () => widget.onPin(event),
+        ),
+        MessageAction(
+          label: 'Copy link',
+          icon: Icons.link_rounded,
+          onTap: () {
+            unawaited(Clipboard.setData(
+              ClipboardData(
+                text: event.content.tryGet<String>('url') ?? '',
+              ),
+            ),);
+          },
+          color: cs.onSurface,
+        ),
+      ],
+    );
   }
 }

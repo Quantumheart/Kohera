@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/features/chat/models/kohera_message_display.dart';
 
 class VerificationRequestTile extends StatelessWidget {
-  const VerificationRequestTile({required this.event, super.key});
+  const VerificationRequestTile({required this.message, super.key});
 
-  final Event event;
+  final KoheraMessageDisplay message;
 
   @override
   Widget build(BuildContext context) {

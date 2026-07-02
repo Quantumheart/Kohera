@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
+import 'package:kohera/features/chat/models/kohera_message_status.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 enum _Phase { sent, sending, retrying, failed }
 
 class MessageBubbleOutboxStatus extends StatelessWidget {
   const MessageBubbleOutboxStatus({
-    required this.event,
+    required this.eventId,
+    required this.transactionId,
+    required this.status,
     required this.metrics,
     super.key,
   });
 
-  final Event event;
+  final String eventId;
+  final String? transactionId;
+  final KoheraMessageStatus status;
   final DensityMetrics metrics;
 
   @override
@@ -31,7 +35,9 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
     switch (phase) {
       case _Phase.sent:
         return Icon(
-          event.status.isSent ? Icons.done_all_rounded : Icons.done_rounded,
+          status == KoheraMessageStatus.sent
+              ? Icons.done_all_rounded
+              : Icons.done_rounded,
           size: metrics.statusIconSize,
           color: cs.onPrimary.withValues(alpha: 0.6),
         );
@@ -77,14 +83,15 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
 
   OutboxEntryView? _lookup(OutboxService outbox) {
     final entries = outbox.entries;
-    final tx = event.transactionId;
-    if (tx != null && entries.containsKey(tx)) return entries[tx];
-    return entries[event.eventId];
+    if (transactionId != null && entries.containsKey(transactionId)) {
+      return entries[transactionId];
+    }
+    return entries[eventId];
   }
 
   _Phase _phaseFor(OutboxEntryView? entry) {
     if (entry == null) {
-      if (event.status.isSent || event.status.isSynced) return _Phase.sent;
+      if (status == KoheraMessageStatus.sent) return _Phase.sent;
       return _Phase.sending;
     }
     if (entry.finalFailed) return _Phase.failed;
@@ -94,9 +101,14 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
 }
 
 @visibleForTesting
-String debugPhaseFor(OutboxEntryView? entry, Event event) {
+String debugPhaseFor(
+  OutboxEntryView? entry,
+  KoheraMessageStatus status,
+  String eventId,
+  String? transactionId,
+) {
   if (entry == null) {
-    if (event.status.isSent || event.status.isSynced) return 'sent';
+    if (status == KoheraMessageStatus.sent) return 'sent';
     return 'sending';
   }
   if (entry.finalFailed) return 'failed';

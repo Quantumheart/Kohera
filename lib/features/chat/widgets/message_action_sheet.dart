@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/core/utils/openmoji.dart';
+import 'package:kohera/features/chat/services/message_display_resolver.dart';
+import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/message_bubble.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -211,10 +214,19 @@ class _MessageActionSheetState extends State<_MessageActionSheet> {
                     child: Material(
                       type: MaterialType.transparency,
                       child: MessageBubble(
-                        event: widget.event,
+                        message: const MessageDisplayResolver()(
+                          widget.event,
+                          timeline: widget.timeline,
+                        ),
                         isMe: widget.isMe,
                         isFirst: true,
-                        timeline: widget.timeline,
+                        avatarResolver: ClientAvatarResolver(widget.event.room.client),
+                        htmlBuilder: (html, style) => HtmlMessageText(
+                          html: html,
+                          style: style,
+                          isMe: widget.isMe,
+                          room: widget.event.room,
+                        ),
                       ),
                     ),
                   ),

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_body.dart';
-import 'package:kohera/features/chat/widgets/message_bubble_content.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_link_preview.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_skin.dart';
 

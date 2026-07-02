@@ -5,18 +5,33 @@ import 'package:flutter/services.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
+import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
+import 'package:kohera/features/chat/widgets/audio_bubble.dart';
 import 'package:kohera/features/chat/widgets/delete_event_dialog.dart';
 import 'package:kohera/features/chat/widgets/emoji_picker_sheet.dart';
+import 'package:kohera/features/chat/widgets/file_bubble.dart';
+import 'package:kohera/features/chat/widgets/html_message_text.dart';
+import 'package:kohera/features/chat/widgets/image_bubble.dart';
+import 'package:kohera/features/chat/widgets/inline_reply_preview.dart';
 import 'package:kohera/features/chat/widgets/long_press_wrapper.dart';
 import 'package:kohera/features/chat/widgets/message_action_sheet.dart';
-import 'package:kohera/features/chat/widgets/message_bubble.dart' show MessageBubble;
+import 'package:kohera/features/chat/widgets/message_bubble.dart';
+import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
 import 'package:kohera/features/chat/widgets/reaction_chips.dart';
 import 'package:kohera/features/chat/widgets/read_receipts.dart';
 import 'package:kohera/features/chat/widgets/swipeable_message.dart';
 import 'package:kohera/features/chat/widgets/thread_indicator_chip.dart';
+import 'package:kohera/features/chat/widgets/video_bubble.dart';
+import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
+import 'package:kohera/shared/models/kohera_user_summary_mapper.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
+
+const _msgtypeImage = 'm.image';
+const _msgtypeAudio = 'm.audio';
+const _msgtypeVideo = 'm.video';
+const _msgtypeFile = 'm.file';
 
 class ChatMessageItem extends StatelessWidget {
   const ChatMessageItem({
@@ -66,11 +81,16 @@ class ChatMessageItem extends StatelessWidget {
     final canPin = !isRedacted &&
         room.canChangeStateEvent('m.room.pinned_events');
 
+    final message = const MessageDisplayResolver()(event, timeline: timeline);
+
     final hasReactions = timeline != null &&
         event.hasAggregatedEvents(timeline!, RelationshipTypes.reaction);
     final hasThread = !inThread &&
         timeline != null &&
         event.hasAggregatedEvents(timeline!, RelationshipTypes.thread);
+    final threadReplyCount = hasThread
+        ? event.aggregatedEvents(timeline!, RelationshipTypes.thread).length
+        : 0;
     final receipts = receiptMap[event.eventId]
         ?.where((r) => r.user.userId != event.senderId)
         .toList();
@@ -95,14 +115,49 @@ class ChatMessageItem extends StatelessWidget {
       );
     }
 
+    Widget? replyPreview;
+    if (message.replyEventId != null && !isRedacted && timeline != null) {
+      replyPreview = InlineReplyPreview(
+        event: event,
+        timeline: timeline,
+        isMe: isMe,
+        onTap: onTapReply,
+      );
+    }
+
+    Widget? mediaBody;
+    if (!isRedacted) {
+      switch (message.messageType) {
+        case _msgtypeImage:
+          mediaBody = ImageBubble(event: event);
+        case _msgtypeAudio:
+          mediaBody = AudioBubble(event: event, isMe: isMe);
+        case _msgtypeVideo:
+          mediaBody = VideoBubble(event: event, isMe: isMe);
+        case _msgtypeFile:
+          mediaBody = FileBubble(event: event, isMe: isMe);
+      }
+    }
+
     final Widget content = MessageBubble(
-      event: event,
+      message: message,
       isMe: isMe,
       isFirst: isFirst,
       highlighted: event.eventId == highlightedEventId,
       isPinned: isPinned,
-      timeline: timeline,
-      onTapReply: isRedacted ? null : onTapReply,
+      avatarResolver: context.read<MatrixService>().avatarResolver,
+      htmlBuilder: (html, style) => HtmlMessageText(
+        html: html,
+        style: style,
+        isMe: isMe,
+        room: room,
+      ),
+      replyPreview: replyPreview,
+      mediaBody: mediaBody,
+      onOpenContextMenu: isRedacted
+          ? null
+          : (position) => _openContextMenu(context, position, isPinned, canPin),
+      onTapSender: () => _showSenderSheet(context),
       onReply: isRedacted ? null : () => onReply?.call(event),
       onEdit: !isRedacted && isMe ? () => onEdit?.call(event) : null,
       onDelete: !isRedacted && event.canRedact
@@ -127,8 +182,7 @@ class ChatMessageItem extends StatelessWidget {
       subBubble: subBubble,
       threadIndicator: hasThread
           ? ThreadIndicatorChip(
-              event: event,
-              timeline: timeline!,
+              replyCount: threadReplyCount,
               isMe: isMe,
               unreadCount: threadUnreadCountFor(
                 root: event,
@@ -152,6 +206,51 @@ class ChatMessageItem extends StatelessWidget {
       );
     }
     return content;
+  }
+
+  void _openContextMenu(
+    BuildContext context,
+    Offset position,
+    bool isPinned,
+    bool canPin,
+  ) {
+    unawaited(showMessageContextMenu(
+      context,
+      event: event,
+      isMe: isMe,
+      isPinned: isPinned,
+      timeline: timeline,
+      position: position,
+      onReply: isRedactedSafe ? null : () => onReply?.call(event),
+      onEdit: !isRedactedSafe && isMe ? () => onEdit?.call(event) : null,
+      onReact: isRedactedSafe
+          ? null
+          : () => showEmojiPickerSheet(
+                context,
+                (emoji) => onToggleReaction(event, emoji),
+              ),
+      onPin: canPin ? () => onPin?.call(event) : null,
+      onDelete: !isRedactedSafe && event.canRedact
+          ? () => confirmAndDeleteEvent(context, event)
+          : null,
+      onReplyInThread:
+          isRedactedSafe || inThread ? null : () => onReplyInThread?.call(event),
+      onForward: isRedactedSafe || onForward == null
+          ? null
+          : () => onForward!(event),
+    ),);
+  }
+
+  bool get isRedactedSafe => event.redacted;
+
+  void _showSenderSheet(BuildContext context) {
+    final sender = event.senderFromMemoryOrFallback;
+    unawaited(showMemberSheet(
+      context,
+      room: event.room,
+      user: toKoheraUserSummary(sender),
+      isBanned: sender.membership == Membership.ban,
+    ),);
   }
 
   void _showMobileActions(

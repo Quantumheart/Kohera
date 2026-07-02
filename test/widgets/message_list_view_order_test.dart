@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/chat/widgets/message_list_view.dart';
 import 'package:matrix/matrix.dart';
+import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-import 'call_event_tile_test.mocks.dart';
+@GenerateNiceMocks([MockSpec<Event>()])
+import 'message_list_view_order_test.mocks.dart';
 
 MockEvent _event(String id, String type, DateTime ts) {
   final e = MockEvent();
@@ -28,8 +30,6 @@ void main() {
     final msgLate =
         _event(r'$m2', EventTypes.Message, DateTime(2026, 1, 15, 22, 11));
 
-    // Supplied in a deliberately scrambled order, as the SDK's internal
-    // sortOrder can diverge from originServerTs for call signaling events.
     final visible = MessageListViewState.buildVisibleEvents(
       [msgLate, callInvite, callHangup, msgEarly],
     );
