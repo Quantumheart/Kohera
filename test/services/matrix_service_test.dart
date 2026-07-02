@@ -1210,12 +1210,12 @@ void main() {
       final tree = service.selection.spaceTree;
 
       expect(tree, hasLength(2)); // A Space and B Space (top-level)
-      expect(tree[0].room.id, '!spaceA:example.com'); // A before B
-      expect(tree[1].room.id, '!spaceB:example.com');
+      expect(tree[0].summary.roomId, '!spaceA:example.com'); // A before B
+      expect(tree[1].summary.roomId, '!spaceB:example.com');
 
       // A Space has subspace
       expect(tree[0].subspaces, hasLength(1));
-      expect(tree[0].subspaces[0].room.id, '!subspace:example.com');
+      expect(tree[0].subspaces[0].summary.roomId, '!subspace:example.com');
       expect(tree[0].directChildRoomIds, ['!room1:example.com']);
 
       // Subspace has room2
@@ -1343,8 +1343,8 @@ void main() {
       ]);
 
       final tree = service.selection.spaceTree;
-      expect(tree[0].room.id, '!spaceB:example.com');
-      expect(tree[1].room.id, '!spaceA:example.com');
+      expect(tree[0].summary.roomId, '!spaceB:example.com');
+      expect(tree[1].summary.roomId, '!spaceA:example.com');
     });
 
     test('subspace ordering remains alphabetical regardless of custom order',
@@ -1377,9 +1377,9 @@ void main() {
 
       final tree = service.selection.spaceTree;
       final aSubs = tree.firstWhere(
-          (n) => n.room.id == '!spaceA:example.com',).subspaces;
-      expect(aSubs[0].room.getLocalizedDisplayname(), 'A Sub');
-      expect(aSubs[1].room.getLocalizedDisplayname(), 'Sub Space');
+          (n) => n.summary.roomId == '!spaceA:example.com',).subspaces;
+      expect(aSubs[0].summary.displayname, 'A Sub');
+      expect(aSubs[1].summary.displayname, 'Sub Space');
     });
 
     test('new spaces not in custom order appear at the end alphabetically',

@@ -139,7 +139,7 @@ class _ChatScreenState extends State<ChatScreen>
       final summaries = await fetchThreadSummaries(
         client: matrix.client,
         room: room,
-      );
+    );
       if (!mounted) return;
       setState(() => _threadUnreadCount = totalThreadUnread(summaries));
       _threadCountSyncSub ??= matrix.client.onSync.stream.listen((_) {
@@ -578,12 +578,16 @@ class _ChatScreenState extends State<ChatScreen>
       );
     } else {
       appBar = ChatAppBar(
-        room: room,
+        summary: matrix.selection.summaryFor(room),
         onBack: widget.onBack,
         onShowDetails: widget.onShowDetails,
         onSearch: _openSearch,
-        onPinnedEvent: (event) =>
-            _messageListKey.currentState?.navigateToEvent(event),
+        onPinnedEvent: (eventId) async {
+            final event = await room.getEventById(eventId);
+            if (event != null && mounted) {
+              _messageListKey.currentState?.navigateToEvent(event);
+            }
+          },
         onShowThreads: _openThreadList,
         threadUnreadCount: _threadUnreadCount,
       );
@@ -618,13 +622,13 @@ class _ChatScreenState extends State<ChatScreen>
     final column = Column(
       children: [
         if (roomHasCall && !isInCall)
-          JoinCallBanner(room: room, callService: callService),
+          JoinCallBanner(roomId: room.id, callService: callService),
         Expanded(
           child: Stack(
             children: [
               MessageListView(
                 key: _messageListKey,
-                room: room,
+                roomId: room.id,
                 matrix: matrix,
                 initialEventId: widget.initialEventId,
                 highlightedEventId: _search.highlightedEventId,
@@ -657,8 +661,8 @@ class _ChatScreenState extends State<ChatScreen>
           ),
         ),
         TypingIndicator(
-          room: room,
-          myUserId: matrix.client.userID,
+          typingDisplayNamesProvider: () =>
+              matrix.selection.summaryFor(room).typingDisplayNames,
           syncStream: matrix.client.onSync.stream,
         ),
         ComposeBarSection(

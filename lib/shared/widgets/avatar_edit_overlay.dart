@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:matrix/matrix.dart';
 
@@ -28,7 +29,14 @@ class _AvatarEditOverlayState extends State<AvatarEditOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_canEdit) return RoomAvatarWidget(room: widget.room, size: widget.size);
+    if (!_canEdit) {
+      return RoomAvatarWidget(
+        avatarUrl: widget.room.avatar?.toString(),
+        displayname: widget.room.getLocalizedDisplayname(),
+        avatarResolver: ClientAvatarResolver(widget.room.client),
+        size: widget.size,
+      );
+    }
 
     final cs = Theme.of(context).colorScheme;
     final badgeSize = widget.size * 0.3;
@@ -45,7 +53,12 @@ class _AvatarEditOverlayState extends State<AvatarEditOverlay> {
             cursor: _busy ? SystemMouseCursors.basic : SystemMouseCursors.click,
             child: GestureDetector(
               onTap: _busy ? null : _uploadAvatar,
-              child: RoomAvatarWidget(room: widget.room, size: widget.size),
+              child: RoomAvatarWidget(
+                avatarUrl: widget.room.avatar?.toString(),
+                displayname: widget.room.getLocalizedDisplayname(),
+                avatarResolver: ClientAvatarResolver(widget.room.client),
+                size: widget.size,
+              ),
             ),
           ),
           if (widget.room.avatar != null)

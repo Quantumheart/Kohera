@@ -131,7 +131,12 @@ class _ForwardMessageDialogState extends State<ForwardMessageDialog> {
                               return ListTile(
                                 enabled: !_sending,
                                 leading:
-                                    RoomAvatarWidget(room: room, size: 36),
+                                    RoomAvatarWidget(
+                                      avatarUrl: room.avatar?.toString(),
+                                      displayname: room.getLocalizedDisplayname(),
+                                      avatarResolver: widget.matrixService.avatarResolver,
+                                      size: 36,
+                                    ),
                                 title: Text(
                                   room.getLocalizedDisplayname(),
                                   overflow: TextOverflow.ellipsis,

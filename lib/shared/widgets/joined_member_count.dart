@@ -1,9 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:matrix/matrix.dart';
 
-/// Resolves an accurate joined-member count for [room] and rebuilds when it
+/// Resolves an accurate joined-member count for a room and rebuilds when it
 /// becomes available.
 ///
 /// The Matrix sync `summary` can report a stale or partial
@@ -13,12 +12,22 @@ import 'package:matrix/matrix.dart';
 /// `/joined_members`, caching the result per room for the session.
 class JoinedMemberCount extends StatefulWidget {
   const JoinedMemberCount({
-    required this.room,
+    required this.roomId,
+    required this.summaryMemberCount,
+    required this.participantListComplete,
+    required this.resolveMemberCount,
     required this.builder,
     super.key,
   });
 
-  final Room room;
+  final String roomId;
+  final int summaryMemberCount;
+  final bool participantListComplete;
+
+  /// Async resolver that fetches the authoritative member count via
+  /// `/joined_members`. Returns `null` on failure.
+  final Future<int?> Function(String roomId) resolveMemberCount;
+
   final Widget Function(BuildContext context, int count) builder;
 
   static final Map<String, int> _cache = {};
@@ -29,10 +38,10 @@ class JoinedMemberCount extends StatefulWidget {
 }
 
 class _JoinedMemberCountState extends State<JoinedMemberCount> {
-  int get _summaryCount => widget.room.summary.mJoinedMemberCount ?? 0;
+  int get _summaryCount => widget.summaryMemberCount;
 
   int get _bestCount {
-    final cached = JoinedMemberCount._cache[widget.room.id] ?? 0;
+    final cached = JoinedMemberCount._cache[widget.roomId] ?? 0;
     return cached > _summaryCount ? cached : _summaryCount;
   }
 
@@ -45,15 +54,13 @@ class _JoinedMemberCountState extends State<JoinedMemberCount> {
   @override
   void didUpdateWidget(JoinedMemberCount oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.room.id != widget.room.id) _resolve();
+    if (oldWidget.roomId != widget.roomId) _resolve();
   }
 
   void _resolve() {
-    final room = widget.room;
-    final id = room.id;
+    final id = widget.roomId;
     if (JoinedMemberCount._cache.containsKey(id)) return;
-    // Trust the summary when our local member list already accounts for it.
-    if (room.participantListComplete) return;
+    if (widget.participantListComplete) return;
 
     final pending = JoinedMemberCount._inFlight[id];
     if (pending != null) {
@@ -61,10 +68,8 @@ class _JoinedMemberCountState extends State<JoinedMemberCount> {
       return;
     }
 
-    final future = room.client.getJoinedMembersByRoom(id).then((members) {
-      if (members != null) JoinedMemberCount._cache[id] = members.length;
-    }).catchError((Object e) {
-      debugPrint('[Kohera] Failed to resolve member count for $id: $e');
+    final future = widget.resolveMemberCount(id).then((members) {
+      if (members != null) JoinedMemberCount._cache[id] = members;
     }).whenComplete(() => JoinedMemberCount._inFlight.remove(id));
     JoinedMemberCount._inFlight[id] = future;
     unawaited(future.whenComplete(_apply));

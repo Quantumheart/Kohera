@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +11,7 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
@@ -42,6 +43,7 @@ void main() {
     mockClient = MockClient();
 
     when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.avatarResolver).thenReturn(const _NullAvatarResolver());
     when(mockClient.userID).thenReturn('@me:example.com');
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
 
@@ -67,6 +69,7 @@ void main() {
             room: mockInvitedRoom, displayName: 'Alice',),);
 
     when(mockClient.rooms).thenReturn([mockInvitedRoom]);
+    when(mockClient.getRoomById('!invited:example.com')).thenReturn(mockInvitedRoom);
 
     selectionService = SelectionService(client: mockClient);
     when(mockMatrix.selection).thenReturn(selectionService);
@@ -254,4 +257,10 @@ void main() {
       await tester.pumpAndSettle();
     });
   });
+}
+
+class _NullAvatarResolver implements AvatarResolver {
+  const _NullAvatarResolver();
+  @override
+  Future<AvatarThumbnail?> resolve(String? mxc, {required double size}) async => null;
 }

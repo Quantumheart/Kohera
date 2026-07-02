@@ -173,7 +173,7 @@ void main() {
       final tree = service.spaceTree;
 
       expect(tree, hasLength(1));
-      expect(tree[0].room.id, '!parent:e.com');
+      expect(tree[0].summary.roomId, '!parent:e.com');
       expect(tree[0].subspaces, hasLength(1));
       expect(tree[0].directChildRoomIds, ['!room:e.com']);
     });

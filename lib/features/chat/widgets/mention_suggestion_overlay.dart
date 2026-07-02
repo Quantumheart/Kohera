@@ -124,7 +124,12 @@ class _SuggestionTile extends StatelessWidget {
         suggestion.roomId != null) {
       final room = client.getRoomById(suggestion.roomId!);
       if (room != null) {
-        return RoomAvatarWidget(room: room, size: 32);
+        return RoomAvatarWidget(
+          avatarUrl: room.avatar?.toString(),
+          displayname: room.getLocalizedDisplayname(),
+          avatarResolver: ClientAvatarResolver(client),
+          size: 32,
+        );
       }
     }
     return UserAvatar(

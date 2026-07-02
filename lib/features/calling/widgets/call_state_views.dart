@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/call_service.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/shared/widgets/pulsing_avatar.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
@@ -86,7 +87,12 @@ class _CallJoiningViewState extends State<CallJoiningView> {
           PulsingAvatar(
             displayName: widget.displayName,
             child: widget.room != null
-                ? RoomAvatarWidget(room: widget.room!, size: 96)
+                ? RoomAvatarWidget(
+                    avatarUrl: widget.room!.avatar?.toString(),
+                    displayname: widget.room!.getLocalizedDisplayname(),
+                    avatarResolver: ClientAvatarResolver(widget.room!.client),
+                    size: 96,
+                  )
                 : null,
           ),
           const SizedBox(height: 24),

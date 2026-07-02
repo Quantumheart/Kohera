@@ -8,40 +8,75 @@ import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
-import 'package:kohera/core/utils/notification_filter.dart';
 import 'package:kohera/core/utils/order_utils.dart' as order_utils;
 import 'package:kohera/core/utils/platform_info.dart';
-import 'package:kohera/core/utils/reply_fallback.dart';
-import 'package:kohera/features/calling/models/call_constants.dart';
 import 'package:kohera/features/calling/services/call_navigator.dart';
 import 'package:kohera/features/calling/widgets/call_state_views.dart'
     show formatCallElapsed;
-import 'package:kohera/features/chat/widgets/typing_indicator.dart' show TypingIndicator;
-import 'package:kohera/features/rooms/widgets/room_context_menu.dart';
+import 'package:kohera/features/chat/widgets/typing_indicator.dart'
+    show TypingIndicator;
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/features/spaces/widgets/space_reparent_controller.dart';
+import 'package:kohera/shared/models/kohera_user_summary.dart';
 import 'package:kohera/shared/widgets/presence_dot.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
-bool get _isDesktop =>
-    isNativeDesktop;
+bool get _isDesktop => isNativeDesktop;
+
+/// Computes the effective unread count from raw summary fields + prefs.
+/// Pure function — no Room dependency.
+int _effectiveUnread(
+  int notificationCount,
+  int highlightCount,
+  String? lastEventBody,
+  PreferencesService prefs,
+) {
+  switch (prefs.notificationLevel) {
+    case NotificationLevel.all:
+      return notificationCount;
+    case NotificationLevel.off:
+      return 0;
+    case NotificationLevel.mentionsOnly:
+      if (highlightCount > 0) return highlightCount;
+      final body = lastEventBody?.toLowerCase();
+      if (body == null) return 0;
+      for (final kw in prefs.notificationKeywords) {
+        if (kw.isNotEmpty && body.contains(kw)) return 1;
+      }
+      return 0;
+  }
+}
 
 // ── Room tile ───────────────────────────────────────────────
 class RoomTile extends StatefulWidget {
   const RoomTile({
-    required this.room, required this.isSelected, required this.memberships, required this.hasContextMenu, super.key,
+    required this.summary,
+    required this.isSelected,
+    required this.memberships,
+    required this.hasContextMenu,
+    super.key,
     this.parentSpaceId,
-    this.sectionRooms,
+    this.sectionRoomIds,
+    this.onContextMenu,
+    this.userLookup,
   });
 
-  final Room room;
+  final KoheraRoomSummary summary;
   final bool isSelected;
   final Set<String> memberships;
   final bool hasContextMenu;
   final String? parentSpaceId;
-  final List<Room>? sectionRooms;
+  final List<String>? sectionRoomIds;
+
+  /// Called when the user triggers the context menu (right-click or long
+  /// press). The caller (RoomList) handles showing the menu with Room access.
+  final void Function(RelativeRect position)? onContextMenu;
+
+  /// Resolves a user ID to a [KoheraUserSummary] for call participant avatars.
+  /// If `null`, participant avatars show the user ID as fallback.
+  final KoheraUserSummary? Function(String userId)? userLookup;
 
   @override
   State<RoomTile> createState() => _RoomTileState();
@@ -72,36 +107,33 @@ class _RoomTileState extends State<RoomTile> {
     super.dispose();
   }
 
-  void _openContextMenu(BuildContext context, RelativeRect position) {
-    if (!widget.hasContextMenu) return;
-    unawaited(showRoomContextMenu(
-      context,
-      position,
-      widget.room,
-      parentSpaceId: widget.parentSpaceId,
-      sectionRooms: widget.sectionRooms,
-    ),);
-  }
-
   @override
   Widget build(BuildContext context) {
     final prefs = context.read<PreferencesService>();
     context.select<PreferencesService, (NotificationLevel, String, bool)>(
-      (p) => (p.notificationLevel, p.notificationKeywords.join(','), p.typingIndicators),
+      (p) => (
+        p.notificationLevel,
+        p.notificationKeywords.join(','),
+        p.typingIndicators
+      ),
     );
     final callService = context.watch<CallService>();
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final room = widget.room;
-    final unread = effectiveUnreadCount(room, prefs);
-    final lastEvent = room.lastEvent;
+    final summary = widget.summary;
+    final unread = _effectiveUnread(
+      summary.notificationCount,
+      summary.highlightCount,
+      summary.lastEventBody,
+      prefs,
+    );
     final hasMenu = widget.hasContextMenu;
-    final dmUserId = room.isDirectChat ? room.directChatMatrixID : null;
+    final dmUserId = summary.dmUserId;
 
-    final isUserInThisCall = callService.activeCallRoomId == room.id &&
+    final isUserInThisCall = callService.activeCallRoomId == summary.roomId &&
         callService.callState == KoheraCallState.connected;
-    final hasActiveCall = callService.roomHasActiveCall(room.id) ||
-        isUserInThisCall;
+    final hasActiveCall =
+        callService.roomHasActiveCall(summary.roomId) || isUserInThisCall;
 
     if (isUserInThisCall) {
       _startElapsedTimer();
@@ -119,13 +151,16 @@ class _RoomTileState extends State<RoomTile> {
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           mouseCursor: SystemMouseCursors.click,
-          onTap: () => context.goNamed(Routes.room, pathParameters: {RouteParams.roomId: room.id}),
+          onTap: () => context.goNamed(
+            Routes.room,
+            pathParameters: {RouteParams.roomId: summary.roomId},
+          ),
           onSecondaryTapUp: hasMenu
               ? (details) {
-                  final overlay = Overlay.of(context).context
+                  final overlay = Overlay.of(context)
+                      .context
                       .findRenderObject()! as RenderBox;
-                  _openContextMenu(
-                    context,
+                  widget.onContextMenu?.call(
                     RelativeRect.fromSize(
                       details.globalPosition & Size.zero,
                       overlay.size,
@@ -136,14 +171,14 @@ class _RoomTileState extends State<RoomTile> {
           onLongPress: hasMenu && !_isDesktop
               ? () {
                   final box = context.findRenderObject()! as RenderBox;
-                  final overlay = Overlay.of(context).context
+                  final overlay = Overlay.of(context)
+                      .context
                       .findRenderObject()! as RenderBox;
                   final position = box.localToGlobal(
                     Offset(box.size.width / 2, box.size.height / 2),
                     ancestor: overlay,
                   );
-                  _openContextMenu(
-                    context,
+                  widget.onContextMenu?.call(
                     RelativeRect.fromSize(
                       position & Size.zero,
                       overlay.size,
@@ -152,8 +187,7 @@ class _RoomTileState extends State<RoomTile> {
                 }
               : null,
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
@@ -167,7 +201,13 @@ class _RoomTileState extends State<RoomTile> {
                           ? context.read<MatrixService>().presence
                           : null,
                       userId: dmUserId,
-                      child: RoomAvatarWidget(room: room, size: 48),
+                      child: RoomAvatarWidget(
+                        avatarUrl: summary.avatarUrl,
+                        displayname: summary.displayname,
+                        avatarResolver:
+                            context.read<MatrixService>().avatarResolver,
+                        size: 48,
+                      ),
                     ),
 
                     const SizedBox(width: 12),
@@ -181,7 +221,7 @@ class _RoomTileState extends State<RoomTile> {
                             children: [
                               Flexible(
                                 child: Text(
-                                  room.getLocalizedDisplayname(),
+                                  summary.displayname,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: tt.titleMedium?.copyWith(
@@ -191,7 +231,7 @@ class _RoomTileState extends State<RoomTile> {
                                   ),
                                 ),
                               ),
-                              _CallIndicator(roomId: room.id),
+                              _CallIndicator(roomId: summary.roomId),
                               if (widget.memberships.length >= 2) ...[
                                 const SizedBox(width: 6),
                                 for (var j = 0;
@@ -212,7 +252,7 @@ class _RoomTileState extends State<RoomTile> {
                             ],
                           ),
                           const SizedBox(height: 2),
-                          _buildSubtitle(context, prefs, lastEvent, cs, tt),
+                          _buildSubtitle(context, prefs, summary, cs, tt),
                         ],
                       ),
                     ),
@@ -222,26 +262,28 @@ class _RoomTileState extends State<RoomTile> {
                     // Trailing: call controls or timestamp + badge
                     if (isUserInThisCall || hasActiveCall)
                       _CallControls(
-                        roomId: room.id,
+                        roomId: summary.roomId,
                         isUserInThisCall: isUserInThisCall,
                         callService: callService,
                       )
                     else
                       _TrailingTimeBadge(
-                        lastEvent: lastEvent,
+                        lastEventTimestamp: summary.lastEventTimestamp,
                         unread: unread,
                         callService: callService,
-                        roomId: room.id,
-                        isDirectChat: room.isDirectChat,
+                        roomId: summary.roomId,
+                        isDirectChat: summary.isDirectChat,
                       ),
                   ],
                 ),
-
                 if (hasActiveCall)
                   _CallParticipantList(
-                    roomId: room.id,
+                    roomId: summary.roomId,
                     isExpanded: _participantsExpanded,
-                    onToggle: () => setState(() => _participantsExpanded = !_participantsExpanded),
+                    onToggle: () => setState(
+                      () => _participantsExpanded = !_participantsExpanded,
+                    ),
+                    userLookup: widget.userLookup,
                   ),
               ],
             ),
@@ -253,7 +295,7 @@ class _RoomTileState extends State<RoomTile> {
     // On desktop, wrap in LongPressDraggable for reparenting.
     if (_isDesktop && widget.parentSpaceId != null) {
       final dragData = RoomDragData(
-        roomId: room.id,
+        roomId: summary.roomId,
         currentParentSpaceId: widget.parentSpaceId,
       );
       tile = LongPressDraggable<ReparentDragData>(
@@ -278,10 +320,15 @@ class _RoomTileState extends State<RoomTile> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                RoomAvatarWidget(room: room, size: 24),
+                RoomAvatarWidget(
+                  avatarUrl: summary.avatarUrl,
+                  displayname: summary.displayname,
+                  avatarResolver: context.read<MatrixService>().avatarResolver,
+                  size: 24,
+                ),
                 const SizedBox(width: 8),
                 Text(
-                  room.getLocalizedDisplayname(),
+                  summary.displayname,
                   style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
                 ),
               ],
@@ -293,11 +340,13 @@ class _RoomTileState extends State<RoomTile> {
       );
     }
 
-    if (_isDesktop && widget.parentSpaceId != null && widget.sectionRooms != null) {
+    if (_isDesktop &&
+        widget.parentSpaceId != null &&
+        widget.sectionRoomIds != null) {
       tile = _ReorderDragTarget(
-        room: room,
+        roomId: summary.roomId,
         parentSpaceId: widget.parentSpaceId!,
-        sectionRooms: widget.sectionRooms!,
+        sectionRoomIds: widget.sectionRoomIds!,
         child: tile,
       );
     }
@@ -308,17 +357,13 @@ class _RoomTileState extends State<RoomTile> {
   Widget _buildSubtitle(
     BuildContext context,
     PreferencesService prefs,
-    Event? lastEvent,
+    KoheraRoomSummary summary,
     ColorScheme cs,
     TextTheme tt,
   ) {
-    final userId = context.read<MatrixService>().client.userID;
-    final typers = widget.room.typingUsers
-        .where((u) => u.id != userId)
-        .toList();
-    if (typers.isNotEmpty && prefs.typingIndicators) {
+    if (summary.typingDisplayNames.isNotEmpty && prefs.typingIndicators) {
       return Text(
-        _typingPreview(typers),
+        TypingIndicator.formatTypers(summary.typingDisplayNames),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: tt.bodyMedium?.copyWith(
@@ -327,17 +372,15 @@ class _RoomTileState extends State<RoomTile> {
         ),
       );
     }
-    final isThreadReply =
-        lastEvent?.relationshipType == RelationshipTypes.thread;
     final previewText = Text(
-      _lastMessagePreview(lastEvent, userId),
+      summary.lastEventPreview,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: tt.bodyMedium?.copyWith(
         color: cs.onSurfaceVariant.withValues(alpha: 0.7),
       ),
     );
-    if (!isThreadReply) return previewText;
+    if (!summary.lastEventIsThreadReply) return previewText;
     return Row(
       children: [
         Icon(Icons.forum_outlined, size: 12, color: cs.primary),
@@ -352,66 +395,23 @@ class _RoomTileState extends State<RoomTile> {
     );
   }
 
-  String _typingPreview(List<User> typers) {
-    return TypingIndicator.formatTypers(typers);
-  }
-
   Color _dotColor(int index, ColorScheme cs) {
     final palette = [cs.primary, cs.tertiary, cs.secondary, cs.error];
     return palette[index % palette.length];
   }
-
-  String _lastMessagePreview(Event? event, String? myUserId) {
-    if (event == null) return 'No messages yet';
-    if (event.type == kCallInvite) return 'Call in progress';
-    if (event.type == kCallMember ||
-        event.type == kCallMemberMsc ||
-        event.body.contains(kCallMember) ||
-        event.body.contains(kCallMemberMsc)) {
-      return event.senderId == myUserId ? 'You initiated a call' : 'Call';
-    }
-    if (event.type == kCallHangup) {
-      final reason = event.content.tryGet<String>('reason');
-      if (reason == 'invite_timeout') return 'Missed call';
-      return 'Call ended';
-    }
-    if (event.redacted) {
-      final isMe = event.senderId == myUserId;
-      if (isMe) return 'You deleted this message';
-      final redactor = event.redactedBecause?.senderId;
-      final isSelfRedact = redactor == event.senderId;
-      if (isSelfRedact || redactor == null) return 'This message was deleted';
-      final redactorUser =
-          event.room.unsafeGetUserFromMemoryOrFallback(redactor);
-      return 'Deleted by ${redactorUser.displayName ?? redactor}';
-    }
-    if (event.messageType == MessageTypes.BadEncrypted) {
-      return '🔒 Unable to decrypt';
-    }
-    final body = stripReplyFallback(event.body);
-    if (event.messageType == MessageTypes.Text) {
-      return body;
-    }
-    if (event.messageType == MessageTypes.Image) return '📷 Image';
-    if (event.messageType == MessageTypes.Video) return '🎬 Video';
-    if (event.messageType == MessageTypes.File) return '📎 File';
-    if (event.messageType == MessageTypes.Audio) return '🎵 Audio';
-    return body;
-  }
-
 }
 
 // ── Trailing timestamp + badge + join button ──────────────────
 class _TrailingTimeBadge extends StatelessWidget {
   const _TrailingTimeBadge({
-    required this.lastEvent,
+    required this.lastEventTimestamp,
     required this.unread,
     required this.callService,
     required this.roomId,
     required this.isDirectChat,
   });
 
-  final Event? lastEvent;
+  final DateTime? lastEventTimestamp;
   final int unread;
   final CallService callService;
   final String roomId;
@@ -440,7 +440,7 @@ class _TrailingTimeBadge extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Text(
-            _formatTime(lastEvent?.originServerTs),
+            _formatTime(lastEventTimestamp),
             style: tt.bodyMedium?.copyWith(
               fontSize: 11,
               color: unread > 0
@@ -469,7 +469,8 @@ class _TrailingTimeBadge extends StatelessWidget {
             SizedBox(
               height: 24,
               child: IconButton(
-                onPressed: () => CallNavigator.startCall(context, roomId: roomId),
+                onPressed: () =>
+                    CallNavigator.startCall(context, roomId: roomId),
                 icon: const Icon(Icons.headset_mic_rounded, size: 16),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -559,11 +560,13 @@ class _CallParticipantList extends StatelessWidget {
     required this.roomId,
     required this.isExpanded,
     required this.onToggle,
+    this.userLookup,
   });
 
   final String roomId;
   final bool isExpanded;
   final VoidCallback onToggle;
+  final KoheraUserSummary? Function(String userId)? userLookup;
 
   static const _maxVisible = 8;
   static const _avatarSize = 22.0;
@@ -572,11 +575,7 @@ class _CallParticipantList extends StatelessWidget {
   Widget build(BuildContext context) {
     final callService = context.watch<CallService>();
     final matrixService = context.read<MatrixService>();
-    final client = matrixService.client;
-    final room = client.getRoomById(roomId);
-    if (room == null) return const SizedBox.shrink();
-
-    final myUserId = client.userID;
+    final myUserId = matrixService.client.userID;
     final participantIds = callService.callParticipantUserIds(roomId).toList();
     final isConnected = callService.activeCallRoomId == roomId &&
         callService.callState == KoheraCallState.connected;
@@ -593,7 +592,8 @@ class _CallParticipantList extends StatelessWidget {
     if (participantIds.isEmpty) return const SizedBox.shrink();
 
     final overflow = participantIds.length - _maxVisible;
-    final visibleIds = isExpanded ? participantIds : participantIds.take(_maxVisible).toList();
+    final visibleIds =
+        isExpanded ? participantIds : participantIds.take(_maxVisible).toList();
 
     final cs = Theme.of(context).colorScheme;
 
@@ -603,28 +603,34 @@ class _CallParticipantList extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Divider(height: 1, color: cs.outlineVariant.withValues(alpha: 0.3)),
+          Divider(
+            height: 1,
+            color: cs.outlineVariant.withValues(alpha: 0.3),
+          ),
           const SizedBox(height: 4),
           Wrap(
             spacing: 4,
             runSpacing: 4,
             children: [
               for (final id in visibleIds)
-                Builder(builder: (context) {
-                  final user = room.unsafeGetUserFromMemoryOrFallback(id);
-                  return Tooltip(
-                    message: id == myUserId && isConnected
-                        ? 'You'
-                        : user.displayName ?? id,
-                    child: UserAvatar(
-                      avatarResolver: context.read<MatrixService>().avatarResolver,
-                      avatarUrl: user.avatarUrl?.toString(),
-                      userId: id,
-                      displayname: user.displayName ?? id,
-                      size: _avatarSize,
-                    ),
-                  );
-                },),
+                Builder(
+                  builder: (context) {
+                    final user = userLookup?.call(id);
+                    final displayName = user?.displayname ?? id;
+                    return Tooltip(
+                      message:
+                          id == myUserId && isConnected ? 'You' : displayName,
+                      child: UserAvatar(
+                        avatarResolver:
+                            context.read<MatrixService>().avatarResolver,
+                        avatarUrl: user?.avatarUrl,
+                        userId: id,
+                        displayname: displayName,
+                        size: _avatarSize,
+                      ),
+                    );
+                  },
+                ),
               if (!isExpanded && overflow > 0)
                 GestureDetector(
                   onTap: onToggle,
@@ -638,7 +644,11 @@ class _CallParticipantList extends StatelessWidget {
                     alignment: Alignment.center,
                     child: Text(
                       '+$overflow',
-                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant),
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                   ),
                 ),
@@ -653,7 +663,11 @@ class _CallParticipantList extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
-                    child: Icon(Icons.expand_less, size: 14, color: cs.onSurfaceVariant),
+                    child: Icon(
+                      Icons.expand_less,
+                      size: 14,
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ),
             ],
@@ -687,15 +701,15 @@ class _CallIndicator extends StatelessWidget {
 // ── Within-section reorder drag target ───────────────────────
 class _ReorderDragTarget extends StatefulWidget {
   const _ReorderDragTarget({
-    required this.room,
+    required this.roomId,
     required this.parentSpaceId,
-    required this.sectionRooms,
+    required this.sectionRoomIds,
     required this.child,
   });
 
-  final Room room;
+  final String roomId;
   final String parentSpaceId;
-  final List<Room> sectionRooms;
+  final List<String> sectionRoomIds;
   final Widget child;
 
   @override
@@ -715,7 +729,7 @@ class _ReorderDragTargetState extends State<_ReorderDragTarget> {
         final data = details.data;
         if (data is! RoomDragData) return false;
         if (data.currentParentSpaceId != widget.parentSpaceId) return false;
-        if (data.roomId == widget.room.id) return false;
+        if (data.roomId == widget.roomId) return false;
         return true;
       },
       onMove: (details) {
@@ -776,20 +790,18 @@ class _ReorderDragTargetState extends State<_ReorderDragTarget> {
     if (space == null) return;
 
     try {
-      final rooms = widget.sectionRooms;
-      final targetIndex = rooms.indexWhere((r) => r.id == widget.room.id);
+      final roomIds = widget.sectionRoomIds;
+      final targetIndex = roomIds.indexOf(widget.roomId);
       if (targetIndex < 0) return;
 
       final insertIndex = insertAbove ? targetIndex : targetIndex + 1;
 
       final orderMap = order_utils.buildOrderMap(space);
 
-      final neighborBefore = insertIndex > 0
-          ? orderMap[rooms[insertIndex - 1].id]
-          : null;
-      final neighborAfter = insertIndex < rooms.length
-          ? orderMap[rooms[insertIndex].id]
-          : null;
+      final neighborBefore =
+          insertIndex > 0 ? orderMap[roomIds[insertIndex - 1]] : null;
+      final neighborAfter =
+          insertIndex < roomIds.length ? orderMap[roomIds[insertIndex]] : null;
 
       final newOrder = order_utils.midpoint(neighborBefore, neighborAfter);
       if (newOrder == null) {

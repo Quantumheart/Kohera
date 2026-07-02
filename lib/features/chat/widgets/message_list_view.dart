@@ -20,7 +20,7 @@ import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 class MessageListView extends StatefulWidget {
   const MessageListView({
-    required this.room,
+    required this.roomId,
     required this.matrix,
     required this.onReply,
     required this.onEdit,
@@ -42,7 +42,7 @@ class MessageListView extends StatefulWidget {
     super.key,
   });
 
-  final Room room;
+  final String roomId;
   final MatrixService matrix;
   final String? initialEventId;
   final String? highlightedEventId;
@@ -67,6 +67,7 @@ class MessageListView extends StatefulWidget {
 }
 
 class MessageListViewState extends State<MessageListView> {
+  late Room room;
   static const _historyLoadThreshold = 15;
   static const _scrollAnimationDuration = Duration(milliseconds: 400);
   static const _readMarkerDelay = Duration(seconds: 1);
@@ -89,6 +90,7 @@ class MessageListViewState extends State<MessageListView> {
   @override
   void initState() {
     super.initState();
+    room = widget.matrix.client.getRoomById(widget.roomId)!;
     _itemPosListener.itemPositions.addListener(_onScroll);
     unawaited(_initTimeline());
   }
@@ -96,7 +98,7 @@ class MessageListViewState extends State<MessageListView> {
   @override
   void didUpdateWidget(MessageListView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.room.id != widget.room.id ||
+    if (oldWidget.roomId != widget.roomId ||
         oldWidget.initialEventId != widget.initialEventId) {
       _timeline?.cancelSubscriptions();
       _readMarkerTimer?.cancel();
@@ -113,10 +115,10 @@ class MessageListViewState extends State<MessageListView> {
 
   Future<void> _initTimeline() async {
     final gen = ++_initGeneration;
-    final snapshotFullyRead = widget.room.fullyRead;
+    final snapshotFullyRead = room.fullyRead;
     _initialFullyReadId =
         snapshotFullyRead.isNotEmpty ? snapshotFullyRead : null;
-    _timeline = await widget.room.getTimeline(
+    _timeline = await room.getTimeline(
       eventContextId: widget.initialEventId,
       onUpdate: () {
         if (mounted) {
@@ -151,7 +153,7 @@ class MessageListViewState extends State<MessageListView> {
   }
 
   void _requestMissingKeys() {
-    final encryption = widget.room.client.encryption;
+    final encryption = room.client.encryption;
     if (encryption == null) return;
 
     final events = _timeline?.events;
@@ -165,7 +167,7 @@ class MessageListViewState extends State<MessageListView> {
         final senderKey = event.content.tryGet<String>('sender_key');
         if (sessionId != null && requested.add(sessionId)) {
           unawaited(
-            encryption.keyManager.loadSingleKey(widget.room.id, sessionId).catchError(
+            encryption.keyManager.loadSingleKey(room.id, sessionId).catchError(
               (Object e) {
                 debugPrint('[Kohera] Key load failed for $sessionId: $e');
               },
@@ -174,7 +176,7 @@ class MessageListViewState extends State<MessageListView> {
           if (senderKey != null) {
             try {
               encryption.keyManager.maybeAutoRequest(
-                widget.room.id,
+                room.id,
                 sessionId,
                 senderKey,
               );
@@ -250,7 +252,7 @@ class MessageListViewState extends State<MessageListView> {
         final lastThreadEvent = visible.first;
         try {
           await client.postReceipt(
-            widget.room.id,
+            room.id,
             ReceiptType.mRead,
             lastThreadEvent.eventId,
             threadId: threadRootId,
@@ -261,18 +263,18 @@ class MessageListViewState extends State<MessageListView> {
         return;
       }
 
-      if (widget.room.notificationCount == 0) return;
+      if (room.notificationCount == 0) return;
       final visible = _visibleEvents;
       final lastMainEvent = visible.isNotEmpty ? visible.first : null;
       if (lastMainEvent == null) return;
       try {
         final sendPublic = context.read<PreferencesService>().readReceipts;
-        await widget.room.setReadMarker(
+        await room.setReadMarker(
           lastMainEvent.eventId,
           mRead: sendPublic ? lastMainEvent.eventId : null,
         );
         await client.postReceipt(
-          widget.room.id,
+          room.id,
           ReceiptType.mRead,
           lastMainEvent.eventId,
           threadId: 'main',
@@ -360,7 +362,7 @@ class MessageListViewState extends State<MessageListView> {
     setState(() => _timeline = null);
 
     final gen = ++_initGeneration;
-    _timeline = await widget.room.getTimeline(
+    _timeline = await room.getTimeline(
       eventContextId: eventId,
       onUpdate: () {
         if (mounted) {
@@ -512,7 +514,7 @@ class MessageListViewState extends State<MessageListView> {
     final showReceipts = context.watch<PreferencesService>().readReceipts;
     final receiptMap = showReceipts
         ? buildReceiptMap(
-            widget.room,
+            room,
             widget.matrix.client.userID,
             threadRootId: widget.threadRootEventId,
           )
