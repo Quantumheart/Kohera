@@ -2,17 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/utils/text_highlight.dart';
 import 'package:kohera/core/utils/time_format.dart';
+import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
-import 'package:matrix/matrix.dart';
 
 // coverage:ignore-start
 
 class SearchResultTile extends StatelessWidget {
   const SearchResultTile({
-    required this.event, required this.query, required this.onTap, super.key,
+    required this.message,
+    required this.avatarResolver,
+    required this.query,
+    required this.onTap,
+    super.key,
   });
 
-  final Event event;
+  final KoheraMessageDisplay message;
+  final ClientAvatarResolver avatarResolver;
   final String query;
   final VoidCallback onTap;
 
@@ -20,8 +25,6 @@ class SearchResultTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final senderName =
-        event.senderFromMemoryOrFallback.displayName ?? event.senderId;
 
     return InkWell(
       onTap: onTap,
@@ -30,27 +33,24 @@ class SearchResultTile extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Sender avatar
             UserAvatar(
-              avatarResolver: ClientAvatarResolver(event.room.client),
-              avatarUrl: event.senderFromMemoryOrFallback.avatarUrl?.toString(),
-              userId: event.senderId,
-              displayname: event.senderFromMemoryOrFallback.calcDisplayname(),
+              avatarResolver: avatarResolver,
+              avatarUrl: message.senderAvatarUrl,
+              userId: message.senderId,
+              displayname: message.senderName,
               size: 36,
             ),
             const SizedBox(width: 12),
 
-            // Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Sender name + timestamp
                   Row(
                     children: [
                       Expanded(
                         child: Text(
-                          senderName,
+                          message.senderName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: tt.bodyMedium?.copyWith(
@@ -59,7 +59,7 @@ class SearchResultTile extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        formatRelativeTimestamp(event.originServerTs),
+                        formatRelativeTimestamp(message.timestamp),
                         style: tt.bodySmall?.copyWith(
                           color: cs.onSurfaceVariant.withValues(alpha: 0.5),
                         ),
@@ -68,7 +68,6 @@ class SearchResultTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
 
-                  // Message body with highlighted query
                   _buildHighlightedBody(tt, cs),
                 ],
               ),
@@ -80,7 +79,7 @@ class SearchResultTile extends StatelessWidget {
   }
 
   Widget _buildHighlightedBody(TextTheme tt, ColorScheme cs) {
-    final body = event.body;
+    final body = message.body;
     final spans = highlightSpans(body, query);
 
     return RichText(

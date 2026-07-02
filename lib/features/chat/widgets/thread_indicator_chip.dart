@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:matrix/matrix.dart';
 
 class ThreadIndicatorChip extends StatelessWidget {
   const ThreadIndicatorChip({
-    required this.event,
-    required this.timeline,
+    required this.replyCount,
     required this.isMe,
     required this.onTap,
     this.unreadCount = 0,
     super.key,
   });
 
-  final Event event;
-  final Timeline timeline;
+  final int replyCount;
   final bool isMe;
   final VoidCallback onTap;
   final int unreadCount;
@@ -21,9 +18,7 @@ class ThreadIndicatorChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final children = event.aggregatedEvents(timeline, RelationshipTypes.thread);
-    if (children.isEmpty) return const SizedBox.shrink();
-    final count = children.length;
+    final count = replyCount;
     final label = count == 1 ? '1 reply' : '$count replies';
 
     return Padding(

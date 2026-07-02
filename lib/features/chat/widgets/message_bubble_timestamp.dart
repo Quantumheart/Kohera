@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/time_format.dart';
+import 'package:kohera/features/chat/models/kohera_message_status.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_outbox_status.dart';
-import 'package:matrix/matrix.dart';
 
 class MessageBubbleTimestamp extends StatelessWidget {
   const MessageBubbleTimestamp({
-    required this.event,
+    required this.timestamp,
     required this.isMe,
     required this.isPinned,
     required this.isEdited,
     required this.metrics,
+    required this.eventId,
+    required this.transactionId,
+    required this.status,
     super.key,
   });
 
-  final Event event;
+  final DateTime timestamp;
   final bool isMe;
   final bool isPinned;
   final bool isEdited;
   final DensityMetrics metrics;
+  final String eventId;
+  final String? transactionId;
+  final KoheraMessageStatus status;
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +60,7 @@ class MessageBubbleTimestamp extends StatelessWidget {
               ),
             ),
           Text(
-            formatMessageTime(event.originServerTs),
+            formatMessageTime(timestamp),
             style: tt.bodyMedium?.copyWith(
               fontSize: metrics.timestampFontSize,
               color: mutedColor,
@@ -62,7 +68,12 @@ class MessageBubbleTimestamp extends StatelessWidget {
           ),
           if (isMe) ...[
             const SizedBox(width: 4),
-            MessageBubbleOutboxStatus(event: event, metrics: metrics),
+            MessageBubbleOutboxStatus(
+              eventId: eventId,
+              transactionId: transactionId,
+              status: status,
+              metrics: metrics,
+            ),
           ],
         ],
       ),

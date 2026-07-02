@@ -1,6 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/features/chat/models/kohera_message_display.dart';
+import 'package:kohera/features/chat/models/kohera_message_status.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
@@ -8,68 +10,40 @@ import 'package:kohera/features/chat/widgets/message_bubble_body.dart';
 import 'package:kohera/features/chat/widgets/verification_request_tile.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 
-@GenerateNiceMocks([
-  MockSpec<Client>(),
-  MockSpec<Room>(),
-  MockSpec<Event>(),
-  MockSpec<User>(),
-])
+@GenerateNiceMocks([MockSpec<Room>()])
 import 'message_bubble_body_test.mocks.dart';
 
 late MockRoom _mockRoom;
-late MockClient _mockClient;
 
-MockEvent _makeEvent({
-  String msgtype = MessageTypes.Text,
+KoheraMessageDisplay _makeMessage({
+  String msgtype = 'm.text',
   String body = 'hello',
   String senderId = '@alice:example.com',
-  String senderDisplayName = 'Alice',
+  String senderName = 'Alice',
   bool redacted = false,
-  String? formattedText,
-  Map<String, Object?>? content,
+  String? formattedHtml,
   String? redactorId,
-  String? redactorDisplayName,
+  String? redactorName,
 }) {
-  final event = MockEvent();
-  when(event.senderId).thenReturn(senderId);
-  when(event.body).thenReturn(body);
-  when(event.messageType).thenReturn(msgtype);
-  when(event.redacted).thenReturn(redacted);
-  when(event.formattedText).thenReturn(formattedText ?? '');
-  when(event.content).thenReturn(
-    content ??
-        <String, Object?>{
-          'body': body,
-          'msgtype': msgtype,
-          if (formattedText != null) ...{
-            'format': 'org.matrix.custom.html',
-            'formatted_body': formattedText,
-          },
-        },
+  return KoheraMessageDisplay(
+    eventId: r'$test:example.com',
+    senderId: senderId,
+    senderName: senderName,
+    body: body,
+    formattedHtml: formattedHtml,
+    messageType: msgtype,
+    eventType: 'm.room.message',
+    timestamp: DateTime(2026, 1, 15, 14, 30),
+    isRedacted: redacted,
+    redactorId: redactorId,
+    redactorName: redactorName,
+    status: KoheraMessageStatus.sent,
+    content: <String, Object?>{
+      'body': body,
+      'msgtype': msgtype,
+    },
   );
-  when(event.room).thenReturn(_mockRoom);
-
-  final sender = MockUser();
-  when(sender.displayName).thenReturn(senderDisplayName);
-  when(sender.calcDisplayname()).thenReturn(senderDisplayName);
-  when(sender.avatarUrl).thenReturn(null);
-  when(event.senderFromMemoryOrFallback).thenReturn(sender);
-
-  if (redacted && redactorId != null) {
-    final redactedEvent = MockEvent();
-    when(redactedEvent.senderId).thenReturn(redactorId);
-    when(event.redactedBecause).thenReturn(redactedEvent);
-    final redactorUser = MockUser();
-    when(redactorUser.displayName).thenReturn(redactorDisplayName);
-    when(_mockRoom.unsafeGetUserFromMemoryOrFallback(redactorId))
-        .thenReturn(redactorUser);
-  } else {
-    when(event.redactedBecause).thenReturn(null);
-  }
-
-  return event;
 }
 
 Widget _wrap(Widget child) {
@@ -81,14 +55,21 @@ Widget _wrap(Widget child) {
   );
 }
 
-Widget _buildBody(MockEvent event, {bool isMe = false}) {
+Widget _buildBody(
+  KoheraMessageDisplay message, {
+  bool isMe = false,
+}) {
   return _wrap(
     MessageBubbleBody(
-      event: event,
-      displayEvent: event,
-      bodyText: event.body,
+      message: message,
       isMe: isMe,
       metrics: DensityMetrics.of(MessageDensity.defaultDensity),
+      htmlBuilder: (html, style) => HtmlMessageText(
+        html: html,
+        style: style,
+        isMe: isMe,
+        room: _mockRoom,
+      ),
     ),
   );
 }
@@ -96,22 +77,20 @@ Widget _buildBody(MockEvent event, {bool isMe = false}) {
 void main() {
   setUp(() {
     _mockRoom = MockRoom();
-    _mockClient = MockClient();
-    when(_mockRoom.client).thenReturn(_mockClient);
   });
 
   group('MessageBubbleBody — text dispatch', () {
     testWidgets('plain text renders LinkableText with body', (tester) async {
-      final event = _makeEvent(body: 'hello world');
-      await tester.pumpWidget(_buildBody(event));
+      final message = _makeMessage(body: 'hello world');
+      await tester.pumpWidget(_buildBody(message));
 
       expect(find.byType(LinkableText), findsOneWidget);
       expect(find.text('hello world'), findsOneWidget);
     });
 
     testWidgets('notice renders as LinkableText', (tester) async {
-      final event = _makeEvent(msgtype: MessageTypes.Notice, body: 'notice');
-      await tester.pumpWidget(_buildBody(event));
+      final message = _makeMessage(msgtype: 'm.notice', body: 'notice');
+      await tester.pumpWidget(_buildBody(message));
 
       expect(find.byType(LinkableText), findsOneWidget);
     });
@@ -119,11 +98,8 @@ void main() {
 
   group('MessageBubbleBody — emote', () {
     testWidgets('emote prefixes "* Sender " before body', (tester) async {
-      final event = _makeEvent(
-        msgtype: MessageTypes.Emote,
-        body: 'waves',
-      );
-      await tester.pumpWidget(_buildBody(event));
+      final message = _makeMessage(msgtype: 'm.emote', body: 'waves');
+      await tester.pumpWidget(_buildBody(message));
 
       expect(find.byType(LinkableText), findsOneWidget);
       expect(find.text('* Alice waves'), findsOneWidget);
@@ -131,13 +107,13 @@ void main() {
 
     testWidgets('emote with HTML uses HtmlMessageText and escapes sender name',
         (tester) async {
-      final event = _makeEvent(
-        msgtype: MessageTypes.Emote,
+      final message = _makeMessage(
+        msgtype: 'm.emote',
         body: 'waves',
-        senderDisplayName: '<script>evil</script>',
-        formattedText: '<em>waves</em>',
+        senderName: '<script>evil</script>',
+        formattedHtml: '<em>waves</em>',
       );
-      await tester.pumpWidget(_buildBody(event));
+      await tester.pumpWidget(_buildBody(message));
 
       expect(find.byType(HtmlMessageText), findsOneWidget);
       final html = tester.widget<HtmlMessageText>(find.byType(HtmlMessageText));
@@ -148,8 +124,8 @@ void main() {
 
   group('MessageBubbleBody — server notice', () {
     testWidgets('wraps content with campaign icon', (tester) async {
-      final event = _makeEvent(msgtype: 'm.server_notice', body: 'notice');
-      await tester.pumpWidget(_buildBody(event));
+      final message = _makeMessage(msgtype: 'm.server_notice', body: 'notice');
+      await tester.pumpWidget(_buildBody(message));
 
       expect(find.byIcon(Icons.campaign_outlined), findsOneWidget);
       expect(find.text('notice'), findsOneWidget);
@@ -158,39 +134,39 @@ void main() {
 
   group('MessageBubbleBody — redacted', () {
     testWidgets('isMe shows "You deleted this message"', (tester) async {
-      final event = _makeEvent(redacted: true);
-      await tester.pumpWidget(_buildBody(event, isMe: true));
+      final message = _makeMessage(redacted: true);
+      await tester.pumpWidget(_buildBody(message, isMe: true));
 
       expect(find.text('You deleted this message'), findsOneWidget);
     });
 
     testWidgets('other sender shows "This message was deleted"',
         (tester) async {
-      final event = _makeEvent(redacted: true);
-      await tester.pumpWidget(_buildBody(event));
+      final message = _makeMessage(redacted: true);
+      await tester.pumpWidget(_buildBody(message));
 
       expect(find.text('This message was deleted'), findsOneWidget);
     });
 
     testWidgets('moderator redact shows "Deleted by <name>"', (tester) async {
-      final event = _makeEvent(
+      final message = _makeMessage(
         redacted: true,
         senderId: '@alice:x',
         redactorId: '@bob:x',
-        redactorDisplayName: 'Bob',
+        redactorName: 'Bob',
       );
-      await tester.pumpWidget(_buildBody(event));
+      await tester.pumpWidget(_buildBody(message));
 
       expect(find.text('Deleted by Bob'), findsOneWidget);
     });
 
     testWidgets('self-redact shows generic message', (tester) async {
-      final event = _makeEvent(
+      final message = _makeMessage(
         redacted: true,
         senderId: '@alice:x',
         redactorId: '@alice:x',
       );
-      await tester.pumpWidget(_buildBody(event));
+      await tester.pumpWidget(_buildBody(message));
 
       expect(find.text('This message was deleted'), findsOneWidget);
     });
@@ -198,8 +174,8 @@ void main() {
 
   group('MessageBubbleBody — bad encrypted', () {
     testWidgets('shows lock icon and fallback text', (tester) async {
-      final event = _makeEvent(msgtype: MessageTypes.BadEncrypted);
-      await tester.pumpWidget(_buildBody(event));
+      final message = _makeMessage(msgtype: 'm.bad.encrypted');
+      await tester.pumpWidget(_buildBody(message));
 
       expect(find.byIcon(Icons.lock_outline), findsOneWidget);
       expect(find.text('Unable to decrypt this message'), findsOneWidget);
@@ -208,8 +184,8 @@ void main() {
 
   group('MessageBubbleBody — verification request', () {
     testWidgets('renders VerificationRequestTile', (tester) async {
-      final event = _makeEvent(msgtype: EventTypes.KeyVerificationRequest);
-      await tester.pumpWidget(_buildBody(event));
+      final message = _makeMessage(msgtype: 'm.key.verification.request');
+      await tester.pumpWidget(_buildBody(message));
 
       expect(find.byType(VerificationRequestTile), findsOneWidget);
     });
@@ -218,10 +194,8 @@ void main() {
   group('MessageBubbleBody — html body', () {
     testWidgets('non-emote html renders HtmlMessageText without prefix',
         (tester) async {
-      final event = _makeEvent(
-        formattedText: '<b>hello</b>',
-      );
-      await tester.pumpWidget(_buildBody(event));
+      final message = _makeMessage(formattedHtml: '<b>hello</b>');
+      await tester.pumpWidget(_buildBody(message));
 
       expect(find.byType(HtmlMessageText), findsOneWidget);
       final html = tester.widget<HtmlMessageText>(find.byType(HtmlMessageText));

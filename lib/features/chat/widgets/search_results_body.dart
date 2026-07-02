@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/features/chat/services/chat_search_controller.dart';
+import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:kohera/features/chat/widgets/search_result_tile.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/matrix.dart';
@@ -115,7 +117,8 @@ class SearchResultsBody extends StatelessWidget {
 
         final event = search.results[i];
         return SearchResultTile(
-          event: event,
+          message: const MessageDisplayResolver()(event),
+          avatarResolver: ClientAvatarResolver(event.room.client),
           query: query,
           onTap: () => onTapResult(event),
         );

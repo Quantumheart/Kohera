@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/core/utils/time_format.dart';
 import 'package:kohera/features/calling/models/call_constants.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/features/chat/models/kohera_message_display.dart';
 
 class CallEventTile extends StatelessWidget {
   const CallEventTile({
-    required this.event,
+    required this.message,
     required this.isMe,
     this.onTap,
     this.duration,
     super.key,
   });
 
-  final Event event;
+  final KoheraMessageDisplay message;
   final bool isMe;
   final VoidCallback? onTap;
   final Duration? duration;
@@ -57,7 +57,7 @@ class CallEventTile extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      formatMessageTime(event.originServerTs),
+                      formatMessageTime(message.timestamp),
                       style: tt.bodySmall?.copyWith(
                         fontSize: 11,
                         color: cs.onSurfaceVariant.withValues(alpha: 0.5),
@@ -75,9 +75,9 @@ class CallEventTile extends StatelessWidget {
   }
 
   (IconData, String) _resolve() {
-    final sender = event.senderFromMemoryOrFallback.calcDisplayname();
+    final sender = message.senderName;
 
-    switch (event.type) {
+    switch (message.eventType) {
       case kCallInvite:
         return (
           Icons.call_missed_rounded,
@@ -85,7 +85,7 @@ class CallEventTile extends StatelessWidget {
         );
 
       case kCallHangup:
-        final reason = event.content.tryGet<String>('reason');
+        final reason = message.content['reason'] as String?;
         if (reason == 'invite_timeout') {
           return (Icons.call_missed_rounded, 'Missed call from $sender');
         }
@@ -105,5 +105,4 @@ class CallEventTile extends StatelessWidget {
         return (Icons.call_rounded, 'Call event');
     }
   }
-
 }

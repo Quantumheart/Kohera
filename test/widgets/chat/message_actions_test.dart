@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,8 +11,14 @@ import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
+import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:kohera/features/chat/widgets/edit_preview_banner.dart';
+import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/message_bubble.dart';
+import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
+import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
+import 'package:kohera/shared/models/kohera_user_summary_mapper.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -27,6 +35,15 @@ import 'package:provider/provider.dart';
   MockSpec<User>(),
 ])
 import 'message_actions_test.mocks.dart';
+
+class _FakeAvatarResolver implements AvatarResolver {
+  const _FakeAvatarResolver();
+  @override
+  Future<AvatarThumbnail?> resolve(
+    String? mxcUrl, {
+    required double size,
+  }) async => null;
+}
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -108,14 +125,49 @@ Widget _buildBubble({
       home: Scaffold(
         body: SizedBox(
           width: 800,
-          child: MessageBubble(
-            event: event,
-            isMe: isMe,
-            isFirst: true,
-            timeline: timeline,
-            onReply: onReply,
-            onEdit: onEdit,
-            onDelete: onDelete,
+          child: Builder(
+            builder: (context) {
+              return MessageBubble(
+                message: const MessageDisplayResolver()(
+                  event,
+                  timeline: timeline,
+                ),
+                isMe: isMe,
+                isFirst: true,
+                avatarResolver: const _FakeAvatarResolver(),
+                htmlBuilder: (html, style) => HtmlMessageText(
+                  html: html,
+                  style: style,
+                  isMe: isMe,
+                  room: event.room,
+                ),
+                onOpenContextMenu: (position) => showMessageContextMenu(
+                  context,
+                  event: event,
+                  isMe: isMe,
+                  isPinned: false,
+                  timeline: timeline,
+                  position: position,
+                  onReply: onReply,
+                  onEdit: onEdit,
+                  onDelete: onDelete,
+                ),
+                onTapSender: () {
+                  final sender = event.senderFromMemoryOrFallback;
+                  unawaited(
+                    showMemberSheet(
+                      context,
+                      room: event.room,
+                      user: toKoheraUserSummary(sender),
+                      isBanned: sender.membership == Membership.ban,
+                    ),
+                  );
+                },
+                onReply: onReply,
+                onEdit: onEdit,
+                onDelete: onDelete,
+              );
+            },
           ),
         ),
       ),
@@ -142,7 +194,33 @@ Widget _buildBubbleWithProviders({
       home: Scaffold(
         body: SizedBox(
           width: 800,
-          child: MessageBubble(event: event, isMe: isMe, isFirst: true),
+          child: Builder(
+            builder: (context) {
+              return MessageBubble(
+                message: const MessageDisplayResolver()(event),
+                isMe: isMe,
+                isFirst: true,
+                avatarResolver: const _FakeAvatarResolver(),
+                htmlBuilder: (html, style) => HtmlMessageText(
+                  html: html,
+                  style: style,
+                  isMe: isMe,
+                  room: event.room,
+                ),
+                onTapSender: () {
+                  final sender = event.senderFromMemoryOrFallback;
+                  unawaited(
+                    showMemberSheet(
+                      context,
+                      room: event.room,
+                      user: toKoheraUserSummary(sender),
+                      isBanned: sender.membership == Membership.ban,
+                    ),
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     ),

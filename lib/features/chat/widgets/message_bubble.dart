@@ -1,28 +1,31 @@
-import 'dart:async';
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
+import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
+import 'package:kohera/features/chat/widgets/message_bubble_body.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_content.dart';
-import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_hover_bar_slot.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_skin.dart';
-import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
-import 'package:kohera/shared/models/kohera_user_summary_mapper.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 class MessageBubble extends StatefulWidget {
   const MessageBubble({
-    required this.event, required this.isMe, required this.isFirst, super.key,
+    required this.message,
+    required this.isMe,
+    required this.isFirst,
+    required this.avatarResolver,
+    required this.htmlBuilder,
+    super.key,
     this.highlighted = false,
     this.isPinned = false,
-    this.timeline,
-    this.onTapReply,
+    this.replyPreview,
+    this.mediaBody,
+    this.onOpenContextMenu,
+    this.onTapSender,
     this.onReply,
     this.onEdit,
     this.onDelete,
@@ -36,7 +39,7 @@ class MessageBubble extends StatefulWidget {
     this.threadIndicator,
   });
 
-  final Event event;
+  final KoheraMessageDisplay message;
   final bool isMe;
 
   /// Whether this is the first message in a group from the same sender.
@@ -48,11 +51,24 @@ class MessageBubble extends StatefulWidget {
   /// Whether this message is pinned in the room.
   final bool isPinned;
 
-  /// Timeline for resolving reply parent events.
-  final Timeline? timeline;
+  /// Avatar resolver for sender avatars.
+  final AvatarResolver avatarResolver;
 
-  /// Called when user taps an inline reply preview to scroll to the parent.
-  final void Function(Event)? onTapReply;
+  /// Callback for building HTML message widgets (needs SDK Room, provided by
+  /// the conversion boundary).
+  final HtmlBodyBuilder htmlBuilder;
+
+  /// Pre-built reply preview widget (needs SDK Event, out of scope #6).
+  final Widget? replyPreview;
+
+  /// Pre-built media body widget (needs SDK Event, out of scope #7).
+  final Widget? mediaBody;
+
+  /// Called when the user triggers the context menu at [position].
+  final void Function(Offset position)? onOpenContextMenu;
+
+  /// Called when the user taps the sender avatar.
+  final VoidCallback? onTapSender;
 
   /// Called to initiate a reply to this message.
   final VoidCallback? onReply;
@@ -103,21 +119,7 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 
   void _openContextMenu(Offset position) {
-    unawaited(showMessageContextMenu(
-      context,
-      event: widget.event,
-      isMe: widget.isMe,
-      isPinned: widget.isPinned,
-      timeline: widget.timeline,
-      position: position,
-      onReply: widget.onReply,
-      onEdit: widget.onEdit,
-      onReact: widget.onReact,
-      onPin: widget.onPin,
-      onDelete: widget.onDelete,
-      onReplyInThread: widget.onReplyInThread,
-      onForward: widget.onForward,
-    ),);
+    widget.onOpenContextMenu?.call(position);
   }
 
   @override
@@ -174,13 +176,14 @@ class _MessageBubbleState extends State<MessageBubble> {
                           metrics: metrics,
                           reactionBubble: widget.reactionBubble,
                           child: MessageBubbleContent(
-                            event: widget.event,
+                            message: widget.message,
                             isMe: widget.isMe,
                             isFirst: widget.isFirst,
                             isPinned: widget.isPinned,
                             metrics: metrics,
-                            timeline: widget.timeline,
-                            onTapReply: widget.onTapReply,
+                            htmlBuilder: widget.htmlBuilder,
+                            replyPreview: widget.replyPreview,
+                            mediaBody: widget.mediaBody,
                           ),
                         ),
                       ),
@@ -246,27 +249,17 @@ class _MessageBubbleState extends State<MessageBubble> {
         child: InkResponse(
           radius: metrics.avatarRadius,
           mouseCursor: SystemMouseCursors.click,
-          onTap: _showSenderSheet,
+          onTap: widget.onTapSender,
           child: UserAvatar(
-            avatarResolver: ClientAvatarResolver(widget.event.room.client),
-            avatarUrl: widget.event.senderFromMemoryOrFallback.avatarUrl?.toString(),
-            userId: widget.event.senderId,
-            displayname: widget.event.senderFromMemoryOrFallback.calcDisplayname(),
+            avatarResolver: widget.avatarResolver,
+            avatarUrl: widget.message.senderAvatarUrl,
+            userId: widget.message.senderId,
+            displayname: widget.message.senderName,
             size: diameter,
           ),
         ),
       );
     }
     return SizedBox(width: metrics.avatarRadius * 2 + 8);
-  }
-
-  void _showSenderSheet() {
-    final sender = widget.event.senderFromMemoryOrFallback;
-    unawaited(showMemberSheet(
-      context,
-      room: widget.event.room,
-      user: toKoheraUserSummary(sender),
-      isBanned: sender.membership == Membership.ban,
-    ),);
   }
 }

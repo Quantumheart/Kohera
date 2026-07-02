@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
-import 'package:kohera/features/chat/widgets/audio_bubble.dart';
+import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
-import 'package:kohera/features/chat/widgets/file_bubble.dart';
-import 'package:kohera/features/chat/widgets/html_message_text.dart';
-import 'package:kohera/features/chat/widgets/image_bubble.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
 import 'package:kohera/features/chat/widgets/verification_request_tile.dart';
-import 'package:kohera/features/chat/widgets/video_bubble.dart';
-import 'package:matrix/matrix.dart';
 
 const _msgtypeServerNotice = 'm.server_notice';
+const _msgtypeBadEncrypted = 'm.bad.encrypted';
+const _msgtypeEmote = 'm.emote';
+const _msgtypeVerificationRequest = 'm.key.verification.request';
 
 /// Font-size multiplier applied to messages containing only emoji.
 const _emojiOnlyScale = 2.0;
@@ -34,53 +32,43 @@ String redactionLabel({
   return 'Deleted by ${redactorDisplayName ?? redactor}';
 }
 
+/// Builds the HTML message widget. Provided by the conversion boundary
+/// (`ChatMessageItem`) which has access to the SDK `Room` for pill resolution.
+typedef HtmlBodyBuilder = Widget Function(String html, TextStyle? style);
+
 class MessageBubbleBody extends StatelessWidget {
   const MessageBubbleBody({
-    required this.event,
-    required this.displayEvent,
-    required this.bodyText,
+    required this.message,
     required this.isMe,
     required this.metrics,
+    required this.htmlBuilder,
     super.key,
   });
 
-  final Event event;
-  final Event displayEvent;
-  final String bodyText;
+  final KoheraMessageDisplay message;
   final bool isMe;
   final DensityMetrics metrics;
+  final HtmlBodyBuilder htmlBuilder;
 
   @override
   Widget build(BuildContext context) {
-    if (event.redacted) return _RedactedBody(event: event, isMe: isMe);
-    if (event.messageType == MessageTypes.BadEncrypted) {
+    if (message.isRedacted) {
+      return _RedactedBody(message: message, isMe: isMe);
+    }
+    if (message.messageType == _msgtypeBadEncrypted) {
       return _BadEncryptedBody(isMe: isMe);
     }
-    if (event.messageType == MessageTypes.Image) {
-      return ImageBubble(event: event);
-    }
-    if (event.messageType == MessageTypes.Audio) {
-      return AudioBubble(event: event, isMe: isMe);
-    }
-    if (event.messageType == MessageTypes.Video) {
-      return VideoBubble(event: event, isMe: isMe);
-    }
-    if (event.messageType == MessageTypes.File) {
-      return FileBubble(event: event, isMe: isMe);
-    }
-    if (event.messageType == EventTypes.KeyVerificationRequest) {
-      return VerificationRequestTile(event: event);
+    if (message.messageType == _msgtypeVerificationRequest) {
+      return VerificationRequestTile(message: message);
     }
 
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    final formattedBody = displayEvent.formattedText;
-    final hasHtml = formattedBody.isNotEmpty &&
-        displayEvent.content['format'] == 'org.matrix.custom.html';
+    final hasHtml = message.formattedHtml != null;
 
-    final isEmote = displayEvent.messageType == MessageTypes.Emote;
-    final isServerNotice = displayEvent.messageType == _msgtypeServerNotice;
+    final isEmote = message.messageType == _msgtypeEmote;
+    final isServerNotice = message.messageType == _msgtypeServerNotice;
 
     var textStyle = tt.bodyLarge?.copyWith(
       color: isMe ? cs.onPrimary : cs.onSurface,
@@ -96,7 +84,7 @@ class MessageBubbleBody extends StatelessWidget {
         color: isMe ? cs.onPrimary.withValues(alpha: 0.8) : cs.onSurfaceVariant,
       );
     }
-    if (!isEmote && !isServerNotice && isEmojiOnly(bodyText)) {
+    if (!isEmote && !isServerNotice && isEmojiOnly(message.body)) {
       textStyle = textStyle?.copyWith(
         fontSize: (textStyle.fontSize ?? metrics.bodyFontSize) * _emojiOnlyScale,
       );
@@ -104,23 +92,18 @@ class MessageBubbleBody extends StatelessWidget {
 
     if (hasHtml) {
       final html = isEmote
-          ? '* ${escapeHtml(event.senderFromMemoryOrFallback.calcDisplayname())} '
-              '$formattedBody'
-          : formattedBody;
-      final htmlWidget = HtmlMessageText(
-        html: html,
-        style: textStyle,
-        isMe: isMe,
-        room: event.room,
-      );
+          ? '* ${escapeHtml(message.senderName)} '
+              '${message.formattedHtml}'
+          : message.formattedHtml!;
+      final htmlWidget = htmlBuilder(html, textStyle);
       if (isServerNotice) return _wrapWithServerNoticeIcon(context, htmlWidget);
       return htmlWidget;
     }
 
     final displayText = isEmote
-        ? '* ${event.senderFromMemoryOrFallback.calcDisplayname()} '
-            '$bodyText'
-        : bodyText;
+        ? '* ${message.senderName} '
+            '${message.body}'
+        : message.body;
     final textWidget = LinkableText(
       text: displayText,
       style: textStyle,
@@ -150,13 +133,12 @@ class MessageBubbleBody extends StatelessWidget {
       ],
     );
   }
-
 }
 
 class _RedactedBody extends StatelessWidget {
-  const _RedactedBody({required this.event, required this.isMe});
+  const _RedactedBody({required this.message, required this.isMe});
 
-  final Event event;
+  final KoheraMessageDisplay message;
   final bool isMe;
 
   @override
@@ -164,17 +146,11 @@ class _RedactedBody extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    final redactor = event.redactedBecause?.senderId;
-    String? redactorDisplayName;
-    if (redactor != null && !isMe && redactor != event.senderId) {
-      redactorDisplayName =
-          event.room.unsafeGetUserFromMemoryOrFallback(redactor).displayName;
-    }
     final label = redactionLabel(
       isMe: isMe,
-      senderId: event.senderId,
-      redactor: redactor,
-      redactorDisplayName: redactorDisplayName,
+      senderId: message.senderId,
+      redactor: message.redactorId,
+      redactorDisplayName: message.redactorName,
     );
     return Text(
       label,
