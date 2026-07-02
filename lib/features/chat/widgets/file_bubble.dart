@@ -3,16 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/core/utils/media_cache_io.dart'
     if (dart.library.js_interop) 'package:kohera/core/utils/media_cache_web.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/features/chat/models/kohera_media_content.dart';
+import 'package:kohera/features/chat/services/media_controller.dart';
 
 // coverage:ignore-start
 
 // ── File bubble (generic file attachment) ─────────────────────
 
 class FileBubble extends StatefulWidget {
-  const FileBubble({required this.event, required this.isMe, super.key});
+  const FileBubble({
+    required this.media,
+    required this.controller,
+    required this.isMe,
+    super.key,
+  });
 
-  final Event event;
+  final KoheraMediaContent media;
+  final MediaController controller;
   final bool isMe;
 
   @override
@@ -27,15 +34,15 @@ class _FileBubbleState extends State<FileBubble> {
     setState(() => _downloading = true);
 
     try {
-      final file = await widget.event.downloadAndDecryptAttachment();
+      final bytes = await widget.controller.downloadAndDecrypt();
       final path = await FilePicker.platform.saveFile(
         dialogTitle: 'Kohera',
-        fileName: widget.event.body,
-        bytes: file.bytes,
+        fileName: widget.media.fileName,
+        bytes: bytes,
       );
 
-      if (path != null && file.bytes.isNotEmpty) {
-        await File(path).writeAsBytes(file.bytes);
+      if (path != null && bytes.isNotEmpty) {
+        await File(path).writeAsBytes(bytes);
         scaffold.showSnackBar(
           const SnackBar(content: Text('Saved')),
         );
@@ -56,9 +63,8 @@ class _FileBubbleState extends State<FileBubble> {
     final tt = Theme.of(context).textTheme;
     final foreground = widget.isMe ? cs.onPrimary : cs.onSurface;
 
-    final fileName = widget.event.body;
-    final infoMap = widget.event.content.tryGet<Map<String, Object?>>('info');
-    final fileSize = infoMap?.tryGet<int>('size');
+    final fileName = widget.media.fileName ?? '';
+    final fileSize = widget.media.fileSize;
 
     return InkWell(
       onTap: _downloading ? null : _download,

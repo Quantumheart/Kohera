@@ -3,7 +3,7 @@ import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/media_cache_io.dart'
     if (dart.library.js_interop) 'package:kohera/core/utils/media_cache_web.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/features/chat/services/media_controller.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -13,18 +13,15 @@ class MediaCache {
   static const _maxEntries = 50;
   static final LinkedHashMap<String, String> _tempFiles = LinkedHashMap();
 
-  static Future<Media> resolve(Event event) async {
-    final cached = _tempFiles[event.eventId];
+  static Future<Media> resolve(MediaController controller) async {
+    final cached = _tempFiles[controller.eventId];
     if (cached != null && !kIsWeb && File(cached).existsSync()) {
-      _promote(event.eventId);
+      _promote(controller.eventId);
       return Media(cached);
     }
 
-    final file = await event.downloadAndDecryptAttachment();
-    final mimetype = event.content
-        .tryGet<Map<String, Object?>>('info')
-        ?.tryGet<String>('mimetype');
-    return _bytesToMedia(event.eventId, file.bytes, mimetype);
+    final bytes = await controller.downloadAndDecrypt();
+    return _bytesToMedia(controller.eventId, bytes, controller.mimeType);
   }
 
   static Future<Media> _bytesToMedia(

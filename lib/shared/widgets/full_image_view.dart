@@ -2,16 +2,24 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/utils/media_auth.dart';
+import 'package:kohera/features/chat/models/kohera_media_content.dart';
+import 'package:kohera/features/chat/services/media_controller.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/media_viewer_shell.dart';
-import 'package:matrix/matrix.dart';
 
-void showFullImageDialog(BuildContext context, Event event) {
+void showFullImageDialog(
+  BuildContext context,
+  KoheraMediaContent media,
+  MediaController controller,
+  AvatarResolver avatarResolver,
+) {
   showMediaViewer(
     context,
-    event: event,
-    child: _FullImageContent(event: event),
+    media: media,
+    controller: controller,
+    avatarResolver: avatarResolver,
+    child: _FullImageContent(media: media, controller: controller),
   );
 }
 
@@ -19,9 +27,10 @@ void showFullImageDialog(BuildContext context, Event event) {
 
 // coverage:ignore-start
 class _FullImageContent extends StatefulWidget {
-  const _FullImageContent({required this.event});
+  const _FullImageContent({required this.media, required this.controller});
 
-  final Event event;
+  final KoheraMediaContent media;
+  final MediaController controller;
 
   @override
   State<_FullImageContent> createState() => _FullImageContentState();
@@ -40,19 +49,19 @@ class _FullImageContentState extends State<_FullImageContent> {
 
   Future<void> _loadFullImage() async {
     try {
-      if (widget.event.isAttachmentEncrypted) {
-        final file = await widget.event.downloadAndDecryptAttachment();
+      if (widget.controller.isEncrypted) {
+        final bytes = await widget.controller.downloadAndDecrypt();
         if (mounted) {
           setState(() {
-            _imageBytes = file.bytes;
+            _imageBytes = bytes;
             _loading = false;
           });
         }
       } else {
-        final uri = await widget.event.getAttachmentUri();
+        final uri = await widget.controller.getAttachmentUri();
         if (mounted) {
           setState(() {
-            _imageUrl = uri?.toString();
+            _imageUrl = uri;
             _loading = false;
           });
         }
@@ -77,10 +86,7 @@ class _FullImageContentState extends State<_FullImageContent> {
             ? Image.network(
                 _imageUrl!,
                 fit: BoxFit.contain,
-                headers: mediaAuthHeaders(
-                  widget.event.room.client,
-                  _imageUrl!,
-                ),
+                headers: widget.controller.authHeaders(_imageUrl!),
                 errorBuilder: (_, __, ___) => Center(
                   child: Icon(
                     Icons.broken_image_rounded,

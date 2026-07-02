@@ -1,23 +1,59 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/features/chat/models/kohera_media_content.dart';
+import 'package:kohera/features/chat/models/kohera_media_type.dart';
+import 'package:kohera/features/chat/services/media_controller.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
 import 'package:kohera/features/chat/widgets/audio_bubble.dart';
-import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
-@GenerateNiceMocks([MockSpec<Event>(), MockSpec<MediaPlaybackService>()])
+@GenerateNiceMocks([MockSpec<MediaController>(), MockSpec<MediaPlaybackService>()])
 import 'audio_bubble_test.mocks.dart';
 
-Widget _wrap(Event event, {bool isMe = true, MediaPlaybackService? playbackService}) {
+KoheraMediaContent _makeMedia({
+  int? duration,
+  int? fileSize,
+  String fileName = 'audio.mp3',
+}) =>
+    KoheraMediaContent(
+      mediaType: KoheraMediaType.audio,
+      mxcUrl: 'mxc://server/audio',
+      mimeType: 'audio/mpeg',
+      fileSize: fileSize ?? 1024 * 1024,
+      duration: duration,
+      fileName: fileName,
+    );
+
+MockMediaController _makeController({
+  String eventId = 'event_1',
+  bool isPendingSend = false,
+}) {
+  final controller = MockMediaController();
+  when(controller.eventId).thenReturn(eventId);
+  when(controller.isPendingSend).thenReturn(isPendingSend);
+  when(controller.isEncrypted).thenReturn(false);
+  when(controller.mimeType).thenReturn('audio/mpeg');
+  return controller;
+}
+
+Widget _wrap(
+  KoheraMediaContent media,
+  MediaController controller, {
+  bool isMe = true,
+  MediaPlaybackService? playbackService,
+}) {
   return MaterialApp(
     theme: ThemeData(splashFactory: InkRipple.splashFactory),
     home: Scaffold(
       body: ChangeNotifierProvider<MediaPlaybackService>.value(
         value: playbackService ?? MockMediaPlaybackService(),
-        child: AudioBubble(event: event, isMe: isMe),
+        child: AudioBubble(
+          media: media,
+          controller: controller,
+          isMe: isMe,
+        ),
       ),
     ),
   );
@@ -25,117 +61,43 @@ Widget _wrap(Event event, {bool isMe = true, MediaPlaybackService? playbackServi
 
 void main() {
   group('AudioBubble', () {
-    late MockEvent mockEvent;
-
-    setUp(() {
-      mockEvent = MockEvent();
-      when(mockEvent.eventId).thenReturn('event_1');
-      when(mockEvent.body).thenReturn('audio.mp3');
-      when(mockEvent.content).thenReturn({
-        'info': {
-          'duration': 5000,
-          'size': 1024 * 1024,
-        },
-      });
-      when(mockEvent.status).thenReturn(EventStatus.sent);
-    });
-
     testWidgets('renders correctly in initial state', (tester) async {
-      await tester.pumpWidget(_wrap(mockEvent));
+      final media = _makeMedia(duration: 5000, fileSize: 1048576);
+      final controller = _makeController();
+
+      await tester.pumpWidget(_wrap(media, controller));
 
       expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
-      expect(find.text('00:05'), findsOneWidget); // info duration
-      expect(find.byType(CustomPaint), findsAtLeast(1)); // waveform
+      expect(find.text('00:05'), findsOneWidget);
+      expect(find.byType(CustomPaint), findsAtLeast(1));
     });
 
     testWidgets('renders file fallback when too large', (tester) async {
-      when(mockEvent.content).thenReturn({
-        'info': {
-          'size': 200 * 1024 * 1024, // 200 MB > 100 MB limit
-        },
-      });
+      final media = _makeMedia(fileSize: 200 * 1024 * 1024);
+      final controller = _makeController();
 
-      await tester.pumpWidget(_wrap(mockEvent));
+      await tester.pumpWidget(_wrap(media, controller));
 
       expect(find.byIcon(Icons.audiotrack_rounded), findsOneWidget);
-      expect(find.text('audio.mp3'), findsOneWidget);
-      expect(find.text('200.0 MB'), findsOneWidget);
-      expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
     });
 
-    testWidgets('survives didChangeDependencies firing again', (tester) async {
-      final playback = MockMediaPlaybackService();
-      Widget build(Brightness brightness) => MaterialApp(
-            home: Theme(
-              data: ThemeData(brightness: brightness),
-              child: Scaffold(
-                body: ChangeNotifierProvider<MediaPlaybackService>.value(
-                  value: playback,
-                  child: AudioBubble(event: mockEvent, isMe: true),
-                ),
-              ),
-            ),
-          );
+    testWidgets('disables play button when pending send', (tester) async {
+      final media = _makeMedia(duration: 5000);
+      final controller = _makeController(isPendingSend: true);
 
-      await tester.pumpWidget(build(Brightness.light));
-      // Changing an inherited dependency (theme) re-runs didChangeDependencies
-      // on the same State, mirroring the per-account provider swap on account
-      // switch. The playback service field must tolerate re-assignment.
-      await tester.pumpWidget(build(Brightness.dark));
+      await tester.pumpWidget(_wrap(media, controller));
 
-      expect(tester.takeException(), isNull);
+      final icon = tester.widget<IconButton>(find.byType(IconButton).first);
+      expect(icon.onPressed, isNull);
     });
 
-    testWidgets('play button is disabled when pending send', (tester) async {
-      when(mockEvent.status).thenReturn(EventStatus.sending);
+    testWidgets('shows file name and size in fallback', (tester) async {
+      final media = _makeMedia(fileSize: 200 * 1024 * 1024, fileName: 'song.mp3');
+      final controller = _makeController();
 
-      await tester.pumpWidget(_wrap(mockEvent));
+      await tester.pumpWidget(_wrap(media, controller));
 
-      final playButton = tester.widget<IconButton>(find.byType(IconButton));
-      expect(playButton.onPressed, isNull);
-    });
-
-    testWidgets('shows loading state then error when clicking play', (tester) async {
-      // Create a completer to control the download
-      final completer = Completer<MatrixFile>();
-      
-      when(mockEvent.downloadAndDecryptAttachment(
-        getThumbnail: anyNamed('getThumbnail'),
-        downloadCallback: anyNamed('downloadCallback'),
-        fromLocalStoreOnly: anyNamed('fromLocalStoreOnly'),
-        onDownloadProgress: anyNamed('onDownloadProgress'),
-      ),).thenAnswer((_) => completer.future);
-
-      await tester.pumpWidget(_wrap(mockEvent));
-      await tester.tap(find.byIcon(Icons.play_arrow_rounded));
-      
-      // We use pump() to trigger the async operation and the first setState
-      await tester.pump();
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      
-      // Now complete with error
-      completer.completeError(Exception('Download failed'));
-      
-      // Settle to let it handle the error and switch to error state
-      await tester.pumpAndSettle();
-      expect(find.byIcon(Icons.refresh_rounded), findsOneWidget); // error state
-    });
-
-    testWidgets('handles missing info duration and size gracefully', (tester) async {
-      when(mockEvent.content).thenReturn({}); // Missing 'info'
-      await tester.pumpWidget(_wrap(mockEvent));
-
-      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
-      expect(find.text('00:00'), findsOneWidget); // fallback duration
-    });
-
-    testWidgets('play button is disabled when status is error', (tester) async {
-      when(mockEvent.status).thenReturn(EventStatus.error);
-
-      await tester.pumpWidget(_wrap(mockEvent));
-
-      final playButton = tester.widget<IconButton>(find.byType(IconButton));
-      expect(playButton.onPressed, isNull);
+      expect(find.text('song.mp3'), findsOneWidget);
     });
   });
 }

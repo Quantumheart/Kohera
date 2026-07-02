@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +11,7 @@ import 'package:mockito/mockito.dart';
   MockSpec<Room>(),
   MockSpec<Event>(),
   MockSpec<Client>(),
+  MockSpec<User>(),
 ])
 import 'shared_media_section_test.mocks.dart';
 
@@ -26,13 +27,46 @@ _SearchResult _result({List<Event> events = const [], String? nextBatch}) =>
 MockEvent _makeEvent(
   String messageType, {
   String body = 'file.dat',
-  Map<String, dynamic>? info,
+  Map<String, Object?>? info,
+  String eventId = r'$evt1',
 }) {
   final event = MockEvent();
+  final sender = MockUser();
+  final room = MockRoom();
+  final client = MockClient();
+
   when(event.messageType).thenReturn(messageType);
+  when(event.type).thenReturn(EventTypes.Message);
   when(event.body).thenReturn(body);
-  when(event.infoMap).thenReturn(info ?? {});
+  when(event.eventId).thenReturn(eventId);
+  when(event.senderId).thenReturn('@alice:example.com');
+  when(event.originServerTs).thenReturn(DateTime(2026, 1, 1, 12));
+  when(event.senderFromMemoryOrFallback).thenReturn(sender);
+  when(event.room).thenReturn(room);
+  when(event.status).thenReturn(EventStatus.synced);
   when(event.isAttachmentEncrypted).thenReturn(false);
+  when(event.attachmentMxcUrl).thenReturn(null);
+  when(room.client).thenReturn(client);
+  when(client.homeserver).thenReturn(Uri.parse('https://example.com'));
+  when(client.accessToken).thenReturn('token');
+  when(sender.calcDisplayname()).thenReturn('Alice');
+  when(sender.avatarUrl).thenReturn(null);
+  when(sender.displayName).thenReturn('Alice');
+
+  final content = <String, Object?>{
+    'msgtype': messageType,
+    'body': body,
+    'info': info ?? <String, Object?>{},
+  };
+  when(event.content).thenReturn(content);
+
+  // Stub getAttachmentUri for thumbnail resolution
+  when(event.getAttachmentUri(
+    getThumbnail: anyNamed('getThumbnail'),
+    width: anyNamed('width'),
+    height: anyNamed('height'),
+  )).thenAnswer((_) async => Uri.parse('https://example.com/media'));
+
   return event;
 }
 
@@ -189,15 +223,11 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
-      // Should show empty state, not crash
       expect(find.text('No shared media yet'), findsOneWidget);
     });
 
     testWidgets('shows image grid for image events', (tester) async {
       final imageEvent = _makeEvent(MessageTypes.Image, body: 'photo.jpg');
-      final room = MockRoom();
-      when(room.client).thenReturn(mockClient);
-      when(imageEvent.room).thenReturn(room);
 
       when(
         mockRoom.searchEvents(

@@ -2,8 +2,14 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
-import 'package:kohera/core/utils/media_auth.dart';
+import 'package:kohera/features/chat/models/kohera_media_content.dart';
+import 'package:kohera/features/chat/models/kohera_media_type.dart';
+import 'package:kohera/features/chat/services/media_content_resolver.dart';
+import 'package:kohera/features/chat/services/media_controller.dart';
+import 'package:kohera/features/chat/services/sdk_media_controller.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/full_image_view.dart';
 import 'package:matrix/matrix.dart';
 
@@ -132,33 +138,22 @@ class _SharedMediaSectionState extends State<SharedMediaSection> {
                 physics: const NeverScrollableScrollPhysics(),
                 mainAxisSpacing: 4,
                 crossAxisSpacing: 4,
-                children: images.map((e) => _MediaThumbnail(event: e)).toList(),
+                children: images
+                    .map((e) => _MediaThumbnail(
+                          media: const MediaContentResolver()(e),
+                          controller: SdkMediaController(e),
+                          avatarResolver: ClientAvatarResolver(
+                            widget.room.client,
+                          ),
+                        ),)
+                    .toList(),
               ),
             ),
 
           // File list
           for (final file in files)
-            ListTile(
-              dense: true,
-              leading: Icon(
-                file.messageType == MessageTypes.Audio
-                    ? Icons.audiotrack_rounded
-                    : Icons.insert_drive_file_rounded,
-                color: cs.onSurfaceVariant,
-              ),
-              title: Text(
-                file.body,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: tt.bodyMedium,
-              ),
-              subtitle: Text(
-                switch ((file.infoMap['size'] as num?)?.toInt()) {
-                  final size? => formatFileSize(size),
-                  _ => '',
-                },
-                style: tt.bodySmall,
-              ),
+            _FileListTile(
+              media: const MediaContentResolver()(file),
             ),
 
           // Load more
@@ -185,13 +180,52 @@ class _SharedMediaSectionState extends State<SharedMediaSection> {
 
 }
 
+// ── File list tile ─────────────────────────────────────────────
+
+class _FileListTile extends StatelessWidget {
+  const _FileListTile({required this.media});
+
+  final KoheraMediaContent media;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    return ListTile(
+      dense: true,
+      leading: Icon(
+        media.mediaType == KoheraMediaType.audio
+            ? Icons.audiotrack_rounded
+            : Icons.insert_drive_file_rounded,
+        color: cs.onSurfaceVariant,
+      ),
+      title: Text(
+        media.fileName ?? '',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: tt.bodyMedium,
+      ),
+      subtitle: Text(
+        media.fileSize != null ? formatFileSize(media.fileSize!) : '',
+        style: tt.bodySmall,
+      ),
+    );
+  }
+}
 
 // ── Media thumbnail ────────────────────────────────────────────
 
 class _MediaThumbnail extends StatefulWidget {
-  const _MediaThumbnail({required this.event});
+  const _MediaThumbnail({
+    required this.media,
+    required this.controller,
+    required this.avatarResolver,
+  });
 
-  final Event event;
+  final KoheraMediaContent media;
+  final MediaController controller;
+  final AvatarResolver avatarResolver;
 
   @override
   State<_MediaThumbnail> createState() => _MediaThumbnailState();
@@ -217,28 +251,25 @@ class _MediaThumbnailState extends State<_MediaThumbnail> {
 
   Future<void> _loadThumbnail() async {
     try {
-      if (widget.event.isAttachmentEncrypted) {
-        // Encrypted: download and decrypt
-        final file = await widget.event.downloadAndDecryptAttachment(
+      if (widget.controller.isEncrypted) {
+        final bytes = await widget.controller.downloadAndDecrypt(
           getThumbnail: true,
         );
         if (mounted) {
           setState(() {
-            _thumbnailBytes = file.bytes;
+            _thumbnailBytes = bytes;
             _loading = false;
           });
         }
       } else {
-        // Unencrypted: resolve URI
-        final uri = await widget.event.getAttachmentUri(
+        final uri = await widget.controller.getAttachmentUri(
           getThumbnail: true,
           width: 200,
           height: 200,
-          method: ThumbnailMethod.crop,
         );
         if (mounted) {
           setState(() {
-            _thumbnailUrl = uri?.toString();
+            _thumbnailUrl = uri;
             _loading = false;
           });
         }
@@ -254,7 +285,12 @@ class _MediaThumbnailState extends State<_MediaThumbnail> {
     final cs = Theme.of(context).colorScheme;
 
     return GestureDetector(
-      onTap: () => _showFullImage(context),
+      onTap: () => showFullImageDialog(
+        context,
+        widget.media,
+        widget.controller,
+        widget.avatarResolver,
+      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: ColoredBox(
@@ -267,10 +303,8 @@ class _MediaThumbnailState extends State<_MediaThumbnail> {
                       ? Image.network(
                           _thumbnailUrl!,
                           fit: BoxFit.cover,
-                          headers: mediaAuthHeaders(
-                            widget.event.room.client,
-                            _thumbnailUrl!,
-                          ),
+                          headers:
+                              widget.controller.authHeaders(_thumbnailUrl!),
                           errorBuilder: (_, __, ___) => Icon(
                             Icons.broken_image_rounded,
                             color: cs.onSurfaceVariant,
@@ -283,9 +317,5 @@ class _MediaThumbnailState extends State<_MediaThumbnail> {
         ),
       ),
     );
-  }
-
-  void _showFullImage(BuildContext context) {
-    showFullImageDialog(context, widget.event);
   }
 }
