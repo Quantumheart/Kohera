@@ -77,8 +77,7 @@ void main() {
     test('downloadAndDecrypt returns bytes', () async {
       final bytes = Uint8List.fromList([1, 2, 3]);
       final file = MatrixFile(bytes: bytes, name: 'test.png');
-      when(event.downloadAndDecryptAttachment(getThumbnail: false))
-          .thenAnswer((_) async => file);
+      when(event.downloadAndDecryptAttachment()).thenAnswer((_) async => file);
 
       final controller = SdkMediaController(event);
       final result = await controller.downloadAndDecrypt();
@@ -97,11 +96,13 @@ void main() {
     });
 
     test('getAttachmentUri returns URL string', () async {
-      when(event.getAttachmentUri(
-        getThumbnail: anyNamed('getThumbnail'),
-        width: anyNamed('width'),
-        height: anyNamed('height'),
-      )).thenAnswer((_) async => Uri.parse('https://example.com/media'));
+      when(
+        event.getAttachmentUri(
+          getThumbnail: anyNamed('getThumbnail'),
+          width: anyNamed('width'),
+          height: anyNamed('height'),
+        ),
+      ).thenAnswer((_) async => Uri.parse('https://example.com/media'));
 
       final controller = SdkMediaController(event);
       final result = await controller.getAttachmentUri(width: 280, height: 260);
@@ -109,11 +110,13 @@ void main() {
     });
 
     test('getAttachmentUri returns null when SDK returns null', () async {
-      when(event.getAttachmentUri(
-        getThumbnail: anyNamed('getThumbnail'),
-        width: anyNamed('width'),
-        height: anyNamed('height'),
-      )).thenAnswer((_) async => null);
+      when(
+        event.getAttachmentUri(
+          getThumbnail: anyNamed('getThumbnail'),
+          width: anyNamed('width'),
+          height: anyNamed('height'),
+        ),
+      ).thenAnswer((_) async => null);
       when(event.attachmentMxcUrl).thenReturn(null);
 
       final controller = SdkMediaController(event);

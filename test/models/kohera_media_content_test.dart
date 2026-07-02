@@ -12,14 +12,12 @@ void main() {
         fileSize: 1024,
         width: 800,
         height: 600,
-        duration: null,
         fileName: 'photo.png',
         caption: 'photo.png',
         thumbnailUrl: 'mxc://example.com/thumb',
         senderName: 'Alice',
         senderId: '@alice:example.com',
         senderAvatarUrl: 'mxc://example.com/avatar',
-        timestamp: null,
       );
 
       expect(media.mediaType, KoheraMediaType.image);
