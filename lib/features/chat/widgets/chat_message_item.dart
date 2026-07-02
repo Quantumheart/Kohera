@@ -5,7 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
+import 'package:kohera/features/chat/services/media_content_resolver.dart';
 import 'package:kohera/features/chat/services/message_display_resolver.dart';
+import 'package:kohera/features/chat/services/sdk_media_controller.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/widgets/audio_bubble.dart';
 import 'package:kohera/features/chat/widgets/delete_event_dialog.dart';
@@ -125,17 +127,36 @@ class ChatMessageItem extends StatelessWidget {
       );
     }
 
+    final mediaContent = const MediaContentResolver()(event);
+    final mediaController = SdkMediaController(event);
     Widget? mediaBody;
     if (!isRedacted) {
       switch (message.messageType) {
         case _msgtypeImage:
-          mediaBody = ImageBubble(event: event);
+          mediaBody = ImageBubble(
+            media: mediaContent,
+            controller: mediaController,
+            avatarResolver: context.read<MatrixService>().avatarResolver,
+          );
         case _msgtypeAudio:
-          mediaBody = AudioBubble(event: event, isMe: isMe);
+          mediaBody = AudioBubble(
+            media: mediaContent,
+            controller: mediaController,
+            isMe: isMe,
+          );
         case _msgtypeVideo:
-          mediaBody = VideoBubble(event: event, isMe: isMe);
+          mediaBody = VideoBubble(
+            media: mediaContent,
+            controller: mediaController,
+            isMe: isMe,
+            avatarResolver: context.read<MatrixService>().avatarResolver,
+          );
         case _msgtypeFile:
-          mediaBody = FileBubble(event: event, isMe: isMe);
+          mediaBody = FileBubble(
+            media: mediaContent,
+            controller: mediaController,
+            isMe: isMe,
+          );
       }
     }
 

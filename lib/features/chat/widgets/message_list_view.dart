@@ -7,7 +7,9 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/calling/models/call_constants.dart';
 import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
+import 'package:kohera/features/chat/services/media_content_resolver.dart';
 import 'package:kohera/features/chat/services/message_display_resolver.dart';
+import 'package:kohera/features/chat/services/sdk_media_controller.dart';
 import 'package:kohera/features/chat/services/state_event_resolver.dart';
 import 'package:kohera/features/chat/widgets/call_event_tile.dart';
 import 'package:kohera/features/chat/widgets/chat_message_item.dart';
@@ -572,7 +574,11 @@ class MessageListViewState extends State<MessageListView> {
             tile = StickerMessageItem(
               key: ValueKey(event.eventId),
               message: stickerMessage,
-              stickerWidget: StickerBubble(event: event, isMe: isMe),
+              stickerWidget: StickerBubble(
+                media: const MediaContentResolver()(event),
+                controller: SdkMediaController(event),
+                isMe: isMe,
+              ),
               isMe: isMe,
               isMobile: isMobile,
               reactionWidget: hasStickerReactions && _timeline != null

@@ -5,8 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/core/utils/media_cache.dart';
+import 'package:kohera/features/chat/models/kohera_media_content.dart';
+import 'package:kohera/features/chat/services/media_controller.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
-import 'package:matrix/matrix.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 
@@ -16,9 +17,15 @@ const _maxFileSizeBytes = 104857600;
 const _barCount = 40;
 
 class AudioBubble extends StatefulWidget {
-  const AudioBubble({required this.event, required this.isMe, super.key});
+  const AudioBubble({
+    required this.media,
+    required this.controller,
+    required this.isMe,
+    super.key,
+  });
 
-  final Event event;
+  final KoheraMediaContent media;
+  final MediaController controller;
   final bool isMe;
 
   @override
@@ -34,13 +41,13 @@ class _AudioBubbleState extends State<AudioBubble> {
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   late final List<double> _bars;
-  late MediaPlaybackService _playbackService;
+  late final MediaPlaybackService _playbackService;
   final List<StreamSubscription<dynamic>> _subs = [];
 
   @override
   void initState() {
     super.initState();
-    _bars = _generateBars(widget.event.eventId);
+    _bars = _generateBars(widget.controller.eventId);
   }
 
   @override
@@ -55,29 +62,25 @@ class _AudioBubbleState extends State<AudioBubble> {
       unawaited(sub.cancel());
     }
     if (_player != null) {
-      _playbackService.unregisterPlayer(widget.event.eventId);
+      _playbackService.unregisterPlayer(widget.controller.eventId);
       unawaited(_player!.dispose());
     }
     super.dispose();
   }
 
   bool get _tooLarge {
-    final size = widget.event.content
-        .tryGet<Map<String, Object?>>('info')
-        ?.tryGet<int>('size');
+    final size = widget.media.fileSize;
     return size != null && size > _maxFileSizeBytes;
   }
 
-  bool get _pendingSend =>
-      widget.event.status == EventStatus.sending ||
-      widget.event.status == EventStatus.error;
+  bool get _pendingSend => widget.controller.isPendingSend;
 
   Future<void> _initAndPlay() async {
     if (_tooLarge || _pendingSend) return;
     setState(() => _state = _AudioState.loading);
 
     try {
-      final media = await MediaCache.resolve(widget.event);
+      final media = await MediaCache.resolve(widget.controller);
       if (!mounted) return;
 
       _player = Player();
@@ -103,7 +106,7 @@ class _AudioBubbleState extends State<AudioBubble> {
       if (!mounted) return;
 
       _playbackService.registerPlayer(
-            widget.event.eventId,
+            widget.controller.eventId,
             _player!,
           );
       setState(() => _state = _AudioState.ready);
@@ -119,7 +122,7 @@ class _AudioBubbleState extends State<AudioBubble> {
       unawaited(_player!.pause());
     } else {
       _playbackService.registerPlayer(
-            widget.event.eventId,
+            widget.controller.eventId,
             _player!,
           );
       unawaited(_player!.play());
@@ -254,9 +257,7 @@ class _AudioBubbleState extends State<AudioBubble> {
   }
 
   Widget _buildFileFallback(Color foreground, TextTheme tt) {
-    final size = widget.event.content
-        .tryGet<Map<String, Object?>>('info')
-        ?.tryGet<int>('size');
+    final size = widget.media.fileSize;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -267,7 +268,7 @@ class _AudioBubbleState extends State<AudioBubble> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.event.body,
+              widget.media.fileName ?? '',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style:
@@ -287,9 +288,7 @@ class _AudioBubbleState extends State<AudioBubble> {
   }
 
   Duration get _infoDuration {
-    final ms = widget.event.content
-        .tryGet<Map<String, Object?>>('info')
-        ?.tryGet<int>('duration');
+    final ms = widget.media.duration;
     return ms != null ? Duration(milliseconds: ms) : Duration.zero;
   }
 

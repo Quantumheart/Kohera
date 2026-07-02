@@ -2,19 +2,21 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/utils/media_auth.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/features/chat/models/kohera_media_content.dart';
+import 'package:kohera/features/chat/services/media_controller.dart';
 
 // coverage:ignore-start
 
 class StickerBubble extends StatefulWidget {
   const StickerBubble({
-    required this.event,
+    required this.media,
+    required this.controller,
     required this.isMe,
     super.key,
   });
 
-  final Event event;
+  final KoheraMediaContent media;
+  final MediaController controller;
   final bool isMe;
 
   @override
@@ -37,7 +39,7 @@ class _StickerBubbleState extends State<StickerBubble> {
   @override
   void didUpdateWidget(StickerBubble old) {
     super.didUpdateWidget(old);
-    if (old.event.eventId != widget.event.eventId) {
+    if (old.controller.eventId != widget.controller.eventId) {
       _imageBytes = null;
       _imageUrl = null;
       _loading = true;
@@ -47,22 +49,22 @@ class _StickerBubbleState extends State<StickerBubble> {
 
   Future<void> _loadSticker() async {
     try {
-      if (widget.event.isAttachmentEncrypted) {
-        final file = await widget.event.downloadAndDecryptAttachment();
+      if (widget.controller.isEncrypted) {
+        final bytes = await widget.controller.downloadAndDecrypt();
         if (mounted) {
           setState(() {
-            _imageBytes = file.bytes;
+            _imageBytes = bytes;
             _loading = false;
           });
         }
       } else {
-        final uri = await widget.event.getAttachmentUri(
+        final uri = await widget.controller.getAttachmentUri(
           width: _maxSize.toInt() * 2,
           height: _maxSize.toInt() * 2,
         );
         if (mounted) {
           setState(() {
-            _imageUrl = uri?.toString();
+            _imageUrl = uri;
             _loading = false;
           });
         }
@@ -75,7 +77,7 @@ class _StickerBubbleState extends State<StickerBubble> {
 
   @override
   Widget build(BuildContext context) {
-    final body = widget.event.content.tryGet<String>('body') ?? '';
+    final body = widget.media.caption ?? widget.media.fileName ?? '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
@@ -107,10 +109,8 @@ class _StickerBubbleState extends State<StickerBubble> {
                             _imageUrl!,
                             fit: BoxFit.contain,
                             semanticLabel: body,
-                            headers: mediaAuthHeaders(
-                              widget.event.room.client,
-                              _imageUrl!,
-                            ),
+                            headers:
+                                widget.controller.authHeaders(_imageUrl!),
                             errorBuilder: (_, __, ___) => const Icon(
                               Icons.broken_image_outlined,
                               size: 48,

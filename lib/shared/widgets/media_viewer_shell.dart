@@ -2,18 +2,21 @@ import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/utils/media_cache_io.dart'
     if (dart.library.js_interop) 'package:kohera/core/utils/media_cache_web.dart';
 import 'package:kohera/core/utils/time_format.dart';
+import 'package:kohera/features/chat/models/kohera_media_content.dart';
+import 'package:kohera/features/chat/services/media_controller.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
-import 'package:matrix/matrix.dart';
 
 // ── Shared fullscreen media viewer shell ─────────────────────
 
 void showMediaViewer(
   BuildContext context, {
-  required Event event,
+  required KoheraMediaContent media,
+  required MediaController controller,
+  required AvatarResolver avatarResolver,
   required Widget child,
 }) {
   unawaited(showGeneralDialog(
@@ -26,7 +29,12 @@ void showMediaViewer(
     pageBuilder: (ctx, _, __) => SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-        child: MediaViewerShell(event: event, child: child),
+        child: MediaViewerShell(
+          media: media,
+          controller: controller,
+          avatarResolver: avatarResolver,
+          child: child,
+        ),
       ),
     ),
   ),);
@@ -34,10 +42,16 @@ void showMediaViewer(
 
 class MediaViewerShell extends StatefulWidget {
   const MediaViewerShell({
-    required this.event, required this.child, super.key,
+    required this.media,
+    required this.controller,
+    required this.avatarResolver,
+    required this.child,
+    super.key,
   });
 
-  final Event event;
+  final KoheraMediaContent media;
+  final MediaController controller;
+  final AvatarResolver avatarResolver;
   final Widget child;
 
   @override
@@ -78,15 +92,15 @@ class _MediaViewerShellState extends State<MediaViewerShell> {
     setState(() => _downloading = true);
 
     try {
-      final file = await widget.event.downloadAndDecryptAttachment();
+      final bytes = await widget.controller.downloadAndDecrypt();
       final path = await FilePicker.platform.saveFile(
         dialogTitle: 'Kohera',
-        fileName: widget.event.body,
-        bytes: file.bytes,
+        fileName: widget.media.fileName,
+        bytes: bytes,
       );
 
-      if (path != null && file.bytes.isNotEmpty) {
-        await File(path).writeAsBytes(file.bytes);
+      if (path != null && bytes.isNotEmpty) {
+        await File(path).writeAsBytes(bytes);
         scaffold.showSnackBar(
           const SnackBar(content: Text('Saved')),
         );
@@ -103,8 +117,6 @@ class _MediaViewerShellState extends State<MediaViewerShell> {
 
   @override
   Widget build(BuildContext context) {
-    final sender = widget.event.senderFromMemoryOrFallback;
-
     return Stack(
       children: [
         Positioned.fill(
@@ -134,10 +146,10 @@ class _MediaViewerShellState extends State<MediaViewerShell> {
                   child: Row(
                     children: [
                       UserAvatar(
-                        avatarResolver: ClientAvatarResolver(widget.event.room.client),
-                        avatarUrl: sender.avatarUrl?.toString(),
-                        userId: sender.id,
-                        displayname: sender.calcDisplayname(),
+                        avatarResolver: widget.avatarResolver,
+                        avatarUrl: widget.media.senderAvatarUrl,
+                        userId: widget.media.senderId ?? '',
+                        displayname: widget.media.senderName ?? '',
                         size: 32,
                       ),
                       const SizedBox(width: 8),
@@ -147,7 +159,9 @@ class _MediaViewerShellState extends State<MediaViewerShell> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              sender.displayName ?? widget.event.senderId,
+                              widget.media.senderName ??
+                                  widget.media.senderId ??
+                                  '',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
@@ -157,7 +171,7 @@ class _MediaViewerShellState extends State<MediaViewerShell> {
                             ),
                             Text(
                               formatRelativeTimestamp(
-                                widget.event.originServerTs,
+                                widget.media.timestamp ?? DateTime.now(),
                               ),
                               style: const TextStyle(
                                 color: Colors.white70,

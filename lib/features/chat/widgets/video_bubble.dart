@@ -4,11 +4,12 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
-import 'package:kohera/core/utils/media_auth.dart';
 import 'package:kohera/core/utils/media_cache.dart';
+import 'package:kohera/features/chat/models/kohera_media_content.dart';
+import 'package:kohera/features/chat/services/media_controller.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
 import 'package:kohera/features/chat/widgets/full_video_view.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:provider/provider.dart';
@@ -18,10 +19,18 @@ import 'package:provider/provider.dart';
 const _maxFileSizeBytes = 104857600;
 
 class VideoBubble extends StatefulWidget {
-  const VideoBubble({required this.event, required this.isMe, super.key});
+  const VideoBubble({
+    required this.media,
+    required this.controller,
+    required this.isMe,
+    required this.avatarResolver,
+    super.key,
+  });
 
-  final Event event;
+  final KoheraMediaContent media;
+  final MediaController controller;
   final bool isMe;
+  final AvatarResolver avatarResolver;
 
   @override
   State<VideoBubble> createState() => _VideoBubbleState();
@@ -57,53 +66,39 @@ class _VideoBubbleState extends State<VideoBubble> {
       unawaited(sub.cancel());
     }
     if (_player != null) {
-      _playbackService.unregisterPlayer(widget.event.eventId);
+      _playbackService.unregisterPlayer(widget.controller.eventId);
       unawaited(_player!.dispose());
     }
     super.dispose();
   }
 
   bool get _tooLarge {
-    final size = widget.event.content
-        .tryGet<Map<String, Object?>>('info')
-        ?.tryGet<int>('size');
+    final size = widget.media.fileSize;
     return size != null && size > _maxFileSizeBytes;
   }
 
   Future<void> _loadThumbnail() async {
     setState(() => _state = _VideoState.loadingThumb);
     try {
-      if (widget.event.isAttachmentEncrypted) {
-        final file = await widget.event.downloadAndDecryptAttachment(
+      if (widget.controller.isEncrypted) {
+        final bytes = await widget.controller.downloadAndDecrypt(
           getThumbnail: true,
         );
         if (mounted) {
           setState(() {
-            _thumbBytes = file.bytes;
+            _thumbBytes = bytes;
             _state = _VideoState.initial;
           });
         }
       } else {
-        var uri = await widget.event.getAttachmentUri(
+        final uri = await widget.controller.getAttachmentUri(
           getThumbnail: true,
           width: 280,
           height: 260,
         );
-        if (uri == null) {
-          // Fallback: derive a server-generated thumbnail directly from the
-          // attachment mxc URL when the event has no explicit thumbnail_url.
-          final mxc = widget.event.attachmentMxcUrl;
-          if (mxc != null) {
-            uri = await mxc.getThumbnailUri(
-              widget.event.room.client,
-              width: 280,
-              height: 260,
-            );
-          }
-        }
         if (mounted) {
           setState(() {
-            _thumbUrl = uri?.toString();
+            _thumbUrl = uri;
             _state = _VideoState.initial;
           });
         }
@@ -119,7 +114,7 @@ class _VideoBubbleState extends State<VideoBubble> {
     setState(() => _state = _VideoState.loadingVideo);
 
     try {
-      final media = await MediaCache.resolve(widget.event);
+      final media = await MediaCache.resolve(widget.controller);
       if (!mounted) return;
 
       _player = Player();
@@ -139,7 +134,7 @@ class _VideoBubbleState extends State<VideoBubble> {
       if (!mounted) return;
 
       _playbackService.registerPlayer(
-            widget.event.eventId,
+            widget.controller.eventId,
             _player!,
           );
       setState(() => _state = _VideoState.playing);
@@ -162,7 +157,14 @@ class _VideoBubbleState extends State<VideoBubble> {
 
   void _openFullscreen() {
     if (_player == null || _controller == null) return;
-    showFullVideoDialog(context, event: widget.event, player: _player!, controller: _controller!);
+    showFullVideoDialog(
+      context,
+      media: widget.media,
+      mediaController: widget.controller,
+      avatarResolver: widget.avatarResolver,
+      player: _player!,
+      controller: _controller!,
+    );
   }
 
   @override
@@ -183,9 +185,7 @@ class _VideoBubbleState extends State<VideoBubble> {
   }
 
   Widget _buildThumbnailPreview(ColorScheme cs, Color foreground) {
-    final durationMs = widget.event.content
-        .tryGet<Map<String, Object?>>('info')
-        ?.tryGet<int>('duration');
+    final durationMs = widget.media.duration;
     final durationLabel = durationMs != null
         ? formatDuration(Duration(milliseconds: durationMs))
         : null;
@@ -199,7 +199,7 @@ class _VideoBubbleState extends State<VideoBubble> {
         fit: BoxFit.cover,
         width: 280,
         height: 180,
-        headers: mediaAuthHeaders(widget.event.room.client, _thumbUrl!),
+        headers: widget.controller.authHeaders(_thumbUrl!),
         errorBuilder: (_, __, ___) => _placeholderThumb(cs),
       );
     } else {
@@ -271,7 +271,7 @@ class _VideoBubbleState extends State<VideoBubble> {
     if (_isPlaying) {
       unawaited(_player!.pause());
     } else {
-      _playbackService.registerPlayer(widget.event.eventId, _player!);
+      _playbackService.registerPlayer(widget.controller.eventId, _player!);
       unawaited(_player!.play());
     }
   }
@@ -326,9 +326,7 @@ class _VideoBubbleState extends State<VideoBubble> {
   }
 
   Widget _buildFileFallback(Color foreground, TextTheme tt) {
-    final size = widget.event.content
-        .tryGet<Map<String, Object?>>('info')
-        ?.tryGet<int>('size');
+    final size = widget.media.fileSize;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -340,7 +338,7 @@ class _VideoBubbleState extends State<VideoBubble> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.event.body,
+                widget.media.fileName ?? '',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: tt.bodyMedium
