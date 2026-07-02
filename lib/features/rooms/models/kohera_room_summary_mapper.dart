@@ -38,7 +38,7 @@ KoheraRoomSummary toKoheraRoomSummary(Room room, {String? myUserId}) {
     typingDisplayNames: typingNames,
     pinnedEventIds: room.pinnedEventIds.toList(),
     isSpace: room.isSpace,
-    spaceChildCount: room.spaceChildren.length,
+    spaceChildCount: room.isSpace ? room.spaceChildren.length : 0,
     isFavourite: room.isFavourite,
   );
 }
