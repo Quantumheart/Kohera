@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
+
 import 'package:kohera/core/utils/sender_color.dart';
+import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
 import 'package:kohera/features/chat/widgets/compose_preview_banner.dart';
-import 'package:matrix/matrix.dart';
 
 class ReplyPreviewBanner extends StatelessWidget {
   const ReplyPreviewBanner({
-    required this.event, required this.onCancel, super.key,
+    required this.preview, required this.onCancel, super.key,
   });
 
-  final Event event;
+  final KoheraReplyPreview preview;
   final VoidCallback onCancel;
 
   @override
@@ -16,9 +17,9 @@ class ReplyPreviewBanner extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return ComposePreviewBanner(
       icon: Icons.reply_rounded,
-      accentColor: senderColor(event.senderId, cs),
-      title: event.senderFromMemoryOrFallback.displayName ?? event.senderId,
-      event: event,
+      accentColor: senderColor(preview.parentSenderId ?? '', cs),
+      title: preview.parentSenderName,
+      preview: preview,
       onCancel: onCancel,
     );
   }

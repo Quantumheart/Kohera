@@ -8,6 +8,7 @@ import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
+import 'package:kohera/features/chat/services/reply_preview_resolver.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
 import 'package:kohera/features/chat/widgets/attachment_preview_bar.dart';
@@ -286,6 +287,14 @@ class _ComposeBarState extends State<ComposeBar> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+
+    final replyPreview = widget.replyEvent != null
+        ? const ReplyPreviewResolver().fromEvent(widget.replyEvent!)
+        : null;
+    final editPreview = widget.editEvent != null
+        ? const ReplyPreviewResolver().fromEvent(widget.editEvent!)
+        : null;
+
     return Container(
       padding: EdgeInsets.only(
         left: 12,
@@ -331,14 +340,14 @@ class _ComposeBarState extends State<ComposeBar> {
                 );
               },
             ),
-          if (widget.editEvent != null)
+          if (editPreview != null)
             EditPreviewBanner(
-              event: widget.editEvent!,
+              preview: editPreview,
               onCancel: widget.onCancelEdit,
             )
-          else if (widget.replyEvent != null)
+          else if (replyPreview != null)
             ReplyPreviewBanner(
-              event: widget.replyEvent!,
+              preview: replyPreview,
               onCancel: widget.onCancelReply,
             ),
           if (widget.pendingAttachments.isNotEmpty)
@@ -348,7 +357,7 @@ class _ComposeBarState extends State<ComposeBar> {
               onClearAll: widget.onClearAttachments,
             ),
           if (_previewUrl != null &&
-              widget.editEvent == null &&
+              editPreview == null &&
               context.select<PreferencesService, bool>(
                 (p) => p.showLinkPreviews,
               ))

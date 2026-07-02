@@ -10,6 +10,7 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:kohera/features/chat/widgets/edit_preview_banner.dart';
@@ -267,17 +268,16 @@ void main() {
 
   group('EditPreviewBanner', () {
     testWidgets('shows edit icon and message body', (tester) async {
-      final event = _makeEvent(
-        eventId: r'$evt1',
-        senderId: '@me:example.com',
-        body: 'Original message text',
-      );
-
       await tester.pumpWidget(MaterialApp(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: Scaffold(
           body: EditPreviewBanner(
-            event: event,
+            preview: const KoheraReplyPreview(
+              parentSenderName: 'me',
+              parentBody: 'Original message text',
+              parentMessageId: r'$evt1',
+              parentSenderId: '@me:example.com',
+            ),
             onCancel: () {},
           ),
         ),
@@ -290,17 +290,17 @@ void main() {
 
     testWidgets('cancel button calls onCancel', (tester) async {
       var cancelled = false;
-      final event = _makeEvent(
-        eventId: r'$evt1',
-        senderId: '@me:example.com',
-        body: 'Some message',
-      );
 
       await tester.pumpWidget(MaterialApp(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: Scaffold(
           body: EditPreviewBanner(
-            event: event,
+            preview: const KoheraReplyPreview(
+              parentSenderName: 'me',
+              parentBody: 'Some message',
+              parentMessageId: r'$evt1',
+              parentSenderId: '@me:example.com',
+            ),
             onCancel: () => cancelled = true,
           ),
         ),
@@ -310,18 +310,17 @@ void main() {
       expect(cancelled, isTrue);
     });
 
-    testWidgets('strips reply fallback from body', (tester) async {
-      final event = _makeEvent(
-        eventId: r'$evt1',
-        senderId: '@me:example.com',
-        body: '> <@alice:example.com> quoted\n\nActual text',
-      );
-
+    testWidgets('displays the preview body directly', (tester) async {
       await tester.pumpWidget(MaterialApp(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: Scaffold(
           body: EditPreviewBanner(
-            event: event,
+            preview: const KoheraReplyPreview(
+              parentSenderName: 'me',
+              parentBody: 'Actual text',
+              parentMessageId: r'$evt1',
+              parentSenderId: '@me:example.com',
+            ),
             onCancel: () {},
           ),
         ),
