@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.1](https://github.com/Quantumheart/Kohera/compare/v1.9.0...v1.9.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* **#628:** derive inbox badge from global unread count ([eeae023](https://github.com/Quantumheart/Kohera/commit/eeae023f2f292645cbf962a799b67143f9ce5da5)), closes [#628](https://github.com/Quantumheart/Kohera/issues/628)
+* **#629:** concurrent decryption and TTL negative cache for inbox ([d726caf](https://github.com/Quantumheart/Kohera/commit/d726cafb357dd362de24c30eb573a6b20de0f37f)), closes [#629](https://github.com/Quantumheart/Kohera/issues/629)
+* **inbox:** scope thread-root preview cache to active client ([27f2a4d](https://github.com/Quantumheart/Kohera/commit/27f2a4d9d5deae2e8c4926551a0ca119c43dd6b0)), closes [#631](https://github.com/Quantumheart/Kohera/issues/631)
+* **sync:** reduce redundant /sync calls on web and multi-account ([26b57d7](https://github.com/Quantumheart/Kohera/commit/26b57d74ed8656a7b7d48cf9004bcbd44384109e))
+
 ## [1.9.0](https://github.com/Quantumheart/Kohera/compare/v1.8.1...v1.9.0) (2026-06-28)
 
 
