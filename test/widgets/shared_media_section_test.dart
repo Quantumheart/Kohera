@@ -61,11 +61,15 @@ MockEvent _makeEvent(
   when(event.content).thenReturn(content);
 
   // Stub getAttachmentUri for thumbnail resolution
-  when(event.getAttachmentUri(
-    getThumbnail: anyNamed('getThumbnail'),
-    width: anyNamed('width'),
-    height: anyNamed('height'),
-  )).thenAnswer((_) async => Uri.parse('https://example.com/media'));
+  when(
+    event.getAttachmentUri(
+      getThumbnail: anyNamed('getThumbnail'),
+      width: anyNamed('width'),
+      height: anyNamed('height'),
+    ),
+  ).thenAnswer(
+    (_) async => Uri.parse('https://example.com/media'),
+  );
 
   return event;
 }

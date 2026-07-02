@@ -25,8 +25,7 @@ KoheraMediaContent _makeMedia({
       fileName: fileName,
       senderName: senderName,
       senderId: senderId,
-      senderAvatarUrl: null,
-      timestamp: DateTime(2026, 1, 1),
+      timestamp: DateTime(2026),
     );
 
 MockMediaController _makeController() {
