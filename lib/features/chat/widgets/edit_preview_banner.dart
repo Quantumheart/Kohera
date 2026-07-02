@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+
+import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
 import 'package:kohera/features/chat/widgets/compose_preview_banner.dart';
-import 'package:matrix/matrix.dart';
 
 class EditPreviewBanner extends StatelessWidget {
   const EditPreviewBanner({
-    required this.event, required this.onCancel, super.key,
+    required this.preview, required this.onCancel, super.key,
   });
 
-  final Event event;
+  final KoheraReplyPreview preview;
   final VoidCallback onCancel;
 
   @override
@@ -16,7 +17,7 @@ class EditPreviewBanner extends StatelessWidget {
       icon: Icons.edit_rounded,
       accentColor: Theme.of(context).colorScheme.primary,
       title: 'Editing',
-      event: event,
+      preview: preview,
       onCancel: onCancel,
     );
   }

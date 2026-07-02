@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/core/utils/reply_fallback.dart';
-import 'package:matrix/matrix.dart';
+
+import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
 
 /// Compose-bar banner showing a leading [icon], an accent-coloured [title], and
-/// a one-line preview of [event], with a trailing close button.
+/// a one-line preview of [preview], with a trailing close button.
 class ComposePreviewBanner extends StatelessWidget {
   const ComposePreviewBanner({
     required this.icon,
     required this.accentColor,
     required this.title,
-    required this.event,
+    required this.preview,
     required this.onCancel,
     super.key,
   });
@@ -17,7 +17,7 @@ class ComposePreviewBanner extends StatelessWidget {
   final IconData icon;
   final Color accentColor;
   final String title;
-  final Event event;
+  final KoheraReplyPreview preview;
   final VoidCallback onCancel;
 
   @override
@@ -51,9 +51,7 @@ class ComposePreviewBanner extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  event.messageType == MessageTypes.BadEncrypted
-                      ? 'Unable to decrypt'
-                      : stripReplyFallback(event.body),
+                  preview.parentBody,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),

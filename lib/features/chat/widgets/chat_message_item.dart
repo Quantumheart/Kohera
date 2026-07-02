@@ -13,13 +13,13 @@ import 'package:kohera/features/chat/widgets/emoji_picker_sheet.dart';
 import 'package:kohera/features/chat/widgets/file_bubble.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/image_bubble.dart';
-import 'package:kohera/features/chat/widgets/inline_reply_preview.dart';
 import 'package:kohera/features/chat/widgets/long_press_wrapper.dart';
 import 'package:kohera/features/chat/widgets/message_action_sheet.dart';
 import 'package:kohera/features/chat/widgets/message_bubble.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
 import 'package:kohera/features/chat/widgets/reaction_chips.dart';
 import 'package:kohera/features/chat/widgets/read_receipts.dart';
+import 'package:kohera/features/chat/widgets/reply_preview_host.dart';
 import 'package:kohera/features/chat/widgets/swipeable_message.dart';
 import 'package:kohera/features/chat/widgets/thread_indicator_chip.dart';
 import 'package:kohera/features/chat/widgets/video_bubble.dart';
@@ -117,11 +117,11 @@ class ChatMessageItem extends StatelessWidget {
 
     Widget? replyPreview;
     if (message.replyEventId != null && !isRedacted && timeline != null) {
-      replyPreview = InlineReplyPreview(
-        event: event,
+      replyPreview = ReplyPreviewHost(
+        replyEvent: event,
         timeline: timeline,
         isMe: isMe,
-        onTap: onTapReply,
+        onParentTap: onTapReply,
       );
     }
 
