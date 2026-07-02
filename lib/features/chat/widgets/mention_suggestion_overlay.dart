@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/features/chat/widgets/mention_autocomplete_controller.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
@@ -127,9 +128,10 @@ class _SuggestionTile extends StatelessWidget {
       }
     }
     return UserAvatar(
-      client: client,
-      avatarUrl: suggestion.avatarUrl,
+      avatarResolver: ClientAvatarResolver(client),
+      avatarUrl: suggestion.avatarUrl?.toString(),
       userId: suggestion.id,
+      displayname: suggestion.displayName,
       size: 32,
     );
   }

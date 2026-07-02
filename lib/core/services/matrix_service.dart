@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/session_backup.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
@@ -16,6 +17,7 @@ import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/core/utils/network_error.dart';
 import 'package:kohera/features/notifications/services/call_push_rule_manager.dart';
 import 'package:kohera/features/notifications/services/megolm_key_mirror.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:matrix/matrix.dart';
 // ignore: implementation_imports, no public API for ClientInitException
 import 'package:matrix/src/utils/client_init_exception.dart';
@@ -74,6 +76,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       connectivity: RealOutboxConnectivity(),
     );
     stickerPacks = StickerPackService(client: _client);
+    avatarResolver = ClientAvatarResolver(_client);
     auth.addListener(_onAuthChanged);
   }
 
@@ -118,6 +121,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   late final SyncService sync;
   late final AuthService auth;
   late final OutboxService outbox;
+  late final AvatarResolver avatarResolver;
   late final StickerPackService stickerPacks;
 
   StreamSubscription<LoginState>? _loginStateSub;

@@ -590,8 +590,9 @@ class _AccountButtonState extends State<_AccountButton> {
               child: Row(
                 children: [
                   UserAvatar(
-                    client: manager.services[i].client,
-                    userId: manager.services[i].client.userID,
+                    avatarResolver: manager.services[i].avatarResolver,
+                    userId: manager.services[i].client.userID ?? '',
+                    displayname: manager.services[i].client.userID ?? 'Unknown',
                     size: 28,
                   ),
                   const SizedBox(width: 10),
@@ -621,9 +622,10 @@ class _AccountButtonState extends State<_AccountButton> {
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: UserAvatar(
-          client: matrix.client,
-          avatarUrl: _avatarUrl,
-          userId: userId,
+          avatarResolver: matrix.avatarResolver,
+          avatarUrl: _avatarUrl?.toString(),
+          userId: userId ?? '',
+          displayname: userId ?? 'Unknown',
           size: 36,
         ),
       ),

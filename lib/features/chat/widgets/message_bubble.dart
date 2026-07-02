@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
@@ -10,6 +11,7 @@ import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_hover_bar_slot.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_skin.dart';
 import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
+import 'package:kohera/shared/models/kohera_user_summary_mapper.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -246,9 +248,10 @@ class _MessageBubbleState extends State<MessageBubble> {
           mouseCursor: SystemMouseCursors.click,
           onTap: _showSenderSheet,
           child: UserAvatar(
-            client: widget.event.room.client,
-            avatarUrl: widget.event.senderFromMemoryOrFallback.avatarUrl,
+            avatarResolver: ClientAvatarResolver(widget.event.room.client),
+            avatarUrl: widget.event.senderFromMemoryOrFallback.avatarUrl?.toString(),
             userId: widget.event.senderId,
+            displayname: widget.event.senderFromMemoryOrFallback.calcDisplayname(),
             size: diameter,
           ),
         ),
@@ -258,10 +261,12 @@ class _MessageBubbleState extends State<MessageBubble> {
   }
 
   void _showSenderSheet() {
+    final sender = widget.event.senderFromMemoryOrFallback;
     unawaited(showMemberSheet(
       context,
       room: widget.event.room,
-      user: widget.event.senderFromMemoryOrFallback,
+      user: toKoheraUserSummary(sender),
+      isBanned: sender.membership == Membership.ban,
     ),);
   }
 }

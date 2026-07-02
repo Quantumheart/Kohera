@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/utils/media_cache_io.dart'
     if (dart.library.js_interop) 'package:kohera/core/utils/media_cache_web.dart';
 import 'package:kohera/core/utils/time_format.dart';
@@ -133,9 +134,10 @@ class _MediaViewerShellState extends State<MediaViewerShell> {
                   child: Row(
                     children: [
                       UserAvatar(
-                        client: widget.event.room.client,
-                        avatarUrl: sender.avatarUrl,
+                        avatarResolver: ClientAvatarResolver(widget.event.room.client),
+                        avatarUrl: sender.avatarUrl?.toString(),
                         userId: sender.id,
+                        displayname: sender.calcDisplayname(),
                         size: 32,
                       ),
                       const SizedBox(width: 8),

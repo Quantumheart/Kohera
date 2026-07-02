@@ -7,6 +7,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/features/rooms/models/room_role.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
@@ -21,10 +22,17 @@ import 'package:provider/provider.dart';
 ])
 import 'room_members_section_test.mocks.dart';
 
+class _NullAvatarResolver implements AvatarResolver {
+  const _NullAvatarResolver();
+  @override
+  Future<AvatarThumbnail?> resolve(String? mxcUrl, {required double size}) async => null;
+}
+
 MockUser _makeUser(String id, String displayName, {Room? room}) {
   final user = MockUser();
   when(user.id).thenReturn(id);
   when(user.displayName).thenReturn(displayName);
+  when(user.calcDisplayname()).thenReturn(displayName);
   when(user.room).thenReturn(room ?? MockRoom());
   when(user.membership).thenReturn(Membership.join);
   return user;
@@ -44,6 +52,7 @@ void main() {
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.onPresenceChanged)
         .thenReturn(CachedStreamController<CachedPresence>());
+    when(mockMatrixService.avatarResolver).thenReturn(const _NullAvatarResolver());
     when(mockMatrixService.presence)
         .thenReturn(PresenceService(client: mockClient));
     when(mockRoom.id).thenReturn('!room:example.com');

@@ -1,6 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -12,25 +13,36 @@ import 'package:mockito/mockito.dart';
 ])
 import 'user_avatar_test.mocks.dart';
 
+/// A no-op [AvatarResolver] for tests — always returns null so the
+/// fallback initial is shown.
+class _NullAvatarResolver implements AvatarResolver {
+  const _NullAvatarResolver();
+  @override
+  Future<AvatarThumbnail?> resolve(String? mxcUrl, {required double size}) async => null;
+}
+
 void main() {
   late MockClient mockClient;
+  const avatarResolver = _NullAvatarResolver();
 
   setUp(() {
     mockClient = MockClient();
   });
 
   Widget buildTestWidget({
-    Uri? avatarUrl,
-    String? userId,
+    String? avatarUrl,
+    String userId = '',
+    String displayname = '',
     double size = 44,
   }) {
     return MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: UserAvatar(
-          client: mockClient,
+          avatarResolver: avatarResolver,
           avatarUrl: avatarUrl,
           userId: userId,
+          displayname: displayname,
           size: size,
         ),
       ),
@@ -72,16 +84,16 @@ void main() {
       expect(sizedBox.height, 64);
     });
 
-    testWidgets('resolves thumbnail when avatarUrl is provided', (tester) async {
-      final mxcUri = Uri.parse('mxc://example.com/avatar123');
+    testWidgets('shows fallback initial when avatarUrl is provided', (tester) async {
+      const mxcUrl = 'mxc://example.com/avatar123';
 
       await tester.pumpWidget(buildTestWidget(
-        avatarUrl: mxcUri,
+        avatarUrl: mxcUrl,
         userId: '@charlie:example.com',
       ),);
       await tester.pump();
 
-      // While resolving, the fallback initial should show
+      // While resolving (or with null resolver), the fallback initial should show
       expect(find.text('C'), findsOneWidget);
     });
 
@@ -89,16 +101,18 @@ void main() {
       // This tests the color hashing — render two avatars and check they exist
       await tester.pumpWidget(MaterialApp(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),
-        home: Scaffold(
+        home: const Scaffold(
           body: Column(
             children: [
               UserAvatar(
-                client: mockClient,
+                avatarResolver: avatarResolver,
                 userId: '@alice:example.com',
+                displayname: 'Alice',
               ),
               UserAvatar(
-                client: mockClient,
+                avatarResolver: avatarResolver,
                 userId: '@bob:example.com',
+                displayname: 'Bob',
               ),
             ],
           ),
@@ -139,8 +153,9 @@ void main() {
         theme: theme ?? ThemeData(splashFactory: InkRipple.splashFactory),
         home: Scaffold(
           body: UserAvatar(
-            client: mockClient,
+            avatarResolver: avatarResolver,
             userId: userId,
+            displayname: userId,
             presence: presenceService,
             size: size,
           ),

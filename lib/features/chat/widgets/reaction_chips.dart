@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/features/chat/widgets/long_press_wrapper.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
@@ -203,9 +204,10 @@ void showReactorsSheet(
                   final name = user.displayName ?? re.senderId;
                   return ListTile(
                     leading: UserAvatar(
-                      client: room.client,
-                      avatarUrl: user.avatarUrl,
+                      avatarResolver: ClientAvatarResolver(room.client),
+                      avatarUrl: user.avatarUrl?.toString(),
                       userId: re.senderId,
+                      displayname: name,
                       size: 36,
                     ),
                     title: Text(name),

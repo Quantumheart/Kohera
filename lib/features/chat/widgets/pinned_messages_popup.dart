@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
@@ -323,9 +324,10 @@ class _PinnedMessageTile extends StatelessWidget {
                   Row(
                     children: [
                       UserAvatar(
-                        client: event.room.client,
-                        avatarUrl: sender.avatarUrl,
+                        avatarResolver: ClientAvatarResolver(event.room.client),
+                        avatarUrl: sender.avatarUrl?.toString(),
                         userId: event.senderId,
+                        displayname: sender.calcDisplayname(),
                         size: 24,
                       ),
                       const SizedBox(width: 8),

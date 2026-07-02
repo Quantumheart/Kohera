@@ -1,7 +1,10 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
 import 'package:kohera/features/chat/widgets/read_receipts.dart';
+import 'package:kohera/shared/models/kohera_user_summary_mapper.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
@@ -18,13 +21,23 @@ import 'read_receipts_test.mocks.dart';
 
 // ── Helpers ──────────────────────────────────────────────────
 
+class _NullAvatarResolver implements AvatarResolver {
+  const _NullAvatarResolver();
+  @override
+  Future<AvatarThumbnail?> resolve(String? mxcUrl, {required double size}) async => null;
+}
+
 MockUser _makeUser(String id, String? displayName, {Uri? avatarUrl}) {
   final user = MockUser();
   when(user.id).thenReturn(id);
   when(user.displayName).thenReturn(displayName);
+  when(user.calcDisplayname()).thenReturn(displayName ?? id);
   when(user.avatarUrl).thenReturn(avatarUrl);
   return user;
 }
+
+KoheraReadReceipt _receipt(MockUser user, DateTime time) =>
+    KoheraReadReceipt(user: toKoheraUserSummary(user), time: time);
 
 MockRoom _makeRoom({
   required Map<String, LatestReceiptStateData> globalOtherUsers,
@@ -76,13 +89,13 @@ MockRoom _makeRoom({
   return room;
 }
 
-Widget _wrapRow(List<Receipt> receipts, Client client, {bool isMe = true}) {
+Widget _wrapRow(List<KoheraReadReceipt> receipts, {bool isMe = true}) {
   return MaterialApp(
     theme: ThemeData(splashFactory: InkRipple.splashFactory),
     home: Scaffold(
       body: ReadReceiptsRow(
         receipts: receipts,
-        client: client,
+        avatarResolver: const _NullAvatarResolver(),
         isMe: isMe,
       ),
     ),
@@ -114,12 +127,12 @@ void main() {
 
       expect(map.containsKey(r'$evt1'), isTrue);
       expect(map[r'$evt1']!.length, 2);
-      expect(map[r'$evt1']!.map((r) => r.user.id),
+      expect(map[r'$evt1']!.map((r) => r.user.userId),
           containsAll(['@alice:example.com', '@bob:example.com']),);
 
       // Own user should not appear
       expect(
-        map.values.expand((l) => l).any((r) => r.user.id == '@me:example.com'),
+        map.values.expand((l) => l).any((r) => r.user.userId == '@me:example.com'),
         isFalse,
       );
     });
@@ -144,7 +157,7 @@ void main() {
       // Alice should only appear once (from global, since it's processed first)
       final allReceipts = map.values.expand((l) => l).toList();
       expect(
-        allReceipts.where((r) => r.user.id == '@alice:example.com').length,
+        allReceipts.where((r) => r.user.userId == '@alice:example.com').length,
         1,
       );
     });
@@ -178,7 +191,7 @@ void main() {
       );
 
       expect(map.containsKey(r'$thread1'), isTrue);
-      expect(map[r'$thread1']!.single.user.id, '@bob:example.com');
+      expect(map[r'$thread1']!.single.user.userId, '@bob:example.com');
       expect(map.containsKey(r'$global1'), isFalse);
       expect(map.containsKey(r'$main1'), isFalse);
     });
@@ -214,15 +227,8 @@ void main() {
   });
 
   group('ReadReceiptsRow', () {
-    late MockClient mockClient;
-
-    setUp(() {
-      mockClient = MockClient();
-      when(mockClient.userID).thenReturn('@me:example.com');
-    });
-
     testWidgets('renders SizedBox.shrink for empty receipts', (tester) async {
-      await tester.pumpWidget(_wrapRow([], mockClient));
+      await tester.pumpWidget(_wrapRow([]));
 
       // Should find a SizedBox with zero dimensions (shrink)
       final sizedBox = tester.widget<SizedBox>(find.byType(SizedBox).first);
@@ -233,17 +239,17 @@ void main() {
     testWidgets('renders correct number of avatars for 2 receipts',
         (tester) async {
       final receipts = [
-        Receipt(
+        _receipt(
           _makeUser('@alice:example.com', 'Alice'),
           DateTime(2024, 1, 1, 12),
         ),
-        Receipt(
+        _receipt(
           _makeUser('@bob:example.com', 'Bob'),
           DateTime(2024, 1, 1, 12, 5),
         ),
       ];
 
-      await tester.pumpWidget(_wrapRow(receipts, mockClient));
+      await tester.pumpWidget(_wrapRow(receipts));
       await tester.pump();
 
       expect(find.byType(UserAvatar), findsNWidgets(2));
@@ -254,13 +260,13 @@ void main() {
     testWidgets('shows +N badge when more than 3 receipts', (tester) async {
       final receipts = List.generate(
         5,
-        (i) => Receipt(
+        (i) => _receipt(
           _makeUser('@user$i:example.com', 'User $i'),
           DateTime(2024, 1, 1, 12, i),
         ),
       );
 
-      await tester.pumpWidget(_wrapRow(receipts, mockClient));
+      await tester.pumpWidget(_wrapRow(receipts));
       await tester.pump();
 
       expect(find.text('+2'), findsOneWidget);
@@ -268,13 +274,13 @@ void main() {
 
     testWidgets('tap opens readers bottom sheet', (tester) async {
       final receipts = [
-        Receipt(
+        _receipt(
           _makeUser('@alice:example.com', 'Alice'),
           DateTime(2024, 1, 1, 14, 30),
         ),
       ];
 
-      await tester.pumpWidget(_wrapRow(receipts, mockClient));
+      await tester.pumpWidget(_wrapRow(receipts));
       await tester.pump();
 
       await tester.tap(find.byType(GestureDetector).first);
@@ -290,17 +296,17 @@ void main() {
 
     testWidgets('bottom sheet shows multiple readers', (tester) async {
       final receipts = [
-        Receipt(
+        _receipt(
           _makeUser('@alice:example.com', 'Alice'),
           DateTime(2024, 1, 1, 14, 30),
         ),
-        Receipt(
+        _receipt(
           _makeUser('@bob:example.com', 'Bob'),
           DateTime(2024, 1, 1, 15, 45),
         ),
       ];
 
-      await tester.pumpWidget(_wrapRow(receipts, mockClient));
+      await tester.pumpWidget(_wrapRow(receipts));
       await tester.pump();
 
       await tester.tap(find.byType(GestureDetector).first);
@@ -318,7 +324,7 @@ void main() {
       final prefs = PreferencesService(prefs: sp);
 
       final receipts = [
-        Receipt(
+        _receipt(
           _makeUser('@alice:example.com', 'Alice'),
           DateTime(2024, 1, 1, 14, 30),
         ),
@@ -337,7 +343,7 @@ void main() {
                   if (!show) return const SizedBox.shrink();
                   return ReadReceiptsRow(
                     receipts: receipts,
-                    client: mockClient,
+                    avatarResolver: const _NullAvatarResolver(),
                     isMe: true,
                   );
                 },
@@ -355,13 +361,13 @@ void main() {
     testWidgets('falls back to user ID when displayName is null',
         (tester) async {
       final receipts = [
-        Receipt(
+        _receipt(
           _makeUser('@anon:example.com', null),
           DateTime(2024, 1, 1, 10),
         ),
       ];
 
-      await tester.pumpWidget(_wrapRow(receipts, mockClient));
+      await tester.pumpWidget(_wrapRow(receipts));
       await tester.pump();
 
       await tester.tap(find.byType(GestureDetector).first);

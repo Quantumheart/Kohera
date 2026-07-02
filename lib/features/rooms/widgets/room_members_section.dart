@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
+import 'package:kohera/shared/models/kohera_user_summary.dart';
+import 'package:kohera/shared/models/kohera_user_summary_mapper.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -19,7 +21,8 @@ class RoomMembersSection extends StatefulWidget {
 }
 
 class _RoomMembersSectionState extends State<RoomMembersSection> {
-  List<User> _members = [];
+  List<KoheraUserSummary> _members = [];
+  final Set<String> _bannedUserIds = {};
   bool _loading = true;
   bool _expanded = false;
   int? _lastMemberCount;
@@ -62,11 +65,11 @@ class _RoomMembersSectionState extends State<RoomMembersSection> {
     setState(() => _query = next);
   }
 
-  List<User> _filtered() {
+  List<KoheraUserSummary> _filtered() {
     if (_query.isEmpty) return _members;
     return _members.where((u) {
-      final name = (u.displayName ?? '').toLowerCase();
-      final id = u.id.toLowerCase();
+      final name = u.displayname.toLowerCase();
+      final id = u.userId.toLowerCase();
       return name.contains(_query) || id.contains(_query);
     }).toList();
   }
@@ -86,17 +89,26 @@ class _RoomMembersSectionState extends State<RoomMembersSection> {
     try {
       final members = await widget.room.requestParticipants([Membership.join]);
       if (!mounted || gen != _loadGeneration) return;
+      // Convert SDK User → KoheraUserSummary at the boundary.
+      // Track banned users separately since KoheraUserSummary has no
+      // membership field (deferred to KoheraRoomMember, slice #10).
+      final bannedIds = <String>{};
+      for (final u in members) {
+        if (u.membership == Membership.ban) bannedIds.add(u.id);
+      }
+      final summaries = members.map(toKoheraUserSummary).toList();
       // Sort: admins first, then mods, then alphabetical.
-      members.sort((a, b) {
-        final pa = widget.room.getPowerLevelByUserId(a.id);
-        final pb = widget.room.getPowerLevelByUserId(b.id);
+      summaries.sort((a, b) {
+        final pa = widget.room.getPowerLevelByUserId(a.userId);
+        final pb = widget.room.getPowerLevelByUserId(b.userId);
         if (pa != pb) return pb.compareTo(pa);
-        final na = a.displayName ?? a.id;
-        final nb = b.displayName ?? b.id;
-        return na.compareTo(nb);
+        return a.displayname.compareTo(b.displayname);
       });
       setState(() {
-        _members = members;
+        _members = summaries;
+        _bannedUserIds
+          ..clear()
+          ..addAll(bannedIds);
         _loading = false;
         _lastMemberCount = widget.room.summary.mJoinedMemberCount;
       });
@@ -171,7 +183,11 @@ class _RoomMembersSectionState extends State<RoomMembersSection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 for (final member in visible)
-                  _MemberTile(user: member, room: widget.room),
+                  _MemberTile(
+                    user: member,
+                    room: widget.room,
+                    isBanned: _bannedUserIds.contains(member.userId),
+                  ),
                 if (!showAll && filtered.length > 5)
                   TextButton(
                     onPressed: () => setState(() => _expanded = true),
@@ -192,10 +208,15 @@ class _RoomMembersSectionState extends State<RoomMembersSection> {
 // ── Member tile ────────────────────────────────────────────────
 
 class _MemberTile extends StatefulWidget {
-  const _MemberTile({required this.user, required this.room});
+  const _MemberTile({
+    required this.user,
+    required this.room,
+    this.isBanned = false,
+  });
 
-  final User user;
+  final KoheraUserSummary user;
   final Room room;
+  final bool isBanned;
 
   @override
   State<_MemberTile> createState() => _MemberTileState();
@@ -206,15 +227,16 @@ class _MemberTileState extends State<_MemberTile> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final powerLevel = widget.room.getPowerLevelByUserId(widget.user.id);
-    final displayName = widget.user.displayName ?? widget.user.id;
+    final powerLevel = widget.room.getPowerLevelByUserId(widget.user.userId);
+    final displayName = widget.user.displayname;
 
     return ListTile(
       dense: true,
       leading: UserAvatar(
-        client: widget.room.client,
-        userId: widget.user.id,
+        avatarResolver: context.read<MatrixService>().avatarResolver,
+        userId: widget.user.userId,
         avatarUrl: widget.user.avatarUrl,
+        displayname: widget.user.displayname,
         presence: context.read<MatrixService>().presence,
         size: 32,
       ),
@@ -224,7 +246,7 @@ class _MemberTileState extends State<_MemberTile> {
         style: tt.bodyMedium,
       ),
       subtitle: Text(
-        widget.user.id,
+        widget.user.userId,
         style: tt.bodySmall,
         overflow: TextOverflow.ellipsis,
       ),
@@ -268,6 +290,7 @@ class _MemberTileState extends State<_MemberTile> {
       context,
       room: widget.room,
       user: widget.user,
+      isBanned: widget.isBanned,
     ),);
   }
 }

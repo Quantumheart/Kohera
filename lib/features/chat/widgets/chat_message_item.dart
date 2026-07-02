@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
+import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/widgets/delete_event_dialog.dart';
 import 'package:kohera/features/chat/widgets/emoji_picker_sheet.dart';
@@ -14,6 +16,7 @@ import 'package:kohera/features/chat/widgets/read_receipts.dart';
 import 'package:kohera/features/chat/widgets/swipeable_message.dart';
 import 'package:kohera/features/chat/widgets/thread_indicator_chip.dart';
 import 'package:matrix/matrix.dart';
+import 'package:provider/provider.dart';
 
 class ChatMessageItem extends StatelessWidget {
   const ChatMessageItem({
@@ -44,7 +47,7 @@ class ChatMessageItem extends StatelessWidget {
   final Timeline? timeline;
   final Client client;
   final String? highlightedEventId;
-  final Map<String, List<Receipt>> receiptMap;
+  final Map<String, List<KoheraReadReceipt>> receiptMap;
   final void Function(Event event)? onReply;
   final void Function(Event event)? onEdit;
   final Future<void> Function(Event event)? onPin;
@@ -69,7 +72,7 @@ class ChatMessageItem extends StatelessWidget {
         timeline != null &&
         event.hasAggregatedEvents(timeline!, RelationshipTypes.thread);
     final receipts = receiptMap[event.eventId]
-        ?.where((r) => r.user.id != event.senderId)
+        ?.where((r) => r.user.userId != event.senderId)
         .toList();
 
     Widget? reactionBubble;
@@ -87,7 +90,7 @@ class ChatMessageItem extends StatelessWidget {
     if (receipts != null && receipts.isNotEmpty) {
       subBubble = ReadReceiptsRow(
         receipts: receipts,
-        client: client,
+        avatarResolver: context.read<MatrixService>().avatarResolver,
         isMe: isMe,
       );
     }
