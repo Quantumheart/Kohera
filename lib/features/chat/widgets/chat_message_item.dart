@@ -7,6 +7,7 @@ import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
 import 'package:kohera/features/chat/services/media_content_resolver.dart';
 import 'package:kohera/features/chat/services/message_display_resolver.dart';
+import 'package:kohera/features/chat/services/reaction_resolver.dart';
 import 'package:kohera/features/chat/services/sdk_media_controller.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/widgets/audio_bubble.dart';
@@ -99,11 +100,15 @@ class ChatMessageItem extends StatelessWidget {
 
     Widget? reactionBubble;
     if (hasReactions) {
+      final reactionList = const ReactionResolver().resolve(
+        event,
+        timeline!,
+        myUserId: client.userID ?? '',
+      );
       reactionBubble = ReactionChips(
-        event: event,
-        timeline: timeline!,
-        client: client,
+        reactions: reactionList,
         isMe: isMe,
+        avatarResolver: context.read<MatrixService>().avatarResolver,
         onToggle: (emoji) => onToggleReaction(event, emoji),
       );
     }

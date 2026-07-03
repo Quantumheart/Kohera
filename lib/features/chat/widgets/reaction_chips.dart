@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
+import 'package:kohera/features/chat/models/kohera_reaction.dart';
 import 'package:kohera/features/chat/widgets/long_press_wrapper.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
-import 'package:matrix/matrix.dart';
 
 // ── ReactionChips ────────────────────────────────────────────
 
@@ -17,18 +17,16 @@ import 'package:matrix/matrix.dart';
 /// and the message action sheet is not shown simultaneously.
 class ReactionChips extends StatefulWidget {
   const ReactionChips({
-    required this.event,
-    required this.timeline,
-    required this.client,
+    required this.reactions,
     required this.isMe,
+    required this.avatarResolver,
     super.key,
     this.onToggle,
   });
 
-  final Event event;
-  final Timeline timeline;
-  final Client client;
+  final KoheraReactionList reactions;
   final bool isMe;
+  final AvatarResolver avatarResolver;
   final void Function(String emoji)? onToggle;
 
   @override
@@ -60,32 +58,17 @@ class _ReactionChipsState extends State<ReactionChips> {
 
   @override
   Widget build(BuildContext context) {
-    final reactionEvents =
-        widget.event.aggregatedEvents(widget.timeline, RelationshipTypes.reaction);
-    if (reactionEvents.isEmpty) return const SizedBox.shrink();
-
-    final grouped = <String, List<Event>>{};
-    for (final re in reactionEvents) {
-      final key = re.content
-          .tryGetMap<String, Object?>('m.relates_to')
-          ?.tryGet<String>('key');
-      if (key != null) {
-        (grouped[key] ??= []).add(re);
-      }
-    }
-    if (grouped.isEmpty) return const SizedBox.shrink();
+    if (widget.reactions.isEmpty) return const SizedBox.shrink();
 
     final cs = Theme.of(context).colorScheme;
-    final myId = widget.client.userID;
 
     return Wrap(
       alignment: widget.isMe ? WrapAlignment.end : WrapAlignment.start,
       spacing: 4,
       runSpacing: 4,
-      children: grouped.entries.map((entry) {
-        final emoji = entry.key;
-        final events = entry.value;
-        final isMine = events.any((e) => e.senderId == myId);
+      children: widget.reactions.reactions.map((reaction) {
+        final emoji = reaction.key;
+        final isMine = reaction.reactedByMe;
 
         return Listener(
           behavior: HitTestBehavior.translucent,
@@ -94,10 +77,8 @@ class _ReactionChipsState extends State<ReactionChips> {
             onTap: () => _handleToggle(emoji),
             onLongPress: () => showReactorsSheet(
               context,
-              emoji: emoji,
-              reactionEvents: events,
-              room: widget.event.room,
-              client: widget.client,
+              reaction: reaction,
+              avatarResolver: widget.avatarResolver,
               onToggle: widget.onToggle,
             ),
             child: Container(
@@ -131,10 +112,10 @@ class _ReactionChipsState extends State<ReactionChips> {
                       ),
                     ),
                   ),
-                  if (events.length > 1) ...[
+                  if (reaction.count > 1) ...[
                     const SizedBox(width: 3),
                     Text(
-                      '${events.length}',
+                      '${reaction.count}',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
@@ -159,18 +140,13 @@ class _ReactionChipsState extends State<ReactionChips> {
 /// their own reaction directly from the sheet.
 void showReactorsSheet(
   BuildContext context, {
-  required String emoji,
-  required List<Event> reactionEvents,
-  required Room room,
-  required Client client,
+  required KoheraReaction reaction,
+  required AvatarResolver avatarResolver,
   void Function(String emoji)? onToggle,
 }) {
   unawaited(showModalBottomSheet(
     context: context,
     builder: (ctx) {
-      final myId = client.userID;
-      final isMine = reactionEvents.any((e) => e.senderId == myId);
-
       return SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -181,11 +157,11 @@ void showReactorsSheet(
                 TextSpan(
                   children: [
                     ...buildEmojiSpans(
-                      emoji,
+                      reaction.key,
                       Theme.of(ctx).textTheme.titleMedium,
                     ),
                     TextSpan(
-                      text: ' ${reactionEvents.length}',
+                      text: ' ${reaction.count}',
                       style: Theme.of(ctx).textTheme.titleMedium,
                     ),
                   ],
@@ -196,22 +172,21 @@ void showReactorsSheet(
             Flexible(
               child: ListView.builder(
                 shrinkWrap: true,
-                itemCount: reactionEvents.length,
+                itemCount: reaction.reactors.length,
                 itemBuilder: (ctx, i) {
-                  final re = reactionEvents[i];
-                  final user =
-                      room.unsafeGetUserFromMemoryOrFallback(re.senderId);
-                  final name = user.displayName ?? re.senderId;
+                  final reactor = reaction.reactors[i];
+                  final name = reactor.displayName ?? reactor.senderId;
                   return ListTile(
                     leading: UserAvatar(
-                      avatarResolver: ClientAvatarResolver(room.client),
-                      avatarUrl: user.avatarUrl?.toString(),
-                      userId: re.senderId,
+                      avatarResolver: avatarResolver,
+                      avatarUrl: reactor.avatarUrl,
+                      userId: reactor.senderId,
                       displayname: name,
                       size: 36,
                     ),
                     title: Text(name),
-                    subtitle: name != re.senderId ? Text(re.senderId) : null,
+                    subtitle:
+                        name != reactor.senderId ? Text(reactor.senderId) : null,
                   );
                 },
               ),
@@ -219,19 +194,24 @@ void showReactorsSheet(
             if (onToggle != null) ...[
               const Divider(height: 1),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: SizedBox(
                   width: double.infinity,
                   child: FilledButton.tonal(
                     onPressed: () {
                       Navigator.of(ctx).pop();
-                      onToggle(emoji);
+                      onToggle(reaction.key);
                     },
                     child: Text.rich(
                       TextSpan(
                         children: [
-                          TextSpan(text: isMine ? 'Remove your ' : 'React with '),
-                          ...buildEmojiSpans(emoji, null),
+                          TextSpan(
+                            text: reaction.reactedByMe
+                                ? 'Remove your '
+                                : 'React with ',
+                          ),
+                          ...buildEmojiSpans(reaction.key, null),
                         ],
                       ),
                     ),
