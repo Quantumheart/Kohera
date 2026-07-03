@@ -2,81 +2,69 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
-import 'package:matrix/matrix.dart';
-import 'package:provider/provider.dart';
+
+// Event type constants (replacing SDK EventTypes.*).
+const _kRoomPowerLevels = 'm.room.power_levels';
+const _kRoomName = 'm.room.name';
+const _kRoomAvatar = 'm.room.avatar';
+const _kRoomTopic = 'm.room.topic';
+const _kPinnedEvents = 'm.room.pinned_events';
 
 /// Full-page permissions screen reachable from the room admin settings.
 ///
 /// Displays a "Roles" summary section followed by a "Who can…" section where
 /// each row maps to one or more `m.room.power_levels` fields. Changes are
-/// written immediately via [PowerLevelService.update].
+/// written immediately via the provided [onUpdatePowerLevel] callback.
 ///
-/// Subscribes to the sync stream and rebuilds when power levels, join rules,
-/// or encryption state change so a concurrent admin's edits appear live.
-class RoomPermissionsScreen extends StatefulWidget {
-  const RoomPermissionsScreen({required this.roomId, super.key});
+/// This widget is SDK-free — all data comes from [KoheraRoomPermissions]
+/// and all actions are handled by callbacks.
+class RoomPermissionsScreen extends StatelessWidget {
+  const RoomPermissionsScreen({
+    required this.permissions,
+    required this.onSetJoinRules,
+    required this.onEnableEncryption,
+    required this.onUpdatePowerLevel,
+    required this.onApplyPowerLevelsContent,
+    super.key,
+  });
 
-  final String roomId;
+  final KoheraRoomPermissions permissions;
 
-  @override
-  State<RoomPermissionsScreen> createState() => _RoomPermissionsScreenState();
-}
+  /// Called when the user changes the room's join rule.
+  final Future<void> Function(KoheraJoinRule) onSetJoinRules;
 
-class _RoomPermissionsScreenState extends State<RoomPermissionsScreen> {
-  StreamSubscription<SyncUpdate>? _syncSub;
-  Timer? _debounce;
+  /// Called when the user confirms enabling encryption.
+  final Future<void> Function() onEnableEncryption;
 
-  static const Set<String> _watchedTypes = {
-    EventTypes.RoomPowerLevels,
-    EventTypes.RoomJoinRules,
-    EventTypes.Encryption,
-  };
+  /// Called for partial power-level updates (e.g. "Who can…" section).
+  final Future<void> Function(PowerLevelPatch) onUpdatePowerLevel;
 
-  @override
-  void initState() {
-    super.initState();
-    final client = context.read<MatrixService>().client;
-    _syncSub = client.onSync.stream.listen(_onSync);
-  }
-
-  @override
-  void dispose() {
-    _debounce?.cancel();
-    unawaited(_syncSub?.cancel());
-    super.dispose();
-  }
-
-  void _onSync(SyncUpdate update) {
-    final stateEvents =
-        update.rooms?.join?[widget.roomId]?.state ?? [];
-    if (!stateEvents.any((e) => _watchedTypes.contains(e.type))) return;
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) setState(() {});
-    });
-  }
+  /// Called for full raw power-level content updates (advanced editor).
+  final Future<void> Function(Map<String, Object?>) onApplyPowerLevelsContent;
 
   @override
   Widget build(BuildContext context) {
-    final room =
-        context.read<MatrixService>().client.getRoomById(widget.roomId);
-    if (room == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Permissions')),
-        body: const Center(child: Text('Room not found')),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(title: const Text('Permissions')),
       body: ListView(
         children: [
-          _RolesSection(room: room),
-          _WhoCanSection(room: room),
-          _DangerZoneSection(room: room),
-          _AdvancedSection(room: room),
+          _RolesSection(permissions: permissions),
+          _WhoCanSection(
+            permissions: permissions,
+            onUpdatePowerLevel: onUpdatePowerLevel,
+          ),
+          _DangerZoneSection(
+            permissions: permissions,
+            onSetJoinRules: onSetJoinRules,
+            onEnableEncryption: onEnableEncryption,
+            onUpdatePowerLevel: onUpdatePowerLevel,
+          ),
+          _AdvancedSection(
+            permissions: permissions,
+            onApplyPowerLevelsContent: onApplyPowerLevelsContent,
+          ),
         ],
       ),
     );
@@ -86,16 +74,16 @@ class _RoomPermissionsScreenState extends State<RoomPermissionsScreen> {
 // ── Shared power-level helpers ─────────────────────────────────
 
 int _plScalar(Map<String, Object?> c, String key, int fallback) =>
-    c.tryGet<int>(key) ?? fallback;
+    c[key] as int? ?? fallback;
 
 int _plEvent(Map<String, Object?> c, String eventType, int fallback) {
-  final events = c.tryGetMap<String, Object?>('events') ?? {};
-  return events.tryGet<int>(eventType) ?? fallback;
+  final events = c['events'] as Map<String, Object?>?;
+  return events?[eventType] as int? ?? fallback;
 }
 
 int _plNotification(Map<String, Object?> c, String key, int fallback) {
-  final notifs = c.tryGetMap<String, Object?>('notifications') ?? {};
-  return notifs.tryGet<int>(key) ?? fallback;
+  final notifs = c['notifications'] as Map<String, Object?>?;
+  return notifs?[key] as int? ?? fallback;
 }
 
 /// Returns the plain-English list of things a user at [level] can do,
@@ -107,15 +95,15 @@ List<String> plCapabilities(int level, Map<String, Object?> content) {
     if (level >= _plScalar(content, 'invite', 0)) 'Invite people',
     if (level >= _plNotification(content, 'room', 50)) 'Mention @room',
     if (level >= _plScalar(content, 'redact', 50)) "Redact others' messages",
-    if (level >= _plEvent(content, EventTypes.RoomName, stateDefault))
+    if (level >= _plEvent(content, _kRoomName, stateDefault))
       'Change room name & topic',
-    if (level >= _plEvent(content, EventTypes.RoomAvatar, stateDefault))
+    if (level >= _plEvent(content, _kRoomAvatar, stateDefault))
       'Change room avatar',
-    if (level >= _plEvent(content, 'm.room.pinned_events', stateDefault))
+    if (level >= _plEvent(content, _kPinnedEvents, stateDefault))
       'Pin messages',
     if (level >= _plScalar(content, 'kick', 50)) 'Kick members',
     if (level >= _plScalar(content, 'ban', 50)) 'Ban & unban members',
-    if (level >= _plEvent(content, EventTypes.RoomPowerLevels, stateDefault))
+    if (level >= _plEvent(content, _kRoomPowerLevels, stateDefault))
       'Change permissions',
   ];
 }
@@ -123,21 +111,20 @@ List<String> plCapabilities(int level, Map<String, Object?> content) {
 // ── Roles section ──────────────────────────────────────────────
 
 class _RolesSection extends StatelessWidget {
-  const _RolesSection({required this.room});
+  const _RolesSection({required this.permissions});
 
-  final Room room;
+  final KoheraRoomPermissions permissions;
 
   @override
   Widget build(BuildContext context) {
     final tt = Theme.of(context).textTheme;
     final cs = Theme.of(context).colorScheme;
-    final content =
-        room.getState(EventTypes.RoomPowerLevels)?.content ?? {};
-    final participants = room.getParticipants();
+    final content = permissions.powerLevelsContent;
 
-    int countAt(bool Function(int) test) => participants
-        .where((u) => test(room.getPowerLevelByUserId(u.id)))
-        .length;
+    int countAt(bool Function(int) test) =>
+        permissions.participants
+            .where((m) => test(m.powerLevel))
+            .length;
 
     final adminCount = countAt((pl) => pl >= 100);
     final modCount = countAt((pl) => pl >= 50 && pl < 100);
@@ -321,17 +308,20 @@ class _RoleCardState extends State<_RoleCard> {
 // ── Who can… section ──────────────────────────────────────────
 
 class _WhoCanSection extends StatelessWidget {
-  const _WhoCanSection({required this.room});
+  const _WhoCanSection({
+    required this.permissions,
+    required this.onUpdatePowerLevel,
+  });
 
-  final Room room;
+  final KoheraRoomPermissions permissions;
+  final Future<void> Function(PowerLevelPatch) onUpdatePowerLevel;
 
   @override
   Widget build(BuildContext context) {
     final tt = Theme.of(context).textTheme;
     final cs = Theme.of(context).colorScheme;
-    final content =
-        room.getState(EventTypes.RoomPowerLevels)?.content ?? {};
-    final canEdit = room.canChangePowerLevel;
+    final content = permissions.powerLevelsContent;
+    final canEdit = permissions.canChangePowerLevels;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -350,8 +340,7 @@ class _WhoCanSection extends StatelessWidget {
           label: 'Invite people',
           currentLevel: _plScalar(content, 'invite', 0),
           canEdit: canEdit,
-          onChanged: (v) => PowerLevelService.update(
-            room,
+          onChanged: (v) => onUpdatePowerLevel(
             PowerLevelPatch(invite: v),
           ),
         ),
@@ -359,50 +348,45 @@ class _WhoCanSection extends StatelessWidget {
           label: 'Send messages',
           currentLevel: _plScalar(content, 'events_default', 0),
           canEdit: canEdit,
-          onChanged: (v) => PowerLevelService.update(
-            room,
+          onChanged: (v) => onUpdatePowerLevel(
             PowerLevelPatch(eventsDefault: v),
           ),
         ),
         _WhoCanRow(
           label: 'Change room name & topic',
-          currentLevel: _plEvent(content, EventTypes.RoomName,
+          currentLevel: _plEvent(content, _kRoomName,
               _plScalar(content, 'state_default', 50),),
           canEdit: canEdit,
-          onChanged: (v) => PowerLevelService.update(
-            room,
+          onChanged: (v) => onUpdatePowerLevel(
             PowerLevelPatch(events: {
-              EventTypes.RoomName: v,
-              EventTypes.RoomTopic: v,
+              _kRoomName: v,
+              _kRoomTopic: v,
             },),
           ),
         ),
         _WhoCanRow(
           label: 'Change room avatar',
-          currentLevel: _plEvent(content, EventTypes.RoomAvatar,
+          currentLevel: _plEvent(content, _kRoomAvatar,
               _plScalar(content, 'state_default', 50),),
           canEdit: canEdit,
-          onChanged: (v) => PowerLevelService.update(
-            room,
-            PowerLevelPatch(events: {EventTypes.RoomAvatar: v}),
+          onChanged: (v) => onUpdatePowerLevel(
+            PowerLevelPatch(events: {_kRoomAvatar: v}),
           ),
         ),
         _WhoCanRow(
           label: 'Pin messages',
-          currentLevel: _plEvent(content, 'm.room.pinned_events',
+          currentLevel: _plEvent(content, _kPinnedEvents,
               _plScalar(content, 'state_default', 50),),
           canEdit: canEdit,
-          onChanged: (v) => PowerLevelService.update(
-            room,
-            PowerLevelPatch(events: {'m.room.pinned_events': v}),
+          onChanged: (v) => onUpdatePowerLevel(
+            PowerLevelPatch(events: {_kPinnedEvents: v}),
           ),
         ),
         _WhoCanRow(
           label: "Redact others' messages",
           currentLevel: _plScalar(content, 'redact', 50),
           canEdit: canEdit,
-          onChanged: (v) => PowerLevelService.update(
-            room,
+          onChanged: (v) => onUpdatePowerLevel(
             PowerLevelPatch(redact: v),
           ),
         ),
@@ -410,8 +394,7 @@ class _WhoCanSection extends StatelessWidget {
           label: 'Mention @room',
           currentLevel: _plNotification(content, 'room', 50),
           canEdit: canEdit,
-          onChanged: (v) => PowerLevelService.update(
-            room,
+          onChanged: (v) => onUpdatePowerLevel(
             PowerLevelPatch(notifications: {'room': v}),
           ),
         ),
@@ -419,8 +402,7 @@ class _WhoCanSection extends StatelessWidget {
           label: 'Kick members',
           currentLevel: _plScalar(content, 'kick', 50),
           canEdit: canEdit,
-          onChanged: (v) => PowerLevelService.update(
-            room,
+          onChanged: (v) => onUpdatePowerLevel(
             PowerLevelPatch(kick: v),
           ),
         ),
@@ -428,8 +410,7 @@ class _WhoCanSection extends StatelessWidget {
           label: 'Ban members',
           currentLevel: _plScalar(content, 'ban', 50),
           canEdit: canEdit,
-          onChanged: (v) => PowerLevelService.update(
-            room,
+          onChanged: (v) => onUpdatePowerLevel(
             PowerLevelPatch(ban: v),
           ),
         ),
@@ -584,9 +565,17 @@ Future<bool> _confirmDialog(
 }
 
 class _DangerZoneSection extends StatefulWidget {
-  const _DangerZoneSection({required this.room});
+  const _DangerZoneSection({
+    required this.permissions,
+    required this.onSetJoinRules,
+    required this.onEnableEncryption,
+    required this.onUpdatePowerLevel,
+  });
 
-  final Room room;
+  final KoheraRoomPermissions permissions;
+  final Future<void> Function(KoheraJoinRule) onSetJoinRules;
+  final Future<void> Function() onEnableEncryption;
+  final Future<void> Function(PowerLevelPatch) onUpdatePowerLevel;
 
   @override
   State<_DangerZoneSection> createState() => _DangerZoneSectionState();
@@ -609,30 +598,11 @@ class _DangerZoneSectionState extends State<_DangerZoneSection> {
         _ => 'Custom ($level)',
       };
 
-  String _joinRuleLabel(JoinRules rule) => switch (rule) {
-        JoinRules.public => 'Public',
-        JoinRules.invite => 'Invite-only',
-        JoinRules.knock => 'Knock',
-        JoinRules.restricted => 'Restricted',
-        _ => rule.text,
-      };
-
-  String _joinRuleDescription(JoinRules rule) => switch (rule) {
-        JoinRules.public =>
-          'Anyone can join without an invitation. The room will be publicly discoverable.',
-        JoinRules.invite => 'Only users invited by a member can join.',
-        JoinRules.knock =>
-          'Users can request to join. A moderator must approve each request.',
-        JoinRules.restricted =>
-          'Users in a linked space can join automatically.',
-        _ => 'Change who can join this room.',
-      };
-
-  Future<void> _changeJoinRule(JoinRules newRule) async {
+  Future<void> _changeJoinRule(KoheraJoinRule newRule) async {
     final confirmed = await _confirmDialog(
       context,
-      title: 'Change join rule to "${_joinRuleLabel(newRule)}"?',
-      message: _joinRuleDescription(newRule),
+      title: 'Change join rule to "${newRule.label}"?',
+      message: newRule.description,
     );
     if (!confirmed || !mounted) return;
     setState(() {
@@ -640,7 +610,7 @@ class _DangerZoneSectionState extends State<_DangerZoneSection> {
       _joinRulesError = null;
     });
     try {
-      await widget.room.setJoinRules(newRule);
+      await widget.onSetJoinRules(newRule);
     } catch (e) {
       if (mounted) setState(() => _joinRulesError = e.toString());
     } finally {
@@ -649,8 +619,7 @@ class _DangerZoneSectionState extends State<_DangerZoneSection> {
   }
 
   Future<void> _changePermLevel(int newLevel) async {
-    final ownLevel = widget.room
-        .getPowerLevelByUserId(widget.room.client.userID ?? '');
+    final ownLevel = widget.permissions.myPowerLevel;
     final selfLockout = newLevel > ownLevel;
     final confirmed = await _confirmDialog(
       context,
@@ -669,9 +638,8 @@ class _DangerZoneSectionState extends State<_DangerZoneSection> {
       _permLevelError = null;
     });
     try {
-      await PowerLevelService.update(
-        widget.room,
-        PowerLevelPatch(events: {EventTypes.RoomPowerLevels: newLevel}),
+      await widget.onUpdatePowerLevel(
+        PowerLevelPatch(events: {_kRoomPowerLevels: newLevel}),
       );
     } on PowerLevelException catch (e) {
       if (mounted) setState(() => _permLevelError = e.message);
@@ -696,7 +664,7 @@ class _DangerZoneSectionState extends State<_DangerZoneSection> {
       _encryptionError = null;
     });
     try {
-      await widget.room.enableEncryption();
+      await widget.onEnableEncryption();
     } catch (e) {
       if (mounted) setState(() => _encryptionError = e.toString());
     } finally {
@@ -708,18 +676,15 @@ class _DangerZoneSectionState extends State<_DangerZoneSection> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final room = widget.room;
-    final content =
-        room.getState(EventTypes.RoomPowerLevels)?.content ?? {};
+    final content = widget.permissions.powerLevelsContent;
     final stateDefault = _plScalar(content, 'state_default', 50);
     final currentPermLevel =
-        _plEvent(content, EventTypes.RoomPowerLevels, stateDefault);
-    final currentJoinRule = room.joinRules;
+        _plEvent(content, _kRoomPowerLevels, stateDefault);
+    final currentJoinRule = widget.permissions.joinRule;
 
-    final canEditPermLevel = room.canChangePowerLevel;
-    final canEditJoinRules = room.canChangeJoinRules;
-    final canEnableEncryption =
-        !room.encrypted && room.canChangeStateEvent(EventTypes.Encryption);
+    final canEditPermLevel = widget.permissions.canChangePowerLevels;
+    final canEditJoinRules = widget.permissions.canChangeJoinRules;
+    final canEnableEncryption = widget.permissions.canEnableEncryption;
 
     // Hide the section entirely if there's nothing to show.
     if (!canEditPermLevel && !canEditJoinRules && !canEnableEncryption) {
@@ -727,10 +692,11 @@ class _DangerZoneSectionState extends State<_DangerZoneSection> {
     }
 
     final supportedRules = [
-      JoinRules.public,
-      JoinRules.invite,
-      JoinRules.knock,
-      if (currentJoinRule == JoinRules.restricted) JoinRules.restricted,
+      KoheraJoinRule.public,
+      KoheraJoinRule.invite,
+      KoheraJoinRule.knock,
+      if (currentJoinRule == KoheraJoinRule.restricted)
+        KoheraJoinRule.restricted,
     ];
 
     final isCustomPermLevel = !_presets.contains(currentPermLevel);
@@ -830,7 +796,7 @@ class _DangerZoneSectionState extends State<_DangerZoneSection> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     else
-                      DropdownButton<JoinRules>(
+                      DropdownButton<KoheraJoinRule>(
                         value: currentJoinRule,
                         isDense: true,
                         onChanged: (v) {
@@ -842,7 +808,7 @@ class _DangerZoneSectionState extends State<_DangerZoneSection> {
                           for (final rule in supportedRules)
                             DropdownMenuItem(
                               value: rule,
-                              child: Text(_joinRuleLabel(rule)),
+                              child: Text(rule.label),
                             ),
                         ],
                       ),
@@ -911,6 +877,7 @@ class _DangerZoneSectionState extends State<_DangerZoneSection> {
     );
   }
 }
+
 // ── Advanced section ──────────────────────────────────────────
 
 /// One row in the per-event-type editor: an event type string + integer level.
@@ -930,14 +897,17 @@ class _EventRowData {
 
 /// Collapsed-by-default section that exposes raw `m.room.power_levels` fields
 /// (scalars + per-event-type map). Changes are applied atomically via a single
-/// [setRoomStateWithKey] call so deletions are possible (PowerLevelService
-/// never removes existing keys).
+/// [onApplyPowerLevelsContent] callback so deletions are possible.
 ///
 /// Hidden entirely when the local user cannot change power levels.
 class _AdvancedSection extends StatefulWidget {
-  const _AdvancedSection({required this.room});
+  const _AdvancedSection({
+    required this.permissions,
+    required this.onApplyPowerLevelsContent,
+  });
 
-  final Room room;
+  final KoheraRoomPermissions permissions;
+  final Future<void> Function(Map<String, Object?>) onApplyPowerLevelsContent;
 
   @override
   State<_AdvancedSection> createState() => _AdvancedSectionState();
@@ -954,7 +924,7 @@ class _AdvancedSectionState extends State<_AdvancedSection> {
   final List<_EventRowData> _eventRows = [];
 
   Map<String, Object?> get _currentContent =>
-      widget.room.getState(EventTypes.RoomPowerLevels)?.content ?? {};
+      widget.permissions.powerLevelsContent;
 
   @override
   void initState() {
@@ -972,7 +942,7 @@ class _AdvancedSectionState extends State<_AdvancedSection> {
     _eventsDefaultCtrl = TextEditingController(
       text: _plScalar(c, 'events_default', 0).toString(),
     );
-    final events = c.tryGetMap<String, Object?>('events') ?? {};
+    final events = c['events'] as Map<String, Object?>? ?? {};
     _eventRows
       ..clear()
       ..addAll(
@@ -1036,7 +1006,7 @@ class _AdvancedSectionState extends State<_AdvancedSection> {
     });
 
     try {
-      final content = _currentContent.copy();
+      final content = Map<String, Object?>.from(_currentContent);
 
       content['users_default'] = int.parse(_usersDefaultCtrl.text.trim());
       content['state_default'] = int.parse(_stateDefaultCtrl.text.trim());
@@ -1049,14 +1019,7 @@ class _AdvancedSectionState extends State<_AdvancedSection> {
       }
       content['events'] = eventsMap;
 
-      await widget.room.client.setRoomStateWithKey(
-        widget.room.id,
-        EventTypes.RoomPowerLevels,
-        '',
-        content,
-      );
-    } on MatrixException catch (e) {
-      if (mounted) setState(() => _error = e.errorMessage);
+      await widget.onApplyPowerLevelsContent(content);
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     } finally {
@@ -1078,7 +1041,7 @@ class _AdvancedSectionState extends State<_AdvancedSection> {
         _plScalar(c, 'events_default', 0).toString()) {
       return true;
     }
-    final savedEvents = c.tryGetMap<String, Object?>('events') ?? {};
+    final savedEvents = c['events'] as Map<String, Object?>? ?? {};
     if (_eventRows.length != savedEvents.length) return true;
     for (final row in _eventRows) {
       final t = row.typeCtrl.text.trim();
@@ -1091,7 +1054,9 @@ class _AdvancedSectionState extends State<_AdvancedSection> {
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.room.canChangePowerLevel) return const SizedBox.shrink();
+    if (!widget.permissions.canChangePowerLevels) {
+      return const SizedBox.shrink();
+    }
 
     final tt = Theme.of(context).textTheme;
     final cs = Theme.of(context).colorScheme;
@@ -1127,7 +1092,9 @@ class _AdvancedSectionState extends State<_AdvancedSection> {
         AnimatedSize(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
-          child: _expanded ? _buildBody(context, tt, cs, canApply, validationError) : const SizedBox.shrink(),
+          child: _expanded
+              ? _buildBody(context, tt, cs, canApply, validationError)
+              : const SizedBox.shrink(),
         ),
         const SizedBox(height: 16),
       ],
