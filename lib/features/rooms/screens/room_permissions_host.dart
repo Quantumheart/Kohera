@@ -5,7 +5,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
 import 'package:kohera/features/rooms/screens/room_permissions_screen.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
-import 'package:kohera/features/rooms/services/room_permissions_converter.dart';
+import 'package:kohera/features/rooms/services/room_permissions_resolver.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
@@ -69,7 +69,7 @@ class _RoomPermissionsHostState extends State<RoomPermissionsHost> {
       );
     }
 
-    final permissions = const RoomPermissionsConverter().convert(
+    final permissions = const RoomPermissionsResolver().convert(
       room,
       myUserId: client.userID ?? '',
     );
