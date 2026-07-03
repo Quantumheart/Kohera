@@ -17,8 +17,8 @@ import 'package:kohera/features/chat/widgets/edit_preview_banner.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/message_bubble.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
+import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
-import 'package:kohera/shared/models/kohera_user_summary_mapper.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
@@ -43,7 +43,13 @@ class _FakeAvatarResolver implements AvatarResolver {
   Future<AvatarThumbnail?> resolve(
     String? mxcUrl, {
     required double size,
-  }) async => null;
+  }) async =>
+      null;
+}
+
+class _FakePresence implements PresenceService {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => null;
 }
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -67,8 +73,7 @@ MockEvent _makeEvent({
   when(event.messageType).thenReturn(MessageTypes.Text);
   when(event.originServerTs).thenReturn(DateTime(2025, 1, 1, 12));
   when(event.status).thenReturn(EventStatus.synced);
-  when(event.content)
-      .thenReturn(content ?? {'body': body, 'msgtype': 'm.text'});
+  when(event.content).thenReturn(content ?? {'body': body, 'msgtype': 'm.text'});
   when(event.room).thenReturn(_mockRoom);
   when(event.redacted).thenReturn(redacted);
   when(event.canRedact).thenReturn(canRedact);
@@ -78,8 +83,7 @@ MockEvent _makeEvent({
   when(event.formattedText).thenReturn('');
 
   final sender = MockUser();
-  when(sender.displayName)
-      .thenReturn(senderId.split(':').first.substring(1));
+  when(sender.displayName).thenReturn(senderId.split(':').first.substring(1));
   when(sender.avatarUrl).thenReturn(null);
   when(event.senderFromMemoryOrFallback).thenReturn(sender);
 
@@ -155,12 +159,25 @@ Widget _buildBubble({
                 ),
                 onTapSender: () {
                   final sender = event.senderFromMemoryOrFallback;
+                  final isSenderMe = sender.id == event.room.client.userID;
                   unawaited(
-                    showMemberSheet(
+                    showMemberSheetDialog(
                       context,
-                      room: event.room,
-                      user: toKoheraUserSummary(sender),
-                      isBanned: sender.membership == Membership.ban,
+                      member: KoheraRoomMember(
+                        userId: sender.id,
+                        displayname: sender.calcDisplayname(),
+                        avatarUrl: sender.avatarUrl?.toString(),
+                        membership: sender.membership.name,
+                        powerLevel: event.room.getPowerLevelByUserId(sender.id),
+                      ),
+                      isMe: isSenderMe,
+                      ownLevel: event.room.getPowerLevelByUserId(event.room.client.userID ?? ''),
+                      canChangeRole: false,
+                      canKick: false,
+                      canBan: false,
+                      avatarResolver: const _FakeAvatarResolver(),
+                      presence: _FakePresence(),
+                      onStartDm: isSenderMe ? null : () async {},
                     ),
                   );
                 },
@@ -210,12 +227,25 @@ Widget _buildBubbleWithProviders({
                 ),
                 onTapSender: () {
                   final sender = event.senderFromMemoryOrFallback;
+                  final isSenderMe = sender.id == event.room.client.userID;
                   unawaited(
-                    showMemberSheet(
+                    showMemberSheetDialog(
                       context,
-                      room: event.room,
-                      user: toKoheraUserSummary(sender),
-                      isBanned: sender.membership == Membership.ban,
+                      member: KoheraRoomMember(
+                        userId: sender.id,
+                        displayname: sender.calcDisplayname(),
+                        avatarUrl: sender.avatarUrl?.toString(),
+                        membership: sender.membership.name,
+                        powerLevel: event.room.getPowerLevelByUserId(sender.id),
+                      ),
+                      isMe: isSenderMe,
+                      ownLevel: event.room.getPowerLevelByUserId(event.room.client.userID ?? ''),
+                      canChangeRole: false,
+                      canKick: false,
+                      canBan: false,
+                      avatarResolver: const _FakeAvatarResolver(),
+                      presence: _FakePresence(),
+                      onStartDm: isSenderMe ? null : () async {},
                     ),
                   );
                 },
@@ -268,20 +298,22 @@ void main() {
 
   group('EditPreviewBanner', () {
     testWidgets('shows edit icon and message body', (tester) async {
-      await tester.pumpWidget(MaterialApp(
-        theme: ThemeData(splashFactory: InkRipple.splashFactory),
-        home: Scaffold(
-          body: EditPreviewBanner(
-            preview: const KoheraReplyPreview(
-              parentSenderName: 'me',
-              parentBody: 'Original message text',
-              parentMessageId: r'$evt1',
-              parentSenderId: '@me:example.com',
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
+          home: Scaffold(
+            body: EditPreviewBanner(
+              preview: const KoheraReplyPreview(
+                parentSenderName: 'me',
+                parentBody: 'Original message text',
+                parentMessageId: r'$evt1',
+                parentSenderId: '@me:example.com',
+              ),
+              onCancel: () {},
             ),
-            onCancel: () {},
           ),
         ),
-      ),);
+      );
 
       expect(find.byIcon(Icons.edit_rounded), findsOneWidget);
       expect(find.text('Editing'), findsOneWidget);
@@ -291,40 +323,44 @@ void main() {
     testWidgets('cancel button calls onCancel', (tester) async {
       var cancelled = false;
 
-      await tester.pumpWidget(MaterialApp(
-        theme: ThemeData(splashFactory: InkRipple.splashFactory),
-        home: Scaffold(
-          body: EditPreviewBanner(
-            preview: const KoheraReplyPreview(
-              parentSenderName: 'me',
-              parentBody: 'Some message',
-              parentMessageId: r'$evt1',
-              parentSenderId: '@me:example.com',
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
+          home: Scaffold(
+            body: EditPreviewBanner(
+              preview: const KoheraReplyPreview(
+                parentSenderName: 'me',
+                parentBody: 'Some message',
+                parentMessageId: r'$evt1',
+                parentSenderId: '@me:example.com',
+              ),
+              onCancel: () => cancelled = true,
             ),
-            onCancel: () => cancelled = true,
           ),
         ),
-      ),);
+      );
 
       await tester.tap(find.byIcon(Icons.close_rounded));
       expect(cancelled, isTrue);
     });
 
     testWidgets('displays the preview body directly', (tester) async {
-      await tester.pumpWidget(MaterialApp(
-        theme: ThemeData(splashFactory: InkRipple.splashFactory),
-        home: Scaffold(
-          body: EditPreviewBanner(
-            preview: const KoheraReplyPreview(
-              parentSenderName: 'me',
-              parentBody: 'Actual text',
-              parentMessageId: r'$evt1',
-              parentSenderId: '@me:example.com',
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
+          home: Scaffold(
+            body: EditPreviewBanner(
+              preview: const KoheraReplyPreview(
+                parentSenderName: 'me',
+                parentBody: 'Actual text',
+                parentMessageId: r'$evt1',
+                parentSenderId: '@me:example.com',
+              ),
+              onCancel: () {},
             ),
-            onCancel: () {},
           ),
         ),
-      ),);
+      );
 
       expect(find.text('Actual text'), findsOneWidget);
     });
@@ -333,8 +369,7 @@ void main() {
   // ── Redacted message rendering ─────────────────────────────
 
   group('Redacted message rendering', () {
-    testWidgets('shows "You deleted this message" for own redacted message',
-        (tester) async {
+    testWidgets('shows "You deleted this message" for own redacted message', (tester) async {
       final event = _makeEvent(
         eventId: r'$evt1',
         senderId: '@me:example.com',
@@ -349,8 +384,7 @@ void main() {
       expect(find.text('You deleted this message'), findsOneWidget);
     });
 
-    testWidgets('shows "This message was deleted" for other user self-redact',
-        (tester) async {
+    testWidgets('shows "This message was deleted" for other user self-redact', (tester) async {
       final event = _makeEvent(
         eventId: r'$evt1',
         senderId: '@alice:example.com',
@@ -369,8 +403,7 @@ void main() {
       expect(find.text('This message was deleted'), findsOneWidget);
     });
 
-    testWidgets('shows "Deleted by moderator" for moderator redaction',
-        (tester) async {
+    testWidgets('shows "Deleted by moderator" for moderator redaction', (tester) async {
       final event = _makeEvent(
         eventId: r'$evt1',
         senderId: '@alice:example.com',
@@ -385,8 +418,7 @@ void main() {
 
       final modUser = MockUser();
       when(modUser.displayName).thenReturn('Moderator');
-      when(mockRoom.unsafeGetUserFromMemoryOrFallback('@mod:example.com'))
-          .thenReturn(modUser);
+      when(mockRoom.unsafeGetUserFromMemoryOrFallback('@mod:example.com')).thenReturn(modUser);
 
       await tester.pumpWidget(_buildBubble(event: event, isMe: false));
       await tester.pumpAndSettle();
@@ -398,21 +430,21 @@ void main() {
   // ── Edited message rendering ───────────────────────────────
 
   group('Edited message rendering', () {
-    testWidgets('shows (edited) indicator when message has edits',
-        (tester) async {
+    testWidgets('shows (edited) indicator when message has edits', (tester) async {
       final event = _makeEvent(
         eventId: r'$evt1',
         senderId: '@me:example.com',
         body: 'Updated text',
       );
-      when(event.hasAggregatedEvents(mockTimeline, RelationshipTypes.edit))
-          .thenReturn(true);
+      when(event.hasAggregatedEvents(mockTimeline, RelationshipTypes.edit)).thenReturn(true);
 
-      await tester.pumpWidget(_buildBubble(
-        event: event,
-        isMe: true,
-        timeline: mockTimeline,
-      ),);
+      await tester.pumpWidget(
+        _buildBubble(
+          event: event,
+          isMe: true,
+          timeline: mockTimeline,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('(edited)'), findsOneWidget);
@@ -429,17 +461,21 @@ void main() {
         senderId: '@me:example.com',
         body: 'Edited text',
       );
-      when(originalEvent.getDisplayEvent(mockTimeline))
-          .thenReturn(editedEvent);
-      when(originalEvent.hasAggregatedEvents(
-              mockTimeline, RelationshipTypes.edit,),)
-          .thenReturn(true);
+      when(originalEvent.getDisplayEvent(mockTimeline)).thenReturn(editedEvent);
+      when(
+        originalEvent.hasAggregatedEvents(
+          mockTimeline,
+          RelationshipTypes.edit,
+        ),
+      ).thenReturn(true);
 
-      await tester.pumpWidget(_buildBubble(
-        event: originalEvent,
-        isMe: true,
-        timeline: mockTimeline,
-      ),);
+      await tester.pumpWidget(
+        _buildBubble(
+          event: originalEvent,
+          isMe: true,
+          timeline: mockTimeline,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Edited text'), findsOneWidget);
@@ -457,13 +493,15 @@ void main() {
         body: 'My message',
       );
 
-      await tester.pumpWidget(_buildBubble(
-        event: event,
-        isMe: true,
-        onReply: () {},
-        onEdit: () {},
-        onDelete: () {},
-      ),);
+      await tester.pumpWidget(
+        _buildBubble(
+          event: event,
+          isMe: true,
+          onReply: () {},
+          onEdit: () {},
+          onDelete: () {},
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Right-click to show context menu.
@@ -480,20 +518,21 @@ void main() {
       expect(find.text('Delete'), findsOneWidget);
     });
 
-    testWidgets('shows "Remove" label for other users messages',
-        (tester) async {
+    testWidgets('shows "Remove" label for other users messages', (tester) async {
       final event = _makeEvent(
         eventId: r'$evt1',
         senderId: '@alice:example.com',
         body: 'Their message',
       );
 
-      await tester.pumpWidget(_buildBubble(
-        event: event,
-        isMe: false,
-        onReply: () {},
-        onDelete: () {},
-      ),);
+      await tester.pumpWidget(
+        _buildBubble(
+          event: event,
+          isMe: false,
+          onReply: () {},
+          onDelete: () {},
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Right-click.
@@ -538,15 +577,16 @@ void main() {
         senderId: '@me:example.com',
         body: 'Edited text',
       );
-      when(originalEvent.getDisplayEvent(mockTimeline))
-          .thenReturn(editedEvent);
+      when(originalEvent.getDisplayEvent(mockTimeline)).thenReturn(editedEvent);
 
-      await tester.pumpWidget(_buildBubble(
-        event: originalEvent,
-        isMe: true,
-        timeline: mockTimeline,
-        onReply: () {},
-      ),);
+      await tester.pumpWidget(
+        _buildBubble(
+          event: originalEvent,
+          isMe: true,
+          timeline: mockTimeline,
+          onReply: () {},
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Right-click.
@@ -568,8 +608,7 @@ void main() {
   // ── Edit flow in ChatScreen ────────────────────────────────
 
   group('ChatScreen edit flow', () {
-    testWidgets('edit preview banner appears after triggering edit',
-        (tester) async {
+    testWidgets('edit preview banner appears after triggering edit', (tester) async {
       // Use desktop width to access right-click context menu.
       tester.view.physicalSize = const Size(800, 600);
       tester.view.devicePixelRatio = 1.0;
@@ -587,13 +626,15 @@ void main() {
       when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
           .thenAnswer((_) async => mockTimeline);
 
-      await tester.pumpWidget(_buildChatWidget(
-        mockClient: mockClient,
-        mockMatrix: mockMatrix,
-        prefsService: prefsService,
-        selectionService: selectionService,
-        width: 800,
-      ),);
+      await tester.pumpWidget(
+        _buildChatWidget(
+          mockClient: mockClient,
+          mockMatrix: mockMatrix,
+          prefsService: prefsService,
+          selectionService: selectionService,
+          width: 800,
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Right-click the message.
@@ -635,13 +676,15 @@ void main() {
       when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
           .thenAnswer((_) async => mockTimeline);
 
-      await tester.pumpWidget(_buildChatWidget(
-        mockClient: mockClient,
-        mockMatrix: mockMatrix,
-        prefsService: prefsService,
-        selectionService: selectionService,
-        width: 800,
-      ),);
+      await tester.pumpWidget(
+        _buildChatWidget(
+          mockClient: mockClient,
+          mockMatrix: mockMatrix,
+          prefsService: prefsService,
+          selectionService: selectionService,
+          width: 800,
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Trigger edit via right-click.
@@ -664,8 +707,7 @@ void main() {
       expect(textField.controller?.text, isEmpty);
     });
 
-    testWidgets('sending edit passes editEventId to sendTextEvent',
-        (tester) async {
+    testWidgets('sending edit passes editEventId to sendTextEvent', (tester) async {
       tester.view.physicalSize = const Size(800, 600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -681,19 +723,23 @@ void main() {
       when(mockTimeline.events).thenReturn([event]);
       when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
           .thenAnswer((_) async => mockTimeline);
-      when(mockRoom.sendTextEvent(
-        any,
-        inReplyTo: anyNamed('inReplyTo'),
-        editEventId: anyNamed('editEventId'),
-      ),).thenAnswer((_) async => r'$sent1');
+      when(
+        mockRoom.sendTextEvent(
+          any,
+          inReplyTo: anyNamed('inReplyTo'),
+          editEventId: anyNamed('editEventId'),
+        ),
+      ).thenAnswer((_) async => r'$sent1');
 
-      await tester.pumpWidget(_buildChatWidget(
-        mockClient: mockClient,
-        mockMatrix: mockMatrix,
-        prefsService: prefsService,
-        selectionService: selectionService,
-        width: 800,
-      ),);
+      await tester.pumpWidget(
+        _buildChatWidget(
+          mockClient: mockClient,
+          mockMatrix: mockMatrix,
+          prefsService: prefsService,
+          selectionService: selectionService,
+          width: 800,
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Trigger edit.
@@ -710,18 +756,19 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await tester.pumpAndSettle();
 
-      verify(mockRoom.sendTextEvent(
-        'Updated text',
-        editEventId: r'$evt1',
-      ),).called(1);
+      verify(
+        mockRoom.sendTextEvent(
+          'Updated text',
+          editEventId: r'$evt1',
+        ),
+      ).called(1);
     });
   });
 
   // ── Delete flow in ChatScreen ──────────────────────────────
 
   group('ChatScreen delete flow', () {
-    testWidgets('delete shows confirmation dialog with "Delete" for own msg',
-        (tester) async {
+    testWidgets('delete shows confirmation dialog with "Delete" for own msg', (tester) async {
       tester.view.physicalSize = const Size(800, 600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -738,13 +785,15 @@ void main() {
       when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
           .thenAnswer((_) async => mockTimeline);
 
-      await tester.pumpWidget(_buildChatWidget(
-        mockClient: mockClient,
-        mockMatrix: mockMatrix,
-        prefsService: prefsService,
-        selectionService: selectionService,
-        width: 800,
-      ),);
+      await tester.pumpWidget(
+        _buildChatWidget(
+          mockClient: mockClient,
+          mockMatrix: mockMatrix,
+          prefsService: prefsService,
+          selectionService: selectionService,
+          width: 800,
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Right-click → Delete.
@@ -783,16 +832,17 @@ void main() {
       when(mockTimeline.events).thenReturn([event]);
       when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
           .thenAnswer((_) async => mockTimeline);
-      when(mockRoom.redactEvent(r'$evt1'))
-          .thenAnswer((_) async => r'$redact1');
+      when(mockRoom.redactEvent(r'$evt1')).thenAnswer((_) async => r'$redact1');
 
-      await tester.pumpWidget(_buildChatWidget(
-        mockClient: mockClient,
-        mockMatrix: mockMatrix,
-        prefsService: prefsService,
-        selectionService: selectionService,
-        width: 800,
-      ),);
+      await tester.pumpWidget(
+        _buildChatWidget(
+          mockClient: mockClient,
+          mockMatrix: mockMatrix,
+          prefsService: prefsService,
+          selectionService: selectionService,
+          width: 800,
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Right-click → Delete.
@@ -811,8 +861,7 @@ void main() {
       verify(mockRoom.redactEvent(r'$evt1')).called(1);
     });
 
-    testWidgets('cancelling delete dialog does not call redactEvent',
-        (tester) async {
+    testWidgets('cancelling delete dialog does not call redactEvent', (tester) async {
       tester.view.physicalSize = const Size(800, 600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -829,13 +878,15 @@ void main() {
       when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
           .thenAnswer((_) async => mockTimeline);
 
-      await tester.pumpWidget(_buildChatWidget(
-        mockClient: mockClient,
-        mockMatrix: mockMatrix,
-        prefsService: prefsService,
-        selectionService: selectionService,
-        width: 800,
-      ),);
+      await tester.pumpWidget(
+        _buildChatWidget(
+          mockClient: mockClient,
+          mockMatrix: mockMatrix,
+          prefsService: prefsService,
+          selectionService: selectionService,
+          width: 800,
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Right-click → Delete → Cancel.
@@ -856,8 +907,7 @@ void main() {
   // ── Redacted messages disable interactions ─────────────────
 
   group('Redacted message interactions', () {
-    testWidgets('redacted messages do not show context menu on desktop',
-        (tester) async {
+    testWidgets('redacted messages do not show context menu on desktop', (tester) async {
       final event = _makeEvent(
         eventId: r'$evt1',
         senderId: '@me:example.com',
@@ -867,10 +917,12 @@ void main() {
       when(event.redactedBecause).thenReturn(null);
 
       // Build with no action callbacks (as ChatScreen does for redacted).
-      await tester.pumpWidget(_buildBubble(
-        event: event,
-        isMe: true,
-      ),);
+      await tester.pumpWidget(
+        _buildBubble(
+          event: event,
+          isMe: true,
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Right-click should not produce a context menu with Reply/Edit/Delete.
@@ -890,8 +942,7 @@ void main() {
   // ── Edit events filtered from timeline ─────────────────────
 
   group('Sender avatar profile sheet', () {
-    testWidgets('tapping a sender avatar opens the member profile sheet',
-        (tester) async {
+    testWidgets('tapping a sender avatar opens the member profile sheet', (tester) async {
       final event = _makeEvent(
         eventId: r'$evt1',
         senderId: '@alice:example.com',
@@ -901,12 +952,14 @@ void main() {
       when(sender.id).thenReturn('@alice:example.com');
       when(sender.membership).thenReturn(Membership.join);
 
-      await tester.pumpWidget(_buildBubbleWithProviders(
-        event: event,
-        isMe: false,
-        mockMatrix: mockMatrix,
-        selectionService: selectionService,
-      ),);
+      await tester.pumpWidget(
+        _buildBubbleWithProviders(
+          event: event,
+          isMe: false,
+          mockMatrix: mockMatrix,
+          selectionService: selectionService,
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.byType(UserAvatar), findsOneWidget);
@@ -938,12 +991,14 @@ void main() {
       when(sender.id).thenReturn('@me:example.com');
       when(sender.membership).thenReturn(Membership.join);
 
-      await tester.pumpWidget(_buildBubbleWithProviders(
-        event: event,
-        isMe: false,
-        mockMatrix: mockMatrix,
-        selectionService: selectionService,
-      ),);
+      await tester.pumpWidget(
+        _buildBubbleWithProviders(
+          event: event,
+          isMe: false,
+          mockMatrix: mockMatrix,
+          selectionService: selectionService,
+        ),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.byType(UserAvatar));
@@ -955,8 +1010,7 @@ void main() {
   });
 
   group('Edit events filtered from visible timeline', () {
-    testWidgets('edit relation events are not shown in message list',
-        (tester) async {
+    testWidgets('edit relation events are not shown in message list', (tester) async {
       tester.view.physicalSize = const Size(800, 600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -979,13 +1033,15 @@ void main() {
       when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
           .thenAnswer((_) async => mockTimeline);
 
-      await tester.pumpWidget(_buildChatWidget(
-        mockClient: mockClient,
-        mockMatrix: mockMatrix,
-        prefsService: prefsService,
-        selectionService: selectionService,
-        width: 800,
-      ),);
+      await tester.pumpWidget(
+        _buildChatWidget(
+          mockClient: mockClient,
+          mockMatrix: mockMatrix,
+          prefsService: prefsService,
+          selectionService: selectionService,
+          width: 800,
+        ),
+      );
       await tester.pumpAndSettle();
 
       // Only the original message should be visible, not the edit event.

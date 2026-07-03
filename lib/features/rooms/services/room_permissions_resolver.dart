@@ -1,3 +1,4 @@
+import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
 import 'package:matrix/matrix.dart';
 
@@ -21,7 +22,9 @@ class RoomPermissionsResolver {
     final participants = room.getParticipants().map((u) {
       return KoheraRoomMember(
         userId: u.id,
-        displayName: u.displayName,
+        displayname: u.calcDisplayname(),
+        avatarUrl: u.avatarUrl?.toString(),
+        membership: u.membership.name,
         powerLevel: room.getPowerLevelByUserId(u.id),
       );
     }).toList();

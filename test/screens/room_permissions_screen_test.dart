@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
 import 'package:kohera/features/rooms/screens/room_permissions_host.dart';
 import 'package:kohera/features/rooms/screens/room_permissions_screen.dart';
@@ -279,9 +280,24 @@ void main() {
         _wrapScreen(
           _perms(
             participants: [
-              const KoheraRoomMember(userId: '@admin:e.com', powerLevel: 100),
-              const KoheraRoomMember(userId: '@mod:e.com', powerLevel: 50),
-              const KoheraRoomMember(userId: '@user:e.com', powerLevel: 0),
+              const KoheraRoomMember(
+                userId: '@admin:e.com',
+                displayname: 'Admin',
+                membership: 'join',
+                powerLevel: 100,
+              ),
+              const KoheraRoomMember(
+                userId: '@mod:e.com',
+                displayname: 'Mod',
+                membership: 'join',
+                powerLevel: 50,
+              ),
+              const KoheraRoomMember(
+                userId: '@user:e.com',
+                displayname: 'User',
+                membership: 'join',
+                powerLevel: 0,
+              ),
             ],
           ),
           recorder,

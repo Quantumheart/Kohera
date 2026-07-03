@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 
 // ── KoheraJoinRule ────────────────────────────────────────────
 
@@ -37,40 +38,6 @@ enum KoheraJoinRule {
         knock => 'knock',
         restricted => 'restricted',
       };
-}
-
-// ── KoheraRoomMember ──────────────────────────────────────────
-
-/// A room participant with their computed power level.
-///
-/// Pre-computed at the conversion boundary from
-/// `Room.getParticipants()` + `Room.getPowerLevelByUserId(userId)`.
-/// Will be upgraded to the full `KoheraRoomMember` from #706 when
-/// that lands.
-@immutable
-class KoheraRoomMember {
-  const KoheraRoomMember({
-    required this.userId,
-    required this.powerLevel,
-    this.displayName,
-  });
-
-  final String userId;
-  final String? displayName;
-  final int powerLevel;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is KoheraRoomMember && userId == other.userId;
-
-  @override
-  int get hashCode => userId.hashCode;
-
-  @override
-  String toString() =>
-      'KoheraRoomMember(userId: $userId, displayName: $displayName, '
-      'powerLevel: $powerLevel)';
 }
 
 // ── KoheraRoomPermissions ─────────────────────────────────────

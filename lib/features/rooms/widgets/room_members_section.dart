@@ -1,62 +1,48 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
-import 'package:kohera/shared/models/kohera_user_summary.dart';
-import 'package:kohera/shared/models/kohera_user_summary_mapper.dart';
+import 'package:kohera/core/services/sub_services/presence_service.dart';
+import 'package:kohera/features/rooms/models/kohera_room_member.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
-import 'package:matrix/matrix.dart';
-import 'package:provider/provider.dart';
 
 /// Displays a scrollable list of room members with role badges.
-/// Loads members asynchronously and shows the first 5 with an expand option.
+/// Shows the first 5 with an expand option and a search filter.
+///
+/// This widget is SDK-free — all data comes from [KoheraRoomMemberList]
+/// and all interactions are handled by the [onMemberTap] callback.
 class RoomMembersSection extends StatefulWidget {
-  const RoomMembersSection({required this.room, super.key});
+  const RoomMembersSection({
+    required this.members,
+    required this.onMemberTap,
+    required this.avatarResolver,
+    required this.presence,
+    super.key,
+  });
 
-  final Room room;
+  final KoheraRoomMemberList members;
+  final void Function(KoheraRoomMember member) onMemberTap;
+  final AvatarResolver avatarResolver;
+  final PresenceService presence;
 
   @override
   State<RoomMembersSection> createState() => _RoomMembersSectionState();
 }
 
 class _RoomMembersSectionState extends State<RoomMembersSection> {
-  List<KoheraUserSummary> _members = [];
-  final Set<String> _bannedUserIds = {};
-  bool _loading = true;
   bool _expanded = false;
-  int? _lastMemberCount;
-  int _loadGeneration = 0;
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
-  StreamSubscription<SyncUpdate>? _syncSub;
-  Timer? _syncDebounce;
 
   @override
   void initState() {
     super.initState();
-    unawaited(_loadMembers());
     _searchController.addListener(_onSearchChanged);
-    _syncSub = widget.room.client.onSync.stream.listen(_onSync);
   }
 
   @override
   void dispose() {
-    _syncDebounce?.cancel();
-    unawaited(_syncSub?.cancel());
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
-  }
-
-  void _onSync(SyncUpdate update) {
-    final stateEvents =
-        update.rooms?.join?[widget.room.id]?.state ?? [];
-    if (!stateEvents.any((e) => e.type == EventTypes.RoomPowerLevels)) return;
-    _syncDebounce?.cancel();
-    _syncDebounce = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) unawaited(_loadMembers());
-    });
   }
 
   void _onSearchChanged() {
@@ -65,62 +51,13 @@ class _RoomMembersSectionState extends State<RoomMembersSection> {
     setState(() => _query = next);
   }
 
-  List<KoheraUserSummary> _filtered() {
-    if (_query.isEmpty) return _members;
-    return _members.where((u) {
-      final name = u.displayname.toLowerCase();
-      final id = u.userId.toLowerCase();
+  List<KoheraRoomMember> _filtered() {
+    if (_query.isEmpty) return widget.members.members;
+    return widget.members.members.where((m) {
+      final name = m.displayname.toLowerCase();
+      final id = m.userId.toLowerCase();
       return name.contains(_query) || id.contains(_query);
     }).toList();
-  }
-
-  @override
-  void didUpdateWidget(RoomMembersSection oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final currentCount = widget.room.summary.mJoinedMemberCount;
-    if (currentCount != _lastMemberCount) {
-      unawaited(_loadMembers());
-    }
-  }
-
-  Future<void> _loadMembers() async {
-    final gen = ++_loadGeneration;
-    setState(() => _loading = true);
-    try {
-      final members = await widget.room.requestParticipants([Membership.join]);
-      if (!mounted || gen != _loadGeneration) return;
-      // Convert SDK User → KoheraUserSummary at the boundary.
-      // Track banned users separately since KoheraUserSummary has no
-      // membership field (deferred to KoheraRoomMember, slice #10).
-      final bannedIds = <String>{};
-      for (final u in members) {
-        if (u.membership == Membership.ban) bannedIds.add(u.id);
-      }
-      final summaries = members.map(toKoheraUserSummary).toList();
-      // Sort: admins first, then mods, then alphabetical.
-      summaries.sort((a, b) {
-        final pa = widget.room.getPowerLevelByUserId(a.userId);
-        final pb = widget.room.getPowerLevelByUserId(b.userId);
-        if (pa != pb) return pb.compareTo(pa);
-        return a.displayname.compareTo(b.displayname);
-      });
-      setState(() {
-        _members = summaries;
-        _bannedUserIds
-          ..clear()
-          ..addAll(bannedIds);
-        _loading = false;
-        _lastMemberCount = widget.room.summary.mJoinedMemberCount;
-      });
-    } catch (e) {
-      debugPrint('[Kohera] Failed to load members: $e');
-      if (mounted) {
-        setState(() {
-          _loading = false;
-          _lastMemberCount = widget.room.summary.mJoinedMemberCount;
-        });
-      }
-    }
   }
 
   @override
@@ -141,13 +78,18 @@ class _RoomMembersSectionState extends State<RoomMembersSection> {
             ),
           ),
         ),
-        if (_loading)
+        if (widget.members.isEmpty)
           const Padding(
             padding: EdgeInsets.all(16),
-            child: Center(child: CircularProgressIndicator()),
+            child: Center(
+              child: Text(
+                'No members',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
           )
         else ...[
-          if (_members.length > 5)
+          if (widget.members.members.length > 5)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: TextField(
@@ -184,9 +126,10 @@ class _RoomMembersSectionState extends State<RoomMembersSection> {
               children: [
                 for (final member in visible)
                   _MemberTile(
-                    user: member,
-                    room: widget.room,
-                    isBanned: _bannedUserIds.contains(member.userId),
+                    member: member,
+                    avatarResolver: widget.avatarResolver,
+                    presence: widget.presence,
+                    onTap: () => widget.onMemberTap(member),
                   ),
                 if (!showAll && filtered.length > 5)
                   TextButton(
@@ -207,51 +150,47 @@ class _RoomMembersSectionState extends State<RoomMembersSection> {
 
 // ── Member tile ────────────────────────────────────────────────
 
-class _MemberTile extends StatefulWidget {
+class _MemberTile extends StatelessWidget {
   const _MemberTile({
-    required this.user,
-    required this.room,
-    this.isBanned = false,
+    required this.member,
+    required this.avatarResolver,
+    required this.presence,
+    required this.onTap,
   });
 
-  final KoheraUserSummary user;
-  final Room room;
-  final bool isBanned;
+  final KoheraRoomMember member;
+  final AvatarResolver avatarResolver;
+  final PresenceService presence;
+  final VoidCallback onTap;
 
-  @override
-  State<_MemberTile> createState() => _MemberTileState();
-}
-
-class _MemberTileState extends State<_MemberTile> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final powerLevel = widget.room.getPowerLevelByUserId(widget.user.userId);
-    final displayName = widget.user.displayname;
+    final powerLevel = member.powerLevel;
 
     return ListTile(
       dense: true,
       leading: UserAvatar(
-        avatarResolver: context.read<MatrixService>().avatarResolver,
-        userId: widget.user.userId,
-        avatarUrl: widget.user.avatarUrl,
-        displayname: widget.user.displayname,
-        presence: context.read<MatrixService>().presence,
+        avatarResolver: avatarResolver,
+        userId: member.userId,
+        avatarUrl: member.avatarUrl,
+        displayname: member.displayname,
+        presence: presence,
         size: 32,
       ),
       title: Text(
-        displayName,
+        member.displayname,
         overflow: TextOverflow.ellipsis,
         style: tt.bodyMedium,
       ),
       subtitle: Text(
-        widget.user.userId,
+        member.userId,
         style: tt.bodySmall,
         overflow: TextOverflow.ellipsis,
       ),
       trailing: _roleBadge(powerLevel, cs),
-      onTap: _showMemberSheet,
+      onTap: onTap,
     );
   }
 
@@ -283,14 +222,5 @@ class _MemberTileState extends State<_MemberTile> {
       );
     }
     return null;
-  }
-
-  void _showMemberSheet() {
-    unawaited(showMemberSheet(
-      context,
-      room: widget.room,
-      user: widget.user,
-      isBanned: widget.isBanned,
-    ),);
   }
 }
