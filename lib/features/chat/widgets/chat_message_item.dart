@@ -78,6 +78,10 @@ class ChatMessageItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final matrix = context.read<MatrixService>();
+    final avatarResolver = matrix.avatarResolver;
+    final mediaResolver = matrix.mediaResolver;
+
     final isRedacted = event.redacted;
     final room = event.room;
     final isPinned = room.pinnedEventIds.contains(event.eventId);
@@ -100,7 +104,7 @@ class ChatMessageItem extends StatelessWidget {
       reactionBubble = ReactionChips(
         reactions: reactionList,
         isMe: isMe,
-        avatarResolver: context.read<MatrixService>().avatarResolver,
+        avatarResolver: avatarResolver,
         onToggle: (emoji) => onToggleReaction(event, emoji),
       );
     }
@@ -109,7 +113,7 @@ class ChatMessageItem extends StatelessWidget {
     if (receipts != null && receipts.isNotEmpty) {
       subBubble = ReadReceiptsRow(
         receipts: receipts,
-        avatarResolver: context.read<MatrixService>().avatarResolver,
+        avatarResolver: avatarResolver,
         isMe: isMe,
       );
     }
@@ -133,7 +137,7 @@ class ChatMessageItem extends StatelessWidget {
           mediaBody = ImageBubble(
             media: mediaContent,
             controller: mediaController,
-            avatarResolver: context.read<MatrixService>().avatarResolver,
+            avatarResolver: avatarResolver,
           );
         case _msgtypeAudio:
           mediaBody = AudioBubble(
@@ -146,7 +150,7 @@ class ChatMessageItem extends StatelessWidget {
             media: mediaContent,
             controller: mediaController,
             isMe: isMe,
-            avatarResolver: context.read<MatrixService>().avatarResolver,
+            avatarResolver: avatarResolver,
           );
         case _msgtypeFile:
           mediaBody = FileBubble(
@@ -163,13 +167,13 @@ class ChatMessageItem extends StatelessWidget {
       isFirst: isFirst,
       highlighted: event.eventId == highlightedEventId,
       isPinned: isPinned,
-      avatarResolver: context.read<MatrixService>().avatarResolver,
+      avatarResolver: avatarResolver,
       htmlBuilder: (html, style) => HtmlMessageText(
         html: html,
         style: style,
         isMe: isMe,
         room: room,
-        mediaResolver: context.read<MatrixService>().mediaResolver,
+        mediaResolver: mediaResolver,
       ),
       replyPreview: replyPreview,
       mediaBody: mediaBody,

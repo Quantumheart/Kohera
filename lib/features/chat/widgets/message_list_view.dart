@@ -515,10 +515,12 @@ class MessageListViewState extends State<MessageListView> {
 
     final isMobile = isTouchDevice;
     final showReceipts = context.watch<PreferencesService>().readReceipts;
+    final myUserId = widget.matrix.client.userID;
+    final avatarResolver = context.read<MatrixService>().avatarResolver;
     final receiptMap = showReceipts
         ? buildReceiptMap(
             room,
-            widget.matrix.client.userID,
+            myUserId,
             threadRootId: widget.threadRootEventId,
           )
         : <String, List<KoheraReadReceipt>>{};
@@ -547,7 +549,7 @@ class MessageListViewState extends State<MessageListView> {
           if (_isCallEvent(event)) {
             tile = CallEventTile(
               message: message,
-              isMe: event.senderId == widget.matrix.client.userID,
+              isMe: event.senderId == myUserId,
               duration: _callDuration(event),
             );
           } else if (_isStateEvent(event)) {
@@ -555,7 +557,7 @@ class MessageListViewState extends State<MessageListView> {
               item: const StateEventResolver()(event),
             );
           } else if (event.type == EventTypes.Sticker) {
-            final isMe = event.senderId == widget.matrix.client.userID;
+            final isMe = event.senderId == myUserId;
             final stickerMessage = const MessageDisplayResolver()(
               event,
               timeline: _timeline,
@@ -569,7 +571,7 @@ class MessageListViewState extends State<MessageListView> {
                 ? const ReactionResolver().resolve(
                     event,
                     _timeline!,
-                    myUserId: widget.matrix.client.userID ?? '',
+                    myUserId: myUserId ?? '',
                   )
                 : const KoheraReactionList([]);
             tile = StickerMessageItem(
@@ -586,7 +588,7 @@ class MessageListViewState extends State<MessageListView> {
                   ? ReactionChips(
                       reactions: stickerReactions,
                       isMe: isMe,
-                      avatarResolver: context.read<MatrixService>().avatarResolver,
+                      avatarResolver: avatarResolver,
                       onToggle: (emoji) => widget.onToggleReaction(event, emoji),
                     )
                   : null,
@@ -603,11 +605,11 @@ class MessageListViewState extends State<MessageListView> {
             final prevSender = i + 1 < events.length ? events[i + 1].senderId : null;
             tile = ChatMessageItem(
               event: event,
-              isMe: event.senderId == widget.matrix.client.userID,
+              isMe: event.senderId == myUserId,
               isFirst: event.senderId != prevSender,
               isMobile: isMobile,
               timeline: _timeline,
-              myUserId: widget.matrix.client.userID ?? '',
+              myUserId: myUserId ?? '',
               highlightedEventId: widget.highlightedEventId,
               receiptMap: receiptMap,
               onReply: widget.onReply,
