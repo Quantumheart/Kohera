@@ -1,38 +1,55 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
-import 'package:matrix/matrix.dart' hide Visibility;
 
 // ── Add Existing Rooms to Space Dialog ───────────────────────────
 
 class AddExistingRoomsDialog extends StatefulWidget {
   const AddExistingRoomsDialog._({
-    required this.space,
-    required this.matrixService,
+    required this.candidateRooms,
+    required this.existingChildIds,
+    required this.avatarResolver,
+    required this.onAddRooms,
   });
 
-  final Room space;
-  final MatrixService matrixService;
+  /// Joined rooms (as SDK-free summaries) the user may add. The dialog filters
+  /// out spaces and rooms already in the space.
+  final List<KoheraRoomSummary> candidateRooms;
+
+  /// Room IDs already children of the space (excluded from the list).
+  final Set<String> existingChildIds;
+
+  /// Resolves candidate avatar URIs to HTTP thumbnails.
+  final AvatarResolver? avatarResolver;
+
+  /// Adds the selected room IDs to the space. Returns the number of rooms that
+  /// failed to add (0 = success). The parent performs the SDK `setSpaceChild`
+  /// calls and invalidates the space tree.
+  final Future<int> Function(List<String> roomIds) onAddRooms;
 
   static Future<void> show(
     BuildContext context, {
-    required Room space,
-    required MatrixService matrixService,
+    required List<KoheraRoomSummary> candidateRooms,
+    required Set<String> existingChildIds,
+    required AvatarResolver? avatarResolver,
+    required Future<int> Function(List<String> roomIds) onAddRooms,
   }) {
     return showDialog(
       context: context,
       builder: (_) => AddExistingRoomsDialog._(
-        space: space,
-        matrixService: matrixService,
+        candidateRooms: candidateRooms,
+        existingChildIds: existingChildIds,
+        avatarResolver: avatarResolver,
+        onAddRooms: onAddRooms,
       ),
     );
   }
 
   @override
-  State<AddExistingRoomsDialog> createState() =>
-      _AddExistingRoomsDialogState();
+  State<AddExistingRoomsDialog> createState() => _AddExistingRoomsDialogState();
 }
 
 class _AddExistingRoomsDialogState extends State<AddExistingRoomsDialog> {
@@ -40,7 +57,7 @@ class _AddExistingRoomsDialogState extends State<AddExistingRoomsDialog> {
   final Set<String> _selected = {};
   bool _loading = false;
   String _query = '';
-  late List<Room> _eligibleRooms;
+  late List<KoheraRoomSummary> _eligibleRooms;
 
   @override
   void initState() {
@@ -54,19 +71,13 @@ class _AddExistingRoomsDialogState extends State<AddExistingRoomsDialog> {
     super.dispose();
   }
 
-  List<Room> _computeEligibleRooms() {
-    final existingChildIds =
-        widget.space.spaceChildren.map((c) => c.roomId).toSet();
-    return widget.matrixService.client.rooms
-        .where((r) =>
-            r.membership == Membership.join &&
-            !r.isSpace &&
-            !existingChildIds.contains(r.id),)
+  List<KoheraRoomSummary> _computeEligibleRooms() {
+    return widget.candidateRooms
+        .where((r) => !r.isSpace && !widget.existingChildIds.contains(r.roomId))
         .toList()
-      ..sort((a, b) => a
-          .getLocalizedDisplayname()
-          .toLowerCase()
-          .compareTo(b.getLocalizedDisplayname().toLowerCase()),);
+      ..sort(
+        (a, b) => a.displayname.toLowerCase().compareTo(b.displayname.toLowerCase()),
+      );
   }
 
   Future<void> _submit() async {
@@ -74,17 +85,7 @@ class _AddExistingRoomsDialogState extends State<AddExistingRoomsDialog> {
 
     setState(() => _loading = true);
 
-    var failures = 0;
-    for (final roomId in _selected) {
-      try {
-        await widget.space.setSpaceChild(roomId);
-      } catch (e) {
-        debugPrint('[Kohera] Failed to add room to space: $e');
-        failures++;
-      }
-    }
-
-    widget.matrixService.selection.invalidateSpaceTree();
+    final failures = await widget.onAddRooms(_selected.toList());
 
     if (!mounted) return;
 
@@ -102,10 +103,9 @@ class _AddExistingRoomsDialogState extends State<AddExistingRoomsDialog> {
     final filtered = _query.isEmpty
         ? _eligibleRooms
         : _eligibleRooms
-            .where((r) => r
-                .getLocalizedDisplayname()
-                .toLowerCase()
-                .contains(_query.toLowerCase()),)
+            .where(
+              (r) => r.displayname.toLowerCase().contains(_query.toLowerCase()),
+            )
             .toList();
 
     return AlertDialog(
@@ -115,7 +115,8 @@ class _AddExistingRoomsDialogState extends State<AddExistingRoomsDialog> {
         height: 400,
         child: _eligibleRooms.isEmpty
             ? const Center(
-                child: Text('All your rooms are already in this space.'),)
+                child: Text('All your rooms are already in this space.'),
+              )
             : Column(
                 children: [
                   TextField(
@@ -137,26 +138,26 @@ class _AddExistingRoomsDialogState extends State<AddExistingRoomsDialog> {
                             itemCount: filtered.length,
                             itemBuilder: (context, index) {
                               final room = filtered[index];
-                              final checked = _selected.contains(room.id);
+                              final checked = _selected.contains(room.roomId);
                               return CheckboxListTile(
                                 value: checked,
                                 onChanged: _loading
                                     ? null
                                     : (v) => setState(() {
                                           if (v == true) {
-                                            _selected.add(room.id);
+                                            _selected.add(room.roomId);
                                           } else {
-                                            _selected.remove(room.id);
+                                            _selected.remove(room.roomId);
                                           }
                                         }),
                                 secondary: RoomAvatarWidget(
-                                  avatarUrl: room.avatar?.toString(),
-                                  displayname: room.getLocalizedDisplayname(),
-                                  avatarResolver: widget.matrixService.avatarResolver,
+                                  avatarUrl: room.avatarUrl,
+                                  displayname: room.displayname,
+                                  avatarResolver: widget.avatarResolver,
                                   size: 36,
                                 ),
                                 title: Text(
-                                  room.getLocalizedDisplayname(),
+                                  room.displayname,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               );

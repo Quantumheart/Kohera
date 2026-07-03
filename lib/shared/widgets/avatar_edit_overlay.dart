@@ -1,21 +1,38 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
-import 'package:matrix/matrix.dart';
 
 /// Wraps a [RoomAvatarWidget] with avatar editing controls.
 ///
-/// Tapping the avatar opens the image picker to upload a new photo.
-/// A small "x" badge at the top-right removes the current avatar.
-/// Only shows controls if the user has permission to change the avatar.
+/// SDK-free: display data comes from [summary] and [canEditAvatar]; avatar
+/// mutations are delegated to [onSetAvatar] (the parent performs the SDK
+/// `room.setAvatar` call). Tapping the avatar opens the image picker to
+/// upload a new photo; a small "x" badge at the top-right removes the current
+/// avatar. Only shows controls if [canEditAvatar] is true.
 class AvatarEditOverlay extends StatefulWidget {
   const AvatarEditOverlay({
-    required this.room, super.key,
+    required this.roomId,
+    required this.summary,
+    required this.canEditAvatar,
+    required this.avatarResolver,
+    required this.onSetAvatar,
     this.size = 72,
+    super.key,
   });
 
-  final Room room;
+  final String roomId;
+  final KoheraRoomSummary summary;
+  final bool canEditAvatar;
+  final AvatarResolver? avatarResolver;
+
+  /// Sets the room avatar. Pass bytes + filename to upload, or `null`/`null` to
+  /// remove the avatar. The parent performs the SDK `room.setAvatar` call.
+  final Future<void> Function(Uint8List? bytes, String? filename) onSetAvatar;
+
   final double size;
 
   @override
@@ -25,15 +42,13 @@ class AvatarEditOverlay extends StatefulWidget {
 class _AvatarEditOverlayState extends State<AvatarEditOverlay> {
   bool _busy = false;
 
-  bool get _canEdit => widget.room.canChangeStateEvent(EventTypes.RoomAvatar);
-
   @override
   Widget build(BuildContext context) {
-    if (!_canEdit) {
+    if (!widget.canEditAvatar) {
       return RoomAvatarWidget(
-        avatarUrl: widget.room.avatar?.toString(),
-        displayname: widget.room.getLocalizedDisplayname(),
-        avatarResolver: ClientAvatarResolver(widget.room.client),
+        avatarUrl: widget.summary.avatarUrl,
+        displayname: widget.summary.displayname,
+        avatarResolver: widget.avatarResolver,
         size: widget.size,
       );
     }
@@ -54,19 +69,20 @@ class _AvatarEditOverlayState extends State<AvatarEditOverlay> {
             child: GestureDetector(
               onTap: _busy ? null : _uploadAvatar,
               child: RoomAvatarWidget(
-                avatarUrl: widget.room.avatar?.toString(),
-                displayname: widget.room.getLocalizedDisplayname(),
-                avatarResolver: ClientAvatarResolver(widget.room.client),
+                avatarUrl: widget.summary.avatarUrl,
+                displayname: widget.summary.displayname,
+                avatarResolver: widget.avatarResolver,
                 size: widget.size,
               ),
             ),
           ),
-          if (widget.room.avatar != null)
+          if (widget.summary.avatarUrl != null)
             Positioned(
               top: -badgeOffset,
               right: -badgeOffset,
               child: MouseRegion(
-                cursor: _busy ? SystemMouseCursors.basic : SystemMouseCursors.click,
+                cursor:
+                    _busy ? SystemMouseCursors.basic : SystemMouseCursors.click,
                 child: GestureDetector(
                   onTap: _busy ? null : _removeAvatar,
                   child: Container(
@@ -104,7 +120,7 @@ class _AvatarEditOverlayState extends State<AvatarEditOverlay> {
       if (picked == null) return;
 
       final bytes = await picked.readAsBytes();
-      await widget.room.setAvatar(MatrixFile(bytes: bytes, name: picked.name));
+      await widget.onSetAvatar(bytes, picked.name);
       debugPrint('[Kohera] Room avatar uploaded: ${picked.name} (${bytes.length} bytes)');
       if (mounted) {
         scaffold.showSnackBar(
@@ -127,7 +143,7 @@ class _AvatarEditOverlayState extends State<AvatarEditOverlay> {
     final scaffold = ScaffoldMessenger.of(context);
     setState(() => _busy = true);
     try {
-      await widget.room.setAvatar(null);
+      await widget.onSetAvatar(null, null);
       debugPrint('[Kohera] Room avatar removed');
       if (mounted) {
         scaffold.showSnackBar(

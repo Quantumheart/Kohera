@@ -1,31 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
-import 'package:matrix/matrix.dart' hide Visibility;
 
 // ── Add Room to Space Dialog ─────────────────────────────────────
 
 class AddRoomToSpaceDialog extends StatefulWidget {
   const AddRoomToSpaceDialog._({
-    required this.room,
-    required this.matrixService,
+    required this.roomId,
+    required this.candidateSpaces,
+    required this.memberSpaceIds,
+    required this.avatarResolver,
+    required this.onAddToSpaces,
   });
 
-  final Room room;
-  final MatrixService matrixService;
+  /// The room being added to spaces.
+  final String roomId;
+
+  /// Spaces the user may add the room to (parent pre-filters by permission),
+  /// as SDK-free summaries. The dialog excludes those in [memberSpaceIds].
+  final List<KoheraRoomSummary> candidateSpaces;
+
+  /// Space IDs the room is already a child of (excluded from the list).
+  final Set<String> memberSpaceIds;
+
+  /// Resolves candidate avatar URIs to HTTP thumbnails.
+  final AvatarResolver? avatarResolver;
+
+  /// Adds the room to the selected spaces. Keys are selected space IDs, values
+  /// are the per-space "suggested" flags. Returns the number of failures
+  /// (0 = success). The parent performs the SDK `setSpaceChild` calls and
+  /// invalidates the space tree.
+  final Future<int> Function(Map<String, bool> selections) onAddToSpaces;
 
   static Future<void> show(
     BuildContext context, {
-    required Room room,
-    required MatrixService matrixService,
+    required String roomId,
+    required List<KoheraRoomSummary> candidateSpaces,
+    required Set<String> memberSpaceIds,
+    required AvatarResolver? avatarResolver,
+    required Future<int> Function(Map<String, bool> selections) onAddToSpaces,
   }) {
     return showDialog(
       context: context,
       builder: (_) => AddRoomToSpaceDialog._(
-        room: room,
-        matrixService: matrixService,
+        roomId: roomId,
+        candidateSpaces: candidateSpaces,
+        memberSpaceIds: memberSpaceIds,
+        avatarResolver: avatarResolver,
+        onAddToSpaces: onAddToSpaces,
       ),
     );
   }
@@ -39,39 +64,23 @@ class _AddRoomToSpaceDialogState extends State<AddRoomToSpaceDialog> {
   final Map<String, bool> _suggested = {};
   bool _loading = false;
 
-  List<Room> get _eligibleSpaces {
-    final memberships = widget.matrixService.selection.spaceMemberships(widget.room.id);
-    return widget.matrixService.selection.spaces
-        .where((s) =>
-            s.canChangeStateEvent('m.space.child') &&
-            !memberships.contains(s.id),)
-        .toList();
-  }
+  List<KoheraRoomSummary> get _eligibleSpaces => widget.candidateSpaces
+      .where((s) => !widget.memberSpaceIds.contains(s.roomId))
+      .toList();
 
   bool get _hasSelection => _selected.values.any((v) => v);
 
   Future<void> _submit() async {
-    final spaces = _eligibleSpaces
-        .where((s) => _selected[s.id] == true)
-        .toList();
-    if (spaces.isEmpty) return;
+    final selections = Map<String, bool>.fromEntries(
+      _selected.entries
+          .where((e) => e.value)
+          .map((e) => MapEntry(e.key, _suggested[e.key] == true)),
+    );
+    if (selections.isEmpty) return;
 
     setState(() => _loading = true);
 
-    var failures = 0;
-    for (final space in spaces) {
-      try {
-        await space.setSpaceChild(
-          widget.room.id,
-          suggested: _suggested[space.id] == true ? true : null,
-        );
-      } catch (e) {
-        debugPrint('[Kohera] Failed to add room to space: $e');
-        failures++;
-      }
-    }
-
-    widget.matrixService.selection.invalidateSpaceTree();
+    final failures = await widget.onAddToSpaces(selections);
 
     if (!mounted) return;
 
@@ -98,22 +107,22 @@ class _AddRoomToSpaceDialogState extends State<AddRoomToSpaceDialog> {
                   itemCount: eligible.length,
                   itemBuilder: (context, index) {
                     final space = eligible[index];
-                    final checked = _selected[space.id] == true;
+                    final checked = _selected[space.roomId] == true;
                     return CheckboxListTile(
                       value: checked,
                       onChanged: _loading
                           ? null
                           : (v) => setState(
-                              () => _selected[space.id] = v ?? false,
+                              () => _selected[space.roomId] = v ?? false,
                             ),
                       secondary: RoomAvatarWidget(
-                        avatarUrl: space.avatar?.toString(),
-                        displayname: space.getLocalizedDisplayname(),
-                        avatarResolver: widget.matrixService.avatarResolver,
+                        avatarUrl: space.avatarUrl,
+                        displayname: space.displayname,
+                        avatarResolver: widget.avatarResolver,
                         size: 36,
                       ),
                       title: Text(
-                        space.getLocalizedDisplayname(),
+                        space.displayname,
                         overflow: TextOverflow.ellipsis,
                       ),
                       subtitle: Row(
@@ -124,10 +133,10 @@ class _AddRoomToSpaceDialogState extends State<AddRoomToSpaceDialog> {
                           SizedBox(
                             height: 24,
                             child: Switch(
-                              value: _suggested[space.id] == true,
+                              value: _suggested[space.roomId] == true,
                               onChanged: checked && !_loading
                                   ? (v) => setState(
-                                      () => _suggested[space.id] = v,
+                                      () => _suggested[space.roomId] = v,
                                     )
                                   : null,
                             ),

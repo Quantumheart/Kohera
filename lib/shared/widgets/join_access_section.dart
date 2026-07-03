@@ -2,26 +2,60 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:matrix/matrix.dart';
 
+/// A self-contained (id + displayname) reference to a space, used by the
+/// SDK-free [JoinAccessSection.refs] constructor so shared widgets do not
+/// depend on features-layer domain models.
+typedef SpaceRef = ({String id, String displayname});
+
 class JoinAccessSection extends StatelessWidget {
+  /// Original constructor: spaces are SDK [Room] objects. Kept unchanged for
+  /// existing callers ([JoinAccessController], [NewRoomDialog]).
   const JoinAccessSection({
     required this.mode,
-    required this.allowedSpaces,
-    required this.candidateSpaces,
+    required List<Room> allowedSpaces,
+    required List<Room> candidateSpaces,
     required this.needsUpgrade,
     required this.canEdit,
     required this.onModeChanged,
-    required this.onAllowedSpacesChanged,
+    required ValueChanged<List<Room>> onAllowedSpacesChanged,
     this.onUpgradeRequested,
     this.disabledModes = const {},
     this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     this.saving = false,
     this.savedHint = false,
     super.key,
-  });
+  })  : _allowedRooms = allowedSpaces,
+        _candidateRooms = candidateSpaces,
+        _onAllowedChangedRooms = onAllowedSpacesChanged,
+        _allowedRefs = null,
+        _candidateRefs = null,
+        _onAllowedChangedIds = null;
+
+  /// SDK-free constructor: spaces are [SpaceRef] records and the selection
+  /// callback emits room IDs. Used by SDK-free dialogs (e.g.
+  /// [CreateSubspaceDialog]) that have no [Room] dependency.
+  const JoinAccessSection.refs({
+    required this.mode,
+    required List<SpaceRef> allowedSpaces,
+    required List<SpaceRef> candidateSpaces,
+    required this.needsUpgrade,
+    required this.canEdit,
+    required this.onModeChanged,
+    required ValueChanged<List<String>> onAllowedSpacesChanged,
+    this.onUpgradeRequested,
+    this.disabledModes = const {},
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    this.saving = false,
+    this.savedHint = false,
+    super.key,
+  })  : _allowedRooms = null,
+        _candidateRooms = null,
+        _onAllowedChangedRooms = null,
+        _allowedRefs = allowedSpaces,
+        _candidateRefs = candidateSpaces,
+        _onAllowedChangedIds = onAllowedSpacesChanged;
 
   final JoinMode mode;
-  final List<Room> allowedSpaces;
-  final List<Room> candidateSpaces;
   final bool needsUpgrade;
   final bool canEdit;
   /// Modes that should be disabled in the dropdown, mapped to the tooltip
@@ -31,8 +65,22 @@ class JoinAccessSection extends StatelessWidget {
   final bool saving;
   final bool savedHint;
   final ValueChanged<JoinMode> onModeChanged;
-  final ValueChanged<List<Room>> onAllowedSpacesChanged;
   final VoidCallback? onUpgradeRequested;
+
+  // Room-based variant (default constructor).
+  final List<Room>? _allowedRooms;
+  final List<Room>? _candidateRooms;
+  final ValueChanged<List<Room>>? _onAllowedChangedRooms;
+
+  // Ref-based variant (SDK-free constructor).
+  final List<SpaceRef>? _allowedRefs;
+  final List<SpaceRef>? _candidateRefs;
+  final ValueChanged<List<String>>? _onAllowedChangedIds;
+
+  bool get _isRefsVariant => _allowedRefs != null;
+
+  bool get _allowedIsEmpty =>
+      _isRefsVariant ? _allowedRefs!.isEmpty : _allowedRooms!.isEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +90,7 @@ class JoinAccessSection extends StatelessWidget {
     final showPicker = restrictedFamily;
     final showUpgrade = needsUpgrade && restrictedFamily;
     final emptyAllowError =
-        restrictedFamily && allowedSpaces.isEmpty ? _emptyError(tt, cs) : null;
+        restrictedFamily && _allowedIsEmpty ? _emptyError(tt, cs) : null;
 
     final dropdown = DropdownButtonFormField<JoinMode>(
       key: const Key('join_access_mode_dropdown'),
@@ -94,13 +142,7 @@ class JoinAccessSection extends StatelessWidget {
             ),
           if (showPicker) ...[
             const SizedBox(height: 12),
-            _SpacePicker(
-              key: const Key('join_access_space_picker'),
-              candidates: candidateSpaces,
-              selected: allowedSpaces,
-              enabled: canEdit,
-              onChanged: onAllowedSpacesChanged,
-            ),
+            _spacePicker,
           ],
           if (emptyAllowError != null) ...[
             const SizedBox(height: 8),
@@ -115,6 +157,25 @@ class JoinAccessSection extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+
+  Widget get _spacePicker {
+    if (_isRefsVariant) {
+      return _SpaceRefPicker(
+        key: const Key('join_access_space_picker'),
+        candidates: _candidateRefs!,
+        selected: _allowedRefs!,
+        enabled: canEdit,
+        onChanged: _onAllowedChangedIds!,
+      );
+    }
+    return _SpacePicker(
+      key: const Key('join_access_space_picker'),
+      candidates: _candidateRooms!,
+      selected: _allowedRooms!,
+      enabled: canEdit,
+      onChanged: _onAllowedChangedRooms!,
     );
   }
 
@@ -192,6 +253,62 @@ class _SpacePicker extends StatelessWidget {
                       if (!selectedIds.contains(room.id)) next.add(room);
                     } else {
                       next.removeWhere((r) => r.id == room.id);
+                    }
+                    onChanged(next);
+                  }
+                : null,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// SDK-free variant of [_SpacePicker] operating on [SpaceRef] records and
+/// emitting selected room IDs.
+class _SpaceRefPicker extends StatelessWidget {
+  const _SpaceRefPicker({
+    required this.candidates,
+    required this.selected,
+    required this.enabled,
+    required this.onChanged,
+    super.key,
+  });
+
+  final List<SpaceRef> candidates;
+  final List<SpaceRef> selected;
+  final bool enabled;
+  final ValueChanged<List<String>> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    if (candidates.isEmpty) {
+      return Text(
+        'No eligible parent spaces',
+        style: tt.bodySmall,
+      );
+    }
+    final selectedIds = selected.map((r) => r.id).toSet();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Spaces whose members can join', style: tt.labelMedium),
+        const SizedBox(height: 4),
+        ...candidates.map(
+          (ref) => CheckboxListTile(
+            key: Key('join_access_space_${ref.id}'),
+            dense: true,
+            controlAffinity: ListTileControlAffinity.leading,
+            title: Text(ref.displayname),
+            value: selectedIds.contains(ref.id),
+            onChanged: enabled
+                ? (checked) {
+                    final next = [...selectedIds];
+                    if (checked ?? false) {
+                      if (!next.contains(ref.id)) next.add(ref.id);
+                    } else {
+                      next.remove(ref.id);
                     }
                     onChanged(next);
                   }

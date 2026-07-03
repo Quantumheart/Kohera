@@ -105,8 +105,31 @@ Future<void> showRoomContextMenu(
     case _RoomContextAction.addToSpace:
       await AddRoomToSpaceDialog.show(
         context,
-        room: room,
-        matrixService: matrix,
+        roomId: room.id,
+        candidateSpaces: selection.spaces
+            .where((s) => s.canChangeStateEvent('m.space.child'))
+            .map(selection.summaryFor)
+            .toList(),
+        memberSpaceIds: memberships,
+        avatarResolver: matrix.avatarResolver,
+        onAddToSpaces: (selections) async {
+          var failures = 0;
+          for (final entry in selections.entries) {
+            final space = matrix.client.getRoomById(entry.key);
+            if (space == null) continue;
+            try {
+              await space.setSpaceChild(
+                room.id,
+                suggested: entry.value ? true : null,
+              );
+            } catch (e) {
+              debugPrint('[Kohera] Failed to add room to space: $e');
+              failures++;
+            }
+          }
+          selection.invalidateSpaceTree();
+          return failures;
+        },
       );
     case _RoomContextAction.removeFromSpace:
       if (activeSpace != null) {

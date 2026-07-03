@@ -5,6 +5,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/features/rooms/widgets/room_details_panel.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
@@ -67,6 +68,8 @@ void main() {
     when(mockClient.rooms).thenReturn([]);
     selectionService = SelectionService(client: mockClient);
     when(mockMatrixService.selection).thenReturn(selectionService);
+    when(mockMatrixService.avatarResolver)
+        .thenReturn(const _NullAvatarResolver());
   });
 
   Widget buildTestWidget({bool isFullPage = false}) {
@@ -309,4 +312,11 @@ void main() {
       expect(find.text('DEVICE1'), findsOneWidget);
     });
   });
+}
+
+class _NullAvatarResolver implements AvatarResolver {
+  const _NullAvatarResolver();
+  @override
+  Future<AvatarThumbnail?> resolve(String? mxc, {required double size}) async =>
+      null;
 }

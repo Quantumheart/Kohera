@@ -251,7 +251,12 @@ class _SpaceRailState extends State<SpaceRail> {
                                 onTap: () async {
                                   final result = await InviteDialog.show(
                                     context,
-                                    room: space,
+                                    roomId: space.id,
+                                    summary: selection.summaryFor(space),
+                                    inviterName:
+                                        selection.inviterDisplayName(space),
+                                    onAccept: space.join,
+                                    onDecline: space.leave,
                                   );
                                   if (result == true && mounted) {
                                     selection.selectSpace(space.id);

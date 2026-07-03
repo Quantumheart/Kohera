@@ -1,23 +1,59 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/utils/known_contacts.dart' show knownContacts, roomContacts;
-import 'package:matrix/matrix.dart' hide Visibility;
+import 'package:kohera/shared/models/kohera_user_summary.dart';
+
+/// SDK-free inputs for [InviteUserDialog].
+///
+/// The parent (which retains `Room`/`Client` access) computes the member set,
+/// contact suggestions, and the user-directory search callback, then passes
+/// them in. The dialog itself has no `package:matrix/matrix.dart` dependency.
+class InviteUserDialogParams {
+  const InviteUserDialogParams({
+    required this.roomId,
+    required this.existingMemberIds,
+    required this.knownContacts,
+    required this.roomContacts,
+    required this.onSearchUserDirectory,
+  });
+
+  /// The Matrix room/space ID the user will be invited to.
+  final String roomId;
+
+  /// MXIDs already participating in the room (to exclude from suggestions).
+  final Set<String> existingMemberIds;
+
+  /// Recent DM contacts, as SDK-free summaries.
+  final List<KoheraUserSummary> knownContacts;
+
+  /// Contacts from other joined group rooms, as SDK-free summaries.
+  final List<KoheraUserSummary> roomContacts;
+
+  /// Searches the homeserver user directory for [query], returning matches
+  /// as SDK-free summaries.
+  final Future<List<KoheraUserSummary>> Function(String query)
+      onSearchUserDirectory;
+}
 
 /// A reusable dialog that prompts for a Matrix user ID to invite to a room
 /// or space. Suggests recent contacts and searches the homeserver's user
 /// directory as the user types.
 ///
+/// SDK-free: all data and search access is provided via [InviteUserDialogParams].
+///
 /// Returns the validated MXID string on success, or `null` if cancelled.
 class InviteUserDialog extends StatefulWidget {
-  const InviteUserDialog._({required this.room});
+  const InviteUserDialog({required this.params, super.key});
 
-  final Room room;
+  final InviteUserDialogParams params;
 
-  static Future<String?> show(BuildContext context, {required Room room}) {
+  static Future<String?> show(
+    BuildContext context, {
+    required InviteUserDialogParams params,
+  }) {
     return showDialog<String>(
       context: context,
-      builder: (_) => InviteUserDialog._(room: room),
+      builder: (_) => InviteUserDialog(params: params),
     );
   }
 
@@ -33,26 +69,14 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
   final _focusNode = FocusNode();
   String? _error;
   bool _searching = false;
-  List<Profile> _searchResults = [];
+  List<KoheraUserSummary> _searchResults = [];
   Timer? _debounce;
   int _searchGeneration = 0;
-  List<Profile>? _cachedContacts;
-  List<Profile>? _cachedRoomContacts;
-  Set<String>? _cachedExistingMembers;
-  bool _suggestionsReady = false;
 
   @override
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChanged);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _existingMembers();
-      _knownContacts();
-      _roomContacts();
-      if (!mounted) return;
-      setState(() => _suggestionsReady = true);
-    });
   }
 
   @override
@@ -66,52 +90,6 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
 
   void _onFocusChanged() {
     if (mounted) setState(() {});
-  }
-
-  Client? get _client {
-    try {
-      return widget.room.client;
-    } catch (_) {
-      return null;
-    }
-  }
-
-  Set<String> _existingMembers() {
-    if (_cachedExistingMembers != null) return _cachedExistingMembers!;
-    try {
-      _cachedExistingMembers = widget.room
-          .getParticipants()
-          .map((u) => u.id)
-          .toSet();
-    } catch (_) {
-      _cachedExistingMembers = const <String>{};
-    }
-    return _cachedExistingMembers!;
-  }
-
-  List<Profile> _knownContacts() {
-    if (_cachedContacts != null) return _cachedContacts!;
-    final client = _client;
-    if (client == null) return _cachedContacts = const [];
-    try {
-      _cachedContacts = knownContacts(client);
-    } catch (_) {
-      _cachedContacts = const [];
-    }
-    return _cachedContacts!;
-  }
-
-  List<Profile> _roomContacts() {
-    if (_cachedRoomContacts != null) return _cachedRoomContacts!;
-    final client = _client;
-    if (client == null) return _cachedRoomContacts = const [];
-    try {
-      final dmIds = _knownContacts().map((p) => p.userId).toSet();
-      _cachedRoomContacts = roomContacts(client, excludeMxids: dmIds);
-    } catch (_) {
-      _cachedRoomContacts = const [];
-    }
-    return _cachedRoomContacts!;
   }
 
   void _onQueryChanged(String text) {
@@ -131,16 +109,14 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
   }
 
   Future<void> _runSearch(String query) async {
-    final client = _client;
-    if (client == null) return;
     _searchGeneration++;
     final gen = _searchGeneration;
     setState(() => _searching = true);
     try {
-      final response = await client.searchUserDirectory(query, limit: 20);
+      final results = await widget.params.onSearchUserDirectory(query);
       if (!mounted || gen != _searchGeneration) return;
       setState(() {
-        _searchResults = response.results;
+        _searchResults = results;
         _searching = false;
       });
     } catch (_) {
@@ -152,7 +128,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
     }
   }
 
-  void _selectProfile(Profile profile) {
+  void _selectProfile(KoheraUserSummary profile) {
     Navigator.pop(context, profile.userId);
   }
 
@@ -170,21 +146,25 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
   }
 
   List<Widget> _buildSuggestions(ColorScheme cs) {
-    if (!_suggestionsReady) return [];
     final query = _controller.text.trim();
-    final existing = _existingMembers();
+    final existing = widget.params.existingMemberIds;
     final tiles = <Widget>[];
 
     if (query.isNotEmpty) {
-      final filtered = _searchResults.where((p) => !existing.contains(p.userId)).toList();
+      final filtered =
+          _searchResults.where((p) => !existing.contains(p.userId)).toList();
       for (final p in filtered) {
         tiles.add(_profileTile(p, cs));
       }
       return tiles;
     }
 
-    final dmContacts = _knownContacts().where((p) => !existing.contains(p.userId)).toList();
-    final groupContacts = _roomContacts().where((p) => !existing.contains(p.userId)).toList();
+    final dmContacts = widget.params.knownContacts
+        .where((p) => !existing.contains(p.userId))
+        .toList();
+    final groupContacts = widget.params.roomContacts
+        .where((p) => !existing.contains(p.userId))
+        .toList();
 
     if (dmContacts.isEmpty && groupContacts.isEmpty) return [];
 
@@ -217,9 +197,10 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
         ),
       );
 
-  Widget _profileTile(Profile p, ColorScheme cs) {
-    final label = p.displayName ?? p.userId;
-    final initial = label.isNotEmpty ? label.characters.first.toUpperCase() : '?';
+  Widget _profileTile(KoheraUserSummary p, ColorScheme cs) {
+    final label = p.displayname;
+    final initial =
+        label.isNotEmpty ? label.characters.first.toUpperCase() : '?';
     return ListTile(
       dense: true,
       leading: CircleAvatar(
@@ -235,7 +216,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(fontSize: 14),
       ),
-      subtitle: p.displayName != null
+      subtitle: p.displayname != p.userId
           ? Text(
               p.userId,
               style: const TextStyle(fontSize: 11),
@@ -281,18 +262,7 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
                   padding: EdgeInsets.only(top: 4),
                   child: LinearProgressIndicator(),
                 ),
-              if (!_suggestionsReady)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2.5),
-                    ),
-                  ),
-                )
-              else if (suggestions.isNotEmpty)
+              if (suggestions.isNotEmpty)
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 220),
                   child: ListView(

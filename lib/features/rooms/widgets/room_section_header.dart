@@ -7,6 +7,7 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
+import 'package:kohera/features/spaces/widgets/create_subspace_action.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_reparent_controller.dart';
 import 'package:provider/provider.dart';
@@ -224,8 +225,13 @@ class RoomSectionHeader extends StatelessWidget {
           if (spaceRoom != null) {
             unawaited(CreateSubspaceDialog.show(
               context,
-              matrixService: matrixService,
-              parentSpace: spaceRoom,
+              parentSpaceRef: (
+                id: spaceRoom.id,
+                displayname: spaceRoom.getLocalizedDisplayname(),
+              ),
+              loadCapabilities: () => loadSubspaceCapabilities(matrixService),
+              onCreateSubspace: (request) =>
+                  createSubspace(matrixService, spaceRoom, request),
             ),);
           }
       }

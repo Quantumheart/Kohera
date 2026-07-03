@@ -1,36 +1,34 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
+import 'package:kohera/core/models/kohera_push_rule_state.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
-import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
-import 'package:kohera/features/rooms/models/kohera_room_member.dart';
-import 'package:kohera/features/rooms/services/room_member_list_resolver.dart';
-import 'package:kohera/features/rooms/services/room_permissions_resolver.dart';
+import 'package:kohera/features/rooms/models/kohera_device_key.dart';
+import 'package:kohera/features/rooms/services/room_details_controller.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
-import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
-import 'package:kohera/features/rooms/widgets/member_sheet_launcher.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
-import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
 import 'package:kohera/shared/widgets/detail_action_button.dart';
 import 'package:kohera/shared/widgets/joined_member_count.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 /// Displays room details: header, actions, members, encryption,
 /// media gallery, notification settings, and admin controls.
+///
+/// SDK-free: all data and SDK actions are provided by [RoomDetailsController],
+/// the conversion boundary that owns the `Room`. The panel only depends on
+/// Kohera domain models and callbacks.
 ///
 /// When [isFullPage] is true, wraps itself in a Scaffold with an AppBar
 /// (for mobile/tablet push route). Otherwise renders as a bare panel
 /// (for the desktop side panel).
 class RoomDetailsPanel extends StatefulWidget {
   const RoomDetailsPanel({
-    required this.roomId, super.key,
+    required this.roomId,
+    super.key,
     this.isFullPage = false,
   });
 
@@ -42,15 +40,11 @@ class RoomDetailsPanel extends StatefulWidget {
 }
 
 class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
+  late RoomDetailsController _controller;
   final Set<String> _inFlight = {};
   String? _error;
-  StreamSubscription<SyncUpdate>? _syncSub;
-  Timer? _syncDebounce;
   bool _deviceKeysExpanded = false;
-  KoheraRoomMemberList? _memberList;
-  bool _loadingMembers = false;
-  int? _lastMemberCount;
-  int _memberLoadGen = 0;
+  bool _created = false;
 
   bool get _loading => _inFlight.isNotEmpty;
   bool _busy(String action) => _inFlight.contains(action);
@@ -58,92 +52,43 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
   // ── Lifecycle ───────────────────────────────────────────────
 
   @override
-  void initState() {
-    super.initState();
-    _refreshDeviceKeys();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final room = context.read<MatrixService>().client.getRoomById(widget.roomId);
-      if (room != null) unawaited(_loadMembers(room));
-    });
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_created) {
+      _created = true;
+      _controller = RoomDetailsController(
+        roomId: widget.roomId,
+        matrix: context.read<MatrixService>(),
+        selection: context.read<SelectionService>(),
+      )..addListener(_onChanged);
+      _controller.init();
+    }
+  }
+
+  void _onChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void didUpdateWidget(RoomDetailsPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final room = context.read<MatrixService>().client.getRoomById(widget.roomId);
-    final count = room?.summary.mJoinedMemberCount;
-    if (count != null && count != _lastMemberCount && !_loadingMembers) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && room != null) unawaited(_loadMembers(room));
-      });
-    }
+    _controller.checkRoomChanged();
   }
 
   @override
   void dispose() {
-    _syncDebounce?.cancel();
-    unawaited(_syncSub?.cancel());
+    _controller.removeListener(_onChanged);
+    _controller.dispose();
     super.dispose();
-  }
-
-  void _refreshDeviceKeys() {
-    final client = context.read<MatrixService>().client;
-    unawaited(client.updateUserDeviceKeys().then((_) {
-      if (mounted) setState(() {});
-    },),);
-    unawaited(_syncSub?.cancel());
-    _syncSub = client.onSync.stream.listen((update) {
-      // Detect power-level changes to reload members.
-      final stateEvents = update.rooms?.join?[widget.roomId]?.state ?? [];
-      final hasPowerLevelChanges =
-          stateEvents.any((e) => e.type == EventTypes.RoomPowerLevels);
-      _syncDebounce?.cancel();
-      _syncDebounce = Timer(const Duration(seconds: 2), () {
-        if (!mounted) return;
-        setState(() {});
-        if (hasPowerLevelChanges && _memberList != null) {
-          final room = client.getRoomById(widget.roomId);
-          if (room != null) unawaited(_loadMembers(room));
-        }
-      });
-    });
   }
 
   // ── Actions ────────────────────────────────────────────────
 
-  Future<void> _loadMembers(Room room) async {
-    final gen = ++_memberLoadGen;
-    setState(() {
-      _loadingMembers = true;
-    });
-    try {
-      final list = await const RoomMemberListResolver().resolve(room);
-      if (!mounted || gen != _memberLoadGen) return;
-      setState(() {
-        _memberList = list;
-        _loadingMembers = false;
-        _lastMemberCount = list.memberCount;
-      });
-    } catch (e) {
-      debugPrint('[Kohera] Failed to load members: $e');
-      if (mounted) {
-        setState(() {
-          _loadingMembers = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _showMemberSheet(
-    BuildContext context,
-    Room room,
-    KoheraRoomMember member,
-  ) {
-    return showRoomMemberSheet(context, room: room, member: member);
-  }
-
   Future<void> _run(String action, Future<void> Function() task) async {
-    setState(() { _inFlight.add(action); _error = null; });
+    setState(() {
+      _inFlight.add(action);
+      _error = null;
+    });
     try {
       await task();
     } catch (e) {
@@ -154,74 +99,69 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
     }
   }
 
-  Future<void> _toggleMute(Room room) => _run('mute', () async {
-    final current = room.pushRuleState;
-    await room.setPushRuleState(
-      current == PushRuleState.notify
-          ? PushRuleState.dontNotify
-          : PushRuleState.notify,
-    );
-  });
-
-  Future<void> _toggleFavourite(Room room) => _run('favourite', () async {
-    final target = !room.isFavourite;
-    await room.setFavourite(target);
-    await room.client.onSync.stream
-        .firstWhere((_) => room.isFavourite == target)
-        .timeout(const Duration(seconds: 5), onTimeout: () => SyncUpdate(nextBatch: ''));
-  });
-
-  Future<void> _showInviteDialog(Room room) async {
-    final result = await InviteUserDialog.show(context, room: room);
+  Future<void> _showInviteDialog() async {
+    final result =
+        await InviteUserDialog.show(context, params: _controller.inviteDialogParams());
     if (result == null || !mounted) return;
 
     final scaffold = ScaffoldMessenger.of(context);
     await _run('invite', () async {
-      await room.invite(result);
+      await _controller.invite(result);
       scaffold.showSnackBar(
         SnackBar(content: Text('Invited $result')),
       );
     });
   }
 
-  Future<void> _confirmLeave(Room room) async {
+  Future<void> _confirmLeave() async {
     final confirmed = await confirmDialog(
       context,
       title: 'Leave room?',
-      message: 'You will leave "${room.getLocalizedDisplayname()}".',
+      message: 'You will leave "${_controller.summary?.displayname ?? widget.roomId}".',
       confirmLabel: 'Leave',
       destructive: true,
     );
 
     if (!confirmed || !mounted) return;
 
-    final selectionService = context.read<SelectionService>();
     final navigator = Navigator.of(context);
     await _run('leave', () async {
-      await room.leave();
-      selectionService.selectRoom(null);
+      await _controller.leave();
       if (mounted && widget.isFullPage) navigator.pop();
     });
   }
 
-  Future<void> _setPushRule(Room room, PushRuleState state) =>
-      _run('pushRule', () => room.setPushRuleState(state));
+  Future<void> _setPushRule(KoheraPushRuleState state) =>
+      _run('pushRule', () => _controller.setPushRule(state));
+
+  Future<void> _verifyDevice(KoheraDeviceKey dk) async {
+    final scaffold = ScaffoldMessenger.of(context);
+    try {
+      await _controller.verifyDevice(context, dk.deviceId);
+    } catch (e) {
+      debugPrint('[Kohera] Failed to start verification: $e');
+      if (mounted) {
+        scaffold.showSnackBar(
+          const SnackBar(content: Text('Failed to start verification')),
+        );
+      }
+    }
+  }
 
   // ── Build ──────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final matrix = context.watch<MatrixService>();
-    final room = matrix.client.getRoomById(widget.roomId);
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    if (room == null) {
+    if (!_controller.hasRoom) {
       final body = Center(child: Text('Room not found', style: tt.bodyLarge));
       return widget.isFullPage ? Scaffold(appBar: AppBar(), body: body) : body;
     }
 
-    final content = _buildContent(room, matrix, cs, tt);
+    final summary = _controller.summary!;
+    final content = _buildContent(cs, tt);
 
     if (widget.isFullPage) {
       return Scaffold(
@@ -233,7 +173,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
               pathParameters: {RouteParams.roomId: widget.roomId},
             ),
           ),
-          title: Text(room.getLocalizedDisplayname()),
+          title: Text(summary.displayname),
         ),
         body: content,
       );
@@ -245,51 +185,47 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
     );
   }
 
-  Widget _buildContent(Room room, MatrixService matrix, ColorScheme cs, TextTheme tt) {
-    // Initial member load is triggered in initState — no side effects in build.
+  Widget _buildContent(ColorScheme cs, TextTheme tt) {
+    final permissions = _controller.permissions;
     return ListView(
       padding: const EdgeInsets.only(bottom: 32),
       children: [
         if (_loading) const LinearProgressIndicator(),
-        _buildHeader(room, cs, tt),
+        _buildHeader(cs, tt),
         const Divider(),
-        _buildActionsRow(room, cs, tt),
+        _buildActionsRow(cs, tt),
         if (_error != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
             child: Text(_error!, style: TextStyle(color: cs.error, fontSize: 13)),
           ),
         const Divider(),
-        JoinAccessController(room: room),
+        _controller.buildJoinAccessSection(),
         const Divider(),
-        if (_memberList != null)
+        if (_controller.memberList != null)
           RoomMembersSection(
-            members: _memberList!,
-            onMemberTap: (member) =>
-                _showMemberSheet(context, room, member),
-            avatarResolver: matrix.avatarResolver,
-            presence: matrix.presence,
+            members: _controller.memberList!,
+            onMemberTap: (member) => _controller.showMemberSheet(context, member),
+            avatarResolver: _controller.avatarResolver,
+            presence: _controller.presence,
           ),
         const Divider(),
-        _buildEncryptionSection(room, cs, tt),
+        _buildEncryptionSection(cs, tt),
         const Divider(),
-        SharedMediaSection(room: room),
+        _controller.buildSharedMediaSection(),
         const Divider(),
-        _buildNotificationSection(room, cs, tt),
-        if (room.canChangeStateEvent(EventTypes.RoomName) ||
-            room.canChangeStateEvent(EventTypes.RoomTopic) ||
-            room.canChangeStateEvent(EventTypes.Encryption) ||
-            room.canChangePowerLevel) ...[
+        _buildNotificationSection(cs, tt),
+        if (permissions != null &&
+            (permissions.canEditName ||
+                permissions.canEditTopic ||
+                permissions.canEnableEncryption ||
+                permissions.canChangePowerLevels)) ...[
           const Divider(),
           AdminSettingsSection(
-            permissions:
-                const RoomPermissionsResolver().convert(
-              room,
-              myUserId: matrix.client.userID ?? '',
-            ),
-            onSaveName: room.setName,
-            onSaveTopic: room.setDescription,
-            onEnableEncryption: room.enableEncryption,
+            permissions: permissions,
+            onSaveName: _controller.setName,
+            onSaveTopic: _controller.setDescription,
+            onEnableEncryption: _controller.enableEncryption,
           ),
         ],
       ],
@@ -298,22 +234,29 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
 
   // ── Header ─────────────────────────────────────────────────
 
-  Widget _buildHeader(Room room, ColorScheme cs, TextTheme tt) {
+  Widget _buildHeader(ColorScheme cs, TextTheme tt) {
+    final summary = _controller.summary!;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          AvatarEditOverlay(room: room),
+          AvatarEditOverlay(
+            roomId: _controller.roomId,
+            summary: summary,
+            canEditAvatar: _controller.permissions?.canEditAvatar ?? false,
+            avatarResolver: _controller.avatarResolver,
+            onSetAvatar: _controller.setAvatar,
+          ),
           const SizedBox(height: 12),
           Text(
-            room.getLocalizedDisplayname(),
+            summary.displayname,
             style: tt.titleLarge,
             textAlign: TextAlign.center,
           ),
-          if (room.topic.isNotEmpty) ...[
+          if (summary.topic != null && summary.topic!.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
-              room.topic,
+              summary.topic!,
               style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
               textAlign: TextAlign.center,
               maxLines: 4,
@@ -322,15 +265,10 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
           ],
           const SizedBox(height: 4),
           JoinedMemberCount(
-            roomId: room.id,
-            summaryMemberCount: room.summary.mJoinedMemberCount ?? 0,
-            participantListComplete: room.participantListComplete,
-            resolveMemberCount: (id) async {
-              final r = room.client.getRoomById(id);
-              if (r == null) return null;
-              final members = await r.client.getJoinedMembersByRoom(id);
-              return members?.length;
-            },
+            roomId: _controller.roomId,
+            summaryMemberCount: _controller.summaryMemberCount ?? 0,
+            participantListComplete: _controller.participantListComplete,
+            resolveMemberCount: _controller.resolveMemberCount,
             builder: (context, memberCount) => Text(
               memberCount == 1 ? '1 member' : '$memberCount members',
               style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
@@ -343,8 +281,8 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
 
   // ── Actions row ────────────────────────────────────────────
 
-  Widget _buildActionsRow(Room room, ColorScheme cs, TextTheme tt) {
-    final isMuted = room.pushRuleState != PushRuleState.notify;
+  Widget _buildActionsRow(ColorScheme cs, TextTheme tt) {
+    final isMuted = _controller.isMuted;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       child: Row(
@@ -353,23 +291,23 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
           DetailActionButton(
             icon: isMuted ? Icons.notifications_off_outlined : Icons.notifications_outlined,
             label: isMuted ? 'Unmute' : 'Mute',
-            onTap: _busy('mute') ? null : () => _toggleMute(room),
+            onTap: _busy('mute') ? null : () => _run('mute', _controller.toggleMute),
           ),
           DetailActionButton(
-            icon: room.isFavourite ? Icons.star_rounded : Icons.star_border_rounded,
-            label: room.isFavourite ? 'Starred' : 'Star',
-            onTap: _busy('favourite') ? null : () => _toggleFavourite(room),
+            icon: _controller.isFavourite ? Icons.star_rounded : Icons.star_border_rounded,
+            label: _controller.isFavourite ? 'Starred' : 'Star',
+            onTap: _busy('favourite') ? null : () => _run('favourite', _controller.toggleFavourite),
           ),
           DetailActionButton(
             icon: Icons.person_add_outlined,
             label: 'Invite',
-            onTap: _busy('invite') ? null : () => _showInviteDialog(room),
+            onTap: _busy('invite') ? null : _showInviteDialog,
           ),
           DetailActionButton(
             icon: Icons.exit_to_app_rounded,
             label: 'Leave',
             color: cs.error,
-            onTap: _busy('leave') ? null : () => _confirmLeave(room),
+            onTap: _busy('leave') ? null : _confirmLeave,
           ),
         ],
       ),
@@ -378,8 +316,8 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
 
   // ── Encryption section ─────────────────────────────────────
 
-  Widget _buildEncryptionSection(Room room, ColorScheme cs, TextTheme tt) {
-    final encrypted = room.encrypted;
+  Widget _buildEncryptionSection(ColorScheme cs, TextTheme tt) {
+    final encrypted = _controller.encrypted;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -396,20 +334,16 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
             style: tt.bodySmall,
           ),
         ),
-        if (encrypted && room.isDirectChat)
-          _buildDeviceVerificationSection(room, cs, tt),
+        if (encrypted && _controller.isDirectChat)
+          _buildDeviceVerificationSection(cs, tt),
       ],
     );
   }
 
-  Widget _buildDeviceVerificationSection(Room room, ColorScheme cs, TextTheme tt) {
-    final client = context.read<MatrixService>().client;
-    final partnerId = room.directChatMatrixID;
-    if (partnerId == null) return const SizedBox.shrink();
+  Widget _buildDeviceVerificationSection(ColorScheme cs, TextTheme tt) {
+    if (_controller.partnerId == null) return const SizedBox.shrink();
 
-    final deviceKeysList = client.userDeviceKeys[partnerId];
-    final devices = deviceKeysList?.deviceKeys.values.toList() ?? [];
-
+    final devices = _controller.deviceKeys;
     if (devices.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -439,9 +373,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
             style: tt.bodyMedium,
           ),
           trailing: Icon(
-            _deviceKeysExpanded
-                ? Icons.expand_less
-                : Icons.expand_more,
+            _deviceKeysExpanded ? Icons.expand_less : Icons.expand_more,
           ),
           onTap: () => setState(() => _deviceKeysExpanded = !_deviceKeysExpanded),
         ),
@@ -451,7 +383,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
     );
   }
 
-  Widget _buildDeviceKeyTile(DeviceKeys dk, ColorScheme cs, TextTheme tt) {
+  Widget _buildDeviceKeyTile(KoheraDeviceKey dk, ColorScheme cs, TextTheme tt) {
     final (IconData icon, String label, Color color) = dk.blocked
         ? (Icons.block, 'Blocked', cs.error)
         : dk.verified
@@ -463,7 +395,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
       contentPadding: const EdgeInsets.only(left: 56, right: 16),
       leading: Icon(Icons.devices, size: 18, color: cs.onSurfaceVariant),
       title: Text(
-        dk.deviceDisplayName ?? dk.deviceId ?? 'Unknown device',
+        dk.displayName ?? dk.deviceId ?? 'Unknown device',
         style: tt.bodySmall,
         overflow: TextOverflow.ellipsis,
       ),
@@ -477,34 +409,16 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
       ),
       trailing: !dk.verified && !dk.blocked
           ? TextButton(
-              onPressed: () => _verifyPartnerDevice(dk),
+              onPressed: () => _verifyDevice(dk),
               child: const Text('Verify'),
             )
           : null,
     );
   }
 
-  Future<void> _verifyPartnerDevice(DeviceKeys dk) async {
-    final client = context.read<MatrixService>().client;
-    final scaffold = ScaffoldMessenger.of(context);
-    try {
-      final verification = await dk.startVerification();
-      if (!mounted) return;
-      await KeyVerificationDialog.show(context, verification: verification);
-      // Refresh device keys after verification completes
-      await client.updateUserDeviceKeys();
-      if (mounted) setState(() {});
-    } catch (e) {
-      debugPrint('[Kohera] Failed to start verification: $e');
-      scaffold.showSnackBar(
-        const SnackBar(content: Text('Failed to start verification')),
-      );
-    }
-  }
-
   // ── Notification settings ──────────────────────────────────
 
-  Widget _buildNotificationSection(Room room, ColorScheme cs, TextTheme tt) {
+  Widget _buildNotificationSection(ColorScheme cs, TextTheme tt) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -518,22 +432,22 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
             ),
           ),
         ),
-        RadioGroup<PushRuleState>(
-          groupValue: room.pushRuleState,
-          onChanged: _busy('pushRule') ? (_) {} : (v) => _setPushRule(room, v!),
+        RadioGroup<KoheraPushRuleState>(
+          groupValue: _controller.pushRuleState,
+          onChanged: _busy('pushRule') ? (_) {} : (v) => _setPushRule(v!),
           child: const Column(
             children: [
-              RadioListTile<PushRuleState>(
+              RadioListTile<KoheraPushRuleState>(
                 title: Text('All messages'),
-                value: PushRuleState.notify,
+                value: KoheraPushRuleState.notify,
               ),
-              RadioListTile<PushRuleState>(
+              RadioListTile<KoheraPushRuleState>(
                 title: Text('Mentions only'),
-                value: PushRuleState.mentionsOnly,
+                value: KoheraPushRuleState.mentionsOnly,
               ),
-              RadioListTile<PushRuleState>(
+              RadioListTile<KoheraPushRuleState>(
                 title: Text('Muted'),
-                value: PushRuleState.dontNotify,
+                value: KoheraPushRuleState.dontNotify,
               ),
             ],
           ),
