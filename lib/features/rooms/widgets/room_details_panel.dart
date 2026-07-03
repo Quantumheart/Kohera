@@ -7,6 +7,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
+import 'package:kohera/features/rooms/services/room_permissions_converter.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
 import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
@@ -209,7 +210,16 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
             room.canChangeStateEvent(EventTypes.Encryption) ||
             room.canChangePowerLevel) ...[
           const Divider(),
-          AdminSettingsSection(room: room),
+          AdminSettingsSection(
+            permissions:
+                const RoomPermissionsConverter().convert(
+              room,
+              myUserId: matrix.client.userID ?? '',
+            ),
+            onSaveName: room.setName,
+            onSaveTopic: room.setDescription,
+            onEnableEncryption: room.enableEncryption,
+          ),
         ],
       ],
     );

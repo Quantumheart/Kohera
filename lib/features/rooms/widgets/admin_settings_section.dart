@@ -3,16 +3,33 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
 
 /// Admin settings for a room: edit name, topic, encryption,
 /// and power levels. Only rendered when the user has sufficient power level.
+///
+/// This widget is SDK-free — all data comes from [KoheraRoomPermissions]
+/// and all actions are handled by callbacks.
 class AdminSettingsSection extends StatefulWidget {
-  const AdminSettingsSection({required this.room, super.key});
+  const AdminSettingsSection({
+    required this.permissions,
+    required this.onSaveName,
+    required this.onSaveTopic,
+    required this.onEnableEncryption,
+    super.key,
+  });
 
-  final Room room;
+  final KoheraRoomPermissions permissions;
+
+  /// Called when the user saves a new room name.
+  final Future<void> Function(String) onSaveName;
+
+  /// Called when the user saves a new topic.
+  final Future<void> Function(String) onSaveTopic;
+
+  /// Called when the user confirms enabling encryption.
+  final Future<void> Function() onEnableEncryption;
 
   @override
   State<AdminSettingsSection> createState() => _AdminSettingsSectionState();
@@ -32,24 +49,24 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
   @override
   void initState() {
     super.initState();
-    _nameController.text = widget.room.getLocalizedDisplayname();
-    _topicController.text = widget.room.topic;
+    _nameController.text = widget.permissions.displayName ?? '';
+    _topicController.text = widget.permissions.topic ?? '';
   }
 
   @override
   void didUpdateWidget(AdminSettingsSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Update controllers when room state changes via sync, but only if the
+    // Update controllers when permissions change via sync, but only if the
     // user hasn't edited the field (controller still matches old value).
-    final newName = widget.room.getLocalizedDisplayname();
-    final oldName = oldWidget.room.getLocalizedDisplayname();
+    final newName = widget.permissions.displayName;
+    final oldName = oldWidget.permissions.displayName;
     if (newName != oldName && _nameController.text == oldName) {
-      _nameController.text = newName;
+      _nameController.text = newName ?? '';
     }
-    final newTopic = widget.room.topic;
-    final oldTopic = oldWidget.room.topic;
+    final newTopic = widget.permissions.topic;
+    final oldTopic = oldWidget.permissions.topic;
     if (newTopic != oldTopic && _topicController.text == oldTopic) {
-      _topicController.text = newTopic;
+      _topicController.text = newTopic ?? '';
     }
   }
 
@@ -61,8 +78,16 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
     super.dispose();
   }
 
-  Future<void> _run(String action, Future<void> Function() task, {String? successMessage}) async {
-    setState(() { _inFlight.add(action); _error = null; _success = null; });
+  Future<void> _run(
+    String action,
+    Future<void> Function() task, {
+    String? successMessage,
+  }) async {
+    setState(() {
+      _inFlight.add(action);
+      _error = null;
+      _success = null;
+    });
     _successTimer?.cancel();
     try {
       await task();
@@ -74,7 +99,7 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
       }
     } catch (e) {
       debugPrint('[Kohera] $action failed: $e');
-      if (mounted) setState(() => _error = MatrixService.friendlyAuthError(e));
+      if (mounted) setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _inFlight.remove(action));
     }
@@ -83,12 +108,20 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
   Future<void> _saveName() async {
     final newName = _nameController.text.trim();
     if (newName.isEmpty) return;
-    await _run('name', () => widget.room.setName(newName), successMessage: 'Room name updated');
+    await _run(
+      'name',
+      () => widget.onSaveName(newName),
+      successMessage: 'Room name updated',
+    );
   }
 
   Future<void> _saveTopic() async {
     final newTopic = _topicController.text.trim();
-    await _run('topic', () => widget.room.setDescription(newTopic), successMessage: 'Topic updated');
+    await _run(
+      'topic',
+      () => widget.onSaveTopic(newTopic),
+      successMessage: 'Topic updated',
+    );
   }
 
   Future<void> _enableEncryption() async {
@@ -102,14 +135,18 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
     );
 
     if (!confirmed || !mounted) return;
-    await _run('encryption', () => widget.room.enableEncryption(), successMessage: 'Encryption enabled');
+    await _run(
+      'encryption',
+      widget.onEnableEncryption,
+      successMessage: 'Encryption enabled',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final room = widget.room;
+    final p = widget.permissions;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,7 +164,7 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
         if (_loading) const LinearProgressIndicator(),
 
         // Room name
-        if (room.canChangeStateEvent(EventTypes.RoomName))
+        if (p.canEditName)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
@@ -154,7 +191,7 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
           ),
 
         // Topic
-        if (room.canChangeStateEvent(EventTypes.RoomTopic))
+        if (p.canEditTopic)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
@@ -183,8 +220,7 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
           ),
 
         // Enable encryption
-        if (!room.encrypted &&
-            room.canChangeStateEvent(EventTypes.Encryption))
+        if (p.canEnableEncryption)
           ListTile(
             leading: const Icon(Icons.lock_outline_rounded),
             title: const Text('Enable encryption'),
@@ -202,22 +238,27 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
           trailing: const Icon(Icons.chevron_right_rounded),
           onTap: () => context.goNamed(
             Routes.roomPermissions,
-            pathParameters: {RouteParams.roomId: room.id},
+            pathParameters: {RouteParams.roomId: p.roomId},
           ),
         ),
 
         if (_error != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Text(_error!, style: TextStyle(color: cs.error, fontSize: 13)),
+            child: Text(
+              _error!,
+              style: TextStyle(color: cs.error, fontSize: 13),
+            ),
           ),
         if (_success != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Text(_success!, style: TextStyle(color: cs.primary, fontSize: 13)),
+            child: Text(
+              _success!,
+              style: TextStyle(color: cs.primary, fontSize: 13),
+            ),
           ),
       ],
     );
   }
-
 }
