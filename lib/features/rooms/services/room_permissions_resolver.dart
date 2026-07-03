@@ -1,15 +1,15 @@
 import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
 import 'package:matrix/matrix.dart';
 
-// ── RoomPermissionsConverter ─────────────────────────────────
+// ── RoomPermissionsResolver ─────────────────────────────────
 
 /// Converts a Matrix SDK `Room` into a Kohera-owned
 /// [KoheraRoomPermissions] at the conversion boundary.
 ///
 /// Widgets below the boundary depend only on [KoheraRoomPermissions]
 /// and action callbacks — never on `Room`.
-class RoomPermissionsConverter {
-  const RoomPermissionsConverter();
+class RoomPermissionsResolver {
+  const RoomPermissionsResolver();
 
   KoheraRoomPermissions convert(
     Room room, {

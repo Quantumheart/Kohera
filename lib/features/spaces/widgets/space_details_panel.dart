@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/features/rooms/services/room_permissions_converter.dart';
+import 'package:kohera/features/rooms/services/room_permissions_resolver.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
 import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
@@ -137,7 +137,7 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
           const Divider(),
           AdminSettingsSection(
             permissions:
-                const RoomPermissionsConverter().convert(
+                const RoomPermissionsResolver().convert(
               space,
               myUserId: space.client.userID ?? '',
             ),

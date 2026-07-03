@@ -77,7 +77,7 @@ class KoheraRoomMember {
 
 /// Pre-computed room permissions and admin settings data.
 ///
-/// Created by [RoomPermissionsConverter] at the conversion boundary
+/// Created by [RoomPermissionsResolver] at the conversion boundary
 /// from `matrix_sdk.Room`. Widgets below the boundary consume this
 /// model and action callbacks — never `Room` directly.
 @immutable
