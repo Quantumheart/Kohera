@@ -43,7 +43,7 @@ class ChatMessageItem extends StatelessWidget {
     required this.isFirst,
     required this.isMobile,
     required this.timeline,
-    required this.client,
+    required this.myUserId,
     required this.onToggleReaction,
     this.highlightedEventId,
     this.receiptMap = const {},
@@ -63,7 +63,7 @@ class ChatMessageItem extends StatelessWidget {
   final bool isFirst;
   final bool isMobile;
   final Timeline? timeline;
-  final Client client;
+  final String myUserId;
   final String? highlightedEventId;
   final Map<String, List<KoheraReadReceipt>> receiptMap;
   final void Function(Event event)? onReply;
@@ -81,29 +81,21 @@ class ChatMessageItem extends StatelessWidget {
     final isRedacted = event.redacted;
     final room = event.room;
     final isPinned = room.pinnedEventIds.contains(event.eventId);
-    final canPin = !isRedacted &&
-        room.canChangeStateEvent('m.room.pinned_events');
+    final canPin = !isRedacted && room.canChangeStateEvent('m.room.pinned_events');
 
     final message = const MessageDisplayResolver()(event, timeline: timeline);
 
-    final hasReactions = timeline != null &&
-        event.hasAggregatedEvents(timeline!, RelationshipTypes.reaction);
-    final hasThread = !inThread &&
-        timeline != null &&
-        event.hasAggregatedEvents(timeline!, RelationshipTypes.thread);
-    final threadReplyCount = hasThread
-        ? event.aggregatedEvents(timeline!, RelationshipTypes.thread).length
-        : 0;
-    final receipts = receiptMap[event.eventId]
-        ?.where((r) => r.user.userId != event.senderId)
-        .toList();
+    final hasReactions = timeline != null && event.hasAggregatedEvents(timeline!, RelationshipTypes.reaction);
+    final hasThread = !inThread && timeline != null && event.hasAggregatedEvents(timeline!, RelationshipTypes.thread);
+    final threadReplyCount = hasThread ? event.aggregatedEvents(timeline!, RelationshipTypes.thread).length : 0;
+    final receipts = receiptMap[event.eventId]?.where((r) => r.user.userId != event.senderId).toList();
 
     Widget? reactionBubble;
     if (hasReactions) {
       final reactionList = const ReactionResolver().resolve(
         event,
         timeline!,
-        myUserId: client.userID ?? '',
+        myUserId: myUserId,
       );
       reactionBubble = ReactionChips(
         reactions: reactionList,
@@ -177,33 +169,25 @@ class ChatMessageItem extends StatelessWidget {
         style: style,
         isMe: isMe,
         room: room,
+        mediaResolver: context.read<MatrixService>().mediaResolver,
       ),
       replyPreview: replyPreview,
       mediaBody: mediaBody,
-      onOpenContextMenu: isRedacted
-          ? null
-          : (position) => _openContextMenu(context, position, isPinned, canPin),
+      onOpenContextMenu: isRedacted ? null : (position) => _openContextMenu(context, position, isPinned, canPin),
       onTapSender: () => _showSenderSheet(context),
       onReply: isRedacted ? null : () => onReply?.call(event),
       onEdit: !isRedacted && isMe ? () => onEdit?.call(event) : null,
-      onDelete: !isRedacted && event.canRedact
-          ? () => confirmAndDeleteEvent(context, event)
-          : null,
+      onDelete: !isRedacted && event.canRedact ? () => confirmAndDeleteEvent(context, event) : null,
       onReact: isRedacted
           ? null
           : () => showEmojiPickerSheet(
                 context,
                 (emoji) => onToggleReaction(event, emoji),
               ),
-      onQuickReact: isRedacted
-          ? null
-          : (emoji) => onToggleReaction(event, emoji),
+      onQuickReact: isRedacted ? null : (emoji) => onToggleReaction(event, emoji),
       onPin: canPin ? () => onPin?.call(event) : null,
-      onReplyInThread:
-          isRedacted || inThread ? null : () => onReplyInThread?.call(event),
-      onForward: isRedacted || onForward == null
-          ? null
-          : () => onForward!(event),
+      onReplyInThread: isRedacted || inThread ? null : () => onReplyInThread?.call(event),
+      onForward: isRedacted || onForward == null ? null : () => onForward!(event),
       reactionBubble: reactionBubble,
       subBubble: subBubble,
       threadIndicator: hasThread
@@ -214,7 +198,7 @@ class ChatMessageItem extends StatelessWidget {
                 root: event,
                 timeline: timeline!,
                 room: room,
-                myUserId: client.userID ?? '',
+                myUserId: myUserId,
               ),
               onTap: () => onOpenThread?.call(event),
             )
@@ -225,8 +209,7 @@ class ChatMessageItem extends StatelessWidget {
       return SwipeableMessage(
         onReply: () => onReply?.call(event),
         child: LongPressWrapper(
-          onLongPress: (rect) =>
-              _showMobileActions(context, rect, isPinned, canPin),
+          onLongPress: (rect) => _showMobileActions(context, rect, isPinned, canPin),
           child: content,
         ),
       );
@@ -240,31 +223,28 @@ class ChatMessageItem extends StatelessWidget {
     bool isPinned,
     bool canPin,
   ) {
-    unawaited(showMessageContextMenu(
-      context,
-      event: event,
-      isMe: isMe,
-      isPinned: isPinned,
-      timeline: timeline,
-      position: position,
-      onReply: isRedactedSafe ? null : () => onReply?.call(event),
-      onEdit: !isRedactedSafe && isMe ? () => onEdit?.call(event) : null,
-      onReact: isRedactedSafe
-          ? null
-          : () => showEmojiPickerSheet(
-                context,
-                (emoji) => onToggleReaction(event, emoji),
-              ),
-      onPin: canPin ? () => onPin?.call(event) : null,
-      onDelete: !isRedactedSafe && event.canRedact
-          ? () => confirmAndDeleteEvent(context, event)
-          : null,
-      onReplyInThread:
-          isRedactedSafe || inThread ? null : () => onReplyInThread?.call(event),
-      onForward: isRedactedSafe || onForward == null
-          ? null
-          : () => onForward!(event),
-    ),);
+    unawaited(
+      showMessageContextMenu(
+        context,
+        event: event,
+        isMe: isMe,
+        isPinned: isPinned,
+        timeline: timeline,
+        position: position,
+        onReply: isRedactedSafe ? null : () => onReply?.call(event),
+        onEdit: !isRedactedSafe && isMe ? () => onEdit?.call(event) : null,
+        onReact: isRedactedSafe
+            ? null
+            : () => showEmojiPickerSheet(
+                  context,
+                  (emoji) => onToggleReaction(event, emoji),
+                ),
+        onPin: canPin ? () => onPin?.call(event) : null,
+        onDelete: !isRedactedSafe && event.canRedact ? () => confirmAndDeleteEvent(context, event) : null,
+        onReplyInThread: isRedactedSafe || inThread ? null : () => onReplyInThread?.call(event),
+        onForward: isRedactedSafe || onForward == null ? null : () => onForward!(event),
+      ),
+    );
   }
 
   bool get isRedactedSafe => event.redacted;
@@ -354,18 +334,14 @@ class ChatMessageItem extends StatelessWidget {
         if (canPin)
           MessageAction(
             label: isPinned ? 'Unpin' : 'Pin',
-            icon: isPinned
-                ? Icons.push_pin_rounded
-                : Icons.push_pin_outlined,
+            icon: isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
             onTap: () => onPin?.call(event),
           ),
         MessageAction(
           label: 'Copy',
           icon: Icons.copy_rounded,
           onTap: () {
-            final displayEvent = timeline != null
-                ? event.getDisplayEvent(timeline!)
-                : event;
+            final displayEvent = timeline != null ? event.getDisplayEvent(timeline!) : event;
             unawaited(
               Clipboard.setData(
                 ClipboardData(text: stripReplyFallback(displayEvent.body)),

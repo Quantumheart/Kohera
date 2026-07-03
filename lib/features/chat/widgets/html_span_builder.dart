@@ -3,18 +3,18 @@ import 'package:html/dom.dart' as dom;
 import 'package:kohera/features/chat/widgets/code_block.dart';
 import 'package:kohera/features/chat/widgets/linkable_span_builder.dart';
 import 'package:kohera/features/chat/widgets/spoiler_text.dart';
+import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
-import 'package:matrix/matrix.dart';
 
 class HtmlSpanBuilder {
   HtmlSpanBuilder({
     required this.isMe,
-    required this.client,
+    required this.mediaResolver,
     required this.linkBuilder,
   });
 
   final bool isMe;
-  final Client? client;
+  final MediaResolver? mediaResolver;
   final LinkableSpanBuilder linkBuilder;
 
   void buildSpans(
@@ -40,12 +40,14 @@ class HtmlSpanBuilder {
       for (final child in node.nodes) {
         buildSpans(child, currentStyle, linkColor, innerSpans);
       }
-      spans.add(WidgetSpan(
-        child: SpoilerText(
-          child: TextSpan(style: currentStyle, children: innerSpans),
-          reason: reason != null && reason.isNotEmpty ? reason : null,
+      spans.add(
+        WidgetSpan(
+          child: SpoilerText(
+            child: TextSpan(style: currentStyle, children: innerSpans),
+            reason: reason != null && reason.isNotEmpty ? reason : null,
+          ),
         ),
-      ),);
+      );
       return;
     }
 
@@ -93,20 +95,22 @@ class HtmlSpanBuilder {
           buildSpans(child, quoteStyle, linkColor, quoteSpans);
         }
         trimNewlines(quoteSpans);
-        spans.add(WidgetSpan(
-          child: Container(
-            decoration: BoxDecoration(
-              border: Border(
-                left: BorderSide(
-                  color: linkColor,
-                  width: 3,
+        spans.add(
+          WidgetSpan(
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(
+                    color: linkColor,
+                    width: 3,
+                  ),
                 ),
               ),
+              padding: const EdgeInsets.only(left: 8),
+              child: Text.rich(TextSpan(children: quoteSpans)),
             ),
-            padding: const EdgeInsets.only(left: 8),
-            child: Text.rich(TextSpan(children: quoteSpans)),
           ),
-        ),);
+        );
         return;
 
       case 'ol':
@@ -179,38 +183,44 @@ class HtmlSpanBuilder {
             break;
           }
         }
-        spans.add(WidgetSpan(
-          child: CodeBlock(code: codeText, language: language, isMe: isMe),
-        ),);
+        spans.add(
+          WidgetSpan(
+            child: CodeBlock(code: codeText, language: language, isMe: isMe),
+          ),
+        );
         return;
 
       case 'code':
         final bgColor = isMe
             ? Colors.black.withValues(alpha: 0.15)
-            : currentStyle.color?.withValues(alpha: 0.08) ??
-                Colors.grey.withValues(alpha: 0.08);
-        spans.add(WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              node.text,
-              style: currentStyle.copyWith(
-                fontFamily: 'monospace',
-                fontSize: (currentStyle.fontSize ?? 14) * 0.9,
+            : currentStyle.color?.withValues(alpha: 0.08) ?? Colors.grey.withValues(alpha: 0.08);
+        spans.add(
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                node.text,
+                style: currentStyle.copyWith(
+                  fontFamily: 'monospace',
+                  fontSize: (currentStyle.fontSize ?? 14) * 0.9,
+                ),
               ),
             ),
           ),
-        ),);
+        );
         return;
 
       case 'a':
         linkBuilder.addAnchor(
-          node, currentStyle, linkColor, spans,
+          node,
+          currentStyle,
+          linkColor,
+          spans,
           buildSpans: buildSpans,
         );
         return;
@@ -244,36 +254,39 @@ class HtmlSpanBuilder {
 
     if (isCustomEmoji) {
       final emojiSize = (currentStyle.fontSize ?? 14) * 1.4;
-      spans.add(WidgetSpan(
-        alignment: PlaceholderAlignment.middle,
-        child: MxcImage(
-          mxcUrl: src,
-          client: client,
-          width: emojiSize,
-          height: emojiSize,
-          fallbackText: alt.isNotEmpty ? alt : ':emoji:',
-          fallbackStyle: currentStyle,
+      spans.add(
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: MxcImage(
+            mxcUrl: src,
+            mediaResolver: mediaResolver,
+            width: emojiSize,
+            height: emojiSize,
+            fallbackText: alt.isNotEmpty ? alt : ':emoji:',
+            fallbackStyle: currentStyle,
+          ),
         ),
-      ),);
+      );
     } else {
-      spans.add(WidgetSpan(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: ConstrainedBox(
-              constraints:
-                  const BoxConstraints(maxWidth: 256, maxHeight: 256),
-              child: MxcImage(
-                mxcUrl: src,
-                client: client,
-                fallbackText: alt.isNotEmpty ? alt : '[image]',
-                fallbackStyle: currentStyle,
+      spans.add(
+        WidgetSpan(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 256, maxHeight: 256),
+                child: MxcImage(
+                  mxcUrl: src,
+                  mediaResolver: mediaResolver,
+                  fallbackText: alt.isNotEmpty ? alt : '[image]',
+                  fallbackStyle: currentStyle,
+                ),
               ),
             ),
           ),
         ),
-      ),);
+      );
     }
   }
 

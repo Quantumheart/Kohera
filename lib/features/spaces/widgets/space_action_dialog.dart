@@ -154,8 +154,7 @@ class _CreateSpaceDialogState extends State<CreateSpaceDialog> {
           if (_enableEncryption)
             StateEvent(
               content: {
-                'algorithm':
-                    Client.supportedGroupEncryptionAlgorithms.first,
+                'algorithm': Client.supportedGroupEncryptionAlgorithms.first,
               },
               type: EventTypes.Encryption,
             ),
@@ -164,9 +163,7 @@ class _CreateSpaceDialogState extends State<CreateSpaceDialog> {
         powerLevelContentOverride: {'events_default': 100},
       );
 
-      await client
-          .waitForRoomInSync(roomId, join: true)
-          .timeout(const Duration(seconds: 30));
+      await client.waitForRoomInSync(roomId, join: true).timeout(const Duration(seconds: 30));
 
       if (!mounted) return;
       context.read<SelectionService>().selectSpace(roomId);
@@ -228,23 +225,17 @@ class _CreateSpaceDialogState extends State<CreateSpaceDialog> {
               SwitchListTile(
                 title: const Text('Enable encryption'),
                 subtitle: Text(
-                  _isPublic
-                      ? 'Not available for public spaces'
-                      : 'Cannot be disabled later',
+                  _isPublic ? 'Not available for public spaces' : 'Cannot be disabled later',
                   style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
                 ),
                 value: _enableEncryption,
-                onChanged: _loading || _isPublic
-                    ? null
-                    : (v) => setState(() => _enableEncryption = v),
+                onChanged: _loading || _isPublic ? null : (v) => setState(() => _enableEncryption = v),
                 contentPadding: EdgeInsets.zero,
               ),
               SwitchListTile(
                 title: const Text('Allow federation'),
                 value: _enableFederation,
-                onChanged: _loading
-                    ? null
-                    : (v) => setState(() => _enableFederation = v),
+                onChanged: _loading ? null : (v) => setState(() => _enableFederation = v),
                 contentPadding: EdgeInsets.zero,
               ),
               if (_networkError != null)
@@ -334,9 +325,7 @@ class _JoinSpaceDialogState extends State<JoinSpaceDialog> {
       final client = widget.matrixService.client;
 
       final roomId = await client.joinRoom(address);
-      await client
-          .waitForRoomInSync(roomId, join: true)
-          .timeout(const Duration(seconds: 30));
+      await client.waitForRoomInSync(roomId, join: true).timeout(const Duration(seconds: 30));
 
       if (!mounted) return;
       final room = client.getRoomById(roomId);
@@ -430,8 +419,7 @@ class SpaceDiscoveryDialog extends StatefulWidget {
     required MatrixService matrixService,
     SpaceDiscoveryDataSource? dataSource,
   }) {
-    final ds = dataSource ??
-        defaultSpaceDiscoveryDataSource(matrixService.client);
+    final ds = dataSource ?? defaultSpaceDiscoveryDataSource(matrixService.client);
     return showDialog(
       context: context,
       builder: (_) => SpaceDiscoveryDialog._(
@@ -452,8 +440,7 @@ class SpaceDiscoveryDialog extends StatefulWidget {
     String? canonicalAlias,
     SpaceDiscoveryDataSource? dataSource,
   }) {
-    final ds = dataSource ??
-        defaultSpaceDiscoveryDataSource(matrixService.client);
+    final ds = dataSource ?? defaultSpaceDiscoveryDataSource(matrixService.client);
     return showDialog(
       context: context,
       builder: (_) => SpaceDiscoveryDialog._(
@@ -515,8 +502,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
 
   String? _selectedServer;
 
-  String? get _ownHomeserverHost =>
-      widget.matrixService.client.homeserver?.host;
+  String? get _ownHomeserverHost => widget.matrixService.client.homeserver?.host;
 
   static final RegExp _hostRegex = RegExp(
     r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+(:\d{1,5})?$',
@@ -583,9 +569,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
   Widget _buildServerStrip(BuildContext context) {
     final prefs = context.watch<PreferencesService>();
     final ownHost = _ownHomeserverHost;
-    final browse = prefs.browseServers
-        .where((h) => h != ownHost)
-        .toList(growable: false);
+    final browse = prefs.browseServers.where((h) => h != ownHost).toList(growable: false);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Wrap(
@@ -624,8 +608,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
       confirmLabel: 'Remove',
     );
     if (!ok || !mounted) return;
-    final next =
-        prefs.browseServers.where((h) => h != host).toList(growable: false);
+    final next = prefs.browseServers.where((h) => h != host).toList(growable: false);
     await prefs.setBrowseServers(next);
     if (!mounted) return;
     if (_selectedServer == host) {
@@ -887,8 +870,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
     });
 
     try {
-      final joinedId =
-          await widget.dataSource.joinRoom(target, via: via);
+      final joinedId = await widget.dataSource.joinRoom(target, via: via);
 
       if (!mounted) return;
       if (widget.dataSource.isSpace(joinedId)) {
@@ -969,9 +951,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
             ),
           ],
         ),
-        insetPadding: isWide
-            ? const EdgeInsets.symmetric(horizontal: 40, vertical: 24)
-            : const EdgeInsets.all(12),
+        insetPadding: isWide ? const EdgeInsets.symmetric(horizontal: 40, vertical: 24) : const EdgeInsets.all(12),
         content: SizedBox(
           width: isWide ? 520 : size.width,
           height: isWide ? 560 : size.height * 0.75,
@@ -1080,8 +1060,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
   Widget _buildResultsList() {
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
-        if (notification.metrics.pixels >=
-            notification.metrics.maxScrollExtent - 200) {
+        if (notification.metrics.pixels >= notification.metrics.maxScrollExtent - 200) {
           unawaited(_loadMore());
         }
         return false;
@@ -1295,9 +1274,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
               const SizedBox(height: 12),
               if (alreadyMember)
                 OutlinedButton.icon(
-                  onPressed: _joiningRoomId != null
-                      ? null
-                      : () => _openExistingSpace(self.roomId),
+                  onPressed: _joiningRoomId != null ? null : () => _openExistingSpace(self.roomId),
                   icon: const Icon(Icons.open_in_new, size: 18),
                   label: const Text('Open'),
                 )
@@ -1314,8 +1291,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child:
-                              CircularProgressIndicator(strokeWidth: 2.5),
+                          child: CircularProgressIndicator(strokeWidth: 2.5),
                         )
                       : const Text('Join space'),
                 ),
@@ -1337,8 +1313,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
     Widget trailing;
     if (isSpace) {
       trailing = OutlinedButton(
-        onPressed:
-            disableOthers ? null : () => _pushSubspace(child),
+        onPressed: disableOthers ? null : () => _pushSubspace(child),
         child: const Text('Open'),
       );
     } else if (alreadyJoined) {
@@ -1407,7 +1382,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
         height: size,
         child: MxcImage(
           mxcUrl: mxc,
-          client: widget.matrixService.client,
+          mediaResolver: widget.matrixService.mediaResolver,
           fallbackText: letter,
           fallbackStyle: TextStyle(
             fontSize: size * 0.45,

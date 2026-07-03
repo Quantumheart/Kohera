@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/features/chat/widgets/mention_autocomplete_controller.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
-import 'package:matrix/matrix.dart';
 
 /// Displays filtered mention suggestions above the compose bar text field.
 class MentionSuggestionList extends StatelessWidget {
   const MentionSuggestionList({
-    required this.controller, required this.client, super.key,
+    required this.controller,
+    required this.avatarResolver,
+    super.key,
   });
 
   final MentionAutocompleteController controller;
-  final Client client;
+  final AvatarResolver avatarResolver;
 
   static const _maxHeight = 280.0;
 
@@ -49,7 +50,7 @@ class MentionSuggestionList extends StatelessWidget {
           return _SuggestionTile(
             suggestion: suggestion,
             isSelected: isSelected,
-            client: client,
+            avatarResolver: avatarResolver,
             onTap: () => controller.selectSuggestion(suggestion),
           );
         },
@@ -62,13 +63,13 @@ class _SuggestionTile extends StatelessWidget {
   const _SuggestionTile({
     required this.suggestion,
     required this.isSelected,
-    required this.client,
+    required this.avatarResolver,
     required this.onTap,
   });
 
   final MentionSuggestion suggestion;
   final bool isSelected;
-  final Client client;
+  final AvatarResolver avatarResolver;
   final VoidCallback onTap;
 
   @override
@@ -77,9 +78,7 @@ class _SuggestionTile extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
 
     return Material(
-      color: isSelected
-          ? cs.primary.withValues(alpha: 0.12)
-          : Colors.transparent,
+      color: isSelected ? cs.primary.withValues(alpha: 0.12) : Colors.transparent,
       child: InkWell(
         onTap: onTap,
         child: Padding(
@@ -120,20 +119,16 @@ class _SuggestionTile extends StatelessWidget {
   }
 
   Widget _buildAvatar() {
-    if (suggestion.type == MentionTriggerType.room &&
-        suggestion.roomId != null) {
-      final room = client.getRoomById(suggestion.roomId!);
-      if (room != null) {
-        return RoomAvatarWidget(
-          avatarUrl: room.avatar?.toString(),
-          displayname: room.getLocalizedDisplayname(),
-          avatarResolver: ClientAvatarResolver(client),
-          size: 32,
-        );
-      }
+    if (suggestion.type == MentionTriggerType.room) {
+      return RoomAvatarWidget(
+        avatarUrl: suggestion.avatarUrl?.toString(),
+        displayname: suggestion.displayName,
+        avatarResolver: avatarResolver,
+        size: 32,
+      );
     }
     return UserAvatar(
-      avatarResolver: ClientAvatarResolver(client),
+      avatarResolver: avatarResolver,
       avatarUrl: suggestion.avatarUrl?.toString(),
       userId: suggestion.id,
       displayname: suggestion.displayName,

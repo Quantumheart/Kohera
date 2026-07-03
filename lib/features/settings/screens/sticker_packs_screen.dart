@@ -6,8 +6,8 @@ import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
+import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 class StickerPacksScreen extends StatelessWidget {
@@ -17,7 +17,7 @@ class StickerPacksScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final client = context.read<MatrixService>().client;
+    final mediaResolver = context.read<MatrixService>().mediaResolver;
 
     return Scaffold(
       appBar: AppBar(
@@ -32,21 +32,15 @@ class StickerPacksScreen extends StatelessWidget {
           final accountPacks = service.accountPacks;
           final availablePacks = service.availableRoomPacks();
 
-          final personalPack = accountPacks
-              .where((p) => p.id == _kPersonalPackId)
-              .firstOrNull;
-          final importedPacks = accountPacks
-              .where((p) => p.id.startsWith('emojigg_'))
-              .toList();
+          final personalPack = accountPacks.where((p) => p.id == _kPersonalPackId).firstOrNull;
+          final importedPacks = accountPacks.where((p) => p.id.startsWith('emojigg_')).toList();
           final subscribedPacks = accountPacks
               .where(
-                (p) =>
-                    p.id != _kPersonalPackId && !p.id.startsWith('emojigg_'),
+                (p) => p.id != _kPersonalPackId && !p.id.startsWith('emojigg_'),
               )
               .toList();
           final openMojiPack = service.openMojiPack;
-          final myPackCount =
-              accountPacks.length + (openMojiPack != null ? 1 : 0);
+          final myPackCount = accountPacks.length + (openMojiPack != null ? 1 : 0);
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -59,9 +53,7 @@ class StickerPacksScreen extends StatelessWidget {
                     : Text(
                         '$myPackCount pack${myPackCount == 1 ? '' : 's'}',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant,
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
                             ),
                       ),
               ),
@@ -78,7 +70,7 @@ class StickerPacksScreen extends StatelessWidget {
                       if (openMojiPack != null)
                         _PackTile(
                           pack: openMojiPack,
-                          client: client,
+                          mediaResolver: mediaResolver,
                           trailing: Tooltip(
                             message: 'Built-in pack — always available',
                             child: Icon(
@@ -89,11 +81,10 @@ class StickerPacksScreen extends StatelessWidget {
                           ),
                         ),
                       if (personalPack != null) ...[
-                        if (openMojiPack != null)
-                          const Divider(height: 1, indent: 56),
+                        if (openMojiPack != null) const Divider(height: 1, indent: 56),
                         _PackTile(
                           pack: personalPack,
-                          client: client,
+                          mediaResolver: mediaResolver,
                           trailing: Tooltip(
                             message: 'Personal pack — cannot be removed',
                             child: Icon(
@@ -108,7 +99,7 @@ class StickerPacksScreen extends StatelessWidget {
                         const Divider(height: 1, indent: 56),
                         _PackTile(
                           pack: importedPacks[i],
-                          client: client,
+                          mediaResolver: mediaResolver,
                           trailing: _RemoveButton(
                             onTap: () => service.removeImportedPack(
                               importedPacks[i].id,
@@ -117,17 +108,13 @@ class StickerPacksScreen extends StatelessWidget {
                         ),
                       ],
                       if (subscribedPacks.isNotEmpty) ...[
-                        if (openMojiPack != null ||
-                            personalPack != null ||
-                            importedPacks.isNotEmpty)
+                        if (openMojiPack != null || personalPack != null || importedPacks.isNotEmpty)
                           const Divider(height: 1, indent: 56),
                         _ReorderablePackList(
                           packs: subscribedPacks,
-                          client: client,
+                          mediaResolver: mediaResolver,
                           service: service,
-                          hasLeadingPack: openMojiPack != null ||
-                              personalPack != null ||
-                              importedPacks.isNotEmpty,
+                          hasLeadingPack: openMojiPack != null || personalPack != null || importedPacks.isNotEmpty,
                         ),
                       ],
                     ],
@@ -154,7 +141,7 @@ class StickerPacksScreen extends StatelessWidget {
                         if (i > 0) const Divider(height: 1, indent: 56),
                         _PackTile(
                           pack: availablePacks[i],
-                          client: client,
+                          mediaResolver: mediaResolver,
                           trailing: _AddButton(
                             onTap: () => service.subscribeToRoomPack(
                               availablePacks[i].id,
@@ -178,8 +165,7 @@ class StickerPacksScreen extends StatelessWidget {
                     'Import sticker packs from the emoji.gg library',
                   ),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () =>
-                      context.pushOrGo(Routes.settingsEmojiGgBrowse),
+                  onTap: () => context.pushOrGo(Routes.settingsEmojiGgBrowse),
                 ),
               ),
 
@@ -197,13 +183,13 @@ class StickerPacksScreen extends StatelessWidget {
 class _ReorderablePackList extends StatelessWidget {
   const _ReorderablePackList({
     required this.packs,
-    required this.client,
+    required this.mediaResolver,
     required this.service,
     required this.hasLeadingPack,
   });
 
   final List<StickerPack> packs;
-  final Client client;
+  final MediaResolver mediaResolver;
   final StickerPackService service;
   final bool hasLeadingPack;
 
@@ -226,11 +212,10 @@ class _ReorderablePackList extends StatelessWidget {
           key: ValueKey(pack.id),
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (index > 0 || hasLeadingPack)
-              const Divider(height: 1, indent: 56),
+            if (index > 0 || hasLeadingPack) const Divider(height: 1, indent: 56),
             _PackTile(
               pack: pack,
-              client: client,
+              mediaResolver: mediaResolver,
               leading: ReorderableDragStartListener(
                 index: index,
                 child: Icon(
@@ -254,13 +239,13 @@ class _ReorderablePackList extends StatelessWidget {
 class _PackTile extends StatelessWidget {
   const _PackTile({
     required this.pack,
-    required this.client,
+    required this.mediaResolver,
     this.leading,
     this.trailing,
   });
 
   final StickerPack pack;
-  final Client client;
+  final MediaResolver mediaResolver;
   final Widget? leading;
   final Widget? trailing;
 
@@ -285,10 +270,10 @@ class _PackTile extends StatelessWidget {
               children: [
                 leading!,
                 const SizedBox(width: 8),
-                _PackAvatar(pack: pack, client: client),
+                _PackAvatar(pack: pack, mediaResolver: mediaResolver),
               ],
             )
-          : _PackAvatar(pack: pack, client: client),
+          : _PackAvatar(pack: pack, mediaResolver: mediaResolver),
       title: Text(pack.displayName, style: tt.bodyMedium),
       subtitle: Text(
         subtitle,
@@ -300,10 +285,10 @@ class _PackTile extends StatelessWidget {
 }
 
 class _PackAvatar extends StatelessWidget {
-  const _PackAvatar({required this.pack, required this.client});
+  const _PackAvatar({required this.pack, required this.mediaResolver});
 
   final StickerPack pack;
-  final Client client;
+  final MediaResolver mediaResolver;
 
   @override
   Widget build(BuildContext context) {
@@ -314,7 +299,7 @@ class _PackAvatar extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: MxcImage(
           mxcUrl: pack.avatarUrl.toString(),
-          client: client,
+          mediaResolver: mediaResolver,
           width: 40,
           height: 40,
           fallbackText: pack.displayName,

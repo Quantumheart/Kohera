@@ -3,12 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:html/parser.dart' as html_parser;
 import 'package:kohera/features/chat/widgets/html_span_builder.dart';
 import 'package:kohera/features/chat/widgets/linkable_span_builder.dart';
+import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:matrix/matrix.dart';
 
 class HtmlMessageText extends StatefulWidget {
   const HtmlMessageText({
-    required this.html, required this.style, required this.isMe, super.key,
+    required this.html,
+    required this.style,
+    required this.isMe,
+    super.key,
     this.room,
+    this.mediaResolver,
     this.maxLines,
     this.overflow,
   });
@@ -17,6 +22,7 @@ class HtmlMessageText extends StatefulWidget {
   final TextStyle? style;
   final bool isMe;
   final Room? room;
+  final MediaResolver? mediaResolver;
   final int? maxLines;
   final TextOverflow? overflow;
 
@@ -54,9 +60,7 @@ class _HtmlMessageTextState extends State<HtmlMessageText> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final linkColor = widget.isMe
-        ? cs.onPrimary.withValues(alpha: 0.85)
-        : cs.primary;
+    final linkColor = widget.isMe ? cs.onPrimary.withValues(alpha: 0.85) : cs.primary;
 
     if (_cachedSpans == null ||
         _cachedHtml != widget.html ||
@@ -74,7 +78,7 @@ class _HtmlMessageTextState extends State<HtmlMessageText> {
       );
       final spanBuilder = HtmlSpanBuilder(
         isMe: widget.isMe,
-        client: widget.room?.client,
+        mediaResolver: widget.mediaResolver,
         linkBuilder: linkBuilder,
       );
 
@@ -84,7 +88,10 @@ class _HtmlMessageTextState extends State<HtmlMessageText> {
       final spans = <InlineSpan>[];
       for (final node in document.nodes) {
         spanBuilder.buildSpans(
-          node, widget.style ?? const TextStyle(), linkColor, spans,
+          node,
+          widget.style ?? const TextStyle(),
+          linkColor,
+          spans,
         );
       }
       HtmlSpanBuilder.trimNewlines(spans);

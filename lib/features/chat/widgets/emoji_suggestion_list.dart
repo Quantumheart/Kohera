@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/features/chat/widgets/emoji_autocomplete_controller.dart';
+import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
-import 'package:matrix/matrix.dart';
 
 /// Displays filtered custom emoji suggestions above the compose field.
 class EmojiSuggestionList extends StatelessWidget {
   const EmojiSuggestionList({
     required this.controller,
-    required this.client,
+    required this.mediaResolver,
     super.key,
   });
 
   final EmojiAutocompleteController controller;
-  final Client client;
+  final MediaResolver mediaResolver;
 
   static const _maxHeight = 200.0;
 
@@ -48,7 +48,7 @@ class EmojiSuggestionList extends StatelessWidget {
           return _EmojiSuggestionTile(
             emoji: suggestions[index],
             isSelected: index == controller.selectedIndex,
-            client: client,
+            mediaResolver: mediaResolver,
             onTap: () => controller.selectSuggestion(suggestions[index]),
           );
         },
@@ -61,13 +61,13 @@ class _EmojiSuggestionTile extends StatelessWidget {
   const _EmojiSuggestionTile({
     required this.emoji,
     required this.isSelected,
-    required this.client,
+    required this.mediaResolver,
     required this.onTap,
   });
 
   final PackImage emoji;
   final bool isSelected;
-  final Client client;
+  final MediaResolver mediaResolver;
   final VoidCallback onTap;
 
   @override
@@ -76,9 +76,7 @@ class _EmojiSuggestionTile extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
 
     return Material(
-      color: isSelected
-          ? cs.primary.withValues(alpha: 0.12)
-          : Colors.transparent,
+      color: isSelected ? cs.primary.withValues(alpha: 0.12) : Colors.transparent,
       child: InkWell(
         onTap: onTap,
         child: Padding(
@@ -90,7 +88,7 @@ class _EmojiSuggestionTile extends StatelessWidget {
               else
                 MxcImage(
                   mxcUrl: emoji.url.toString(),
-                  client: client,
+                  mediaResolver: mediaResolver,
                   width: 28,
                   height: 28,
                   fallbackText: emoji.altText,

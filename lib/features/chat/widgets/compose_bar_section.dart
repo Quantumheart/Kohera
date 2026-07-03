@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
+import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
 import 'package:kohera/features/chat/widgets/compose_bar.dart';
 import 'package:matrix/matrix.dart';
+import 'package:provider/provider.dart';
 
 class ComposeBarSection extends StatelessWidget {
   const ComposeBarSection({
@@ -79,6 +81,8 @@ class ComposeBarSection extends StatelessWidget {
           uploadNotifier: uploadNotifier,
           room: room,
           joinedRooms: joinedRooms,
+          avatarResolver: context.read<MatrixService>().avatarResolver,
+          mediaResolver: context.read<MatrixService>().mediaResolver,
           typingController: typingController,
           focusNode: focusNode,
           voiceController: voiceController,
