@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -9,13 +8,12 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:kohera/features/rooms/models/kohera_room_member.dart';
-import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:kohera/features/rooms/services/room_member_list_resolver.dart';
 import 'package:kohera/features/rooms/services/room_permissions_resolver.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
 import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
-import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
+import 'package:kohera/features/rooms/widgets/member_sheet_launcher.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
@@ -63,6 +61,10 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
   void initState() {
     super.initState();
     _refreshDeviceKeys();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final room = context.read<MatrixService>().client.getRoomById(widget.roomId);
+      if (room != null) unawaited(_loadMembers(room));
+    });
   }
 
   @override
@@ -70,9 +72,9 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
     super.didUpdateWidget(oldWidget);
     final room = context.read<MatrixService>().client.getRoomById(widget.roomId);
     final count = room?.summary.mJoinedMemberCount;
-    if (count != null && count != _lastMemberCount) {
+    if (count != null && count != _lastMemberCount && !_loadingMembers) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        unawaited(_loadMembers(room!));
+        if (mounted && room != null) unawaited(_loadMembers(room));
       });
     }
   }
@@ -90,10 +92,19 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
       if (mounted) setState(() {});
     },),);
     unawaited(_syncSub?.cancel());
-    _syncSub = client.onSync.stream.listen((_) {
+    _syncSub = client.onSync.stream.listen((update) {
+      // Detect power-level changes to reload members.
+      final stateEvents = update.rooms?.join?[widget.roomId]?.state ?? [];
+      final hasPowerLevelChanges =
+          stateEvents.any((e) => e.type == EventTypes.RoomPowerLevels);
       _syncDebounce?.cancel();
       _syncDebounce = Timer(const Duration(seconds: 2), () {
-        if (mounted) setState(() {});
+        if (!mounted) return;
+        setState(() {});
+        if (hasPowerLevelChanges && _memberList != null) {
+          final room = client.getRoomById(widget.roomId);
+          if (room != null) unawaited(_loadMembers(room));
+        }
       });
     });
   }
@@ -102,7 +113,9 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
 
   Future<void> _loadMembers(Room room) async {
     final gen = ++_memberLoadGen;
-    setState(() => _loadingMembers = true);
+    setState(() {
+      _loadingMembers = true;
+    });
     try {
       final list = await const RoomMemberListResolver().resolve(room);
       if (!mounted || gen != _memberLoadGen) return;
@@ -115,11 +128,6 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
       debugPrint('[Kohera] Failed to load members: $e');
       if (mounted) {
         setState(() {
-          _memberList = const KoheraRoomMemberList(
-            members: [],
-            participantListComplete: false,
-            memberCount: 0,
-          );
           _loadingMembers = false;
         });
       }
@@ -130,47 +138,8 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
     BuildContext context,
     Room room,
     KoheraRoomMember member,
-  ) async {
-    final client = room.client;
-    final isMe = member.userId == client.userID;
-    final ownLevel = room.getPowerLevelByUserId(client.userID ?? '');
-    await showMemberSheetDialog(
-      context,
-      member: member,
-      isMe: isMe,
-      ownLevel: ownLevel,
-      canChangeRole: !isMe && room.canChangePowerLevel && member.powerLevel < ownLevel,
-      canKick: !isMe && room.canKick && member.powerLevel < ownLevel && !member.isBanned,
-      canBan: !isMe && room.canBan && member.powerLevel < ownLevel && !member.isBanned,
-      avatarResolver: context.read<MatrixService>().avatarResolver,
-      presence: context.read<MatrixService>().presence,
-      onStartDm: isMe
-          ? null
-          : () async {
-              final dmRoomId = await client.startDirectChat(
-                member.userId,
-                enableEncryption: true,
-              );
-              if (client.getRoomById(dmRoomId) == null) {
-                await client
-                    .waitForRoomInSync(dmRoomId, join: true)
-                    .timeout(const Duration(seconds: 30));
-              }
-              if (!context.mounted) return;
-              context.read<SelectionService>().selectRoom(dmRoomId);
-              context.goNamed(
-                Routes.room,
-                pathParameters: {RouteParams.roomId: dmRoomId},
-              );
-            },
-      onRoleChange: (level) => PowerLevelService.update(
-        room,
-        PowerLevelPatch(users: {member.userId: level}),
-      ),
-      onKick: (reason) => client.kick(room.id, member.userId, reason: reason),
-      onBan: (reason) => client.ban(room.id, member.userId, reason: reason),
-      onUnban: () => client.unban(room.id, member.userId),
-    );
+  ) {
+    return showRoomMemberSheet(context, room: room, member: member);
   }
 
   Future<void> _run(String action, Future<void> Function() task) async {
@@ -277,12 +246,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
   }
 
   Widget _buildContent(Room room, MatrixService matrix, ColorScheme cs, TextTheme tt) {
-    if (_memberList == null && !_loadingMembers) {
-      _loadingMembers = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        unawaited(_loadMembers(room));
-      });
-    }
+    // Initial member load is triggered in initState — no side effects in build.
     return ListView(
       padding: const EdgeInsets.only(bottom: 32),
       children: [

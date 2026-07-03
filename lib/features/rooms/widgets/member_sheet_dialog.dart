@@ -31,7 +31,8 @@ Future<void> showMemberSheetDialog(
   Future<void> Function(int newLevel)? onRoleChange,
   Future<void> Function(String? reason)? onKick,
   Future<void> Function(String? reason)? onBan,
-  Future<void> Function()? onUnban,
+  Future<void> Function(String? reason)? onUnban,
+  String Function(Object error)? formatError,
 }) {
   return showDialog<void>(
     context: context,
@@ -49,6 +50,7 @@ Future<void> showMemberSheetDialog(
       onKick: onKick,
       onBan: onBan,
       onUnban: onUnban,
+      formatError: formatError,
     ),
   );
 }
@@ -70,6 +72,7 @@ class MemberSheetDialog extends StatefulWidget {
     this.onKick,
     this.onBan,
     this.onUnban,
+    this.formatError,
     super.key,
   });
 
@@ -85,7 +88,11 @@ class MemberSheetDialog extends StatefulWidget {
   final Future<void> Function(int newLevel)? onRoleChange;
   final Future<void> Function(String? reason)? onKick;
   final Future<void> Function(String? reason)? onBan;
-  final Future<void> Function()? onUnban;
+  final Future<void> Function(String? reason)? onUnban;
+
+  /// Formats caught errors for user-facing display.
+  /// When null, errors fall back to `e.toString()`.
+  final String Function(Object error)? formatError;
 
   @override
   State<MemberSheetDialog> createState() => _MemberSheetDialogState();
@@ -143,7 +150,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _roleError = e.toString();
+          _roleError = widget.formatError?.call(e) ?? e.toString();
           _roleLoading = false;
         });
       }
@@ -172,7 +179,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
       if (mounted) {
         setState(() {
           _actionLoading = false;
-          _actionError = e.toString();
+          _actionError = widget.formatError?.call(e) ?? e.toString();
         });
       }
     }
@@ -201,7 +208,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
       if (mounted) {
         setState(() {
           _actionLoading = false;
-          _actionError = e.toString();
+          _actionError = widget.formatError?.call(e) ?? e.toString();
         });
       }
     }
@@ -221,14 +228,14 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
       _actionError = null;
     });
     try {
-      await widget.onUnban?.call();
+      await widget.onUnban?.call(null);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       debugPrint('[Kohera] Unban failed: $e');
       if (mounted) {
         setState(() {
           _actionLoading = false;
-          _actionError = e.toString();
+          _actionError = widget.formatError?.call(e) ?? e.toString();
         });
       }
     }

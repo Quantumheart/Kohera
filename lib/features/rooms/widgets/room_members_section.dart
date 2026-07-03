@@ -79,15 +79,7 @@ class _RoomMembersSectionState extends State<RoomMembersSection> {
           ),
         ),
         if (widget.members.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(
-              child: Text(
-                'No members',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-          )
+          const SizedBox.shrink()
         else ...[
           if (widget.members.members.length > 5)
             Padding(
