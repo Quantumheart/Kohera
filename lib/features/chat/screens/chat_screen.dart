@@ -1,7 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart'
-    show TargetPlatform, defaultTargetPlatform, kIsWeb;
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:giphy_get/giphy_get.dart';
 import 'package:go_router/go_router.dart';
@@ -48,7 +47,8 @@ import 'package:provider/provider.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({
-    required this.roomId, super.key,
+    required this.roomId,
+    super.key,
     this.initialEventId,
     this.onBack,
     this.onShowDetails,
@@ -67,8 +67,7 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen>
-    with VoiceRecordingMixin<ChatScreen> {
+class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatScreen> {
   final _msgCtrl = TextEditingController();
   final _composeFocusNode = FocusNode(debugLabel: 'chat-compose');
   final _messageListKey = GlobalKey<MessageListViewState>();
@@ -92,8 +91,7 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   String get voiceRoomId => widget.roomId;
 
-  bool get _isDesktop =>
-      isNativeDesktop;
+  bool get _isDesktop => isNativeDesktop;
 
   // ── Message actions ──────────────────────────────────────
   late ChatMessageActions _actions;
@@ -106,7 +104,6 @@ class _ChatScreenState extends State<ChatScreen>
   int _threadUnreadCount = 0;
   StreamSubscription<dynamic>? _threadCountSyncSub;
   Timer? _threadCountDebounce;
-
 
   // ── Web paste ───────────────────────────────────────────
   StreamSubscription<ClipboardImageData>? _webPasteSub;
@@ -139,7 +136,7 @@ class _ChatScreenState extends State<ChatScreen>
       final summaries = await fetchThreadSummaries(
         client: matrix.client,
         room: room,
-    );
+      );
       if (!mounted) return;
       setState(() => _threadUnreadCount = totalThreadUnread(summaries));
       _threadCountSyncSub ??= matrix.client.onSync.stream.listen((_) {
@@ -164,8 +161,7 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   void didUpdateWidget(ChatScreen old) {
     super.didUpdateWidget(old);
-    if (old.roomId != widget.roomId ||
-        old.initialEventId != widget.initialEventId) {
+    if (old.roomId != widget.roomId || old.initialEventId != widget.initialEventId) {
       _compose.reset(_msgCtrl);
       _typingCtrl?.dispose();
       _voiceCtrl?.dispose();
@@ -229,13 +225,15 @@ class _ChatScreenState extends State<ChatScreen>
       });
       return;
     }
-    unawaited(context.pushNamed(
-      Routes.roomThread,
-      pathParameters: {
-        RouteParams.roomId: widget.roomId,
-        RouteParams.eventId: rootEvent.eventId,
-      },
-    ),);
+    unawaited(
+      context.pushNamed(
+        Routes.roomThread,
+        pathParameters: {
+          RouteParams.roomId: widget.roomId,
+          RouteParams.eventId: rootEvent.eventId,
+        },
+      ),
+    );
   }
 
   void _closeThread() {
@@ -254,10 +252,12 @@ class _ChatScreenState extends State<ChatScreen>
       });
       return;
     }
-    unawaited(context.pushNamed(
-      Routes.roomThreads,
-      pathParameters: {RouteParams.roomId: widget.roomId},
-    ),);
+    unawaited(
+      context.pushNamed(
+        Routes.roomThreads,
+        pathParameters: {RouteParams.roomId: widget.roomId},
+      ),
+    );
   }
 
   void _closeThreadList() {
@@ -278,12 +278,14 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _forwardMessage(Event event, Timeline? timeline) {
-    unawaited(ForwardMessageDialog.show(
-      context,
-      event: event,
-      timeline: timeline,
-      matrixService: context.read<MatrixService>(),
-    ),);
+    unawaited(
+      ForwardMessageDialog.show(
+        context,
+        event: event,
+        timeline: timeline,
+        matrixService: context.read<MatrixService>(),
+      ),
+    );
   }
 
   void _dismissKeyboard() {
@@ -297,9 +299,8 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Future<void> _handleAttachPressed() async {
-    final isMobileTouch = !kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.iOS ||
-            defaultTargetPlatform == TargetPlatform.android);
+    final isMobileTouch =
+        !kIsWeb && (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.android);
 
     if (!isMobileTouch) {
       final attachment = await pickFileAsAttachment();
@@ -326,8 +327,7 @@ class _ChatScreenState extends State<ChatScreen>
         final attachment = await takePhotoWithCamera();
         if (attachment != null && mounted) _addAttachment(attachment);
       case AttachmentSource.gallery:
-        final remaining = ComposeStateController.maxAttachments -
-            _compose.pendingAttachments.value.length;
+        final remaining = ComposeStateController.maxAttachments - _compose.pendingAttachments.value.length;
         if (remaining <= 0) {
           _showAttachmentError(AddAttachmentResult.tooMany);
           return;
@@ -394,12 +394,10 @@ class _ChatScreenState extends State<ChatScreen>
 
   // ── GIF ───────────────────────────────────────────────────
 
-  bool get _giphyEnabled =>
-      AppConfig.isInitialized && AppConfig.instance.giphyEnabled;
+  bool get _giphyEnabled => AppConfig.isInitialized && AppConfig.instance.giphyEnabled;
 
   Future<void> _handleGifPressed() async {
-    final room =
-        context.read<MatrixService>().client.getRoomById(widget.roomId);
+    final room = context.read<MatrixService>().client.getRoomById(widget.roomId);
     if (room == null) return;
     final gif = await GiphyGet.getGif(
       context: context,
@@ -420,8 +418,7 @@ class _ChatScreenState extends State<ChatScreen>
   // ── Sticker picker ────────────────────────────────────────
 
   void _toggleStickerPicker() {
-    final isNarrow =
-        MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
+    final isNarrow = MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
     if (isNarrow) {
       final matrix = context.read<MatrixService>();
       final room = matrix.client.getRoomById(widget.roomId);
@@ -437,34 +434,36 @@ class _ChatScreenState extends State<ChatScreen>
   void _openStickerSheet(MatrixService matrix, Room room) {
     final stickerService = context.read<StickerPackService>();
     final skinTone = context.read<PreferencesService>().skinTone;
-    unawaited(showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (sheetCtx) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.7,
-        minChildSize: 0.7,
-        maxChildSize: 0.9,
-        builder: (_, __) => StickerPickerOverlay(
-          packs: stickerService.packsForRoom(room),
-          client: matrix.client,
-          skinTone: skinTone,
-          onStickerTapped: (sticker) {
-            Navigator.of(sheetCtx).pop();
-            unawaited(_handleStickerSelected(sticker));
-          },
-          onEmojiTapped: (emoji) {
-            Navigator.of(sheetCtx).pop();
-            _handleEmojiSelected(emoji);
-          },
-          onManagePacks: () {
-            Navigator.of(sheetCtx).pop();
-            context.goNamed(Routes.settingsStickerPacks);
-          },
+    unawaited(
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        builder: (sheetCtx) => DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.7,
+          minChildSize: 0.7,
+          maxChildSize: 0.9,
+          builder: (_, __) => StickerPickerOverlay(
+            packs: stickerService.packsForRoom(room),
+            mediaResolver: matrix.mediaResolver,
+            skinTone: skinTone,
+            onStickerTapped: (sticker) {
+              Navigator.of(sheetCtx).pop();
+              unawaited(_handleStickerSelected(sticker));
+            },
+            onEmojiTapped: (emoji) {
+              Navigator.of(sheetCtx).pop();
+              _handleEmojiSelected(emoji);
+            },
+            onManagePacks: () {
+              Navigator.of(sheetCtx).pop();
+              context.goNamed(Routes.settingsStickerPacks);
+            },
+          ),
         ),
       ),
-    ),);
+    );
   }
 
   Widget _buildEmojiPanel(MatrixService matrix, Room room) {
@@ -485,7 +484,7 @@ class _ChatScreenState extends State<ChatScreen>
         height: height,
         child: StickerPickerOverlay(
           packs: stickerService.packsForRoom(room),
-          client: matrix.client,
+          mediaResolver: matrix.mediaResolver,
           skinTone: skinTone,
           onStickerTapped: (sticker) {
             setState(() => _emojiPanelOpen = false);
@@ -502,8 +501,7 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Future<void> _handleStickerSelected(PackImage sticker) async {
-    final room =
-        context.read<MatrixService>().client.getRoomById(widget.roomId);
+    final room = context.read<MatrixService>().client.getRoomById(widget.roomId);
     if (room == null) return;
     try {
       await room.sendEvent(
@@ -527,8 +525,7 @@ class _ChatScreenState extends State<ChatScreen>
     final text = _msgCtrl.text;
     final sel = _msgCtrl.selection;
     final pos = sel.isValid ? sel.baseOffset : text.length;
-    final insertion =
-        emoji.emoji != null ? '${emoji.emoji} ' : ':${emoji.shortcode}: ';
+    final insertion = emoji.emoji != null ? '${emoji.emoji} ' : ':${emoji.shortcode}: ';
     _msgCtrl.value = TextEditingValue(
       text: text.substring(0, pos) + insertion + text.substring(pos),
       selection: TextSelection.collapsed(offset: pos + insertion.length),
@@ -583,11 +580,11 @@ class _ChatScreenState extends State<ChatScreen>
         onShowDetails: widget.onShowDetails,
         onSearch: _openSearch,
         onPinnedEvent: (eventId) async {
-            final event = await room.getEventById(eventId);
-            if (event != null && mounted) {
-              _messageListKey.currentState?.navigateToEvent(event);
-            }
-          },
+          final event = await room.getEventById(eventId);
+          if (event != null && mounted) {
+            _messageListKey.currentState?.navigateToEvent(event);
+          }
+        },
         onShowThreads: _openThreadList,
         threadUnreadCount: _threadUnreadCount,
       );
@@ -621,8 +618,7 @@ class _ChatScreenState extends State<ChatScreen>
 
     final column = Column(
       children: [
-        if (roomHasCall && !isInCall)
-          JoinCallBanner(roomId: room.id, callService: callService),
+        if (roomHasCall && !isInCall) JoinCallBanner(roomId: room.id, callService: callService),
         Expanded(
           child: Stack(
             children: [
@@ -633,8 +629,7 @@ class _ChatScreenState extends State<ChatScreen>
                 initialEventId: widget.initialEventId,
                 highlightedEventId: _search.highlightedEventId,
                 onReply: _setReplyTo,
-                onEdit: (event, timeline) =>
-                    _compose.setEditEvent(event, timeline, _msgCtrl),
+                onEdit: (event, timeline) => _compose.setEditEvent(event, timeline, _msgCtrl),
                 onToggleReaction: _actions.toggleReaction,
                 onPin: _actions.togglePin,
                 onHighlight: _search.setHighlight,
@@ -661,8 +656,7 @@ class _ChatScreenState extends State<ChatScreen>
           ),
         ),
         TypingIndicator(
-          typingDisplayNamesProvider: () =>
-              matrix.selection.summaryFor(room).typingDisplayNames,
+          typingDisplayNamesProvider: () => matrix.selection.summaryFor(room).typingDisplayNames,
           syncStream: matrix.client.onSync.stream,
         ),
         ComposeBarSection(
@@ -725,7 +719,9 @@ class _ChatScreenState extends State<ChatScreen>
         children: [
           Expanded(child: body),
           VerticalDivider(
-              width: 1, color: cs.outlineVariant.withValues(alpha: 0.3),),
+            width: 1,
+            color: cs.outlineVariant.withValues(alpha: 0.3),
+          ),
           SizedBox(width: 380, child: pane),
         ],
       );

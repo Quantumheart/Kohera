@@ -2,62 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
-import 'package:kohera/shared/models/kohera_user_summary_mapper.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
-import 'package:matrix/matrix.dart';
-
-// ── Receipt map builder ──────────────────────────────────────
-
-/// Builds a map from eventId → list of [KoheraReadReceipt] for other users.
-///
-/// This is the conversion boundary: it reads SDK receipt state from [room]
-/// and produces Kohera-owned [KoheraReadReceipt]s with pre-computed
-/// [KoheraUserSummary] fields. The consuming widgets (ReadReceiptsRow,
-/// showReadersSheet) never touch the Matrix SDK directly.
-///
-/// Iterates [room.receiptState.global.otherUsers] (and optionally
-/// mainThread) once, so cost is O(N) where N = number of users with
-/// receipts, rather than O(N×M) if we queried per-event.
-Map<String, List<KoheraReadReceipt>> buildReceiptMap(
-  Room room,
-  String? myUserId, {
-  String? threadRootId,
-}) {
-  final map = <String, List<KoheraReadReceipt>>{};
-  final seen = <String>{};
-
-  void addReceipts(Map<String, LatestReceiptStateData> users) {
-    for (final entry in users.entries) {
-      final userId = entry.key;
-      if (userId == myUserId || seen.contains(userId)) continue;
-      seen.add(userId);
-
-      final data = entry.value;
-      final user = room.unsafeGetUserFromMemoryOrFallback(userId);
-      final receipt = KoheraReadReceipt(
-        user: toKoheraUserSummary(user),
-        time: data.timestamp,
-      );
-      (map[data.eventId] ??= []).add(receipt);
-    }
-  }
-
-  if (threadRootId != null) {
-    final threadState = room.receiptState.byThread[threadRootId];
-    if (threadState != null) addReceipts(threadState.otherUsers);
-    return map;
-  }
-
-  addReceipts(room.receiptState.global.otherUsers);
-
-  final mainThread = room.receiptState.mainThread;
-  if (mainThread != null) {
-    addReceipts(mainThread.otherUsers);
-  }
-
-  return map;
-}
 
 // ── ReadReceiptsRow ──────────────────────────────────────────
 
@@ -94,13 +40,10 @@ class ReadReceiptsRow extends StatelessWidget {
         padding: const EdgeInsets.only(top: 2, bottom: 4),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment:
-              isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+          mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
           children: [
             SizedBox(
-              width: _borderedSize +
-                  (visibleCount - 1) * (_borderedSize - _overlap) +
-                  (overflow > 0 ? 20 : 0),
+              width: _borderedSize + (visibleCount - 1) * (_borderedSize - _overlap) + (overflow > 0 ? 20 : 0),
               height: _borderedSize,
               child: Stack(
                 clipBehavior: Clip.none,
@@ -177,56 +120,56 @@ void showReadersSheet(
   List<KoheraReadReceipt> receipts,
   AvatarResolver avatarResolver,
 ) {
-  unawaited(showModalBottomSheet(
-    context: context,
-    builder: (context) {
-      final localizations = MaterialLocalizations.of(context);
-      return SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                'Read by ${receipts.length}',
-                style: Theme.of(context).textTheme.titleMedium,
+  unawaited(
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        final localizations = MaterialLocalizations.of(context);
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Text(
+                  'Read by ${receipts.length}',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
-            ),
-            const Divider(height: 1),
-            Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: receipts.length,
-                itemBuilder: (context, i) {
-                  final receipt = receipts[i];
-                  final name = receipt.user.displayname;
-                  final timeOfDay =
-                      TimeOfDay.fromDateTime(receipt.time.toLocal());
-                  final timeStr =
-                      localizations.formatTimeOfDay(timeOfDay);
+              const Divider(height: 1),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: receipts.length,
+                  itemBuilder: (context, i) {
+                    final receipt = receipts[i];
+                    final name = receipt.user.displayname;
+                    final timeOfDay = TimeOfDay.fromDateTime(receipt.time.toLocal());
+                    final timeStr = localizations.formatTimeOfDay(timeOfDay);
 
-                  return ListTile(
-                    leading: UserAvatar(
-                      avatarResolver: avatarResolver,
-                      avatarUrl: receipt.user.avatarUrl,
-                      userId: receipt.user.userId,
-                      displayname: receipt.user.displayname,
-                      size: 36,
-                    ),
-                    title: Text(name),
-                    trailing: Text(
-                      timeStr,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                  );
-                },
+                    return ListTile(
+                      leading: UserAvatar(
+                        avatarResolver: avatarResolver,
+                        avatarUrl: receipt.user.avatarUrl,
+                        userId: receipt.user.userId,
+                        displayname: receipt.user.displayname,
+                        size: 36,
+                      ),
+                      title: Text(name),
+                      trailing: Text(
+                        timeStr,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
-        ),
-      );
-    },
-  ),);
+            ],
+          ),
+        );
+      },
+    ),
+  );
 }

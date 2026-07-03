@@ -11,6 +11,7 @@ import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
 import 'package:kohera/features/chat/services/media_content_resolver.dart';
 import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:kohera/features/chat/services/reaction_resolver.dart';
+import 'package:kohera/features/chat/services/read_receipt_resolver.dart';
 import 'package:kohera/features/chat/services/sdk_media_controller.dart';
 import 'package:kohera/features/chat/services/state_event_resolver.dart';
 import 'package:kohera/features/chat/widgets/call_event_tile.dart';
@@ -19,7 +20,6 @@ import 'package:kohera/features/chat/widgets/emoji_picker_sheet.dart';
 import 'package:kohera/features/chat/widgets/message_action_sheet.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
 import 'package:kohera/features/chat/widgets/reaction_chips.dart';
-import 'package:kohera/features/chat/widgets/read_receipts.dart';
 import 'package:kohera/features/chat/widgets/state_event_tile.dart';
 import 'package:kohera/features/chat/widgets/sticker_bubble.dart';
 import 'package:kohera/features/chat/widgets/sticker_message_item.dart';
@@ -109,8 +109,7 @@ class MessageListViewState extends State<MessageListView> {
   @override
   void didUpdateWidget(MessageListView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.roomId != widget.roomId ||
-        oldWidget.initialEventId != widget.initialEventId) {
+    if (oldWidget.roomId != widget.roomId || oldWidget.initialEventId != widget.initialEventId) {
       _timeline?.cancelSubscriptions();
       _readMarkerTimer?.cancel();
       _cachedVisibleEvents = null;
@@ -127,8 +126,7 @@ class MessageListViewState extends State<MessageListView> {
   Future<void> _initTimeline() async {
     final gen = ++_initGeneration;
     final snapshotFullyRead = room.fullyRead;
-    _initialFullyReadId =
-        snapshotFullyRead.isNotEmpty ? snapshotFullyRead : null;
+    _initialFullyReadId = snapshotFullyRead.isNotEmpty ? snapshotFullyRead : null;
     _timeline = await room.getTimeline(
       eventContextId: widget.initialEventId,
       onUpdate: () {
@@ -172,8 +170,7 @@ class MessageListViewState extends State<MessageListView> {
 
     final requested = <String>{};
     for (final event in events) {
-      if (event.type == EventTypes.Encrypted &&
-          event.messageType == MessageTypes.BadEncrypted) {
+      if (event.type == EventTypes.Encrypted && event.messageType == MessageTypes.BadEncrypted) {
         final sessionId = event.content.tryGet<String>('session_id');
         final senderKey = event.content.tryGet<String>('sender_key');
         if (sessionId != null && requested.add(sessionId)) {
@@ -228,15 +225,16 @@ class MessageListViewState extends State<MessageListView> {
       }
     }
     return merged
-        .where((e) =>
-            (((e.type == EventTypes.Message ||
-                            e.type == EventTypes.Encrypted) &&
-                        e.relationshipType != RelationshipTypes.edit &&
-                        !_isCallMemberEvent(e)) ||
-                    callEventTypes.contains(e.type) ||
-                    _isStateEvent(e) ||
-                    e.type == EventTypes.Sticker) &&
-            _matchesThread(e, threadRootId),)
+        .where(
+          (e) =>
+              (((e.type == EventTypes.Message || e.type == EventTypes.Encrypted) &&
+                      e.relationshipType != RelationshipTypes.edit &&
+                      !_isCallMemberEvent(e)) ||
+                  callEventTypes.contains(e.type) ||
+                  _isStateEvent(e) ||
+                  e.type == EventTypes.Sticker) &&
+              _matchesThread(e, threadRootId),
+        )
         .toList()
       ..sort((a, b) => b.originServerTs.compareTo(a.originServerTs));
   }
@@ -317,8 +315,7 @@ class MessageListViewState extends State<MessageListView> {
       _scrollBackFired = false;
     } else if (notification is ScrollUpdateNotification) {
       _scrollBackDelta += notification.scrollDelta ?? 0;
-      if (!_scrollBackFired &&
-          _scrollBackDelta >= _scrollBackDismissThreshold) {
+      if (!_scrollBackFired && _scrollBackDelta >= _scrollBackDismissThreshold) {
         _scrollBackFired = true;
         widget.onScrollBack!.call();
       }
@@ -338,8 +335,7 @@ class MessageListViewState extends State<MessageListView> {
         _cachedVisibleEvents = null;
         final positions = _itemPosListener.itemPositions.value;
         if (positions.isEmpty) break;
-        final maxIndex =
-            positions.map((p) => p.index).reduce((a, b) => a > b ? a : b);
+        final maxIndex = positions.map((p) => p.index).reduce((a, b) => a > b ? a : b);
         if (maxIndex < _visibleEvents.length - _historyLoadThreshold) break;
       }
     } catch (e) {
@@ -445,12 +441,10 @@ class MessageListViewState extends State<MessageListView> {
     final prevMembership = prev.tryGet<String>('membership');
     final currMembership = curr.tryGet<String>('membership');
     if (prevMembership != currMembership) return false;
-    if (prev.tryGet<String>('displayname') !=
-        curr.tryGet<String>('displayname')) {
+    if (prev.tryGet<String>('displayname') != curr.tryGet<String>('displayname')) {
       return false;
     }
-    if (prev.tryGet<String>('avatar_url') !=
-        curr.tryGet<String>('avatar_url')) {
+    if (prev.tryGet<String>('avatar_url') != curr.tryGet<String>('avatar_url')) {
       return false;
     }
     return true;
@@ -475,9 +469,7 @@ class MessageListViewState extends State<MessageListView> {
     for (final e in events) {
       if (e.type != kCallInvite) continue;
       if (!e.originServerTs.isBefore(event.originServerTs)) continue;
-      if (hangupCallId != null &&
-          hangupCallId.isNotEmpty &&
-          e.content.tryGet<String>('call_id') == hangupCallId) {
+      if (hangupCallId != null && hangupCallId.isNotEmpty && e.content.tryGet<String>('call_id') == hangupCallId) {
         matchedInvite = e;
         break;
       }
@@ -594,36 +586,28 @@ class MessageListViewState extends State<MessageListView> {
                   ? ReactionChips(
                       reactions: stickerReactions,
                       isMe: isMe,
-                      avatarResolver:
-                          context.read<MatrixService>().avatarResolver,
-                      onToggle: (emoji) =>
-                          widget.onToggleReaction(event, emoji),
+                      avatarResolver: context.read<MatrixService>().avatarResolver,
+                      onToggle: (emoji) => widget.onToggleReaction(event, emoji),
                     )
                   : null,
-              onToggleReaction: (eventId, emoji) =>
-                  widget.onToggleReaction(event, emoji),
+              onToggleReaction: (eventId, emoji) => widget.onToggleReaction(event, emoji),
               onReply: (eventId) => widget.onReply(event),
               onPin: (eventId) => widget.onPin(event),
-              onForward: widget.onForward != null
-                  ? (eventId) => widget.onForward!(event, _timeline)
-                  : null,
-              onOpenContextMenu: (position) =>
-                  _showStickerContextMenu(context, event, isMe, position),
-              onShowMobileActions: (rect) =>
-                  _showStickerMobileActions(context, event, isMe, rect),
+              onForward: widget.onForward != null ? (eventId) => widget.onForward!(event, _timeline) : null,
+              onOpenContextMenu: (position) => _showStickerContextMenu(context, event, isMe, position),
+              onShowMobileActions: (rect) => _showStickerMobileActions(context, event, isMe, rect),
               highlightedEventId: widget.highlightedEventId,
               isPinned: event.room.pinnedEventIds.contains(event.eventId),
             );
           } else {
-            final prevSender =
-                i + 1 < events.length ? events[i + 1].senderId : null;
+            final prevSender = i + 1 < events.length ? events[i + 1].senderId : null;
             tile = ChatMessageItem(
               event: event,
               isMe: event.senderId == widget.matrix.client.userID,
               isFirst: event.senderId != prevSender,
               isMobile: isMobile,
               timeline: _timeline,
-              client: widget.matrix.client,
+              myUserId: widget.matrix.client.userID ?? '',
               highlightedEventId: widget.highlightedEventId,
               receiptMap: receiptMap,
               onReply: widget.onReply,
@@ -633,9 +617,7 @@ class MessageListViewState extends State<MessageListView> {
               onTapReply: _navigateToEvent,
               onReplyInThread: widget.onReplyInThread,
               onOpenThread: widget.onOpenThread,
-              onForward: widget.onForward == null
-                  ? null
-                  : (event) => widget.onForward!(event, _timeline),
+              onForward: widget.onForward == null ? null : (event) => widget.onForward!(event, _timeline),
               inThread: widget.threadRootEventId != null,
             );
           }
@@ -673,23 +655,23 @@ class MessageListViewState extends State<MessageListView> {
     bool isMe,
     Offset position,
   ) {
-    unawaited(showMessageContextMenu(
-      context,
-      event: event,
-      isMe: isMe,
-      isPinned: event.room.pinnedEventIds.contains(event.eventId),
-      timeline: _timeline,
-      position: position,
-      onReply: () => widget.onReply(event),
-      onReact: () => showEmojiPickerSheet(
-            context,
-            (emoji) => widget.onToggleReaction(event, emoji),
-          ),
-      onPin: () => widget.onPin(event),
-      onForward: widget.onForward != null
-          ? () => widget.onForward!(event, _timeline)
-          : null,
-    ),);
+    unawaited(
+      showMessageContextMenu(
+        context,
+        event: event,
+        isMe: isMe,
+        isPinned: event.room.pinnedEventIds.contains(event.eventId),
+        timeline: _timeline,
+        position: position,
+        onReply: () => widget.onReply(event),
+        onReact: () => showEmojiPickerSheet(
+          context,
+          (emoji) => widget.onToggleReaction(event, emoji),
+        ),
+        onPin: () => widget.onPin(event),
+        onForward: widget.onForward != null ? () => widget.onForward!(event, _timeline) : null,
+      ),
+    );
   }
 
   void _showStickerMobileActions(
@@ -729,20 +711,20 @@ class MessageListViewState extends State<MessageListView> {
           ),
         MessageAction(
           label: isPinned ? 'Unpin' : 'Pin',
-          icon: isPinned
-              ? Icons.push_pin_rounded
-              : Icons.push_pin_outlined,
+          icon: isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
           onTap: () => widget.onPin(event),
         ),
         MessageAction(
           label: 'Copy link',
           icon: Icons.link_rounded,
           onTap: () {
-            unawaited(Clipboard.setData(
-              ClipboardData(
-                text: event.content.tryGet<String>('url') ?? '',
+            unawaited(
+              Clipboard.setData(
+                ClipboardData(
+                  text: event.content.tryGet<String>('url') ?? '',
+                ),
               ),
-            ),);
+            );
           },
           color: cs.onSurface,
         ),

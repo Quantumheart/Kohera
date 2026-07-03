@@ -1,13 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/utils/media_auth.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/shared/services/media_resolver.dart';
 
 class MxcImage extends StatefulWidget {
   const MxcImage({
     required this.mxcUrl,
-    required this.client,
+    required this.mediaResolver,
     required this.fallbackText,
     required this.fallbackStyle,
     this.width,
@@ -17,7 +16,7 @@ class MxcImage extends StatefulWidget {
   });
 
   final String mxcUrl;
-  final Client? client;
+  final MediaResolver? mediaResolver;
   final double? width;
   final double? height;
   final BoxFit? fit;
@@ -30,6 +29,7 @@ class MxcImage extends StatefulWidget {
 
 class _MxcImageState extends State<MxcImage> {
   String? _resolvedUrl;
+  Map<String, String>? _resolvedHeaders;
   bool _loading = true;
 
   @override
@@ -42,46 +42,35 @@ class _MxcImageState extends State<MxcImage> {
   void didUpdateWidget(MxcImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.mxcUrl != widget.mxcUrl) {
+      _resolvedUrl = null;
+      _resolvedHeaders = null;
+      _loading = true;
       unawaited(_resolve());
     }
   }
 
   Future<void> _resolve() async {
-    final src = widget.mxcUrl;
-    final client = widget.client;
-
-    if (!src.startsWith('mxc://') || client == null) {
+    final resolver = widget.mediaResolver;
+    if (resolver == null) {
       if (mounted) {
         setState(() {
-          _resolvedUrl = src.startsWith('http') ? src : null;
+          _resolvedUrl = widget.mxcUrl.startsWith('http') ? widget.mxcUrl : null;
           _loading = false;
         });
       }
       return;
     }
 
-    final mxc = Uri.tryParse(src);
-    if (mxc == null) {
-      if (mounted) setState(() => _loading = false);
-      return;
-    }
-
     try {
-      final useThumb = widget.width != null && widget.width! <= 96;
-      final Uri uri;
-      if (useThumb) {
-        uri = await mxc.getThumbnailUri(
-          client,
-          width: 48,
-          height: 48,
-          method: ThumbnailMethod.scale,
-        );
-      } else {
-        uri = await mxc.getDownloadUri(client);
-      }
+      final result = await resolver.resolve(
+        widget.mxcUrl,
+        width: widget.width,
+        height: widget.height,
+      );
       if (mounted) {
         setState(() {
-          _resolvedUrl = uri.toString();
+          _resolvedUrl = result?.url;
+          _resolvedHeaders = result?.headers;
           _loading = false;
         });
       }
@@ -109,11 +98,8 @@ class _MxcImageState extends State<MxcImage> {
       width: widget.width,
       height: widget.height,
       fit: widget.fit,
-      headers: widget.client != null
-          ? mediaAuthHeaders(widget.client!, _resolvedUrl!)
-          : null,
-      errorBuilder: (_, __, ___) =>
-          Text(widget.fallbackText, style: widget.fallbackStyle),
+      headers: _resolvedHeaders,
+      errorBuilder: (_, __, ___) => Text(widget.fallbackText, style: widget.fallbackStyle),
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
+import 'package:kohera/features/chat/services/read_receipt_resolver.dart';
 import 'package:kohera/features/chat/widgets/read_receipts.dart';
 import 'package:kohera/shared/models/kohera_user_summary_mapper.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
@@ -41,7 +42,8 @@ KoheraReadReceipt _receipt(MockUser user, DateTime time) =>
 
 MockRoom _makeRoom({
   required Map<String, LatestReceiptStateData> globalOtherUsers,
-  required Map<String, MockUser> userMap, Map<String, LatestReceiptStateData>? mainThreadOtherUsers,
+  required Map<String, MockUser> userMap,
+  Map<String, LatestReceiptStateData>? mainThreadOtherUsers,
   Map<String, Map<String, LatestReceiptStateData>>? byThreadOtherUsers,
 }) {
   final room = MockRoom();
@@ -75,15 +77,16 @@ MockRoom _makeRoom({
     }
   }
 
-  when(room.receiptState).thenReturn(LatestReceiptState(
-    global: global,
-    mainThread: mainThread,
-    byThread: byThread,
-  ),);
+  when(room.receiptState).thenReturn(
+    LatestReceiptState(
+      global: global,
+      mainThread: mainThread,
+      byThread: byThread,
+    ),
+  );
 
   for (final entry in userMap.entries) {
-    when(room.unsafeGetUserFromMemoryOrFallback(entry.key))
-        .thenReturn(entry.value);
+    when(room.unsafeGetUserFromMemoryOrFallback(entry.key)).thenReturn(entry.value);
   }
 
   return room;
@@ -127,8 +130,10 @@ void main() {
 
       expect(map.containsKey(r'$evt1'), isTrue);
       expect(map[r'$evt1']!.length, 2);
-      expect(map[r'$evt1']!.map((r) => r.user.userId),
-          containsAll(['@alice:example.com', '@bob:example.com']),);
+      expect(
+        map[r'$evt1']!.map((r) => r.user.userId),
+        containsAll(['@alice:example.com', '@bob:example.com']),
+      );
 
       // Own user should not appear
       expect(
@@ -236,8 +241,7 @@ void main() {
       expect(sizedBox.height, 0);
     });
 
-    testWidgets('renders correct number of avatars for 2 receipts',
-        (tester) async {
+    testWidgets('renders correct number of avatars for 2 receipts', (tester) async {
       final receipts = [
         _receipt(
           _makeUser('@alice:example.com', 'Alice'),
@@ -317,8 +321,7 @@ void main() {
       expect(find.text('Bob'), findsOneWidget);
     });
 
-    testWidgets('hidden when readReceipts preference is disabled',
-        (tester) async {
+    testWidgets('hidden when readReceipts preference is disabled', (tester) async {
       SharedPreferences.setMockInitialValues({'read_receipts': false});
       final sp = await SharedPreferences.getInstance();
       final prefs = PreferencesService(prefs: sp);
@@ -338,8 +341,7 @@ void main() {
             home: Scaffold(
               body: Builder(
                 builder: (context) {
-                  final show =
-                      context.watch<PreferencesService>().readReceipts;
+                  final show = context.watch<PreferencesService>().readReceipts;
                   if (!show) return const SizedBox.shrink();
                   return ReadReceiptsRow(
                     receipts: receipts,
@@ -358,8 +360,7 @@ void main() {
       expect(find.byType(UserAvatar), findsNothing);
     });
 
-    testWidgets('falls back to user ID when displayName is null',
-        (tester) async {
+    testWidgets('falls back to user ID when displayName is null', (tester) async {
       final receipts = [
         _receipt(
           _makeUser('@anon:example.com', null),

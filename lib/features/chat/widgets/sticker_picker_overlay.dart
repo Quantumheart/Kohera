@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/core/utils/openmoji.dart';
+import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
-import 'package:matrix/matrix.dart';
 
 class StickerPickerOverlay extends StatefulWidget {
   const StickerPickerOverlay({
     required this.packs,
-    required this.client,
+    required this.mediaResolver,
     required this.onStickerTapped,
     required this.onEmojiTapped,
     required this.onManagePacks,
@@ -17,7 +17,7 @@ class StickerPickerOverlay extends StatefulWidget {
   });
 
   final List<StickerPack> packs;
-  final Client client;
+  final MediaResolver mediaResolver;
   final void Function(PackImage) onStickerTapped;
   final void Function(PackImage) onEmojiTapped;
   final VoidCallback onManagePacks;
@@ -27,8 +27,7 @@ class StickerPickerOverlay extends StatefulWidget {
   State<StickerPickerOverlay> createState() => _StickerPickerOverlayState();
 }
 
-class _StickerPickerOverlayState extends State<StickerPickerOverlay>
-    with SingleTickerProviderStateMixin {
+class _StickerPickerOverlayState extends State<StickerPickerOverlay> with SingleTickerProviderStateMixin {
   final _searchCtrl = TextEditingController();
   TabController? _tabController;
   String _query = '';
@@ -49,9 +48,7 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
     super.didUpdateWidget(old);
     if (old.packs.length != widget.packs.length) {
       _tabController?.dispose();
-      _tabController = widget.packs.isEmpty
-          ? null
-          : TabController(length: widget.packs.length, vsync: this);
+      _tabController = widget.packs.isEmpty ? null : TabController(length: widget.packs.length, vsync: this);
     }
   }
 
@@ -64,8 +61,7 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
 
   bool _matches(PackImage img) {
     if (_query.isEmpty) return true;
-    return img.shortcode.toLowerCase().contains(_query) ||
-        (img.body?.toLowerCase().contains(_query) ?? false);
+    return img.shortcode.toLowerCase().contains(_query) || (img.body?.toLowerCase().contains(_query) ?? false);
   }
 
   @override
@@ -120,7 +116,7 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
                             if (pack.avatarUrl != null) ...[
                               MxcImage(
                                 mxcUrl: pack.avatarUrl!.toString(),
-                                client: widget.client,
+                                mediaResolver: widget.mediaResolver,
                                 width: 18,
                                 height: 18,
                                 fallbackText: '',
@@ -172,8 +168,7 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
                 )
               : null,
           isDense: true,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide.none,
@@ -292,7 +287,7 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
           padding: const EdgeInsets.all(4),
           child: MxcImage(
             mxcUrl: sticker.url.toString(),
-            client: widget.client,
+            mediaResolver: widget.mediaResolver,
             width: 64,
             height: 64,
             fit: BoxFit.contain,
@@ -319,7 +314,7 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay>
               ? OpenMojiImage(grapheme: toned, size: 40)
               : MxcImage(
                   mxcUrl: emoji.url.toString(),
-                  client: widget.client,
+                  mediaResolver: widget.mediaResolver,
                   width: 40,
                   height: 40,
                   fit: BoxFit.contain,

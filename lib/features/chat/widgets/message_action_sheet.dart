@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
+import 'package:kohera/core/services/client_media_resolver.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/core/utils/openmoji.dart';
@@ -39,18 +40,19 @@ void showMessageActionSheet({
   required Timeline? timeline,
   void Function(String emoji)? onQuickReact,
 }) {
-  unawaited(Navigator.of(context).push(
-    _MessageActionSheetRoute(
-      event: event,
-      isMe: isMe,
-      bubbleRect: bubbleRect,
-      actions: actions,
-      timeline: timeline,
-      capturedTheme: Theme.of(context),
-      onQuickReact: onQuickReact,
+  unawaited(
+    Navigator.of(context).push(
+      _MessageActionSheetRoute(
+        event: event,
+        isMe: isMe,
+        bubbleRect: bubbleRect,
+        actions: actions,
+        timeline: timeline,
+        capturedTheme: Theme.of(context),
+        onQuickReact: onQuickReact,
+      ),
     ),
-  ),);
-
+  );
 }
 
 // ── Route ───────────────────────────────────────────────
@@ -168,8 +170,7 @@ class _MessageActionSheetState extends State<_MessageActionSheet> {
     final quickReactSpace = hasQuickReact ? _quickReactHeight + _gap : 0.0;
 
     // Total height needed: bubble + gap + quick-react bar + gap + action list
-    final totalHeight =
-        widget.bubbleRect.height + _gap + quickReactSpace + actionListHeight;
+    final totalHeight = widget.bubbleRect.height + _gap + quickReactSpace + actionListHeight;
 
     // Determine top position: try to keep bubble in place, but shift up if
     // the action list would overflow the screen bottom.
@@ -226,6 +227,7 @@ class _MessageActionSheetState extends State<_MessageActionSheet> {
                           style: style,
                           isMe: widget.isMe,
                           room: widget.event.room,
+                          mediaResolver: ClientMediaResolver(widget.event.room.client),
                         ),
                       ),
                     ),

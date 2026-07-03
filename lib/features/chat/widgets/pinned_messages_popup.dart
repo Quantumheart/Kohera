@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
+import 'package:kohera/core/services/client_media_resolver.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
@@ -124,8 +125,7 @@ class _PopupLayoutDelegate extends SingleChildLayoutDelegate {
 
   @override
   bool shouldRelayout(_PopupLayoutDelegate oldDelegate) {
-    return anchor != oldDelegate.anchor ||
-        containerSize != oldDelegate.containerSize;
+    return anchor != oldDelegate.anchor || containerSize != oldDelegate.containerSize;
   }
 }
 
@@ -211,8 +211,7 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
         children: [
           // Header
           Padding(
-            padding:
-                const EdgeInsets.only(left: 16, right: 4, top: 4, bottom: 4),
+            padding: const EdgeInsets.only(left: 16, right: 4, top: 4, bottom: 4),
             child: Row(
               children: [
                 Text(
@@ -399,8 +398,7 @@ class _PinnedMessageTile extends StatelessWidget {
   static Widget _buildBody(Event event, TextTheme tt, ColorScheme cs) {
     final bodyStyle = tt.bodySmall?.copyWith(color: cs.onSurfaceVariant);
     final formattedBody = event.formattedText;
-    final hasHtml = formattedBody.isNotEmpty &&
-        event.content['format'] == 'org.matrix.custom.html';
+    final hasHtml = formattedBody.isNotEmpty && event.content['format'] == 'org.matrix.custom.html';
 
     if (hasHtml) {
       return HtmlMessageText(
@@ -408,6 +406,7 @@ class _PinnedMessageTile extends StatelessWidget {
         style: bodyStyle,
         isMe: false,
         room: event.room,
+        mediaResolver: ClientMediaResolver(event.room.client),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       );
@@ -424,8 +423,7 @@ class _PinnedMessageTile extends StatelessWidget {
 
   static String _formatDateTime(DateTime ts) {
     final now = DateTime.now();
-    final isToday =
-        ts.year == now.year && ts.month == now.month && ts.day == now.day;
+    final isToday = ts.year == now.year && ts.month == now.month && ts.day == now.day;
     final h = ts.hour.toString().padLeft(2, '0');
     final m = ts.minute.toString().padLeft(2, '0');
     if (isToday) return '$h:$m';
