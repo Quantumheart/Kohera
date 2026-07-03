@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
 
 void main() {
@@ -26,13 +27,24 @@ void main() {
 
   group('KoheraRoomMember', () {
     test('equality is based on userId', () {
-      const a = KoheraRoomMember(userId: '@alice:e.com', powerLevel: 100);
+      const a = KoheraRoomMember(
+        userId: '@alice:e.com',
+        displayname: 'Alice',
+        membership: 'join',
+        powerLevel: 100,
+      );
       const b = KoheraRoomMember(
         userId: '@alice:e.com',
-        displayName: 'Alice 2',
+        displayname: 'Alice 2',
+        membership: 'join',
         powerLevel: 50,
       );
-      const c = KoheraRoomMember(userId: '@bob:e.com', powerLevel: 0);
+      const c = KoheraRoomMember(
+        userId: '@bob:e.com',
+        displayname: 'Bob',
+        membership: 'join',
+        powerLevel: 0,
+      );
 
       expect(a, equals(b));
       expect(a, isNot(equals(c)));
@@ -42,7 +54,8 @@ void main() {
     test('toString includes userId', () {
       const m = KoheraRoomMember(
         userId: '@alice:e.com',
-        displayName: 'Alice',
+        displayname: 'Alice',
+        membership: 'join',
         powerLevel: 50,
       );
       expect(m.toString(), contains('@alice:e.com'));
@@ -103,7 +116,12 @@ void main() {
         isEncrypted: true,
         powerLevelsContent: {'invite': 50},
         participants: [
-          KoheraRoomMember(userId: '@a:e.com', powerLevel: 0),
+          KoheraRoomMember(
+            userId: '@a:e.com',
+            displayname: 'A',
+            membership: 'join',
+            powerLevel: 0,
+          ),
         ],
         myPowerLevel: 100,
       );

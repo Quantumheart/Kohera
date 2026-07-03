@@ -2,82 +2,53 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
-import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
+import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/models/room_role.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
-import 'package:kohera/shared/models/kohera_user_summary.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
-import 'package:matrix/matrix.dart';
-import 'package:provider/provider.dart';
 
-/// Opens the member profile sheet for [user] in [room].
+/// Opens the member profile sheet for [member].
 ///
 /// Shows avatar, display name, Matrix ID, presence and role, plus a
 /// "Send message" action (others only) and moderation actions when the
-/// caller has permission. Reused by the room members list and chat avatars.
-Future<void> showMemberSheet(
+/// caller has permission. All SDK work is done by the caller — this
+/// function and [MemberSheetDialog] are SDK-free.
+Future<void> showMemberSheetDialog(
   BuildContext context, {
-  required Room room,
-  required KoheraUserSummary user,
-  bool isBanned = false,
+  required KoheraRoomMember member,
+  required bool isMe,
+  required int ownLevel,
+  required bool canChangeRole,
+  required bool canKick,
+  required bool canBan,
+  required AvatarResolver avatarResolver,
+  required PresenceService presence,
+  Future<void> Function()? onStartDm,
+  Future<void> Function(int newLevel)? onRoleChange,
+  Future<void> Function(String? reason)? onKick,
+  Future<void> Function(String? reason)? onBan,
+  Future<void> Function()? onUnban,
 }) {
-  final matrix = context.read<MatrixService>();
-  final isMe = user.userId == room.client.userID;
-  final ownLevel = room.getPowerLevelByUserId(room.client.userID!);
-  final powerLevel = room.getPowerLevelByUserId(user.userId);
-
-  Future<void> startDm() async {
-    if (!context.mounted) return;
-    final selection = context.read<SelectionService>();
-    final router = GoRouter.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final client = matrix.client;
-      final dmRoomId = await client.startDirectChat(
-        user.userId,
-        enableEncryption: true,
-      );
-      if (client.getRoomById(dmRoomId) == null) {
-        await client
-            .waitForRoomInSync(dmRoomId, join: true)
-            .timeout(const Duration(seconds: 30));
-      }
-      selection.selectRoom(dmRoomId);
-      router.goNamed(
-        Routes.room,
-        pathParameters: {RouteParams.roomId: dmRoomId},
-      );
-    } catch (e) {
-      debugPrint('[Kohera] Start DM failed: $e');
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Failed to start chat: ${MatrixService.friendlyAuthError(e)}',
-          ),
-        ),
-      );
-    }
-  }
-
   return showDialog<void>(
     context: context,
     builder: (ctx) => MemberSheetDialog(
-      user: user,
-      room: room,
-      presence: matrix.presence,
-      ownLevel: ownLevel,
-      powerLevel: powerLevel,
-      isBanned: isBanned,
+      member: member,
       isMe: isMe,
-      avatarResolver: matrix.avatarResolver,
-      onStartDm: isMe ? null : startDm,
+      ownLevel: ownLevel,
+      canChangeRole: canChangeRole,
+      canKick: canKick,
+      canBan: canBan,
+      avatarResolver: avatarResolver,
+      presence: presence,
+      onStartDm: onStartDm,
+      onRoleChange: onRoleChange,
+      onKick: onKick,
+      onBan: onBan,
+      onUnban: onUnban,
     ),
   );
 }
@@ -86,27 +57,35 @@ Future<void> showMemberSheet(
 
 class MemberSheetDialog extends StatefulWidget {
   const MemberSheetDialog({
-    required this.user,
-    required this.room,
-    required this.presence,
-    required this.ownLevel,
-    required this.powerLevel,
-    required this.isBanned,
+    required this.member,
     required this.isMe,
+    required this.ownLevel,
+    required this.canChangeRole,
+    required this.canKick,
+    required this.canBan,
     required this.avatarResolver,
+    required this.presence,
     this.onStartDm,
+    this.onRoleChange,
+    this.onKick,
+    this.onBan,
+    this.onUnban,
     super.key,
   });
 
-  final KoheraUserSummary user;
-  final Room room;
-  final PresenceService presence;
-  final int ownLevel;
-  final int powerLevel;
-  final bool isBanned;
+  final KoheraRoomMember member;
   final bool isMe;
+  final int ownLevel;
+  final bool canChangeRole;
+  final bool canKick;
+  final bool canBan;
   final AvatarResolver avatarResolver;
+  final PresenceService presence;
   final Future<void> Function()? onStartDm;
+  final Future<void> Function(int newLevel)? onRoleChange;
+  final Future<void> Function(String? reason)? onKick;
+  final Future<void> Function(String? reason)? onBan;
+  final Future<void> Function()? onUnban;
 
   @override
   State<MemberSheetDialog> createState() => _MemberSheetDialogState();
@@ -117,30 +96,12 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
   String? _roleError;
   bool _actionLoading = false;
   String? _actionError;
-  StreamSubscription<SyncUpdate>? _syncSub;
-  Timer? _syncDebounce;
+  late int _currentPowerLevel;
 
   @override
   void initState() {
     super.initState();
-    _syncSub = widget.room.client.onSync.stream.listen(_onSync);
-  }
-
-  @override
-  void dispose() {
-    _syncDebounce?.cancel();
-    unawaited(_syncSub?.cancel());
-    super.dispose();
-  }
-
-  void _onSync(SyncUpdate update) {
-    final stateEvents =
-        update.rooms?.join?[widget.room.id]?.state ?? [];
-    if (!stateEvents.any((e) => e.type == EventTypes.RoomPowerLevels)) return;
-    _syncDebounce?.cancel();
-    _syncDebounce = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) setState(() {});
-    });
+    _currentPowerLevel = widget.member.powerLevel;
   }
 
   Future<void> _changeRole(RoomRole newRole, int currentPowerLevel) async {
@@ -149,7 +110,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
 
     // Require explicit confirmation before demoting another admin.
     if (currentPowerLevel >= 100) {
-      final displayName = widget.user.displayname;
+      final displayName = widget.member.displayname;
       final confirmed = await confirmDialog(
         context,
         title: 'Demote admin?',
@@ -165,19 +126,32 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
       _roleError = null;
     });
     try {
-      await PowerLevelService.update(
-        widget.room,
-        PowerLevelPatch(users: {widget.user.userId: newRole.toPowerLevel()}),
-      );
+      await widget.onRoleChange?.call(newRole.toPowerLevel());
+      if (mounted) {
+        setState(() {
+          _currentPowerLevel = newRole.toPowerLevel();
+          _roleLoading = false;
+        });
+      }
     } on PowerLevelException catch (e) {
-      if (mounted) setState(() => _roleError = e.message);
-    } finally {
-      if (mounted) setState(() => _roleLoading = false);
+      if (mounted) {
+        setState(() {
+          _roleError = e.message;
+          _roleLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _roleError = e.toString();
+          _roleLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _kick() async {
-    final displayName = widget.user.displayname;
+    final displayName = widget.member.displayname;
     final cs = Theme.of(context).colorScheme;
     final reason = await _promptModerationReason(
       title: 'Kick member?',
@@ -191,29 +165,26 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
       _actionError = null;
     });
     try {
-      await widget.room.client.kick(
-        widget.room.id,
-        widget.user.userId,
-        reason: reason.isEmpty ? null : reason,
-      );
+      await widget.onKick?.call(reason.isEmpty ? null : reason);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       debugPrint('[Kohera] Kick failed: $e');
       if (mounted) {
         setState(() {
           _actionLoading = false;
-          _actionError = MatrixService.friendlyAuthError(e);
+          _actionError = e.toString();
         });
       }
     }
   }
 
   Future<void> _ban() async {
-    final displayName = widget.user.displayname;
+    final displayName = widget.member.displayname;
     final cs = Theme.of(context).colorScheme;
     final reason = await _promptModerationReason(
       title: 'Ban member?',
-      message: "Ban $displayName from this room? They won't be able to rejoin.",
+      message:
+          "Ban $displayName from this room? They won't be able to rejoin.",
       confirmLabel: 'Ban',
       cs: cs,
     );
@@ -223,25 +194,21 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
       _actionError = null;
     });
     try {
-      await widget.room.client.ban(
-        widget.room.id,
-        widget.user.userId,
-        reason: reason.isEmpty ? null : reason,
-      );
+      await widget.onBan?.call(reason.isEmpty ? null : reason);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       debugPrint('[Kohera] Ban failed: $e');
       if (mounted) {
         setState(() {
           _actionLoading = false;
-          _actionError = MatrixService.friendlyAuthError(e);
+          _actionError = e.toString();
         });
       }
     }
   }
 
   Future<void> _unban() async {
-    final displayName = widget.user.displayname;
+    final displayName = widget.member.displayname;
     final confirmed = await confirmDialog(
       context,
       title: 'Unban member?',
@@ -254,14 +221,14 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
       _actionError = null;
     });
     try {
-      await widget.room.client.unban(widget.room.id, widget.user.userId);
+      await widget.onUnban?.call();
       if (mounted) Navigator.pop(context);
     } catch (e) {
       debugPrint('[Kohera] Unban failed: $e');
       if (mounted) {
         setState(() {
           _actionLoading = false;
-          _actionError = MatrixService.friendlyAuthError(e);
+          _actionError = e.toString();
         });
       }
     }
@@ -308,21 +275,23 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
         ownLevel: widget.ownLevel,
         targetCurrentLevel: powerLevel,
       );
-      items.add(DropdownMenuItem(
-        value: role,
-        enabled: canAssign,
-        child: Text(
-          role.label,
-          style: canAssign
-              ? null
-              : TextStyle(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .onSurface
-                      .withValues(alpha: 0.38),
-                ),
+      items.add(
+        DropdownMenuItem(
+          value: role,
+          enabled: canAssign,
+          child: Text(
+            role.label,
+            style: canAssign
+                ? null
+                : TextStyle(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.38),
+                  ),
+          ),
         ),
-      ),);
+      );
     }
 
     return items;
@@ -332,25 +301,15 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final user = widget.user;
-    final room = widget.room;
-    final powerLevel = widget.powerLevel;
+    final member = widget.member;
+    final isBanned = member.isBanned;
+    final powerLevel = _currentPowerLevel;
     final currentRole = RoomRole.fromPowerLevel(powerLevel);
-    final displayName = user.displayname;
-    final isBanned = widget.isBanned;
+    final displayName = member.displayname;
 
-    final canChangeRole = !widget.isMe &&
-        room.canChangePowerLevel &&
-        powerLevel < widget.ownLevel;
-    final canKick = !widget.isMe &&
-        room.canKick &&
-        powerLevel < widget.ownLevel &&
-        !isBanned;
-    final canBan = !widget.isMe &&
-        room.canBan &&
-        powerLevel < widget.ownLevel &&
-        !isBanned;
-    final canUnban = !widget.isMe && room.canBan && isBanned;
+    final canKick = widget.canKick && !isBanned;
+    final canBan = widget.canBan && !isBanned;
+    final canUnban = widget.canBan && isBanned;
 
     return SimpleDialog(
       titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
@@ -358,9 +317,9 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
         children: [
           UserAvatar(
             avatarResolver: widget.avatarResolver,
-            userId: user.userId,
-            avatarUrl: user.avatarUrl,
-            displayname: user.displayname,
+            userId: member.userId,
+            avatarUrl: member.avatarUrl,
+            displayname: member.displayname,
             presence: widget.presence,
             size: 64,
           ),
@@ -375,7 +334,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
             children: [
               Flexible(
                 child: SelectableText(
-                  user.userId,
+                  member.userId,
                   style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                   textAlign: TextAlign.center,
                 ),
@@ -387,7 +346,9 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
                 tooltip: 'Copy MXID',
                 color: cs.onSurfaceVariant,
                 onPressed: () {
-                  unawaited(Clipboard.setData(ClipboardData(text: user.userId)));
+                  unawaited(
+                    Clipboard.setData(ClipboardData(text: member.userId)),
+                  );
                   context.showSnack('Copied to clipboard');
                 },
               ),
@@ -418,7 +379,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
                 : DropdownButton<RoomRole>(
                     isExpanded: true,
                     value: currentRole,
-                    onChanged: canChangeRole
+                    onChanged: widget.canChangeRole
                         ? (newRole) {
                             if (newRole != null) {
                               unawaited(_changeRole(newRole, powerLevel));
@@ -565,8 +526,7 @@ class _ModerationReasonDialogState extends State<_ModerationReasonDialog> {
               labelText: 'Reason (optional)',
               border: OutlineInputBorder(),
             ),
-            onSubmitted: (_) =>
-                Navigator.pop(context, _controller.text.trim()),
+            onSubmitted: (_) => Navigator.pop(context, _controller.text.trim()),
           ),
         ],
       ),
@@ -580,8 +540,7 @@ class _ModerationReasonDialogState extends State<_ModerationReasonDialog> {
             backgroundColor: widget.confirmColor,
             foregroundColor: widget.onConfirmColor,
           ),
-          onPressed: () =>
-              Navigator.pop(context, _controller.text.trim()),
+          onPressed: () => Navigator.pop(context, _controller.text.trim()),
           child: Text(widget.confirmLabel),
         ),
       ],

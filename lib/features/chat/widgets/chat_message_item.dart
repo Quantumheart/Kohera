@@ -2,7 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
 import 'package:kohera/features/chat/services/media_content_resolver.dart';
@@ -26,8 +29,9 @@ import 'package:kohera/features/chat/widgets/reply_preview_host.dart';
 import 'package:kohera/features/chat/widgets/swipeable_message.dart';
 import 'package:kohera/features/chat/widgets/thread_indicator_chip.dart';
 import 'package:kohera/features/chat/widgets/video_bubble.dart';
+import 'package:kohera/features/rooms/models/kohera_room_member.dart';
+import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
-import 'package:kohera/shared/models/kohera_user_summary_mapper.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
@@ -271,11 +275,53 @@ class ChatMessageItem extends StatelessWidget {
 
   void _showSenderSheet(BuildContext context) {
     final sender = event.senderFromMemoryOrFallback;
-    unawaited(showMemberSheet(
+    final room = event.room;
+    final client = room.client;
+    final isMe = sender.id == client.userID;
+    final ownLevel = room.getPowerLevelByUserId(client.userID ?? '');
+    final member = KoheraRoomMember(
+      userId: sender.id,
+      displayname: sender.calcDisplayname(),
+      avatarUrl: sender.avatarUrl?.toString(),
+      membership: sender.membership.name,
+      powerLevel: room.getPowerLevelByUserId(sender.id),
+    );
+    unawaited(showMemberSheetDialog(
       context,
-      room: event.room,
-      user: toKoheraUserSummary(sender),
-      isBanned: sender.membership == Membership.ban,
+      member: member,
+      isMe: isMe,
+      ownLevel: ownLevel,
+      canChangeRole: !isMe && room.canChangePowerLevel && member.powerLevel < ownLevel,
+      canKick: !isMe && room.canKick && member.powerLevel < ownLevel && !member.isBanned,
+      canBan: !isMe && room.canBan && member.powerLevel < ownLevel && !member.isBanned,
+      avatarResolver: context.read<MatrixService>().avatarResolver,
+      presence: context.read<MatrixService>().presence,
+      onStartDm: isMe
+          ? null
+          : () async {
+              final dmRoomId = await client.startDirectChat(
+                member.userId,
+                enableEncryption: true,
+              );
+              if (client.getRoomById(dmRoomId) == null) {
+                await client
+                    .waitForRoomInSync(dmRoomId, join: true)
+                    .timeout(const Duration(seconds: 30));
+              }
+              if (!context.mounted) return;
+              context.read<SelectionService>().selectRoom(dmRoomId);
+              context.goNamed(
+                Routes.room,
+                pathParameters: {RouteParams.roomId: dmRoomId},
+              );
+            },
+      onRoleChange: (level) => PowerLevelService.update(
+        room,
+        PowerLevelPatch(users: {member.userId: level}),
+      ),
+      onKick: (reason) => client.kick(room.id, member.userId, reason: reason),
+      onBan: (reason) => client.ban(room.id, member.userId, reason: reason),
+      onUnban: () => client.unban(room.id, member.userId),
     ),);
   }
 

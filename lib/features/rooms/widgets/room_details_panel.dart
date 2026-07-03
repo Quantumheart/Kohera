@@ -1,16 +1,21 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
+import 'package:kohera/features/rooms/models/kohera_room_member.dart';
+import 'package:kohera/features/rooms/services/power_level_service.dart';
+import 'package:kohera/features/rooms/services/room_member_list_resolver.dart';
 import 'package:kohera/features/rooms/services/room_permissions_resolver.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
 import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
+import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
@@ -44,6 +49,10 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
   StreamSubscription<SyncUpdate>? _syncSub;
   Timer? _syncDebounce;
   bool _deviceKeysExpanded = false;
+  KoheraRoomMemberList? _memberList;
+  bool _loadingMembers = false;
+  int? _lastMemberCount;
+  int _memberLoadGen = 0;
 
   bool get _loading => _inFlight.isNotEmpty;
   bool _busy(String action) => _inFlight.contains(action);
@@ -54,6 +63,18 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
   void initState() {
     super.initState();
     _refreshDeviceKeys();
+  }
+
+  @override
+  void didUpdateWidget(RoomDetailsPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final room = context.read<MatrixService>().client.getRoomById(widget.roomId);
+    final count = room?.summary.mJoinedMemberCount;
+    if (count != null && count != _lastMemberCount) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_loadMembers(room!));
+      });
+    }
   }
 
   @override
@@ -78,6 +99,79 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
   }
 
   // ── Actions ────────────────────────────────────────────────
+
+  Future<void> _loadMembers(Room room) async {
+    final gen = ++_memberLoadGen;
+    setState(() => _loadingMembers = true);
+    try {
+      final list = await const RoomMemberListResolver().resolve(room);
+      if (!mounted || gen != _memberLoadGen) return;
+      setState(() {
+        _memberList = list;
+        _loadingMembers = false;
+        _lastMemberCount = list.memberCount;
+      });
+    } catch (e) {
+      debugPrint('[Kohera] Failed to load members: $e');
+      if (mounted) {
+        setState(() {
+          _memberList = const KoheraRoomMemberList(
+            members: [],
+            participantListComplete: false,
+            memberCount: 0,
+          );
+          _loadingMembers = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _showMemberSheet(
+    BuildContext context,
+    Room room,
+    KoheraRoomMember member,
+  ) async {
+    final client = room.client;
+    final isMe = member.userId == client.userID;
+    final ownLevel = room.getPowerLevelByUserId(client.userID ?? '');
+    await showMemberSheetDialog(
+      context,
+      member: member,
+      isMe: isMe,
+      ownLevel: ownLevel,
+      canChangeRole: !isMe && room.canChangePowerLevel && member.powerLevel < ownLevel,
+      canKick: !isMe && room.canKick && member.powerLevel < ownLevel && !member.isBanned,
+      canBan: !isMe && room.canBan && member.powerLevel < ownLevel && !member.isBanned,
+      avatarResolver: context.read<MatrixService>().avatarResolver,
+      presence: context.read<MatrixService>().presence,
+      onStartDm: isMe
+          ? null
+          : () async {
+              final dmRoomId = await client.startDirectChat(
+                member.userId,
+                enableEncryption: true,
+              );
+              if (client.getRoomById(dmRoomId) == null) {
+                await client
+                    .waitForRoomInSync(dmRoomId, join: true)
+                    .timeout(const Duration(seconds: 30));
+              }
+              if (!context.mounted) return;
+              context.read<SelectionService>().selectRoom(dmRoomId);
+              context.goNamed(
+                Routes.room,
+                pathParameters: {RouteParams.roomId: dmRoomId},
+              );
+            },
+      onRoleChange: (level) => PowerLevelService.update(
+        room,
+        PowerLevelPatch(users: {member.userId: level}),
+      ),
+      onKick: (reason) => client.kick(room.id, member.userId, reason: reason),
+      onBan: (reason) => client.ban(room.id, member.userId, reason: reason),
+      onUnban: () => client.unban(room.id, member.userId),
+    );
+  }
 
   Future<void> _run(String action, Future<void> Function() task) async {
     setState(() { _inFlight.add(action); _error = null; });
@@ -183,6 +277,12 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
   }
 
   Widget _buildContent(Room room, MatrixService matrix, ColorScheme cs, TextTheme tt) {
+    if (_memberList == null && !_loadingMembers) {
+      _loadingMembers = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        unawaited(_loadMembers(room));
+      });
+    }
     return ListView(
       padding: const EdgeInsets.only(bottom: 32),
       children: [
@@ -198,7 +298,14 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
         const Divider(),
         JoinAccessController(room: room),
         const Divider(),
-        RoomMembersSection(room: room),
+        if (_memberList != null)
+          RoomMembersSection(
+            members: _memberList!,
+            onMemberTap: (member) =>
+                _showMemberSheet(context, room, member),
+            avatarResolver: matrix.avatarResolver,
+            presence: matrix.presence,
+          ),
         const Divider(),
         _buildEncryptionSection(room, cs, tt),
         const Divider(),
