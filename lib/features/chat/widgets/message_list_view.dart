@@ -6,9 +6,11 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/calling/models/call_constants.dart';
+import 'package:kohera/features/chat/models/kohera_reaction.dart';
 import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
 import 'package:kohera/features/chat/services/media_content_resolver.dart';
 import 'package:kohera/features/chat/services/message_display_resolver.dart';
+import 'package:kohera/features/chat/services/reaction_resolver.dart';
 import 'package:kohera/features/chat/services/sdk_media_controller.dart';
 import 'package:kohera/features/chat/services/state_event_resolver.dart';
 import 'package:kohera/features/chat/widgets/call_event_tile.dart';
@@ -571,6 +573,13 @@ class MessageListViewState extends State<MessageListView> {
                   _timeline!,
                   RelationshipTypes.reaction,
                 );
+            final stickerReactions = hasStickerReactions
+                ? const ReactionResolver().resolve(
+                    event,
+                    _timeline!,
+                    myUserId: widget.matrix.client.userID ?? '',
+                  )
+                : const KoheraReactionList([]);
             tile = StickerMessageItem(
               key: ValueKey(event.eventId),
               message: stickerMessage,
@@ -581,12 +590,12 @@ class MessageListViewState extends State<MessageListView> {
               ),
               isMe: isMe,
               isMobile: isMobile,
-              reactionWidget: hasStickerReactions && _timeline != null
+              reactionWidget: stickerReactions.isNotEmpty
                   ? ReactionChips(
-                      event: event,
-                      timeline: _timeline!,
-                      client: widget.matrix.client,
+                      reactions: stickerReactions,
                       isMe: isMe,
+                      avatarResolver:
+                          context.read<MatrixService>().avatarResolver,
                       onToggle: (emoji) =>
                           widget.onToggleReaction(event, emoji),
                     )
