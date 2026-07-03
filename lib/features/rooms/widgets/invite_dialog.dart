@@ -1,24 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 /// Shared dialog for accepting or declining a room/space invitation.
 ///
+/// SDK-free: display data comes from [KoheraRoomSummary] and the accept/decline
+/// actions are delegated to callbacks supplied by the parent, which retains
+/// `Room` access.
+///
 /// Returns `true` if accepted, `false` if declined, `null` if dismissed.
 class InviteDialog extends StatefulWidget {
-  const InviteDialog({required this.room, super.key});
+  const InviteDialog({
+    required this.roomId,
+    required this.summary,
+    required this.onAccept,
+    required this.onDecline,
+    this.inviterName,
+    super.key,
+  });
 
-  final Room room;
+  /// The Matrix room/space ID being invited to.
+  final String roomId;
+
+  /// Pre-computed display fields (displayname, avatar, isSpace, …).
+  final KoheraRoomSummary summary;
+
+  /// Resolved display name of the inviter, or `null` if unknown.
+  final String? inviterName;
+
+  /// Joins the room/space. Throwing errors are caught and shown inline.
+  final Future<void> Function() onAccept;
+
+  /// Leaves (declines) the room/space. Throwing errors are caught and shown.
+  final Future<void> Function() onDecline;
 
   /// Show the invite dialog and return the user's decision.
-  static Future<bool?> show(BuildContext context, {required Room room}) {
+  static Future<bool?> show(
+    BuildContext context, {
+    required String roomId,
+    required KoheraRoomSummary summary,
+    required Future<void> Function() onAccept,
+    required Future<void> Function() onDecline,
+    String? inviterName,
+  }) {
     return showDialog<bool>(
       context: context,
-      builder: (_) => InviteDialog(room: room),
+      builder: (_) => InviteDialog(
+        roomId: roomId,
+        summary: summary,
+        inviterName: inviterName,
+        onAccept: onAccept,
+        onDecline: onDecline,
+      ),
     );
   }
 
@@ -31,15 +67,13 @@ class _InviteDialogState extends State<InviteDialog> {
   bool _declining = false;
   String? _error;
 
-  String? get _inviterName {
-    final selection = context.read<SelectionService>();
-    return selection.inviterDisplayName(widget.room);
-  }
-
   Future<void> _accept() async {
-    setState(() { _accepting = true; _error = null; });
+    setState(() {
+      _accepting = true;
+      _error = null;
+    });
     try {
-      await widget.room.join();
+      await widget.onAccept();
       if (mounted) Navigator.pop(context, true);
     } catch (e) {
       debugPrint('[Kohera] Accept invite failed: $e');
@@ -56,14 +90,17 @@ class _InviteDialogState extends State<InviteDialog> {
     final confirmed = await confirmDialog(
       context,
       title: 'Decline invite',
-      message: 'Decline invite to ${widget.room.getLocalizedDisplayname()}?',
+      message: 'Decline invite to ${widget.summary.displayname}?',
       confirmLabel: 'Decline',
     );
     if (!confirmed || !mounted) return;
 
-    setState(() { _declining = true; _error = null; });
+    setState(() {
+      _declining = true;
+      _error = null;
+    });
     try {
-      await widget.room.leave();
+      await widget.onDecline();
       if (mounted) Navigator.pop(context, false);
     } catch (e) {
       debugPrint('[Kohera] Decline invite failed: $e');
@@ -80,20 +117,20 @@ class _InviteDialogState extends State<InviteDialog> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final name = widget.room.getLocalizedDisplayname();
-    final inviter = _inviterName;
+    final name = widget.summary.displayname;
+    final inviter = widget.inviterName;
     final inFlight = _accepting || _declining;
 
     return AlertDialog(
-      title: Text(widget.room.isSpace ? 'Space invite' : 'Room invite'),
+      title: Text(widget.summary.isSpace ? 'Space invite' : 'Room invite'),
       content: SizedBox(
         width: 400,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             RoomAvatarWidget(
-              avatarUrl: widget.room.avatar?.toString(),
-              displayname: widget.room.getLocalizedDisplayname(),
+              avatarUrl: widget.summary.avatarUrl,
+              displayname: widget.summary.displayname,
               avatarResolver: context.read<MatrixService>().avatarResolver,
               size: 56,
             ),

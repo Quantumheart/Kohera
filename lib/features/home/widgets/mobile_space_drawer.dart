@@ -137,8 +137,14 @@ class MobileSpaceDrawer extends StatelessWidget {
                         ),
                         title: Text(space.getLocalizedDisplayname()),
                         onTap: () async {
-                          final result =
-                              await InviteDialog.show(context, room: space);
+                          final result = await InviteDialog.show(
+                            context,
+                            roomId: space.id,
+                            summary: selection.summaryFor(space),
+                            inviterName: selection.inviterDisplayName(space),
+                            onAccept: space.join,
+                            onDecline: space.leave,
+                          );
                           if (result == true && context.mounted) {
                             selection.selectSpace(space.id);
                             if (context.mounted) {

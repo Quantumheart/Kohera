@@ -10,6 +10,7 @@ import 'package:kohera/features/rooms/services/room_member_list_resolver.dart';
 import 'package:kohera/features/rooms/services/room_permissions_resolver.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
+import 'package:kohera/features/rooms/widgets/invite_user_dialog_params.dart';
 import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
 import 'package:kohera/features/rooms/widgets/member_sheet_launcher.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
@@ -145,7 +146,8 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
   }
 
   Future<void> _showInviteDialog(Room space) async {
-    final result = await InviteUserDialog.show(context, room: space);
+    final result =
+        await InviteUserDialog.show(context, params: inviteUserDialogParams(space));
     if (result == null || !mounted) return;
 
     await _run('invite', () async {
@@ -276,11 +278,22 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
   // ── Header ─────────────────────────────────────────────────
 
   Widget _buildHeader(Room space, ColorScheme cs, TextTheme tt) {
+    final matrix = context.read<MatrixService>();
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          AvatarEditOverlay(room: space),
+          AvatarEditOverlay(
+            roomId: space.id,
+            summary: matrix.selection.summaryFor(space),
+            canEditAvatar: space.canChangeStateEvent(EventTypes.RoomAvatar),
+            avatarResolver: matrix.avatarResolver,
+            onSetAvatar: (bytes, filename) async {
+              await space.setAvatar(
+                bytes == null ? null : MatrixFile(bytes: bytes, name: filename ?? ''),
+              );
+            },
+          ),
           const SizedBox(height: 12),
           Text(
             space.getLocalizedDisplayname(),

@@ -5,6 +5,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/features/spaces/widgets/space_details_panel.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
@@ -39,6 +40,8 @@ void main() {
     when(mockMatrixService.client).thenReturn(mockClient);
     when(mockMatrixService.spaceAccess).thenReturn(mockAccess);
     when(mockMatrixService.selection).thenReturn(selection);
+    when(mockMatrixService.avatarResolver)
+        .thenReturn(const _NullAvatarResolver());
     when(mockAccess.getJoinMode(mockSpace)).thenReturn(JoinMode.invite);
     when(mockAccess.allowedSpaceIds(mockSpace)).thenReturn(const []);
     when(mockAccess.needsUpgradeForRestricted(
@@ -213,4 +216,11 @@ void main() {
       expect(find.text('You will leave "Test Space".'), findsOneWidget);
     });
   });
+}
+
+class _NullAvatarResolver implements AvatarResolver {
+  const _NullAvatarResolver();
+  @override
+  Future<AvatarThumbnail?> resolve(String? mxc, {required double size}) async =>
+      null;
 }

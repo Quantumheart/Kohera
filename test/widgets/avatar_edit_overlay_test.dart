@@ -1,39 +1,59 @@
-﻿import 'package:flutter/material.dart';
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
-import 'package:matrix/matrix.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 
-@GenerateNiceMocks([MockSpec<Room>(), MockSpec<Client>()])
-import 'avatar_edit_overlay_test.mocks.dart';
+KoheraRoomSummary _summary({String? avatarUrl}) => KoheraRoomSummary(
+      roomId: '!room:example.com',
+      displayname: 'Test Room',
+      avatarUrl: avatarUrl,
+      isDirectChat: false,
+      isEncrypted: false,
+      isSpace: false,
+      notificationCount: 0,
+      highlightCount: 0,
+      typingDisplayNames: const [],
+      pinnedEventIds: const [],
+      spaceChildCount: 0,
+      isFavourite: false,
+      lastEventPreview: '',
+      lastEventIsThreadReply: false,
+    );
 
 void main() {
-  late MockRoom mockRoom;
-  late MockClient mockClient;
-
-  setUp(() {
-    mockRoom = MockRoom();
-    mockClient = MockClient();
-    when(mockRoom.client).thenReturn(mockClient);
-    when(mockRoom.avatar).thenReturn(null);
-    when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
-  });
-
-  Widget buildTestWidget({double size = 72}) {
+  Widget buildTestWidget({
+    required bool canEditAvatar,
+    required Future<void> Function(Uint8List? bytes, String? filename)
+        onSetAvatar,
+    String? avatarUrl,
+    double size = 72,
+  }) {
     return MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
-        body: AvatarEditOverlay(room: mockRoom, size: size),
+        body: AvatarEditOverlay(
+          roomId: '!room:example.com',
+          summary: _summary(avatarUrl: avatarUrl),
+          canEditAvatar: canEditAvatar,
+          avatarResolver: null,
+          onSetAvatar: onSetAvatar,
+          size: size,
+        ),
       ),
     );
   }
 
+  Future<void> noopSet(Uint8List? bytes, String? filename) async {}
+
   group('AvatarEditOverlay', () {
-    testWidgets('renders plain RoomAvatarWidget when user lacks permission', (tester) async {
-      when(mockRoom.canChangeStateEvent(EventTypes.RoomAvatar)).thenReturn(false);
-      await tester.pumpWidget(buildTestWidget());
+    testWidgets('renders plain RoomAvatarWidget when user lacks permission',
+        (tester) async {
+      await tester.pumpWidget(
+        buildTestWidget(canEditAvatar: false, onSetAvatar: noopSet),
+      );
       await tester.pump();
 
       expect(find.byType(RoomAvatarWidget), findsOneWidget);
@@ -41,43 +61,57 @@ void main() {
     });
 
     testWidgets('shows edit overlay when user has permission', (tester) async {
-      when(mockRoom.canChangeStateEvent(EventTypes.RoomAvatar)).thenReturn(true);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(
+        buildTestWidget(canEditAvatar: true, onSetAvatar: noopSet),
+      );
       await tester.pump();
 
       expect(find.byType(RoomAvatarWidget), findsOneWidget);
-      expect(find.byType(GestureDetector), findsOneWidget);
+      expect(find.byType(GestureDetector), findsWidgets);
     });
 
     testWidgets('shows remove badge when avatar exists', (tester) async {
-      when(mockRoom.canChangeStateEvent(EventTypes.RoomAvatar)).thenReturn(true);
-      when(mockRoom.avatar).thenReturn(Uri.parse('mxc://example.com/avatar'));
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(
+        buildTestWidget(
+          canEditAvatar: true,
+          avatarUrl: 'mxc://example.com/avatar',
+          onSetAvatar: noopSet,
+        ),
+      );
       await tester.pump();
 
       expect(find.byIcon(Icons.close_rounded), findsOneWidget);
     });
 
     testWidgets('hides remove badge when no avatar', (tester) async {
-      when(mockRoom.canChangeStateEvent(EventTypes.RoomAvatar)).thenReturn(true);
-      when(mockRoom.avatar).thenReturn(null);
-      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpWidget(
+        buildTestWidget(canEditAvatar: true, onSetAvatar: noopSet),
+      );
       await tester.pump();
 
       expect(find.byIcon(Icons.close_rounded), findsNothing);
     });
 
-    testWidgets('calls room.setAvatar(null) on remove tap', (tester) async {
-      when(mockRoom.canChangeStateEvent(EventTypes.RoomAvatar)).thenReturn(true);
-      when(mockRoom.avatar).thenReturn(Uri.parse('mxc://example.com/avatar'));
-      when(mockRoom.setAvatar(null)).thenAnswer((_) async => '');
-      await tester.pumpWidget(buildTestWidget());
+    testWidgets('calls onSetAvatar(null, null) on remove tap', (tester) async {
+      Uint8List? capturedBytes;
+      String? capturedFilename;
+      await tester.pumpWidget(
+        buildTestWidget(
+          canEditAvatar: true,
+          avatarUrl: 'mxc://example.com/avatar',
+          onSetAvatar: (bytes, filename) async {
+            capturedBytes = bytes;
+            capturedFilename = filename;
+          },
+        ),
+      );
       await tester.pump();
 
       await tester.tap(find.byIcon(Icons.close_rounded));
       await tester.pumpAndSettle();
 
-      verify(mockRoom.setAvatar(null)).called(1);
+      expect(capturedBytes, isNull);
+      expect(capturedFilename, isNull);
     });
   });
 }

@@ -1,57 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/features/rooms/widgets/add_existing_rooms_dialog.dart';
-import 'package:matrix/matrix.dart' hide Visibility;
-import 'package:matrix/src/utils/cached_stream_controller.dart';
-import 'package:matrix/src/utils/space_child.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 
-@GenerateNiceMocks([
-  MockSpec<MatrixService>(),
-  MockSpec<Room>(),
-  MockSpec<Client>(),
-])
-import 'add_existing_rooms_dialog_test.mocks.dart';
+KoheraRoomSummary makeRoom(String id, String name, {bool isSpace = false}) =>
+    KoheraRoomSummary(
+      roomId: id,
+      displayname: name,
+      isDirectChat: false,
+      isEncrypted: false,
+      isSpace: isSpace,
+      notificationCount: 0,
+      highlightCount: 0,
+      typingDisplayNames: const [],
+      pinnedEventIds: const [],
+      spaceChildCount: 0,
+      isFavourite: false,
+      lastEventPreview: '',
+      lastEventIsThreadReply: false,
+    );
 
 void main() {
-  late MockMatrixService mockMatrix;
-  late MockRoom mockSpace;
-  late MockClient mockClient;
-
-  MockRoom makeRoom(String id, String name) {
-    final room = MockRoom();
-    when(room.id).thenReturn(id);
-    when(room.getLocalizedDisplayname()).thenReturn(name);
-    when(room.membership).thenReturn(Membership.join);
-    when(room.isSpace).thenReturn(false);
-    when(room.avatar).thenReturn(null);
-    when(room.directChatMatrixID).thenReturn(null);
-    when(room.client).thenReturn(mockClient);
-    return room;
-  }
-
-  late SelectionService selectionService;
-
-  setUp(() {
-    mockMatrix = MockMatrixService();
-    mockSpace = MockRoom();
-    mockClient = MockClient();
-
-    when(mockMatrix.client).thenReturn(mockClient);
-    when(mockSpace.spaceChildren).thenReturn([]);
-    when(mockSpace.setSpaceChild(any)).thenAnswer((_) async {});
-    when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-    when(mockClient.rooms).thenReturn([]);
-    selectionService = SelectionService(client: mockClient);
-    when(mockMatrix.selection).thenReturn(selectionService);
-  });
-
-  Widget buildTestWidget({List<Room>? clientRooms}) {
-    when(mockClient.rooms).thenReturn(clientRooms ?? []);
-
+  Widget buildTestWidget({
+    required List<KoheraRoomSummary> candidateRooms,
+    required Future<int> Function(List<String> roomIds) onAddRooms,
+    Set<String> existingChildIds = const {},
+  }) {
     return MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
@@ -60,8 +34,10 @@ void main() {
             child: ElevatedButton(
               onPressed: () => AddExistingRoomsDialog.show(
                 context,
-                space: mockSpace,
-                matrixService: mockMatrix,
+                candidateRooms: candidateRooms,
+                existingChildIds: existingChildIds,
+                avatarResolver: null,
+                onAddRooms: onAddRooms,
               ),
               child: const Text('Open'),
             ),
@@ -71,15 +47,28 @@ void main() {
     );
   }
 
-  Future<void> openDialog(WidgetTester tester, {List<Room>? clientRooms}) async {
-    await tester.pumpWidget(buildTestWidget(clientRooms: clientRooms));
+  Future<void> openDialog(
+    WidgetTester tester, {
+    required List<KoheraRoomSummary> candidateRooms,
+    required Future<int> Function(List<String> roomIds) onAddRooms,
+    Set<String> existingChildIds = const {},
+  }) async {
+    await tester.pumpWidget(
+      buildTestWidget(
+        candidateRooms: candidateRooms,
+        existingChildIds: existingChildIds,
+        onAddRooms: onAddRooms,
+      ),
+    );
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
   }
 
+  Future<int> noopAdd(List<String> ids) async => 0;
+
   group('AddExistingRoomsDialog', () {
     testWidgets('shows empty state when all rooms in space', (tester) async {
-      await openDialog(tester, clientRooms: []);
+      await openDialog(tester, candidateRooms: const [], onAddRooms: noopAdd);
 
       expect(
         find.text('All your rooms are already in this space.'),
@@ -88,41 +77,34 @@ void main() {
     });
 
     testWidgets('shows eligible rooms', (tester) async {
-      final room1 = makeRoom('!r1:x', 'Alpha');
-      final room2 = makeRoom('!r2:x', 'Beta');
-
-      await openDialog(tester, clientRooms: [room1, room2]);
+      await openDialog(
+        tester,
+        candidateRooms: [makeRoom('!r1:x', 'Alpha'), makeRoom('!r2:x', 'Beta')],
+        onAddRooms: noopAdd,
+      );
 
       expect(find.text('Alpha'), findsOneWidget);
       expect(find.text('Beta'), findsOneWidget);
     });
 
     testWidgets('excludes rooms already in space', (tester) async {
-      final room1 = makeRoom('!r1:x', 'Alpha');
-      final room2 = makeRoom('!r2:x', 'Beta');
-
-      when(mockSpace.spaceChildren).thenReturn([
-        SpaceChild.fromState(
-          StrippedStateEvent(
-            type: EventTypes.SpaceChild,
-            content: {},
-            senderId: '',
-            stateKey: '!r1:x',
-          ),
-        ),
-      ]);
-
-      await openDialog(tester, clientRooms: [room1, room2]);
+      await openDialog(
+        tester,
+        candidateRooms: [makeRoom('!r1:x', 'Alpha'), makeRoom('!r2:x', 'Beta')],
+        existingChildIds: const {'!r1:x'},
+        onAddRooms: noopAdd,
+      );
 
       expect(find.text('Alpha'), findsNothing);
       expect(find.text('Beta'), findsOneWidget);
     });
 
     testWidgets('excludes space rooms', (tester) async {
-      final room1 = makeRoom('!r1:x', 'Alpha');
-      when(room1.isSpace).thenReturn(true);
-
-      await openDialog(tester, clientRooms: [room1]);
+      await openDialog(
+        tester,
+        candidateRooms: [makeRoom('!r1:x', 'Alpha', isSpace: true)],
+        onAddRooms: noopAdd,
+      );
 
       expect(
         find.text('All your rooms are already in this space.'),
@@ -131,10 +113,11 @@ void main() {
     });
 
     testWidgets('search filters by display name', (tester) async {
-      final room1 = makeRoom('!r1:x', 'Alpha');
-      final room2 = makeRoom('!r2:x', 'Beta');
-
-      await openDialog(tester, clientRooms: [room1, room2]);
+      await openDialog(
+        tester,
+        candidateRooms: [makeRoom('!r1:x', 'Alpha'), makeRoom('!r2:x', 'Beta')],
+        onAddRooms: noopAdd,
+      );
 
       await tester.enterText(find.byType(TextField), 'alp');
       await tester.pumpAndSettle();
@@ -144,10 +127,11 @@ void main() {
     });
 
     testWidgets('selection updates Add button text', (tester) async {
-      final room1 = makeRoom('!r1:x', 'Alpha');
-      final room2 = makeRoom('!r2:x', 'Beta');
-
-      await openDialog(tester, clientRooms: [room1, room2]);
+      await openDialog(
+        tester,
+        candidateRooms: [makeRoom('!r1:x', 'Alpha'), makeRoom('!r2:x', 'Beta')],
+        onAddRooms: noopAdd,
+      );
 
       expect(find.text('Add (0)'), findsOneWidget);
 
@@ -162,12 +146,17 @@ void main() {
       expect(find.text('Add (2)'), findsOneWidget);
     });
 
-    testWidgets('submit calls setSpaceChild for each selected room',
+    testWidgets('submit calls onAddRooms with selected room ids',
         (tester) async {
-      final room1 = makeRoom('!r1:x', 'Alpha');
-      final room2 = makeRoom('!r2:x', 'Beta');
-
-      await openDialog(tester, clientRooms: [room1, room2]);
+      List<String>? submitted;
+      await openDialog(
+        tester,
+        candidateRooms: [makeRoom('!r1:x', 'Alpha'), makeRoom('!r2:x', 'Beta')],
+        onAddRooms: (ids) async {
+          submitted = ids;
+          return 0;
+        },
+      );
 
       await tester.tap(find.text('Alpha'));
       await tester.pumpAndSettle();
@@ -177,17 +166,15 @@ void main() {
       await tester.tap(find.text('Add (2)'));
       await tester.pumpAndSettle();
 
-      verify(mockSpace.setSpaceChild('!r1:x')).called(1);
-      verify(mockSpace.setSpaceChild('!r2:x')).called(1);
+      expect(submitted, ['!r1:x', '!r2:x']);
     });
 
     testWidgets('partial failure shows SnackBar', (tester) async {
-      final room1 = makeRoom('!r1:x', 'Alpha');
-      final room2 = makeRoom('!r2:x', 'Beta');
-
-      when(mockSpace.setSpaceChild('!r2:x')).thenThrow(Exception('fail'));
-
-      await openDialog(tester, clientRooms: [room1, room2]);
+      await openDialog(
+        tester,
+        candidateRooms: [makeRoom('!r1:x', 'Alpha'), makeRoom('!r2:x', 'Beta')],
+        onAddRooms: (ids) async => 1,
+      );
 
       await tester.tap(find.text('Alpha'));
       await tester.pumpAndSettle();

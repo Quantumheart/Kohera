@@ -8,7 +8,9 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/rooms/widgets/add_existing_rooms_dialog.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
+import 'package:kohera/features/rooms/widgets/invite_user_dialog_params.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
+import 'package:kohera/features/spaces/widgets/create_subspace_action.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_dialog.dart';
 import 'package:kohera/features/spaces/widgets/notification_radio_group.dart';
 import 'package:kohera/features/spaces/widgets/space_details_panel.dart' show SpaceDetailsPanel;
@@ -103,8 +105,26 @@ Future<void> showSpaceContextMenu(
         final matrix = context.read<MatrixService>();
         await AddExistingRoomsDialog.show(
           context,
-          space: space,
-          matrixService: matrix,
+          candidateRooms: matrix.client.rooms
+              .where((r) => r.membership == Membership.join)
+              .map(matrix.selection.summaryFor)
+              .toList(),
+          existingChildIds:
+              space.spaceChildren.map((c) => c.roomId).whereType<String>().toSet(),
+          avatarResolver: matrix.avatarResolver,
+          onAddRooms: (roomIds) async {
+            var failures = 0;
+            for (final id in roomIds) {
+              try {
+                await space.setSpaceChild(id);
+              } catch (e) {
+                debugPrint('[Kohera] Failed to add room to space: $e');
+                failures++;
+              }
+            }
+            matrix.selection.invalidateSpaceTree();
+            return failures;
+          },
         );
       }
     case SpaceContextAction.createRoom:
@@ -128,8 +148,12 @@ Future<void> showSpaceContextMenu(
         final matrix = context.read<MatrixService>();
         await CreateSubspaceDialog.show(
           context,
-          matrixService: matrix,
-          parentSpace: space,
+          parentSpaceRef: (
+            id: space.id,
+            displayname: space.getLocalizedDisplayname(),
+          ),
+          loadCapabilities: () => loadSubspaceCapabilities(matrix),
+          onCreateSubspace: (request) => createSubspace(matrix, space, request),
         );
       }
     case SpaceContextAction.notifications:
@@ -218,7 +242,8 @@ Future<void> _handleMarkAsRead(Room space) async {
 }
 
 Future<void> _handleInvite(BuildContext context, Room space) async {
-  final mxid = await InviteUserDialog.show(context, room: space);
+  final mxid =
+      await InviteUserDialog.show(context, params: inviteUserDialogParams(space));
 
   if (mxid == null || !context.mounted) return;
 

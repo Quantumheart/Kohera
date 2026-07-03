@@ -5,31 +5,78 @@ import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
-import 'package:matrix/matrix.dart';
+
+/// SDK-free request describing the subspace the user wants to create. The
+/// dialog collects these fields and hands them to [CreateSubspaceDialog.onCreateSubspace],
+/// whose implementation (parent-side) performs the SDK calls.
+class CreateSubspaceRequest {
+  const CreateSubspaceRequest({
+    required this.name,
+    required this.topic,
+    required this.joinMode,
+    required this.allowedSpaceIds,
+    required this.restrictedRoomVersion,
+  });
+
+  final String name;
+  final String? topic;
+  final JoinMode joinMode;
+  final List<String> allowedSpaceIds;
+  final String? restrictedRoomVersion;
+}
+
+/// Server capability info for restricted/knock join rules, computed
+/// parent-side (via `SpaceAccessService`) and passed to the dialog.
+class SubspaceCapabilities {
+  const SubspaceCapabilities({
+    required this.restrictedRoomVersion,
+    required this.disabledModes,
+  });
+
+  /// The room version to use for restricted join rules, or `null` if the
+  /// server does not support them.
+  final String? restrictedRoomVersion;
+
+  /// Join modes to disable in the picker, mapped to a tooltip reason.
+  final Map<JoinMode, String> disabledModes;
+}
 
 /// Dialog to create a new subspace within a parent space.
 ///
-/// Creates a new space room and registers it as a child of [parentSpace]
-/// via `setSpaceChild`.
+/// SDK-free: display data comes from [parentSpaceRef], server capability
+/// info is loaded via [loadCapabilities], and the actual room creation is
+/// delegated to [onCreateSubspace]. The parent retains `Room`/`Client` access
+/// and performs the SDK calls.
 class CreateSubspaceDialog extends StatefulWidget {
   const CreateSubspaceDialog._({
-    required this.matrixService,
-    required this.parentSpace,
+    required this.parentSpaceRef,
+    required this.loadCapabilities,
+    required this.onCreateSubspace,
   });
 
-  final MatrixService matrixService;
-  final Room parentSpace;
+  /// Reference (id + displayname) to the parent space.
+  final SpaceRef parentSpaceRef;
+
+  /// Loads restricted-join server capabilities.
+  final Future<SubspaceCapabilities> Function() loadCapabilities;
+
+  /// Creates the subspace described by the request. Throws on failure
+  /// (the dialog catches and displays errors).
+  final Future<void> Function(CreateSubspaceRequest request) onCreateSubspace;
 
   static Future<void> show(
     BuildContext context, {
-    required MatrixService matrixService,
-    required Room parentSpace,
+    required SpaceRef parentSpaceRef,
+    required Future<SubspaceCapabilities> Function() loadCapabilities,
+    required Future<void> Function(CreateSubspaceRequest request)
+        onCreateSubspace,
   }) {
     return showDialog(
       context: context,
       builder: (_) => CreateSubspaceDialog._(
-        matrixService: matrixService,
-        parentSpace: parentSpace,
+        parentSpaceRef: parentSpaceRef,
+        loadCapabilities: loadCapabilities,
+        onCreateSubspace: onCreateSubspace,
       ),
     );
   }
@@ -46,7 +93,7 @@ class _CreateSubspaceDialogState extends State<CreateSubspaceDialog> {
   String? _networkError;
 
   JoinMode _joinMode = JoinMode.invite;
-  List<Room> _allowedJoinSpaces = const [];
+  List<SpaceRef> _allowedJoinSpaces = const [];
   Map<JoinMode, String> _disabledModes = const {};
   String? _restrictedRoomVersion;
   bool _restrictedAvailable = false;
@@ -57,39 +104,32 @@ class _CreateSubspaceDialogState extends State<CreateSubspaceDialog> {
     unawaited(_loadRestrictedCapabilities());
   }
 
-  Future<void> _loadRestrictedCapabilities() async {
-    final access = widget.matrixService.spaceAccess;
-    final knockVersion =
-        await access.pickRestrictedRoomVersion(wantKnock: true);
-    final basicVersion =
-        await access.pickRestrictedRoomVersion(wantKnock: false);
-    if (!mounted) return;
-    setState(() {
-      _restrictedRoomVersion = knockVersion ?? basicVersion;
-      _restrictedAvailable = _restrictedRoomVersion != null;
-      _disabledModes = knockVersion == null
-          ? const {
-              JoinMode.knockRestricted: 'Not supported by this server',
-            }
-          : const <JoinMode, String>{};
-      if (_restrictedAvailable && _allowedJoinSpaces.isEmpty) {
-        _joinMode = JoinMode.restricted;
-        _allowedJoinSpaces = [widget.parentSpace];
-      }
-    });
-    if (!_restrictedAvailable) {
-      final versions = await access.serverSupportedRoomVersions();
-      debugPrint(
-        '[Kohera] Restricted join unavailable: server room versions=$versions',
-      );
-    }
-  }
-
   @override
   void dispose() {
     _nameController.dispose();
     _topicController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadRestrictedCapabilities() async {
+    final caps = await widget.loadCapabilities();
+    if (!mounted) return;
+    setState(() {
+      _restrictedRoomVersion = caps.restrictedRoomVersion;
+      _restrictedAvailable = caps.restrictedRoomVersion != null;
+      _disabledModes = caps.disabledModes;
+      if (_restrictedAvailable && _allowedJoinSpaces.isEmpty) {
+        _joinMode = JoinMode.restricted;
+        _allowedJoinSpaces = [widget.parentSpaceRef];
+      }
+    });
+  }
+
+  List<SpaceRef> _refsForIds(List<String> ids) {
+    final candidateById = {widget.parentSpaceRef.id: widget.parentSpaceRef};
+    return ids
+        .map((id) => candidateById[id] ?? (id: id, displayname: id))
+        .toList();
   }
 
   Future<void> _submit() async {
@@ -109,49 +149,26 @@ class _CreateSubspaceDialogState extends State<CreateSubspaceDialog> {
     });
 
     try {
-      final client = widget.matrixService.client;
       final topic = _topicController.text.trim();
-
-      final useRestricted = _restrictedAvailable &&
-          _joinMode.isRestrictedFamily &&
-          _allowedJoinSpaces.isNotEmpty;
-      final joinRulesEvent = useRestricted
-          ? widget.matrixService.spaceAccess.buildJoinRulesStateEvent(
-              _joinMode,
+      await widget.onCreateSubspace(
+        CreateSubspaceRequest(
+          name: name,
+          topic: topic.isNotEmpty ? topic : null,
+          joinMode: _joinMode,
+          allowedSpaceIds:
               _allowedJoinSpaces.map((s) => s.id).toList(growable: false),
-            )
-          : null;
-
-      // Create the subspace room.
-      final roomId = await client.createRoom(
-        name: name,
-        topic: topic.isNotEmpty ? topic : null,
-        creationContent: {'type': 'm.space'},
-        visibility: Visibility.private,
-        roomVersion: useRestricted ? _restrictedRoomVersion : null,
-        initialState: [
-          if (joinRulesEvent != null) joinRulesEvent,
-        ],
-        powerLevelContentOverride: {'events_default': 100},
+          restrictedRoomVersion: _restrictedRoomVersion,
+        ),
       );
-
-      await client
-          .waitForRoomInSync(roomId, join: true)
-          .timeout(const Duration(seconds: 30));
-
-      // Register as child of the parent space.
-      await widget.parentSpace.setSpaceChild(roomId);
-      widget.matrixService.selection.invalidateSpaceTree();
-
-      debugPrint('[Kohera] Subspace created: $roomId under ${widget.parentSpace.id}');
-
       if (!mounted) return;
       Navigator.pop(context);
     } on TimeoutException {
       debugPrint('[Kohera] Subspace creation timed out');
       if (!mounted) return;
-      setState(() => _networkError =
-          'Timed out waiting for the server. The subspace may still be created.',);
+      setState(
+        () => _networkError =
+            'Timed out waiting for the server. The subspace may still be created.',
+      );
     } catch (e) {
       debugPrint('[Kohera] Subspace creation failed: $e');
       if (!mounted) return;
@@ -174,7 +191,7 @@ class _CreateSubspaceDialogState extends State<CreateSubspaceDialog> {
           children: [
             Text(
               'This subspace will be created inside '
-              '"${widget.parentSpace.getLocalizedDisplayname()}".',
+              '"${widget.parentSpaceRef.displayname}".',
               style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
             ),
             const SizedBox(height: 16),
@@ -200,17 +217,17 @@ class _CreateSubspaceDialogState extends State<CreateSubspaceDialog> {
             ),
             if (_restrictedAvailable) ...[
               const SizedBox(height: 8),
-              JoinAccessSection(
+              JoinAccessSection.refs(
                 mode: _joinMode,
                 allowedSpaces: _allowedJoinSpaces,
-                candidateSpaces: [widget.parentSpace],
+                candidateSpaces: [widget.parentSpaceRef],
                 needsUpgrade: false,
                 canEdit: !_loading,
                 disabledModes: _disabledModes,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 onModeChanged: (m) => setState(() => _joinMode = m),
-                onAllowedSpacesChanged: (l) =>
-                    setState(() => _allowedJoinSpaces = l),
+                onAllowedSpacesChanged: (ids) =>
+                    setState(() => _allowedJoinSpaces = _refsForIds(ids)),
               ),
             ],
             if (_networkError != null)
