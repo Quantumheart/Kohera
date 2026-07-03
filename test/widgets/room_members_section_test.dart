@@ -82,10 +82,11 @@ Widget _wrapDialog(MemberSheetDialog dialog) => MaterialApp(
 
 void main() {
   group('RoomMembersSection', () {
-    testWidgets('shows no members when empty', (tester) async {
+    testWidgets('shows nothing when empty', (tester) async {
       await tester.pumpWidget(_wrapSection(_list([])));
       await tester.pump();
-      expect(find.text('No members'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.text('No members'), findsNothing);
     });
 
     testWidgets('shows members after loading', (tester) async {

@@ -5,15 +5,13 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/rooms/models/kohera_room_member.dart';
-import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:kohera/features/rooms/services/room_member_list_resolver.dart';
 import 'package:kohera/features/rooms/services/room_permissions_resolver.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
 import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
-import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
+import 'package:kohera/features/rooms/widgets/member_sheet_launcher.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:kohera/features/spaces/widgets/notification_radio_group.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
@@ -47,32 +45,81 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
   String? _error;
   KoheraRoomMemberList? _memberList;
   bool _loadingMembers = false;
+  int? _lastMemberCount;
+  int _memberLoadGen = 0;
+  StreamSubscription<SyncUpdate>? _syncSub;
+  Timer? _syncDebounce;
 
   bool get _loading => _inFlight.isNotEmpty;
   bool _busy(String action) => _inFlight.contains(action);
 
+  // ── Lifecycle ───────────────────────────────────────────────
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final space = context.read<MatrixService>().client.getRoomById(widget.spaceId);
+      if (space != null) unawaited(_loadMembers(space));
+      _setupSyncListener();
+    });
+  }
+
+  @override
+  void didUpdateWidget(SpaceDetailsPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final space = context.read<MatrixService>().client.getRoomById(widget.spaceId);
+    final count = space?.summary.mJoinedMemberCount;
+    if (count != null && count != _lastMemberCount && !_loadingMembers) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && space != null) unawaited(_loadMembers(space));
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _syncDebounce?.cancel();
+    unawaited(_syncSub?.cancel());
+    super.dispose();
+  }
+
+  void _setupSyncListener() {
+    final client = context.read<MatrixService>().client;
+    unawaited(_syncSub?.cancel());
+    _syncSub = client.onSync.stream.listen((update) {
+      final stateEvents = update.rooms?.join?[widget.spaceId]?.state ?? [];
+      final hasPowerLevelChanges =
+          stateEvents.any((e) => e.type == EventTypes.RoomPowerLevels);
+      _syncDebounce?.cancel();
+      _syncDebounce = Timer(const Duration(seconds: 2), () {
+        if (!mounted) return;
+        setState(() {});
+        if (hasPowerLevelChanges && _memberList != null) {
+          final space = client.getRoomById(widget.spaceId);
+          if (space != null) unawaited(_loadMembers(space));
+        }
+      });
+    });
+  }
+
   // ── Actions ────────────────────────────────────────────────
 
   Future<void> _loadMembers(Room space) async {
+    final gen = ++_memberLoadGen;
     setState(() => _loadingMembers = true);
     try {
       final list = await const RoomMemberListResolver().resolve(space);
-      if (!mounted) return;
+      if (!mounted || gen != _memberLoadGen) return;
       setState(() {
         _memberList = list;
         _loadingMembers = false;
+        _lastMemberCount = list.memberCount;
       });
     } catch (e) {
       debugPrint('[Kohera] Failed to load members: $e');
       if (mounted) {
-        setState(() {
-          _memberList = const KoheraRoomMemberList(
-            members: [],
-            participantListComplete: false,
-            memberCount: 0,
-          );
-          _loadingMembers = false;
-        });
+        setState(() => _loadingMembers = false);
       }
     }
   }
@@ -81,47 +128,8 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
     BuildContext context,
     Room space,
     KoheraRoomMember member,
-  ) async {
-    final client = space.client;
-    final isMe = member.userId == client.userID;
-    final ownLevel = space.getPowerLevelByUserId(client.userID ?? '');
-    await showMemberSheetDialog(
-      context,
-      member: member,
-      isMe: isMe,
-      ownLevel: ownLevel,
-      canChangeRole: !isMe && space.canChangePowerLevel && member.powerLevel < ownLevel,
-      canKick: !isMe && space.canKick && member.powerLevel < ownLevel && !member.isBanned,
-      canBan: !isMe && space.canBan && member.powerLevel < ownLevel && !member.isBanned,
-      avatarResolver: context.read<MatrixService>().avatarResolver,
-      presence: context.read<MatrixService>().presence,
-      onStartDm: isMe
-          ? null
-          : () async {
-              final dmRoomId = await client.startDirectChat(
-                member.userId,
-                enableEncryption: true,
-              );
-              if (client.getRoomById(dmRoomId) == null) {
-                await client
-                    .waitForRoomInSync(dmRoomId, join: true)
-                    .timeout(const Duration(seconds: 30));
-              }
-              if (!context.mounted) return;
-              context.read<SelectionService>().selectRoom(dmRoomId);
-              context.goNamed(
-                Routes.room,
-                pathParameters: {RouteParams.roomId: dmRoomId},
-              );
-            },
-      onRoleChange: (level) => PowerLevelService.update(
-        space,
-        PowerLevelPatch(users: {member.userId: level}),
-      ),
-      onKick: (reason) => client.kick(space.id, member.userId, reason: reason),
-      onBan: (reason) => client.ban(space.id, member.userId, reason: reason),
-      onUnban: () => client.unban(space.id, member.userId),
-    );
+  ) {
+    return showRoomMemberSheet(context, room: space, member: member);
   }
 
   Future<void> _run(String action, Future<void> Function() task) async {
@@ -190,12 +198,7 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
   }
 
   Widget _buildContent(Room space, ColorScheme cs, TextTheme tt) {
-    if (_memberList == null && !_loadingMembers) {
-      _loadingMembers = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        unawaited(_loadMembers(space));
-      });
-    }
+    // Initial member load is triggered in initState — no side effects in build.
     return ListView(
       padding: const EdgeInsets.only(bottom: 32),
       children: [
