@@ -112,20 +112,17 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
     _searchGeneration++;
     final gen = _searchGeneration;
     setState(() => _searching = true);
+    List<KoheraUserSummary> results;
     try {
-      final results = await widget.params.onSearchUserDirectory(query);
-      if (!mounted || gen != _searchGeneration) return;
-      setState(() {
-        _searchResults = results;
-        _searching = false;
-      });
+      results = await widget.params.onSearchUserDirectory(query);
     } catch (_) {
-      if (!mounted || gen != _searchGeneration) return;
-      setState(() {
-        _searchResults = [];
-        _searching = false;
-      });
+      results = const [];
     }
+    if (!mounted || gen != _searchGeneration) return;
+    setState(() {
+      _searchResults = results;
+      _searching = false;
+    });
   }
 
   void _selectProfile(KoheraUserSummary profile) {
@@ -151,12 +148,11 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
     final tiles = <Widget>[];
 
     if (query.isNotEmpty) {
-      final filtered =
-          _searchResults.where((p) => !existing.contains(p.userId)).toList();
-      for (final p in filtered) {
-        tiles.add(_profileTile(p, cs));
-      }
-      return tiles;
+      final filtered = _searchResults
+          .where((p) => !existing.contains(p.userId))
+          .map((p) => _profileTile(p, cs))
+          .toList();
+      return filtered;
     }
 
     final dmContacts = widget.params.knownContacts
@@ -170,16 +166,12 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
 
     if (dmContacts.isNotEmpty) {
       tiles.add(_sectionLabel('Recent contacts', cs));
-      for (final p in dmContacts) {
-        tiles.add(_profileTile(p, cs));
-      }
+      tiles.addAll(dmContacts.map((p) => _profileTile(p, cs)));
     }
 
     if (groupContacts.isNotEmpty) {
       tiles.add(_sectionLabel('From other rooms', cs));
-      for (final p in groupContacts) {
-        tiles.add(_profileTile(p, cs));
-      }
+      tiles.addAll(groupContacts.map((p) => _profileTile(p, cs)));
     }
 
     return tiles;
