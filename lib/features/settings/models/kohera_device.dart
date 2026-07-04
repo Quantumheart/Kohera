@@ -6,7 +6,7 @@ import 'package:flutter/widgets.dart';
 /// This is the device model for the device settings screen. It carries no
 /// `package:matrix/matrix.dart` dependency — the SDK `Device` (and optional
 /// `DeviceKeys`) is converted to this type at the boundary in
-/// `DevicesScreen` via [toKoheraDevice]. The device list item widget only
+/// `DevicesScreen` via [DeviceResolver]. The device list item widget only
 /// ever sees this SDK-free type, so it needs no Matrix SDK import.
 ///
 /// The display fields ([displayNameOrId], [platformLabel], [deviceIcon],

@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
-import 'package:kohera/features/settings/models/kohera_sticker_pack_mapper.dart';
+import 'package:kohera/features/settings/services/sticker_pack_resolver.dart';
 
 void main() {
-  group('toKoheraStickerPack', () {
+  group('StickerPackResolver', () {
     final source = StickerPack(
       id: 'im.ponies.user_emotes',
       displayName: 'My Emotes',
@@ -31,14 +31,14 @@ void main() {
     );
 
     test('maps id, name (=id), displayName', () {
-      final kohera = toKoheraStickerPack(source, isInstalled: true);
+      final kohera = const StickerPackResolver()(source, isInstalled: true);
       expect(kohera.id, 'im.ponies.user_emotes');
       expect(kohera.name, 'im.ponies.user_emotes');
       expect(kohera.displayName, 'My Emotes');
     });
 
     test('converts avatarUrl Uri to iconUrl string', () {
-      final kohera = toKoheraStickerPack(source, isInstalled: true);
+      final kohera = const StickerPackResolver()(source, isInstalled: true);
       expect(kohera.iconUrl, 'mxc://example.com/avatar123');
     });
 
@@ -49,16 +49,25 @@ void main() {
         stickers: [],
         emoji: [],
       );
-      expect(toKoheraStickerPack(noAvatar, isInstalled: true).iconUrl, isNull);
+      expect(
+        const StickerPackResolver()(noAvatar, isInstalled: true).iconUrl,
+        isNull,
+      );
     });
 
     test('sets isInstalled from the parameter', () {
-      expect(toKoheraStickerPack(source, isInstalled: true).isInstalled, isTrue);
-      expect(toKoheraStickerPack(source, isInstalled: false).isInstalled, isFalse);
+      expect(
+        const StickerPackResolver()(source, isInstalled: true).isInstalled,
+        isTrue,
+      );
+      expect(
+        const StickerPackResolver()(source, isInstalled: false).isInstalled,
+        isFalse,
+      );
     });
 
     test('maps stickers and emoji to KoheraSticker with url string + dims', () {
-      final kohera = toKoheraStickerPack(source, isInstalled: true);
+      final kohera = const StickerPackResolver()(source, isInstalled: true);
       expect(kohera.stickers, hasLength(1));
       expect(kohera.stickers.first.shortCode, 'wave');
       expect(kohera.stickers.first.mxcUrl, 'mxc://example.com/wave');
@@ -68,13 +77,12 @@ void main() {
       expect(kohera.emoji, hasLength(1));
       expect(kohera.emoji.first.shortCode, 'smile');
       expect(kohera.emoji.first.mxcUrl, 'mxc://example.com/smile');
-      // Emoji had no info → dimensions null.
       expect(kohera.emoji.first.width, isNull);
       expect(kohera.emoji.first.height, isNull);
     });
 
     test('preserves counts used by the settings subtitle', () {
-      final kohera = toKoheraStickerPack(source, isInstalled: true);
+      final kohera = const StickerPackResolver()(source, isInstalled: true);
       expect(kohera.stickerCount, 1);
       expect(kohera.emojiCount, 1);
       expect(kohera.isEmpty, isFalse);

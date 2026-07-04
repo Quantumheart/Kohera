@@ -6,7 +6,7 @@ import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/core/services/emoji_gg_service.dart';
 import 'package:kohera/core/utils/openmoji_catalog.dart';
 import 'package:kohera/features/settings/models/kohera_sticker_pack.dart';
-import 'package:kohera/features/settings/models/kohera_sticker_pack_mapper.dart';
+import 'package:kohera/features/settings/services/sticker_pack_resolver.dart';
 import 'package:matrix/matrix.dart';
 
 class ImportProgress {
@@ -54,19 +54,19 @@ class StickerPackService extends ChangeNotifier {
   /// Account packs (personal + imported + subscribed) as SDK-free
   /// [KoheraStickerPack]s, all marked installed.
   List<KoheraStickerPack> get koheraAccountPacks =>
-      accountPacks.map((p) => toKoheraStickerPack(p, isInstalled: true)).toList();
+      accountPacks.map((p) => const StickerPackResolver()(p, isInstalled: true)).toList();
 
   /// The built-in OpenMoji pack as an SDK-free [KoheraStickerPack], or null
   /// until the catalog has loaded. Marked installed (always available).
   KoheraStickerPack? get koheraOpenMojiPack {
     final p = _openMojiPack;
-    return p == null ? null : toKoheraStickerPack(p, isInstalled: true);
+    return p == null ? null : const StickerPackResolver()(p, isInstalled: true);
   }
 
   /// Room/space packs from joined rooms not yet subscribed at account level,
   /// as SDK-free [KoheraStickerPack]s marked not installed.
   List<KoheraStickerPack> koheraAvailableRoomPacks() =>
-      availableRoomPacks().map((p) => toKoheraStickerPack(p, isInstalled: false)).toList();
+      availableRoomPacks().map((p) => const StickerPackResolver()(p, isInstalled: false)).toList();
 
   Future<void> _loadOpenMojiPack() async {
     try {

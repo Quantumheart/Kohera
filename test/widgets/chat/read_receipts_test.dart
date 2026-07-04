@@ -4,8 +4,8 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
 import 'package:kohera/features/chat/services/read_receipt_resolver.dart';
 import 'package:kohera/features/chat/widgets/read_receipts.dart';
-import 'package:kohera/shared/models/kohera_user_summary_mapper.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/shared/services/user_summary_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
@@ -38,7 +38,7 @@ MockUser _makeUser(String id, String? displayName, {Uri? avatarUrl}) {
 }
 
 KoheraReadReceipt _receipt(MockUser user, DateTime time) =>
-    KoheraReadReceipt(user: toKoheraUserSummary(user), time: time);
+    KoheraReadReceipt(user: const UserSummaryResolver()(user), time: time);
 
 MockRoom _makeRoom({
   required Map<String, LatestReceiptStateData> globalOtherUsers,
@@ -108,7 +108,7 @@ Widget _wrapRow(List<KoheraReadReceipt> receipts, {bool isMe = true}) {
 // ── Tests ────────────────────────────────────────────────────
 
 void main() {
-  group('buildReceiptMap', () {
+  group('ReadReceiptResolver', () {
     test('maps receipts by eventId and excludes own user', () {
       final alice = _makeUser('@alice:example.com', 'Alice');
       final bob = _makeUser('@bob:example.com', 'Bob');
@@ -126,7 +126,7 @@ void main() {
         },
       );
 
-      final map = buildReceiptMap(room, '@me:example.com');
+      final map = const ReadReceiptResolver()(room, '@me:example.com');
 
       expect(map.containsKey(r'$evt1'), isTrue);
       expect(map[r'$evt1']!.length, 2);
@@ -157,7 +157,7 @@ void main() {
         },
       );
 
-      final map = buildReceiptMap(room, '@me:example.com');
+      final map = const ReadReceiptResolver()(room, '@me:example.com');
 
       // Alice should only appear once (from global, since it's processed first)
       final allReceipts = map.values.expand((l) => l).toList();
@@ -189,7 +189,7 @@ void main() {
         },
       );
 
-      final map = buildReceiptMap(
+      final map = const ReadReceiptResolver()(
         room,
         '@me:example.com',
         threadRootId: r'$root',
@@ -211,7 +211,7 @@ void main() {
         },
       );
 
-      final map = buildReceiptMap(
+      final map = const ReadReceiptResolver()(
         room,
         '@me:example.com',
         threadRootId: r'$missing',
@@ -226,7 +226,7 @@ void main() {
         userMap: {},
       );
 
-      final map = buildReceiptMap(room, '@me:example.com');
+      final map = const ReadReceiptResolver()(room, '@me:example.com');
       expect(map, isEmpty);
     });
   });

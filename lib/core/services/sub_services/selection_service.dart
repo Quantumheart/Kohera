@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:kohera/core/models/space_node.dart';
 import 'package:kohera/core/utils/order_utils.dart' as order_utils;
 import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
-import 'package:kohera/features/rooms/models/kohera_room_summary_mapper.dart';
+import 'package:kohera/features/rooms/services/room_summary_resolver.dart';
 import 'package:matrix/matrix.dart';
 
 class SelectionService extends ChangeNotifier {
@@ -119,7 +119,7 @@ class SelectionService extends ChangeNotifier {
   KoheraRoomSummary summaryFor(Room room) {
     return _summaryCache.putIfAbsent(
       room.id,
-      () => toKoheraRoomSummary(room, myUserId: _client.userID),
+      () => const RoomSummaryResolver()(room, myUserId: _client.userID),
     );
   }
 
