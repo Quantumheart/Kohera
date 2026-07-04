@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/core/extensions/device_extension.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/features/settings/models/kohera_device.dart';
 
 /// A list tile displaying a single Matrix device with its verification status.
 class DeviceListItem extends StatelessWidget {
   const DeviceListItem({
-    required this.device, required this.isCurrentDevice, super.key,
-    this.deviceKeys,
+    required this.device,
+    required this.isCurrentDevice,
+    super.key,
     this.onRename,
     this.onVerify,
     this.onToggleBlock,
     this.onRemove,
   });
 
-  final Device device;
+  final KoheraDevice device;
   final bool isCurrentDevice;
-  final DeviceKeys? deviceKeys;
   final VoidCallback? onRename;
   final VoidCallback? onVerify;
   final VoidCallback? onToggleBlock;
@@ -26,7 +25,9 @@ class DeviceListItem extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return ListTile(
-      mouseCursor: (isCurrentDevice && onRename != null) ? SystemMouseCursors.click : null,
+      mouseCursor: (isCurrentDevice && onRename != null)
+          ? SystemMouseCursors.click
+          : null,
       leading: Icon(device.deviceIcon, color: cs.onSurfaceVariant),
       title: Text(
         device.displayNameOrId,
@@ -36,14 +37,16 @@ class DeviceListItem extends StatelessWidget {
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text([
-            device.lastActiveString,
-            if (device.platformLabel != null) device.platformLabel!,
-          ].join(' · '),),
+          Text(
+            [
+              device.lastActiveString,
+              if (device.platformLabel != null) device.platformLabel!,
+            ].join(' · '),
+          ),
           const SizedBox(height: 2),
           _VerificationBadge(
-            isVerified: deviceKeys?.verified ?? false,
-            isBlocked: deviceKeys?.blocked ?? false,
+            isVerified: device.isVerified,
+            isBlocked: device.isBlocked,
           ),
         ],
       ),
@@ -72,7 +75,7 @@ class DeviceListItem extends StatelessWidget {
                     dense: true,
                   ),
                 ),
-                if (deviceKeys != null && !deviceKeys!.blocked)
+                if (device.hasDeviceKeys && !device.isBlocked)
                   const PopupMenuItem(
                     value: _DeviceAction.verify,
                     child: ListTile(
@@ -81,16 +84,16 @@ class DeviceListItem extends StatelessWidget {
                       dense: true,
                     ),
                   ),
-                if (deviceKeys != null)
+                if (device.hasDeviceKeys)
                   PopupMenuItem(
                     value: _DeviceAction.block,
                     child: ListTile(
                       leading: Icon(
-                        deviceKeys!.blocked
+                        device.isBlocked
                             ? Icons.shield_outlined
                             : Icons.block_outlined,
                       ),
-                      title: Text(deviceKeys!.blocked ? 'Unblock' : 'Block'),
+                      title: Text(device.isBlocked ? 'Unblock' : 'Block'),
                       dense: true,
                     ),
                   ),

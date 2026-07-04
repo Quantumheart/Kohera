@@ -8,6 +8,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
+import 'package:kohera/features/settings/models/kohera_device_mapper.dart';
 import 'package:kohera/features/settings/widgets/device_list_item.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
@@ -119,7 +120,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
       },
     );
     if (password != null && password.isNotEmpty && mounted) {
-      context.read<MatrixService>().uia.completeUiaWithPassword(request, password);
+      context
+          .read<MatrixService>()
+          .uia
+          .completeUiaWithPassword(request, password);
     } else {
       request.cancel();
     }
@@ -365,9 +369,12 @@ class _DevicesScreenState extends State<DevicesScreen> {
             const SectionHeader(label: 'THIS DEVICE'),
             Card(
               child: DeviceListItem(
-                device: thisDevice.first,
+                device: toKoheraDevice(
+                  thisDevice.first,
+                  isOwnDevice: true,
+                  deviceKeys: _getDeviceKeys(thisDevice.first),
+                ),
                 isCurrentDevice: true,
-                deviceKeys: _getDeviceKeys(thisDevice.first),
                 onRename: () => _renameDevice(thisDevice.first),
               ),
             ),
@@ -395,9 +402,12 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   for (var i = 0; i < otherDevices.length; i++) ...[
                     if (i > 0) const Divider(height: 1, indent: 56),
                     DeviceListItem(
-                      device: otherDevices[i],
+                      device: toKoheraDevice(
+                        otherDevices[i],
+                        isOwnDevice: false,
+                        deviceKeys: _getDeviceKeys(otherDevices[i]),
+                      ),
                       isCurrentDevice: false,
-                      deviceKeys: _getDeviceKeys(otherDevices[i]),
                       onRename: () => _renameDevice(otherDevices[i]),
                       onVerify: () => _verifyDevice(otherDevices[i]),
                       onToggleBlock: () => _toggleBlockDevice(otherDevices[i]),
