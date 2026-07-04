@@ -160,7 +160,6 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
       return widget.isFullPage ? Scaffold(appBar: AppBar(), body: body) : body;
     }
 
-    final summary = _controller.summary!;
     final content = _buildContent(cs, tt);
 
     if (widget.isFullPage) {
@@ -173,7 +172,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
               pathParameters: {RouteParams.roomId: widget.roomId},
             ),
           ),
-          title: Text(summary.displayname),
+          title: Text(_controller.summary!.displayname),
         ),
         body: content,
       );
@@ -193,7 +192,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
         if (_loading) const LinearProgressIndicator(),
         _buildHeader(cs, tt),
         const Divider(),
-        _buildActionsRow(cs, tt),
+        _buildActionsRow(cs),
         if (_error != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -281,7 +280,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
 
   // ── Actions row ────────────────────────────────────────────
 
-  Widget _buildActionsRow(ColorScheme cs, TextTheme tt) {
+  Widget _buildActionsRow(ColorScheme cs) {
     final isMuted = _controller.isMuted;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -384,11 +383,22 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
   }
 
   Widget _buildDeviceKeyTile(KoheraDeviceKey dk, ColorScheme cs, TextTheme tt) {
-    final (IconData icon, String label, Color color) = dk.blocked
-        ? (Icons.block, 'Blocked', cs.error)
-        : dk.verified
-            ? (Icons.verified, 'Verified', cs.primary)
-            : (Icons.shield_outlined, 'Unverified', cs.onSurfaceVariant);
+    final IconData icon;
+    final String label;
+    final Color color;
+    if (dk.blocked) {
+      icon = Icons.block;
+      label = 'Blocked';
+      color = cs.error;
+    } else if (dk.verified) {
+      icon = Icons.verified;
+      label = 'Verified';
+      color = cs.primary;
+    } else {
+      icon = Icons.shield_outlined;
+      label = 'Unverified';
+      color = cs.onSurfaceVariant;
+    }
 
     return ListTile(
       dense: true,

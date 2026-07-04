@@ -29,7 +29,6 @@ void main() {
     required Future<void> Function(Uint8List? bytes, String? filename)
         onSetAvatar,
     String? avatarUrl,
-    double size = 72,
   }) {
     return MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
@@ -40,7 +39,6 @@ void main() {
           canEditAvatar: canEditAvatar,
           avatarResolver: null,
           onSetAvatar: onSetAvatar,
-          size: size,
         ),
       ),
     );

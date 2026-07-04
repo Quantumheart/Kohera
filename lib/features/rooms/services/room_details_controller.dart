@@ -201,8 +201,7 @@ class RoomDetailsController extends ChangeNotifier {
   }
 
   Future<int?> resolveMemberCount(String id) async {
-    final r = matrix.client.getRoomById(id);
-    if (r == null) return null;
+    if (matrix.client.getRoomById(id) == null) return null;
     final members = await matrix.client.getJoinedMembersByRoom(id);
     return members?.length;
   }
