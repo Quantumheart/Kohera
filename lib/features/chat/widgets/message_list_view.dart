@@ -518,7 +518,7 @@ class MessageListViewState extends State<MessageListView> {
     final myUserId = widget.matrix.client.userID;
     final avatarResolver = context.read<MatrixService>().avatarResolver;
     final receiptMap = showReceipts
-        ? buildReceiptMap(
+        ? const ReadReceiptResolver()(
             room,
             myUserId,
             threadRootId: widget.threadRootEventId,

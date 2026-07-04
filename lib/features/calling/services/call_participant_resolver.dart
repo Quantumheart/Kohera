@@ -1,22 +1,31 @@
 import 'package:kohera/features/calling/models/call_participant.dart';
 import 'package:livekit_client/livekit_client.dart' as livekit;
 
-class CallParticipantMapper {
-  CallParticipantMapper._();
+/// Converts a LiveKit [Participant] into a Kohera-owned, SDK-free
+/// [CallParticipant].
+///
+/// This resolver is the conversion boundary between the LiveKit SDK and the
+/// Kohera call UI. Widgets below the boundary depend only on
+/// [CallParticipant] and never import `livekit_client`. Invoke as
+/// `const CallParticipantResolver().fromLiveKit(p, ...)`; use
+/// `const CallParticipantResolver().extractMatrixId(identity)` for the
+/// standalone matrix-id extraction used by [LiveKitService].
+class CallParticipantResolver {
+  const CallParticipantResolver();
 
   static final _matrixIdPattern = RegExp('@[^:]+:[^:]+');
 
-  static String extractMatrixId(String identity) {
+  String extractMatrixId(String identity) {
     final match = _matrixIdPattern.firstMatch(identity);
     return match?.group(0) ?? identity;
   }
 
-  static String _displayNameFromIdentity(String identity) {
+  String _displayNameFromIdentity(String identity) {
     final match = RegExp('@([^:]+)').firstMatch(identity);
     return match?.group(1) ?? identity;
   }
 
-  static CallParticipant fromLiveKit(
+  CallParticipant fromLiveKit(
     livekit.Participant p, {
     List<livekit.Participant> activeSpeakers = const [],
     bool isLocal = false,
@@ -46,7 +55,8 @@ class CallParticipantMapper {
 
     return CallParticipant(
       id: matrixId,
-      displayName: p.name.isNotEmpty ? p.name : _displayNameFromIdentity(p.identity),
+      displayName:
+          p.name.isNotEmpty ? p.name : _displayNameFromIdentity(p.identity),
       avatarUrl: avatarUrl,
       isLocal: isLocal,
       isAudioOnly: !hasVideo,

@@ -31,7 +31,7 @@ class KoheraSticker {
 /// This is the Kohera-owned domain model consumed by the sticker settings
 /// screen. Conversion from the SDK-coupled [StickerPack] (which imports
 /// `package:matrix/matrix.dart`) happens inside [StickerPackService] via
-/// [toKoheraStickerPack] — the screen only ever sees this SDK-free type.
+/// [StickerPackResolver] — the screen only ever sees this SDK-free type.
 class KoheraStickerPack {
   const KoheraStickerPack({
     required this.id,

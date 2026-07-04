@@ -12,15 +12,20 @@ import 'package:kohera/core/models/server_auth_capabilities.dart' as _i16;
 import 'package:kohera/core/services/matrix_service.dart' as _i17;
 import 'package:kohera/core/services/sticker_pack_service.dart' as _i15;
 import 'package:kohera/core/services/sub_services/auth_service.dart' as _i11;
-import 'package:kohera/core/services/sub_services/chat_backup_service.dart' as _i6;
+import 'package:kohera/core/services/sub_services/chat_backup_service.dart'
+    as _i6;
 import 'package:kohera/core/services/sub_services/outbox_service.dart' as _i12;
 import 'package:kohera/core/services/sub_services/presence_service.dart' as _i8;
-import 'package:kohera/core/services/sub_services/selection_service.dart' as _i7;
-import 'package:kohera/core/services/sub_services/space_access_service.dart' as _i9;
+import 'package:kohera/core/services/sub_services/selection_service.dart'
+    as _i7;
+import 'package:kohera/core/services/sub_services/space_access_service.dart'
+    as _i9;
 import 'package:kohera/core/services/sub_services/sync_service.dart' as _i10;
 import 'package:kohera/core/services/sub_services/uia_service.dart' as _i5;
-import 'package:kohera/features/notifications/services/call_push_rule_manager.dart' as _i2;
-import 'package:kohera/features/notifications/services/megolm_key_mirror.dart' as _i3;
+import 'package:kohera/features/notifications/services/call_push_rule_manager.dart'
+    as _i2;
+import 'package:kohera/features/notifications/services/megolm_key_mirror.dart'
+    as _i3;
 import 'package:kohera/shared/services/avatar_resolver.dart' as _i13;
 import 'package:kohera/shared/services/media_resolver.dart' as _i14;
 import 'package:matrix/matrix.dart' as _i4;
@@ -42,7 +47,8 @@ import 'package:mockito/src/dummies.dart' as _i18;
 // ignore_for_file: subtype_of_sealed_class
 // ignore_for_file: invalid_use_of_internal_member
 
-class _FakeCallPushRuleManager_0 extends _i1.SmartFake implements _i2.CallPushRuleManager {
+class _FakeCallPushRuleManager_0 extends _i1.SmartFake
+    implements _i2.CallPushRuleManager {
   _FakeCallPushRuleManager_0(
     Object parent,
     Invocation parentInvocation,
@@ -52,7 +58,8 @@ class _FakeCallPushRuleManager_0 extends _i1.SmartFake implements _i2.CallPushRu
         );
 }
 
-class _FakeMegolmKeyMirror_1 extends _i1.SmartFake implements _i3.MegolmKeyMirror {
+class _FakeMegolmKeyMirror_1 extends _i1.SmartFake
+    implements _i3.MegolmKeyMirror {
   _FakeMegolmKeyMirror_1(
     Object parent,
     Invocation parentInvocation,
@@ -82,7 +89,8 @@ class _FakeUiaService_3 extends _i1.SmartFake implements _i5.UiaService {
         );
 }
 
-class _FakeChatBackupService_4 extends _i1.SmartFake implements _i6.ChatBackupService {
+class _FakeChatBackupService_4 extends _i1.SmartFake
+    implements _i6.ChatBackupService {
   _FakeChatBackupService_4(
     Object parent,
     Invocation parentInvocation,
@@ -92,7 +100,8 @@ class _FakeChatBackupService_4 extends _i1.SmartFake implements _i6.ChatBackupSe
         );
 }
 
-class _FakeSelectionService_5 extends _i1.SmartFake implements _i7.SelectionService {
+class _FakeSelectionService_5 extends _i1.SmartFake
+    implements _i7.SelectionService {
   _FakeSelectionService_5(
     Object parent,
     Invocation parentInvocation,
@@ -102,7 +111,8 @@ class _FakeSelectionService_5 extends _i1.SmartFake implements _i7.SelectionServ
         );
 }
 
-class _FakePresenceService_6 extends _i1.SmartFake implements _i8.PresenceService {
+class _FakePresenceService_6 extends _i1.SmartFake
+    implements _i8.PresenceService {
   _FakePresenceService_6(
     Object parent,
     Invocation parentInvocation,
@@ -112,7 +122,8 @@ class _FakePresenceService_6 extends _i1.SmartFake implements _i8.PresenceServic
         );
 }
 
-class _FakeSpaceAccessService_7 extends _i1.SmartFake implements _i9.SpaceAccessService {
+class _FakeSpaceAccessService_7 extends _i1.SmartFake
+    implements _i9.SpaceAccessService {
   _FakeSpaceAccessService_7(
     Object parent,
     Invocation parentInvocation,
@@ -142,7 +153,8 @@ class _FakeAuthService_9 extends _i1.SmartFake implements _i11.AuthService {
         );
 }
 
-class _FakeOutboxService_10 extends _i1.SmartFake implements _i12.OutboxService {
+class _FakeOutboxService_10 extends _i1.SmartFake
+    implements _i12.OutboxService {
   _FakeOutboxService_10(
     Object parent,
     Invocation parentInvocation,
@@ -152,7 +164,8 @@ class _FakeOutboxService_10 extends _i1.SmartFake implements _i12.OutboxService 
         );
 }
 
-class _FakeAvatarResolver_11 extends _i1.SmartFake implements _i13.AvatarResolver {
+class _FakeAvatarResolver_11 extends _i1.SmartFake
+    implements _i13.AvatarResolver {
   _FakeAvatarResolver_11(
     Object parent,
     Invocation parentInvocation,
@@ -162,7 +175,8 @@ class _FakeAvatarResolver_11 extends _i1.SmartFake implements _i13.AvatarResolve
         );
 }
 
-class _FakeMediaResolver_12 extends _i1.SmartFake implements _i14.MediaResolver {
+class _FakeMediaResolver_12 extends _i1.SmartFake
+    implements _i14.MediaResolver {
   _FakeMediaResolver_12(
     Object parent,
     Invocation parentInvocation,
@@ -172,7 +186,8 @@ class _FakeMediaResolver_12 extends _i1.SmartFake implements _i14.MediaResolver 
         );
 }
 
-class _FakeStickerPackService_13 extends _i1.SmartFake implements _i15.StickerPackService {
+class _FakeStickerPackService_13 extends _i1.SmartFake
+    implements _i15.StickerPackService {
   _FakeStickerPackService_13(
     Object parent,
     Invocation parentInvocation,
@@ -182,7 +197,8 @@ class _FakeStickerPackService_13 extends _i1.SmartFake implements _i15.StickerPa
         );
 }
 
-class _FakeServerAuthCapabilities_14 extends _i1.SmartFake implements _i16.ServerAuthCapabilities {
+class _FakeServerAuthCapabilities_14 extends _i1.SmartFake
+    implements _i16.ServerAuthCapabilities {
   _FakeServerAuthCapabilities_14(
     Object parent,
     Invocation parentInvocation,
@@ -583,7 +599,8 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
       );
 
   @override
-  void didChangeAppLifecycleState(_i20.AppLifecycleState? state) => super.noSuchMethod(
+  void didChangeAppLifecycleState(_i20.AppLifecycleState? state) =>
+      super.noSuchMethod(
         Invocation.method(
           #didChangeAppLifecycleState,
           [state],
@@ -706,7 +723,8 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
       ) as _i19.Future<bool>);
 
   @override
-  bool handleStartBackGesture(_i21.PredictiveBackEvent? backEvent) => (super.noSuchMethod(
+  bool handleStartBackGesture(_i21.PredictiveBackEvent? backEvent) =>
+      (super.noSuchMethod(
         Invocation.method(
           #handleStartBackGesture,
           [backEvent],
@@ -716,7 +734,8 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
       ) as bool);
 
   @override
-  void handleUpdateBackGestureProgress(_i21.PredictiveBackEvent? backEvent) => super.noSuchMethod(
+  void handleUpdateBackGestureProgress(_i21.PredictiveBackEvent? backEvent) =>
+      super.noSuchMethod(
         Invocation.method(
           #handleUpdateBackGestureProgress,
           [backEvent],
@@ -762,7 +781,9 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
       ) as _i19.Future<bool>);
 
   @override
-  _i19.Future<bool> didPushRouteInformation(_i22.RouteInformation? routeInformation) => (super.noSuchMethod(
+  _i19.Future<bool> didPushRouteInformation(
+          _i22.RouteInformation? routeInformation) =>
+      (super.noSuchMethod(
         Invocation.method(
           #didPushRouteInformation,
           [routeInformation],
@@ -822,8 +843,10 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
           #didRequestAppExit,
           [],
         ),
-        returnValue: _i19.Future<_i20.AppExitResponse>.value(_i20.AppExitResponse.exit),
-        returnValueForMissingStub: _i19.Future<_i20.AppExitResponse>.value(_i20.AppExitResponse.exit),
+        returnValue:
+            _i19.Future<_i20.AppExitResponse>.value(_i20.AppExitResponse.exit),
+        returnValueForMissingStub:
+            _i19.Future<_i20.AppExitResponse>.value(_i20.AppExitResponse.exit),
       ) as _i19.Future<_i20.AppExitResponse>);
 
   @override
@@ -986,7 +1009,8 @@ class MockAuthService extends _i1.Mock implements _i11.AuthService {
           [homeserver],
           {#isLoggedIn: isLoggedIn},
         ),
-        returnValue: _i19.Future<_i16.ServerAuthCapabilities>.value(_FakeServerAuthCapabilities_14(
+        returnValue: _i19.Future<_i16.ServerAuthCapabilities>.value(
+            _FakeServerAuthCapabilities_14(
           this,
           Invocation.method(
             #getServerAuthCapabilities,
@@ -994,7 +1018,9 @@ class MockAuthService extends _i1.Mock implements _i11.AuthService {
             {#isLoggedIn: isLoggedIn},
           ),
         )),
-        returnValueForMissingStub: _i19.Future<_i16.ServerAuthCapabilities>.value(_FakeServerAuthCapabilities_14(
+        returnValueForMissingStub:
+            _i19.Future<_i16.ServerAuthCapabilities>.value(
+                _FakeServerAuthCapabilities_14(
           this,
           Invocation.method(
             #getServerAuthCapabilities,
@@ -1045,17 +1071,21 @@ class MockAuthService extends _i1.Mock implements _i11.AuthService {
       ) as _i19.Future<void>);
 
   @override
-  _i19.Future<({String password, String username})?> loadLoginCredentials(String? homeserver) => (super.noSuchMethod(
+  _i19.Future<({String password, String username})?> loadLoginCredentials(
+          String? homeserver) =>
+      (super.noSuchMethod(
         Invocation.method(
           #loadLoginCredentials,
           [homeserver],
         ),
         returnValue: _i19.Future<({String password, String username})?>.value(),
-        returnValueForMissingStub: _i19.Future<({String password, String username})?>.value(),
+        returnValueForMissingStub:
+            _i19.Future<({String password, String username})?>.value(),
       ) as _i19.Future<({String password, String username})?>);
 
   @override
-  _i19.Future<void> clearLoginCredentials(String? homeserver) => (super.noSuchMethod(
+  _i19.Future<void> clearLoginCredentials(String? homeserver) =>
+      (super.noSuchMethod(
         Invocation.method(
           #clearLoginCredentials,
           [homeserver],

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/settings/models/kohera_device_mapper.dart';
+import 'package:kohera/features/settings/services/device_resolver.dart';
 import 'package:matrix/matrix.dart';
 
 void main() {
-  group('toKoheraDevice', () {
+  group('DeviceResolver', () {
     test('maps deviceId and displayName', () {
       final device = Device(
         deviceId: 'ABCD12',
         displayName: 'Kohera Android',
       );
-      final kohera = toKoheraDevice(device, isOwnDevice: true);
+      final kohera = const DeviceResolver()(device, isOwnDevice: true);
 
       expect(kohera.deviceId, 'ABCD12');
       expect(kohera.displayName, 'Kohera Android');
@@ -21,7 +21,7 @@ void main() {
       test('returns displayName when available', () {
         final device = Device(deviceId: 'ABCD12', displayName: 'My Phone');
         expect(
-          toKoheraDevice(device, isOwnDevice: false).displayNameOrId,
+          const DeviceResolver()(device, isOwnDevice: false).displayNameOrId,
           'My Phone',
         );
       });
@@ -29,7 +29,7 @@ void main() {
       test('falls back to deviceId when displayName is null', () {
         final device = Device(deviceId: 'ABCD12');
         expect(
-          toKoheraDevice(device, isOwnDevice: false).displayNameOrId,
+          const DeviceResolver()(device, isOwnDevice: false).displayNameOrId,
           'ABCD12',
         );
       });
@@ -39,7 +39,7 @@ void main() {
       test('infers Android', () {
         final device = Device(deviceId: 'id', displayName: 'Kohera Android');
         expect(
-          toKoheraDevice(device, isOwnDevice: false).platformLabel,
+          const DeviceResolver()(device, isOwnDevice: false).platformLabel,
           'Android',
         );
       });
@@ -47,7 +47,7 @@ void main() {
       test('infers iOS', () {
         final device = Device(deviceId: 'id', displayName: 'Element iOS');
         expect(
-          toKoheraDevice(device, isOwnDevice: false).platformLabel,
+          const DeviceResolver()(device, isOwnDevice: false).platformLabel,
           'iOS',
         );
       });
@@ -55,7 +55,7 @@ void main() {
       test('returns null for an unrecognized name', () {
         final device = Device(deviceId: 'id', displayName: 'My Custom Client');
         expect(
-          toKoheraDevice(device, isOwnDevice: false).platformLabel,
+          const DeviceResolver()(device, isOwnDevice: false).platformLabel,
           isNull,
         );
       });
@@ -65,7 +65,7 @@ void main() {
       test('returns phone icon for Android', () {
         final device = Device(deviceId: 'id', displayName: 'Kohera Android');
         expect(
-          toKoheraDevice(device, isOwnDevice: false).deviceIcon,
+          const DeviceResolver()(device, isOwnDevice: false).deviceIcon,
           Icons.phone_android_outlined,
         );
       });
@@ -73,7 +73,7 @@ void main() {
       test('returns web icon for Chrome', () {
         final device = Device(deviceId: 'id', displayName: 'Chrome on Windows');
         expect(
-          toKoheraDevice(device, isOwnDevice: false).deviceIcon,
+          const DeviceResolver()(device, isOwnDevice: false).deviceIcon,
           Icons.web_outlined,
         );
       });
@@ -84,7 +84,7 @@ void main() {
           displayName: 'Element Desktop Linux',
         );
         expect(
-          toKoheraDevice(device, isOwnDevice: false).deviceIcon,
+          const DeviceResolver()(device, isOwnDevice: false).deviceIcon,
           Icons.desktop_mac_outlined,
         );
       });
@@ -92,7 +92,7 @@ void main() {
       test('returns unknown icon for unrecognized name', () {
         final device = Device(deviceId: 'id', displayName: 'Mystery Box');
         expect(
-          toKoheraDevice(device, isOwnDevice: false).deviceIcon,
+          const DeviceResolver()(device, isOwnDevice: false).deviceIcon,
           Icons.devices_other_outlined,
         );
       });
@@ -103,7 +103,7 @@ void main() {
         final ts = DateTime(2025, 6, 15, 10, 30).millisecondsSinceEpoch;
         final device = Device(deviceId: 'id', lastSeenTs: ts);
         expect(
-          toKoheraDevice(device, isOwnDevice: false).lastSeenTs,
+          const DeviceResolver()(device, isOwnDevice: false).lastSeenTs,
           DateTime(2025, 6, 15, 10, 30),
         );
       });
@@ -111,7 +111,7 @@ void main() {
       test('returns null when lastSeenTs is null', () {
         final device = Device(deviceId: 'id');
         expect(
-          toKoheraDevice(device, isOwnDevice: false).lastSeenTs,
+          const DeviceResolver()(device, isOwnDevice: false).lastSeenTs,
           isNull,
         );
       });
@@ -121,7 +121,7 @@ void main() {
       test('returns "Unknown" when lastSeenTs is null', () {
         final device = Device(deviceId: 'id');
         expect(
-          toKoheraDevice(device, isOwnDevice: false).lastActiveString,
+          const DeviceResolver()(device, isOwnDevice: false).lastActiveString,
           'Unknown',
         );
       });
@@ -132,7 +132,7 @@ void main() {
             .millisecondsSinceEpoch;
         final device = Device(deviceId: 'id', lastSeenTs: ts);
         expect(
-          toKoheraDevice(device, isOwnDevice: false).lastActiveString,
+          const DeviceResolver()(device, isOwnDevice: false).lastActiveString,
           'Active now',
         );
       });
@@ -142,20 +142,20 @@ void main() {
       final device = Device(deviceId: 'ABCD12', displayName: 'My Phone');
 
       test('isVerified is false when deviceKeys is null', () {
-        expect(toKoheraDevice(device, isOwnDevice: false).isVerified, isFalse);
+        expect(const DeviceResolver()(device, isOwnDevice: false).isVerified, isFalse);
       });
 
       test('isBlocked is false when deviceKeys is null', () {
-        expect(toKoheraDevice(device, isOwnDevice: false).isBlocked, isFalse);
+        expect(const DeviceResolver()(device, isOwnDevice: false).isBlocked, isFalse);
       });
 
       test('keys is null when deviceKeys is null', () {
-        expect(toKoheraDevice(device, isOwnDevice: false).keys, isNull);
+        expect(const DeviceResolver()(device, isOwnDevice: false).keys, isNull);
       });
 
       test('hasDeviceKeys is false when deviceKeys is null', () {
         expect(
-          toKoheraDevice(device, isOwnDevice: false).hasDeviceKeys,
+          const DeviceResolver()(device, isOwnDevice: false).hasDeviceKeys,
           isFalse,
         );
       });
@@ -163,8 +163,8 @@ void main() {
 
     test('isOwnDevice is passed through', () {
       final device = Device(deviceId: 'id', displayName: 'Mine');
-      expect(toKoheraDevice(device, isOwnDevice: true).isOwnDevice, isTrue);
-      expect(toKoheraDevice(device, isOwnDevice: false).isOwnDevice, isFalse);
+      expect(const DeviceResolver()(device, isOwnDevice: true).isOwnDevice, isTrue);
+      expect(const DeviceResolver()(device, isOwnDevice: false).isOwnDevice, isFalse);
     });
   });
 }

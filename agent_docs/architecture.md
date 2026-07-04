@@ -57,6 +57,34 @@ Per active account (nested inside a Consumer):
 
 MatrixService lazy-loads sub-services: AuthService, SyncService, SelectionService, ChatBackupService, UiaService.
 
+## Domain-model conversion (resolvers)
+
+Every SDK→Kohera-model conversion boundary is a `const class <Thing>Resolver`
+living in `features/<area>/services/` (or `shared/services/`). The resolver is
+the **only** file that imports both the Matrix SDK and the Kohera domain
+model — everything below the boundary (widgets, other services) consumes the
+SDK-free `Kohera*` type and never imports `package:matrix/matrix.dart`.
+
+Conventions:
+
+- Declare the class `const`-constructible (no state): `const RoomSummaryResolver();`.
+- Expose the primary conversion as a `call` method so it is invokable inline as
+  `const RoomSummaryResolver()(room, myUserId: id)`. Use a descriptively named
+  method (`resolve`, `convert`, `fromEvent`) when the conversion is async or
+  when the resolver bundles multiple operations (see `ReplyPreviewResolver`,
+  `ReactionResolver`).
+- Keep private helpers (`_toKoheraSticker`, `_lastEventPreview`) as private
+  instance methods inside the class. `RegExp`/constant patterns stay
+  `static final`.
+- Free-standing `toKoheraX(...)` functions and `*_mapper.dart` files are
+  deprecated — do not add new ones. Convert existing mappers to resolvers.
+
+Existing compliant resolvers: `MessageDisplayResolver`, `MediaContentResolver`,
+`ReactionResolver`, `ReplyPreviewResolver`, `RoomMemberListResolver`,
+`RoomPermissionsResolver`, `StateEventResolver`, `ReadReceiptResolver`,
+`UserSummaryResolver`, `RoomSummaryResolver`, `StickerPackResolver`,
+`DeviceResolver`, `CallParticipantResolver`.
+
 ## Routing
 
 GoRouter with named routes (`core/routing/`). Auth-aware redirects:

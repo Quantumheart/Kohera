@@ -7,8 +7,8 @@ import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:http/http.dart' as http;
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/calling/models/call_participant.dart' as ui;
-import 'package:kohera/features/calling/models/call_participant_mapper.dart';
 import 'package:kohera/features/calling/models/call_state.dart';
+import 'package:kohera/features/calling/services/call_participant_resolver.dart';
 import 'package:livekit_client/livekit_client.dart' as livekit;
 import 'package:matrix/matrix.dart';
 
@@ -164,9 +164,9 @@ class LiveKitService {
 
     final local = _livekitRoom!.localParticipant;
     if (local != null) {
-      final localId = CallParticipantMapper.extractMatrixId(local.identity);
+      final localId = const CallParticipantResolver().extractMatrixId(local.identity);
       result.add(
-        CallParticipantMapper.fromLiveKit(
+        const CallParticipantResolver().fromLiveKit(
           local,
           activeSpeakers: _activeSpeakers,
           isLocal: true,
@@ -175,9 +175,9 @@ class LiveKitService {
       );
     }
     for (final p in _participants) {
-      final pId = CallParticipantMapper.extractMatrixId(p.identity);
+      final pId = const CallParticipantResolver().extractMatrixId(p.identity);
       result.add(
-        CallParticipantMapper.fromLiveKit(
+        const CallParticipantResolver().fromLiveKit(
           p,
           activeSpeakers: _activeSpeakers,
           avatarUrl: avatarFor(pId),
