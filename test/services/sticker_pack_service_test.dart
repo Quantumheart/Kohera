@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/utils/openmoji_catalog.dart';
+import 'package:kohera/features/settings/models/kohera_sticker_pack.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:matrix/src/utils/space_child.dart';
@@ -404,6 +405,62 @@ void main() {
           {'room_ids': ordered},
         ),
       ).called(1);
+    });
+  });
+
+  // ── Kohera domain-model getters ──────────────────────────────
+
+  group('koheraAccountPacks', () {
+    test('returns KoheraStickerPack instances marked installed', () {
+      when(mockClient.accountData).thenReturn({
+        _kUserEmotesType: _accountDataEvent(_kUserEmotesType, _packContent()),
+      });
+      final packs = service.koheraAccountPacks;
+      expect(packs, hasLength(1));
+      expect(packs.first, isA<KoheraStickerPack>());
+      expect(packs.first.id, _kUserEmotesType);
+      expect(packs.first.isInstalled, isTrue);
+      expect(packs.first.iconUrl, isNull);
+      expect(packs.first.stickerCount + packs.first.emojiCount, greaterThan(0));
+    });
+
+    test('maps avatarUrl to iconUrl string', () {
+      when(mockClient.accountData).thenReturn({
+        _kUserEmotesType: _accountDataEvent(
+          _kUserEmotesType,
+          {
+            'pack': {
+              'display_name': 'With Avatar',
+              'avatar_url': 'mxc://example.com/avatar',
+            },
+            'images': {
+              'x': {'url': 'mxc://example.com/x'},
+            },
+          },
+        ),
+      });
+      expect(service.koheraAccountPacks.first.iconUrl, 'mxc://example.com/avatar');
+    });
+
+    test('returns empty when no account data', () {
+      expect(service.koheraAccountPacks, isEmpty);
+    });
+  });
+
+  group('koheraAvailableRoomPacks', () {
+    test('returns packs marked not installed', () {
+      final mockRoom = MockRoom();
+      when(mockRoom.id).thenReturn('!room:example.com');
+      when(mockRoom.getState(_kRoomEmotesType)).thenReturn(
+        _stateEvent(_packContent(displayName: 'Room Pack')),
+      );
+      when(mockClient.rooms).thenReturn([mockRoom]);
+      final packs = service.koheraAvailableRoomPacks();
+      expect(packs, hasLength(1));
+      expect(packs.first, isA<KoheraStickerPack>());
+      expect(packs.first.id, '!room:example.com');
+      expect(packs.first.isInstalled, isFalse);
+      expect(packs.first.displayName, 'Room Pack');
     });
   });
 

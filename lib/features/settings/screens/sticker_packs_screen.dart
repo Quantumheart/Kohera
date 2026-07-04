@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
+import 'package:kohera/features/settings/models/kohera_sticker_pack.dart';
 import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:provider/provider.dart';
@@ -29,8 +29,8 @@ class StickerPacksScreen extends StatelessWidget {
       ),
       body: Consumer<StickerPackService>(
         builder: (context, service, _) {
-          final accountPacks = service.accountPacks;
-          final availablePacks = service.availableRoomPacks();
+          final accountPacks = service.koheraAccountPacks;
+          final availablePacks = service.koheraAvailableRoomPacks();
 
           final personalPack = accountPacks.where((p) => p.id == _kPersonalPackId).firstOrNull;
           final importedPacks = accountPacks.where((p) => p.id.startsWith('emojigg_')).toList();
@@ -39,7 +39,7 @@ class StickerPacksScreen extends StatelessWidget {
                 (p) => p.id != _kPersonalPackId && !p.id.startsWith('emojigg_'),
               )
               .toList();
-          final openMojiPack = service.openMojiPack;
+          final openMojiPack = service.koheraOpenMojiPack;
           final myPackCount = accountPacks.length + (openMojiPack != null ? 1 : 0);
 
           return ListView(
@@ -188,7 +188,7 @@ class _ReorderablePackList extends StatelessWidget {
     required this.hasLeadingPack,
   });
 
-  final List<StickerPack> packs;
+  final List<KoheraStickerPack> packs;
   final MediaResolver mediaResolver;
   final StickerPackService service;
   final bool hasLeadingPack;
@@ -244,7 +244,7 @@ class _PackTile extends StatelessWidget {
     this.trailing,
   });
 
-  final StickerPack pack;
+  final KoheraStickerPack pack;
   final MediaResolver mediaResolver;
   final Widget? leading;
   final Widget? trailing;
@@ -287,18 +287,18 @@ class _PackTile extends StatelessWidget {
 class _PackAvatar extends StatelessWidget {
   const _PackAvatar({required this.pack, required this.mediaResolver});
 
-  final StickerPack pack;
+  final KoheraStickerPack pack;
   final MediaResolver mediaResolver;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    if (pack.avatarUrl != null) {
+    if (pack.iconUrl != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: MxcImage(
-          mxcUrl: pack.avatarUrl.toString(),
+          mxcUrl: pack.iconUrl!,
           mediaResolver: mediaResolver,
           width: 40,
           height: 40,

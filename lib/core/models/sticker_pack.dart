@@ -9,6 +9,8 @@ class PackImage {
     required this.isEmoji,
     this.body,
     this.emoji,
+    this.width,
+    this.height,
   });
 
   final String shortcode;
@@ -21,6 +23,14 @@ class PackImage {
   /// the image renders as a local OpenMoji asset and inserts this grapheme;
   /// when null it is a remote (mxc/http) custom emoji.
   final String? emoji;
+
+  /// Native image width in pixels, or `null` when the source pack content
+  /// carries no `info.w`. Extracted from the MSC2545 image `info` map.
+  final int? width;
+
+  /// Native image height in pixels, or `null` when the source pack content
+  /// carries no `info.h`. Extracted from the MSC2545 image `info` map.
+  final int? height;
 
   String get altText => body ?? ':$shortcode:';
 }
@@ -76,12 +86,19 @@ class StickerPack {
 
       if (!isSticker && !isEmoji) continue;
 
+      // Extract native dimensions from the MSC2545 image `info` map.
+      final info = entry.value.info;
+      final width = info == null ? null : _toInt(info['w']);
+      final height = info == null ? null : _toInt(info['h']);
+
       final image = PackImage(
         shortcode: entry.key,
         url: entry.value.url,
         body: entry.value.body,
         isSticker: isSticker,
         isEmoji: isEmoji,
+        width: width,
+        height: height,
       );
       if (isSticker) stickers.add(image);
       if (isEmoji) emoji.add(image);
@@ -101,5 +118,12 @@ class StickerPack {
       stickers: stickers,
       emoji: emoji,
     );
+  }
+
+  /// Safely coerces an MSC2545 `info` dimension value to [int].
+  static int? _toInt(Object? value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return null;
   }
 }
