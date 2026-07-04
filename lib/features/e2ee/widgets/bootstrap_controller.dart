@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/bootstrap_driver.dart';
 import 'package:kohera/features/e2ee/widgets/recovery_key_handler.dart';
 import 'package:matrix/encryption.dart';
@@ -35,6 +36,7 @@ class BootstrapController extends ChangeNotifier {
   bool _isDisposed = false;
   bool _onDoneRunning = false;
   KeyVerification? _verification;
+  KoheraKeyVerification? _koheraVerification;
 
   // ── Public getters ────────────────────────────────────────────
 
@@ -47,6 +49,7 @@ class BootstrapController extends ChangeNotifier {
   bool get canConfirmNewKey => _keyHandler.canConfirmNewKey;
   String? get recoveryKeyError => _keyHandler.recoveryKeyError;
   KeyVerification? get verification => _verification;
+  KoheraKeyVerification? get koheraVerification => _koheraVerification;
   String get loadingMessage => _driver.loadingMessage;
 
   String? consumeStoredRecoveryKey() => _keyHandler.consumeStoredRecoveryKey();
@@ -156,12 +159,13 @@ class BootstrapController extends ChangeNotifier {
     );
     await _verification!.start();
     encryption.keyVerificationManager.addRequest(_verification!);
+    _koheraVerification = KoheraKeyVerification(_verification!);
     _notify();
   }
 
   Future<void> onVerificationDone(bool success) async {
     if (!success) {
-      _verification = null;
+      _disposeVerification();
       _phase = SetupPhase.unlock;
       _notify();
       return;
@@ -182,14 +186,20 @@ class BootstrapController extends ChangeNotifier {
     }
 
     if (_isDisposed) return;
-    _verification = null;
+    _disposeVerification();
     await _onDone();
   }
 
   void onVerificationCancel() {
-    _verification = null;
+    _disposeVerification();
     _phase = SetupPhase.unlock;
     _notify();
+  }
+
+  void _disposeVerification() {
+    _koheraVerification?.dispose();
+    _koheraVerification = null;
+    _verification = null;
   }
 
   // ── Post-bootstrap finalization ──────────────────────────────
@@ -258,7 +268,7 @@ class BootstrapController extends ChangeNotifier {
     _isDisposed = true;
     _driver.dispose();
     _keyHandler.dispose();
-    _verification?.onUpdate = null;
+    _disposeVerification();
     super.dispose();
   }
 }

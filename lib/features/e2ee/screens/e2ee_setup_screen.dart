@@ -640,7 +640,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
   }
 
   Widget _buildDeviceVerification() {
-    final verification = _controller?.verification;
+    final verification = _controller?.koheraVerification;
     if (verification == null) {
       return Center(
         child: Column(

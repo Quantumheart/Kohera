@@ -7,6 +7,7 @@ import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
+import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:kohera/features/settings/services/device_resolver.dart';
 import 'package:kohera/features/settings/widgets/device_list_item.dart';
@@ -255,7 +256,12 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
       final verification = await deviceKeys.startVerification();
       if (!mounted) return;
-      await KeyVerificationDialog.show(context, verification: verification);
+      final kohera = KoheraKeyVerification(verification);
+      try {
+        await KeyVerificationDialog.show(context, verification: kohera);
+      } finally {
+        kohera.dispose();
+      }
       await _loadDevices();
     } catch (e) {
       debugPrint('[Kohera] Failed to start verification: $e');

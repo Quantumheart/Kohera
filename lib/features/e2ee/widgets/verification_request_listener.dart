@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:matrix/encryption.dart';
 import 'package:provider/provider.dart';
@@ -71,10 +72,12 @@ class _VerificationRequestListenerState
     if (navContext == null) return;
 
     _dialogOpen = true;
+    final kohera = KoheraKeyVerification(verification);
     final confirmed = await KeyVerificationDialog.show(
       navContext,
-      verification: verification,
+      verification: kohera,
     );
+    kohera.dispose();
     _dialogOpen = false;
     if (!mounted) return;
 

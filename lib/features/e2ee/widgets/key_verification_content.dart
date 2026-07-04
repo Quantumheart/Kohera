@@ -1,20 +1,15 @@
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/features/e2ee/widgets/key_verification_controller.dart';
+import 'package:kohera/features/e2ee/models/kohera_verification_state.dart';
+import 'package:kohera/features/e2ee/models/verification_view.dart';
+import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/qr_verification_views.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
-import 'package:matrix/encryption.dart';
-import 'package:matrix/matrix.dart';
 
 // ── Title ───────────────────────────────────────────────────────
 
-String verificationTitle(
-  KeyVerificationState state,
-  VerificationView view,
-  KeyVerification verification,
-) {
-  switch (view) {
+String verificationTitle(KoheraKeyVerification verification) {
+  switch (verification.view) {
     case VerificationView.chooser:
       return 'Verify device';
     case VerificationView.showQr:
@@ -24,59 +19,37 @@ String verificationTitle(
     case VerificationView.standard:
       break;
   }
-  switch (state) {
-    case KeyVerificationState.askChoice:
-    case KeyVerificationState.waitingAccept:
+  switch (verification.state) {
+    case KoheraVerificationState.askChoice:
+    case KoheraVerificationState.waitingAccept:
       return 'Verify device';
-    case KeyVerificationState.askAccept:
+    case KoheraVerificationState.askAccept:
       return 'Incoming verification';
-    case KeyVerificationState.askSas:
-      return _showsSasNumbers(verification)
-          ? 'Compare numbers'
-          : 'Compare emoji';
-    case KeyVerificationState.askSSSS:
+    case KoheraVerificationState.askSas:
+      return verification.showsSasNumbers ? 'Compare numbers' : 'Compare emoji';
+    case KoheraVerificationState.askSSSS:
       return 'Unlocking secrets';
-    case KeyVerificationState.waitingSas:
+    case KoheraVerificationState.waitingSas:
       return 'Waiting...';
-    case KeyVerificationState.showQRSuccess:
-    case KeyVerificationState.confirmQRScan:
+    case KoheraVerificationState.showQRSuccess:
+    case KoheraVerificationState.confirmQRScan:
       return 'QR verification';
-    case KeyVerificationState.done:
+    case KoheraVerificationState.done:
       return 'Verified';
-    case KeyVerificationState.error:
+    case KoheraVerificationState.error:
       return 'Verification failed';
   }
-}
-
-bool _showsSasNumbers(KeyVerification verification) {
-  final types = verification.sasTypes;
-  final decimalNegotiated = types.isEmpty || types.contains('decimal');
-  return decimalNegotiated && verification.sasNumbers.isNotEmpty;
 }
 
 // ── Key verification content ────────────────────────────────────
 
 class KeyVerificationContent extends StatelessWidget {
   const KeyVerificationContent({
-    required this.state,
     required this.verification,
-    this.view = VerificationView.standard,
-    this.onChooseShowQr,
-    this.onChooseScanQr,
-    this.onChooseCompareSas,
-    this.onScanned,
     super.key,
   });
 
-  final KeyVerificationState state;
-  final KeyVerification verification;
-  final VerificationView view;
-  final VoidCallback? onChooseShowQr;
-  final VoidCallback? onChooseScanQr;
-  final VoidCallback? onChooseCompareSas;
-  final ValueChanged<Uint8List>? onScanned;
-
-  bool get _showSasNumbers => _showsSasNumbers(verification);
+  final KoheraKeyVerification verification;
 
   @override
   Widget build(BuildContext context) {
@@ -89,42 +62,40 @@ class KeyVerificationContent extends StatelessWidget {
   }
 
   Widget _buildContent(BuildContext context) {
-    switch (view) {
+    switch (verification.view) {
       case VerificationView.chooser:
         return _buildChooser(context);
       case VerificationView.showQr:
-        return QrCodeView(
-          data: Uint8List.fromList(verification.qrCode!.qrDataRawBytes),
-        );
+        return QrCodeView(data: verification.qrDataRawBytes!);
       case VerificationView.scanQr:
-        return QrScannerView(onScanned: onScanned ?? (_) {});
+        return QrScannerView(onScanned: verification.onQrScanned);
       case VerificationView.standard:
         break;
     }
-    switch (state) {
-      case KeyVerificationState.waitingAccept:
+    switch (verification.state) {
+      case KoheraVerificationState.waitingAccept:
         return _buildWaiting('Waiting for the other device to accept...');
 
-      case KeyVerificationState.askAccept:
+      case KoheraVerificationState.askAccept:
         return const Text(
           'Another device is requesting verification. Accept to continue.',
         );
 
-      case KeyVerificationState.askChoice:
+      case KoheraVerificationState.askChoice:
         return _buildWaiting('Starting verification...');
 
-      case KeyVerificationState.askSas:
-        return _showSasNumbers
+      case KoheraVerificationState.askSas:
+        return verification.showsSasNumbers
             ? _buildSasNumbers(context)
             : _buildSasEmoji(context);
 
-      case KeyVerificationState.askSSSS:
+      case KoheraVerificationState.askSSSS:
         return _buildWaiting('Unlocking encryption secrets...');
 
-      case KeyVerificationState.waitingSas:
+      case KoheraVerificationState.waitingSas:
         return _buildWaiting('Verifying...');
 
-      case KeyVerificationState.showQRSuccess:
+      case KoheraVerificationState.showQRSuccess:
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -135,12 +106,12 @@ class KeyVerificationContent extends StatelessWidget {
           ],
         );
 
-      case KeyVerificationState.confirmQRScan:
+      case KoheraVerificationState.confirmQRScan:
         return const Text(
           'Does the other device show a green checkmark?',
         );
 
-      case KeyVerificationState.done:
+      case KoheraVerificationState.done:
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -151,7 +122,7 @@ class KeyVerificationContent extends StatelessWidget {
           ],
         );
 
-      case KeyVerificationState.error:
+      case KoheraVerificationState.error:
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -180,14 +151,6 @@ class KeyVerificationContent extends StatelessWidget {
   }
 
   Widget _buildChooser(BuildContext context) {
-    final canShowQr = verification.possibleMethods.contains(EventTypes.QRShow) &&
-        verification.qrCode != null;
-    final canScanQr =
-        verification.possibleMethods.contains(EventTypes.QRScan) &&
-            qrScanSupported;
-    final canCompareSas =
-        verification.possibleMethods.contains(EventTypes.Sas);
-
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -197,23 +160,23 @@ class KeyVerificationContent extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
-        if (canScanQr)
+        if (verification.canScanQr)
           FilledButton.icon(
-            onPressed: onChooseScanQr,
+            onPressed: verification.chooseScanQr,
             icon: const Icon(Icons.qr_code_scanner),
             label: const Text('Scan QR code'),
           ),
-        if (canScanQr) const SizedBox(height: 8),
-        if (canShowQr)
+        if (verification.canScanQr) const SizedBox(height: 8),
+        if (verification.canShowQr)
           FilledButton.tonalIcon(
-            onPressed: onChooseShowQr,
+            onPressed: verification.chooseShowQr,
             icon: const Icon(Icons.qr_code_2),
             label: const Text('Show QR code'),
           ),
-        if (canShowQr) const SizedBox(height: 8),
-        if (canCompareSas)
+        if (verification.canShowQr) const SizedBox(height: 8),
+        if (verification.canCompareSas)
           TextButton.icon(
-            onPressed: onChooseCompareSas,
+            onPressed: verification.chooseCompareSas,
             icon: const Icon(Icons.numbers),
             label: const Text('Compare numbers instead'),
           ),
@@ -289,27 +252,25 @@ class KeyVerificationContent extends StatelessWidget {
 // ── Action buttons builder ──────────────────────────────────────
 
 List<Widget> buildVerificationActions({
-  required KeyVerificationState state,
-  required KeyVerification verification,
+  required KoheraKeyVerification verification,
   required VoidCallback onCancel,
   required VoidCallback onDone,
-  VerificationView view = VerificationView.standard,
 }) {
-  if (view != VerificationView.standard) {
+  if (verification.view != VerificationView.standard) {
     return [
       TextButton(onPressed: onCancel, child: const Text('Cancel')),
     ];
   }
-  switch (state) {
-    case KeyVerificationState.waitingAccept:
-    case KeyVerificationState.askChoice:
-    case KeyVerificationState.askSSSS:
-    case KeyVerificationState.waitingSas:
+  switch (verification.state) {
+    case KoheraVerificationState.waitingAccept:
+    case KoheraVerificationState.askChoice:
+    case KoheraVerificationState.askSSSS:
+    case KoheraVerificationState.waitingSas:
       return [
         TextButton(onPressed: onCancel, child: const Text('Cancel')),
       ];
 
-    case KeyVerificationState.askAccept:
+    case KoheraVerificationState.askAccept:
       return [
         TextButton(onPressed: onCancel, child: const Text('Reject')),
         FilledButton(
@@ -318,7 +279,7 @@ List<Widget> buildVerificationActions({
         ),
       ];
 
-    case KeyVerificationState.askSas:
+    case KoheraVerificationState.askSas:
       return [
         TextButton(
           onPressed: () => verification.rejectSas(),
@@ -330,7 +291,7 @@ List<Widget> buildVerificationActions({
         ),
       ];
 
-    case KeyVerificationState.confirmQRScan:
+    case KoheraVerificationState.confirmQRScan:
       return [
         TextButton(onPressed: onCancel, child: const Text('No')),
         FilledButton(
@@ -339,13 +300,13 @@ List<Widget> buildVerificationActions({
         ),
       ];
 
-    case KeyVerificationState.showQRSuccess:
-    case KeyVerificationState.done:
+    case KoheraVerificationState.showQRSuccess:
+    case KoheraVerificationState.done:
       return [
         FilledButton(onPressed: onDone, child: const Text('Done')),
       ];
 
-    case KeyVerificationState.error:
+    case KoheraVerificationState.error:
       return [
         FilledButton(onPressed: onCancel, child: const Text('Close')),
       ];

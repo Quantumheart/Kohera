@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/features/e2ee/models/kohera_verification_state.dart';
+import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_content.dart';
-import 'package:kohera/features/e2ee/widgets/key_verification_controller.dart';
-import 'package:matrix/encryption.dart';
 
 class KeyVerificationInline extends StatefulWidget {
   const KeyVerificationInline({
@@ -13,7 +13,7 @@ class KeyVerificationInline extends StatefulWidget {
     super.key,
   });
 
-  final KeyVerification verification;
+  final KoheraKeyVerification verification;
   final ValueChanged<bool> onDone;
   final VoidCallback onCancel;
 
@@ -22,20 +22,6 @@ class KeyVerificationInline extends StatefulWidget {
 }
 
 class _KeyVerificationInlineState extends State<KeyVerificationInline> {
-  late final KeyVerificationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = KeyVerificationController(widget.verification);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
   void _handleCancel() {
     unawaited(widget.verification.cancel());
     widget.onCancel();
@@ -43,34 +29,26 @@ class _KeyVerificationInlineState extends State<KeyVerificationInline> {
 
   void _handleDone() {
     widget.onDone(
-      _controller.verificationState == KeyVerificationState.done,
+      widget.verification.state == KoheraVerificationState.done,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: _controller,
+      listenable: widget.verification,
       builder: (context, _) => Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           KeyVerificationContent(
-            state: _controller.verificationState,
             verification: widget.verification,
-            view: _controller.view,
-            onChooseShowQr: _controller.chooseShowQr,
-            onChooseScanQr: _controller.chooseScanQr,
-            onChooseCompareSas: _controller.chooseCompareSas,
-            onScanned: _controller.onQrScanned,
           ),
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: buildVerificationActions(
-              state: _controller.verificationState,
               verification: widget.verification,
-              view: _controller.view,
               onCancel: _handleCancel,
               onDone: _handleDone,
             ).map((w) => Padding(

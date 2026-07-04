@@ -6,6 +6,7 @@ import 'package:kohera/core/models/kohera_push_rule_state.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:kohera/features/rooms/models/kohera_device_key.dart';
 import 'package:kohera/features/rooms/models/kohera_room_member.dart';
@@ -241,7 +242,12 @@ class RoomDetailsController extends ChangeNotifier {
     if (dk == null) return;
     final verification = await dk.startVerification();
     if (!context.mounted) return;
-    await KeyVerificationDialog.show(context, verification: verification);
+    final kohera = KoheraKeyVerification(verification);
+    try {
+      await KeyVerificationDialog.show(context, verification: kohera);
+    } finally {
+      kohera.dispose();
+    }
     await matrix.client.updateUserDeviceKeys();
     if (!_disposed) notifyListeners();
   }

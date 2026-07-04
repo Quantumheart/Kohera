@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/encryption.dart';
@@ -126,7 +127,9 @@ void main() {
                   context: context,
                   barrierDismissible: false,
                   builder: (_) =>
-                      KeyVerificationDialog(verification: verification),
+                      KeyVerificationDialog(
+                        verification: KoheraKeyVerification(verification),
+                      ),
                 ),);
               },
               child: const Text('Open'),
