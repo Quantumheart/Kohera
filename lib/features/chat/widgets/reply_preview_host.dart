@@ -2,32 +2,28 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
-import 'package:kohera/features/chat/services/reply_preview_resolver.dart';
 import 'package:kohera/features/chat/widgets/inline_reply_preview.dart';
-import 'package:matrix/matrix.dart';
 
-/// Conversion boundary for inline reply previews.
+/// Renders an inline reply preview for a message that replies to another
+/// event.
 ///
-/// Takes the replying [Event] + [Timeline], resolves the parent event
-/// asynchronously via `getReplyEvent`, and renders [InlineReplyPreview] with
-/// the pre-computed [KoheraReplyPreview]. Retains the parent `Event` for the
-/// tap callback.
-///
-/// This widget imports `package:matrix/matrix.dart` — it IS the boundary.
-/// [InlineReplyPreview] below it is SDK-free.
+/// Takes the reply event ID and an async resolver that produces a
+/// [KoheraReplyPreview] (or `null` if the parent is unavailable). The resolver
+/// is called once on mount and again if the reply event ID changes.
 class ReplyPreviewHost extends StatefulWidget {
   const ReplyPreviewHost({
-    required this.replyEvent,
-    required this.timeline,
+    required this.replyEventId,
+    required this.resolvePreview,
     required this.isMe,
     this.onParentTap,
     super.key,
   });
 
-  final Event replyEvent;
-  final Timeline? timeline;
+  final String replyEventId;
+  final Future<KoheraReplyPreview?> Function(String replyEventId)
+      resolvePreview;
   final bool isMe;
-  final void Function(Event)? onParentTap;
+  final void Function(String parentEventId)? onParentTap;
 
   @override
   State<ReplyPreviewHost> createState() => _ReplyPreviewHostState();
@@ -35,7 +31,6 @@ class ReplyPreviewHost extends StatefulWidget {
 
 class _ReplyPreviewHostState extends State<ReplyPreviewHost> {
   KoheraReplyPreview? _preview;
-  Event? _parentEvent;
   bool _loaded = false;
   int _generation = 0;
 
@@ -48,33 +43,21 @@ class _ReplyPreviewHostState extends State<ReplyPreviewHost> {
   @override
   void didUpdateWidget(ReplyPreviewHost oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.replyEvent != widget.replyEvent ||
-        oldWidget.timeline != widget.timeline) {
+    if (oldWidget.replyEventId != widget.replyEventId) {
       _generation++;
       _loaded = false;
       _preview = null;
-      _parentEvent = null;
       unawaited(_resolve());
     }
   }
 
   Future<void> _resolve() async {
     final gen = _generation;
-    if (widget.timeline == null) {
-      if (mounted && gen == _generation) setState(() => _loaded = true);
-      return;
-    }
     try {
-      final parent = await widget.replyEvent.getReplyEvent(widget.timeline!);
+      final preview = await widget.resolvePreview(widget.replyEventId);
       if (mounted && gen == _generation) {
-        final available = parent != null &&
-            parent.type != EventTypes.Redaction &&
-            !parent.redacted;
         setState(() {
-          _parentEvent = available ? parent : null;
-          _preview = available
-              ? const ReplyPreviewResolver().fromEvent(parent)
-              : null;
+          _preview = preview;
           _loaded = true;
         });
       }
@@ -91,8 +74,8 @@ class _ReplyPreviewHostState extends State<ReplyPreviewHost> {
     return InlineReplyPreview(
       preview: _preview,
       isMe: widget.isMe,
-      onTap: _preview != null && _parentEvent != null
-          ? () => widget.onParentTap?.call(_parentEvent!)
+      onTap: _preview != null
+          ? () => widget.onParentTap?.call(_preview!.parentMessageId)
           : null,
     );
   }

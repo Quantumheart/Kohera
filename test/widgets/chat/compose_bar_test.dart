@@ -6,7 +6,10 @@ import 'package:kohera/features/chat/services/opengraph_service.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/widgets/compose_bar.dart';
 import 'package:kohera/features/chat/widgets/link_preview_card.dart';
+import 'package:kohera/features/chat/widgets/mention_autocomplete_controller.dart';
 import 'package:kohera/features/chat/widgets/mention_suggestion_overlay.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -22,25 +25,44 @@ import 'package:shared_preferences/shared_preferences.dart';
 ])
 import 'compose_bar_test.mocks.dart';
 
+class _FakeAvatarResolver implements AvatarResolver {
+  const _FakeAvatarResolver();
+  @override
+  Future<AvatarThumbnail?> resolve(
+    String? mxcUrl, {
+    required double size,
+  }) async =>
+      null;
+}
+
+class _FakeMediaResolver implements MediaResolver {
+  const _FakeMediaResolver();
+  @override
+  Future<MediaThumbnail?> resolve(
+    String? mxcUrl, {
+    required double? width,
+    required double? height,
+  }) async =>
+      null;
+}
+
 Widget _wrap({
   required TextEditingController controller,
   required VoidCallback onSend,
-  Room? room,
-  List<Room>? joinedRooms,
   PreferencesService? prefs,
   TypingController? typingController,
   VoidCallback? onGif,
   OpenGraphService? openGraphService,
-  Event? editEvent,
+  MentionAutocompleteController? mentionController,
 }) {
   final bar = ComposeBar(
     controller: controller,
     onSend: onSend,
     onCancelReply: () {},
     onCancelEdit: () {},
-    editEvent: editEvent,
-    room: room,
-    joinedRooms: joinedRooms,
+    avatarResolver: const _FakeAvatarResolver(),
+    mediaResolver: const _FakeMediaResolver(),
+    mentionController: mentionController,
     typingController: typingController,
     onRemoveAttachment: (_) {},
     onClearAttachments: () {},
@@ -87,10 +109,12 @@ void main() {
     testWidgets('Enter key sends message when text is non-empty',
         (tester) async {
       var sendCount = 0;
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () => sendCount++,
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () => sendCount++,
+        ),
+      );
 
       // Type some text.
       await tester.enterText(find.byType(TextField), 'hello');
@@ -105,10 +129,12 @@ void main() {
 
     testWidgets('Enter key does not send when text is empty', (tester) async {
       var sendCount = 0;
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () => sendCount++,
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () => sendCount++,
+        ),
+      );
 
       // Press Enter with empty text.
       await tester.tap(find.byType(TextField));
@@ -122,10 +148,12 @@ void main() {
     testWidgets('Enter key does not send when text is only whitespace',
         (tester) async {
       var sendCount = 0;
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () => sendCount++,
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () => sendCount++,
+        ),
+      );
 
       await tester.enterText(find.byType(TextField), '   ');
       await tester.pump();
@@ -138,10 +166,12 @@ void main() {
 
     testWidgets('Shift+Enter does not trigger send', (tester) async {
       var sendCount = 0;
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () => sendCount++,
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () => sendCount++,
+        ),
+      );
 
       await tester.enterText(find.byType(TextField), 'line one');
       await tester.pump();
@@ -158,10 +188,12 @@ void main() {
     testWidgets('send button calls onSend when text is present',
         (tester) async {
       var sendCount = 0;
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () => sendCount++,
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () => sendCount++,
+        ),
+      );
 
       await tester.enterText(find.byType(TextField), 'hi');
       await tester.pump();
@@ -174,10 +206,12 @@ void main() {
 
     testWidgets('send button is disabled when text is empty', (tester) async {
       var sendCount = 0;
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () => sendCount++,
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () => sendCount++,
+        ),
+      );
 
       // Find the send IconButton wrapping the send icon.
       final button = tester.widget<IconButton>(
@@ -191,10 +225,12 @@ void main() {
 
     testWidgets('Ctrl/Cmd+Up binding registered for jump to start',
         (tester) async {
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () {},
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () {},
+        ),
+      );
 
       final shortcuts = tester.widget<CallbackShortcuts>(
         find.byType(CallbackShortcuts),
@@ -210,10 +246,12 @@ void main() {
 
     testWidgets('Ctrl/Cmd+Down binding registered for jump to end',
         (tester) async {
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () {},
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () {},
+        ),
+      );
 
       final shortcuts = tester.widget<CallbackShortcuts>(
         find.byType(CallbackShortcuts),
@@ -228,11 +266,13 @@ void main() {
     });
 
     testWidgets('GIF button uses Text widget not Icon', (tester) async {
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () {},
-        onGif: () {},
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () {},
+          onGif: () {},
+        ),
+      );
 
       expect(find.text('GIF'), findsOneWidget);
       expect(find.byIcon(Icons.gif_outlined), findsNothing);
@@ -240,10 +280,12 @@ void main() {
     });
 
     testWidgets('TextField uses newline text input action', (tester) async {
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () {},
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () {},
+        ),
+      );
 
       final textField = tester.widget<TextField>(find.byType(TextField));
       expect(textField.textInputAction, TextInputAction.newline);
@@ -256,12 +298,14 @@ void main() {
       final prefs = PreferencesService(prefs: sp);
       final mockTyping = MockTypingController();
 
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () {},
-        prefs: prefs,
-        typingController: mockTyping,
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () {},
+          prefs: prefs,
+          typingController: mockTyping,
+        ),
+      );
 
       await tester.enterText(find.byType(TextField), 'hello');
       await tester.pump();
@@ -289,8 +333,7 @@ void main() {
       when(mockRoom.client).thenReturn(mockClient);
       when(mockRoom.id).thenReturn('!room:example.com');
       when(mockRoom.getParticipants()).thenReturn(members);
-      when(mockRoom.requestParticipants())
-          .thenAnswer((_) async => members);
+      when(mockRoom.requestParticipants()).thenAnswer((_) async => members);
     });
 
     tearDown(() {
@@ -298,12 +341,17 @@ void main() {
     });
 
     testWidgets('typing @ shows suggestion list', (tester) async {
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () {},
-        room: mockRoom,
-        joinedRooms: [],
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () {},
+          mentionController: MentionAutocompleteController(
+            textController: controller,
+            room: mockRoom,
+            joinedRooms: [],
+          ),
+        ),
+      );
 
       await tester.enterText(find.byType(TextField), '@');
       await tester.pump(const Duration(milliseconds: 150));
@@ -314,12 +362,17 @@ void main() {
     testWidgets('Enter sends when autocomplete is active but empty',
         (tester) async {
       var sendCount = 0;
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () => sendCount++,
-        room: mockRoom,
-        joinedRooms: [],
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () => sendCount++,
+          mentionController: MentionAutocompleteController(
+            textController: controller,
+            room: mockRoom,
+            joinedRooms: [],
+          ),
+        ),
+      );
 
       // Type a query that matches nothing.
       await tester.enterText(find.byType(TextField), '@zzzznotamember');
@@ -338,12 +391,17 @@ void main() {
     testWidgets('Enter confirms selection when suggestions are visible',
         (tester) async {
       var sendCount = 0;
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () => sendCount++,
-        room: mockRoom,
-        joinedRooms: [],
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () => sendCount++,
+          mentionController: MentionAutocompleteController(
+            textController: controller,
+            room: mockRoom,
+            joinedRooms: [],
+          ),
+        ),
+      );
 
       await tester.enterText(find.byType(TextField), '@ali');
       await tester.pump(const Duration(milliseconds: 150));
@@ -359,12 +417,17 @@ void main() {
     });
 
     testWidgets('tapping a suggestion inserts mention', (tester) async {
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () {},
-        room: mockRoom,
-        joinedRooms: [],
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () {},
+          mentionController: MentionAutocompleteController(
+            textController: controller,
+            room: mockRoom,
+            joinedRooms: [],
+          ),
+        ),
+      );
 
       await tester.enterText(find.byType(TextField), '@');
       await tester.pump(const Duration(milliseconds: 150));
@@ -377,12 +440,17 @@ void main() {
     });
 
     testWidgets('Escape dismisses suggestions', (tester) async {
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () {},
-        room: mockRoom,
-        joinedRooms: [],
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () {},
+          mentionController: MentionAutocompleteController(
+            textController: controller,
+            room: mockRoom,
+            joinedRooms: [],
+          ),
+        ),
+      );
 
       await tester.enterText(find.byType(TextField), '@');
       await tester.pump(const Duration(milliseconds: 150));
@@ -405,7 +473,8 @@ void main() {
       controller = TextEditingController();
       mockOgService = MockOpenGraphService();
       when(mockOgService.fetch(any)).thenAnswer(
-        (_) async => OpenGraphData(url: 'https://example.com', title: 'Example'),
+        (_) async =>
+            OpenGraphData(url: 'https://example.com', title: 'Example'),
       );
     });
 
@@ -415,11 +484,13 @@ void main() {
 
     testWidgets('preview appears after debounce when URL is typed',
         (tester) async {
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () {},
-        openGraphService: mockOgService,
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () {},
+          openGraphService: mockOgService,
+        ),
+      );
 
       await tester.enterText(find.byType(TextField), 'https://example.com');
       await tester.pump(const Duration(milliseconds: 600));
@@ -429,11 +500,13 @@ void main() {
     });
 
     testWidgets('no preview when text contains no URL', (tester) async {
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () {},
-        openGraphService: mockOgService,
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () {},
+          openGraphService: mockOgService,
+        ),
+      );
 
       await tester.enterText(find.byType(TextField), 'just plain text');
       await tester.pump(const Duration(milliseconds: 600));
@@ -442,11 +515,13 @@ void main() {
     });
 
     testWidgets('close button removes preview', (tester) async {
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () {},
-        openGraphService: mockOgService,
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () {},
+          openGraphService: mockOgService,
+        ),
+      );
 
       await tester.enterText(find.byType(TextField), 'https://example.com');
       await tester.pump(const Duration(milliseconds: 600));
@@ -461,11 +536,13 @@ void main() {
 
     testWidgets('dismissed URL does not reappear while URL stays in text',
         (tester) async {
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () {},
-        openGraphService: mockOgService,
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () {},
+          openGraphService: mockOgService,
+        ),
+      );
 
       await tester.enterText(find.byType(TextField), 'https://example.com');
       await tester.pump(const Duration(milliseconds: 600));
@@ -490,11 +567,13 @@ void main() {
         (_) async => OpenGraphData(url: 'https://other.com', title: 'Other'),
       );
 
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () {},
-        openGraphService: mockOgService,
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () {},
+          openGraphService: mockOgService,
+        ),
+      );
 
       await tester.enterText(find.byType(TextField), 'https://example.com');
       await tester.pump(const Duration(milliseconds: 600));
@@ -515,12 +594,14 @@ void main() {
       final sp = await SharedPreferences.getInstance();
       final prefs = PreferencesService(prefs: sp);
 
-      await tester.pumpWidget(_wrap(
-        controller: controller,
-        onSend: () {},
-        openGraphService: mockOgService,
-        prefs: prefs,
-      ),);
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () {},
+          openGraphService: mockOgService,
+          prefs: prefs,
+        ),
+      );
 
       await tester.enterText(find.byType(TextField), 'https://example.com');
       await tester.pump(const Duration(milliseconds: 600));

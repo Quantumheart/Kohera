@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:js_interop';
 
-import 'package:kohera/features/chat/widgets/paste_image_handler.dart';
+import 'package:kohera/features/chat/services/paste_image_handler.dart';
 import 'package:web/web.dart';
 
 final _controller = StreamController<ClipboardImageData>.broadcast();

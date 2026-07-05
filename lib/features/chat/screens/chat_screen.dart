@@ -24,35 +24,38 @@ import 'package:kohera/features/chat/screens/thread_screen.dart';
 import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/chat_search_controller.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
+import 'package:kohera/features/chat/services/file_send_handler.dart';
+import 'package:kohera/features/chat/services/gif_send_handler.dart';
 import 'package:kohera/features/chat/services/linkable_span_builder.dart';
 import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:kohera/features/chat/services/message_forwarder.dart';
 import 'package:kohera/features/chat/services/message_timeline_controller.dart';
+import 'package:kohera/features/chat/services/paste_image_handler.dart';
+import 'package:kohera/features/chat/services/photo_send_handler.dart';
+import 'package:kohera/features/chat/services/reply_preview_resolver.dart';
 import 'package:kohera/features/chat/services/thread_roots_service.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_mixin.dart';
+import 'package:kohera/features/chat/services/web_image_paste.dart';
 import 'package:kohera/features/chat/widgets/attachment_source_sheet.dart';
 import 'package:kohera/features/chat/widgets/chat_app_bar.dart';
 import 'package:kohera/features/chat/widgets/compose_bar_section.dart';
 import 'package:kohera/features/chat/widgets/delete_event_dialog.dart';
 import 'package:kohera/features/chat/widgets/desktop_drop_wrapper.dart';
+import 'package:kohera/features/chat/widgets/emoji_autocomplete_controller.dart';
 import 'package:kohera/features/chat/widgets/emoji_picker_sheet.dart';
-import 'package:kohera/features/chat/widgets/file_send_handler.dart';
 import 'package:kohera/features/chat/widgets/forward_message_dialog.dart';
-import 'package:kohera/features/chat/widgets/gif_send_handler.dart';
 import 'package:kohera/features/chat/widgets/join_call_banner.dart';
+import 'package:kohera/features/chat/widgets/mention_autocomplete_controller.dart';
 import 'package:kohera/features/chat/widgets/message_action_sheet.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
 import 'package:kohera/features/chat/widgets/message_list_view.dart';
-import 'package:kohera/features/chat/widgets/paste_image_handler.dart';
-import 'package:kohera/features/chat/widgets/photo_send_handler.dart';
 import 'package:kohera/features/chat/widgets/reply_preview_host.dart';
 import 'package:kohera/features/chat/widgets/search_results_body.dart';
 import 'package:kohera/features/chat/widgets/sticker_picker_overlay.dart';
 import 'package:kohera/features/chat/widgets/typing_indicator.dart';
-import 'package:kohera/features/chat/widgets/web_image_paste.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/services/room_summary_resolver.dart';
@@ -207,6 +210,8 @@ class _ChatScreenState extends State<ChatScreen>
       _compose.reset(_msgCtrl);
       _typingCtrl?.dispose();
       _voiceCtrl?.dispose();
+      _mentionController?.dispose();
+      _emojiController?.dispose();
       _initControllers();
       _search.removeListener(_onSearchChanged);
       _search.dispose();
@@ -221,12 +226,27 @@ class _ChatScreenState extends State<ChatScreen>
     }
   }
 
+  MentionAutocompleteController? _mentionController;
+  EmojiAutocompleteController? _emojiController;
+
   void _initControllers() {
     final room =
         context.read<MatrixService>().client.getRoomById(widget.roomId);
     if (room != null) {
       _typingCtrl = TypingController(room: room);
       _voiceCtrl = VoiceRecordingController();
+      final joinedRooms = context.read<SelectionService>().rooms;
+      _mentionController = MentionAutocompleteController(
+        textController: _msgCtrl,
+        room: room,
+        joinedRooms: joinedRooms,
+      );
+      final stickerService = context.read<StickerPackService>();
+      _emojiController = EmojiAutocompleteController(
+        textController: _msgCtrl,
+        stickerPackService: stickerService,
+        room: room,
+      );
     }
   }
 
@@ -933,6 +953,8 @@ class _ChatScreenState extends State<ChatScreen>
     _composeFocusNode.dispose();
     _typingCtrl?.dispose();
     _voiceCtrl?.dispose();
+    _mentionController?.dispose();
+    _emojiController?.dispose();
     _search.removeListener(_onSearchChanged);
     _search.dispose();
     super.dispose();
@@ -1097,13 +1119,17 @@ class _ChatScreenState extends State<ChatScreen>
                   }
                 },
                 buildReplyPreview: (eventId, isMe, onParentTap) {
-                  final event = _timelineController.getEventById(eventId);
-                  if (event == null) return null;
                   return ReplyPreviewHost(
-                    replyEvent: event,
-                    timeline: _timelineController.timeline,
+                    replyEventId: eventId,
+                    resolvePreview: (id) async {
+                      final event = _timelineController.getEventById(id);
+                      final timeline = _timelineController.timeline;
+                      if (event == null || timeline == null) return null;
+                      return const ReplyPreviewResolver()
+                          .resolveParent(event, timeline);
+                    },
                     isMe: isMe,
-                    onParentTap: (parent) => onParentTap?.call(parent.eventId),
+                    onParentTap: onParentTap,
                   );
                 },
                 onStickerContextMenu: (ctx, eventId, position) {
@@ -1154,8 +1180,10 @@ class _ChatScreenState extends State<ChatScreen>
           onGif: _giphyEnabled ? _handleGifPressed : null,
           onPasteImage: _isDesktop ? _handlePasteImage : null,
           uploadNotifier: _compose.uploadNotifier,
-          room: room,
-          joinedRooms: context.read<SelectionService>().rooms,
+          avatarResolver: matrix.avatarResolver,
+          mediaResolver: matrix.mediaResolver,
+          mentionController: _mentionController,
+          emojiController: _emojiController,
           typingController: _typingCtrl,
           focusNode: _composeFocusNode,
           voiceController: _voiceCtrl,

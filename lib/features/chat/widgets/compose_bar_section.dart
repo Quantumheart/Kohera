@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
+import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
 import 'package:kohera/features/chat/widgets/compose_bar.dart';
-import 'package:matrix/matrix.dart';
-import 'package:provider/provider.dart';
+import 'package:kohera/features/chat/widgets/emoji_autocomplete_controller.dart';
+import 'package:kohera/features/chat/widgets/mention_autocomplete_controller.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/shared/services/media_resolver.dart';
 
 class ComposeBarSection extends StatelessWidget {
   const ComposeBarSection({
@@ -20,14 +22,16 @@ class ComposeBarSection extends StatelessWidget {
     required this.onCancelEdit,
     required this.onRemoveAttachment,
     required this.onClearAttachments,
+    required this.avatarResolver,
+    required this.mediaResolver,
     this.onAttach,
     this.onGif,
     this.onSticker,
     this.stickerPackService,
     this.onPasteImage,
     this.uploadNotifier,
-    this.room,
-    this.joinedRooms,
+    this.mentionController,
+    this.emojiController,
     this.typingController,
     this.focusNode,
     this.voiceController,
@@ -37,8 +41,8 @@ class ComposeBarSection extends StatelessWidget {
     super.key,
   });
 
-  final ValueNotifier<Event?> replyNotifier;
-  final ValueNotifier<Event?> editNotifier;
+  final ValueNotifier<KoheraReplyPreview?> replyNotifier;
+  final ValueNotifier<KoheraReplyPreview?> editNotifier;
   final ValueNotifier<List<PendingAttachment>> pendingAttachments;
   final TextEditingController controller;
   final VoidCallback onSend;
@@ -50,8 +54,10 @@ class ComposeBarSection extends StatelessWidget {
   final StickerPackService? stickerPackService;
   final Future<void> Function()? onPasteImage;
   final ValueNotifier<UploadState?>? uploadNotifier;
-  final Room? room;
-  final List<Room>? joinedRooms;
+  final AvatarResolver avatarResolver;
+  final MediaResolver mediaResolver;
+  final MentionAutocompleteController? mentionController;
+  final EmojiAutocompleteController? emojiController;
   final TypingController? typingController;
   final FocusNode? focusNode;
   final VoiceRecordingController? voiceController;
@@ -69,9 +75,9 @@ class ComposeBarSection extends StatelessWidget {
         return ComposeBar(
           controller: controller,
           onSend: onSend,
-          replyEvent: replyNotifier.value,
+          replyPreview: replyNotifier.value,
           onCancelReply: onCancelReply,
-          editEvent: editNotifier.value,
+          editPreview: editNotifier.value,
           onCancelEdit: onCancelEdit,
           onAttach: onAttach,
           onGif: onGif,
@@ -79,10 +85,10 @@ class ComposeBarSection extends StatelessWidget {
           stickerPackService: stickerPackService,
           onPasteImage: onPasteImage,
           uploadNotifier: uploadNotifier,
-          room: room,
-          joinedRooms: joinedRooms,
-          avatarResolver: context.read<MatrixService>().avatarResolver,
-          mediaResolver: context.read<MatrixService>().mediaResolver,
+          avatarResolver: avatarResolver,
+          mediaResolver: mediaResolver,
+          mentionController: mentionController,
+          emojiController: emojiController,
           typingController: typingController,
           focusNode: focusNode,
           voiceController: voiceController,

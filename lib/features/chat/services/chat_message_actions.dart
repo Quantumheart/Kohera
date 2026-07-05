@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
-import 'package:kohera/features/chat/widgets/file_send_handler.dart';
+import 'package:kohera/features/chat/services/file_send_handler.dart';
 import 'package:matrix/matrix.dart';
 
 class ChatMessageActions {
@@ -92,10 +92,10 @@ class ChatMessageActions {
     msgCtrl.clear();
     compose.pendingAttachments.value = [];
 
-    final replyEvent = compose.replyNotifier.value;
+    final replyPreview = compose.replyNotifier.value;
     compose.replyNotifier.value = null;
 
-    final editEvent = compose.editNotifier.value;
+    final editPreview = compose.editNotifier.value;
     compose.editNotifier.value = null;
 
     final threadRoot = compose.threadRootNotifier.value;
@@ -122,26 +122,30 @@ class ChatMessageActions {
         compose.pendingAttachments.value = attachments.sublist(i);
         if (text.isNotEmpty) {
           msgCtrl.text = text;
-          compose.replyNotifier.value = replyEvent;
-          compose.editNotifier.value = editEvent;
+          compose.replyNotifier.value = replyPreview;
+          compose.editNotifier.value = editPreview;
         }
         return;
       }
     }
 
     if (text.isNotEmpty) {
+      Event? replyEvent;
+      if (editPreview == null && replyPreview != null) {
+        replyEvent = await room.getEventById(replyPreview.parentMessageId);
+      }
       try {
         await room.sendTextEvent(
           text,
-          inReplyTo: editEvent == null ? replyEvent : null,
-          editEventId: editEvent?.eventId,
+          inReplyTo: replyEvent,
+          editEventId: editPreview?.parentMessageId,
           threadRootEventId: threadRootId,
           threadLastEventId: threadLastId,
         );
       } catch (e) {
         msgCtrl.text = text;
-        compose.replyNotifier.value = replyEvent;
-        compose.editNotifier.value = editEvent;
+        compose.replyNotifier.value = replyPreview;
+        compose.editNotifier.value = editPreview;
         scaffold.showSnackBar(
           SnackBar(content: Text('Failed to send: ${MatrixService.friendlyAuthError(e)}')),
         );
