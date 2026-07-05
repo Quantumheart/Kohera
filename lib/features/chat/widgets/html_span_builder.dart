@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:html/dom.dart' as dom;
+import 'package:kohera/features/chat/services/linkable_span_builder.dart';
 import 'package:kohera/features/chat/widgets/code_block.dart';
-import 'package:kohera/features/chat/widgets/linkable_span_builder.dart';
 import 'package:kohera/features/chat/widgets/spoiler_text.dart';
 import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';

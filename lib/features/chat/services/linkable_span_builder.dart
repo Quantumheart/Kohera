@@ -7,18 +7,22 @@ import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/core/utils/safe_url_launcher.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
 import 'package:kohera/features/chat/widgets/mention_pill.dart';
-import 'package:matrix/matrix.dart';
 
 typedef RecognizerFactory = TapGestureRecognizer Function(VoidCallback onTap);
 
+/// Resolves a Matrix identifier (`@user:server`, `!room:server`, `#alias:server`)
+/// to a display name for mention pills. Returns `null` if not resolvable — the
+/// caller falls back to the raw identifier.
+typedef MentionDisplayNameResolver = String? Function(String identifier);
+
 class LinkableSpanBuilder {
   LinkableSpanBuilder({
-    required this.room,
+    required this.resolveDisplayName,
     required this.isMe,
     required this.createRecognizer,
   });
 
-  final Room? room;
+  final MentionDisplayNameResolver? resolveDisplayName;
   final bool isMe;
   final RecognizerFactory createRecognizer;
 
@@ -114,10 +118,7 @@ class LinkableSpanBuilder {
 
   Widget? buildMentionPill(String identifier, TextStyle currentStyle) {
     if (identifier.startsWith('@')) {
-      final displayName = room
-              ?.unsafeGetUserFromMemoryOrFallback(identifier)
-              .displayName ??
-          identifier;
+      final displayName = resolveDisplayName?.call(identifier) ?? identifier;
       return MentionPill(
         displayName: displayName,
         matrixId: identifier,
@@ -131,8 +132,7 @@ class LinkableSpanBuilder {
       if (identifier.startsWith('#')) {
         displayName = identifier.substring(1);
       } else {
-        final resolved = room?.client.getRoomById(identifier);
-        displayName = resolved?.getLocalizedDisplayname() ?? identifier;
+        displayName = resolveDisplayName?.call(identifier) ?? identifier;
       }
       return MentionPill(
         displayName: displayName,

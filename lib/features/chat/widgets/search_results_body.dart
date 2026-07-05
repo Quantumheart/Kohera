@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/features/chat/services/chat_search_controller.dart';
-import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:kohera/features/chat/widgets/search_result_tile.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
-import 'package:matrix/matrix.dart';
 
 /// Displays search results for in-room message search.
 ///
@@ -12,11 +10,15 @@ import 'package:matrix/matrix.dart';
 /// error, empty results, or a scrollable results list.
 class SearchResultsBody extends StatelessWidget {
   const SearchResultsBody({
-    required this.search, required this.onTapResult, super.key,
+    required this.search,
+    required this.avatarResolver,
+    required this.onTapResult,
+    super.key,
   });
 
   final ChatSearchController search;
-  final ValueChanged<Event> onTapResult;
+  final AvatarResolver avatarResolver;
+  final ValueChanged<String> onTapResult;
 
   @override
   Widget build(BuildContext context) {
@@ -115,12 +117,12 @@ class SearchResultsBody extends StatelessWidget {
           );
         }
 
-        final event = search.results[i];
+        final message = search.results[i];
         return SearchResultTile(
-          message: const MessageDisplayResolver()(event),
-          avatarResolver: ClientAvatarResolver(event.room.client),
+          message: message,
+          avatarResolver: avatarResolver,
           query: query,
-          onTap: () => onTapResult(event),
+          onTap: () => onTapResult(message.eventId),
         );
       },
     );

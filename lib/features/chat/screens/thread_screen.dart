@@ -7,6 +7,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
+import 'package:kohera/features/chat/services/message_timeline_controller.dart';
 import 'package:kohera/features/chat/services/thread_roots_service.dart';
 import 'package:kohera/features/chat/widgets/compose_bar_section.dart';
 import 'package:kohera/features/chat/widgets/file_send_handler.dart';
@@ -37,6 +38,8 @@ class _ThreadScreenState extends State<ThreadScreen> {
   final _messageListKey = GlobalKey<MessageListViewState>();
   final _compose = ComposeStateController();
 
+  late MessageTimelineController _timelineController;
+
   late ChatMessageActions _actions;
   bool _loadingRoot = true;
   bool _focusReady = false;
@@ -54,11 +57,21 @@ class _ThreadScreenState extends State<ThreadScreen> {
   @override
   void initState() {
     super.initState();
+    final matrix = context.read<MatrixService>();
+    _timelineController = MessageTimelineController(
+      matrix: matrix,
+      roomId: widget.roomId,
+      sendPublicReadReceipts: false,
+      threadRootEventId: widget.threadRootEventId,
+      onTimelineChanged: () {
+        if (mounted) setState(() {});
+      },
+    );
     _actions = ChatMessageActions(
       getRoomId: () => widget.roomId,
       getRoom: () =>
           context.read<MatrixService>().client.getRoomById(widget.roomId),
-      getTimeline: () => _messageListKey.currentState?.timeline,
+      getTimeline: () => _timelineController.timeline,
       compose: _compose,
       msgCtrl: _msgCtrl,
       getScaffold: () => ScaffoldMessenger.of(context),
@@ -96,6 +109,8 @@ class _ThreadScreenState extends State<ThreadScreen> {
         _repliesNextBatch = page.nextBatch;
         if (root != null) _compose.setThreadRoot(root);
       });
+      _timelineController.updateExtraEvents(_seedEvents);
+      unawaited(_timelineController.init());
       _scheduleFocusReady();
     } catch (e) {
       debugPrint('[Kohera] Thread root load failed: $e');
@@ -133,6 +148,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
         _threadReplies = merged;
         _repliesNextBatch = page.nextBatch;
       });
+      _timelineController.updateExtraEvents(_seedEvents);
     } catch (e) {
       debugPrint('[Kohera] Thread reply pagination failed: $e');
     } finally {
@@ -165,6 +181,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
 
   @override
   void dispose() {
+    _timelineController.dispose();
     _msgCtrl.dispose();
     _focusNode.dispose();
     _compose.dispose();
@@ -207,18 +224,35 @@ class _ThreadScreenState extends State<ThreadScreen> {
           Expanded(
             child: MessageListView(
               key: _messageListKey,
-              roomId: room.id,
-              matrix: matrix,
-              threadRootEventId: widget.threadRootEventId,
-              extraEvents: _seedEvents,
+              controller: _timelineController,
+              mentionResolver: (_) => null,
+              emptyText: 'No replies yet.\nStart the conversation.',
               extraLoading: _loadingMoreReplies,
               onLoadMoreExtra: () => unawaited(_loadMoreReplies()),
-              emptyText: 'No replies yet.\nStart the conversation.',
-              onReply: _compose.setReplyTo,
-              onEdit: (event, timeline) =>
-                  _compose.setEditEvent(event, timeline, _msgCtrl),
-              onToggleReaction: _actions.toggleReaction,
-              onPin: _actions.togglePin,
+              onReply: (eventId) {
+                final event = _timelineController.getEventById(eventId);
+                if (event != null) _compose.setReplyTo(event);
+              },
+              onEdit: (eventId) {
+                final event = _timelineController.getEventById(eventId);
+                if (event != null) {
+                  _compose.setEditEvent(
+                    event,
+                    _timelineController.timeline,
+                    _msgCtrl,
+                  );
+                }
+              },
+              onToggleReaction: (eventId, emoji) async {
+                final event = _timelineController.getEventById(eventId);
+                if (event != null) {
+                  await _actions.toggleReaction(event, emoji);
+                }
+              },
+              onPin: (eventId) async {
+                final event = _timelineController.getEventById(eventId);
+                if (event != null) await _actions.togglePin(event);
+              },
               onHighlight: (_) {},
             ),
           ),

@@ -12,6 +12,7 @@ import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
+import 'package:kohera/features/chat/services/mention_resolver_factory.dart';
 import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:kohera/features/chat/widgets/edit_preview_banner.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
@@ -144,7 +145,7 @@ Widget _buildBubble({
                   html: html,
                   style: style,
                   isMe: isMe,
-                  room: event.room,
+                  mentionResolver: mentionResolverFromRoom(event.room),
                 ),
                 onOpenContextMenu: (position) => showMessageContextMenu(
                   context,
@@ -223,7 +224,7 @@ Widget _buildBubbleWithProviders({
                   html: html,
                   style: style,
                   isMe: isMe,
-                  room: event.room,
+                  mentionResolver: mentionResolverFromRoom(event.room),
                 ),
                 onTapSender: () {
                   final sender = event.senderFromMemoryOrFallback;

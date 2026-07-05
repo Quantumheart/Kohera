@@ -1,10 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:html/parser.dart' as html_parser;
+import 'package:kohera/features/chat/services/linkable_span_builder.dart';
 import 'package:kohera/features/chat/widgets/html_span_builder.dart';
-import 'package:kohera/features/chat/widgets/linkable_span_builder.dart';
 import 'package:kohera/shared/services/media_resolver.dart';
-import 'package:matrix/matrix.dart';
 
 class HtmlMessageText extends StatefulWidget {
   const HtmlMessageText({
@@ -12,7 +11,7 @@ class HtmlMessageText extends StatefulWidget {
     required this.style,
     required this.isMe,
     super.key,
-    this.room,
+    this.mentionResolver,
     this.mediaResolver,
     this.maxLines,
     this.overflow,
@@ -21,7 +20,7 @@ class HtmlMessageText extends StatefulWidget {
   final String html;
   final TextStyle? style;
   final bool isMe;
-  final Room? room;
+  final MentionDisplayNameResolver? mentionResolver;
   final MediaResolver? mediaResolver;
   final int? maxLines;
   final TextOverflow? overflow;
@@ -72,7 +71,7 @@ class _HtmlMessageTextState extends State<HtmlMessageText> {
       _recognizers.clear();
 
       final linkBuilder = LinkableSpanBuilder(
-        room: widget.room,
+        resolveDisplayName: widget.mentionResolver,
         isMe: widget.isMe,
         createRecognizer: _createRecognizer,
       );

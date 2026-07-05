@@ -1,297 +1,138 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
-import 'package:kohera/features/calling/models/call_constants.dart';
-import 'package:kohera/features/chat/models/kohera_reaction.dart';
+import 'package:kohera/features/chat/models/chat_message_data.dart';
 import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
-import 'package:kohera/features/chat/services/media_content_resolver.dart';
-import 'package:kohera/features/chat/services/message_display_resolver.dart';
-import 'package:kohera/features/chat/services/reaction_resolver.dart';
-import 'package:kohera/features/chat/services/read_receipt_resolver.dart';
-import 'package:kohera/features/chat/services/sdk_media_controller.dart';
-import 'package:kohera/features/chat/services/state_event_resolver.dart';
+import 'package:kohera/features/chat/services/linkable_span_builder.dart';
+import 'package:kohera/features/chat/services/message_timeline_controller.dart';
 import 'package:kohera/features/chat/widgets/call_event_tile.dart';
 import 'package:kohera/features/chat/widgets/chat_message_item.dart';
-import 'package:kohera/features/chat/widgets/emoji_picker_sheet.dart';
-import 'package:kohera/features/chat/widgets/message_action_sheet.dart';
-import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
 import 'package:kohera/features/chat/widgets/reaction_chips.dart';
 import 'package:kohera/features/chat/widgets/state_event_tile.dart';
 import 'package:kohera/features/chat/widgets/sticker_bubble.dart';
 import 'package:kohera/features/chat/widgets/sticker_message_item.dart';
 import 'package:kohera/features/chat/widgets/unread_divider.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 class MessageListView extends StatefulWidget {
   const MessageListView({
-    required this.roomId,
-    required this.matrix,
+    required this.controller,
+    required this.mentionResolver,
     required this.onReply,
     required this.onEdit,
     required this.onToggleReaction,
     required this.onPin,
     required this.onHighlight,
-    this.initialEventId,
     this.highlightedEventId,
     this.onScrollBack,
-    this.threadRootEventId,
     this.onReplyInThread,
     this.onOpenThread,
     this.onForward,
     this.emptyText,
-    this.onTimelineChanged,
-    this.extraEvents,
-    this.onLoadMoreExtra,
     this.extraLoading = false,
+    this.onLoadMoreExtra,
+    this.onOpenContextMenu,
+    this.onShowMobileActions,
+    this.onTapSender,
+    this.onDelete,
+    this.buildReplyPreview,
+    this.onStickerContextMenu,
+    this.onStickerMobileActions,
     super.key,
   });
 
-  final String roomId;
-  final MatrixService matrix;
-  final String? initialEventId;
+  final MessageTimelineController controller;
+  final MentionDisplayNameResolver? mentionResolver;
   final String? highlightedEventId;
-  final String? threadRootEventId;
-  final void Function(Event event) onReply;
-  final void Function(Event event, Timeline? timeline) onEdit;
-  final Future<void> Function(Event event, String emoji) onToggleReaction;
-  final Future<void> Function(Event event) onPin;
+  final void Function(String eventId) onReply;
+  final void Function(String eventId) onEdit;
+  final Future<void> Function(String eventId, String emoji) onToggleReaction;
+  final Future<void> Function(String eventId) onPin;
   final void Function(String eventId) onHighlight;
   final VoidCallback? onScrollBack;
-  final void Function(Event event)? onReplyInThread;
-  final void Function(Event event)? onOpenThread;
-  final void Function(Event event, Timeline? timeline)? onForward;
+  final void Function(String eventId)? onReplyInThread;
+  final void Function(String eventId)? onOpenThread;
+  final void Function(String eventId)? onForward;
   final String? emptyText;
-  final VoidCallback? onTimelineChanged;
-  final List<Event>? extraEvents;
-  final VoidCallback? onLoadMoreExtra;
   final bool extraLoading;
+  final VoidCallback? onLoadMoreExtra;
+
+  final void Function(
+    BuildContext,
+    String eventId,
+    Offset position,
+    bool isPinned,
+    bool canPin,
+  )? onOpenContextMenu;
+  final void Function(
+    BuildContext,
+    String eventId,
+    Rect rect,
+    bool isPinned,
+    bool canPin,
+  )? onShowMobileActions;
+  final void Function(BuildContext, String eventId)? onTapSender;
+  final void Function(BuildContext, String eventId)? onDelete;
+  final Widget? Function(
+    String eventId,
+    bool isMe,
+    void Function(String)? onParentTap,
+  )? buildReplyPreview;
+  final void Function(BuildContext, String eventId, Offset)?
+      onStickerContextMenu;
+  final void Function(BuildContext, String eventId, Rect)?
+      onStickerMobileActions;
 
   @override
   State<MessageListView> createState() => MessageListViewState();
 }
 
 class MessageListViewState extends State<MessageListView> {
-  late Room room;
   static const _historyLoadThreshold = 15;
   static const _scrollAnimationDuration = Duration(milliseconds: 400);
-  static const _readMarkerDelay = Duration(seconds: 1);
-
   static const _scrollBackDismissThreshold = 120.0;
 
   final _itemScrollCtrl = ItemScrollController();
   final _itemPosListener = ItemPositionsListener.create();
-  Timeline? _timeline;
-  bool _loadingHistory = false;
-  Timer? _readMarkerTimer;
-  int _initGeneration = 0;
-  List<Event>? _cachedVisibleEvents;
-  String? _initialFullyReadId;
   double _scrollBackDelta = 0;
   bool _scrollBackFired = false;
 
-  Timeline? get timeline => _timeline;
+  MessageTimelineController get controller => widget.controller;
 
   @override
   void initState() {
     super.initState();
-    room = widget.matrix.client.getRoomById(widget.roomId)!;
     _itemPosListener.itemPositions.addListener(_onScroll);
-    unawaited(_initTimeline());
+    controller.addListener(_onControllerChanged);
+    unawaited(_initAndJump());
+  }
+
+  Future<void> _initAndJump() async {
+    await controller.init();
+    if (mounted && controller.initialEventId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) navigateToEventById(controller.initialEventId!);
+      });
+    }
+  }
+
+  void _onControllerChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void didUpdateWidget(MessageListView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.roomId != widget.roomId || oldWidget.initialEventId != widget.initialEventId) {
-      _timeline?.cancelSubscriptions();
-      _readMarkerTimer?.cancel();
-      _cachedVisibleEvents = null;
-      unawaited(_initTimeline());
-    } else if (oldWidget.threadRootEventId != widget.threadRootEventId) {
-      _cachedVisibleEvents = null;
-    } else if (!identical(oldWidget.extraEvents, widget.extraEvents)) {
-      _cachedVisibleEvents = null;
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_onControllerChanged);
+      controller.addListener(_onControllerChanged);
     }
-  }
-
-  // ── Timeline ───────────────────────────────────────────
-
-  Future<void> _initTimeline() async {
-    final gen = ++_initGeneration;
-    final snapshotFullyRead = room.fullyRead;
-    _initialFullyReadId = snapshotFullyRead.isNotEmpty ? snapshotFullyRead : null;
-    _timeline = await room.getTimeline(
-      eventContextId: widget.initialEventId,
-      onUpdate: () {
-        if (mounted) {
-          _cachedVisibleEvents = null;
-          setState(() {});
-        }
-        widget.onTimelineChanged?.call();
-        _markAsRead();
-      },
-    );
-    if (gen != _initGeneration) return;
-    if (mounted) setState(() {});
-    widget.onTimelineChanged?.call();
-    _markAsRead();
-    _requestMissingKeys();
-    if (widget.initialEventId != null) _jumpToEvent(widget.initialEventId!);
-    await _autoPaginateUntilVisible(gen);
-  }
-
-  Future<void> _autoPaginateUntilVisible(int gen) async {
-    const maxRounds = 5;
-    var rounds = 0;
-    while (mounted &&
-        gen == _initGeneration &&
-        _visibleEvents.isEmpty &&
-        (_timeline?.events.isNotEmpty ?? false) &&
-        (_timeline?.canRequestHistory ?? false) &&
-        rounds < maxRounds) {
-      rounds++;
-      await _loadMore();
-    }
-  }
-
-  void _requestMissingKeys() {
-    final encryption = room.client.encryption;
-    if (encryption == null) return;
-
-    final events = _timeline?.events;
-    if (events == null) return;
-
-    final requested = <String>{};
-    for (final event in events) {
-      if (event.type == EventTypes.Encrypted && event.messageType == MessageTypes.BadEncrypted) {
-        final sessionId = event.content.tryGet<String>('session_id');
-        final senderKey = event.content.tryGet<String>('sender_key');
-        if (sessionId != null && requested.add(sessionId)) {
-          unawaited(
-            encryption.keyManager.loadSingleKey(room.id, sessionId).catchError(
-              (Object e) {
-                debugPrint('[Kohera] Key load failed for $sessionId: $e');
-              },
-            ),
-          );
-          if (senderKey != null) {
-            try {
-              encryption.keyManager.maybeAutoRequest(
-                room.id,
-                sessionId,
-                senderKey,
-              );
-            } catch (e) {
-              debugPrint('[Kohera] P2P key request failed for $sessionId: $e');
-            }
-          }
-        }
-      }
-    }
-  }
-
-  List<Event> get _visibleEvents {
-    if (_cachedVisibleEvents != null) return _cachedVisibleEvents!;
-    final timelineEvents = _timeline?.events;
-    if (timelineEvents == null) return [];
-    _cachedVisibleEvents = buildVisibleEvents(
-      timelineEvents,
-      extraEvents: widget.extraEvents,
-      threadRootId: widget.threadRootEventId,
-    );
-    return _cachedVisibleEvents!;
-  }
-
-  static List<Event> buildVisibleEvents(
-    Iterable<Event> timelineEvents, {
-    List<Event>? extraEvents,
-    String? threadRootId,
-  }) {
-    final seen = <String>{};
-    final merged = <Event>[];
-    for (final e in timelineEvents) {
-      if (seen.add(e.eventId)) merged.add(e);
-    }
-    if (extraEvents != null) {
-      for (final e in extraEvents) {
-        if (seen.add(e.eventId)) merged.add(e);
-      }
-    }
-    return merged
-        .where(
-          (e) =>
-              (((e.type == EventTypes.Message || e.type == EventTypes.Encrypted) &&
-                      e.relationshipType != RelationshipTypes.edit &&
-                      !_isCallMemberEvent(e)) ||
-                  callEventTypes.contains(e.type) ||
-                  _isStateEvent(e) ||
-                  e.type == EventTypes.Sticker) &&
-              _matchesThread(e, threadRootId),
-        )
-        .toList()
-      ..sort((a, b) => b.originServerTs.compareTo(a.originServerTs));
-  }
-
-  static bool _matchesThread(Event event, String? threadRootId) {
-    if (threadRootId == null) {
-      return event.relationshipType != RelationshipTypes.thread;
-    }
-    if (event.eventId == threadRootId) return true;
-    if (event.relationshipType != RelationshipTypes.thread) return false;
-    return event.relationshipEventId == threadRootId;
-  }
-
-  void _markAsRead() {
-    _readMarkerTimer?.cancel();
-    _readMarkerTimer = Timer(_readMarkerDelay, () async {
-      if (!mounted) return;
-      final client = widget.matrix.client;
-      final threadRootId = widget.threadRootEventId;
-
-      if (threadRootId != null) {
-        final visible = _visibleEvents;
-        if (visible.isEmpty) return;
-        final lastThreadEvent = visible.first;
-        try {
-          await client.postReceipt(
-            room.id,
-            ReceiptType.mRead,
-            lastThreadEvent.eventId,
-            threadId: threadRootId,
-          );
-        } catch (e) {
-          debugPrint('[Kohera] Failed to mark thread as read: $e');
-        }
-        return;
-      }
-
-      if (room.notificationCount == 0) return;
-      final visible = _visibleEvents;
-      final lastMainEvent = visible.isNotEmpty ? visible.first : null;
-      if (lastMainEvent == null) return;
-      try {
-        final sendPublic = context.read<PreferencesService>().readReceipts;
-        await room.setReadMarker(
-          lastMainEvent.eventId,
-          mRead: sendPublic ? lastMainEvent.eventId : null,
-        );
-        await client.postReceipt(
-          room.id,
-          ReceiptType.mRead,
-          lastMainEvent.eventId,
-          threadId: 'main',
-        );
-      } catch (e) {
-        debugPrint('[Kohera] Failed to mark as read: $e');
-      }
-    });
   }
 
   // ── Scroll & history ───────────────────────────────────
@@ -299,13 +140,27 @@ class MessageListViewState extends State<MessageListView> {
   void _onScroll() {
     final positions = _itemPosListener.itemPositions.value;
     if (positions.isEmpty) return;
-    final maxIndex = positions.map((p) => p.index).reduce((a, b) => a > b ? a : b);
-    if (maxIndex < _visibleEvents.length - _historyLoadThreshold) return;
-    if (widget.threadRootEventId != null) {
+    final maxIndex =
+        positions.map((p) => p.index).reduce((a, b) => a > b ? a : b);
+    if (maxIndex < controller.messageCount - _historyLoadThreshold) return;
+    if (controller.isThread) {
       if (!widget.extraLoading) widget.onLoadMoreExtra?.call();
       return;
     }
-    if (!_loadingHistory) unawaited(_loadMore());
+    if (!controller.isLoadingHistory) {
+      unawaited(
+        controller.loadMore(
+          shouldContinue: () {
+            if (!mounted) return false;
+            final pos = _itemPosListener.itemPositions.value;
+            if (pos.isEmpty) return false;
+            final maxIdx =
+                pos.map((p) => p.index).reduce((a, b) => a > b ? a : b);
+            return maxIdx >= controller.messageCount - _historyLoadThreshold;
+          },
+        ),
+      );
+    }
   }
 
   bool _handleScrollNotification(ScrollNotification notification) {
@@ -315,7 +170,8 @@ class MessageListViewState extends State<MessageListView> {
       _scrollBackFired = false;
     } else if (notification is ScrollUpdateNotification) {
       _scrollBackDelta += notification.scrollDelta ?? 0;
-      if (!_scrollBackFired && _scrollBackDelta >= _scrollBackDismissThreshold) {
+      if (!_scrollBackFired &&
+          _scrollBackDelta >= _scrollBackDismissThreshold) {
         _scrollBackFired = true;
         widget.onScrollBack!.call();
       }
@@ -323,69 +179,19 @@ class MessageListViewState extends State<MessageListView> {
     return false;
   }
 
-  Future<void> _loadMore() async {
-    if (widget.threadRootEventId != null) return;
-    if (_timeline == null || !_timeline!.canRequestHistory || _loadingHistory) {
-      return;
-    }
-    setState(() => _loadingHistory = true);
-    try {
-      while (mounted && _timeline!.canRequestHistory) {
-        await _timeline!.requestHistory();
-        _cachedVisibleEvents = null;
-        final positions = _itemPosListener.itemPositions.value;
-        if (positions.isEmpty) break;
-        final maxIndex = positions.map((p) => p.index).reduce((a, b) => a > b ? a : b);
-        if (maxIndex < _visibleEvents.length - _historyLoadThreshold) break;
-      }
-    } catch (e) {
-      debugPrint('[Kohera] Failed to load history: $e');
-    } finally {
-      if (mounted) setState(() => _loadingHistory = false);
-    }
-  }
-
   // ── Navigation ─────────────────────────────────────────
 
-  void navigateToEvent(Event event) {
-    unawaited(_navigateToEvent(event));
+  void navigateToEventById(String eventId) {
+    unawaited(_navigateToEventById(eventId));
   }
 
-  Future<void> _navigateToEvent(Event event) async {
-    final index = _visibleEvents.indexWhere((e) => e.eventId == event.eventId);
+  Future<void> _navigateToEventById(String eventId) async {
+    var index = controller.indexOf(eventId);
     if (index == -1) {
-      debugPrint(
-        '[Kohera] Event not in loaded timeline, reloading: ${event.eventId}',
-      );
-      await _reloadTimelineAt(event.eventId);
-      return;
+      debugPrint('[Kohera] Event not in loaded timeline, reloading: $eventId');
+      await controller.reloadTimelineAt(eventId);
+      index = controller.indexOf(eventId);
     }
-    _scrollToIndex(index, event.eventId);
-  }
-
-  Future<void> _reloadTimelineAt(String eventId) async {
-    _timeline?.cancelSubscriptions();
-    _cachedVisibleEvents = null;
-    setState(() => _timeline = null);
-
-    final gen = ++_initGeneration;
-    _timeline = await room.getTimeline(
-      eventContextId: eventId,
-      onUpdate: () {
-        if (mounted) {
-          _cachedVisibleEvents = null;
-          setState(() {});
-        }
-        _markAsRead();
-      },
-    );
-    if (gen != _initGeneration || !mounted) return;
-    setState(() {});
-    _jumpToEvent(eventId);
-  }
-
-  void _jumpToEvent(String eventId) {
-    final index = _visibleEvents.indexWhere((e) => e.eventId == eventId);
     if (index == -1) {
       debugPrint('[Kohera] Event not found after context load: $eventId');
       if (mounted) {
@@ -417,89 +223,16 @@ class MessageListViewState extends State<MessageListView> {
     });
   }
 
-  // ── Helpers ────────────────────────────────────────────
-
-  static bool _isCallEvent(Event event) => callEventTypes.contains(event.type);
-
-  static bool _isStateEvent(Event event) {
-    if (event.type == EventTypes.RoomName ||
-        event.type == EventTypes.RoomTopic ||
-        event.type == EventTypes.RoomAvatar ||
-        event.type == EventTypes.RoomTombstone) {
-      return true;
-    }
-    if (event.type == EventTypes.RoomMember) {
-      return !_isNoOpMemberEvent(event);
-    }
-    return false;
-  }
-
-  static bool _isNoOpMemberEvent(Event event) {
-    final prev = event.prevContent;
-    if (prev == null) return false;
-    final curr = event.content;
-    final prevMembership = prev.tryGet<String>('membership');
-    final currMembership = curr.tryGet<String>('membership');
-    if (prevMembership != currMembership) return false;
-    if (prev.tryGet<String>('displayname') != curr.tryGet<String>('displayname')) {
-      return false;
-    }
-    if (prev.tryGet<String>('avatar_url') != curr.tryGet<String>('avatar_url')) {
-      return false;
-    }
-    return true;
-  }
-
-  static bool _isCallMemberEvent(Event event) =>
-      event.type == kCallMember ||
-      event.type == kCallMemberMsc ||
-      event.body.contains(kCallMember) ||
-      event.body.contains(kCallMemberMsc);
-
-  Duration? _callDuration(Event event) {
-    if (event.type != kCallHangup) return null;
-    final reason = event.content.tryGet<String>('reason');
-    if (reason == 'invite_timeout') return null;
-
-    final hangupCallId = event.content.tryGet<String>('call_id');
-    final events = _timeline?.events;
-    if (events == null) return null;
-
-    Event? matchedInvite;
-    for (final e in events) {
-      if (e.type != kCallInvite) continue;
-      if (!e.originServerTs.isBefore(event.originServerTs)) continue;
-      if (hangupCallId != null && hangupCallId.isNotEmpty && e.content.tryGet<String>('call_id') == hangupCallId) {
-        matchedInvite = e;
-        break;
-      }
-      matchedInvite ??= e;
-    }
-
-    if (matchedInvite == null) return null;
-    final d = event.originServerTs.difference(matchedInvite.originServerTs);
-    if (d.isNegative || d.inHours >= 24) return null;
-    return d;
-  }
-
-  @override
-  void dispose() {
-    _itemPosListener.itemPositions.removeListener(_onScroll);
-    _readMarkerTimer?.cancel();
-    _timeline?.cancelSubscriptions();
-    super.dispose();
-  }
-
   // ── Build ──────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    if (_timeline == null) {
+    if (!controller.isReady) {
       return const Center(child: KoheraLoader());
     }
 
-    final events = _visibleEvents;
-    if (events.isEmpty) {
+    final messages = controller.messages;
+    if (messages.isEmpty) {
       final cs = Theme.of(context).colorScheme;
       final tt = Theme.of(context).textTheme;
       return Center(
@@ -514,18 +247,13 @@ class MessageListViewState extends State<MessageListView> {
     }
 
     final isMobile = isTouchDevice;
-    final showReceipts = context.watch<PreferencesService>().readReceipts;
-    final myUserId = widget.matrix.client.userID;
-    final avatarResolver = context.read<MatrixService>().avatarResolver;
-    final receiptMap = showReceipts
-        ? const ReadReceiptResolver()(
-            room,
-            myUserId,
-            threadRootId: widget.threadRootEventId,
-          )
-        : <String, List<KoheraReadReceipt>>{};
-    final hasLoadingIndicator = _loadingHistory || widget.extraLoading;
-    final totalCount = events.length + (hasLoadingIndicator ? 1 : 0);
+    final matrix = context.read<MatrixService>();
+    final avatarResolver = matrix.avatarResolver;
+    final mediaResolver = matrix.mediaResolver;
+    final receiptMap = controller.receipts;
+    final hasLoadingIndicator =
+        controller.isLoadingHistory || widget.extraLoading;
+    final totalCount = messages.length + (hasLoadingIndicator ? 1 : 0);
 
     return NotificationListener<ScrollNotification>(
       onNotification: _handleScrollNotification,
@@ -542,89 +270,17 @@ class MessageListViewState extends State<MessageListView> {
               child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
             );
           }
-          final event = events[i];
+          final data = messages[i];
+          final tile = _buildTile(
+            context,
+            data,
+            isMobile,
+            avatarResolver,
+            mediaResolver,
+            receiptMap,
+          );
 
-          final Widget tile;
-          final message = const MessageDisplayResolver()(event);
-          if (_isCallEvent(event)) {
-            tile = CallEventTile(
-              message: message,
-              isMe: event.senderId == myUserId,
-              duration: _callDuration(event),
-            );
-          } else if (_isStateEvent(event)) {
-            tile = StateEventTile(
-              item: const StateEventResolver()(event),
-            );
-          } else if (event.type == EventTypes.Sticker) {
-            final isMe = event.senderId == myUserId;
-            final stickerMessage = const MessageDisplayResolver()(
-              event,
-              timeline: _timeline,
-            );
-            final hasStickerReactions = _timeline != null &&
-                event.hasAggregatedEvents(
-                  _timeline!,
-                  RelationshipTypes.reaction,
-                );
-            final stickerReactions = hasStickerReactions
-                ? const ReactionResolver().resolve(
-                    event,
-                    _timeline!,
-                    myUserId: myUserId ?? '',
-                  )
-                : const KoheraReactionList([]);
-            tile = StickerMessageItem(
-              key: ValueKey(event.eventId),
-              message: stickerMessage,
-              stickerWidget: StickerBubble(
-                media: const MediaContentResolver()(event),
-                controller: SdkMediaController(event),
-                isMe: isMe,
-              ),
-              isMe: isMe,
-              isMobile: isMobile,
-              reactionWidget: stickerReactions.isNotEmpty
-                  ? ReactionChips(
-                      reactions: stickerReactions,
-                      isMe: isMe,
-                      avatarResolver: avatarResolver,
-                      onToggle: (emoji) => widget.onToggleReaction(event, emoji),
-                    )
-                  : null,
-              onToggleReaction: (eventId, emoji) => widget.onToggleReaction(event, emoji),
-              onReply: (eventId) => widget.onReply(event),
-              onPin: (eventId) => widget.onPin(event),
-              onForward: widget.onForward != null ? (eventId) => widget.onForward!(event, _timeline) : null,
-              onOpenContextMenu: (position) => _showStickerContextMenu(context, event, isMe, position),
-              onShowMobileActions: (rect) => _showStickerMobileActions(context, event, isMe, rect),
-              highlightedEventId: widget.highlightedEventId,
-              isPinned: event.room.pinnedEventIds.contains(event.eventId),
-            );
-          } else {
-            final prevSender = i + 1 < events.length ? events[i + 1].senderId : null;
-            tile = ChatMessageItem(
-              event: event,
-              isMe: event.senderId == myUserId,
-              isFirst: event.senderId != prevSender,
-              isMobile: isMobile,
-              timeline: _timeline,
-              myUserId: myUserId ?? '',
-              highlightedEventId: widget.highlightedEventId,
-              receiptMap: receiptMap,
-              onReply: widget.onReply,
-              onEdit: (event) => widget.onEdit(event, _timeline),
-              onToggleReaction: widget.onToggleReaction,
-              onPin: widget.onPin,
-              onTapReply: _navigateToEvent,
-              onReplyInThread: widget.onReplyInThread,
-              onOpenThread: widget.onOpenThread,
-              onForward: widget.onForward == null ? null : (event) => widget.onForward!(event, _timeline),
-              inThread: widget.threadRootEventId != null,
-            );
-          }
-
-          if (_shouldShowUnreadDivider(event, i, events)) {
+          if (_shouldShowUnreadDivider(data, i)) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -639,98 +295,153 @@ class MessageListViewState extends State<MessageListView> {
     );
   }
 
-  bool _shouldShowUnreadDivider(
-    Event event,
-    int index,
-    List<Event> events,
+  Widget _buildTile(
+    BuildContext context,
+    ChatMessageData data,
+    bool isMobile,
+    AvatarResolver avatarResolver,
+    MediaResolver mediaResolver,
+    Map<String, List<KoheraReadReceipt>> receiptMap,
   ) {
-    final markerId = _initialFullyReadId;
+    switch (data.category) {
+      case MessageCategory.callEvent:
+        return CallEventTile(
+          message: data.message,
+          isMe: data.isMe,
+          duration: data.callDuration,
+        );
+      case MessageCategory.stateEvent:
+        return StateEventTile(item: data.stateEventText!);
+      case MessageCategory.sticker:
+        return _buildStickerTile(
+          context,
+          data,
+          isMobile,
+          avatarResolver,
+        );
+      case MessageCategory.message:
+        return _buildMessageTile(
+          context,
+          data,
+          isMobile,
+          avatarResolver,
+          mediaResolver,
+          receiptMap,
+        );
+    }
+  }
+
+  Widget _buildStickerTile(
+    BuildContext context,
+    ChatMessageData data,
+    bool isMobile,
+    AvatarResolver avatarResolver,
+  ) {
+    return StickerMessageItem(
+      key: ValueKey(data.eventId),
+      message: data.message,
+      stickerWidget: StickerBubble(
+        media: data.media!,
+        controller: data.mediaController!,
+        isMe: data.isMe,
+      ),
+      isMe: data.isMe,
+      isMobile: isMobile,
+      reactionWidget: (data.reactions != null && data.reactions!.isNotEmpty)
+          ? ReactionChips(
+              reactions: data.reactions!,
+              isMe: data.isMe,
+              avatarResolver: avatarResolver,
+              onToggle: (emoji) => widget.onToggleReaction(data.eventId, emoji),
+            )
+          : null,
+      onToggleReaction: (eventId, emoji) =>
+          widget.onToggleReaction(data.eventId, emoji),
+      onReply: (eventId) => widget.onReply(data.eventId),
+      onPin: (eventId) => widget.onPin(data.eventId),
+      onForward: widget.onForward != null
+          ? (eventId) => widget.onForward!(data.eventId)
+          : null,
+      onOpenContextMenu: (position) =>
+          widget.onStickerContextMenu?.call(context, data.eventId, position),
+      onShowMobileActions: (rect) =>
+          widget.onStickerMobileActions?.call(context, data.eventId, rect),
+      highlightedEventId: widget.highlightedEventId,
+      isPinned: data.isPinned,
+    );
+  }
+
+  Widget _buildMessageTile(
+    BuildContext context,
+    ChatMessageData data,
+    bool isMobile,
+    AvatarResolver avatarResolver,
+    MediaResolver mediaResolver,
+    Map<String, List<KoheraReadReceipt>> receiptMap,
+  ) {
+    return ChatMessageItem(
+      message: data.message,
+      reactions: data.reactions,
+      media: data.media,
+      mediaController: data.mediaController,
+      replyPreview:
+          data.message.replyEventId != null && !data.message.isRedacted
+              ? widget.buildReplyPreview?.call(
+                  data.eventId,
+                  data.isMe,
+                  navigateToEventById,
+                )
+              : null,
+      isMe: data.isMe,
+      isFirst: data.isFirst,
+      isMobile: isMobile,
+      isPinned: data.isPinned,
+      canPin: data.canPin,
+      canRedact: data.canRedact,
+      hasThread: data.hasThread,
+      threadReplyCount: data.threadReplyCount,
+      threadUnreadCount: data.threadUnreadCount,
+      inThread: controller.isThread,
+      highlightedEventId: widget.highlightedEventId,
+      receiptMap: receiptMap,
+      avatarResolver: avatarResolver,
+      mediaResolver: mediaResolver,
+      mentionResolver: widget.mentionResolver ?? (_) => null,
+      onToggleReaction: (emoji) => widget.onToggleReaction(data.eventId, emoji),
+      onReply: () => widget.onReply(data.eventId),
+      onEdit: () => widget.onEdit(data.eventId),
+      onPin: () => widget.onPin(data.eventId),
+      onReplyInThread: widget.onReplyInThread != null
+          ? () => widget.onReplyInThread!(data.eventId)
+          : null,
+      onOpenThread: widget.onOpenThread != null
+          ? () => widget.onOpenThread!(data.eventId)
+          : null,
+      onForward: widget.onForward != null
+          ? () => widget.onForward!(data.eventId)
+          : null,
+      onOpenContextMenu: (position) => widget.onOpenContextMenu
+          ?.call(context, data.eventId, position, data.isPinned, data.canPin),
+      onShowMobileActions: (rect) => widget.onShowMobileActions
+          ?.call(context, data.eventId, rect, data.isPinned, data.canPin),
+      onTapSender: () => widget.onTapSender?.call(context, data.eventId),
+      onDelete: () => widget.onDelete?.call(context, data.eventId),
+      onTapReply: navigateToEventById,
+    );
+  }
+
+  bool _shouldShowUnreadDivider(ChatMessageData data, int index) {
+    final markerId = controller.fullyReadMarkerId;
     if (markerId == null) return false;
-    if (event.eventId != markerId) return false;
+    if (data.eventId != markerId) return false;
     if (index == 0) return false;
     return true;
   }
 
-  void _showStickerContextMenu(
-    BuildContext context,
-    Event event,
-    bool isMe,
-    Offset position,
-  ) {
-    unawaited(
-      showMessageContextMenu(
-        context,
-        event: event,
-        isMe: isMe,
-        isPinned: event.room.pinnedEventIds.contains(event.eventId),
-        timeline: _timeline,
-        position: position,
-        onReply: () => widget.onReply(event),
-        onReact: () => showEmojiPickerSheet(
-          context,
-          (emoji) => widget.onToggleReaction(event, emoji),
-        ),
-        onPin: () => widget.onPin(event),
-        onForward: widget.onForward != null ? () => widget.onForward!(event, _timeline) : null,
-      ),
-    );
-  }
-
-  void _showStickerMobileActions(
-    BuildContext context,
-    Event event,
-    bool isMe,
-    Rect bubbleRect,
-  ) {
-    final cs = Theme.of(context).colorScheme;
-    final isPinned = event.room.pinnedEventIds.contains(event.eventId);
-    showMessageActionSheet(
-      context: context,
-      event: event,
-      isMe: isMe,
-      bubbleRect: bubbleRect,
-      timeline: _timeline,
-      onQuickReact: (emoji) => widget.onToggleReaction(event, emoji),
-      actions: [
-        MessageAction(
-          label: 'Reply',
-          icon: Icons.reply_rounded,
-          onTap: () => widget.onReply(event),
-        ),
-        MessageAction(
-          label: 'React',
-          icon: Icons.add_reaction_outlined,
-          onTap: () => showEmojiPickerSheet(
-            context,
-            (emoji) => widget.onToggleReaction(event, emoji),
-          ),
-        ),
-        if (widget.onForward != null)
-          MessageAction(
-            label: 'Forward',
-            icon: Icons.forward_rounded,
-            onTap: () => widget.onForward!(event, _timeline),
-          ),
-        MessageAction(
-          label: isPinned ? 'Unpin' : 'Pin',
-          icon: isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
-          onTap: () => widget.onPin(event),
-        ),
-        MessageAction(
-          label: 'Copy link',
-          icon: Icons.link_rounded,
-          onTap: () {
-            unawaited(
-              Clipboard.setData(
-                ClipboardData(
-                  text: event.content.tryGet<String>('url') ?? '',
-                ),
-              ),
-            );
-          },
-          color: cs.onSurface,
-        ),
-      ],
-    );
+  @override
+  void dispose() {
+    _itemPosListener.itemPositions.removeListener(_onScroll);
+    controller.removeListener(_onControllerChanged);
+    super.dispose();
   }
 }

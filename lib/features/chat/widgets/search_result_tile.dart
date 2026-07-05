@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/utils/text_highlight.dart';
 import 'package:kohera/core/utils/time_format.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 
 // coverage:ignore-start
@@ -17,7 +17,7 @@ class SearchResultTile extends StatelessWidget {
   });
 
   final KoheraMessageDisplay message;
-  final ClientAvatarResolver avatarResolver;
+  final AvatarResolver avatarResolver;
   final String query;
   final VoidCallback onTap;
 
