@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
-import 'package:kohera/features/chat/widgets/paste_image_handler.dart';
+import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
+import 'package:kohera/features/chat/services/paste_image_handler.dart';
+import 'package:kohera/features/chat/services/reply_preview_resolver.dart';
 import 'package:matrix/matrix.dart';
 
 enum AddAttachmentResult { ok, tooMany, tooLarge }
@@ -12,10 +14,10 @@ class ComposeStateController {
   static const int maxAttachmentBytes = 25 * 1024 * 1024;
 
   // ── Reply state ─────────────────────────────────────────
-  final replyNotifier = ValueNotifier<Event?>(null);
+  final replyNotifier = ValueNotifier<KoheraReplyPreview?>(null);
 
   // ── Edit state ──────────────────────────────────────────
-  final editNotifier = ValueNotifier<Event?>(null);
+  final editNotifier = ValueNotifier<KoheraReplyPreview?>(null);
 
   // ── Thread state ────────────────────────────────────────
   final threadRootNotifier = ValueNotifier<Event?>(null);
@@ -24,12 +26,13 @@ class ComposeStateController {
   final uploadNotifier = ValueNotifier<UploadState?>(null);
 
   // ── Pending attachments ────────────────────────────────
-  final pendingAttachments = ValueNotifier<List<PendingAttachment>>([]);
+  final pendingAttachments =
+      ValueNotifier<List<PendingAttachment>>([]);
 
   // ── Reply ───────────────────────────────────────────────
 
   void setReplyTo(Event event) {
-    replyNotifier.value = event;
+    replyNotifier.value = const ReplyPreviewResolver().fromEvent(event);
   }
 
   void cancelReply() {
@@ -56,9 +59,10 @@ class ComposeStateController {
     TextEditingController msgCtrl,
   ) {
     replyNotifier.value = null;
-    editNotifier.value = event;
     final displayEvent =
         timeline != null ? event.getDisplayEvent(timeline) : event;
+    editNotifier.value =
+        const ReplyPreviewResolver().fromEvent(displayEvent);
     msgCtrl.text = stripReplyFallback(displayEvent.body);
     msgCtrl.selection =
         TextSelection.collapsed(offset: msgCtrl.text.length);

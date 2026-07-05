@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
 import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
 import 'package:matrix/matrix.dart';
@@ -175,9 +176,14 @@ void main() {
     });
 
     test('sends with inReplyTo when reply is set', () async {
-      final replyEvent = MockEvent();
-      compose.setReplyTo(replyEvent);
+      compose.replyNotifier.value = const KoheraReplyPreview(
+        parentMessageId: r'$reply1',
+        parentSenderId: '@alice:example.com',
+        parentSenderName: 'Alice',
+        parentBody: 'hello',
+      );
       msgCtrl.text = 'my reply';
+      when(mockRoom.getEventById(any)).thenAnswer((_) async => MockEvent());
       when(mockRoom.sendTextEvent(
         any,
         inReplyTo: anyNamed('inReplyTo'),
@@ -194,11 +200,12 @@ void main() {
     });
 
     test('sends with editEventId when edit is set', () async {
-      final editEvent = MockEvent();
-      when(editEvent.eventId).thenReturn(r'$edit1');
-      when(editEvent.body).thenReturn('original');
-      when(editEvent.getDisplayEvent(any)).thenReturn(editEvent);
-      compose.setEditEvent(editEvent, mockTimeline, msgCtrl);
+      compose.editNotifier.value = const KoheraReplyPreview(
+        parentMessageId: r'$edit1',
+        parentSenderId: '@me:example.com',
+        parentSenderName: 'Me',
+        parentBody: 'original',
+      );
       msgCtrl.text = 'edited text';
       when(mockRoom.sendTextEvent(
         any,
@@ -217,8 +224,13 @@ void main() {
 
     test('restores compose state on send error', () async {
       msgCtrl.text = 'will fail';
-      final replyEvent = MockEvent();
-      compose.setReplyTo(replyEvent);
+      compose.replyNotifier.value = const KoheraReplyPreview(
+        parentMessageId: r'$reply1',
+        parentSenderId: '@alice:example.com',
+        parentSenderName: 'Alice',
+        parentBody: 'hello',
+      );
+      when(mockRoom.getEventById(any)).thenAnswer((_) async => MockEvent());
       when(mockRoom.sendTextEvent(
         any,
         inReplyTo: anyNamed('inReplyTo'),
@@ -228,7 +240,7 @@ void main() {
       await actions.send();
 
       expect(msgCtrl.text, 'will fail');
-      expect(compose.replyNotifier.value, replyEvent);
+      expect(compose.replyNotifier.value?.parentMessageId, r'$reply1');
       verify(mockScaffold.showSnackBar(any)).called(1);
     });
 

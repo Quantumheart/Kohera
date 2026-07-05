@@ -2,15 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
-import 'package:kohera/core/services/client_media_resolver.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
-import 'package:kohera/features/chat/services/mention_resolver_factory.dart';
+import 'package:kohera/features/chat/models/kohera_message_display.dart';
+import 'package:kohera/features/chat/services/linkable_span_builder.dart';
+import 'package:kohera/features/chat/services/pinned_messages_loader.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 /// Shows a popup panel anchored below the pin icon listing pinned messages.
@@ -19,8 +20,6 @@ void showPinnedMessagesPopup(
   String roomId, {
   required void Function(String eventId) onTap,
 }) {
-  final room = context.read<MatrixService>().client.getRoomById(roomId);
-  if (room == null) return;
   final button = context.findRenderObject()! as RenderBox;
   final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
   final buttonPos = button.localToGlobal(Offset.zero, ancestor: overlay);
@@ -36,24 +35,26 @@ void showPinnedMessagesPopup(
       _PinnedMessagesPopupRoute(
         anchor: anchor,
         overlaySize: overlay.size,
-        room: room,
+        roomId: roomId,
         onTap: onTap,
       ),
     ),
   );
 }
 
+// ── Route ───────────────────────────────────────────────────────────
+
 class _PinnedMessagesPopupRoute extends PopupRoute<void> {
   _PinnedMessagesPopupRoute({
     required this.anchor,
     required this.overlaySize,
-    required this.room,
+    required this.roomId,
     required this.onTap,
   });
 
   final Rect anchor;
   final Size overlaySize;
-  final Room room;
+  final String roomId;
   final void Function(String eventId) onTap;
 
   @override
@@ -83,7 +84,7 @@ class _PinnedMessagesPopupRoute extends PopupRoute<void> {
         child: FadeTransition(
           opacity: animation,
           child: _PinnedMessagesPanel(
-            room: room,
+            roomId: roomId,
             onTap: onTap,
             onClose: () => Navigator.of(context).pop(),
           ),
@@ -111,11 +112,9 @@ class _PopupLayoutDelegate extends SingleChildLayoutDelegate {
 
   @override
   Offset getPositionForChild(Size size, Size childSize) {
-    // Right-align with the button's right edge
     var dx = anchor.right - childSize.width;
     dx = dx.clamp(8.0, size.width - childSize.width - 8);
 
-    // Place below the button
     var dy = anchor.bottom + 4;
     if (dy + childSize.height > size.height - 8) {
       dy = size.height - childSize.height - 8;
@@ -126,7 +125,8 @@ class _PopupLayoutDelegate extends SingleChildLayoutDelegate {
 
   @override
   bool shouldRelayout(_PopupLayoutDelegate oldDelegate) {
-    return anchor != oldDelegate.anchor || containerSize != oldDelegate.containerSize;
+    return anchor != oldDelegate.anchor ||
+        containerSize != oldDelegate.containerSize;
   }
 }
 
@@ -134,12 +134,12 @@ class _PopupLayoutDelegate extends SingleChildLayoutDelegate {
 
 class _PinnedMessagesPanel extends StatefulWidget {
   const _PinnedMessagesPanel({
-    required this.room,
+    required this.roomId,
     required this.onTap,
     required this.onClose,
   });
 
-  final Room room;
+  final String roomId;
   final void Function(String eventId) onTap;
   final VoidCallback onClose;
 
@@ -148,33 +148,25 @@ class _PinnedMessagesPanel extends StatefulWidget {
 }
 
 class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
-  List<Event>? _pinnedEvents;
+  List<KoheraMessageDisplay>? _messages;
   bool _loading = true;
+  late bool _canUnpin;
 
-  // Pinned events are loaded once when the panel opens and are not updated
-  // reactively. Since the popup is short-lived this is acceptable; external
-  // pin/unpin changes made while the popup is open won't be reflected.
   @override
   void initState() {
     super.initState();
+    final matrix = context.read<MatrixService>();
+    _canUnpin = PinnedMessagesLoader.canPin(matrix, widget.roomId);
     unawaited(_loadPinnedEvents());
   }
 
   Future<void> _loadPinnedEvents() async {
-    final ids = widget.room.pinnedEventIds;
-    final results = await Future.wait(
-      ids.map((id) async {
-        try {
-          return await widget.room.getEventById(id);
-        } catch (e) {
-          debugPrint('[Kohera] Failed to load pinned event $id: $e');
-          return null;
-        }
-      }),
-    );
+    final matrix = context.read<MatrixService>();
+    final messages =
+        await PinnedMessagesLoader.load(matrix, widget.roomId);
     if (mounted) {
       setState(() {
-        _pinnedEvents = results.whereType<Event>().toList();
+        _messages = messages;
         _loading = false;
       });
     }
@@ -182,14 +174,13 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
 
   Future<void> _unpin(String eventId) async {
     try {
-      final pinned = List<String>.from(widget.room.pinnedEventIds);
-      pinned.remove(eventId);
-      await widget.room.setPinnedEvents(pinned);
+      final matrix = context.read<MatrixService>();
+      await PinnedMessagesLoader.unpin(matrix, widget.roomId, eventId);
       if (mounted) {
         setState(() {
-          _pinnedEvents?.removeWhere((e) => e.eventId == eventId);
+          _messages?.removeWhere((m) => m.eventId == eventId);
         });
-        if (_pinnedEvents?.isEmpty ?? true) widget.onClose();
+        if (_messages?.isEmpty ?? true) widget.onClose();
       }
     } catch (e) {
       if (mounted) context.showSnack('Failed to unpin message');
@@ -198,9 +189,9 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
 
   @override
   Widget build(BuildContext context) {
+    final matrix = context.read<MatrixService>();
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final canPin = widget.room.canChangeStateEvent('m.room.pinned_events');
 
     return Material(
       elevation: 8,
@@ -210,16 +201,14 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Header
           Padding(
-            padding: const EdgeInsets.only(left: 16, right: 4, top: 4, bottom: 4),
+            padding:
+                const EdgeInsets.only(left: 16, right: 4, top: 4, bottom: 4),
             child: Row(
               children: [
                 Text(
                   'Pinned Messages',
-                  style: tt.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: tt.titleSmall?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const Spacer(),
                 IconButton(
@@ -235,7 +224,6 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
             height: 1,
             color: cs.outlineVariant.withValues(alpha: 0.3),
           ),
-          // Content
           if (_loading)
             const Padding(
               padding: EdgeInsets.all(24),
@@ -247,7 +235,7 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
                 ),
               ),
             )
-          else if (_pinnedEvents == null || _pinnedEvents!.isEmpty)
+          else if (_messages == null || _messages!.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
               child: Text(
@@ -262,7 +250,7 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
               child: ListView.separated(
                 shrinkWrap: true,
                 padding: const EdgeInsets.symmetric(vertical: 4),
-                itemCount: _pinnedEvents!.length,
+                itemCount: _messages!.length,
                 separatorBuilder: (_, __) => Divider(
                   height: 1,
                   indent: 12,
@@ -270,15 +258,18 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
                   color: cs.outlineVariant.withValues(alpha: 0.2),
                 ),
                 itemBuilder: (context, i) {
-                  final event = _pinnedEvents![i];
+                  final message = _messages![i];
                   return _PinnedMessageTile(
-                    event: event,
-                    canUnpin: canPin,
+                    message: message,
+                    canUnpin: _canUnpin,
+                    avatarResolver: matrix.avatarResolver,
+                    mentionResolver: (_) => null,
+                    mediaResolver: matrix.mediaResolver,
                     onOpen: () {
                       widget.onClose();
-                      widget.onTap(event.eventId);
+                      widget.onTap(message.eventId);
                     },
-                    onUnpin: () => _unpin(event.eventId),
+                    onUnpin: () => _unpin(message.eventId),
                   );
                 },
               ),
@@ -293,14 +284,20 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
 
 class _PinnedMessageTile extends StatelessWidget {
   const _PinnedMessageTile({
-    required this.event,
+    required this.message,
     required this.canUnpin,
+    required this.avatarResolver,
+    required this.mentionResolver,
+    required this.mediaResolver,
     required this.onOpen,
     required this.onUnpin,
   });
 
-  final Event event;
+  final KoheraMessageDisplay message;
   final bool canUnpin;
+  final AvatarResolver avatarResolver;
+  final MentionDisplayNameResolver mentionResolver;
+  final MediaResolver mediaResolver;
   final VoidCallback onOpen;
   final VoidCallback onUnpin;
 
@@ -308,9 +305,8 @@ class _PinnedMessageTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final sender = event.senderFromMemoryOrFallback;
-    final displayName = sender.displayName ?? event.senderId;
-    final time = _formatDateTime(event.originServerTs);
+    final displayName = message.senderName;
+    final time = _formatDateTime(message.timestamp);
 
     return InkWell(
       onTap: onOpen,
@@ -319,19 +315,17 @@ class _PinnedMessageTile extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Left: message content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Sender row: avatar, name, time
                   Row(
                     children: [
                       UserAvatar(
-                        avatarResolver: ClientAvatarResolver(event.room.client),
-                        avatarUrl: sender.avatarUrl?.toString(),
-                        userId: event.senderId,
-                        displayname: sender.calcDisplayname(),
+                        avatarResolver: avatarResolver,
+                        avatarUrl: message.senderAvatarUrl,
+                        userId: message.senderId,
+                        displayname: displayName,
                         size: 24,
                       ),
                       const SizedBox(width: 8),
@@ -349,20 +343,19 @@ class _PinnedMessageTile extends StatelessWidget {
                       Text(
                         time,
                         style: tt.labelSmall?.copyWith(
-                          color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                          color:
+                              cs.onSurfaceVariant.withValues(alpha: 0.5),
                         ),
                       ),
                     ],
                   ),
-                  // Body text
                   Padding(
                     padding: const EdgeInsets.only(left: 32, top: 2),
-                    child: _buildBody(event, tt, cs),
+                    child: _buildBody(tt, cs),
                   ),
                 ],
               ),
             ),
-            // Right: actions (fixed position)
             const SizedBox(width: 8),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -381,7 +374,8 @@ class _PinnedMessageTile extends StatelessWidget {
                       icon: Icon(
                         Icons.close_rounded,
                         size: 14,
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                        color:
+                            cs.onSurfaceVariant.withValues(alpha: 0.5),
                       ),
                       onPressed: onUnpin,
                       tooltip: 'Unpin',
@@ -396,25 +390,24 @@ class _PinnedMessageTile extends StatelessWidget {
     );
   }
 
-  static Widget _buildBody(Event event, TextTheme tt, ColorScheme cs) {
+  Widget _buildBody(TextTheme tt, ColorScheme cs) {
     final bodyStyle = tt.bodySmall?.copyWith(color: cs.onSurfaceVariant);
-    final formattedBody = event.formattedText;
-    final hasHtml = formattedBody.isNotEmpty && event.content['format'] == 'org.matrix.custom.html';
+    final formattedHtml = message.formattedHtml;
 
-    if (hasHtml) {
+    if (formattedHtml != null) {
       return HtmlMessageText(
-        html: formattedBody,
+        html: formattedHtml,
         style: bodyStyle,
         isMe: false,
-        mentionResolver: mentionResolverFromRoom(event.room),
-        mediaResolver: ClientMediaResolver(event.room.client),
+        mentionResolver: mentionResolver,
+        mediaResolver: mediaResolver,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
       );
     }
 
     return LinkableText(
-      text: stripReplyFallback(event.body),
+      text: stripReplyFallback(message.body),
       style: bodyStyle,
       isMe: false,
       maxLines: 2,
@@ -424,7 +417,8 @@ class _PinnedMessageTile extends StatelessWidget {
 
   static String _formatDateTime(DateTime ts) {
     final now = DateTime.now();
-    final isToday = ts.year == now.year && ts.month == now.month && ts.day == now.day;
+    final isToday =
+        ts.year == now.year && ts.month == now.month && ts.day == now.day;
     final h = ts.hour.toString().padLeft(2, '0');
     final m = ts.minute.toString().padLeft(2, '0');
     if (isToday) return '$h:$m';

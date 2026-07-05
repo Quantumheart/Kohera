@@ -4,7 +4,7 @@ import 'package:flutter/services.dart' show ClipboardData;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:kohera/core/models/pending_attachment.dart';
-import 'package:kohera/features/chat/widgets/paste_image_handler.dart';
+import 'package:kohera/features/chat/services/paste_image_handler.dart';
 
 void main() {
   group('generatePasteFilename', () {

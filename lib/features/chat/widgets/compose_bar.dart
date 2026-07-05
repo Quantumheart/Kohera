@@ -5,12 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
-import 'package:kohera/core/services/client_media_resolver.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
-import 'package:kohera/features/chat/services/reply_preview_resolver.dart';
+import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
 import 'package:kohera/features/chat/widgets/attachment_preview_bar.dart';
@@ -26,7 +24,6 @@ import 'package:kohera/features/chat/widgets/reply_preview_banner.dart';
 import 'package:kohera/features/chat/widgets/upload_progress_banner.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/services/media_resolver.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 class ComposeBar extends StatefulWidget {
@@ -37,16 +34,18 @@ class ComposeBar extends StatefulWidget {
     required this.onCancelEdit,
     required this.onRemoveAttachment,
     required this.onClearAttachments,
-    this.replyEvent,
-    this.editEvent,
+    required this.avatarResolver,
+    required this.mediaResolver,
+    this.replyPreview,
+    this.editPreview,
     this.onAttach,
     this.onGif,
     this.onSticker,
     this.stickerPackService,
     this.onPasteImage,
     this.uploadNotifier,
-    this.room,
-    this.joinedRooms,
+    this.mentionController,
+    this.emojiController,
     this.typingController,
     this.focusNode,
     this.voiceController,
@@ -54,16 +53,14 @@ class ComposeBar extends StatefulWidget {
     this.onVoiceStop,
     this.onVoiceCancel,
     this.pendingAttachments = const [],
-    this.avatarResolver,
-    this.mediaResolver,
     super.key,
   });
 
   final TextEditingController controller;
   final VoidCallback onSend;
-  final Event? replyEvent;
+  final KoheraReplyPreview? replyPreview;
   final VoidCallback onCancelReply;
-  final Event? editEvent;
+  final KoheraReplyPreview? editPreview;
   final VoidCallback onCancelEdit;
   final VoidCallback? onAttach;
   final VoidCallback? onGif;
@@ -71,22 +68,13 @@ class ComposeBar extends StatefulWidget {
   final StickerPackService? stickerPackService;
   final ValueNotifier<UploadState?>? uploadNotifier;
 
-  /// The current room (needed to fetch members for @-mentions).
-  final Room? room;
+  final AvatarResolver avatarResolver;
+  final MediaResolver mediaResolver;
 
-  /// All joined rooms (needed for #-room mentions).
-  final List<Room>? joinedRooms;
+  final MentionAutocompleteController? mentionController;
+  final EmojiAutocompleteController? emojiController;
 
-  /// Resolves avatar mxc:// URIs for mention suggestions.
-  final AvatarResolver? avatarResolver;
-
-  /// Resolves media mxc:// URIs for emoji suggestions.
-  final MediaResolver? mediaResolver;
-
-  /// Manages outgoing typing indicators for the current room.
   final TypingController? typingController;
-
-  /// Optional external focus node for the compose text field.
   final FocusNode? focusNode;
 
   final VoiceRecordingController? voiceController;
@@ -107,10 +95,8 @@ class ComposeBar extends StatefulWidget {
 class _ComposeBarState extends State<ComposeBar> {
   static final bool _isMacOS = defaultTargetPlatform == TargetPlatform.macOS;
   FocusNode? _ownedFocusNode;
-  FocusNode get _focusNode => widget.focusNode ?? (_ownedFocusNode ??= FocusNode());
-
-  MentionAutocompleteController? _mentionController;
-  EmojiAutocompleteController? _emojiController;
+  FocusNode get _focusNode =>
+      widget.focusNode ?? (_ownedFocusNode ??= FocusNode());
 
   Timer? _previewDebounce;
   String? _previewUrl;
@@ -119,8 +105,6 @@ class _ComposeBarState extends State<ComposeBar> {
   @override
   void initState() {
     super.initState();
-    _initMentionController();
-    _initEmojiController();
     widget.controller.addListener(_onTextChangedForTyping);
     widget.controller.addListener(_onTextChangedForPreview);
     _focusNode.addListener(_onFocusChanged);
@@ -129,15 +113,6 @@ class _ComposeBarState extends State<ComposeBar> {
   @override
   void didUpdateWidget(ComposeBar old) {
     super.didUpdateWidget(old);
-    if (old.room?.id != widget.room?.id) {
-      _mentionController?.dispose();
-      _initMentionController();
-      _emojiController?.dispose();
-      _initEmojiController();
-      _previewDebounce?.cancel();
-      _previewUrl = null;
-      _dismissedUrl = null;
-    }
     if (old.controller != widget.controller) {
       old.controller.removeListener(_onTextChangedForTyping);
       old.controller.removeListener(_onTextChangedForPreview);
@@ -146,30 +121,6 @@ class _ComposeBarState extends State<ComposeBar> {
       _previewDebounce?.cancel();
       _previewUrl = null;
       _dismissedUrl = null;
-    }
-  }
-
-  void _initMentionController() {
-    if (widget.room != null && widget.joinedRooms != null) {
-      _mentionController = MentionAutocompleteController(
-        textController: widget.controller,
-        room: widget.room!,
-        joinedRooms: widget.joinedRooms!,
-      );
-    } else {
-      _mentionController = null;
-    }
-  }
-
-  void _initEmojiController() {
-    if (widget.room != null && widget.stickerPackService != null) {
-      _emojiController = EmojiAutocompleteController(
-        textController: widget.controller,
-        stickerPackService: widget.stickerPackService!,
-        room: widget.room!,
-      );
-    } else {
-      _emojiController = null;
     }
   }
 
@@ -204,20 +155,18 @@ class _ComposeBarState extends State<ComposeBar> {
     widget.controller.removeListener(_onTextChangedForPreview);
     _previewDebounce?.cancel();
     _focusNode.removeListener(_onFocusChanged);
-    _mentionController?.dispose();
-    _emojiController?.dispose();
     _ownedFocusNode?.dispose();
     super.dispose();
   }
 
   void _handleSend() {
-    if (_mentionController != null && _mentionController!.hasSuggestions) {
-      _mentionController!.confirmSelection();
+    if (widget.mentionController != null &&
+        widget.mentionController!.hasSuggestions) {
+      widget.mentionController!.confirmSelection();
       return;
     }
-    // Dismiss autocomplete overlays so they don't linger after send.
-    _mentionController?.dismiss();
-    _emojiController?.dismiss();
+    widget.mentionController?.dismiss();
+    widget.emojiController?.dismiss();
     final hasText = widget.controller.text.trim().isNotEmpty;
     final hasAttachments = widget.pendingAttachments.isNotEmpty;
     if (hasText || hasAttachments) {
@@ -236,7 +185,8 @@ class _ComposeBarState extends State<ComposeBar> {
   }
 
   void _jumpToEnd() {
-    widget.controller.selection = TextSelection.collapsed(offset: widget.controller.text.length);
+    widget.controller.selection =
+        TextSelection.collapsed(offset: widget.controller.text.length);
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
@@ -252,7 +202,7 @@ class _ComposeBarState extends State<ComposeBar> {
       return KeyEventResult.ignored;
     }
 
-    final mc = _mentionController;
+    final mc = widget.mentionController;
     if (mc != null && mc.hasSuggestions) {
       if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
         mc.moveUp();
@@ -272,7 +222,7 @@ class _ComposeBarState extends State<ComposeBar> {
       }
     }
 
-    final ec = _emojiController;
+    final ec = widget.emojiController;
     if (ec != null && ec.hasSuggestions) {
       if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
         ec.moveUp();
@@ -299,9 +249,6 @@ class _ComposeBarState extends State<ComposeBar> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    final replyPreview = widget.replyEvent != null ? const ReplyPreviewResolver().fromEvent(widget.replyEvent!) : null;
-    final editPreview = widget.editEvent != null ? const ReplyPreviewResolver().fromEvent(widget.editEvent!) : null;
-
     return Container(
       padding: EdgeInsets.only(
         left: 12,
@@ -319,40 +266,42 @@ class _ComposeBarState extends State<ComposeBar> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (_mentionController != null)
+          if (widget.mentionController != null)
             ListenableBuilder(
-              listenable: _mentionController!,
+              listenable: widget.mentionController!,
               builder: (context, _) {
-                if (!_mentionController!.isActive || _mentionController!.suggestions.isEmpty) {
+                if (!widget.mentionController!.isActive ||
+                    widget.mentionController!.suggestions.isEmpty) {
                   return const SizedBox.shrink();
                 }
                 return MentionSuggestionList(
-                  controller: _mentionController!,
-                  avatarResolver: widget.avatarResolver ?? ClientAvatarResolver(widget.room!.client),
+                  controller: widget.mentionController!,
+                  avatarResolver: widget.avatarResolver,
                 );
               },
             ),
-          if (_emojiController != null)
+          if (widget.emojiController != null)
             ListenableBuilder(
-              listenable: _emojiController!,
+              listenable: widget.emojiController!,
               builder: (context, _) {
-                if (!_emojiController!.isActive || _emojiController!.suggestions.isEmpty) {
+                if (!widget.emojiController!.isActive ||
+                    widget.emojiController!.suggestions.isEmpty) {
                   return const SizedBox.shrink();
                 }
                 return EmojiSuggestionList(
-                  controller: _emojiController!,
-                  mediaResolver: widget.mediaResolver ?? ClientMediaResolver(widget.room!.client),
+                  controller: widget.emojiController!,
+                  mediaResolver: widget.mediaResolver,
                 );
               },
             ),
-          if (editPreview != null)
+          if (widget.editPreview != null)
             EditPreviewBanner(
-              preview: editPreview,
+              preview: widget.editPreview!,
               onCancel: widget.onCancelEdit,
             )
-          else if (replyPreview != null)
+          else if (widget.replyPreview != null)
             ReplyPreviewBanner(
-              preview: replyPreview,
+              preview: widget.replyPreview!,
               onCancel: widget.onCancelReply,
             ),
           if (widget.pendingAttachments.isNotEmpty)
@@ -362,7 +311,7 @@ class _ComposeBarState extends State<ComposeBar> {
               onClearAll: widget.onClearAttachments,
             ),
           if (_previewUrl != null &&
-              editPreview == null &&
+              widget.editPreview == null &&
               context.select<PreferencesService, bool>(
                 (p) => p.showLinkPreviews,
               ))
@@ -419,7 +368,8 @@ class _ComposeBarState extends State<ComposeBar> {
     return ListenableBuilder(
       listenable: vc,
       builder: (context, _) {
-        final isRecording = vc.state == VoiceRecordingState.recording || vc.state == VoiceRecordingState.requesting;
+        final isRecording = vc.state == VoiceRecordingState.recording ||
+            vc.state == VoiceRecordingState.requesting;
         return AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
           child: isRecording
@@ -443,7 +393,8 @@ class _ComposeBarState extends State<ComposeBar> {
         children: [
           _buildAttachButton(cs),
           if (!isTouchDevice && widget.onGif != null) _buildGifButton(cs),
-          if (!isTouchDevice && widget.onSticker != null) _buildStickerButton(cs),
+          if (!isTouchDevice && widget.onSticker != null)
+            _buildStickerButton(cs),
           Expanded(
             child: CallbackShortcuts(
               bindings: {
@@ -468,7 +419,9 @@ class _ComposeBarState extends State<ComposeBar> {
                   focusNode: _focusNode,
                   textInputAction: TextInputAction.newline,
                   decoration: InputDecoration(
-                    hintText: widget.editEvent != null ? 'Edit message…' : 'Type a message…',
+                    hintText: widget.editPreview != null
+                        ? 'Edit message…'
+                        : 'Type a message…',
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -479,7 +432,8 @@ class _ComposeBarState extends State<ComposeBar> {
                       borderSide: BorderSide.none,
                     ),
                     filled: true,
-                    fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                    fillColor:
+                        cs.surfaceContainerHighest.withValues(alpha: 0.5),
                   ),
                   minLines: 1,
                   maxLines: 5,
@@ -534,7 +488,8 @@ class _ComposeBarState extends State<ComposeBar> {
     return ValueListenableBuilder<UploadState?>(
       valueListenable: widget.uploadNotifier!,
       builder: (context, uploadState, _) {
-        final isUploading = uploadState != null && uploadState.status == UploadStatus.uploading;
+        final isUploading = uploadState != null &&
+            uploadState.status == UploadStatus.uploading;
         return IconButton(
           icon: Icon(Icons.add_rounded, color: cs.onSurfaceVariant),
           onPressed: isUploading ? null : widget.onAttach,
