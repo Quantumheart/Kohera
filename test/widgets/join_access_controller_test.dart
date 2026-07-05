@@ -6,7 +6,7 @@ import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
-import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
+import 'package:kohera/features/rooms/services/join_access_controller.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
@@ -42,6 +42,7 @@ void main() {
     when(matrix.selection).thenReturn(selection);
 
     when(room.id).thenReturn('!r:e.com');
+    when(client.getRoomById('!r:e.com')).thenReturn(room);
     when(room.canChangeStateEvent(EventTypes.RoomJoinRules)).thenReturn(true);
     when(access.getJoinMode(room)).thenReturn(JoinMode.invite);
     when(access.allowedSpaceIds(room)).thenReturn(const []);
@@ -57,7 +58,7 @@ void main() {
           child: ChangeNotifierProvider<MatrixService>.value(
             value: matrix,
             child: JoinAccessController(
-              room: room,
+              roomId: room.id,
               candidatesBuilder: candidatesBuilder,
             ),
           ),
@@ -121,7 +122,7 @@ void main() {
     when(parent.id).thenReturn('!parent:e.com');
     when(parent.getLocalizedDisplayname()).thenReturn('Parent');
 
-    await tester.pumpWidget(host(candidatesBuilder: (_, __) => [parent]));
+    await tester.pumpWidget(host(candidatesBuilder: (_, __) => [(id: '!parent:e.com', displayname: 'Parent')]));
 
     expect(
       find.byKey(const Key('join_access_space_!parent:e.com')),

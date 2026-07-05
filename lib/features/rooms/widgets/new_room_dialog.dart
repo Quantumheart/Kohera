@@ -1,13 +1,13 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart' hide Visibility;
+import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/utils/known_contacts.dart';
+import 'package:kohera/features/rooms/services/room_creation_service.dart';
+import 'package:kohera/shared/models/kohera_user_summary.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
-import 'package:matrix/matrix.dart';
 
 // ── New Room dialog ───────────────────────────────────────────
 
@@ -50,35 +50,37 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
   String? _nameError;
   String? _networkError;
   final List<String> _invitedUsers = [];
-  List<Profile> _inviteSearchResults = [];
+  List<KoheraUserSummary> _inviteSearchResults = [];
   Timer? _debounce;
   int _searchGeneration = 0;
-  List<Profile>? _cachedContacts;
+  List<KoheraUserSummary>? _cachedContacts;
   bool _addToSpace = true;
   final Set<String> _targetSpaceIds = {};
 
   // Restricted-join state (only relevant when created inside a parent space).
   JoinMode _joinMode = JoinMode.invite;
-  List<Room> _allowedJoinSpaces = const [];
+  List<String> _allowedJoinSpaceIds = const [];
   Map<JoinMode, String> _disabledModes = const {};
   String? _restrictedRoomVersion;
   bool _restrictedAvailable = false;
 
+  late final RoomCreationService _service;
+
   @override
   void initState() {
     super.initState();
+    _service = RoomCreationService(widget.matrixService);
     _inviteFocusNode.addListener(_onFocusChanged);
     _initTargetSpaces();
     unawaited(_loadRestrictedCapabilities());
   }
 
   Future<void> _loadRestrictedCapabilities() async {
-    if (_eligibleParentSpaces().isEmpty) return;
-    final access = widget.matrixService.spaceAccess;
+    if (_eligibleParentSpaceRefs().isEmpty) return;
     final knockVersion =
-        await access.pickRestrictedRoomVersion(wantKnock: true);
+        await _service.pickRestrictedRoomVersion(wantKnock: true);
     final basicVersion =
-        await access.pickRestrictedRoomVersion(wantKnock: false);
+        await _service.pickRestrictedRoomVersion(wantKnock: false);
     if (!mounted) return;
     setState(() {
       _restrictedRoomVersion = knockVersion ?? basicVersion;
@@ -88,16 +90,16 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
               JoinMode.knockRestricted: 'Not supported by this server',
             }
           : const <JoinMode, String>{};
-      if (_restrictedAvailable && _allowedJoinSpaces.isEmpty) {
-        final parents = _eligibleParentSpaces();
+      if (_restrictedAvailable && _allowedJoinSpaceIds.isEmpty) {
+        final parents = _eligibleParentSpaceRefs();
         if (parents.isNotEmpty) {
           _joinMode = JoinMode.restricted;
-          _allowedJoinSpaces = List.of(parents);
+          _allowedJoinSpaceIds = parents.map((s) => s.id).toList();
         }
       }
     });
     if (!_restrictedAvailable) {
-      final versions = await access.serverSupportedRoomVersions();
+      final versions = await _service.serverSupportedRoomVersions();
       debugPrint(
         '[Kohera] Restricted join unavailable: server room versions=$versions',
       );
@@ -105,7 +107,7 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
   }
 
   void _initTargetSpaces() {
-    final eligible = _eligibleParentSpaces();
+    final eligible = _eligibleParentSpaceRefs();
     if (eligible.isEmpty) {
       _addToSpace = false;
     } else {
@@ -113,14 +115,14 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
     }
   }
 
-  List<Room> _eligibleParentSpaces() {
+  List<SpaceRef> _eligibleParentSpaceRefs() {
     final source = widget.parentSpaceIds ??
         widget.matrixService.selection.selectedSpaceIds;
-    final eligible = <Room>[];
+    final eligible = <SpaceRef>[];
     for (final id in source) {
       final space = widget.matrixService.client.getRoomById(id);
       if (space != null && space.canChangeStateEvent('m.space.child')) {
-        eligible.add(space);
+        eligible.add((id: id, displayname: space.getLocalizedDisplayname()));
       }
     }
     return eligible;
@@ -145,8 +147,8 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
 
   // ── Known contacts ──────────────────────────────────────────
 
-  List<Profile> _knownContacts() {
-    return _cachedContacts ??= knownContacts(widget.matrixService.client);
+  List<KoheraUserSummary> _knownContacts() {
+    return _cachedContacts ??= _service.knownContacts();
   }
 
   // ── Invite search ───────────────────────────────────────────
@@ -174,11 +176,10 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
     });
 
     try {
-      final response = await widget.matrixService.client
-          .searchUserDirectory(query, limit: 20);
+      final results = await _service.searchUserDirectory(query);
       if (!mounted || gen != _searchGeneration) return;
       setState(() {
-        _inviteSearchResults = response.results;
+        _inviteSearchResults = results;
         _inviteSearching = false;
       });
     } catch (e) {
@@ -190,7 +191,7 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
     }
   }
 
-  void _addInviteFromProfile(Profile profile) {
+  void _addInviteFromProfile(KoheraUserSummary profile) {
     final mxid = profile.userId;
     _inviteController.clear();
     setState(() {
@@ -255,13 +256,13 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
           radius: 16,
           backgroundColor: cs.primaryContainer,
           child: Text(
-            ((p.displayName ?? p.userId).isNotEmpty ? (p.displayName ?? p.userId).characters.first.toUpperCase() : '?'),
+            (p.displayname.isNotEmpty ? p.displayname.characters.first.toUpperCase() : '?'),
             style: TextStyle(color: cs.onPrimaryContainer, fontSize: 13),
           ),
         ),
-        title: Text(p.displayName ?? p.userId,
+        title: Text(p.displayname,
             overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14),),
-        subtitle: p.displayName != null
+        subtitle: p.displayname != p.userId
             ? Text(p.userId,
                 style: const TextStyle(fontSize: 11),
                 overflow: TextOverflow.ellipsis,)
@@ -273,7 +274,7 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
   }
 
   List<Widget> _buildSpaceSelection() {
-    final eligible = _eligibleParentSpaces();
+    final eligible = _eligibleParentSpaceRefs();
     if (eligible.length < 2) return [];
 
     return [
@@ -302,7 +303,7 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
                     }
                     _addToSpace = _targetSpaceIds.isNotEmpty;
                   }),
-          title: Text(space.getLocalizedDisplayname()),
+          title: Text(space.displayname),
           contentPadding: EdgeInsets.zero,
           controlAffinity: ListTileControlAffinity.leading,
           dense: true,
@@ -328,57 +329,40 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
     });
 
     try {
-      final client = widget.matrixService.client;
       final topic = _topicController.text.trim();
 
       final useRestricted = !_isPublic &&
           _restrictedAvailable &&
           _joinMode.isRestrictedFamily &&
-          _allowedJoinSpaces.isNotEmpty;
+          _allowedJoinSpaceIds.isNotEmpty;
       final joinRulesEvent = useRestricted
-          ? widget.matrixService.spaceAccess.buildJoinRulesStateEvent(
-              _joinMode,
-              _allowedJoinSpaces.map((s) => s.id).toList(growable: false),
-            )
+          ? _service.buildJoinRulesStateEvent(_joinMode, _allowedJoinSpaceIds)
           : null;
 
-      final roomId = await client.createRoom(
+      final roomId = await _service.createRoom(
         name: name,
+        isPublic: _isPublic,
+        enableEncryption: _enableEncryption,
         topic: topic.isNotEmpty ? topic : null,
-        visibility: _isPublic ? Visibility.public : Visibility.private,
         roomVersion: useRestricted ? _restrictedRoomVersion : null,
-        initialState: [
-          if (_enableEncryption)
-            StateEvent(
-              content: {
-                'algorithm':
-                    Client.supportedGroupEncryptionAlgorithms.first,
-              },
-              type: EventTypes.Encryption,
-            ),
-          if (joinRulesEvent != null) joinRulesEvent,
-        ],
+        joinRulesEvent: joinRulesEvent,
         invite: _invitedUsers.isNotEmpty ? _invitedUsers : null,
       );
 
-      await client
-          .waitForRoomInSync(roomId, join: true)
-          .timeout(const Duration(seconds: 30));
+      await _service.waitForRoomInSync(roomId);
 
       // Auto-parent to selected spaces.
       if (_addToSpace && _targetSpaceIds.isNotEmpty) {
         var spaceFailures = 0;
         for (final spaceId in _targetSpaceIds) {
-          final space = client.getRoomById(spaceId);
-          if (space == null) continue;
           try {
-            await space.setSpaceChild(roomId);
+            await _service.setSpaceChild(spaceId, roomId);
           } catch (e) {
             debugPrint('[Kohera] Failed to add room to space: $e');
             spaceFailures++;
           }
         }
-        widget.matrixService.selection.invalidateSpaceTree();
+        _service.invalidateSpaceTree();
         if (spaceFailures > 0 && mounted) {
           context.showSnack(
             'Room created, but failed to add to $spaceFailures space(s)',
@@ -387,7 +371,7 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
       }
 
       if (!mounted) return;
-      widget.matrixService.selection.selectRoom(roomId);
+      _service.selectRoom(roomId);
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
@@ -401,9 +385,9 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    final eligible = _eligibleParentSpaces();
+    final eligible = _eligibleParentSpaceRefs();
     final titleSuffix = eligible.length == 1
-        ? ' in ${eligible.first.getLocalizedDisplayname()}'
+        ? ' in ${eligible.first.displayname}'
         : '';
 
     return AlertDialog(
@@ -412,135 +396,137 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
         width: 400,
         child: SingleChildScrollView(
           child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _nameController,
-              autofocus: true,
-              enabled: !_loading,
-              decoration: InputDecoration(
-                labelText: 'Name',
-                border: const OutlineInputBorder(),
-                errorText: _nameError,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _nameController,
+                autofocus: true,
+                enabled: !_loading,
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  border: const OutlineInputBorder(),
+                  errorText: _nameError,
+                ),
+                onSubmitted: (_) => _submit(),
               ),
-              onSubmitted: (_) => _submit(),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _topicController,
-              enabled: !_loading,
-              decoration: const InputDecoration(
-                labelText: 'Topic (optional)',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _inviteController,
-              focusNode: _inviteFocusNode,
-              enabled: !_loading,
-              decoration: InputDecoration(
-                labelText: 'Invite users (optional)',
-                hintText: '@user:server.com or display name',
-                border: const OutlineInputBorder(),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.add_rounded),
-                  onPressed: _loading ? null : _addInvite,
+              const SizedBox(height: 16),
+              TextField(
+                controller: _topicController,
+                enabled: !_loading,
+                decoration: const InputDecoration(
+                  labelText: 'Topic (optional)',
+                  border: OutlineInputBorder(),
                 ),
               ),
-              onChanged: _onInviteSearchChanged,
-              onSubmitted: (_) => _addInvite(),
-            ),
-            if (_inviteSearching)
-              const Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: LinearProgressIndicator(),
-              ),
-            if (_inviteFocusNode.hasFocus) ...[
-              Builder(builder: (_) {
-                final suggestions = _inviteSuggestions(cs);
-                if (suggestions.isEmpty) return const SizedBox.shrink();
-                return ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 150),
-                  child: ListView(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    children: suggestions,
-                  ),
-                );
-              },),
-            ],
-            if (_invitedUsers.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: _invitedUsers
-                        .map((u) => Chip(
-                              label: Text(u, style: const TextStyle(fontSize: 12)),
-                              onDeleted: _loading ? null : () => _removeInvite(u),
-                              materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                            ),)
-                        .toList(),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _inviteController,
+                focusNode: _inviteFocusNode,
+                enabled: !_loading,
+                decoration: InputDecoration(
+                  labelText: 'Invite users (optional)',
+                  hintText: '@user:server.com or display name',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.add_rounded),
+                    onPressed: _loading ? null : _addInvite,
                   ),
                 ),
+                onChanged: _onInviteSearchChanged,
+                onSubmitted: (_) => _addInvite(),
               ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              title: const Text('Public room'),
-              value: _isPublic,
-              onChanged: _loading
-                  ? null
-                  : (v) => setState(() {
-                        _isPublic = v;
-                        _enableEncryption = !v;
-                      }),
-              contentPadding: EdgeInsets.zero,
-            ),
-            SwitchListTile(
-              title: const Text('Enable encryption'),
-              subtitle: Text(
-                _isPublic
-                    ? 'Not available for public rooms'
-                    : 'Cannot be disabled later',
-                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
-              ),
-              value: _enableEncryption,
-              onChanged: _loading || _isPublic
-                  ? null
-                  : (v) => setState(() => _enableEncryption = v),
-              contentPadding: EdgeInsets.zero,
-            ),
-            ..._buildSpaceSelection(),
-            if (_restrictedAvailable && _eligibleParentSpaces().isNotEmpty) ...[
+              if (_inviteSearching)
+                const Padding(
+                  padding: EdgeInsets.only(top: 4),
+                  child: LinearProgressIndicator(),
+                ),
+              if (_inviteFocusNode.hasFocus) ...[
+                Builder(builder: (_) {
+                  final suggestions = _inviteSuggestions(cs);
+                  if (suggestions.isEmpty) return const SizedBox.shrink();
+                  return ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 150),
+                    child: ListView(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      children: suggestions,
+                    ),
+                  );
+                },),
+              ],
+              if (_invitedUsers.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      children: _invitedUsers
+                          .map((u) => Chip(
+                                label: Text(u, style: const TextStyle(fontSize: 12)),
+                                onDeleted: _loading ? null : () => _removeInvite(u),
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
+                              ),)
+                          .toList(),
+                    ),
+                  ),
+                ),
               const SizedBox(height: 8),
-              JoinAccessSection(
-                mode: _joinMode,
-                allowedSpaces: _allowedJoinSpaces,
-                candidateSpaces: _eligibleParentSpaces(),
-                needsUpgrade: false,
-                canEdit: !_loading,
-                disabledModes: _disabledModes,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                onModeChanged: (m) => setState(() => _joinMode = m),
-                onAllowedSpacesChanged: (l) =>
-                    setState(() => _allowedJoinSpaces = l),
+              SwitchListTile(
+                title: const Text('Public room'),
+                value: _isPublic,
+                onChanged: _loading
+                    ? null
+                    : (v) => setState(() {
+                          _isPublic = v;
+                          _enableEncryption = !v;
+                        }),
+                contentPadding: EdgeInsets.zero,
               ),
-            ],
-            if (_networkError != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  _networkError!,
-                  style: TextStyle(color: cs.error, fontSize: 13),
+              SwitchListTile(
+                title: const Text('Enable encryption'),
+                subtitle: Text(
+                  _isPublic
+                      ? 'Not available for public rooms'
+                      : 'Cannot be disabled later',
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
                 ),
+                value: _enableEncryption,
+                onChanged: _loading || _isPublic
+                    ? null
+                    : (v) => setState(() => _enableEncryption = v),
+                contentPadding: EdgeInsets.zero,
               ),
-          ],
-        ),
+              ..._buildSpaceSelection(),
+              if (_restrictedAvailable && _eligibleParentSpaceRefs().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                JoinAccessSection(
+                  mode: _joinMode,
+                  allowedSpaces: _eligibleParentSpaceRefs()
+                      .where((s) => _allowedJoinSpaceIds.contains(s.id))
+                      .toList(),
+                  candidateSpaces: _eligibleParentSpaceRefs(),
+                  needsUpgrade: false,
+                  canEdit: !_loading,
+                  disabledModes: _disabledModes,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  onModeChanged: (m) => setState(() => _joinMode = m),
+                  onAllowedSpacesChanged: (ids) =>
+                      setState(() => _allowedJoinSpaceIds = ids),
+                ),
+              ],
+              if (_networkError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _networkError!,
+                    style: TextStyle(color: cs.error, fontSize: 13),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
       actions: [

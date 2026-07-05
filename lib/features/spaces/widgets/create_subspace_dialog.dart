@@ -217,7 +217,7 @@ class _CreateSubspaceDialogState extends State<CreateSubspaceDialog> {
             ),
             if (_restrictedAvailable) ...[
               const SizedBox(height: 8),
-              JoinAccessSection.refs(
+              JoinAccessSection(
                 mode: _joinMode,
                 allowedSpaces: _allowedJoinSpaces,
                 candidateSpaces: [widget.parentSpaceRef],

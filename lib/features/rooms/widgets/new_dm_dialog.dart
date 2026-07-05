@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/utils/known_contacts.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/features/rooms/services/room_creation_service.dart';
+import 'package:kohera/shared/models/kohera_user_summary.dart';
 
 // ── New Direct Message dialog ─────────────────────────────────
 
@@ -32,12 +32,20 @@ class _NewDirectMessageDialogState extends State<NewDirectMessageDialog> {
   bool _loading = false;
   bool _searching = false;
   String? _networkError;
-  List<Profile> _searchResults = [];
+  List<KoheraUserSummary> _searchResults = [];
   Timer? _debounce;
-  List<Profile>? _cachedContacts;
+  List<KoheraUserSummary>? _cachedContacts;
   int _searchGeneration = 0;
 
   static final _mxidRegex = RegExp(r'^@[^:]+:.+$');
+
+  late final RoomCreationService _service;
+
+  @override
+  void initState() {
+    super.initState();
+    _service = RoomCreationService(widget.matrixService);
+  }
 
   @override
   void dispose() {
@@ -48,8 +56,8 @@ class _NewDirectMessageDialogState extends State<NewDirectMessageDialog> {
 
   // ── Known contacts ──────────────────────────────────────────
 
-  List<Profile> _knownContacts() {
-    return _cachedContacts ??= knownContacts(widget.matrixService.client);
+  List<KoheraUserSummary> _knownContacts() {
+    return _cachedContacts ??= _service.knownContacts();
   }
 
   // ── Search ──────────────────────────────────────────────────
@@ -78,11 +86,10 @@ class _NewDirectMessageDialogState extends State<NewDirectMessageDialog> {
     });
 
     try {
-      final response = await widget.matrixService.client
-          .searchUserDirectory(query, limit: 20);
+      final results = await _service.searchUserDirectory(query);
       if (!mounted || gen != _searchGeneration) return;
       setState(() {
-        _searchResults = response.results;
+        _searchResults = results;
         _searching = false;
       });
     } catch (e) {
@@ -104,21 +111,15 @@ class _NewDirectMessageDialogState extends State<NewDirectMessageDialog> {
     });
 
     try {
-      final client = widget.matrixService.client;
-      final roomId = await client.startDirectChat(
-        userId,
-        enableEncryption: true,
-      );
+      final roomId = await _service.startDirectChat(userId);
       // Only wait if the room isn't already synced (existing DMs return
       // immediately and would hang waitForRoomInSync forever).
-      if (client.getRoomById(roomId) == null) {
-        await client
-            .waitForRoomInSync(roomId, join: true)
-            .timeout(const Duration(seconds: 30));
+      if (!_service.isRoomInSync(roomId)) {
+        await _service.waitForRoomInSync(roomId);
       }
 
       if (!mounted) return;
-      widget.matrixService.selection.selectRoom(roomId);
+      _service.selectRoom(roomId);
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
@@ -151,89 +152,89 @@ class _NewDirectMessageDialogState extends State<NewDirectMessageDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-            TextField(
-              controller: _searchController,
-              autofocus: true,
-              enabled: !_loading,
-              decoration: const InputDecoration(
-                labelText: 'Search users',
-                hintText: '@user:server.com or display name',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.search_rounded),
+              TextField(
+                controller: _searchController,
+                autofocus: true,
+                enabled: !_loading,
+                decoration: const InputDecoration(
+                  labelText: 'Search users',
+                  hintText: '@user:server.com or display name',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.search_rounded),
+                ),
+                onChanged: _onSearchChanged,
+                onSubmitted: (_) => _submitFromField(),
               ),
-              onChanged: _onSearchChanged,
-              onSubmitted: (_) => _submitFromField(),
-            ),
-            if (_searching)
-              const Padding(
-                padding: EdgeInsets.only(top: 8),
-                child: LinearProgressIndicator(),
-              ),
-            if (showContacts && contacts.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Recent contacts',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
+              if (_searching)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: LinearProgressIndicator(),
+                ),
+              if (showContacts && contacts.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Recent contacts',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 250),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: contacts.length,
-                  itemBuilder: (context, i) {
-                    final c = contacts[i];
-                    return _UserTile(
-                      displayName: c.displayName,
-                      userId: c.userId,
-                      loading: _loading,
-                      onTap: () => _startChat(c.userId),
-                    );
-                  },
+                const SizedBox(height: 4),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 250),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: contacts.length,
+                    itemBuilder: (context, i) {
+                      final c = contacts[i];
+                      return _UserTile(
+                        displayName: c.displayname,
+                        userId: c.userId,
+                        loading: _loading,
+                        onTap: () => _startChat(c.userId),
+                      );
+                    },
+                  ),
                 ),
-              ),
+              ],
+              if (!showContacts && _searchResults.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 300),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _searchResults.length,
+                    itemBuilder: (context, i) {
+                      final p = _searchResults[i];
+                      return _UserTile(
+                        displayName: p.displayname,
+                        userId: p.userId,
+                        loading: _loading,
+                        onTap: () => _startChat(p.userId),
+                      );
+                    },
+                  ),
+                ),
+              ],
+              if (_networkError != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _networkError!,
+                    style: TextStyle(color: cs.error, fontSize: 13),
+                  ),
+                ),
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.only(top: 12),
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
             ],
-            if (!showContacts && _searchResults.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 300),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _searchResults.length,
-                  itemBuilder: (context, i) {
-                    final p = _searchResults[i];
-                    return _UserTile(
-                      displayName: p.displayName,
-                      userId: p.userId,
-                      loading: _loading,
-                      onTap: () => _startChat(p.userId),
-                    );
-                  },
-                ),
-              ),
-            ],
-            if (_networkError != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  _networkError!,
-                  style: TextStyle(color: cs.error, fontSize: 13),
-                ),
-              ),
-            if (_loading)
-              const Padding(
-                padding: EdgeInsets.only(top: 12),
-                child: CircularProgressIndicator(strokeWidth: 2.5),
-              ),
-          ],
-        ),
+          ),
         ),
       ),
       actions: [
@@ -260,7 +261,7 @@ class _UserTile extends StatelessWidget {
     required this.onTap,
   });
 
-  final String? displayName;
+  final String displayName;
   final String userId;
   final bool loading;
   final VoidCallback onTap;
@@ -275,12 +276,12 @@ class _UserTile extends StatelessWidget {
         radius: 18,
         backgroundColor: cs.primaryContainer,
         child: Text(
-          ((displayName ?? userId).isNotEmpty ? (displayName ?? userId).characters.first.toUpperCase() : '?'),
+          (displayName.isNotEmpty ? displayName.characters.first.toUpperCase() : '?'),
           style: TextStyle(color: cs.onPrimaryContainer, fontSize: 14),
         ),
       ),
-      title: Text(displayName ?? userId, overflow: TextOverflow.ellipsis),
-      subtitle: displayName != null
+      title: Text(displayName, overflow: TextOverflow.ellipsis),
+      subtitle: displayName != userId
           ? Text(userId,
               style: const TextStyle(fontSize: 12),
               overflow: TextOverflow.ellipsis,)
