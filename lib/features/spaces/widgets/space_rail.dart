@@ -10,13 +10,11 @@ import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
-import 'package:kohera/core/utils/media_auth.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
-import 'package:matrix/matrix.dart' hide Visibility;
 import 'package:provider/provider.dart';
 
 /// A vertical icon rail showing the user's Matrix spaces.
@@ -109,7 +107,8 @@ class _SpaceRailState extends State<SpaceRail> {
               },
               itemBuilder: (context, i) {
                 final space = spaces[i];
-                final childCount = space.spaceChildren.length;
+                final summary = selection.summaryFor(space);
+                final childCount = summary.spaceChildCount;
                 final unread = selection.unreadCountForSpace(space.id);
                 return ReorderableDragStartListener(
                   key: ValueKey(space.id),
@@ -118,7 +117,7 @@ class _SpaceRailState extends State<SpaceRail> {
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Builder(
                       builder: (iconContext) {
-                        final displayName = space.getLocalizedDisplayname();
+                        final displayName = summary.displayname;
                         return _RailIcon(
                         label: displayName.isNotEmpty
                             ? displayName[0].toUpperCase()
@@ -127,7 +126,7 @@ class _SpaceRailState extends State<SpaceRail> {
                             '$displayName \u00b7 $childCount rooms',
                         isSelected:
                             selection.selectedSpaceIds.contains(space.id),
-                        room: space,
+                        avatarUrl: summary.avatarUrl,
                         color: _spaceColor(i, cs),
                         unreadCount: unread,
                         onTap: () {
@@ -161,7 +160,7 @@ class _SpaceRailState extends State<SpaceRail> {
                               pos.dx + box.size.width,
                               pos.dy + box.size.height,
                             ),
-                            space,
+                            space.id,
                           ),);
                         },
                         onSecondaryTapUp: (details) {
@@ -176,7 +175,7 @@ class _SpaceRailState extends State<SpaceRail> {
                               pos.dx + box.size.width,
                               details.globalPosition.dy,
                             ),
-                            space,
+                            space.id,
                           ),);
                         },
                       );
@@ -235,7 +234,8 @@ class _SpaceRailState extends State<SpaceRail> {
                       children: [
                         for (final space in invited)
                           Builder(builder: (_) {
-                            final name = space.getLocalizedDisplayname();
+                            final summary = selection.summaryFor(space);
+                            final name = summary.displayname;
                             return Padding(
                             padding: const EdgeInsets.only(bottom: 6),
                             child: Opacity(
@@ -248,11 +248,12 @@ class _SpaceRailState extends State<SpaceRail> {
                                 isSelected: false,
                                 color: cs.outlineVariant,
                                 outlined: true,
+                                avatarUrl: summary.avatarUrl,
                                 onTap: () async {
                                   final result = await InviteDialog.show(
                                     context,
                                     roomId: space.id,
-                                    summary: selection.summaryFor(space),
+                                    summary: summary,
                                     inviterName:
                                         selection.inviterDisplayName(space),
                                     onAccept: space.join,
@@ -323,7 +324,7 @@ class _RailIcon extends StatefulWidget {
     required this.color,
     required this.onTap,
     this.icon,
-    this.room,
+    this.avatarUrl,
     this.outlined = false,
     this.unreadCount,
     this.onLongPress,
@@ -336,7 +337,7 @@ class _RailIcon extends StatefulWidget {
   final bool isSelected;
   final Color color;
   final VoidCallback onTap;
-  final Room? room;
+  final String? avatarUrl;
   final bool outlined;
   final int? unreadCount;
   final VoidCallback? onLongPress;
@@ -348,37 +349,43 @@ class _RailIcon extends StatefulWidget {
 
 class _RailIconState extends State<_RailIcon> {
   String? _resolvedUrl;
-  Uri? _lastAvatarUri;
+  Map<String, String>? _resolvedHeaders;
+  String? _lastAvatarUrl;
   int _resolveGeneration = 0;
+  late MatrixService _matrix;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _matrix = context.read<MatrixService>();
     unawaited(_resolveThumbnail());
   }
 
   @override
   void didUpdateWidget(_RailIcon oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.room?.avatar != _lastAvatarUri) {
+    if (widget.avatarUrl != _lastAvatarUrl) {
       _resolvedUrl = null;
       unawaited(_resolveThumbnail());
     }
   }
 
   Future<void> _resolveThumbnail() async {
-    final avatarUri = widget.room?.avatar;
-    _lastAvatarUri = avatarUri;
-    if (avatarUri == null) return;
+    final avatarUrl = widget.avatarUrl;
+    _lastAvatarUrl = avatarUrl;
+    if (avatarUrl == null) return;
     final generation = ++_resolveGeneration;
     try {
-      final uri = await avatarUri.getThumbnailUri(
-        widget.room!.client,
+      final thumb = await _matrix.mediaResolver.resolve(
+        avatarUrl,
         width: 96,
         height: 96,
       );
-      if (mounted && generation == _resolveGeneration) {
-        setState(() => _resolvedUrl = uri.toString());
+      if (mounted && generation == _resolveGeneration && thumb != null) {
+        setState(() {
+          _resolvedUrl = thumb.url;
+          _resolvedHeaders = thumb.headers;
+        });
       }
     } catch (e) {
       debugPrint('[Kohera] Failed to resolve space avatar thumbnail: $e');
@@ -403,7 +410,7 @@ class _RailIconState extends State<_RailIcon> {
     } else if (_resolvedUrl != null) {
       iconContent = CachedNetworkImage(
         imageUrl: _resolvedUrl!,
-        httpHeaders: mediaAuthHeaders(widget.room!.client, _resolvedUrl!),
+        httpHeaders: _resolvedHeaders ?? const {},
         imageRenderMethodForWeb: ImageRenderMethodForWeb.HttpGet,
         fit: BoxFit.cover,
         width: size,

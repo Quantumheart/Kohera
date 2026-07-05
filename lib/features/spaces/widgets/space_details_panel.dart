@@ -14,13 +14,14 @@ import 'package:kohera/features/rooms/widgets/invite_user_dialog_params.dart';
 import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
 import 'package:kohera/features/rooms/widgets/member_sheet_launcher.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
+import 'package:kohera/features/spaces/models/kohera_push_rule_state.dart';
+import 'package:kohera/features/spaces/services/space_menu_actions.dart';
 import 'package:kohera/features/spaces/widgets/notification_radio_group.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
 import 'package:kohera/shared/widgets/detail_action_button.dart';
 import 'package:kohera/shared/widgets/joined_member_count.dart';
-import 'package:matrix/matrix.dart' hide Visibility;
 import 'package:provider/provider.dart';
 
 /// Displays space details: header, actions, members, and admin controls.
@@ -48,7 +49,7 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
   bool _loadingMembers = false;
   int? _lastMemberCount;
   int _memberLoadGen = 0;
-  StreamSubscription<SyncUpdate>? _syncSub;
+  StreamSubscription<dynamic>? _syncSub;
   Timer? _syncDebounce;
 
   bool get _loading => _inFlight.isNotEmpty;
@@ -61,7 +62,7 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final space = context.read<MatrixService>().client.getRoomById(widget.spaceId);
-      if (space != null) unawaited(_loadMembers(space));
+      if (space != null) unawaited(_loadMembers(widget.spaceId));
       _setupSyncListener();
     });
   }
@@ -73,7 +74,7 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
     final count = space?.summary.mJoinedMemberCount;
     if (count != null && count != _lastMemberCount && !_loadingMembers) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && space != null) unawaited(_loadMembers(space));
+        if (mounted) unawaited(_loadMembers(widget.spaceId));
       });
     }
   }
@@ -91,14 +92,14 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
     _syncSub = client.onSync.stream.listen((update) {
       final stateEvents = update.rooms?.join?[widget.spaceId]?.state ?? [];
       final hasPowerLevelChanges =
-          stateEvents.any((e) => e.type == EventTypes.RoomPowerLevels);
+          stateEvents.any((e) => e.type == 'm.room.power_levels');
       _syncDebounce?.cancel();
       _syncDebounce = Timer(const Duration(seconds: 2), () {
         if (!mounted) return;
         setState(() {});
         if (hasPowerLevelChanges && _memberList != null) {
           final space = client.getRoomById(widget.spaceId);
-          if (space != null) unawaited(_loadMembers(space));
+          if (space != null) unawaited(_loadMembers(widget.spaceId));
         }
       });
     });
@@ -106,8 +107,11 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
 
   // ── Actions ────────────────────────────────────────────────
 
-  Future<void> _loadMembers(Room space) async {
+  Future<void> _loadMembers(String spaceId) async {
     final gen = ++_memberLoadGen;
+    final matrix = context.read<MatrixService>();
+    final space = matrix.client.getRoomById(spaceId);
+    if (space == null) return;
     setState(() => _loadingMembers = true);
     try {
       final list = await const RoomMemberListResolver().resolve(space);
@@ -127,14 +131,19 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
 
   Future<void> _showMemberSheet(
     BuildContext context,
-    Room space,
+    String spaceId,
     KoheraRoomMember member,
   ) {
+    final space = context.read<MatrixService>().client.getRoomById(spaceId);
+    if (space == null) return Future.value();
     return showRoomMemberSheet(context, room: space, member: member);
   }
 
   Future<void> _run(String action, Future<void> Function() task) async {
-    setState(() { _inFlight.add(action); _error = null; });
+    setState(() {
+      _inFlight.add(action);
+      _error = null;
+    });
     try {
       await task();
     } catch (e) {
@@ -145,7 +154,11 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
     }
   }
 
-  Future<void> _showInviteDialog(Room space) async {
+  Future<void> _showInviteDialog(String spaceId) async {
+    final matrix = context.read<MatrixService>();
+    final space = matrix.client.getRoomById(spaceId);
+    if (space == null || !mounted) return;
+
     final result =
         await InviteUserDialog.show(context, params: inviteUserDialogParams(space));
     if (result == null || !mounted) return;
@@ -156,13 +169,15 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
     });
   }
 
-  Future<void> _confirmLeave(Room space) async {
+  Future<void> _confirmLeave(String spaceId) async {
     if (!mounted) return;
-    await _run('leave', () => handleLeaveSpace(context, space));
+    await _run('leave', () => handleLeaveSpace(context, spaceId));
   }
 
-  Future<void> _setPushRule(Room space, PushRuleState state) =>
-      _run('pushRule', () => space.setPushRuleState(state));
+  Future<void> _setPushRule(String spaceId, KoheraPushRuleState state) {
+    final matrix = context.read<MatrixService>();
+    return _run('pushRule', () => SpaceMenuActions(matrix).setPushRuleState(spaceId, state));
+  }
 
   // ── Build ──────────────────────────────────────────────────
 
@@ -178,7 +193,7 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
       return widget.isFullPage ? Scaffold(appBar: AppBar(), body: body) : body;
     }
 
-    final content = _buildContent(space, cs, tt);
+    final content = _buildContent(widget.spaceId, cs, tt);
 
     if (widget.isFullPage) {
       return Scaffold(
@@ -199,15 +214,15 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
     );
   }
 
-  Widget _buildContent(Room space, ColorScheme cs, TextTheme tt) {
+  Widget _buildContent(String spaceId, ColorScheme cs, TextTheme tt) {
     // Initial member load is triggered in initState — no side effects in build.
     return ListView(
       padding: const EdgeInsets.only(bottom: 32),
       children: [
         if (_loading) const LinearProgressIndicator(),
-        _buildHeader(space, cs, tt),
+        _buildHeader(spaceId, cs, tt),
         const Divider(),
-        _buildActionsRow(space, cs),
+        _buildActionsRow(spaceId, cs),
         if (_error != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -215,45 +230,51 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
           ),
         const Divider(),
         JoinAccessController(
-          room: space,
-          candidatesBuilder: _parentSpaceCandidates,
+          room: context.read<MatrixService>().client.getRoomById(spaceId)!,
+          candidatesBuilder: (ctx, room) =>
+              ctx.read<MatrixService>().selection.parentSpacesOf(room),
         ),
         const Divider(),
         if (_memberList != null)
           RoomMembersSection(
             members: _memberList!,
             onMemberTap: (member) =>
-                _showMemberSheet(context, space, member),
+                _showMemberSheet(context, spaceId, member),
             avatarResolver: context.read<MatrixService>().avatarResolver,
             presence: context.read<MatrixService>().presence,
           ),
         const Divider(),
-        _buildNotificationSection(space, cs, tt),
-        if (space.canChangeStateEvent(EventTypes.RoomName) ||
-            space.canChangeStateEvent(EventTypes.RoomTopic) ||
-            space.canChangePowerLevel) ...[
+        _buildNotificationSection(spaceId, cs, tt),
+        if (_canEditSpace(spaceId)) ...[
           const Divider(),
           AdminSettingsSection(
             permissions:
                 const RoomPermissionsResolver().convert(
-              space,
-              myUserId: space.client.userID ?? '',
+              context.read<MatrixService>().client.getRoomById(spaceId)!,
+              myUserId:
+                  context.read<MatrixService>().client.userID ?? '',
             ),
-            onSaveName: space.setName,
-            onSaveTopic: space.setDescription,
-            onEnableEncryption: space.enableEncryption,
+            onSaveName: (name) => SpaceMenuActions(context.read<MatrixService>()).setName(spaceId, name),
+            onSaveTopic: (topic) => SpaceMenuActions(context.read<MatrixService>()).setDescription(spaceId, topic),
+            onEnableEncryption: () => SpaceMenuActions(context.read<MatrixService>()).enableEncryption(spaceId),
           ),
         ],
       ],
     );
   }
 
+  bool _canEditSpace(String spaceId) {
+    final actions = SpaceMenuActions(context.read<MatrixService>());
+    return actions.canEditName(spaceId) ||
+        actions.canEditTopic(spaceId) ||
+        actions.canChangePowerLevel(spaceId);
+  }
+
   // ── Notification settings ──────────────────────────────────
 
-  List<Room> _parentSpaceCandidates(BuildContext ctx, Room room) =>
-      ctx.read<MatrixService>().selection.parentSpacesOf(room);
-
-  Widget _buildNotificationSection(Room space, ColorScheme cs, TextTheme tt) {
+  Widget _buildNotificationSection(String spaceId, ColorScheme cs, TextTheme tt) {
+    final matrix = context.read<MatrixService>();
+    final actions = SpaceMenuActions(matrix);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -268,8 +289,10 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
           ),
         ),
         NotificationRadioGroup(
-          groupValue: space.pushRuleState,
-          onChanged: _busy('pushRule') ? null : (v) => _setPushRule(space, v!),
+          groupValue: actions.pushRuleState(spaceId),
+          onChanged: _busy('pushRule')
+              ? null
+              : (v) => _setPushRule(spaceId, v!),
         ),
       ],
     );
@@ -277,8 +300,10 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
 
   // ── Header ─────────────────────────────────────────────────
 
-  Widget _buildHeader(Room space, ColorScheme cs, TextTheme tt) {
+  Widget _buildHeader(String spaceId, ColorScheme cs, TextTheme tt) {
     final matrix = context.read<MatrixService>();
+    final space = matrix.client.getRoomById(spaceId);
+    if (space == null) return const SizedBox.shrink();
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -286,13 +311,10 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
           AvatarEditOverlay(
             roomId: space.id,
             summary: matrix.selection.summaryFor(space),
-            canEditAvatar: space.canChangeStateEvent(EventTypes.RoomAvatar),
+            canEditAvatar: SpaceMenuActions(matrix).canEditAvatar(spaceId),
             avatarResolver: matrix.avatarResolver,
-            onSetAvatar: (bytes, filename) async {
-              await space.setAvatar(
-                bytes == null ? null : MatrixFile(bytes: bytes, name: filename ?? ''),
-              );
-            },
+            onSetAvatar: (bytes, filename) =>
+                SpaceMenuActions(matrix).setAvatar(spaceId, bytes, filename),
           ),
           const SizedBox(height: 12),
           Text(
@@ -333,7 +355,10 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
 
   // ── Actions row ────────────────────────────────────────────
 
-  Widget _buildActionsRow(Room space, ColorScheme cs) {
+  Widget _buildActionsRow(String spaceId, ColorScheme cs) {
+    final matrix = context.read<MatrixService>();
+    final space = matrix.client.getRoomById(spaceId);
+    final canInvite = space?.canInvite ?? false;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       child: Row(
@@ -342,29 +367,32 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
           DetailActionButton(
             icon: Icons.meeting_room_outlined,
             label: 'Browse rooms',
-            onTap: () => _browseSpaceRooms(space),
+            onTap: () => _browseSpaceRooms(spaceId),
           ),
-          if (space.canInvite)
+          if (canInvite)
             DetailActionButton(
               icon: Icons.person_add_outlined,
               label: 'Invite',
-              onTap: _busy('invite') ? null : () => _showInviteDialog(space),
+              onTap: _busy('invite') ? null : () => _showInviteDialog(spaceId),
             ),
           DetailActionButton(
             icon: Icons.exit_to_app_rounded,
             label: 'Leave',
             color: cs.error,
-            onTap: _busy('leave') ? null : () => _confirmLeave(space),
+            onTap: _busy('leave') ? null : () => _confirmLeave(spaceId),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _browseSpaceRooms(Room space) async {
+  Future<void> _browseSpaceRooms(String spaceId) async {
+    final matrix = context.read<MatrixService>();
+    final space = matrix.client.getRoomById(spaceId);
+    if (space == null) return;
     await SpaceDiscoveryDialog.showSpaceRooms(
       context,
-      matrixService: context.read<MatrixService>(),
+      matrixService: matrix,
       roomId: space.id,
       name: space.getLocalizedDisplayname(),
       avatar: space.avatar,

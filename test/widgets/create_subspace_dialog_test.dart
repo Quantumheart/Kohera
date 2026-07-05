@@ -204,6 +204,8 @@ void main() {
       when(mockMatrixService.selection).thenReturn(selectionService);
       when(mockMatrixService.spaceAccess).thenReturn(mockAccess);
       when(mockParentSpace.id).thenReturn('!parent:example.com');
+      when(mockClient.getRoomById('!parent:example.com'))
+          .thenReturn(mockParentSpace);
 
       when(
         mockClient.createRoom(
@@ -223,7 +225,7 @@ void main() {
     test('calls createRoom and setSpaceChild', () async {
       await createSubspace(
         mockMatrixService,
-        mockParentSpace,
+        mockParentSpace.id,
         const CreateSubspaceRequest(
           name: 'My Subspace',
           topic: 'A topic',
@@ -264,7 +266,7 @@ void main() {
 
       await createSubspace(
         mockMatrixService,
-        mockParentSpace,
+        mockParentSpace.id,
         const CreateSubspaceRequest(
           name: 'Gated',
           topic: null,
