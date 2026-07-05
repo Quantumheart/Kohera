@@ -7,9 +7,9 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
+import 'package:kohera/features/spaces/services/space_menu_actions.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 // ── Add-space actions (shared by desktop popover and mobile dialog) ──
@@ -140,30 +140,15 @@ class _CreateSpaceDialogState extends State<CreateSpaceDialog> {
     });
 
     try {
-      final client = widget.matrixService.client;
+      final actions = SpaceMenuActions(widget.matrixService);
       final topic = _topicController.text.trim();
-
-      final roomId = await client.createRoom(
+      final roomId = await actions.createSpace(
         name: name,
         topic: topic.isNotEmpty ? topic : null,
-        creationContent: {
-          'type': 'm.space',
-          if (!_enableFederation) 'm.federate': false,
-        },
-        initialState: [
-          if (_enableEncryption)
-            StateEvent(
-              content: {
-                'algorithm': Client.supportedGroupEncryptionAlgorithms.first,
-              },
-              type: EventTypes.Encryption,
-            ),
-        ],
-        visibility: _isPublic ? Visibility.public : Visibility.private,
-        powerLevelContentOverride: {'events_default': 100},
+        isPublic: _isPublic,
+        enableEncryption: _enableEncryption,
+        enableFederation: _enableFederation,
       );
-
-      await client.waitForRoomInSync(roomId, join: true).timeout(const Duration(seconds: 30));
 
       if (!mounted) return;
       context.read<SelectionService>().selectSpace(roomId);
@@ -322,14 +307,11 @@ class _JoinSpaceDialogState extends State<JoinSpaceDialog> {
     });
 
     try {
-      final client = widget.matrixService.client;
-
-      final roomId = await client.joinRoom(address);
-      await client.waitForRoomInSync(roomId, join: true).timeout(const Duration(seconds: 30));
+      final actions = SpaceMenuActions(widget.matrixService);
+      final roomId = await actions.joinSpace(address);
 
       if (!mounted) return;
-      final room = client.getRoomById(roomId);
-      if (room != null && room.isSpace) {
+      if (roomId != null) {
         context.read<SelectionService>().selectSpace(roomId);
       }
       Navigator.pop(context);
@@ -837,7 +819,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
     } catch (e) {
       debugPrint('[Kohera] Space hierarchy fetch failed: $e');
       if (!mounted) return;
-      final forbidden = e is MatrixException && e.errcode == 'M_FORBIDDEN';
+      final forbidden = SpaceMenuActions(widget.matrixService).isForbiddenException(e);
       setState(() {
         frame.previewForbidden = forbidden;
         frame.error = MatrixService.friendlyAuthError(e);

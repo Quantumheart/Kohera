@@ -45,6 +45,9 @@ void main() {
     when(mockSpace.client).thenReturn(mockClient);
     when(mockSpace.canInvite).thenReturn(true);
     when(mockSpace.canChangeStateEvent(any)).thenReturn(true);
+    when(mockClient.getRoomById('!space:example.com')).thenReturn(mockSpace);
+    when(mockSpace.pushRuleState).thenReturn(PushRuleState.notify);
+    when(mockSpace.setPushRuleState(any)).thenAnswer((_) async {});
   });
 
   Widget buildTestWidget() {
@@ -62,7 +65,7 @@ void main() {
                 unawaited(showSpaceContextMenu(
                   context,
                   const RelativeRect.fromLTRB(100, 100, 100, 100),
-                  mockSpace,
+                  mockSpace.id,
                 ),);
               },
               child: const Text('Open Menu'),
@@ -287,7 +290,7 @@ void main() {
                       unawaited(showSpaceContextMenu(
                         context,
                         const RelativeRect.fromLTRB(100, 100, 100, 100),
-                        mockSpace,
+                        mockSpace.id,
                       ),);
                     },
                     child: const Text('Open Menu'),

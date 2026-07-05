@@ -5,6 +5,14 @@ import 'package:flutter/foundation.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/matrix_api_lite/model/children_state.dart';
 
+export 'package:matrix/matrix.dart'
+    show
+        GetSpaceHierarchyResponse,
+        PublicRoomQueryFilter,
+        PublishedRoomsChunk,
+        QueryPublicRoomsResponse,
+        SpaceRoomsChunk$2;
+
 abstract class SpaceDiscoveryDataSource {
   Future<QueryPublicRoomsResponse> queryPublicRooms({
     int? limit,

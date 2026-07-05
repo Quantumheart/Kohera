@@ -231,7 +231,7 @@ class RoomSectionHeader extends StatelessWidget {
               ),
               loadCapabilities: () => loadSubspaceCapabilities(matrixService),
               onCreateSubspace: (request) =>
-                  createSubspace(matrixService, spaceRoom, request),
+                  createSubspace(matrixService, spaceRoom.id, request),
             ),);
           }
       }

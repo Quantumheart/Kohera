@@ -1,21 +1,22 @@
-import 'dart:math';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/rooms/widgets/add_existing_rooms_dialog.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog_params.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
+import 'package:kohera/features/spaces/models/kohera_push_rule_state.dart';
+import 'package:kohera/features/spaces/services/space_menu_actions.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_action.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_dialog.dart';
 import 'package:kohera/features/spaces/widgets/notification_radio_group.dart';
-import 'package:kohera/features/spaces/widgets/space_details_panel.dart' show SpaceDetailsPanel;
+import 'package:kohera/features/spaces/widgets/space_details_panel.dart'
+    show SpaceDetailsPanel;
 import 'package:kohera/shared/widgets/popup_menu_item_row.dart';
-import 'package:matrix/matrix.dart' hide Visibility;
 import 'package:provider/provider.dart';
 
 // ── Space Context Menu ──────────────────────────────────────────────
@@ -34,13 +35,15 @@ enum SpaceContextAction {
 Future<void> showSpaceContextMenu(
   BuildContext context,
   RelativeRect position,
-  Room space,
+  String spaceId,
 ) async {
   final cs = Theme.of(context).colorScheme;
+  final matrix = context.read<MatrixService>();
+  final actions = SpaceMenuActions(matrix);
 
-  final canInvite = space.canInvite;
-  final canManageChildren = space.canChangeStateEvent('m.space.child');
-  final canEditName = space.canChangeStateEvent(EventTypes.RoomName);
+  final canInvite = actions.canInvite(spaceId);
+  final canManageChildren = actions.canManageChildren(spaceId);
+  final canEditName = actions.canEditName(spaceId);
 
   final action = await showMenu<SpaceContextAction>(
     context: context,
@@ -95,69 +98,65 @@ Future<void> showSpaceContextMenu(
 
   switch (action) {
     case SpaceContextAction.markAsRead:
-      await _handleMarkAsRead(space);
+      await actions.markAsRead(spaceId);
     case SpaceContextAction.invitePeople:
-      if (context.mounted) await _handleInvite(context, space);
+      if (context.mounted) await _handleInvite(context, matrix, spaceId);
     case SpaceContextAction.leaveSpace:
-      if (context.mounted) await _handleLeave(context, space);
+      if (context.mounted) await _handleLeave(context, matrix, spaceId);
     case SpaceContextAction.addExistingRoom:
       if (context.mounted) {
-        final matrix = context.read<MatrixService>();
         await AddExistingRoomsDialog.show(
           context,
-          candidateRooms: matrix.client.rooms
-              .where((r) => r.membership == Membership.join)
-              .map(matrix.selection.summaryFor)
-              .toList(),
-          existingChildIds:
-              space.spaceChildren.map((c) => c.roomId).whereType<String>().toSet(),
+          candidateRooms: actions.joinedRoomSummaries(),
+          existingChildIds: actions.existingChildIds(spaceId),
           avatarResolver: matrix.avatarResolver,
           onAddRooms: (roomIds) async {
             var failures = 0;
             for (final id in roomIds) {
               try {
-                await space.setSpaceChild(id);
+                await actions.setSpaceChild(spaceId, id);
               } catch (e) {
                 debugPrint('[Kohera] Failed to add room to space: $e');
                 failures++;
               }
             }
-            matrix.selection.invalidateSpaceTree();
+            actions.invalidateSpaceTree();
             return failures;
           },
         );
       }
     case SpaceContextAction.createRoom:
       if (context.mounted) {
-        final matrix = context.read<MatrixService>();
         await NewRoomDialog.show(
           context,
           matrixService: matrix,
-          parentSpaceIds: {space.id},
+          parentSpaceIds: {spaceId},
         );
       }
     case SpaceContextAction.spaceSettings:
       if (context.mounted) {
         context.goNamed(
           Routes.spaceDetails,
-          pathParameters: {RouteParams.spaceId: space.id},
+          pathParameters: {RouteParams.spaceId: spaceId},
         );
       }
     case SpaceContextAction.createSubspace:
       if (context.mounted) {
-        final matrix = context.read<MatrixService>();
         await CreateSubspaceDialog.show(
           context,
           parentSpaceRef: (
-            id: space.id,
-            displayname: space.getLocalizedDisplayname(),
+            id: spaceId,
+            displayname: matrix.selection
+                .summaryFor(matrix.client.getRoomById(spaceId)!)
+                .displayname,
           ),
           loadCapabilities: () => loadSubspaceCapabilities(matrix),
-          onCreateSubspace: (request) => createSubspace(matrix, space, request),
+          onCreateSubspace: (request) =>
+              actions.createSubspace(parentSpaceId: spaceId, request: request),
         );
       }
     case SpaceContextAction.notifications:
-      if (context.mounted) await _handleNotifications(context, space);
+      if (context.mounted) await _handleNotifications(context, actions, spaceId);
   }
 }
 
@@ -165,12 +164,18 @@ Future<void> showSpaceContextMenu(
 
 /// Shows a leave-space confirmation dialog with an option to also leave
 /// all child rooms. Reused by [SpaceDetailsPanel].
-Future<void> handleLeaveSpace(BuildContext context, Room space) =>
-    _handleLeave(context, space);
+Future<void> handleLeaveSpace(BuildContext context, String spaceId) async {
+  final matrix = context.read<MatrixService>();
+  await _handleLeave(context, matrix, spaceId);
+}
 
-Future<void> _handleNotifications(BuildContext context, Room space) async {
-  final current = space.pushRuleState;
-  final result = await showDialog<PushRuleState>(
+Future<void> _handleNotifications(
+  BuildContext context,
+  SpaceMenuActions actions,
+  String spaceId,
+) async {
+  final current = actions.pushRuleState(spaceId);
+  final result = await showDialog<KoheraPushRuleState>(
     context: context,
     builder: (ctx) {
       var selected = current;
@@ -199,7 +204,7 @@ Future<void> _handleNotifications(BuildContext context, Room space) async {
   if (result == null || result == current || !context.mounted) return;
 
   try {
-    await space.setPushRuleState(result);
+    await actions.setPushRuleState(spaceId, result);
     if (context.mounted) context.showSnack('Notifications updated');
   } catch (e) {
     if (context.mounted) {
@@ -208,40 +213,14 @@ Future<void> _handleNotifications(BuildContext context, Room space) async {
   }
 }
 
-Future<void> _handleMarkAsRead(Room space) async {
-  // Mark the space itself as read.
-  final eventId = space.lastEvent?.eventId;
-  if (eventId != null) {
-    try {
-      await space.setReadMarker(eventId);
-    } catch (e) {
-      debugPrint('[Kohera] Failed to mark space as read: $e');
-    }
-  }
+Future<void> _handleInvite(
+  BuildContext context,
+  MatrixService matrix,
+  String spaceId,
+) async {
+  final space = matrix.client.getRoomById(spaceId);
+  if (space == null) return;
 
-  // Also mark all descendant non-space rooms as read.
-  final descendantIds = <String>{};
-  _collectDescendantRooms(space, descendantIds, space.client);
-
-  final roomsToMark = <({Room room, String eventId})>[];
-  for (final roomId in descendantIds) {
-    final room = space.client.getRoomById(roomId);
-    if (room == null || room.isSpace) continue;
-    final childEventId = room.lastEvent?.eventId;
-    if (childEventId == null) continue;
-    roomsToMark.add((room: room, eventId: childEventId));
-  }
-
-  const batchSize = 5;
-  for (var i = 0; i < roomsToMark.length; i += batchSize) {
-    final batch = roomsToMark.sublist(i, min(i + batchSize, roomsToMark.length));
-    await Future.wait(batch.map((r) => r.room.setReadMarker(r.eventId).catchError((Object e) {
-      debugPrint('[Kohera] Failed to mark room ${r.room.id} as read: $e');
-    }),),);
-  }
-}
-
-Future<void> _handleInvite(BuildContext context, Room space) async {
   final mxid =
       await InviteUserDialog.show(context, params: inviteUserDialogParams(space));
 
@@ -255,8 +234,16 @@ Future<void> _handleInvite(BuildContext context, Room space) async {
   }
 }
 
-Future<void> _handleLeave(BuildContext context, Room space) async {
+Future<void> _handleLeave(
+  BuildContext context,
+  MatrixService matrix,
+  String spaceId,
+) async {
   final cs = Theme.of(context).colorScheme;
+  final actions = SpaceMenuActions(matrix);
+  final space = matrix.client.getRoomById(spaceId);
+  if (space == null) return;
+
   final result = await showDialog<({bool confirmed, bool leaveChildren})>(
     context: context,
     builder: (ctx) {
@@ -308,47 +295,12 @@ Future<void> _handleLeave(BuildContext context, Room space) async {
   if (result == null || !result.confirmed || !context.mounted) return;
 
   try {
-    final selection = context.read<SelectionService>();
-    final matrix = context.read<MatrixService>();
-
-    // Collect child room IDs before leaving (recursive through subspaces).
-    final childRoomIds = <String>{};
-    if (result.leaveChildren) {
-      _collectDescendantRooms(space, childRoomIds, matrix.client);
-    }
-
-    await space.leave();
-    selection.clearSpaceSelection();
-
-    // Leave child rooms if requested.
-    var failCount = 0;
-    for (final roomId in childRoomIds) {
-      final room = matrix.client.getRoomById(roomId);
-      if (room == null || room.membership != Membership.join) continue;
-      try {
-        await room.leave();
-      } catch (_) {
-        failCount++;
-      }
-    }
+    final failCount =
+        await actions.leave(spaceId, leaveChildren: result.leaveChildren);
     if (failCount > 0 && context.mounted) {
       context.showSnack('Failed to leave $failCount room(s)');
     }
   } catch (e) {
     if (context.mounted) context.showSnack('Failed to leave space: $e');
-  }
-}
-
-void _collectDescendantRooms(Room space, Set<String> ids, Client client) {
-  for (final child in space.spaceChildren) {
-    final childId = child.roomId;
-    if (childId == null) continue;
-    if (ids.contains(childId)) continue;
-    final childRoom = client.getRoomById(childId);
-    if (childRoom == null || childRoom.membership != Membership.join) continue;
-    ids.add(childId);
-    if (childRoom.isSpace) {
-      _collectDescendantRooms(childRoom, ids, client);
-    }
   }
 }

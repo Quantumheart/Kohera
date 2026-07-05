@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/features/spaces/models/kohera_push_rule_state.dart';
 
-/// Reusable radio-button group for selecting a [PushRuleState].
+/// Reusable radio-button group for selecting a [KoheraPushRuleState].
 ///
 /// Used in both the space context-menu dialog and the space details panel.
 /// Pass [onChanged] as `null` to disable interaction (tiles appear dimmed).
@@ -11,28 +11,28 @@ class NotificationRadioGroup extends StatelessWidget {
     this.onChanged,
   });
 
-  final PushRuleState groupValue;
-  final ValueChanged<PushRuleState?>? onChanged;
+  final KoheraPushRuleState groupValue;
+  final ValueChanged<KoheraPushRuleState?>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     final enabled = onChanged != null;
-    Widget group = RadioGroup<PushRuleState>(
+    Widget group = RadioGroup<KoheraPushRuleState>(
       groupValue: groupValue,
       onChanged: onChanged ?? (_) {},
       child: const Column(
         children: [
-          RadioListTile<PushRuleState>(
+          RadioListTile<KoheraPushRuleState>(
             title: Text('All messages'),
-            value: PushRuleState.notify,
+            value: KoheraPushRuleState.notify,
           ),
-          RadioListTile<PushRuleState>(
+          RadioListTile<KoheraPushRuleState>(
             title: Text('Mentions only'),
-            value: PushRuleState.mentionsOnly,
+            value: KoheraPushRuleState.mentionsOnly,
           ),
-          RadioListTile<PushRuleState>(
+          RadioListTile<KoheraPushRuleState>(
             title: Text('Muted'),
-            value: PushRuleState.dontNotify,
+            value: KoheraPushRuleState.dontNotify,
           ),
         ],
       ),

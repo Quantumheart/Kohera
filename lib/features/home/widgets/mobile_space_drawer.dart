@@ -5,11 +5,12 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 Future<void> _showAddSpaceChooser(BuildContext context) async {
@@ -86,7 +87,9 @@ class MobileSpaceDrawer extends StatelessWidget {
                 children: [
                   for (final space in topLevel)
                     _SpaceTile(
-                      space: space,
+                      spaceId: space.id,
+                      summary: selection.summaryFor(space),
+                      avatarResolver: ClientAvatarResolver(space.client),
                       selected: selection.selectedSpaceIds.contains(space.id),
                       unread: selection.unreadCountForSpace(space.id),
                       onTap: () {
@@ -108,7 +111,7 @@ class MobileSpaceDrawer extends StatelessWidget {
                           anchorContext,
                           RelativeRect.fromSize(
                               position & Size.zero, overlay.size,),
-                          space,
+                          space.id,
                         ),);
                       },
                     ),
@@ -129,13 +132,13 @@ class MobileSpaceDrawer extends StatelessWidget {
                         leading: Opacity(
                           opacity: 0.7,
                           child: RoomAvatarWidget(
-                          avatarUrl: space.avatar?.toString(),
-                          displayname: space.getLocalizedDisplayname(),
+                          avatarUrl: selection.summaryFor(space).avatarUrl,
+                          displayname: selection.summaryFor(space).displayname,
                           avatarResolver: ClientAvatarResolver(space.client),
                           size: 36,
                         ),
                         ),
-                        title: Text(space.getLocalizedDisplayname()),
+                        title: Text(selection.summaryFor(space).displayname),
                         onTap: () async {
                           final result = await InviteDialog.show(
                             context,
@@ -174,14 +177,18 @@ class MobileSpaceDrawer extends StatelessWidget {
 
 class _SpaceTile extends StatelessWidget {
   const _SpaceTile({
-    required this.space,
+    required this.spaceId,
+    required this.summary,
+    required this.avatarResolver,
     required this.selected,
     required this.unread,
     required this.onTap,
     this.onMenuRequested,
   });
 
-  final Room space;
+  final String spaceId;
+  final KoheraRoomSummary summary;
+  final AvatarResolver avatarResolver;
   final bool selected;
   final int unread;
   final VoidCallback onTap;
@@ -232,12 +239,12 @@ class _SpaceTile extends StatelessWidget {
               : (_) => onMenuRequested!(tileContext),
           child: ListTile(
             leading: RoomAvatarWidget(
-                          avatarUrl: space.avatar?.toString(),
-                          displayname: space.getLocalizedDisplayname(),
-                          avatarResolver: ClientAvatarResolver(space.client),
+                          avatarUrl: summary.avatarUrl,
+                          displayname: summary.displayname,
+                          avatarResolver: avatarResolver,
                           size: 36,
                         ),
-            title: Text(space.getLocalizedDisplayname()),
+            title: Text(summary.displayname),
             selected: selected,
             trailing: trailing,
             onTap: onTap,
