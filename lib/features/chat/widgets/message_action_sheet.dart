@@ -2,16 +2,15 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
-import 'package:kohera/core/services/client_media_resolver.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/core/utils/openmoji.dart';
-import 'package:kohera/features/chat/services/mention_resolver_factory.dart';
-import 'package:kohera/features/chat/services/message_display_resolver.dart';
+import 'package:kohera/features/chat/models/kohera_message_display.dart';
+import 'package:kohera/features/chat/services/linkable_span_builder.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/message_bubble.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:provider/provider.dart';
 
 // ── Data class ──────────────────────────────────────────
@@ -34,21 +33,25 @@ class MessageAction {
 
 void showMessageActionSheet({
   required BuildContext context,
-  required Event event,
+  required KoheraMessageDisplay message,
   required bool isMe,
   required Rect bubbleRect,
   required List<MessageAction> actions,
-  required Timeline? timeline,
+  required AvatarResolver avatarResolver,
+  required MentionDisplayNameResolver mentionResolver,
+  required MediaResolver mediaResolver,
   void Function(String emoji)? onQuickReact,
 }) {
   unawaited(
     Navigator.of(context).push(
       _MessageActionSheetRoute(
-        event: event,
+        message: message,
         isMe: isMe,
         bubbleRect: bubbleRect,
         actions: actions,
-        timeline: timeline,
+        avatarResolver: avatarResolver,
+        mentionResolver: mentionResolver,
+        mediaResolver: mediaResolver,
         capturedTheme: Theme.of(context),
         onQuickReact: onQuickReact,
       ),
@@ -60,20 +63,24 @@ void showMessageActionSheet({
 
 class _MessageActionSheetRoute extends PopupRoute<void> {
   _MessageActionSheetRoute({
-    required this.event,
+    required this.message,
     required this.isMe,
     required this.bubbleRect,
     required this.actions,
-    required this.timeline,
+    required this.avatarResolver,
+    required this.mentionResolver,
+    required this.mediaResolver,
     required this.capturedTheme,
     this.onQuickReact,
   });
 
-  final Event event;
+  final KoheraMessageDisplay message;
   final bool isMe;
   final Rect bubbleRect;
   final List<MessageAction> actions;
-  final Timeline? timeline;
+  final AvatarResolver avatarResolver;
+  final MentionDisplayNameResolver mentionResolver;
+  final MediaResolver mediaResolver;
   final ThemeData capturedTheme;
   final void Function(String emoji)? onQuickReact;
 
@@ -96,11 +103,13 @@ class _MessageActionSheetRoute extends PopupRoute<void> {
     Animation<double> secondaryAnimation,
   ) {
     return _MessageActionSheet(
-      event: event,
+      message: message,
       isMe: isMe,
       bubbleRect: bubbleRect,
       actions: actions,
-      timeline: timeline,
+      avatarResolver: avatarResolver,
+      mentionResolver: mentionResolver,
+      mediaResolver: mediaResolver,
       animation: animation,
       capturedTheme: capturedTheme,
       onQuickReact: onQuickReact,
@@ -112,21 +121,25 @@ class _MessageActionSheetRoute extends PopupRoute<void> {
 
 class _MessageActionSheet extends StatefulWidget {
   const _MessageActionSheet({
-    required this.event,
+    required this.message,
     required this.isMe,
     required this.bubbleRect,
     required this.actions,
-    required this.timeline,
+    required this.avatarResolver,
+    required this.mentionResolver,
+    required this.mediaResolver,
     required this.animation,
     required this.capturedTheme,
     this.onQuickReact,
   });
 
-  final Event event;
+  final KoheraMessageDisplay message;
   final bool isMe;
   final Rect bubbleRect;
   final List<MessageAction> actions;
-  final Timeline? timeline;
+  final AvatarResolver avatarResolver;
+  final MentionDisplayNameResolver mentionResolver;
+  final MediaResolver mediaResolver;
   final Animation<double> animation;
   final ThemeData capturedTheme;
   final void Function(String emoji)? onQuickReact;
@@ -170,11 +183,9 @@ class _MessageActionSheetState extends State<_MessageActionSheet> {
     final actionListHeight = widget.actions.length * _actionRowHeight;
     final quickReactSpace = hasQuickReact ? _quickReactHeight + _gap : 0.0;
 
-    // Total height needed: bubble + gap + quick-react bar + gap + action list
-    final totalHeight = widget.bubbleRect.height + _gap + quickReactSpace + actionListHeight;
+    final totalHeight =
+        widget.bubbleRect.height + _gap + quickReactSpace + actionListHeight;
 
-    // Determine top position: try to keep bubble in place, but shift up if
-    // the action list would overflow the screen bottom.
     var bubbleTop = widget.bubbleRect.top;
     final bottomEdge = bubbleTop + totalHeight;
     if (bottomEdge > screenHeight - safeBottom) {
@@ -187,20 +198,17 @@ class _MessageActionSheetState extends State<_MessageActionSheet> {
     final quickReactTop = bubbleTop + widget.bubbleRect.height + _gap;
     final actionListTop = quickReactTop + quickReactSpace;
 
-    // Horizontal alignment: align action list with the bubble's leading edge
     double actionListLeft;
     if (widget.isMe) {
-      // Right-aligned: align action list's right edge with bubble's right edge
       actionListLeft = widget.bubbleRect.right - _actionListWidth;
     } else {
       actionListLeft = widget.bubbleRect.left;
     }
-    // Clamp within screen
-    actionListLeft = clampDouble(actionListLeft, 8, screenWidth - _actionListWidth - 8);
+    actionListLeft =
+        clampDouble(actionListLeft, 8, screenWidth - _actionListWidth - 8);
 
     return Stack(
       children: [
-        // ── Bubble preview ──────────────────────────────
         Positioned(
           top: bubbleTop,
           left: widget.bubbleRect.left,
@@ -216,19 +224,16 @@ class _MessageActionSheetState extends State<_MessageActionSheet> {
                     child: Material(
                       type: MaterialType.transparency,
                       child: MessageBubble(
-                        message: const MessageDisplayResolver()(
-                          widget.event,
-                          timeline: widget.timeline,
-                        ),
+                        message: widget.message,
                         isMe: widget.isMe,
                         isFirst: true,
-                        avatarResolver: ClientAvatarResolver(widget.event.room.client),
+                        avatarResolver: widget.avatarResolver,
                         htmlBuilder: (html, style) => HtmlMessageText(
                           html: html,
                           style: style,
                           isMe: widget.isMe,
-                          mentionResolver: mentionResolverFromRoom(widget.event.room),
-                          mediaResolver: ClientMediaResolver(widget.event.room.client),
+                          mentionResolver: widget.mentionResolver,
+                          mediaResolver: widget.mediaResolver,
                         ),
                       ),
                     ),
@@ -238,8 +243,6 @@ class _MessageActionSheetState extends State<_MessageActionSheet> {
             ),
           ),
         ),
-
-        // ── Quick-reaction bar ────────────────────────
         if (hasQuickReact)
           Positioned(
             top: quickReactTop,
@@ -256,8 +259,6 @@ class _MessageActionSheetState extends State<_MessageActionSheet> {
               ),
             ),
           ),
-
-        // ── Action list ─────────────────────────────────
         Positioned(
           top: actionListTop,
           left: actionListLeft,
@@ -319,7 +320,14 @@ class _QuickReactBar extends StatelessWidget {
 
   final void Function(String emoji) onQuickReact;
 
-  static const _quickEmojis = ['\u{1F44D}', '\u{2764}\u{FE0F}', '\u{1F602}', '\u{1F62E}', '\u{1F622}', '\u{1F64F}'];
+  static const _quickEmojis = [
+    '\u{1F44D}',
+    '\u{2764}\u{FE0F}',
+    '\u{1F602}',
+    '\u{1F62E}',
+    '\u{1F622}',
+    '\u{1F64F}',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -388,10 +396,16 @@ class _ActionRow extends StatelessWidget {
               Expanded(
                 child: Text(
                   action.label,
-                  style: tt.bodyMedium?.copyWith(color: action.color ?? cs.onSurface),
+                  style: tt.bodyMedium?.copyWith(
+                    color: action.color ?? cs.onSurface,
+                  ),
                 ),
               ),
-              Icon(action.icon, size: 20, color: action.color ?? cs.onSurfaceVariant),
+              Icon(
+                action.icon,
+                size: 20,
+                color: action.color ?? cs.onSurfaceVariant,
+              ),
             ],
           ),
         ),

@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:matrix/matrix.dart';
-import 'package:provider/provider.dart';
 
-/// Shows a confirmation dialog and redacts [event] if the user confirms.
-Future<void> confirmAndDeleteEvent(BuildContext context, Event event) async {
-  final matrix = context.read<MatrixService>();
-  final isMe = event.senderId == matrix.client.userID;
+/// Shows a confirmation dialog and calls [onRedact] if the user confirms.
+///
+/// [isMe] controls the dialog wording ("Delete" vs "Remove"). [onRedact]
+/// performs the actual redaction — the caller has SDK access and calls
+/// `room.redactEvent(eventId)`. Errors from [onRedact] are caught and shown
+/// as a snackbar.
+Future<void> confirmAndDeleteEvent(
+  BuildContext context, {
+  required bool isMe,
+  required Future<void> Function() onRedact,
+}) async {
   final title = isMe ? 'Delete message?' : 'Remove message?';
   final body = isMe
       ? 'This message will be permanently deleted for everyone.'
@@ -37,7 +42,7 @@ Future<void> confirmAndDeleteEvent(BuildContext context, Event event) async {
   if (!context.mounted) return;
 
   try {
-    await event.room.redactEvent(event.eventId);
+    await onRedact();
   } catch (e) {
     if (context.mounted) {
       context.showSnack(

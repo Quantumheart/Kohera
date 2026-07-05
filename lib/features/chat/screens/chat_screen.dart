@@ -25,6 +25,8 @@ import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/chat_search_controller.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
 import 'package:kohera/features/chat/services/linkable_span_builder.dart';
+import 'package:kohera/features/chat/services/message_display_resolver.dart';
+import 'package:kohera/features/chat/services/message_forwarder.dart';
 import 'package:kohera/features/chat/services/message_timeline_controller.dart';
 import 'package:kohera/features/chat/services/thread_roots_service.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
@@ -53,6 +55,7 @@ import 'package:kohera/features/chat/widgets/typing_indicator.dart';
 import 'package:kohera/features/chat/widgets/web_image_paste.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/rooms/models/kohera_room_member.dart';
+import 'package:kohera/features/rooms/services/room_summary_resolver.dart';
 import 'package:kohera/features/rooms/widgets/member_sheet_launcher.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -320,12 +323,27 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _forwardMessage(Event event, Timeline? timeline) {
+    final matrix = context.read<MatrixService>();
+    const resolver = RoomSummaryResolver();
+    final myUserId = matrix.client.userID;
+    final targets = matrix.client.rooms
+        .where((r) => r.membership == Membership.join && !r.isSpace)
+        .map((r) => resolver(r, myUserId: myUserId))
+        .toList();
     unawaited(
       ForwardMessageDialog.show(
         context,
-        event: event,
-        timeline: timeline,
-        matrixService: context.read<MatrixService>(),
+        targets: targets,
+        avatarResolver: matrix.avatarResolver,
+        onForward: (roomId) async {
+          final target = matrix.client.getRoomById(roomId);
+          if (target == null) return;
+          await MessageForwarder.forward(
+            event: event,
+            target: target,
+            timeline: timeline,
+          );
+        },
       ),
     );
   }
@@ -366,13 +384,20 @@ class _ChatScreenState extends State<ChatScreen>
   ) {
     final isMe = event.senderId == _timelineController.myUserId;
     final isRedacted = event.redacted;
+    final isFailed = event.status.isError;
+    final copyableBody = stripReplyFallback(
+      _timelineController.timeline != null
+          ? event.getDisplayEvent(_timelineController.timeline!).body
+          : event.body,
+    );
     unawaited(
       showMessageContextMenu(
         context,
-        event: event,
         isMe: isMe,
         isPinned: isPinned,
-        timeline: _timelineController.timeline,
+        isFailed: isFailed,
+        isRedacted: isRedacted,
+        copyableBody: copyableBody,
         position: position,
         onReply: isRedacted ? null : () => _setReplyTo(event),
         onEdit: !isRedacted && isMe
@@ -390,12 +415,30 @@ class _ChatScreenState extends State<ChatScreen>
                 ),
         onPin: canPin ? () => unawaited(_actions.togglePin(event)) : null,
         onDelete: !isRedacted && event.canRedact
-            ? () => confirmAndDeleteEvent(context, event)
+            ? () => confirmAndDeleteEvent(
+                  context,
+                  isMe: isMe,
+                  onRedact: () => event.room.redactEvent(event.eventId),
+                )
             : null,
         onReplyInThread: isRedacted ? null : () => _replyInThread(event),
         onForward: isRedacted
             ? null
             : () => _forwardMessage(event, _timelineController.timeline),
+        onRetrySend: () async {
+          try {
+            await event.sendAgain();
+          } catch (e) {
+            debugPrint('[Kohera] outbox: retry from menu failed: $e');
+          }
+        },
+        onDiscardSend: () async {
+          try {
+            await event.cancelSend();
+          } catch (e) {
+            debugPrint('[Kohera] outbox: discard from menu failed: $e');
+          }
+        },
       ),
     );
   }
@@ -496,18 +539,29 @@ class _ChatScreenState extends State<ChatScreen>
           MessageAction(
             label: isMe ? 'Delete' : 'Remove',
             icon: Icons.delete_outline_rounded,
-            onTap: () => confirmAndDeleteEvent(context, event),
+            onTap: () => confirmAndDeleteEvent(
+                  context,
+                  isMe: isMe,
+                  onRedact: () => event.room.redactEvent(event.eventId),
+                ),
             color: cs.error,
           ),
       ];
     }
+    final matrix = context.read<MatrixService>();
+    final message = const MessageDisplayResolver()(
+      event,
+      timeline: _timelineController.timeline,
+    );
     showMessageActionSheet(
       context: context,
-      event: event,
+      message: message,
       isMe: isMe,
       bubbleRect: bubbleRect,
       actions: actions,
-      timeline: _timelineController.timeline,
+      avatarResolver: matrix.avatarResolver,
+      mentionResolver: _buildMentionResolver(event.room),
+      mediaResolver: matrix.mediaResolver,
       onQuickReact: (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
     );
   }
@@ -531,13 +585,16 @@ class _ChatScreenState extends State<ChatScreen>
     Offset position,
   ) {
     final isMe = event.senderId == _timelineController.myUserId;
+    final isPinned = event.room.pinnedEventIds.contains(event.eventId);
+    final copyableBody = event.content.tryGet<String>('url') ?? '';
     unawaited(
       showMessageContextMenu(
         context,
-        event: event,
         isMe: isMe,
-        isPinned: event.room.pinnedEventIds.contains(event.eventId),
-        timeline: _timelineController.timeline,
+        isPinned: isPinned,
+        isFailed: event.status.isError,
+        isRedacted: event.redacted,
+        copyableBody: copyableBody,
         position: position,
         onReply: () => _setReplyTo(event),
         onReact: () => showEmojiPickerSheet(
@@ -558,12 +615,19 @@ class _ChatScreenState extends State<ChatScreen>
     final isMe = event.senderId == _timelineController.myUserId;
     final cs = Theme.of(context).colorScheme;
     final isPinned = event.room.pinnedEventIds.contains(event.eventId);
+    final matrix = context.read<MatrixService>();
+    final message = const MessageDisplayResolver()(
+      event,
+      timeline: _timelineController.timeline,
+    );
     showMessageActionSheet(
       context: context,
-      event: event,
+      message: message,
       isMe: isMe,
       bubbleRect: bubbleRect,
-      timeline: _timelineController.timeline,
+      avatarResolver: matrix.avatarResolver,
+      mentionResolver: _buildMentionResolver(event.room),
+      mediaResolver: matrix.mediaResolver,
       onQuickReact: (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
       actions: [
         MessageAction(
@@ -1023,7 +1087,13 @@ class _ChatScreenState extends State<ChatScreen>
                 onDelete: (ctx, eventId) {
                   final event = _timelineController.getEventById(eventId);
                   if (event != null) {
-                    unawaited(confirmAndDeleteEvent(ctx, event));
+                    unawaited(
+                      confirmAndDeleteEvent(
+                        ctx,
+                        isMe: event.senderId == _timelineController.myUserId,
+                        onRedact: () => event.room.redactEvent(event.eventId),
+                      ),
+                    );
                   }
                 },
                 buildReplyPreview: (eventId, isMe, onParentTap) {

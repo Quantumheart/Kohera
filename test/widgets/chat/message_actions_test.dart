@@ -10,6 +10,7 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/features/chat/services/mention_resolver_factory.dart';
@@ -147,17 +148,25 @@ Widget _buildBubble({
                   isMe: isMe,
                   mentionResolver: mentionResolverFromRoom(event.room),
                 ),
-                onOpenContextMenu: (position) => showMessageContextMenu(
-                  context,
-                  event: event,
-                  isMe: isMe,
-                  isPinned: false,
-                  timeline: timeline,
-                  position: position,
-                  onReply: onReply,
-                  onEdit: onEdit,
-                  onDelete: onDelete,
-                ),
+                onOpenContextMenu: (position) {
+                  final displayEvent = timeline != null
+                      ? event.getDisplayEvent(timeline)
+                      : event;
+                  unawaited(
+                    showMessageContextMenu(
+                    context,
+                    isMe: isMe,
+                    isPinned: false,
+                    isFailed: false,
+                    isRedacted: false,
+                    copyableBody: stripReplyFallback(displayEvent.body),
+                    position: position,
+                    onReply: onReply,
+                    onEdit: onEdit,
+                    onDelete: onDelete,
+                  ),
+                  );
+                },
                 onTapSender: () {
                   final sender = event.senderFromMemoryOrFallback;
                   final isSenderMe = sender.id == event.room.client.userID;

@@ -1,81 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/features/chat/models/kohera_message_display.dart';
+import 'package:kohera/features/chat/models/kohera_message_status.dart';
 import 'package:kohera/features/chat/widgets/message_action_sheet.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
-import 'package:matrix/matrix.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
-@GenerateNiceMocks([
-  MockSpec<Event>(),
-  MockSpec<Timeline>(),
-  MockSpec<Room>(),
-  MockSpec<Client>(),
-  MockSpec<User>(),
-])
-import 'message_action_sheet_test.mocks.dart';
+class _FakeAvatarResolver implements AvatarResolver {
+  const _FakeAvatarResolver();
+  @override
+  Future<AvatarThumbnail?> resolve(
+    String? mxcUrl, {
+    required double size,
+  }) async =>
+      null;
+}
 
-late MockRoom _mockRoom;
+class _FakeMediaResolver implements MediaResolver {
+  const _FakeMediaResolver();
+  @override
+  Future<MediaThumbnail?> resolve(
+    String? mxcUrl, {
+    required double? width,
+    required double? height,
+  }) async =>
+      null;
+}
+
+KoheraMessageDisplay _makeMessage({
+  required String eventId,
+  required String senderId,
+  String body = 'Hello',
+}) {
+  return KoheraMessageDisplay(
+    eventId: eventId,
+    senderId: senderId,
+    senderName: senderId.split(':').first.substring(1),
+    body: body,
+    messageType: 'm.text',
+    eventType: 'm.room.message',
+    timestamp: DateTime(2025, 1, 1, 12),
+    status: KoheraMessageStatus.sent,
+    content: {'body': body, 'msgtype': 'm.text'},
+  );
+}
 
 /// Finds the [OpenMojiImage] rendered for [emoji].
 Finder _emojiImage(String emoji) => find.byWidgetPredicate(
       (w) => w is OpenMojiImage && w.grapheme == emoji,
     );
 
-MockEvent _makeEvent({
-  required String eventId,
-  required String senderId,
-  String body = 'Hello',
-}) {
-  final event = MockEvent();
-  when(event.eventId).thenReturn(eventId);
-  when(event.senderId).thenReturn(senderId);
-  when(event.body).thenReturn(body);
-  when(event.type).thenReturn(EventTypes.Message);
-  when(event.messageType).thenReturn(MessageTypes.Text);
-  when(event.originServerTs).thenReturn(DateTime(2025, 1, 1, 12));
-  when(event.status).thenReturn(EventStatus.synced);
-  when(event.content).thenReturn({'body': body, 'msgtype': 'm.text'});
-  when(event.room).thenReturn(_mockRoom);
-  when(event.redacted).thenReturn(false);
-  when(event.canRedact).thenReturn(true);
-  when(event.relationshipType).thenReturn(null);
-  when(event.getDisplayEvent(any)).thenReturn(event);
-  when(event.hasAggregatedEvents(any, any)).thenReturn(false);
-  when(event.formattedText).thenReturn('');
-
-  final sender = MockUser();
-  when(sender.displayName).thenReturn(senderId.split(':').first.substring(1));
-  when(sender.avatarUrl).thenReturn(null);
-  when(event.senderFromMemoryOrFallback).thenReturn(sender);
-
-  return event;
-}
-
 void main() {
-  late MockRoom mockRoom;
-  late MockTimeline mockTimeline;
-  late MockClient mockClient;
-
-  setUp(() {
-    mockRoom = MockRoom();
-    mockTimeline = MockTimeline();
-    mockClient = MockClient();
-    _mockRoom = mockRoom;
-
-    when(mockRoom.id).thenReturn('!room:example.com');
-    when(mockRoom.client).thenReturn(mockClient);
-    when(mockClient.userID).thenReturn('@me:example.com');
-  });
-
   Widget buildTestWidget({
     required List<MessageAction> actions,
     void Function(String emoji)? onQuickReact,
-    MockEvent? event,
+    KoheraMessageDisplay? message,
   }) {
-    final e = event ?? _makeEvent(eventId: r'$evt1', senderId: '@me:x');
+    final msg = message ?? _makeMessage(eventId: r'$evt1', senderId: '@me:x');
 
     return ChangeNotifierProvider<PreferencesService>.value(
       value: PreferencesService(),
@@ -87,11 +71,13 @@ void main() {
               child: ElevatedButton(
                 onPressed: () => showMessageActionSheet(
                   context: context,
-                  event: e,
+                  message: msg,
                   isMe: true,
                   bubbleRect: const Rect.fromLTWH(50, 50, 300, 60),
                   actions: actions,
-                  timeline: mockTimeline,
+                  avatarResolver: const _FakeAvatarResolver(),
+                  mentionResolver: (_) => null,
+                  mediaResolver: const _FakeMediaResolver(),
                   onQuickReact: onQuickReact,
                 ),
                 child: const Text('Open'),

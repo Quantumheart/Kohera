@@ -1,35 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/features/chat/services/message_forwarder.dart';
+import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
-import 'package:matrix/matrix.dart' hide Visibility;
 
 // ── Forward message dialog ───────────────────────────────────────
 
 class ForwardMessageDialog extends StatefulWidget {
   const ForwardMessageDialog._({
-    required this.event,
-    required this.timeline,
-    required this.matrixService,
+    required this.targets,
+    required this.avatarResolver,
+    required this.onForward,
   });
 
-  final Event event;
-  final Timeline? timeline;
-  final MatrixService matrixService;
+  final List<KoheraRoomSummary> targets;
+  final AvatarResolver avatarResolver;
+  final Future<void> Function(String roomId) onForward;
 
   static Future<void> show(
     BuildContext context, {
-    required Event event,
-    required Timeline? timeline,
-    required MatrixService matrixService,
+    required List<KoheraRoomSummary> targets,
+    required AvatarResolver avatarResolver,
+    required Future<void> Function(String roomId) onForward,
   }) {
     return showDialog(
       context: context,
       builder: (_) => ForwardMessageDialog._(
-        event: event,
-        timeline: timeline,
-        matrixService: matrixService,
+        targets: targets,
+        avatarResolver: avatarResolver,
+        onForward: onForward,
       ),
     );
   }
@@ -42,18 +42,18 @@ class _ForwardMessageDialogState extends State<ForwardMessageDialog> {
   final _searchController = TextEditingController();
   String _query = '';
   bool _sending = false;
-  late final List<Room> _rooms;
+
+  late final List<KoheraRoomSummary> _targets;
 
   @override
   void initState() {
     super.initState();
-    _rooms = widget.matrixService.client.rooms
-        .where((r) => r.membership == Membership.join && !r.isSpace)
-        .toList()
-      ..sort((a, b) => a
-          .getLocalizedDisplayname()
-          .toLowerCase()
-          .compareTo(b.getLocalizedDisplayname().toLowerCase()),);
+    _targets = [...widget.targets]
+      ..sort(
+        (a, b) => a.displayname.toLowerCase().compareTo(
+              b.displayname.toLowerCase(),
+            ),
+      );
   }
 
   @override
@@ -62,15 +62,11 @@ class _ForwardMessageDialogState extends State<ForwardMessageDialog> {
     super.dispose();
   }
 
-  Future<void> _forwardTo(Room room) async {
+  Future<void> _forwardTo(KoheraRoomSummary target) async {
     if (_sending) return;
     setState(() => _sending = true);
     try {
-      await MessageForwarder.forward(
-        event: widget.event,
-        target: room,
-        timeline: widget.timeline,
-      );
+      await widget.onForward(target.roomId);
     } catch (e) {
       debugPrint('[Kohera] Failed to forward message: $e');
       if (!mounted) return;
@@ -82,7 +78,7 @@ class _ForwardMessageDialogState extends State<ForwardMessageDialog> {
     }
     if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
-    final name = room.getLocalizedDisplayname();
+    final name = target.displayname;
     Navigator.pop(context);
     messenger.showSnackBar(
       SnackBar(content: Text('Forwarded to $name')),
@@ -92,12 +88,13 @@ class _ForwardMessageDialogState extends State<ForwardMessageDialog> {
   @override
   Widget build(BuildContext context) {
     final filtered = _query.isEmpty
-        ? _rooms
-        : _rooms
-            .where((r) => r
-                .getLocalizedDisplayname()
-                .toLowerCase()
-                .contains(_query.toLowerCase()),)
+        ? _targets
+        : _targets
+            .where(
+              (t) => t.displayname.toLowerCase().contains(
+                    _query.toLowerCase(),
+                  ),
+            )
             .toList();
 
     return AlertDialog(
@@ -105,7 +102,7 @@ class _ForwardMessageDialogState extends State<ForwardMessageDialog> {
       content: SizedBox(
         width: 400,
         height: 400,
-        child: _rooms.isEmpty
+        child: _targets.isEmpty
             ? const Center(child: Text('You have no rooms to forward to.'))
             : Column(
                 children: [
@@ -130,15 +127,14 @@ class _ForwardMessageDialogState extends State<ForwardMessageDialog> {
                               final room = filtered[index];
                               return ListTile(
                                 enabled: !_sending,
-                                leading:
-                                    RoomAvatarWidget(
-                                      avatarUrl: room.avatar?.toString(),
-                                      displayname: room.getLocalizedDisplayname(),
-                                      avatarResolver: widget.matrixService.avatarResolver,
-                                      size: 36,
-                                    ),
+                                leading: RoomAvatarWidget(
+                                  avatarUrl: room.avatarUrl,
+                                  displayname: room.displayname,
+                                  avatarResolver: widget.avatarResolver,
+                                  size: 36,
+                                ),
                                 title: Text(
-                                  room.getLocalizedDisplayname(),
+                                  room.displayname,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 onTap: () => _forwardTo(room),
