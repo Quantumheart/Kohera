@@ -6,13 +6,13 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/home/widgets/mobile_space_drawer.dart';
+import 'package:kohera/features/rooms/services/room_list_builder.dart';
 import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
 import 'package:kohera/features/rooms/widgets/invite_tile.dart';
 import 'package:kohera/features/rooms/widgets/message_search_tiles.dart';
 import 'package:kohera/features/rooms/widgets/new_dm_dialog.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
 import 'package:kohera/features/rooms/widgets/room_context_menu.dart';
-import 'package:kohera/features/rooms/widgets/room_list_builder.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
 import 'package:kohera/features/rooms/widgets/room_section_header.dart';
 import 'package:kohera/features/rooms/widgets/room_tile.dart';
@@ -21,7 +21,7 @@ import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
 import 'package:kohera/features/whats_new/widgets/whats_new_banner.dart';
 import 'package:kohera/shared/widgets/speed_dial_item.dart';
-import 'package:matrix/matrix.dart';
+
 import 'package:provider/provider.dart';
 
 class RoomList extends StatefulWidget {
@@ -135,10 +135,10 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
     return '${ids.length} spaces';
   }
 
-  /// Returns the selected [Room] if it is a space with zero joined rooms
+  /// Returns the selected space ID if it is a space with zero joined rooms
   /// and the hierarchy has (or is fetching) unjoined children.
   /// Returns `null` otherwise, falling back to the default empty state.
-  Room? _spaceWithNoJoinedRooms(
+  String? _spaceWithNoJoinedRooms(
     SelectionService selection,
     MatrixService matrix,
     SpaceRoomsController spaceRoomsController,
@@ -154,12 +154,12 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
     if (joinedRooms.isNotEmpty) return null;
 
     final state = spaceRoomsController.getRoomState(spaceId);
-    if (!spaceRoomsController.isCached(spaceId)) return space;
+    if (!spaceRoomsController.isCached(spaceId)) return spaceId;
     if (state.loading || state.error != null || state.previewForbidden) {
-      return space;
+      return spaceId;
     }
     if (state.unjoinedRooms.isEmpty && state.subspaces.isEmpty) return null;
-    return space;
+    return spaceId;
   }
 
   @override
@@ -313,7 +313,7 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                 Expanded(
                   child: spaceEmpty != null
                       ? _SpaceEmptyState(
-                          space: spaceEmpty,
+                          spaceId: spaceEmpty,
                           controller: spaceRoomsController,
                           matrixService: matrix,
                         )
@@ -365,7 +365,8 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                                         builder: (_) {
                                           final memberships =
                                               selection.spaceMemberships(
-                                                  item.summary.roomId,);
+                                            item.summary.roomId,
+                                          );
                                           return RoomTile(
                                             summary: item.summary,
                                             isSelected:
@@ -379,25 +380,17 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                                             parentSpaceId: item.parentSpaceId,
                                             sectionRoomIds: item.sectionRoomIds,
                                             onContextMenu: (position) {
-                                              final room = matrix.client
-                                                  .getRoomById(
-                                                      item.summary.roomId,);
-                                              if (room != null) {
-                                                unawaited(showRoomContextMenu(
+                                              unawaited(
+                                                showRoomContextMenu(
                                                   context,
                                                   position,
-                                                  room,
+                                                  item.summary.roomId,
                                                   parentSpaceId:
                                                       item.parentSpaceId,
-                                                  sectionRooms: item
-                                                      .sectionRoomIds
-                                                      ?.map((id) => matrix
-                                                          .client
-                                                          .getRoomById(id),)
-                                                      .whereType<Room>()
-                                                      .toList(),
-                                                ),);
-                                              }
+                                                  sectionRoomIds:
+                                                      item.sectionRoomIds,
+                                                ),
+                                              );
                                             },
                                           );
                                         },
@@ -515,8 +508,12 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                             icon: Icons.group_add_rounded,
                             onTap: () {
                               _closeFab();
-                              unawaited(NewRoomDialog.show(context,
-                                  matrixService: matrix,),);
+                              unawaited(
+                                NewRoomDialog.show(
+                                  context,
+                                  matrixService: matrix,
+                                ),
+                              );
                             },
                           ),
                           const SizedBox(height: 8),
@@ -831,12 +828,12 @@ class _UnjoinedForbiddenTile extends StatelessWidget {
 
 class _SpaceEmptyState extends StatelessWidget {
   const _SpaceEmptyState({
-    required this.space,
+    required this.spaceId,
     required this.controller,
     required this.matrixService,
   });
 
-  final Room space;
+  final String spaceId;
   final SpaceRoomsController controller;
   final MatrixService matrixService;
 
@@ -844,23 +841,27 @@ class _SpaceEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final state = controller.getRoomState(space.id);
+    final state = controller.getRoomState(spaceId);
+    final room = matrixService.client.getRoomById(spaceId);
+    final spaceName = room?.getLocalizedDisplayname() ?? spaceId;
+    final spaceAvatar = room?.avatar;
+    final spaceAlias = room?.canonicalAlias;
 
     void browseRooms() {
       unawaited(
         SpaceDiscoveryDialog.showSpaceRooms(
           context,
           matrixService: matrixService,
-          roomId: space.id,
-          name: space.getLocalizedDisplayname(),
-          avatar: space.avatar,
-          canonicalAlias: space.canonicalAlias,
+          roomId: spaceId,
+          name: spaceName,
+          avatar: spaceAvatar,
+          canonicalAlias: spaceAlias,
         ),
       );
     }
 
     // ── Loading ──
-    if (!controller.isCached(space.id) || state.loading) {
+    if (!controller.isCached(spaceId) || state.loading) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -896,7 +897,7 @@ class _SpaceEmptyState extends StatelessWidget {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () {
-                  unawaited(controller.fetchSpaceRooms(space.id));
+                  unawaited(controller.fetchSpaceRooms(spaceId));
                 },
                 child: const Text('Retry'),
               ),
@@ -917,7 +918,7 @@ class _SpaceEmptyState extends StatelessWidget {
               Icon(Icons.lock_outline, size: 40, color: cs.onSurfaceVariant),
               const SizedBox(height: 16),
               Text(
-                "You're in the ${space.getLocalizedDisplayname()} space",
+                "You're in the $spaceName space",
                 style: tt.headlineSmall,
                 textAlign: TextAlign.center,
               ),
@@ -960,7 +961,7 @@ class _SpaceEmptyState extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               Text(
-                "You're in the ${space.getLocalizedDisplayname()} space",
+                "You're in the $spaceName space",
                 style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
                 textAlign: TextAlign.center,
               ),
@@ -984,13 +985,13 @@ class _SpaceEmptyState extends StatelessWidget {
               for (final metadata in state.unjoinedRooms.take(5))
                 _UnjoinedRoomTile(
                   metadata: metadata,
-                  parentSpaceId: space.id,
+                  parentSpaceId: spaceId,
                   controller: controller,
                 ),
               for (final metadata in state.subspaces.take(3))
                 _SubspaceOpenTile(
                   metadata: metadata,
-                  parentSpaceId: space.id,
+                  parentSpaceId: spaceId,
                   matrixService: matrixService,
                 ),
             ],
