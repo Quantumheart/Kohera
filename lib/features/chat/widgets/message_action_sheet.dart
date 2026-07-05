@@ -7,6 +7,7 @@ import 'package:kohera/core/services/client_media_resolver.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/core/utils/openmoji.dart';
+import 'package:kohera/features/chat/services/mention_resolver_factory.dart';
 import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/message_bubble.dart';
@@ -226,7 +227,7 @@ class _MessageActionSheetState extends State<_MessageActionSheet> {
                           html: html,
                           style: style,
                           isMe: widget.isMe,
-                          room: widget.event.room,
+                          mentionResolver: mentionResolverFromRoom(widget.event.room),
                           mediaResolver: ClientMediaResolver(widget.event.room.client),
                         ),
                       ),

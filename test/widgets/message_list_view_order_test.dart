@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/chat/widgets/message_list_view.dart';
+import 'package:kohera/features/chat/services/message_timeline_controller.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -30,7 +30,7 @@ void main() {
     final msgLate =
         _event(r'$m2', EventTypes.Message, DateTime(2026, 1, 15, 22, 11));
 
-    final visible = MessageListViewState.buildVisibleEvents(
+    final visible = MessageTimelineController.buildVisibleEvents(
       [msgLate, callInvite, callHangup, msgEarly],
     );
 
@@ -42,7 +42,7 @@ void main() {
     final aDup = _event(r'$a', EventTypes.Message, DateTime(2026, 1, 15, 10));
     final b = _event(r'$b', EventTypes.Message, DateTime(2026, 1, 15, 11));
 
-    final visible = MessageListViewState.buildVisibleEvents(
+    final visible = MessageTimelineController.buildVisibleEvents(
       [a],
       extraEvents: [aDup, b],
     );

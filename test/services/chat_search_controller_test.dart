@@ -9,12 +9,33 @@ import 'package:mockito/mockito.dart';
 @GenerateNiceMocks([
   MockSpec<Room>(),
   MockSpec<Event>(),
+  MockSpec<User>(),
 ])
 import 'chat_search_controller_test.mocks.dart';
 
 void main() {
   late MockRoom mockRoom;
   late ChatSearchController controller;
+
+  MockEvent stubbedEvent(String id) {
+    final e = MockEvent();
+    when(e.eventId).thenReturn(id);
+    when(e.senderId).thenReturn('@alice:example.com');
+    when(e.type).thenReturn('m.room.message');
+    when(e.messageType).thenReturn('m.text');
+    when(e.originServerTs).thenReturn(DateTime(2026, 1, 15, 10));
+    when(e.body).thenReturn('hello');
+    when(e.formattedText).thenReturn('');
+    when(e.redacted).thenReturn(false);
+    when(e.content).thenReturn(<String, Object?>{'body': 'hello', 'msgtype': 'm.text'});
+    when(e.transactionId).thenReturn(null);
+    final user = MockUser();
+    when(user.calcDisplayname()).thenReturn('Alice');
+    when(user.avatarUrl).thenReturn(null);
+    when(e.senderFromMemoryOrFallback).thenReturn(user);
+    when(e.status).thenReturn(EventStatus.synced);
+    return e;
+  }
 
   setUp(() {
     mockRoom = MockRoom();
@@ -80,7 +101,7 @@ void main() {
       controller.open();
       controller.onQueryChanged('hello');
 
-      final mockEvent = MockEvent();
+      final mockEvent = stubbedEvent(r'\$evt1');
       when(mockRoom.searchEvents(
         searchTerm: anyNamed('searchTerm'),
         limit: anyNamed('limit'),
@@ -120,8 +141,8 @@ void main() {
       controller.open();
       controller.onQueryChanged('hello');
 
-      final event1 = MockEvent();
-      final event2 = MockEvent();
+      final event1 = stubbedEvent(r'\$evt1');
+      final event2 = stubbedEvent(r'\$evt2');
 
       when(mockRoom.searchEvents(
         searchTerm: anyNamed('searchTerm'),

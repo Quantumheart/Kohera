@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:kohera/features/chat/models/kohera_message_display.dart';
+import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:matrix/matrix.dart';
 
 class ChatSearchController extends ChangeNotifier {
@@ -17,8 +19,8 @@ class ChatSearchController extends ChangeNotifier {
   bool _isSearching = false;
   bool get isSearching => _isSearching;
 
-  List<Event> _results = [];
-  List<Event> get results => _results;
+  List<KoheraMessageDisplay> _results = [];
+  List<KoheraMessageDisplay> get results => _results;
 
   String? _nextBatch;
   String? get nextBatch => _nextBatch;
@@ -105,9 +107,9 @@ class ChatSearchController extends ChangeNotifier {
       if (_disposed) return;
 
       if (loadMore) {
-        _results.addAll(result.events);
+        _results.addAll(result.events.map((e) => const MessageDisplayResolver()(e)));
       } else {
-        _results = result.events.toList();
+        _results = result.events.map((e) => const MessageDisplayResolver()(e)).toList();
       }
       _nextBatch = result.nextBatch;
       _isLoading = false;

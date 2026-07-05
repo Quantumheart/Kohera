@@ -8,13 +8,6 @@ import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_body.dart';
 import 'package:kohera/features/chat/widgets/verification_request_tile.dart';
-import 'package:matrix/matrix.dart';
-import 'package:mockito/annotations.dart';
-
-@GenerateNiceMocks([MockSpec<Room>()])
-import 'message_bubble_body_test.mocks.dart';
-
-late MockRoom _mockRoom;
 
 KoheraMessageDisplay _makeMessage({
   String msgtype = 'm.text',
@@ -68,16 +61,13 @@ Widget _buildBody(
         html: html,
         style: style,
         isMe: isMe,
-        room: _mockRoom,
+        mentionResolver: (_) => null,
       ),
     ),
   );
 }
 
 void main() {
-  setUp(() {
-    _mockRoom = MockRoom();
-  });
 
   group('MessageBubbleBody — text dispatch', () {
     testWidgets('plain text renders LinkableText with body', (tester) async {

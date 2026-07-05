@@ -4,16 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/chat/widgets/code_block.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/mention_pill.dart';
-import 'package:matrix/matrix.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
-
-@GenerateNiceMocks([
-  MockSpec<Room>(),
-  MockSpec<Client>(),
-  MockSpec<User>(),
-])
-import 'html_message_text_test.mocks.dart';
 
 Widget _wrap(Widget child) {
   return MaterialApp(
@@ -450,19 +440,11 @@ void main() {
   });
 
   group('HtmlMessageText mention pills', () {
-    late MockRoom mockRoom;
-    late MockClient mockClient;
-
-    setUp(() {
-      mockRoom = MockRoom();
-      mockClient = MockClient();
-      when(mockRoom.client).thenReturn(mockClient);
-
-      final alice = MockUser();
-      when(alice.displayName).thenReturn('Alice');
-      when(mockRoom.unsafeGetUserFromMemoryOrFallback('@alice:example.com'))
-          .thenReturn(alice);
-    });
+    String? mentionResolver(String identifier) {
+      if (identifier == '@alice:example.com') return 'Alice';
+      if (identifier == '!dev:example.com') return 'Dev Room';
+      return null;
+    }
 
     testWidgets('matrix.to user link renders as MentionPill', (tester) async {
       await tester.pumpWidget(_wrap(
@@ -471,7 +453,7 @@ void main() {
               '<a href="https://matrix.to/#/@alice:example.com">Alice</a>',
           style: const TextStyle(fontSize: 14),
           isMe: false,
-          room: mockRoom,
+          mentionResolver: mentionResolver,
         ),
       ),);
 
@@ -490,7 +472,7 @@ void main() {
               '<a href="https://matrix.to/#/%23general:example.com">General</a>',
           style: const TextStyle(fontSize: 14),
           isMe: false,
-          room: mockRoom,
+          mentionResolver: mentionResolver,
         ),
       ),);
 
@@ -502,18 +484,13 @@ void main() {
 
     testWidgets('matrix.to room ID link renders as MentionPill',
         (tester) async {
-      final resolvedRoom = MockRoom();
-      when(resolvedRoom.getLocalizedDisplayname()).thenReturn('Dev Room');
-      when(mockClient.getRoomById('!dev:example.com'))
-          .thenReturn(resolvedRoom);
-
       await tester.pumpWidget(_wrap(
         HtmlMessageText(
           html:
               '<a href="https://matrix.to/#/!dev:example.com">Dev Room</a>',
           style: const TextStyle(fontSize: 14),
           isMe: false,
-          room: mockRoom,
+          mentionResolver: mentionResolver,
         ),
       ),);
 
@@ -530,7 +507,7 @@ void main() {
           html: '<a href="https://example.com">example</a>',
           style: const TextStyle(fontSize: 14),
           isMe: false,
-          room: mockRoom,
+          mentionResolver: mentionResolver,
         ),
       ),);
 
@@ -540,7 +517,7 @@ void main() {
       expect(spans[0].recognizer, isA<TapGestureRecognizer>());
     });
 
-    testWidgets('mention pill renders without room (graceful fallback)',
+    testWidgets('mention pill renders without resolver (graceful fallback)',
         (tester) async {
       await tester.pumpWidget(_wrap(
         const HtmlMessageText(
@@ -553,7 +530,7 @@ void main() {
 
       expect(find.byType(MentionPill), findsOneWidget);
       final pill = tester.widget<MentionPill>(find.byType(MentionPill));
-      // Without a room, displayName falls back to the raw identifier.
+      // Without a resolver, displayName falls back to the raw identifier.
       expect(pill.matrixId, '@unknown:example.com');
     });
   });

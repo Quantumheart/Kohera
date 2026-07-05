@@ -1,7 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:giphy_get/giphy_get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
@@ -16,11 +18,14 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
+import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/chat/screens/thread_list_screen.dart';
 import 'package:kohera/features/chat/screens/thread_screen.dart';
 import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/chat_search_controller.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
+import 'package:kohera/features/chat/services/linkable_span_builder.dart';
+import 'package:kohera/features/chat/services/message_timeline_controller.dart';
 import 'package:kohera/features/chat/services/thread_roots_service.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
@@ -29,19 +34,26 @@ import 'package:kohera/features/chat/services/voice_recording_mixin.dart';
 import 'package:kohera/features/chat/widgets/attachment_source_sheet.dart';
 import 'package:kohera/features/chat/widgets/chat_app_bar.dart';
 import 'package:kohera/features/chat/widgets/compose_bar_section.dart';
+import 'package:kohera/features/chat/widgets/delete_event_dialog.dart';
 import 'package:kohera/features/chat/widgets/desktop_drop_wrapper.dart';
+import 'package:kohera/features/chat/widgets/emoji_picker_sheet.dart';
 import 'package:kohera/features/chat/widgets/file_send_handler.dart';
 import 'package:kohera/features/chat/widgets/forward_message_dialog.dart';
 import 'package:kohera/features/chat/widgets/gif_send_handler.dart';
 import 'package:kohera/features/chat/widgets/join_call_banner.dart';
+import 'package:kohera/features/chat/widgets/message_action_sheet.dart';
+import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
 import 'package:kohera/features/chat/widgets/message_list_view.dart';
 import 'package:kohera/features/chat/widgets/paste_image_handler.dart';
 import 'package:kohera/features/chat/widgets/photo_send_handler.dart';
+import 'package:kohera/features/chat/widgets/reply_preview_host.dart';
 import 'package:kohera/features/chat/widgets/search_results_body.dart';
 import 'package:kohera/features/chat/widgets/sticker_picker_overlay.dart';
 import 'package:kohera/features/chat/widgets/typing_indicator.dart';
 import 'package:kohera/features/chat/widgets/web_image_paste.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
+import 'package:kohera/features/rooms/models/kohera_room_member.dart';
+import 'package:kohera/features/rooms/widgets/member_sheet_launcher.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
@@ -67,10 +79,13 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatScreen> {
+class _ChatScreenState extends State<ChatScreen>
+    with VoiceRecordingMixin<ChatScreen> {
   final _msgCtrl = TextEditingController();
   final _composeFocusNode = FocusNode(debugLabel: 'chat-compose');
   final _messageListKey = GlobalKey<MessageListViewState>();
+
+  late MessageTimelineController _timelineController;
 
   // ── Compose state ───────────────────────────────────────
   final _compose = ComposeStateController();
@@ -87,7 +102,8 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
   @override
   VoiceRecordingController? get voiceController => _voiceCtrl;
   @override
-  ValueNotifier<UploadState?> get voiceUploadNotifier => _compose.uploadNotifier;
+  ValueNotifier<UploadState?> get voiceUploadNotifier =>
+      _compose.uploadNotifier;
   @override
   String get voiceRoomId => widget.roomId;
 
@@ -116,15 +132,26 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
   @override
   void initState() {
     super.initState();
+    final matrix = context.read<MatrixService>();
+    final prefs = context.read<PreferencesService>();
+    _timelineController = MessageTimelineController(
+      matrix: matrix,
+      roomId: widget.roomId,
+      sendPublicReadReceipts: prefs.readReceipts,
+      initialEventId: widget.initialEventId,
+      onTimelineChanged: _onTimelineChanged,
+    );
     _actions = _createActions();
     _search = _createSearchController();
     _initControllers();
     _composeFocusNode.addListener(_onComposeFocusChanged);
+    unawaited(_timelineController.init());
     if (kIsWeb) {
       initWebPasteListener();
       _webPasteSub = webPasteImageStream.listen(_onWebPasteImage);
     }
-    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshThreadUnreadCount());
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _refreshThreadUnreadCount());
   }
 
   Future<void> _refreshThreadUnreadCount() async {
@@ -161,7 +188,19 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
   @override
   void didUpdateWidget(ChatScreen old) {
     super.didUpdateWidget(old);
-    if (old.roomId != widget.roomId || old.initialEventId != widget.initialEventId) {
+    if (old.roomId != widget.roomId ||
+        old.initialEventId != widget.initialEventId) {
+      _timelineController.dispose();
+      final matrix = context.read<MatrixService>();
+      final prefs = context.read<PreferencesService>();
+      _timelineController = MessageTimelineController(
+        matrix: matrix,
+        roomId: widget.roomId,
+        sendPublicReadReceipts: prefs.readReceipts,
+        initialEventId: widget.initialEventId,
+        onTimelineChanged: _onTimelineChanged,
+      );
+      unawaited(_timelineController.init());
       _compose.reset(_msgCtrl);
       _typingCtrl?.dispose();
       _voiceCtrl?.dispose();
@@ -180,7 +219,8 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
   }
 
   void _initControllers() {
-    final room = context.read<MatrixService>().client.getRoomById(widget.roomId);
+    final room =
+        context.read<MatrixService>().client.getRoomById(widget.roomId);
     if (room != null) {
       _typingCtrl = TypingController(room: room);
       _voiceCtrl = VoiceRecordingController();
@@ -190,8 +230,9 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
   ChatMessageActions _createActions() {
     return ChatMessageActions(
       getRoomId: () => widget.roomId,
-      getRoom: () => context.read<MatrixService>().client.getRoomById(widget.roomId),
-      getTimeline: () => _messageListKey.currentState?.timeline,
+      getRoom: () =>
+          context.read<MatrixService>().client.getRoomById(widget.roomId),
+      getTimeline: () => _timelineController.timeline,
       compose: _compose,
       msgCtrl: _msgCtrl,
       getScaffold: () => ScaffoldMessenger.of(context),
@@ -202,7 +243,8 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
   ChatSearchController _createSearchController() {
     return ChatSearchController(
       roomId: widget.roomId,
-      getRoom: () => context.read<MatrixService>().client.getRoomById(widget.roomId),
+      getRoom: () =>
+          context.read<MatrixService>().client.getRoomById(widget.roomId),
     )..addListener(_onSearchChanged);
   }
 
@@ -265,7 +307,7 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
   }
 
   void _replyInThread(Event event) {
-    final timeline = _messageListKey.currentState?.timeline;
+    final timeline = _timelineController.timeline;
     final rootId = event.relationshipType == RelationshipTypes.thread
         ? (event.relationshipEventId ?? event.eventId)
         : event.eventId;
@@ -292,6 +334,279 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
     if (_composeFocusNode.hasFocus) _composeFocusNode.unfocus();
   }
 
+  // ── Mention resolver ───────────────────────────────────
+
+  MentionDisplayNameResolver _buildMentionResolver(Room room) {
+    return (String identifier) {
+      if (identifier.startsWith('@')) {
+        try {
+          return room.unsafeGetUserFromMemoryOrFallback(identifier).displayName;
+        } catch (_) {
+          return null;
+        }
+      } else if (identifier.startsWith('!')) {
+        try {
+          return room.client.getRoomById(identifier)?.getLocalizedDisplayname();
+        } catch (_) {
+          return null;
+        }
+      }
+      return null;
+    };
+  }
+
+  // ── Message action helpers ─────────────────────────────
+
+  void _showContextMenu(
+    BuildContext context,
+    Event event,
+    Offset position,
+    bool isPinned,
+    bool canPin,
+  ) {
+    final isMe = event.senderId == _timelineController.myUserId;
+    final isRedacted = event.redacted;
+    unawaited(
+      showMessageContextMenu(
+        context,
+        event: event,
+        isMe: isMe,
+        isPinned: isPinned,
+        timeline: _timelineController.timeline,
+        position: position,
+        onReply: isRedacted ? null : () => _setReplyTo(event),
+        onEdit: !isRedacted && isMe
+            ? () => _compose.setEditEvent(
+                  event,
+                  _timelineController.timeline,
+                  _msgCtrl,
+                )
+            : null,
+        onReact: isRedacted
+            ? null
+            : () => showEmojiPickerSheet(
+                  context,
+                  (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
+                ),
+        onPin: canPin ? () => unawaited(_actions.togglePin(event)) : null,
+        onDelete: !isRedacted && event.canRedact
+            ? () => confirmAndDeleteEvent(context, event)
+            : null,
+        onReplyInThread: isRedacted ? null : () => _replyInThread(event),
+        onForward: isRedacted
+            ? null
+            : () => _forwardMessage(event, _timelineController.timeline),
+      ),
+    );
+  }
+
+  void _showMobileActions(
+    BuildContext context,
+    Event event,
+    Rect bubbleRect,
+    bool isPinned,
+    bool canPin,
+  ) {
+    if (event.redacted) return;
+    final isMe = event.senderId == _timelineController.myUserId;
+    final cs = Theme.of(context).colorScheme;
+    final List<MessageAction> actions;
+    if (event.status.isError) {
+      actions = [
+        MessageAction(
+          label: 'Retry sending',
+          icon: Icons.refresh_rounded,
+          onTap: () async {
+            try {
+              await event.sendAgain();
+            } catch (e) {
+              debugPrint('[Kohera] outbox: retry from menu failed: $e');
+            }
+          },
+        ),
+        MessageAction(
+          label: 'Discard message',
+          icon: Icons.delete_outline_rounded,
+          onTap: () async {
+            try {
+              await event.cancelSend();
+            } catch (e) {
+              debugPrint('[Kohera] outbox: discard from menu failed: $e');
+            }
+          },
+          color: cs.error,
+        ),
+      ];
+    } else {
+      actions = [
+        MessageAction(
+          label: 'Reply',
+          icon: Icons.reply_rounded,
+          onTap: () => _setReplyTo(event),
+        ),
+        MessageAction(
+          label: 'Reply in thread',
+          icon: Icons.forum_outlined,
+          onTap: () => _replyInThread(event),
+        ),
+        MessageAction(
+          label: 'Forward',
+          icon: Icons.forward_rounded,
+          onTap: () => _forwardMessage(event, _timelineController.timeline),
+        ),
+        if (isMe)
+          MessageAction(
+            label: 'Edit',
+            icon: Icons.edit_rounded,
+            onTap: () => _compose.setEditEvent(
+              event,
+              _timelineController.timeline,
+              _msgCtrl,
+            ),
+          ),
+        MessageAction(
+          label: 'React',
+          icon: Icons.add_reaction_outlined,
+          onTap: () => showEmojiPickerSheet(
+            context,
+            (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
+          ),
+        ),
+        if (canPin)
+          MessageAction(
+            label: isPinned ? 'Unpin' : 'Pin',
+            icon: isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+            onTap: () => unawaited(_actions.togglePin(event)),
+          ),
+        MessageAction(
+          label: 'Copy',
+          icon: Icons.copy_rounded,
+          onTap: () {
+            final displayEvent = _timelineController.timeline != null
+                ? event.getDisplayEvent(_timelineController.timeline!)
+                : event;
+            unawaited(
+              Clipboard.setData(
+                ClipboardData(text: stripReplyFallback(displayEvent.body)),
+              ),
+            );
+          },
+        ),
+        if (event.canRedact)
+          MessageAction(
+            label: isMe ? 'Delete' : 'Remove',
+            icon: Icons.delete_outline_rounded,
+            onTap: () => confirmAndDeleteEvent(context, event),
+            color: cs.error,
+          ),
+      ];
+    }
+    showMessageActionSheet(
+      context: context,
+      event: event,
+      isMe: isMe,
+      bubbleRect: bubbleRect,
+      actions: actions,
+      timeline: _timelineController.timeline,
+      onQuickReact: (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
+    );
+  }
+
+  void _showSenderSheet(BuildContext context, Event event) {
+    final sender = event.senderFromMemoryOrFallback;
+    final room = event.room;
+    final member = KoheraRoomMember(
+      userId: sender.id,
+      displayname: sender.calcDisplayname(),
+      avatarUrl: sender.avatarUrl?.toString(),
+      membership: sender.membership.name,
+      powerLevel: room.getPowerLevelByUserId(sender.id),
+    );
+    unawaited(showRoomMemberSheet(context, room: room, member: member));
+  }
+
+  void _showStickerContextMenu(
+    BuildContext context,
+    Event event,
+    Offset position,
+  ) {
+    final isMe = event.senderId == _timelineController.myUserId;
+    unawaited(
+      showMessageContextMenu(
+        context,
+        event: event,
+        isMe: isMe,
+        isPinned: event.room.pinnedEventIds.contains(event.eventId),
+        timeline: _timelineController.timeline,
+        position: position,
+        onReply: () => _setReplyTo(event),
+        onReact: () => showEmojiPickerSheet(
+          context,
+          (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
+        ),
+        onPin: () => unawaited(_actions.togglePin(event)),
+        onForward: () => _forwardMessage(event, _timelineController.timeline),
+      ),
+    );
+  }
+
+  void _showStickerMobileActions(
+    BuildContext context,
+    Event event,
+    Rect bubbleRect,
+  ) {
+    final isMe = event.senderId == _timelineController.myUserId;
+    final cs = Theme.of(context).colorScheme;
+    final isPinned = event.room.pinnedEventIds.contains(event.eventId);
+    showMessageActionSheet(
+      context: context,
+      event: event,
+      isMe: isMe,
+      bubbleRect: bubbleRect,
+      timeline: _timelineController.timeline,
+      onQuickReact: (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
+      actions: [
+        MessageAction(
+          label: 'Reply',
+          icon: Icons.reply_rounded,
+          onTap: () => _setReplyTo(event),
+        ),
+        MessageAction(
+          label: 'React',
+          icon: Icons.add_reaction_outlined,
+          onTap: () => showEmojiPickerSheet(
+            context,
+            (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
+          ),
+        ),
+        MessageAction(
+          label: 'Forward',
+          icon: Icons.forward_rounded,
+          onTap: () => _forwardMessage(event, _timelineController.timeline),
+        ),
+        MessageAction(
+          label: isPinned ? 'Unpin' : 'Pin',
+          icon: isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+          onTap: () => unawaited(_actions.togglePin(event)),
+        ),
+        MessageAction(
+          label: 'Copy link',
+          icon: Icons.link_rounded,
+          onTap: () {
+            unawaited(
+              Clipboard.setData(
+                ClipboardData(
+                  text: event.content.tryGet<String>('url') ?? '',
+                ),
+              ),
+            );
+          },
+          color: cs.onSurface,
+        ),
+      ],
+    );
+  }
+
   // ── Attachments ─────────────────────────────────────────
 
   void _addAttachment(PendingAttachment attachment) {
@@ -299,8 +614,9 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
   }
 
   Future<void> _handleAttachPressed() async {
-    final isMobileTouch =
-        !kIsWeb && (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.android);
+    final isMobileTouch = !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.android);
 
     if (!isMobileTouch) {
       final attachment = await pickFileAsAttachment();
@@ -327,7 +643,8 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
         final attachment = await takePhotoWithCamera();
         if (attachment != null && mounted) _addAttachment(attachment);
       case AttachmentSource.gallery:
-        final remaining = ComposeStateController.maxAttachments - _compose.pendingAttachments.value.length;
+        final remaining = ComposeStateController.maxAttachments -
+            _compose.pendingAttachments.value.length;
         if (remaining <= 0) {
           _showAttachmentError(AddAttachmentResult.tooMany);
           return;
@@ -387,17 +704,19 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
     _searchCtrl.clear();
   }
 
-  void _scrollToEvent(Event event, {bool closeSearch = true}) {
+  void _scrollToEventById(String eventId, {bool closeSearch = true}) {
     if (closeSearch) _closeSearch();
-    _messageListKey.currentState?.navigateToEvent(event);
+    _messageListKey.currentState?.navigateToEventById(eventId);
   }
 
   // ── GIF ───────────────────────────────────────────────────
 
-  bool get _giphyEnabled => AppConfig.isInitialized && AppConfig.instance.giphyEnabled;
+  bool get _giphyEnabled =>
+      AppConfig.isInitialized && AppConfig.instance.giphyEnabled;
 
   Future<void> _handleGifPressed() async {
-    final room = context.read<MatrixService>().client.getRoomById(widget.roomId);
+    final room =
+        context.read<MatrixService>().client.getRoomById(widget.roomId);
     if (room == null) return;
     final gif = await GiphyGet.getGif(
       context: context,
@@ -418,7 +737,8 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
   // ── Sticker picker ────────────────────────────────────────
 
   void _toggleStickerPicker() {
-    final isNarrow = MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
+    final isNarrow =
+        MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
     if (isNarrow) {
       final matrix = context.read<MatrixService>();
       final room = matrix.client.getRoomById(widget.roomId);
@@ -501,7 +821,8 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
   }
 
   Future<void> _handleStickerSelected(PackImage sticker) async {
-    final room = context.read<MatrixService>().client.getRoomById(widget.roomId);
+    final room =
+        context.read<MatrixService>().client.getRoomById(widget.roomId);
     if (room == null) return;
     try {
       await room.sendEvent(
@@ -525,7 +846,8 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
     final text = _msgCtrl.text;
     final sel = _msgCtrl.selection;
     final pos = sel.isValid ? sel.baseOffset : text.length;
-    final insertion = emoji.emoji != null ? '${emoji.emoji} ' : ':${emoji.shortcode}: ';
+    final insertion =
+        emoji.emoji != null ? '${emoji.emoji} ' : ':${emoji.shortcode}: ';
     _msgCtrl.value = TextEditingValue(
       text: text.substring(0, pos) + insertion + text.substring(pos),
       selection: TextSelection.collapsed(offset: pos + insertion.length),
@@ -535,6 +857,7 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
 
   @override
   void dispose() {
+    _timelineController.dispose();
     unawaited(_webPasteSub?.cancel() ?? Future.value());
     unawaited(_threadCountSyncSub?.cancel() ?? Future.value());
     _threadCountDebounce?.cancel();
@@ -582,7 +905,7 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
         onPinnedEvent: (eventId) async {
           final event = await room.getEventById(eventId);
           if (event != null && mounted) {
-            _messageListKey.currentState?.navigateToEvent(event);
+            _messageListKey.currentState?.navigateToEventById(eventId);
           }
         },
         onShowThreads: _openThreadList,
@@ -601,7 +924,8 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
               color: Theme.of(context).colorScheme.surface,
               child: SearchResultsBody(
                 search: _search,
-                onTapResult: _scrollToEvent,
+                avatarResolver: matrix.avatarResolver,
+                onTapResult: _scrollToEventById,
               ),
             ),
         ],
@@ -618,26 +942,112 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
 
     final column = Column(
       children: [
-        if (roomHasCall && !isInCall) JoinCallBanner(roomId: room.id, callService: callService),
+        if (roomHasCall && !isInCall)
+          JoinCallBanner(roomId: room.id, callService: callService),
         Expanded(
           child: Stack(
             children: [
               MessageListView(
                 key: _messageListKey,
-                roomId: room.id,
-                matrix: matrix,
-                initialEventId: widget.initialEventId,
+                controller: _timelineController,
+                mentionResolver: _buildMentionResolver(room),
                 highlightedEventId: _search.highlightedEventId,
-                onReply: _setReplyTo,
-                onEdit: (event, timeline) => _compose.setEditEvent(event, timeline, _msgCtrl),
-                onToggleReaction: _actions.toggleReaction,
-                onPin: _actions.togglePin,
+                onReply: (eventId) {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) _setReplyTo(event);
+                },
+                onEdit: (eventId) {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) {
+                    _compose.setEditEvent(
+                      event,
+                      _timelineController.timeline,
+                      _msgCtrl,
+                    );
+                  }
+                },
+                onToggleReaction: (eventId, emoji) async {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) {
+                    await _actions.toggleReaction(event, emoji);
+                  }
+                },
+                onPin: (eventId) async {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) await _actions.togglePin(event);
+                },
                 onHighlight: _search.setHighlight,
                 onScrollBack: isTouchDevice ? _dismissKeyboard : null,
-                onOpenThread: _openThread,
-                onReplyInThread: _replyInThread,
-                onForward: _forwardMessage,
-                onTimelineChanged: _onTimelineChanged,
+                onOpenThread: (eventId) {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) _openThread(event);
+                },
+                onReplyInThread: (eventId) {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) _replyInThread(event);
+                },
+                onForward: (eventId) {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) {
+                    _forwardMessage(event, _timelineController.timeline);
+                  }
+                },
+                onOpenContextMenu: (ctx, eventId, position, isPinned, canPin) {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) {
+                    _showContextMenu(
+                      ctx,
+                      event,
+                      position,
+                      isPinned,
+                      canPin,
+                    );
+                  }
+                },
+                onShowMobileActions: (ctx, eventId, rect, isPinned, canPin) {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) {
+                    _showMobileActions(
+                      ctx,
+                      event,
+                      rect,
+                      isPinned,
+                      canPin,
+                    );
+                  }
+                },
+                onTapSender: (ctx, eventId) {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) _showSenderSheet(ctx, event);
+                },
+                onDelete: (ctx, eventId) {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) {
+                    unawaited(confirmAndDeleteEvent(ctx, event));
+                  }
+                },
+                buildReplyPreview: (eventId, isMe, onParentTap) {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event == null) return null;
+                  return ReplyPreviewHost(
+                    replyEvent: event,
+                    timeline: _timelineController.timeline,
+                    isMe: isMe,
+                    onParentTap: (parent) => onParentTap?.call(parent.eventId),
+                  );
+                },
+                onStickerContextMenu: (ctx, eventId, position) {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) {
+                    _showStickerContextMenu(ctx, event, position);
+                  }
+                },
+                onStickerMobileActions: (ctx, eventId, rect) {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) {
+                    _showStickerMobileActions(ctx, event, rect);
+                  }
+                },
               ),
               if (_emojiPanelOpen) ...[
                 Positioned.fill(
@@ -656,7 +1066,8 @@ class _ChatScreenState extends State<ChatScreen> with VoiceRecordingMixin<ChatSc
           ),
         ),
         TypingIndicator(
-          typingDisplayNamesProvider: () => matrix.selection.summaryFor(room).typingDisplayNames,
+          typingDisplayNamesProvider: () =>
+              matrix.selection.summaryFor(room).typingDisplayNames,
           syncStream: matrix.client.onSync.stream,
         ),
         ComposeBarSection(

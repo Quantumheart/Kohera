@@ -6,6 +6,7 @@ import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/client_media_resolver.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
+import 'package:kohera/features/chat/services/mention_resolver_factory.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
@@ -405,7 +406,7 @@ class _PinnedMessageTile extends StatelessWidget {
         html: formattedBody,
         style: bodyStyle,
         isMe: false,
-        room: event.room,
+        mentionResolver: mentionResolverFromRoom(event.room),
         mediaResolver: ClientMediaResolver(event.room.client),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
