@@ -3,63 +3,55 @@ import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
-import 'package:kohera/core/utils/order_utils.dart' as order_utils;
+import 'package:kohera/features/rooms/services/room_context_menu_actions.dart';
 import 'package:kohera/features/rooms/widgets/add_room_to_space_dialog.dart';
 import 'package:kohera/shared/widgets/popup_menu_item_row.dart';
-import 'package:matrix/matrix.dart' hide Visibility;
 import 'package:provider/provider.dart';
 
 // ── Room Context Menu ───────────────────────────────────────────────
 
 enum _RoomContextAction { addToSpace, removeFromSpace, moveUp, moveDown }
 
+/// Shows a context menu for a room in the room list.
+///
+/// This function reads [MatrixService] and [SelectionService] from context
+/// and delegates SDK operations to [RoomContextMenuActions].
 Future<void> showRoomContextMenu(
   BuildContext context,
   RelativeRect position,
-  Room room, {
+  String roomId, {
   String? parentSpaceId,
-  List<Room>? sectionRooms,
+  List<String>? sectionRoomIds,
 }) async {
   final selection = context.read<SelectionService>();
   final matrix = context.read<MatrixService>();
+  final actions = RoomContextMenuActions(matrix: matrix, selection: selection);
   final cs = Theme.of(context).colorScheme;
 
-  final selectedIds = selection.selectedSpaceIds;
-  final memberships = selection.spaceMemberships(room.id);
+  final (:canRemove, :activeSpaceId) = actions.checkSelectedSpaces();
+  final canAdd = actions.canAddToSpace(roomId);
 
-  Room? activeSpace;
-  var canRemove = false;
-  for (final spaceId in selectedIds) {
-    final space = matrix.client.getRoomById(spaceId);
-    if (space != null && space.canChangeStateEvent('m.space.child')) {
-      activeSpace = space;
-      canRemove = true;
-      break;
-    }
-  }
-
-  final canAdd = selection.spaces.any((s) =>
-      s.canChangeStateEvent('m.space.child') &&
-      !memberships.contains(s.id),);
-
-  Room? reorderSpace;
-  List<Room>? orderedRooms;
+  String? reorderSpaceId;
+  List<String>? orderedRoomIds;
   var roomIndex = -1;
-  if (parentSpaceId != null && sectionRooms != null) {
-    final space = matrix.client.getRoomById(parentSpaceId);
-    if (space != null && space.canChangeStateEvent('m.space.child')) {
-      reorderSpace = space;
-      orderedRooms = sectionRooms;
-      roomIndex = orderedRooms.indexWhere((r) => r.id == room.id);
+  if (parentSpaceId != null && sectionRoomIds != null) {
+    if (actions.canManageSpaceChildren(parentSpaceId)) {
+      reorderSpaceId = parentSpaceId;
+      orderedRoomIds = sectionRoomIds;
+      roomIndex = orderedRoomIds.indexOf(roomId);
     }
   }
 
-  final canMoveUp = reorderSpace != null && roomIndex > 0;
-  final canMoveDown =
-      reorderSpace != null && orderedRooms != null && roomIndex >= 0 &&
-      roomIndex < orderedRooms.length - 1;
+  final canMoveUp = reorderSpaceId != null && roomIndex > 0;
+  final canMoveDown = reorderSpaceId != null &&
+      orderedRoomIds != null &&
+      roomIndex >= 0 &&
+      roomIndex < orderedRoomIds.length - 1;
 
   if (!canAdd && !canRemove && !canMoveUp && !canMoveDown) return;
+
+  final activeSpaceName =
+      activeSpaceId != null ? actions.roomDisplayName(activeSpaceId) : null;
 
   final action = await showMenu<_RoomContextAction>(
     context: context,
@@ -69,7 +61,10 @@ Future<void> showRoomContextMenu(
     items: [
       if (canMoveUp)
         menuItemRow(
-          Icons.arrow_upward_rounded, 'Move up', _RoomContextAction.moveUp,),
+          Icons.arrow_upward_rounded,
+          'Move up',
+          _RoomContextAction.moveUp,
+        ),
       if (canMoveDown)
         menuItemRow(
           Icons.arrow_downward_rounded,
@@ -78,8 +73,11 @@ Future<void> showRoomContextMenu(
         ),
       if (canAdd)
         menuItemRow(
-          Icons.add_link_rounded, 'Add to space', _RoomContextAction.addToSpace,),
-      if (canRemove)
+          Icons.add_link_rounded,
+          'Add to space',
+          _RoomContextAction.addToSpace,
+        ),
+      if (canRemove && activeSpaceName != null)
         PopupMenuItem(
           value: _RoomContextAction.removeFromSpace,
           child: Row(
@@ -88,7 +86,7 @@ Future<void> showRoomContextMenu(
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
-                  'Remove from ${activeSpace!.getLocalizedDisplayname()}',
+                  'Remove from $activeSpaceName',
                   style: TextStyle(color: cs.error),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -105,46 +103,45 @@ Future<void> showRoomContextMenu(
     case _RoomContextAction.addToSpace:
       await AddRoomToSpaceDialog.show(
         context,
-        roomId: room.id,
+        roomId: roomId,
         candidateSpaces: selection.spaces
             .where((s) => s.canChangeStateEvent('m.space.child'))
             .map(selection.summaryFor)
             .toList(),
-        memberSpaceIds: memberships,
+        memberSpaceIds: selection.spaceMemberships(roomId),
         avatarResolver: matrix.avatarResolver,
-        onAddToSpaces: (selections) async {
-          var failures = 0;
-          for (final entry in selections.entries) {
-            final space = matrix.client.getRoomById(entry.key);
-            if (space == null) continue;
-            try {
-              await space.setSpaceChild(
-                room.id,
-                suggested: entry.value ? true : null,
-              );
-            } catch (e) {
-              debugPrint('[Kohera] Failed to add room to space: $e');
-              failures++;
-            }
-          }
-          selection.invalidateSpaceTree();
-          return failures;
-        },
+        onAddToSpaces: (selections) =>
+            actions.addToSpaces(roomId, selections),
       );
     case _RoomContextAction.removeFromSpace:
-      if (activeSpace != null) {
-        await _handleRemoveFromSpace(context, activeSpace, room);
+      if (activeSpaceId != null) {
+        await _handleRemoveFromSpace(context, actions, activeSpaceId, roomId);
       }
     case _RoomContextAction.moveUp:
-      if (reorderSpace != null && orderedRooms != null && roomIndex > 0) {
+      if (reorderSpaceId != null &&
+          orderedRoomIds != null &&
+          roomIndex > 0) {
         await _handleReorder(
-          context, reorderSpace, orderedRooms, roomIndex, roomIndex - 1,);
+          context,
+          actions,
+          reorderSpaceId,
+          orderedRoomIds,
+          roomIndex,
+          roomIndex - 1,
+        );
       }
     case _RoomContextAction.moveDown:
-      if (reorderSpace != null && orderedRooms != null &&
-          roomIndex < orderedRooms.length - 1) {
+      if (reorderSpaceId != null &&
+          orderedRoomIds != null &&
+          roomIndex < orderedRoomIds.length - 1) {
         await _handleReorder(
-          context, reorderSpace, orderedRooms, roomIndex, roomIndex + 1,);
+          context,
+          actions,
+          reorderSpaceId,
+          orderedRoomIds,
+          roomIndex,
+          roomIndex + 1,
+        );
       }
   }
 }
@@ -153,37 +150,14 @@ Future<void> showRoomContextMenu(
 
 Future<void> _handleReorder(
   BuildContext context,
-  Room space,
-  List<Room> orderedRooms,
+  RoomContextMenuActions actions,
+  String spaceId,
+  List<String> orderedRoomIds,
   int fromIndex,
   int toIndex,
 ) async {
   try {
-    final selection = context.read<SelectionService>();
-    final roomId = orderedRooms[fromIndex].id;
-
-    final orderMap = order_utils.buildOrderMap(space);
-
-    final String? neighborBefore;
-    final String? neighborAfter;
-    if (toIndex < fromIndex) {
-      neighborBefore = toIndex > 0 ? orderMap[orderedRooms[toIndex - 1].id] : null;
-      neighborAfter = orderMap[orderedRooms[toIndex].id];
-    } else {
-      neighborBefore = orderMap[orderedRooms[toIndex].id];
-      neighborAfter = toIndex + 1 < orderedRooms.length
-          ? orderMap[orderedRooms[toIndex + 1].id]
-          : null;
-    }
-
-    final newOrder = order_utils.midpoint(neighborBefore, neighborAfter);
-    if (newOrder == null) {
-      debugPrint('[Kohera] Could not compute order midpoint');
-      return;
-    }
-
-    await space.setSpaceChild(roomId, order: newOrder);
-    selection.invalidateSpaceTree();
+    await actions.reorder(spaceId, orderedRoomIds, fromIndex, toIndex);
   } catch (e) {
     debugPrint('[Kohera] Reorder failed: $e');
     if (context.mounted) context.showSnack('Failed to reorder: $e');
@@ -192,14 +166,17 @@ Future<void> _handleReorder(
 
 Future<void> _handleRemoveFromSpace(
   BuildContext context,
-  Room space,
-  Room room,
+  RoomContextMenuActions actions,
+  String spaceId,
+  String roomId,
 ) async {
+  final spaceName = actions.roomDisplayName(spaceId) ?? spaceId;
+  final roomName = actions.roomDisplayName(roomId) ?? roomId;
   final confirmed = await confirmDialog(
     context,
     title: 'Remove from space?',
-    message: 'Remove "${room.getLocalizedDisplayname()}" from '
-        '"${space.getLocalizedDisplayname()}"? The room won\'t be deleted, '
+    message: 'Remove "$roomName" from '
+        '"$spaceName"? The room won\'t be deleted, '
         'just unlinked from the space.',
     confirmLabel: 'Remove',
   );
@@ -207,9 +184,7 @@ Future<void> _handleRemoveFromSpace(
   if (!confirmed || !context.mounted) return;
 
   try {
-    final selection = context.read<SelectionService>();
-    await space.removeSpaceChild(room.id);
-    selection.invalidateSpaceTree();
+    await actions.removeFromSpace(spaceId, roomId);
   } catch (e) {
     if (context.mounted) context.showSnack('Failed to remove room: $e');
   }

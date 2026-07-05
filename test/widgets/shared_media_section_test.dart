@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
+import 'package:kohera/features/rooms/services/shared_media_loader.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
@@ -90,7 +92,11 @@ void main() {
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: SingleChildScrollView(
-          child: SharedMediaSection(room: mockRoom),
+          child: SharedMediaSection(
+            roomId: mockRoom.id,
+            loader: sharedMediaLoaderForRoom(mockRoom),
+            avatarResolver: ClientAvatarResolver(mockClient),
+          ),
         ),
       ),
     );

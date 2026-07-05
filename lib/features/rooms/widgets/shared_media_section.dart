@@ -2,30 +2,62 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
 import 'package:kohera/features/chat/models/kohera_media_type.dart';
-import 'package:kohera/features/chat/services/media_content_resolver.dart';
 import 'package:kohera/features/chat/services/media_controller.dart';
-import 'package:kohera/features/chat/services/sdk_media_controller.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/full_image_view.dart';
-import 'package:matrix/matrix.dart';
+
+/// A page of loaded shared media from a room.
+class SharedMediaPage {
+  const SharedMediaPage({
+    required this.items,
+    this.nextBatch,
+  });
+
+  final List<SharedMediaItem> items;
+  final String? nextBatch;
+}
+
+/// A single media item loaded from the room's shared media search.
+class SharedMediaItem {
+  const SharedMediaItem({
+    required this.media,
+    required this.controller,
+  });
+
+  final KoheraMediaContent media;
+  final MediaController controller;
+}
+
+/// Loads shared media (images, videos, files, audio) from a room via
+/// `room.searchEvents()`. This is the SDK boundary — callers pass a
+/// [SharedMediaLoader] function, not a `Room`.
+typedef SharedMediaLoader = Future<SharedMediaPage> Function({
+  required String roomId,
+  String? nextBatch,
+});
 
 /// Displays a grid of images/videos and a list of files shared in a room.
-/// Loads media lazily using room search with pagination.
 class SharedMediaSection extends StatefulWidget {
-  const SharedMediaSection({required this.room, super.key});
+  const SharedMediaSection({
+    required this.roomId,
+    required this.loader,
+    required this.avatarResolver,
+    super.key,
+  });
 
-  final Room room;
+  final String roomId;
+  final SharedMediaLoader loader;
+  final AvatarResolver avatarResolver;
 
   @override
   State<SharedMediaSection> createState() => _SharedMediaSectionState();
 }
 
 class _SharedMediaSectionState extends State<SharedMediaSection> {
-  final List<Event> _mediaEvents = [];
+  final List<SharedMediaItem> _items = [];
   String? _nextBatch;
   bool _loading = false;
   bool _hasMore = true;
@@ -40,9 +72,9 @@ class _SharedMediaSectionState extends State<SharedMediaSection> {
   @override
   void didUpdateWidget(SharedMediaSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.room.id != widget.room.id) {
+    if (oldWidget.roomId != widget.roomId) {
       _generation++;
-      _mediaEvents.clear();
+      _items.clear();
       _nextBatch = null;
       _hasMore = true;
       _loading = false;
@@ -56,23 +88,16 @@ class _SharedMediaSectionState extends State<SharedMediaSection> {
     final gen = _generation;
 
     try {
-      final result = await widget.room.searchEvents(
-        searchFunc: (event) {
-          final mt = event.messageType;
-          return mt == MessageTypes.Image ||
-              mt == MessageTypes.Video ||
-              mt == MessageTypes.File ||
-              mt == MessageTypes.Audio;
-        },
+      final page = await widget.loader(
+        roomId: widget.roomId,
         nextBatch: _nextBatch,
-        limit: 20,
       );
 
       if (!mounted || gen != _generation) return;
       setState(() {
-        _mediaEvents.addAll(result.events);
-        _nextBatch = result.nextBatch;
-        _hasMore = result.nextBatch != null;
+        _items.addAll(page.items);
+        _nextBatch = page.nextBatch;
+        _hasMore = page.nextBatch != null;
         _loading = false;
       });
     } catch (e) {
@@ -86,15 +111,19 @@ class _SharedMediaSectionState extends State<SharedMediaSection> {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    final images = _mediaEvents
-        .where((e) =>
-            e.messageType == MessageTypes.Image ||
-            e.messageType == MessageTypes.Video,)
+    final images = _items
+        .where(
+          (i) =>
+              i.media.mediaType == KoheraMediaType.image ||
+              i.media.mediaType == KoheraMediaType.video,
+        )
         .toList();
-    final files = _mediaEvents
-        .where((e) =>
-            e.messageType == MessageTypes.File ||
-            e.messageType == MessageTypes.Audio,)
+    final files = _items
+        .where(
+          (i) =>
+              i.media.mediaType == KoheraMediaType.file ||
+              i.media.mediaType == KoheraMediaType.audio,
+        )
         .toList();
 
     return Column(
@@ -110,12 +139,12 @@ class _SharedMediaSectionState extends State<SharedMediaSection> {
             ),
           ),
         ),
-        if (_loading && _mediaEvents.isEmpty)
+        if (_loading && _items.isEmpty)
           const Padding(
             padding: EdgeInsets.all(16),
             child: Center(child: CircularProgressIndicator()),
           )
-        else if (_mediaEvents.isEmpty)
+        else if (_items.isEmpty)
           Padding(
             padding: const EdgeInsets.all(16),
             child: Center(
@@ -128,7 +157,6 @@ class _SharedMediaSectionState extends State<SharedMediaSection> {
             ),
           )
         else ...[
-          // Image/video grid
           if (images.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -139,24 +167,20 @@ class _SharedMediaSectionState extends State<SharedMediaSection> {
                 mainAxisSpacing: 4,
                 crossAxisSpacing: 4,
                 children: images
-                    .map((e) => _MediaThumbnail(
-                          media: const MediaContentResolver()(e),
-                          controller: SdkMediaController(e),
-                          avatarResolver: ClientAvatarResolver(
-                            widget.room.client,
-                          ),
-                        ),)
+                    .map(
+                      (i) => _MediaThumbnail(
+                        media: i.media,
+                        controller: i.controller,
+                        avatarResolver: widget.avatarResolver,
+                      ),
+                    )
                     .toList(),
               ),
             ),
-
-          // File list
           for (final file in files)
             _FileListTile(
-              media: const MediaContentResolver()(file),
+              media: file.media,
             ),
-
-          // Load more
           if (_hasMore)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -177,7 +201,6 @@ class _SharedMediaSectionState extends State<SharedMediaSection> {
       ],
     );
   }
-
 }
 
 // ── File list tile ─────────────────────────────────────────────
@@ -240,7 +263,6 @@ class _MediaThumbnailState extends State<_MediaThumbnail> {
   @override
   void initState() {
     super.initState();
-    // Defer loading to avoid firing all thumbnails simultaneously.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && !_loadStarted) {
         _loadStarted = true;

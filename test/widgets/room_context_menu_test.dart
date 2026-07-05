@@ -60,7 +60,7 @@ void main() {
 
   Widget buildTestWidget({
     String? parentSpaceId,
-    List<Room>? sectionRooms,
+    List<String>? sectionRoomIds,
   }) {
     return MultiProvider(
       providers: [
@@ -76,9 +76,9 @@ void main() {
                 unawaited(showRoomContextMenu(
                   context,
                   const RelativeRect.fromLTRB(100, 100, 100, 100),
-                  mockRoom,
+                  mockRoom.id,
                   parentSpaceId: parentSpaceId,
-                  sectionRooms: sectionRooms,
+                  sectionRoomIds: sectionRoomIds,
                 ),);
               },
               child: const Text('Open Menu'),
@@ -259,7 +259,7 @@ void main() {
     testWidgets('shows Move up and Move down for middle item', (tester) async {
       await tester.pumpWidget(buildTestWidget(
         parentSpaceId: '!space:example.com',
-        sectionRooms: [mockRoom1, mockRoom, mockRoom3],
+        sectionRoomIds: ['!r1:example.com', mockRoom.id, '!r3:example.com'],
       ),);
       await tester.tap(find.text('Open Menu'));
       await tester.pumpAndSettle();
@@ -274,7 +274,7 @@ void main() {
 
       await tester.pumpWidget(buildTestWidget(
         parentSpaceId: '!space:example.com',
-        sectionRooms: [mockRoom, mockRoom2, mockRoom3],
+        sectionRoomIds: [mockRoom.id, '!r2:example.com', '!r3:example.com'],
       ),);
       await tester.tap(find.text('Open Menu'));
       await tester.pumpAndSettle();
@@ -289,7 +289,7 @@ void main() {
 
       await tester.pumpWidget(buildTestWidget(
         parentSpaceId: '!space:example.com',
-        sectionRooms: [mockRoom1, mockRoom2, mockRoom],
+        sectionRoomIds: ['!r1:example.com', '!r2:example.com', '!r3:example.com'],
       ),);
       await tester.tap(find.text('Open Menu'));
       await tester.pumpAndSettle();
@@ -302,7 +302,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(buildTestWidget(
         parentSpaceId: '!space:example.com',
-        sectionRooms: [mockRoom1, mockRoom, mockRoom3],
+        sectionRoomIds: ['!r1:example.com', mockRoom.id, '!r3:example.com'],
       ),);
       await tester.tap(find.text('Open Menu'));
       await tester.pumpAndSettle();
@@ -326,7 +326,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(buildTestWidget(
         parentSpaceId: '!space:example.com',
-        sectionRooms: [mockRoom1, mockRoom, mockRoom3],
+        sectionRoomIds: ['!r1:example.com', mockRoom.id, '!r3:example.com'],
       ),);
       await tester.tap(find.text('Open Menu'));
       await tester.pumpAndSettle();
@@ -349,7 +349,7 @@ void main() {
 
       await tester.pumpWidget(buildTestWidget(
         parentSpaceId: '!space:example.com',
-        sectionRooms: [mockRoom1, mockRoom, mockRoom3],
+        sectionRoomIds: ['!r1:example.com', mockRoom.id, '!r3:example.com'],
       ),);
       await tester.tap(find.text('Open Menu'));
       await tester.pumpAndSettle();
