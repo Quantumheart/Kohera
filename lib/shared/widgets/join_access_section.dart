@@ -1,40 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/models/join_mode.dart';
-import 'package:matrix/matrix.dart';
 
 /// A self-contained (id + displayname) reference to a space, used by the
-/// SDK-free [JoinAccessSection.refs] constructor so shared widgets do not
-/// depend on features-layer domain models.
+/// SDK-free [JoinAccessSection] so shared widgets do not depend on
+/// features-layer domain models or the Matrix SDK.
 typedef SpaceRef = ({String id, String displayname});
 
 class JoinAccessSection extends StatelessWidget {
-  /// Original constructor: spaces are SDK [Room] objects. Kept unchanged for
-  /// existing callers ([JoinAccessController], [NewRoomDialog]).
   const JoinAccessSection({
-    required this.mode,
-    required List<Room> allowedSpaces,
-    required List<Room> candidateSpaces,
-    required this.needsUpgrade,
-    required this.canEdit,
-    required this.onModeChanged,
-    required ValueChanged<List<Room>> onAllowedSpacesChanged,
-    this.onUpgradeRequested,
-    this.disabledModes = const {},
-    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    this.saving = false,
-    this.savedHint = false,
-    super.key,
-  })  : _allowedRooms = allowedSpaces,
-        _candidateRooms = candidateSpaces,
-        _onAllowedChangedRooms = onAllowedSpacesChanged,
-        _allowedRefs = null,
-        _candidateRefs = null,
-        _onAllowedChangedIds = null;
-
-  /// SDK-free constructor: spaces are [SpaceRef] records and the selection
-  /// callback emits room IDs. Used by SDK-free dialogs (e.g.
-  /// [CreateSubspaceDialog]) that have no [Room] dependency.
-  const JoinAccessSection.refs({
     required this.mode,
     required List<SpaceRef> allowedSpaces,
     required List<SpaceRef> candidateSpaces,
@@ -48,16 +21,14 @@ class JoinAccessSection extends StatelessWidget {
     this.saving = false,
     this.savedHint = false,
     super.key,
-  })  : _allowedRooms = null,
-        _candidateRooms = null,
-        _onAllowedChangedRooms = null,
-        _allowedRefs = allowedSpaces,
+  })  : _allowedRefs = allowedSpaces,
         _candidateRefs = candidateSpaces,
         _onAllowedChangedIds = onAllowedSpacesChanged;
 
   final JoinMode mode;
   final bool needsUpgrade;
   final bool canEdit;
+
   /// Modes that should be disabled in the dropdown, mapped to the tooltip
   /// explaining why. Pass an empty map for no restrictions.
   final Map<JoinMode, String> disabledModes;
@@ -67,20 +38,11 @@ class JoinAccessSection extends StatelessWidget {
   final ValueChanged<JoinMode> onModeChanged;
   final VoidCallback? onUpgradeRequested;
 
-  // Room-based variant (default constructor).
-  final List<Room>? _allowedRooms;
-  final List<Room>? _candidateRooms;
-  final ValueChanged<List<Room>>? _onAllowedChangedRooms;
+  final List<SpaceRef> _allowedRefs;
+  final List<SpaceRef> _candidateRefs;
+  final ValueChanged<List<String>> _onAllowedChangedIds;
 
-  // Ref-based variant (SDK-free constructor).
-  final List<SpaceRef>? _allowedRefs;
-  final List<SpaceRef>? _candidateRefs;
-  final ValueChanged<List<String>>? _onAllowedChangedIds;
-
-  bool get _isRefsVariant => _allowedRefs != null;
-
-  bool get _allowedIsEmpty =>
-      _isRefsVariant ? _allowedRefs!.isEmpty : _allowedRooms!.isEmpty;
+  bool get _allowedIsEmpty => _allowedRefs.isEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -161,21 +123,12 @@ class JoinAccessSection extends StatelessWidget {
   }
 
   Widget get _spacePicker {
-    if (_isRefsVariant) {
-      return _SpaceRefPicker(
-        key: const Key('join_access_space_picker'),
-        candidates: _candidateRefs!,
-        selected: _allowedRefs!,
-        enabled: canEdit,
-        onChanged: _onAllowedChangedIds!,
-      );
-    }
-    return _SpacePicker(
+    return _SpaceRefPicker(
       key: const Key('join_access_space_picker'),
-      candidates: _candidateRooms!,
-      selected: _allowedRooms!,
+      candidates: _candidateRefs,
+      selected: _allowedRefs,
       enabled: canEdit,
-      onChanged: _onAllowedChangedRooms!,
+      onChanged: _onAllowedChangedIds,
     );
   }
 
@@ -210,62 +163,8 @@ class JoinAccessSection extends StatelessWidget {
   }
 }
 
-class _SpacePicker extends StatelessWidget {
-  const _SpacePicker({
-    required this.candidates,
-    required this.selected,
-    required this.enabled,
-    required this.onChanged,
-    super.key,
-  });
-
-  final List<Room> candidates;
-  final List<Room> selected;
-  final bool enabled;
-  final ValueChanged<List<Room>> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
-    if (candidates.isEmpty) {
-      return Text(
-        'No eligible parent spaces',
-        style: tt.bodySmall,
-      );
-    }
-    final selectedIds = selected.map((r) => r.id).toSet();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Spaces whose members can join', style: tt.labelMedium),
-        const SizedBox(height: 4),
-        ...candidates.map(
-          (room) => CheckboxListTile(
-            key: Key('join_access_space_${room.id}'),
-            dense: true,
-            controlAffinity: ListTileControlAffinity.leading,
-            title: Text(room.getLocalizedDisplayname()),
-            value: selectedIds.contains(room.id),
-            onChanged: enabled
-                ? (checked) {
-                    final next = [...selected];
-                    if (checked ?? false) {
-                      if (!selectedIds.contains(room.id)) next.add(room);
-                    } else {
-                      next.removeWhere((r) => r.id == room.id);
-                    }
-                    onChanged(next);
-                  }
-                : null,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// SDK-free variant of [_SpacePicker] operating on [SpaceRef] records and
-/// emitting selected room IDs.
+/// SDK-free space picker operating on [SpaceRef] records and emitting
+/// selected room IDs.
 class _SpaceRefPicker extends StatelessWidget {
   const _SpaceRefPicker({
     required this.candidates,

@@ -2,29 +2,19 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
-import 'package:matrix/matrix.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 
-@GenerateNiceMocks([MockSpec<Room>()])
-import 'join_access_section_test.mocks.dart';
 
-MockRoom _makeSpace(String id, String name) {
-  final r = MockRoom();
-  when(r.id).thenReturn(id);
-  when(r.getLocalizedDisplayname()).thenReturn(name);
-  return r;
-}
+SpaceRef _makeSpace(String id, String name) => (id: id, displayname: name);
 
 void main() {
   Widget host({
     required JoinMode mode,
-    List<Room> allowed = const [],
-    List<Room> candidates = const [],
+    List<SpaceRef> allowed = const [],
+    List<SpaceRef> candidates = const [],
     bool needsUpgrade = false,
     bool canEdit = true,
     ValueChanged<JoinMode>? onModeChanged,
-    ValueChanged<List<Room>>? onAllowedSpacesChanged,
+    ValueChanged<List<String>>? onAllowedSpacesChanged,
     VoidCallback? onUpgradeRequested,
   }) {
     return MaterialApp(
@@ -160,7 +150,7 @@ void main() {
 
   testWidgets('checking a space candidate fires onAllowedSpacesChanged',
       (tester) async {
-    List<Room>? captured;
+    List<String>? captured;
     final alpha = _makeSpace('!a:e.com', 'Alpha');
     await tester.pumpWidget(host(
       mode: JoinMode.restricted,
@@ -172,6 +162,6 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(captured, isNotNull);
-    expect(captured!.map((r) => r.id), ['!a:e.com']);
+    expect(captured, ['!a:e.com']);
   });
 }

@@ -12,12 +12,12 @@ import 'package:kohera/features/rooms/models/kohera_device_key.dart';
 import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
 import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
+import 'package:kohera/features/rooms/services/invite_user_dialog_params.dart';
+import 'package:kohera/features/rooms/services/join_access_controller.dart';
 import 'package:kohera/features/rooms/services/room_member_list_resolver.dart';
 import 'package:kohera/features/rooms/services/room_permissions_resolver.dart';
 import 'package:kohera/features/rooms/services/shared_media_loader.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
-import 'package:kohera/features/rooms/widgets/invite_user_dialog_params.dart';
-import 'package:kohera/features/rooms/widgets/join_access_controller.dart';
 import 'package:kohera/features/rooms/widgets/member_sheet_launcher.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
@@ -253,7 +253,8 @@ class RoomDetailsController extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  InviteUserDialogParams inviteDialogParams() => inviteUserDialogParams(_room!);
+  InviteUserDialogParams inviteDialogParams() =>
+      inviteUserDialogParams(_room!.id, matrix);
 
   Future<void> showMemberSheet(
     BuildContext context,
@@ -261,7 +262,7 @@ class RoomDetailsController extends ChangeNotifier {
   ) =>
       showRoomMemberSheet(context, room: _room!, member: member);
 
-  Widget buildJoinAccessSection() => JoinAccessController(room: _room!);
+  Widget buildJoinAccessSection() => JoinAccessController(roomId: _room!.id);
   Widget buildSharedMediaSection() => SharedMediaSection(
         roomId: _room!.id,
         loader: sharedMediaLoaderForRoom(_room!),
