@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/shared/widgets/popup_menu_item_row.dart';
-import 'package:matrix/matrix.dart';
 
 Future<void> showMessageContextMenu(
   BuildContext context, {
-  required Event event,
   required bool isMe,
   required bool isPinned,
-  required Timeline? timeline,
+  required bool isFailed,
+  required bool isRedacted,
+  required String copyableBody,
   required Offset position,
   VoidCallback? onReply,
   VoidCallback? onEdit,
@@ -18,18 +17,21 @@ Future<void> showMessageContextMenu(
   VoidCallback? onDelete,
   VoidCallback? onReplyInThread,
   VoidCallback? onForward,
+  VoidCallback? onRetrySend,
+  VoidCallback? onDiscardSend,
 }) async {
   final cs = Theme.of(context).colorScheme;
-  final isFailed = event.status.isError;
   final items = <PopupMenuItem<String>>[
     if (isFailed) ...[
-      menuItemRow(Icons.refresh_rounded, 'Retry sending', 'outbox_retry'),
-      menuItemRow(
-        Icons.delete_outline_rounded,
-        'Discard message',
-        'outbox_discard',
-        color: cs.error,
-      ),
+      if (onRetrySend != null)
+        menuItemRow(Icons.refresh_rounded, 'Retry sending', 'outbox_retry'),
+      if (onDiscardSend != null)
+        menuItemRow(
+          Icons.delete_outline_rounded,
+          'Discard message',
+          'outbox_discard',
+          color: cs.error,
+        ),
     ] else ...[
       if (onReply != null) menuItemRow(Icons.reply_rounded, 'Reply', 'reply'),
       if (onReplyInThread != null)
@@ -37,7 +39,7 @@ Future<void> showMessageContextMenu(
       if (onEdit != null) menuItemRow(Icons.edit_rounded, 'Edit', 'edit'),
       if (onReact != null)
         menuItemRow(Icons.add_reaction_outlined, 'React', 'react'),
-      if (!event.redacted) menuItemRow(Icons.copy_rounded, 'Copy', 'copy'),
+      if (!isRedacted) menuItemRow(Icons.copy_rounded, 'Copy', 'copy'),
       if (onForward != null)
         menuItemRow(Icons.forward_rounded, 'Forward', 'forward'),
       if (onPin != null)
@@ -65,19 +67,11 @@ Future<void> showMessageContextMenu(
   );
   if (!context.mounted) return;
   if (value == 'outbox_retry') {
-    try {
-      await event.sendAgain();
-    } catch (e) {
-      debugPrint('[Kohera] outbox: retry from menu failed: $e');
-    }
+    onRetrySend?.call();
     return;
   }
   if (value == 'outbox_discard') {
-    try {
-      await event.cancelSend();
-    } catch (e) {
-      debugPrint('[Kohera] outbox: discard from menu failed: $e');
-    }
+    onDiscardSend?.call();
     return;
   }
   if (value == 'reply') onReply?.call();
@@ -87,10 +81,7 @@ Future<void> showMessageContextMenu(
   if (value == 'edit') onEdit?.call();
   if (value == 'pin') onPin?.call();
   if (value == 'copy') {
-    final displayEvent =
-        timeline != null ? event.getDisplayEvent(timeline) : event;
-    await Clipboard.setData(
-        ClipboardData(text: stripReplyFallback(displayEvent.body)),);
+    await Clipboard.setData(ClipboardData(text: copyableBody));
   }
   if (value == 'delete') onDelete?.call();
 }
