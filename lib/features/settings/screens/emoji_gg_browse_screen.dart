@@ -359,7 +359,7 @@ class _EmojiPreviewStrip extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: preview.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 4),
+        separatorBuilder: (_, _) => const SizedBox(width: 4),
         itemBuilder: (context, i) => ClipRRect(
           borderRadius: BorderRadius.circular(6),
           child: Image.network(
@@ -367,7 +367,7 @@ class _EmojiPreviewStrip extends StatelessWidget {
             width: _size,
             height: _size,
             fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Container(
+            errorBuilder: (_, _, _) => Container(
               width: _size,
               height: _size,
               color: cs.surfaceContainerHighest,
@@ -407,7 +407,7 @@ class _PackThumbnail extends StatelessWidget {
                 width: 48,
                 height: 48,
                 fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) => Icon(
+                errorBuilder: (_, _, _) => Icon(
                   Icons.emoji_emotions_outlined,
                   color: cs.onSecondaryContainer,
                 ),

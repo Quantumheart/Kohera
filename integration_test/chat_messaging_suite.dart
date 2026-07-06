@@ -120,7 +120,7 @@ void chatMessagingTests() {
             GoRoute(
               path: 'details',
               name: 'room-details',
-              builder: (_, __) => const Scaffold(
+              builder: (_, _) => const Scaffold(
                 body: Center(child: Text('Room Details')),
               ),
             ),

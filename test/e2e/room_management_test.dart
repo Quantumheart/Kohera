@@ -63,7 +63,7 @@ void stubRoomDefaults(MockRoom mockRoom, MockClient mockClient) {
     RoomSummary.fromJson({'m.joined_member_count': 3}),
   );
   when(mockRoom.requestParticipants(any)).thenAnswer((_) async => []);
-  when(mockRoom.getPowerLevelByUserId(any)).thenReturn(0);
+  when(mockRoom.getPowerLevelByUserId(any)).thenReturn(PowerLevel(0));
 }
 
 void stubCreateRoom(MockClient mockClient) {
@@ -486,7 +486,7 @@ void main() {
     });
 
     testWidgets('kick member from member dialog', (tester) async {
-      when(mockRoom.getPowerLevelByUserId(_myUserId)).thenReturn(50);
+      when(mockRoom.getPowerLevelByUserId(_myUserId)).thenReturn(PowerLevel(50));
       when(mockRoom.canKick).thenReturn(true);
       when(mockClient.kick(any, any, reason: anyNamed('reason')))
           .thenAnswer((_) async {});
@@ -513,7 +513,7 @@ void main() {
     });
 
     testWidgets('ban member from member dialog', (tester) async {
-      when(mockRoom.getPowerLevelByUserId(_myUserId)).thenReturn(50);
+      when(mockRoom.getPowerLevelByUserId(_myUserId)).thenReturn(PowerLevel(50));
       when(mockRoom.canBan).thenReturn(true);
       when(mockClient.ban(any, any, reason: anyNamed('reason')))
           .thenAnswer((_) async {});
@@ -540,7 +540,7 @@ void main() {
     });
 
     testWidgets('cancel kick does not call client.kick', (tester) async {
-      when(mockRoom.getPowerLevelByUserId(_myUserId)).thenReturn(50);
+      when(mockRoom.getPowerLevelByUserId(_myUserId)).thenReturn(PowerLevel(50));
       when(mockRoom.canKick).thenReturn(true);
 
       await tester.pumpWidget(buildDetailsApp());

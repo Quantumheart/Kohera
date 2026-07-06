@@ -34,7 +34,7 @@ Future<PreferencesService> _prefsWith({
   String? lastSeen,
 }) async {
   SharedPreferences.setMockInitialValues({
-    if (lastSeen != null) 'last_seen_version': lastSeen,
+    'last_seen_version': ?lastSeen,
   });
   final sp = await SharedPreferences.getInstance();
   final svc = PreferencesService(prefs: sp, packageInfo: _pkg(current));
@@ -64,7 +64,7 @@ Widget _harness({
         routes: [
           GoRoute(
             path: '/',
-            builder: (_, __) => const Scaffold(
+            builder: (_, _) => const Scaffold(
               body: Column(
                 children: [WhatsNewBanner(), Expanded(child: SizedBox())],
               ),
@@ -73,7 +73,7 @@ Widget _harness({
               GoRoute(
                 path: 'whats-new',
                 name: 'whats-new',
-                builder: (_, __) =>
+                builder: (_, _) =>
                     const Scaffold(body: Text('detail-page-stub')),
               ),
             ],
@@ -193,7 +193,7 @@ void main() {
       routes: [
         GoRoute(
           path: '/',
-          builder: (_, __) => Scaffold(
+          builder: (_, _) => Scaffold(
             body: Column(
               children: [
                 WhatsNewBanner(

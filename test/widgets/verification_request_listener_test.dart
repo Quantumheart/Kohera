@@ -61,7 +61,7 @@ void main() {
       routes: [
         GoRoute(
           path: '/',
-          builder: (_, __) => const Scaffold(body: Text('home')),
+          builder: (_, _) => const Scaffold(body: Text('home')),
         ),
       ],
     );

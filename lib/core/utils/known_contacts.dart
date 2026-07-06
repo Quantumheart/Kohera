@@ -28,7 +28,7 @@ List<Profile> roomContacts(
   int limit = 50,
 }) {
   final myId = client.userID;
-  final seen = <String>{...excludeMxids, if (myId != null) myId};
+  final seen = <String>{...excludeMxids, ?myId};
   final contacts = <Profile>[];
 
   final groupRooms = client.rooms

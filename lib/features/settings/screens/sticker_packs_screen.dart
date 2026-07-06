@@ -385,7 +385,7 @@ class _SectionLabel extends StatelessWidget {
               letterSpacing: 1.1,
             ),
           ),
-          if (trailing != null) trailing!,
+          ?trailing,
         ],
       ),
     );

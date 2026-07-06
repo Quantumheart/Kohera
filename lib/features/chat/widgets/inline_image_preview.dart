@@ -40,7 +40,7 @@ class InlineImagePreview extends StatelessWidget {
                   ),
                 );
               },
-              errorBuilder: (_, __, ___) => Container(
+              errorBuilder: (_, _, _) => Container(
                 height: 80,
                 color: cs.surfaceContainerHighest,
                 child: const Center(

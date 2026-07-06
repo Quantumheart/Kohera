@@ -98,7 +98,7 @@ class _ThreadListScreenState extends State<ThreadListScreen> {
     } else {
       body = ListView.separated(
         itemCount: summaries.length,
-        separatorBuilder: (_, __) => const Divider(height: 1),
+        separatorBuilder: (_, _) => const Divider(height: 1),
         itemBuilder: (context, i) {
           final s = summaries[i];
           return ThreadListTile(

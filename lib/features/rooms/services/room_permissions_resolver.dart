@@ -25,7 +25,7 @@ class RoomPermissionsResolver {
         displayname: u.calcDisplayname(),
         avatarUrl: u.avatarUrl?.toString(),
         membership: u.membership.name,
-        powerLevel: room.getPowerLevelByUserId(u.id),
+        powerLevel: room.getPowerLevelByUserId(u.id).level,
       );
     }).toList();
 
@@ -37,7 +37,7 @@ class RoomPermissionsResolver {
       canEditTopic: room.canChangeStateEvent(EventTypes.RoomTopic),
       canEditAvatar: room.canChangeStateEvent(EventTypes.RoomAvatar),
       canInvite: room.canChangeStateEvent('m.room.invite') ||
-          room.getPowerLevelByUserId(myUserId) >=
+          room.getPowerLevelByUserId(myUserId).level >=
               (powerLevelsContent['invite'] as int? ?? 0),
       canChangeJoinRules: room.canChangeJoinRules,
       canChangePowerLevels: room.canChangePowerLevel,
@@ -47,7 +47,7 @@ class RoomPermissionsResolver {
       isEncrypted: room.encrypted,
       powerLevelsContent: powerLevelsContent,
       participants: participants,
-      myPowerLevel: room.getPowerLevelByUserId(myUserId),
+      myPowerLevel: room.getPowerLevelByUserId(myUserId).level,
     );
   }
 

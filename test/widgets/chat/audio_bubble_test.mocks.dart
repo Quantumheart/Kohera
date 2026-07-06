@@ -7,9 +7,9 @@ import 'dart:async' as _i4;
 import 'dart:typed_data' as _i5;
 import 'dart:ui' as _i8;
 
-import 'package:kohera/shared/services/media_controller.dart' as _i2;
 import 'package:kohera/features/chat/services/media_playback_service.dart'
     as _i6;
+import 'package:kohera/shared/services/media_controller.dart' as _i2;
 import 'package:media_kit/media_kit.dart' as _i7;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i3;
@@ -34,44 +34,50 @@ import 'package:mockito/src/dummies.dart' as _i3;
 /// See the documentation for Mockito's code generation for more information.
 class MockMediaController extends _i1.Mock implements _i2.MediaController {
   @override
-  bool get isEncrypted => (super.noSuchMethod(
-        Invocation.getter(#isEncrypted),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get isEncrypted =>
+      (super.noSuchMethod(
+            Invocation.getter(#isEncrypted),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  String get eventId => (super.noSuchMethod(
-        Invocation.getter(#eventId),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#eventId),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#eventId),
-        ),
-      ) as String);
+  String get eventId =>
+      (super.noSuchMethod(
+            Invocation.getter(#eventId),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#eventId),
+            ),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#eventId),
+            ),
+          )
+          as String);
 
   @override
-  bool get isPendingSend => (super.noSuchMethod(
-        Invocation.getter(#isPendingSend),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get isPendingSend =>
+      (super.noSuchMethod(
+            Invocation.getter(#isPendingSend),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
   _i4.Future<_i5.Uint8List> downloadAndDecrypt({bool? getThumbnail = false}) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #downloadAndDecrypt,
-          [],
-          {#getThumbnail: getThumbnail},
-        ),
-        returnValue: _i4.Future<_i5.Uint8List>.value(_i5.Uint8List(0)),
-        returnValueForMissingStub:
-            _i4.Future<_i5.Uint8List>.value(_i5.Uint8List(0)),
-      ) as _i4.Future<_i5.Uint8List>);
+            Invocation.method(#downloadAndDecrypt, [], {
+              #getThumbnail: getThumbnail,
+            }),
+            returnValue: _i4.Future<_i5.Uint8List>.value(_i5.Uint8List(0)),
+            returnValueForMissingStub: _i4.Future<_i5.Uint8List>.value(
+              _i5.Uint8List(0),
+            ),
+          )
+          as _i4.Future<_i5.Uint8List>);
 
   @override
   _i4.Future<String?> getAttachmentUri({
@@ -80,27 +86,23 @@ class MockMediaController extends _i1.Mock implements _i2.MediaController {
     int? height,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getAttachmentUri,
-          [],
-          {
-            #getThumbnail: getThumbnail,
-            #width: width,
-            #height: height,
-          },
-        ),
-        returnValue: _i4.Future<String?>.value(),
-        returnValueForMissingStub: _i4.Future<String?>.value(),
-      ) as _i4.Future<String?>);
+            Invocation.method(#getAttachmentUri, [], {
+              #getThumbnail: getThumbnail,
+              #width: width,
+              #height: height,
+            }),
+            returnValue: _i4.Future<String?>.value(),
+            returnValueForMissingStub: _i4.Future<String?>.value(),
+          )
+          as _i4.Future<String?>);
 
   @override
-  Map<String, String>? authHeaders(String? url) => (super.noSuchMethod(
-        Invocation.method(
-          #authHeaders,
-          [url],
-        ),
-        returnValueForMissingStub: null,
-      ) as Map<String, String>?);
+  Map<String, String>? authHeaders(String? url) =>
+      (super.noSuchMethod(
+            Invocation.method(#authHeaders, [url]),
+            returnValueForMissingStub: null,
+          )
+          as Map<String, String>?);
 }
 
 /// A class which mocks [MediaPlaybackService].
@@ -109,79 +111,54 @@ class MockMediaController extends _i1.Mock implements _i2.MediaController {
 class MockMediaPlaybackService extends _i1.Mock
     implements _i6.MediaPlaybackService {
   @override
-  bool get hasListeners => (super.noSuchMethod(
-        Invocation.getter(#hasListeners),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get hasListeners =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasListeners),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  void registerPlayer(
-    String? eventId,
-    _i7.Player? player,
-  ) =>
+  void registerPlayer(String? eventId, _i7.Player? player) =>
       super.noSuchMethod(
-        Invocation.method(
-          #registerPlayer,
-          [
-            eventId,
-            player,
-          ],
-        ),
+        Invocation.method(#registerPlayer, [eventId, player]),
         returnValueForMissingStub: null,
       );
 
   @override
   void unregisterPlayer(String? eventId) => super.noSuchMethod(
-        Invocation.method(
-          #unregisterPlayer,
-          [eventId],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#unregisterPlayer, [eventId]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void pauseActive() => super.noSuchMethod(
-        Invocation.method(
-          #pauseActive,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#pauseActive, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void addListener(_i8.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #addListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void removeListener(_i8.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #removeListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#removeListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void notifyListeners() => super.noSuchMethod(
-        Invocation.method(
-          #notifyListeners,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#notifyListeners, []),
+    returnValueForMissingStub: null,
+  );
 }

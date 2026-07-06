@@ -36,7 +36,7 @@ class RtcMembershipService {
     'scope': 'm.room',
     'device_id': _client.deviceID,
     'expires': expiresMs,
-    if (createdTimeStamp != null) 'created_ts': createdTimeStamp,
+    'created_ts': ?createdTimeStamp,
     kIoKoheraIsVideo: isVideo,
     'focus_active': {
       'type': 'livekit',

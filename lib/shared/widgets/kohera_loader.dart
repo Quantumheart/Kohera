@@ -64,7 +64,7 @@ class _KoheraLoaderState extends State<KoheraLoader>
       child: RepaintBoundary(
         child: AnimatedBuilder(
           animation: _controller,
-          builder: (_, __) => CustomPaint(
+          builder: (_, _) => CustomPaint(
             painter: _MyceliumPulsePainter(
               progress: _controller.value,
               activeLeg: _activeLeg,

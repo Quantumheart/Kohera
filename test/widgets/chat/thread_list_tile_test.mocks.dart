@@ -26,64 +26,34 @@ import 'package:mockito/src/dummies.dart' as _i3;
 // ignore_for_file: invalid_use_of_internal_member
 
 class _FakeUser_0 extends _i1.SmartFake implements _i2.User {
-  _FakeUser_0(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeUser_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 class _FakeRoom_1 extends _i1.SmartFake implements _i2.Room {
-  _FakeRoom_1(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeRoom_1(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 class _FakeDateTime_2 extends _i1.SmartFake implements DateTime {
-  _FakeDateTime_2(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeDateTime_2(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 class _FakeMatrixFile_3 extends _i1.SmartFake implements _i2.MatrixFile {
-  _FakeMatrixFile_3(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeMatrixFile_3(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 class _FakeEvent_4 extends _i1.SmartFake implements _i2.Event {
-  _FakeEvent_4(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeEvent_4(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 class _FakeCachedPresence_5 extends _i1.SmartFake
     implements _i2.CachedPresence {
-  _FakeCachedPresence_5(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeCachedPresence_5(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 /// A class which mocks [Event].
@@ -91,520 +61,509 @@ class _FakeCachedPresence_5 extends _i1.SmartFake
 /// See the documentation for Mockito's code generation for more information.
 class MockEvent extends _i1.Mock implements _i2.Event {
   @override
-  _i2.User get sender => (super.noSuchMethod(
-        Invocation.getter(#sender),
-        returnValue: _FakeUser_0(
-          this,
-          Invocation.getter(#sender),
-        ),
-        returnValueForMissingStub: _FakeUser_0(
-          this,
-          Invocation.getter(#sender),
-        ),
-      ) as _i2.User);
+  _i2.User get sender =>
+      (super.noSuchMethod(
+            Invocation.getter(#sender),
+            returnValue: _FakeUser_0(this, Invocation.getter(#sender)),
+            returnValueForMissingStub: _FakeUser_0(
+              this,
+              Invocation.getter(#sender),
+            ),
+          )
+          as _i2.User);
 
   @override
-  _i2.User get senderFromMemoryOrFallback => (super.noSuchMethod(
-        Invocation.getter(#senderFromMemoryOrFallback),
-        returnValue: _FakeUser_0(
-          this,
-          Invocation.getter(#senderFromMemoryOrFallback),
-        ),
-        returnValueForMissingStub: _FakeUser_0(
-          this,
-          Invocation.getter(#senderFromMemoryOrFallback),
-        ),
-      ) as _i2.User);
+  _i2.User get senderFromMemoryOrFallback =>
+      (super.noSuchMethod(
+            Invocation.getter(#senderFromMemoryOrFallback),
+            returnValue: _FakeUser_0(
+              this,
+              Invocation.getter(#senderFromMemoryOrFallback),
+            ),
+            returnValueForMissingStub: _FakeUser_0(
+              this,
+              Invocation.getter(#senderFromMemoryOrFallback),
+            ),
+          )
+          as _i2.User);
 
   @override
-  _i2.Room get room => (super.noSuchMethod(
-        Invocation.getter(#room),
-        returnValue: _FakeRoom_1(
-          this,
-          Invocation.getter(#room),
-        ),
-        returnValueForMissingStub: _FakeRoom_1(
-          this,
-          Invocation.getter(#room),
-        ),
-      ) as _i2.Room);
+  _i2.Room get room =>
+      (super.noSuchMethod(
+            Invocation.getter(#room),
+            returnValue: _FakeRoom_1(this, Invocation.getter(#room)),
+            returnValueForMissingStub: _FakeRoom_1(
+              this,
+              Invocation.getter(#room),
+            ),
+          )
+          as _i2.Room);
 
   @override
-  _i2.EventStatus get status => (super.noSuchMethod(
-        Invocation.getter(#status),
-        returnValue: _i2.EventStatus.error,
-        returnValueForMissingStub: _i2.EventStatus.error,
-      ) as _i2.EventStatus);
+  _i2.EventStatus get status =>
+      (super.noSuchMethod(
+            Invocation.getter(#status),
+            returnValue: _i2.EventStatus.error,
+            returnValueForMissingStub: _i2.EventStatus.error,
+          )
+          as _i2.EventStatus);
 
   @override
-  bool get redacted => (super.noSuchMethod(
-        Invocation.getter(#redacted),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get redacted =>
+      (super.noSuchMethod(
+            Invocation.getter(#redacted),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  _i2.User get asUser => (super.noSuchMethod(
-        Invocation.getter(#asUser),
-        returnValue: _FakeUser_0(
-          this,
-          Invocation.getter(#asUser),
-        ),
-        returnValueForMissingStub: _FakeUser_0(
-          this,
-          Invocation.getter(#asUser),
-        ),
-      ) as _i2.User);
+  _i2.User get asUser =>
+      (super.noSuchMethod(
+            Invocation.getter(#asUser),
+            returnValue: _FakeUser_0(this, Invocation.getter(#asUser)),
+            returnValueForMissingStub: _FakeUser_0(
+              this,
+              Invocation.getter(#asUser),
+            ),
+          )
+          as _i2.User);
 
   @override
-  String get messageType => (super.noSuchMethod(
-        Invocation.getter(#messageType),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#messageType),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#messageType),
-        ),
-      ) as String);
+  String get messageType =>
+      (super.noSuchMethod(
+            Invocation.getter(#messageType),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#messageType),
+            ),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#messageType),
+            ),
+          )
+          as String);
 
   @override
-  String get text => (super.noSuchMethod(
-        Invocation.getter(#text),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#text),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#text),
-        ),
-      ) as String);
+  String get text =>
+      (super.noSuchMethod(
+            Invocation.getter(#text),
+            returnValue: _i3.dummyValue<String>(this, Invocation.getter(#text)),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#text),
+            ),
+          )
+          as String);
 
   @override
-  String get formattedText => (super.noSuchMethod(
-        Invocation.getter(#formattedText),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#formattedText),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#formattedText),
-        ),
-      ) as String);
+  String get formattedText =>
+      (super.noSuchMethod(
+            Invocation.getter(#formattedText),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#formattedText),
+            ),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#formattedText),
+            ),
+          )
+          as String);
 
   @override
-  String get body => (super.noSuchMethod(
-        Invocation.getter(#body),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#body),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#body),
-        ),
-      ) as String);
+  String get body =>
+      (super.noSuchMethod(
+            Invocation.getter(#body),
+            returnValue: _i3.dummyValue<String>(this, Invocation.getter(#body)),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#body),
+            ),
+          )
+          as String);
 
   @override
-  String get plaintextBody => (super.noSuchMethod(
-        Invocation.getter(#plaintextBody),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#plaintextBody),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#plaintextBody),
-        ),
-      ) as String);
+  String get plaintextBody =>
+      (super.noSuchMethod(
+            Invocation.getter(#plaintextBody),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#plaintextBody),
+            ),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#plaintextBody),
+            ),
+          )
+          as String);
 
   @override
-  List<_i2.Receipt> get receipts => (super.noSuchMethod(
-        Invocation.getter(#receipts),
-        returnValue: <_i2.Receipt>[],
-        returnValueForMissingStub: <_i2.Receipt>[],
-      ) as List<_i2.Receipt>);
+  List<_i2.Receipt> get receipts =>
+      (super.noSuchMethod(
+            Invocation.getter(#receipts),
+            returnValue: <_i2.Receipt>[],
+            returnValueForMissingStub: <_i2.Receipt>[],
+          )
+          as List<_i2.Receipt>);
 
   @override
-  bool get canRedact => (super.noSuchMethod(
-        Invocation.getter(#canRedact),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get canRedact =>
+      (super.noSuchMethod(
+            Invocation.getter(#canRedact),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  Map<String, Object?> get infoMap => (super.noSuchMethod(
-        Invocation.getter(#infoMap),
-        returnValue: <String, Object?>{},
-        returnValueForMissingStub: <String, Object?>{},
-      ) as Map<String, Object?>);
+  Map<String, Object?> get infoMap =>
+      (super.noSuchMethod(
+            Invocation.getter(#infoMap),
+            returnValue: <String, Object?>{},
+            returnValueForMissingStub: <String, Object?>{},
+          )
+          as Map<String, Object?>);
 
   @override
-  Map<String, Object?> get thumbnailInfoMap => (super.noSuchMethod(
-        Invocation.getter(#thumbnailInfoMap),
-        returnValue: <String, Object?>{},
-        returnValueForMissingStub: <String, Object?>{},
-      ) as Map<String, Object?>);
+  Map<String, Object?> get thumbnailInfoMap =>
+      (super.noSuchMethod(
+            Invocation.getter(#thumbnailInfoMap),
+            returnValue: <String, Object?>{},
+            returnValueForMissingStub: <String, Object?>{},
+          )
+          as Map<String, Object?>);
 
   @override
-  bool get hasAttachment => (super.noSuchMethod(
-        Invocation.getter(#hasAttachment),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get hasAttachment =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasAttachment),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  bool get hasThumbnail => (super.noSuchMethod(
-        Invocation.getter(#hasThumbnail),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get hasThumbnail =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasThumbnail),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  bool get isAttachmentEncrypted => (super.noSuchMethod(
-        Invocation.getter(#isAttachmentEncrypted),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get isAttachmentEncrypted =>
+      (super.noSuchMethod(
+            Invocation.getter(#isAttachmentEncrypted),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  bool get isThumbnailEncrypted => (super.noSuchMethod(
-        Invocation.getter(#isThumbnailEncrypted),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get isThumbnailEncrypted =>
+      (super.noSuchMethod(
+            Invocation.getter(#isThumbnailEncrypted),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  String get attachmentMimetype => (super.noSuchMethod(
-        Invocation.getter(#attachmentMimetype),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#attachmentMimetype),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#attachmentMimetype),
-        ),
-      ) as String);
+  String get attachmentMimetype =>
+      (super.noSuchMethod(
+            Invocation.getter(#attachmentMimetype),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#attachmentMimetype),
+            ),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#attachmentMimetype),
+            ),
+          )
+          as String);
 
   @override
-  String get thumbnailMimetype => (super.noSuchMethod(
-        Invocation.getter(#thumbnailMimetype),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#thumbnailMimetype),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#thumbnailMimetype),
-        ),
-      ) as String);
+  String get thumbnailMimetype =>
+      (super.noSuchMethod(
+            Invocation.getter(#thumbnailMimetype),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#thumbnailMimetype),
+            ),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#thumbnailMimetype),
+            ),
+          )
+          as String);
 
   @override
-  bool get isEventTypeKnown => (super.noSuchMethod(
-        Invocation.getter(#isEventTypeKnown),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get isEventTypeKnown =>
+      (super.noSuchMethod(
+            Invocation.getter(#isEventTypeKnown),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  bool get isRichMessage => (super.noSuchMethod(
-        Invocation.getter(#isRichMessage),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get isRichMessage =>
+      (super.noSuchMethod(
+            Invocation.getter(#isRichMessage),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  bool get onlyEmotes => (super.noSuchMethod(
-        Invocation.getter(#onlyEmotes),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get onlyEmotes =>
+      (super.noSuchMethod(
+            Invocation.getter(#onlyEmotes),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  int get numberEmotes => (super.noSuchMethod(
-        Invocation.getter(#numberEmotes),
-        returnValue: 0,
-        returnValueForMissingStub: 0,
-      ) as int);
+  int get numberEmotes =>
+      (super.noSuchMethod(
+            Invocation.getter(#numberEmotes),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
 
   @override
-  ({bool room, List<String> userIds}) get mentions => (super.noSuchMethod(
-        Invocation.getter(#mentions),
-        returnValue: (room: false, userIds: <String>[]),
-        returnValueForMissingStub: (room: false, userIds: <String>[]),
-      ) as ({bool room, List<String> userIds}));
+  ({bool room, List<String> userIds}) get mentions =>
+      (super.noSuchMethod(
+            Invocation.getter(#mentions),
+            returnValue: (room: false, userIds: <String>[]),
+            returnValueForMissingStub: (room: false, userIds: <String>[]),
+          )
+          as ({bool room, List<String> userIds}));
 
   @override
   set status(_i2.EventStatus? value) => super.noSuchMethod(
-        Invocation.setter(
-          #status,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#status, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  String get eventId => (super.noSuchMethod(
-        Invocation.getter(#eventId),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#eventId),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#eventId),
-        ),
-      ) as String);
+  String get eventId =>
+      (super.noSuchMethod(
+            Invocation.getter(#eventId),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#eventId),
+            ),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#eventId),
+            ),
+          )
+          as String);
 
   @override
-  DateTime get originServerTs => (super.noSuchMethod(
-        Invocation.getter(#originServerTs),
-        returnValue: _FakeDateTime_2(
-          this,
-          Invocation.getter(#originServerTs),
-        ),
-        returnValueForMissingStub: _FakeDateTime_2(
-          this,
-          Invocation.getter(#originServerTs),
-        ),
-      ) as DateTime);
+  DateTime get originServerTs =>
+      (super.noSuchMethod(
+            Invocation.getter(#originServerTs),
+            returnValue: _FakeDateTime_2(
+              this,
+              Invocation.getter(#originServerTs),
+            ),
+            returnValueForMissingStub: _FakeDateTime_2(
+              this,
+              Invocation.getter(#originServerTs),
+            ),
+          )
+          as DateTime);
 
   @override
   set eventId(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #eventId,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#eventId, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set roomId(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #roomId,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#roomId, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set originServerTs(DateTime? value) => super.noSuchMethod(
-        Invocation.setter(
-          #originServerTs,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#originServerTs, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set unsigned(Map<String, Object?>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #unsigned,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#unsigned, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set prevContent(Map<String, Object?>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #prevContent,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#prevContent, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set redacts(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #redacts,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#redacts, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set stateKey(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #stateKey,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#stateKey, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  String get senderId => (super.noSuchMethod(
-        Invocation.getter(#senderId),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#senderId),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#senderId),
-        ),
-      ) as String);
+  String get senderId =>
+      (super.noSuchMethod(
+            Invocation.getter(#senderId),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#senderId),
+            ),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#senderId),
+            ),
+          )
+          as String);
 
   @override
   set senderId(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #senderId,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#senderId, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  String get type => (super.noSuchMethod(
-        Invocation.getter(#type),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#type),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#type),
-        ),
-      ) as String);
+  String get type =>
+      (super.noSuchMethod(
+            Invocation.getter(#type),
+            returnValue: _i3.dummyValue<String>(this, Invocation.getter(#type)),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#type),
+            ),
+          )
+          as String);
 
   @override
-  Map<String, Object?> get content => (super.noSuchMethod(
-        Invocation.getter(#content),
-        returnValue: <String, Object?>{},
-        returnValueForMissingStub: <String, Object?>{},
-      ) as Map<String, Object?>);
+  Map<String, Object?> get content =>
+      (super.noSuchMethod(
+            Invocation.getter(#content),
+            returnValue: <String, Object?>{},
+            returnValueForMissingStub: <String, Object?>{},
+          )
+          as Map<String, Object?>);
 
   @override
   set type(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #type,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#type, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set content(Map<String, Object?>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #content,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#content, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  _i4.Future<_i2.User?> fetchSenderUser() => (super.noSuchMethod(
-        Invocation.method(
-          #fetchSenderUser,
-          [],
-        ),
-        returnValue: _i4.Future<_i2.User?>.value(),
-        returnValueForMissingStub: _i4.Future<_i2.User?>.value(),
-      ) as _i4.Future<_i2.User?>);
+  _i4.Future<_i2.User?> fetchSenderUser() =>
+      (super.noSuchMethod(
+            Invocation.method(#fetchSenderUser, []),
+            returnValue: _i4.Future<_i2.User?>.value(),
+            returnValueForMissingStub: _i4.Future<_i2.User?>.value(),
+          )
+          as _i4.Future<_i2.User?>);
 
   @override
-  Map<String, dynamic> toJson() => (super.noSuchMethod(
-        Invocation.method(
-          #toJson,
-          [],
-        ),
-        returnValue: <String, dynamic>{},
-        returnValueForMissingStub: <String, dynamic>{},
-      ) as Map<String, dynamic>);
+  Map<String, dynamic> toJson() =>
+      (super.noSuchMethod(
+            Invocation.method(#toJson, []),
+            returnValue: <String, dynamic>{},
+            returnValueForMissingStub: <String, dynamic>{},
+          )
+          as Map<String, dynamic>);
 
   @override
   void setRedactionEvent(_i2.Event? redactedBecause) => super.noSuchMethod(
-        Invocation.method(
-          #setRedactionEvent,
-          [redactedBecause],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#setRedactionEvent, [redactedBecause]),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  _i4.Future<bool> remove() => (super.noSuchMethod(
-        Invocation.method(
-          #remove,
-          [],
-        ),
-        returnValue: _i4.Future<bool>.value(false),
-        returnValueForMissingStub: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
-
-  @override
-  _i4.Future<void> cancelSend() => (super.noSuchMethod(
-        Invocation.method(
-          #cancelSend,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<String?> sendAgain({String? txid}) => (super.noSuchMethod(
-        Invocation.method(
-          #sendAgain,
-          [],
-          {#txid: txid},
-        ),
-        returnValue: _i4.Future<String?>.value(),
-        returnValueForMissingStub: _i4.Future<String?>.value(),
-      ) as _i4.Future<String?>);
-
-  @override
-  _i4.Future<String?> redactEvent({
-    String? reason,
-    String? txid,
-  }) =>
+  _i4.Future<bool> remove() =>
       (super.noSuchMethod(
-        Invocation.method(
-          #redactEvent,
-          [],
-          {
-            #reason: reason,
-            #txid: txid,
-          },
-        ),
-        returnValue: _i4.Future<String?>.value(),
-        returnValueForMissingStub: _i4.Future<String?>.value(),
-      ) as _i4.Future<String?>);
+            Invocation.method(#remove, []),
+            returnValue: _i4.Future<bool>.value(false),
+            returnValueForMissingStub: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
+
+  @override
+  _i4.Future<void> cancelSend() =>
+      (super.noSuchMethod(
+            Invocation.method(#cancelSend, []),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<String?> sendAgain({String? txid}) =>
+      (super.noSuchMethod(
+            Invocation.method(#sendAgain, [], {#txid: txid}),
+            returnValue: _i4.Future<String?>.value(),
+            returnValueForMissingStub: _i4.Future<String?>.value(),
+          )
+          as _i4.Future<String?>);
+
+  @override
+  _i4.Future<String?> redactEvent({String? reason, String? txid}) =>
+      (super.noSuchMethod(
+            Invocation.method(#redactEvent, [], {#reason: reason, #txid: txid}),
+            returnValue: _i4.Future<String?>.value(),
+            returnValueForMissingStub: _i4.Future<String?>.value(),
+          )
+          as _i4.Future<String?>);
 
   @override
   _i4.Future<_i2.Event?> getReplyEvent(_i2.Timeline? timeline) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getReplyEvent,
-          [timeline],
-        ),
-        returnValue: _i4.Future<_i2.Event?>.value(),
-        returnValueForMissingStub: _i4.Future<_i2.Event?>.value(),
-      ) as _i4.Future<_i2.Event?>);
+            Invocation.method(#getReplyEvent, [timeline]),
+            returnValue: _i4.Future<_i2.Event?>.value(),
+            returnValueForMissingStub: _i4.Future<_i2.Event?>.value(),
+          )
+          as _i4.Future<_i2.Event?>);
 
   @override
-  _i4.Future<void> requestKey() => (super.noSuchMethod(
-        Invocation.method(
-          #requestKey,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+  _i4.Future<void> requestKey() =>
+      (super.noSuchMethod(
+            Invocation.method(#requestKey, []),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 
   @override
   Uri? attachmentOrThumbnailMxcUrl({bool? getThumbnail = false}) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #attachmentOrThumbnailMxcUrl,
-          [],
-          {#getThumbnail: getThumbnail},
-        ),
-        returnValueForMissingStub: null,
-      ) as Uri?);
+            Invocation.method(#attachmentOrThumbnailMxcUrl, [], {
+              #getThumbnail: getThumbnail,
+            }),
+            returnValueForMissingStub: null,
+          )
+          as Uri?);
 
   @override
   _i4.Future<Uri?> getAttachmentUri({
@@ -615,24 +574,23 @@ class MockEvent extends _i1.Mock implements _i2.Event {
     _i2.ThumbnailMethod? method = _i2.ThumbnailMethod.scale,
     int? minNoThumbSize = 81920,
     bool? animated = false,
+    bool? skipScanner = false,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getAttachmentUri,
-          [],
-          {
-            #getThumbnail: getThumbnail,
-            #useThumbnailMxcUrl: useThumbnailMxcUrl,
-            #width: width,
-            #height: height,
-            #method: method,
-            #minNoThumbSize: minNoThumbSize,
-            #animated: animated,
-          },
-        ),
-        returnValue: _i4.Future<Uri?>.value(),
-        returnValueForMissingStub: _i4.Future<Uri?>.value(),
-      ) as _i4.Future<Uri?>);
+            Invocation.method(#getAttachmentUri, [], {
+              #getThumbnail: getThumbnail,
+              #useThumbnailMxcUrl: useThumbnailMxcUrl,
+              #width: width,
+              #height: height,
+              #method: method,
+              #minNoThumbSize: minNoThumbSize,
+              #animated: animated,
+              #skipScanner: skipScanner,
+            }),
+            returnValue: _i4.Future<Uri?>.value(),
+            returnValueForMissingStub: _i4.Future<Uri?>.value(),
+          )
+          as _i4.Future<Uri?>);
 
   @override
   Uri? getAttachmentUrl({
@@ -645,80 +603,72 @@ class MockEvent extends _i1.Mock implements _i2.Event {
     bool? animated = false,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getAttachmentUrl,
-          [],
-          {
-            #getThumbnail: getThumbnail,
-            #useThumbnailMxcUrl: useThumbnailMxcUrl,
-            #width: width,
-            #height: height,
-            #method: method,
-            #minNoThumbSize: minNoThumbSize,
-            #animated: animated,
-          },
-        ),
-        returnValueForMissingStub: null,
-      ) as Uri?);
+            Invocation.method(#getAttachmentUrl, [], {
+              #getThumbnail: getThumbnail,
+              #useThumbnailMxcUrl: useThumbnailMxcUrl,
+              #width: width,
+              #height: height,
+              #method: method,
+              #minNoThumbSize: minNoThumbSize,
+              #animated: animated,
+            }),
+            returnValueForMissingStub: null,
+          )
+          as Uri?);
 
   @override
   _i4.Future<bool> isAttachmentInLocalStore({bool? getThumbnail = false}) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #isAttachmentInLocalStore,
-          [],
-          {#getThumbnail: getThumbnail},
-        ),
-        returnValue: _i4.Future<bool>.value(false),
-        returnValueForMissingStub: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
+            Invocation.method(#isAttachmentInLocalStore, [], {
+              #getThumbnail: getThumbnail,
+            }),
+            returnValue: _i4.Future<bool>.value(false),
+            returnValueForMissingStub: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
 
   @override
   _i4.Future<_i2.MatrixFile> downloadAndDecryptAttachment({
     bool? getThumbnail = false,
     _i4.Future<_i5.Uint8List> Function(Uri)? downloadCallback,
     bool? fromLocalStoreOnly = false,
+    bool? skipScanner = false,
     void Function(int)? onDownloadProgress,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #downloadAndDecryptAttachment,
-          [],
-          {
-            #getThumbnail: getThumbnail,
-            #downloadCallback: downloadCallback,
-            #fromLocalStoreOnly: fromLocalStoreOnly,
-            #onDownloadProgress: onDownloadProgress,
-          },
-        ),
-        returnValue: _i4.Future<_i2.MatrixFile>.value(_FakeMatrixFile_3(
-          this,
-          Invocation.method(
-            #downloadAndDecryptAttachment,
-            [],
-            {
+            Invocation.method(#downloadAndDecryptAttachment, [], {
               #getThumbnail: getThumbnail,
               #downloadCallback: downloadCallback,
               #fromLocalStoreOnly: fromLocalStoreOnly,
+              #skipScanner: skipScanner,
               #onDownloadProgress: onDownloadProgress,
-            },
-          ),
-        )),
-        returnValueForMissingStub:
-            _i4.Future<_i2.MatrixFile>.value(_FakeMatrixFile_3(
-          this,
-          Invocation.method(
-            #downloadAndDecryptAttachment,
-            [],
-            {
-              #getThumbnail: getThumbnail,
-              #downloadCallback: downloadCallback,
-              #fromLocalStoreOnly: fromLocalStoreOnly,
-              #onDownloadProgress: onDownloadProgress,
-            },
-          ),
-        )),
-      ) as _i4.Future<_i2.MatrixFile>);
+            }),
+            returnValue: _i4.Future<_i2.MatrixFile>.value(
+              _FakeMatrixFile_3(
+                this,
+                Invocation.method(#downloadAndDecryptAttachment, [], {
+                  #getThumbnail: getThumbnail,
+                  #downloadCallback: downloadCallback,
+                  #fromLocalStoreOnly: fromLocalStoreOnly,
+                  #skipScanner: skipScanner,
+                  #onDownloadProgress: onDownloadProgress,
+                }),
+              ),
+            ),
+            returnValueForMissingStub: _i4.Future<_i2.MatrixFile>.value(
+              _FakeMatrixFile_3(
+                this,
+                Invocation.method(#downloadAndDecryptAttachment, [], {
+                  #getThumbnail: getThumbnail,
+                  #downloadCallback: downloadCallback,
+                  #fromLocalStoreOnly: fromLocalStoreOnly,
+                  #skipScanner: skipScanner,
+                  #onDownloadProgress: onDownloadProgress,
+                }),
+              ),
+            ),
+          )
+          as _i4.Future<_i2.MatrixFile>);
 
   @override
   _i4.Future<String> calcLocalizedBody(
@@ -730,47 +680,51 @@ class MockEvent extends _i1.Mock implements _i2.Event {
     bool? removeMarkdown = false,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #calcLocalizedBody,
-          [i18n],
-          {
-            #withSenderNamePrefix: withSenderNamePrefix,
-            #hideReply: hideReply,
-            #hideEdit: hideEdit,
-            #plaintextBody: plaintextBody,
-            #removeMarkdown: removeMarkdown,
-          },
-        ),
-        returnValue: _i4.Future<String>.value(_i3.dummyValue<String>(
-          this,
-          Invocation.method(
-            #calcLocalizedBody,
-            [i18n],
-            {
-              #withSenderNamePrefix: withSenderNamePrefix,
-              #hideReply: hideReply,
-              #hideEdit: hideEdit,
-              #plaintextBody: plaintextBody,
-              #removeMarkdown: removeMarkdown,
-            },
-          ),
-        )),
-        returnValueForMissingStub:
-            _i4.Future<String>.value(_i3.dummyValue<String>(
-          this,
-          Invocation.method(
-            #calcLocalizedBody,
-            [i18n],
-            {
-              #withSenderNamePrefix: withSenderNamePrefix,
-              #hideReply: hideReply,
-              #hideEdit: hideEdit,
-              #plaintextBody: plaintextBody,
-              #removeMarkdown: removeMarkdown,
-            },
-          ),
-        )),
-      ) as _i4.Future<String>);
+            Invocation.method(
+              #calcLocalizedBody,
+              [i18n],
+              {
+                #withSenderNamePrefix: withSenderNamePrefix,
+                #hideReply: hideReply,
+                #hideEdit: hideEdit,
+                #plaintextBody: plaintextBody,
+                #removeMarkdown: removeMarkdown,
+              },
+            ),
+            returnValue: _i4.Future<String>.value(
+              _i3.dummyValue<String>(
+                this,
+                Invocation.method(
+                  #calcLocalizedBody,
+                  [i18n],
+                  {
+                    #withSenderNamePrefix: withSenderNamePrefix,
+                    #hideReply: hideReply,
+                    #hideEdit: hideEdit,
+                    #plaintextBody: plaintextBody,
+                    #removeMarkdown: removeMarkdown,
+                  },
+                ),
+              ),
+            ),
+            returnValueForMissingStub: _i4.Future<String>.value(
+              _i3.dummyValue<String>(
+                this,
+                Invocation.method(
+                  #calcLocalizedBody,
+                  [i18n],
+                  {
+                    #withSenderNamePrefix: withSenderNamePrefix,
+                    #hideReply: hideReply,
+                    #hideEdit: hideEdit,
+                    #plaintextBody: plaintextBody,
+                    #removeMarkdown: removeMarkdown,
+                  },
+                ),
+              ),
+            ),
+          )
+          as _i4.Future<String>);
 
   @override
   String getLocalizedBody(
@@ -782,46 +736,47 @@ class MockEvent extends _i1.Mock implements _i2.Event {
     bool? removeMarkdown = false,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getLocalizedBody,
-          [i18n],
-          {
-            #withSenderNamePrefix: withSenderNamePrefix,
-            #hideReply: hideReply,
-            #hideEdit: hideEdit,
-            #plaintextBody: plaintextBody,
-            #removeMarkdown: removeMarkdown,
-          },
-        ),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.method(
-            #getLocalizedBody,
-            [i18n],
-            {
-              #withSenderNamePrefix: withSenderNamePrefix,
-              #hideReply: hideReply,
-              #hideEdit: hideEdit,
-              #plaintextBody: plaintextBody,
-              #removeMarkdown: removeMarkdown,
-            },
-          ),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.method(
-            #getLocalizedBody,
-            [i18n],
-            {
-              #withSenderNamePrefix: withSenderNamePrefix,
-              #hideReply: hideReply,
-              #hideEdit: hideEdit,
-              #plaintextBody: plaintextBody,
-              #removeMarkdown: removeMarkdown,
-            },
-          ),
-        ),
-      ) as String);
+            Invocation.method(
+              #getLocalizedBody,
+              [i18n],
+              {
+                #withSenderNamePrefix: withSenderNamePrefix,
+                #hideReply: hideReply,
+                #hideEdit: hideEdit,
+                #plaintextBody: plaintextBody,
+                #removeMarkdown: removeMarkdown,
+              },
+            ),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.method(
+                #getLocalizedBody,
+                [i18n],
+                {
+                  #withSenderNamePrefix: withSenderNamePrefix,
+                  #hideReply: hideReply,
+                  #hideEdit: hideEdit,
+                  #plaintextBody: plaintextBody,
+                  #removeMarkdown: removeMarkdown,
+                },
+              ),
+            ),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.method(
+                #getLocalizedBody,
+                [i18n],
+                {
+                  #withSenderNamePrefix: withSenderNamePrefix,
+                  #hideReply: hideReply,
+                  #hideEdit: hideEdit,
+                  #plaintextBody: plaintextBody,
+                  #removeMarkdown: removeMarkdown,
+                },
+              ),
+            ),
+          )
+          as String);
 
   @override
   String calcLocalizedBodyFallback(
@@ -833,46 +788,47 @@ class MockEvent extends _i1.Mock implements _i2.Event {
     bool? removeMarkdown = false,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #calcLocalizedBodyFallback,
-          [i18n],
-          {
-            #withSenderNamePrefix: withSenderNamePrefix,
-            #hideReply: hideReply,
-            #hideEdit: hideEdit,
-            #plaintextBody: plaintextBody,
-            #removeMarkdown: removeMarkdown,
-          },
-        ),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.method(
-            #calcLocalizedBodyFallback,
-            [i18n],
-            {
-              #withSenderNamePrefix: withSenderNamePrefix,
-              #hideReply: hideReply,
-              #hideEdit: hideEdit,
-              #plaintextBody: plaintextBody,
-              #removeMarkdown: removeMarkdown,
-            },
-          ),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.method(
-            #calcLocalizedBodyFallback,
-            [i18n],
-            {
-              #withSenderNamePrefix: withSenderNamePrefix,
-              #hideReply: hideReply,
-              #hideEdit: hideEdit,
-              #plaintextBody: plaintextBody,
-              #removeMarkdown: removeMarkdown,
-            },
-          ),
-        ),
-      ) as String);
+            Invocation.method(
+              #calcLocalizedBodyFallback,
+              [i18n],
+              {
+                #withSenderNamePrefix: withSenderNamePrefix,
+                #hideReply: hideReply,
+                #hideEdit: hideEdit,
+                #plaintextBody: plaintextBody,
+                #removeMarkdown: removeMarkdown,
+              },
+            ),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.method(
+                #calcLocalizedBodyFallback,
+                [i18n],
+                {
+                  #withSenderNamePrefix: withSenderNamePrefix,
+                  #hideReply: hideReply,
+                  #hideEdit: hideEdit,
+                  #plaintextBody: plaintextBody,
+                  #removeMarkdown: removeMarkdown,
+                },
+              ),
+            ),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.method(
+                #calcLocalizedBodyFallback,
+                [i18n],
+                {
+                  #withSenderNamePrefix: withSenderNamePrefix,
+                  #hideReply: hideReply,
+                  #hideEdit: hideEdit,
+                  #plaintextBody: plaintextBody,
+                  #removeMarkdown: removeMarkdown,
+                },
+              ),
+            ),
+          )
+          as String);
 
   @override
   String calcUnlocalizedBody({
@@ -882,120 +838,84 @@ class MockEvent extends _i1.Mock implements _i2.Event {
     bool? removeMarkdown = false,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #calcUnlocalizedBody,
-          [],
-          {
-            #hideReply: hideReply,
-            #hideEdit: hideEdit,
-            #plaintextBody: plaintextBody,
-            #removeMarkdown: removeMarkdown,
-          },
-        ),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.method(
-            #calcUnlocalizedBody,
-            [],
-            {
+            Invocation.method(#calcUnlocalizedBody, [], {
               #hideReply: hideReply,
               #hideEdit: hideEdit,
               #plaintextBody: plaintextBody,
               #removeMarkdown: removeMarkdown,
-            },
-          ),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.method(
-            #calcUnlocalizedBody,
-            [],
-            {
-              #hideReply: hideReply,
-              #hideEdit: hideEdit,
-              #plaintextBody: plaintextBody,
-              #removeMarkdown: removeMarkdown,
-            },
-          ),
-        ),
-      ) as String);
+            }),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.method(#calcUnlocalizedBody, [], {
+                #hideReply: hideReply,
+                #hideEdit: hideEdit,
+                #plaintextBody: plaintextBody,
+                #removeMarkdown: removeMarkdown,
+              }),
+            ),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.method(#calcUnlocalizedBody, [], {
+                #hideReply: hideReply,
+                #hideEdit: hideEdit,
+                #plaintextBody: plaintextBody,
+                #removeMarkdown: removeMarkdown,
+              }),
+            ),
+          )
+          as String);
 
   @override
-  bool matchesEventOrTransactionId(String? search) => (super.noSuchMethod(
-        Invocation.method(
-          #matchesEventOrTransactionId,
-          [search],
-        ),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool matchesEventOrTransactionId(String? search) =>
+      (super.noSuchMethod(
+            Invocation.method(#matchesEventOrTransactionId, [search]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
   String? inReplyToEventId({bool? includingFallback = true}) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #inReplyToEventId,
-          [],
-          {#includingFallback: includingFallback},
-        ),
-        returnValueForMissingStub: null,
-      ) as String?);
+            Invocation.method(#inReplyToEventId, [], {
+              #includingFallback: includingFallback,
+            }),
+            returnValueForMissingStub: null,
+          )
+          as String?);
 
   @override
-  bool hasAggregatedEvents(
-    _i2.Timeline? timeline,
-    String? type,
-  ) =>
+  bool hasAggregatedEvents(_i2.Timeline? timeline, String? type) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #hasAggregatedEvents,
-          [
-            timeline,
-            type,
-          ],
-        ),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+            Invocation.method(#hasAggregatedEvents, [timeline, type]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  Set<_i2.Event> aggregatedEvents(
-    _i2.Timeline? timeline,
-    String? type,
-  ) =>
+  Set<_i2.Event> aggregatedEvents(_i2.Timeline? timeline, String? type) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #aggregatedEvents,
-          [
-            timeline,
-            type,
-          ],
-        ),
-        returnValue: <_i2.Event>{},
-        returnValueForMissingStub: <_i2.Event>{},
-      ) as Set<_i2.Event>);
+            Invocation.method(#aggregatedEvents, [timeline, type]),
+            returnValue: <_i2.Event>{},
+            returnValueForMissingStub: <_i2.Event>{},
+          )
+          as Set<_i2.Event>);
 
   @override
-  _i2.Event getDisplayEvent(_i2.Timeline? timeline) => (super.noSuchMethod(
-        Invocation.method(
-          #getDisplayEvent,
-          [timeline],
-        ),
-        returnValue: _FakeEvent_4(
-          this,
-          Invocation.method(
-            #getDisplayEvent,
-            [timeline],
-          ),
-        ),
-        returnValueForMissingStub: _FakeEvent_4(
-          this,
-          Invocation.method(
-            #getDisplayEvent,
-            [timeline],
-          ),
-        ),
-      ) as _i2.Event);
+  _i2.Event getDisplayEvent(_i2.Timeline? timeline) =>
+      (super.noSuchMethod(
+            Invocation.method(#getDisplayEvent, [timeline]),
+            returnValue: _FakeEvent_4(
+              this,
+              Invocation.method(#getDisplayEvent, [timeline]),
+            ),
+            returnValueForMissingStub: _FakeEvent_4(
+              this,
+              Invocation.method(#getDisplayEvent, [timeline]),
+            ),
+          )
+          as _i2.Event);
 }
 
 /// A class which mocks [User].
@@ -1003,175 +923,179 @@ class MockEvent extends _i1.Mock implements _i2.Event {
 /// See the documentation for Mockito's code generation for more information.
 class MockUser extends _i1.Mock implements _i2.User {
   @override
-  _i2.Room get room => (super.noSuchMethod(
-        Invocation.getter(#room),
-        returnValue: _FakeRoom_1(
-          this,
-          Invocation.getter(#room),
-        ),
-        returnValueForMissingStub: _FakeRoom_1(
-          this,
-          Invocation.getter(#room),
-        ),
-      ) as _i2.Room);
+  _i2.Room get room =>
+      (super.noSuchMethod(
+            Invocation.getter(#room),
+            returnValue: _FakeRoom_1(this, Invocation.getter(#room)),
+            returnValueForMissingStub: _FakeRoom_1(
+              this,
+              Invocation.getter(#room),
+            ),
+          )
+          as _i2.Room);
 
   @override
-  String get id => (super.noSuchMethod(
-        Invocation.getter(#id),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#id),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#id),
-        ),
-      ) as String);
+  String get id =>
+      (super.noSuchMethod(
+            Invocation.getter(#id),
+            returnValue: _i3.dummyValue<String>(this, Invocation.getter(#id)),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#id),
+            ),
+          )
+          as String);
 
   @override
-  int get powerLevel => (super.noSuchMethod(
-        Invocation.getter(#powerLevel),
-        returnValue: 0,
-        returnValueForMissingStub: 0,
-      ) as int);
+  _i2.PowerLevel get powerLevel =>
+      (super.noSuchMethod(
+            Invocation.getter(#powerLevel),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as _i2.PowerLevel);
 
   @override
-  _i2.Membership get membership => (super.noSuchMethod(
-        Invocation.getter(#membership),
-        returnValue: _i2.Membership.ban,
-        returnValueForMissingStub: _i2.Membership.ban,
-      ) as _i2.Membership);
+  _i2.Membership get membership =>
+      (super.noSuchMethod(
+            Invocation.getter(#membership),
+            returnValue: _i2.Membership.ban,
+            returnValueForMissingStub: _i2.Membership.ban,
+          )
+          as _i2.Membership);
 
   @override
-  _i4.Future<_i2.CachedPresence> get currentPresence => (super.noSuchMethod(
-        Invocation.getter(#currentPresence),
-        returnValue: _i4.Future<_i2.CachedPresence>.value(_FakeCachedPresence_5(
-          this,
-          Invocation.getter(#currentPresence),
-        )),
-        returnValueForMissingStub:
-            _i4.Future<_i2.CachedPresence>.value(_FakeCachedPresence_5(
-          this,
-          Invocation.getter(#currentPresence),
-        )),
-      ) as _i4.Future<_i2.CachedPresence>);
+  _i4.Future<_i2.CachedPresence> get currentPresence =>
+      (super.noSuchMethod(
+            Invocation.getter(#currentPresence),
+            returnValue: _i4.Future<_i2.CachedPresence>.value(
+              _FakeCachedPresence_5(this, Invocation.getter(#currentPresence)),
+            ),
+            returnValueForMissingStub: _i4.Future<_i2.CachedPresence>.value(
+              _FakeCachedPresence_5(this, Invocation.getter(#currentPresence)),
+            ),
+          )
+          as _i4.Future<_i2.CachedPresence>);
 
   @override
-  bool get canBan => (super.noSuchMethod(
-        Invocation.getter(#canBan),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get canBan =>
+      (super.noSuchMethod(
+            Invocation.getter(#canBan),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  bool get canKick => (super.noSuchMethod(
-        Invocation.getter(#canKick),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get canKick =>
+      (super.noSuchMethod(
+            Invocation.getter(#canKick),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  bool get canChangePowerLevel => (super.noSuchMethod(
-        Invocation.getter(#canChangePowerLevel),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get canChangePowerLevel =>
+      (super.noSuchMethod(
+            Invocation.getter(#canChangePowerLevel),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  bool get canChangeUserPowerLevel => (super.noSuchMethod(
-        Invocation.getter(#canChangeUserPowerLevel),
-        returnValue: false,
-        returnValueForMissingStub: false,
-      ) as bool);
+  bool get canChangeUserPowerLevel =>
+      (super.noSuchMethod(
+            Invocation.getter(#canChangeUserPowerLevel),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
 
   @override
-  String get mention => (super.noSuchMethod(
-        Invocation.getter(#mention),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#mention),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#mention),
-        ),
-      ) as String);
+  String get mention =>
+      (super.noSuchMethod(
+            Invocation.getter(#mention),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#mention),
+            ),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#mention),
+            ),
+          )
+          as String);
 
   @override
-  Set<String> get mentionFragments => (super.noSuchMethod(
-        Invocation.getter(#mentionFragments),
-        returnValue: <String>{},
-        returnValueForMissingStub: <String>{},
-      ) as Set<String>);
+  Set<String> get mentionFragments =>
+      (super.noSuchMethod(
+            Invocation.getter(#mentionFragments),
+            returnValue: <String>{},
+            returnValueForMissingStub: <String>{},
+          )
+          as Set<String>);
 
   @override
   set stateKey(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #stateKey,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#stateKey, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  String get senderId => (super.noSuchMethod(
-        Invocation.getter(#senderId),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#senderId),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#senderId),
-        ),
-      ) as String);
+  String get senderId =>
+      (super.noSuchMethod(
+            Invocation.getter(#senderId),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#senderId),
+            ),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#senderId),
+            ),
+          )
+          as String);
 
   @override
   set senderId(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #senderId,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#senderId, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  String get type => (super.noSuchMethod(
-        Invocation.getter(#type),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#type),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.getter(#type),
-        ),
-      ) as String);
+  String get type =>
+      (super.noSuchMethod(
+            Invocation.getter(#type),
+            returnValue: _i3.dummyValue<String>(this, Invocation.getter(#type)),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#type),
+            ),
+          )
+          as String);
 
   @override
-  Map<String, Object?> get content => (super.noSuchMethod(
-        Invocation.getter(#content),
-        returnValue: <String, Object?>{},
-        returnValueForMissingStub: <String, Object?>{},
-      ) as Map<String, Object?>);
+  Map<String, Object?> get content =>
+      (super.noSuchMethod(
+            Invocation.getter(#content),
+            returnValue: <String, Object?>{},
+            returnValueForMissingStub: <String, Object?>{},
+          )
+          as Map<String, Object?>);
 
   @override
   set type(String? value) => super.noSuchMethod(
-        Invocation.setter(
-          #type,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#type, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set content(Map<String, Object?>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #content,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#content, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   String calcDisplayname({
@@ -1180,80 +1104,65 @@ class MockUser extends _i1.Mock implements _i2.User {
     _i2.MatrixLocalizations? i18n = const _i2.MatrixDefaultLocalizations(),
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #calcDisplayname,
-          [],
-          {
-            #formatLocalpart: formatLocalpart,
-            #mxidLocalPartFallback: mxidLocalPartFallback,
-            #i18n: i18n,
-          },
-        ),
-        returnValue: _i3.dummyValue<String>(
-          this,
-          Invocation.method(
-            #calcDisplayname,
-            [],
-            {
+            Invocation.method(#calcDisplayname, [], {
               #formatLocalpart: formatLocalpart,
               #mxidLocalPartFallback: mxidLocalPartFallback,
               #i18n: i18n,
-            },
-          ),
-        ),
-        returnValueForMissingStub: _i3.dummyValue<String>(
-          this,
-          Invocation.method(
-            #calcDisplayname,
-            [],
-            {
-              #formatLocalpart: formatLocalpart,
-              #mxidLocalPartFallback: mxidLocalPartFallback,
-              #i18n: i18n,
-            },
-          ),
-        ),
-      ) as String);
+            }),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.method(#calcDisplayname, [], {
+                #formatLocalpart: formatLocalpart,
+                #mxidLocalPartFallback: mxidLocalPartFallback,
+                #i18n: i18n,
+              }),
+            ),
+            returnValueForMissingStub: _i3.dummyValue<String>(
+              this,
+              Invocation.method(#calcDisplayname, [], {
+                #formatLocalpart: formatLocalpart,
+                #mxidLocalPartFallback: mxidLocalPartFallback,
+                #i18n: i18n,
+              }),
+            ),
+          )
+          as String);
 
   @override
-  _i4.Future<void> kick() => (super.noSuchMethod(
-        Invocation.method(
-          #kick,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+  _i4.Future<void> kick() =>
+      (super.noSuchMethod(
+            Invocation.method(#kick, []),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 
   @override
-  _i4.Future<void> ban() => (super.noSuchMethod(
-        Invocation.method(
-          #ban,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+  _i4.Future<void> ban() =>
+      (super.noSuchMethod(
+            Invocation.method(#ban, []),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 
   @override
-  _i4.Future<void> unban() => (super.noSuchMethod(
-        Invocation.method(
-          #unban,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+  _i4.Future<void> unban() =>
+      (super.noSuchMethod(
+            Invocation.method(#unban, []),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 
   @override
-  _i4.Future<void> setPower(int? power) => (super.noSuchMethod(
-        Invocation.method(
-          #setPower,
-          [power],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+  _i4.Future<void> setPower(int? power) =>
+      (super.noSuchMethod(
+            Invocation.method(#setPower, [power]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 
   @override
   _i4.Future<String> startDirectChat({
@@ -1262,72 +1171,59 @@ class MockUser extends _i1.Mock implements _i2.User {
     bool? waitForSync = true,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #startDirectChat,
-          [],
-          {
-            #enableEncryption: enableEncryption,
-            #initialState: initialState,
-            #waitForSync: waitForSync,
-          },
-        ),
-        returnValue: _i4.Future<String>.value(_i3.dummyValue<String>(
-          this,
-          Invocation.method(
-            #startDirectChat,
-            [],
-            {
+            Invocation.method(#startDirectChat, [], {
               #enableEncryption: enableEncryption,
               #initialState: initialState,
               #waitForSync: waitForSync,
-            },
-          ),
-        )),
-        returnValueForMissingStub:
-            _i4.Future<String>.value(_i3.dummyValue<String>(
-          this,
-          Invocation.method(
-            #startDirectChat,
-            [],
-            {
-              #enableEncryption: enableEncryption,
-              #initialState: initialState,
-              #waitForSync: waitForSync,
-            },
-          ),
-        )),
-      ) as _i4.Future<String>);
+            }),
+            returnValue: _i4.Future<String>.value(
+              _i3.dummyValue<String>(
+                this,
+                Invocation.method(#startDirectChat, [], {
+                  #enableEncryption: enableEncryption,
+                  #initialState: initialState,
+                  #waitForSync: waitForSync,
+                }),
+              ),
+            ),
+            returnValueForMissingStub: _i4.Future<String>.value(
+              _i3.dummyValue<String>(
+                this,
+                Invocation.method(#startDirectChat, [], {
+                  #enableEncryption: enableEncryption,
+                  #initialState: initialState,
+                  #waitForSync: waitForSync,
+                }),
+              ),
+            ),
+          )
+          as _i4.Future<String>);
 
   @override
-  _i4.Future<_i2.CachedPresence> fetchCurrentPresence() => (super.noSuchMethod(
-        Invocation.method(
-          #fetchCurrentPresence,
-          [],
-        ),
-        returnValue: _i4.Future<_i2.CachedPresence>.value(_FakeCachedPresence_5(
-          this,
-          Invocation.method(
-            #fetchCurrentPresence,
-            [],
-          ),
-        )),
-        returnValueForMissingStub:
-            _i4.Future<_i2.CachedPresence>.value(_FakeCachedPresence_5(
-          this,
-          Invocation.method(
-            #fetchCurrentPresence,
-            [],
-          ),
-        )),
-      ) as _i4.Future<_i2.CachedPresence>);
+  _i4.Future<_i2.CachedPresence> fetchCurrentPresence() =>
+      (super.noSuchMethod(
+            Invocation.method(#fetchCurrentPresence, []),
+            returnValue: _i4.Future<_i2.CachedPresence>.value(
+              _FakeCachedPresence_5(
+                this,
+                Invocation.method(#fetchCurrentPresence, []),
+              ),
+            ),
+            returnValueForMissingStub: _i4.Future<_i2.CachedPresence>.value(
+              _FakeCachedPresence_5(
+                this,
+                Invocation.method(#fetchCurrentPresence, []),
+              ),
+            ),
+          )
+          as _i4.Future<_i2.CachedPresence>);
 
   @override
-  Map<String, Object?> toJson() => (super.noSuchMethod(
-        Invocation.method(
-          #toJson,
-          [],
-        ),
-        returnValue: <String, Object?>{},
-        returnValueForMissingStub: <String, Object?>{},
-      ) as Map<String, Object?>);
+  Map<String, Object?> toJson() =>
+      (super.noSuchMethod(
+            Invocation.method(#toJson, []),
+            returnValue: <String, Object?>{},
+            returnValueForMissingStub: <String, Object?>{},
+          )
+          as Map<String, Object?>);
 }

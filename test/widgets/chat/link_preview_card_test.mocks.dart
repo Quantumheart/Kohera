@@ -30,47 +30,32 @@ import 'package:mockito/mockito.dart' as _i1;
 class MockOpenGraphService extends _i1.Mock implements _i2.OpenGraphService {
   @override
   set dnsResolver(
-          _i3.Future<List<_i4.InternetAddress>> Function(String)? value) =>
-      super.noSuchMethod(
-        Invocation.setter(
-          #dnsResolver,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    _i3.Future<List<_i4.InternetAddress>> Function(String)? value,
+  ) => super.noSuchMethod(
+    Invocation.setter(#dnsResolver, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  _i3.Future<_i2.OpenGraphData?> fetch(String? url) => (super.noSuchMethod(
-        Invocation.method(
-          #fetch,
-          [url],
-        ),
-        returnValue: _i3.Future<_i2.OpenGraphData?>.value(),
-        returnValueForMissingStub: _i3.Future<_i2.OpenGraphData?>.value(),
-      ) as _i3.Future<_i2.OpenGraphData?>);
-
-  @override
-  _i2.OpenGraphData? parse(
-    String? html,
-    String? url,
-  ) =>
+  _i3.Future<_i2.OpenGraphData?> fetch(String? url) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #parse,
-          [
-            html,
-            url,
-          ],
-        ),
-        returnValueForMissingStub: null,
-      ) as _i2.OpenGraphData?);
+            Invocation.method(#fetch, [url]),
+            returnValue: _i3.Future<_i2.OpenGraphData?>.value(),
+            returnValueForMissingStub: _i3.Future<_i2.OpenGraphData?>.value(),
+          )
+          as _i3.Future<_i2.OpenGraphData?>);
+
+  @override
+  _i2.OpenGraphData? parse(String? html, String? url) =>
+      (super.noSuchMethod(
+            Invocation.method(#parse, [html, url]),
+            returnValueForMissingStub: null,
+          )
+          as _i2.OpenGraphData?);
 }

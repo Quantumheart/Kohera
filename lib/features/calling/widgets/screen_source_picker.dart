@@ -164,7 +164,7 @@ class _SourceList extends StatelessWidget {
     }
     return ListView.separated(
       itemCount: sources.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 4),
+      separatorBuilder: (_, _) => const SizedBox(height: 4),
       itemBuilder: (context, i) {
         final source = sources[i];
         final isSelected = selected?.id == source.id;

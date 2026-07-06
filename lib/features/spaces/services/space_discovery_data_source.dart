@@ -3,7 +3,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:matrix/matrix.dart';
-import 'package:matrix/matrix_api_lite/model/children_state.dart';
 
 export 'package:matrix/matrix.dart'
     show

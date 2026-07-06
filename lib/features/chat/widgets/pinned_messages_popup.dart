@@ -251,7 +251,7 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
                 shrinkWrap: true,
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 itemCount: _messages!.length,
-                separatorBuilder: (_, __) => Divider(
+                separatorBuilder: (_, _) => Divider(
                   height: 1,
                   indent: 12,
                   endIndent: 12,

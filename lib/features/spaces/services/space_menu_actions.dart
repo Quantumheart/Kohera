@@ -230,7 +230,7 @@ class SpaceMenuActions {
       visibility: Visibility.private,
       roomVersion: useRestricted ? request.restrictedRoomVersion : null,
       initialState: [
-        if (joinRulesEvent != null) joinRulesEvent,
+        ?joinRulesEvent,
       ],
       powerLevelContentOverride: {'events_default': 100},
     );

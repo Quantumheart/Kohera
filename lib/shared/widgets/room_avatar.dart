@@ -93,13 +93,13 @@ class _RoomAvatarWidgetState extends State<RoomAvatarWidget> {
                 httpHeaders: _resolvedHeaders,
                 imageRenderMethodForWeb: ImageRenderMethodForWeb.HttpGet,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => _Fallback(
+                placeholder: (_, _) => _Fallback(
                   initial: initial,
                   bgColor: bgColor,
                   textColor: Colors.white,
                   size: widget.size,
                 ),
-                errorWidget: (_, __, ___) => _Fallback(
+                errorWidget: (_, _, _) => _Fallback(
                   initial: initial,
                   bgColor: bgColor,
                   textColor: Colors.white,

@@ -226,7 +226,7 @@ class ClientManager extends ChangeNotifier {
     required String clientName,
   }) async {
     if (_serviceFactory != null) {
-      return _serviceFactory!.create(
+      return _serviceFactory.create(
         clientName: clientName,
         storage: _storage,
       );

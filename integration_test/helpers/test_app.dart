@@ -239,7 +239,7 @@ void stubRoomDefaults(MockRoom mockRoom, MockClient mockClient) {
     RoomSummary.fromJson({'m.joined_member_count': 3}),
   );
   when(mockRoom.requestParticipants(any)).thenAnswer((_) async => []);
-  when(mockRoom.getPowerLevelByUserId(any)).thenReturn(0);
+  when(mockRoom.getPowerLevelByUserId(any)).thenReturn(PowerLevel(0));
 }
 
 void stubCreateRoom(MockClient mockClient, {String newRoomId = '!newroom:example.com'}) {

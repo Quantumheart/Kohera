@@ -200,7 +200,7 @@ class _VideoBubbleState extends State<VideoBubble> {
         width: 280,
         height: 180,
         headers: widget.controller.authHeaders(_thumbUrl!),
-        errorBuilder: (_, __, ___) => _placeholderThumb(cs),
+        errorBuilder: (_, _, _) => _placeholderThumb(cs),
       );
     } else {
       thumb = _placeholderThumb(cs);

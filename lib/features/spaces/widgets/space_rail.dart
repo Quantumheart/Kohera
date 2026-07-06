@@ -415,12 +415,12 @@ class _RailIconState extends State<_RailIcon> {
         fit: BoxFit.cover,
         width: size,
         height: size,
-        placeholder: (_, __) => _LetterFallback(
+        placeholder: (_, _) => _LetterFallback(
           label: widget.label,
           outlined: widget.outlined,
           isSelected: widget.isSelected,
         ),
-        errorWidget: (_, __, ___) => _LetterFallback(
+        errorWidget: (_, _, _) => _LetterFallback(
           label: widget.label,
           outlined: widget.outlined,
           isSelected: widget.isSelected,

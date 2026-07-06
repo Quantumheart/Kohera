@@ -111,7 +111,7 @@ class _StickerBubbleState extends State<StickerBubble> {
                             semanticLabel: body,
                             headers:
                                 widget.controller.authHeaders(_imageUrl!),
-                            errorBuilder: (_, __, ___) => const Icon(
+                            errorBuilder: (_, _, _) => const Icon(
                               Icons.broken_image_outlined,
                               size: 48,
                             ),

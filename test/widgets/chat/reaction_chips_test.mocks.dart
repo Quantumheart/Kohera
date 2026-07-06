@@ -33,12 +33,9 @@ class MockAvatarResolver extends _i1.Mock implements _i2.AvatarResolver {
     required double? size,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #resolve,
-          [mxcUrl],
-          {#size: size},
-        ),
-        returnValue: _i3.Future<_i2.AvatarThumbnail?>.value(),
-        returnValueForMissingStub: _i3.Future<_i2.AvatarThumbnail?>.value(),
-      ) as _i3.Future<_i2.AvatarThumbnail?>);
+            Invocation.method(#resolve, [mxcUrl], {#size: size}),
+            returnValue: _i3.Future<_i2.AvatarThumbnail?>.value(),
+            returnValueForMissingStub: _i3.Future<_i2.AvatarThumbnail?>.value(),
+          )
+          as _i3.Future<_i2.AvatarThumbnail?>);
 }
