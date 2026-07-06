@@ -3,6 +3,7 @@ import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/settings/widgets/custom_theme_editor.dart';
+import 'package:kohera/features/settings/widgets/theme_mode_picker.dart';
 import 'package:kohera/features/settings/widgets/theme_preset_picker.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
 import 'package:provider/provider.dart';
@@ -39,6 +40,8 @@ class AppearanceScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   const ThemePresetPicker(),
+                  const SizedBox(height: 16),
+                  const ThemeModePicker(),
                   if (prefs.themePreset == 'custom')
                     const CustomThemeEditor(),
                 ],
