@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/features/settings/services/profile_avatar_service.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 class ProfileAvatarCard extends StatefulWidget {
@@ -84,7 +84,6 @@ class _ProfileAvatarCardState extends State<ProfileAvatarCard> {
   }
 
   Future<void> _uploadAvatar() async {
-    final client = context.read<MatrixService>().client;
     final picker = ImagePicker();
     final picked = await picker.pickImage(
       source: ImageSource.gallery,
@@ -96,8 +95,13 @@ class _ProfileAvatarCardState extends State<ProfileAvatarCard> {
 
     setState(() => _avatarUploading = true);
     try {
+      final client = context.read<MatrixService>().client;
       final bytes = await picked.readAsBytes();
-      await client.setAvatar(MatrixFile(bytes: bytes, name: picked.name));
+      await const ProfileAvatarService().uploadAvatar(
+        client,
+        bytes,
+        picked.name,
+      );
       debugPrint('[Kohera] Avatar uploaded: ${picked.name} (${bytes.length} bytes)');
       await _fetchProfile();
     } catch (e) {

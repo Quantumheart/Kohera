@@ -3,11 +3,10 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/call_service.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/utils/format_duration.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/pulsing_avatar.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
-import 'package:matrix/matrix.dart';
 
 // coverage:ignore-start
 
@@ -39,16 +38,28 @@ const _connectingMediaPhrases = [
   'Dropping into the grid...',
 ];
 
+class CallRoomAvatar {
+  const CallRoomAvatar({
+    this.avatarUrl,
+    this.displayName,
+    this.avatarResolver,
+  });
+
+  final String? avatarUrl;
+  final String? displayName;
+  final AvatarResolver? avatarResolver;
+}
+
 class CallJoiningView extends StatefulWidget {
   const CallJoiningView({
     required this.displayName,
-    this.room,
+    this.roomAvatar,
     this.phase,
     super.key,
   });
 
   final String displayName;
-  final Room? room;
+  final CallRoomAvatar? roomAvatar;
   final JoinPhase? phase;
 
   @override
@@ -86,11 +97,12 @@ class _CallJoiningViewState extends State<CallJoiningView> {
         children: [
           PulsingAvatar(
             displayName: widget.displayName,
-            child: widget.room != null
+            child: widget.roomAvatar != null
                 ? RoomAvatarWidget(
-                    avatarUrl: widget.room!.avatar?.toString(),
-                    displayname: widget.room!.getLocalizedDisplayname(),
-                    avatarResolver: ClientAvatarResolver(widget.room!.client),
+                    avatarUrl: widget.roomAvatar!.avatarUrl,
+                    displayname:
+                        widget.roomAvatar!.displayName ?? widget.displayName,
+                    avatarResolver: widget.roomAvatar!.avatarResolver,
                     size: 96,
                   )
                 : null,
