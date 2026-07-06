@@ -7158,6 +7158,24 @@ class MockPreferencesService extends _i1.Mock
           as String);
 
   @override
+  bool get scanlinesEnabled =>
+      (super.noSuchMethod(
+            Invocation.getter(#scanlinesEnabled),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get pixelateGraphics =>
+      (super.noSuchMethod(
+            Invocation.getter(#pixelateGraphics),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   _i21.CustomTheme get customTheme =>
       (super.noSuchMethod(
             Invocation.getter(#customTheme),
@@ -7533,6 +7551,24 @@ class MockPreferencesService extends _i1.Mock
   _i5.Future<void> setThemePreset(String? id) =>
       (super.noSuchMethod(
             Invocation.method(#setThemePreset, [id]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> setScanlinesEnabled(bool? value) =>
+      (super.noSuchMethod(
+            Invocation.method(#setScanlinesEnabled, [value]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> setPixelateGraphics(bool? value) =>
+      (super.noSuchMethod(
+            Invocation.method(#setPixelateGraphics, [value]),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )

@@ -202,6 +202,33 @@ class PreferencesService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Scanline overlay ─────────────────────────────────────
+
+  static const _scanlinesEnabledKey = 'scanlines_enabled';
+
+  /// Whether the CRT scanline overlay is drawn. Defaults to on.
+  bool get scanlinesEnabled => _prefs?.getBool(_scanlinesEnabledKey) ?? true;
+
+  Future<void> setScanlinesEnabled(bool value) async {
+    await _prefs?.setBool(_scanlinesEnabledKey, value);
+    debugPrint('[Kohera] Scanline overlay set to $value');
+    notifyListeners();
+  }
+
+  // ── Pixelation ───────────────────────────────────────────
+
+  static const _pixelateGraphicsKey = 'pixelate_graphics';
+
+  /// Whether rendered graphics (avatars and emoji) are drawn as pixel art.
+  /// Defaults to on.
+  bool get pixelateGraphics => _prefs?.getBool(_pixelateGraphicsKey) ?? true;
+
+  Future<void> setPixelateGraphics(bool value) async {
+    await _prefs?.setBool(_pixelateGraphicsKey, value);
+    debugPrint('[Kohera] Pixelate graphics set to $value');
+    notifyListeners();
+  }
+
   // ── Custom theme ─────────────────────────────────────────
 
   static const _customThemeKey = 'custom_theme';

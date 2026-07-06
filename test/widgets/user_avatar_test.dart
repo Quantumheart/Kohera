@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/shared/widgets/pixel_sprite_avatar.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -50,26 +51,28 @@ void main() {
   }
 
   group('UserAvatar', () {
-    testWidgets('shows initial fallback when no avatar URL', (tester) async {
+    testWidgets('shows pixel sprite fallback when no avatar URL',
+        (tester) async {
       await tester.pumpWidget(buildTestWidget(userId: '@alice:example.com'));
       await tester.pumpAndSettle();
 
-      // Should show 'A' (second char of @alice, uppercased)
-      expect(find.text('A'), findsOneWidget);
+      expect(find.byType(PixelSpriteAvatar), findsOneWidget);
     });
 
-    testWidgets('shows first char when userId is single character', (tester) async {
+    testWidgets('shows pixel sprite fallback for single-character userId',
+        (tester) async {
       await tester.pumpWidget(buildTestWidget(userId: '@'));
       await tester.pumpAndSettle();
 
-      expect(find.text('@'), findsOneWidget);
+      expect(find.byType(PixelSpriteAvatar), findsOneWidget);
     });
 
-    testWidgets('shows ? when no userId provided', (tester) async {
+    testWidgets('shows pixel sprite fallback when no userId provided',
+        (tester) async {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
-      expect(find.text('?'), findsOneWidget);
+      expect(find.byType(PixelSpriteAvatar), findsOneWidget);
     });
 
     testWidgets('renders at correct size', (tester) async {
@@ -84,7 +87,8 @@ void main() {
       expect(sizedBox.height, 64);
     });
 
-    testWidgets('shows fallback initial when avatarUrl is provided', (tester) async {
+    testWidgets('shows pixel sprite fallback while avatar resolves',
+        (tester) async {
       const mxcUrl = 'mxc://example.com/avatar123';
 
       await tester.pumpWidget(buildTestWidget(
@@ -93,8 +97,8 @@ void main() {
       ),);
       await tester.pump();
 
-      // While resolving (or with null resolver), the fallback initial should show
-      expect(find.text('C'), findsOneWidget);
+      // With a null resolver the fallback sprite should show.
+      expect(find.byType(PixelSpriteAvatar), findsOneWidget);
     });
 
     testWidgets('different userIds produce different colors', (tester) async {
@@ -120,15 +124,14 @@ void main() {
       ),);
       await tester.pumpAndSettle();
 
-      expect(find.text('A'), findsOneWidget);
-      expect(find.text('B'), findsOneWidget);
+      expect(find.byType(PixelSpriteAvatar), findsNWidgets(2));
     });
 
-    testWidgets('uses ClipOval for circular shape', (tester) async {
+    testWidgets('uses ClipRRect for sharp pixel shape', (tester) async {
       await tester.pumpWidget(buildTestWidget(userId: '@dave:example.com'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(ClipOval), findsOneWidget);
+      expect(find.byType(ClipRRect), findsOneWidget);
     });
   });
 

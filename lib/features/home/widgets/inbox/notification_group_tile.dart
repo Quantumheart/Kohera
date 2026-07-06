@@ -31,7 +31,7 @@ class NotificationGroupTile extends StatelessWidget {
         elevation: 0,
         color: cs.surfaceContainerLow,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(

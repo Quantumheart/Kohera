@@ -19,7 +19,7 @@ class AppLogoHeader extends StatelessWidget {
           height: 72,
           decoration: BoxDecoration(
             color: cs.primaryContainer,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           ),
           child: Center(
             child: KoheraMark(size: 42, color: cs.onPrimaryContainer),

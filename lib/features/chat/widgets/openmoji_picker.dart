@@ -105,7 +105,7 @@ class _OpenMojiPickerState extends State<OpenMojiPicker> {
                         filled: true,
                         fillColor: cs.surfaceContainerHighest,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                           borderSide: BorderSide.none,
                         ),
                       ),
@@ -118,7 +118,7 @@ class _OpenMojiPickerState extends State<OpenMojiPicker> {
                       button: true,
                       label: 'Default skin tone',
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                         onTap: _openDefaultToneStrip,
                         child: Padding(
                           padding: const EdgeInsets.all(4),
@@ -218,7 +218,7 @@ class _ToneStrip extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Material(
       elevation: 6,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       color: cs.surfaceContainerHighest,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
@@ -227,13 +227,13 @@ class _ToneStrip extends StatelessWidget {
           children: [
             for (final tone in SkinTone.values)
               InkWell(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                 onTap: () => onSelected(tone),
                 child: Container(
                   margin: const EdgeInsets.all(2),
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                     color: tone == selected
                         ? cs.primary.withValues(alpha: 0.18)
                         : null,
@@ -353,7 +353,7 @@ class _EmojiGrid extends StatelessWidget {
         final supportsTone = openMojiSupportsSkinTone(e.emoji);
         final shown = supportsTone ? applySkinTone(e.emoji, skinTone) : e.emoji;
         return InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           onTap: () => onSelected(shown),
           onLongPress:
               supportsTone ? () => onToneRequested(e.emoji) : null,

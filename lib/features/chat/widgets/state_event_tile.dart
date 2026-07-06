@@ -20,7 +20,7 @@ class StateEventTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -48,7 +48,7 @@ class StateEventTile extends StatelessWidget {
     if (item.isTombstone) {
       content = InkWell(
         onTap: () => _onTombstoneTap(context),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         child: content,
       );
     }

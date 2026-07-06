@@ -372,7 +372,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 side: BorderSide(color: cs.error),
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                 ),
               ),
             ),

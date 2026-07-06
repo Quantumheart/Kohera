@@ -330,7 +330,7 @@ class _WaveformPainter extends CustomPainter {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(x, y, barWidth, barHeight),
-          const Radius.circular(2),
+          Radius.zero,
         ),
         paint,
       );

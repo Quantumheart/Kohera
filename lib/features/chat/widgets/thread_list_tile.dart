@@ -105,7 +105,7 @@ class ThreadListTile extends StatelessWidget {
                                 horizontal: 6, vertical: 1,),
                             decoration: BoxDecoration(
                               color: cs.primary,
-                              borderRadius: BorderRadius.circular(8),
+                              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                             ),
                             child: Text(
                               summary.unreadCount > 99

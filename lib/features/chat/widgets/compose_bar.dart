@@ -428,7 +428,7 @@ class _ComposeBarState extends State<ComposeBar> {
                       vertical: 10,
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                       borderSide: BorderSide.none,
                     ),
                     filled: true,

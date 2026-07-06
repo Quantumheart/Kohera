@@ -514,7 +514,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: cs.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
             ),
             child: SelectableText(
               controller.newRecoveryKey ?? '',

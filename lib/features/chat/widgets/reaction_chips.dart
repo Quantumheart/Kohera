@@ -87,7 +87,7 @@ class _ReactionChipsState extends State<ReactionChips> {
                 color: isMine
                     ? cs.primaryContainer
                     : cs.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                 border: Border.all(
                   color: isMine
                       ? cs.primary.withValues(alpha: 0.5)

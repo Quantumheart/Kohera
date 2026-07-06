@@ -63,7 +63,7 @@ void main() {
     expect(tester.getSize(find.byType(OpenMojiImage)), const Size(16, 16));
   });
 
-  testWidgets('resizes at decode time with 2x headroom over the physical size',
+  testWidgets('decodes at a fixed pixel grid with nearest-neighbour painting',
       (tester) async {
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
@@ -74,12 +74,13 @@ void main() {
 
     final image = tester.widget<Image>(find.byType(Image));
     final provider = image.image as ResizeImage;
-    // 16 logical px * 2.0 dpr * 2 headroom = 64 physical px, below the 72 source.
-    expect(provider.width, 64);
-    expect(provider.height, 64);
+    // Fixed 32px decode grid → crisp blocks when scaled, independent of DPR.
+    expect(provider.width, 32);
+    expect(provider.height, 32);
+    expect(image.filterQuality, FilterQuality.none);
   });
 
-  testWidgets('caps the decode at the 72px native source size',
+  testWidgets('uses the same pixel grid regardless of paint size',
       (tester) async {
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.reset);
@@ -90,9 +91,10 @@ void main() {
 
     final image = tester.widget<Image>(find.byType(Image));
     final provider = image.image as ResizeImage;
-    // 64 * 2.0 = 128 px would exceed the source; clamps to 72.
-    expect(provider.width, 72);
-    expect(provider.height, 72);
+    // Larger paints upscale the same 32px grid → chunky pixels.
+    expect(provider.width, 32);
+    expect(provider.height, 32);
+    expect(image.filterQuality, FilterQuality.none);
   });
 
   testWidgets('falls back to text when no asset is bundled', (tester) async {

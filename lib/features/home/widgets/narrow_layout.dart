@@ -214,7 +214,7 @@ class _CompactDestinationItem extends StatelessWidget {
                 const EdgeInsets.symmetric(horizontal: 18, vertical: 3),
             decoration: BoxDecoration(
               color: selected ? cs.primaryContainer : Colors.transparent,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
             ),
             child: IconTheme(
               data: IconThemeData(

@@ -12,10 +12,10 @@ Color senderColor(String senderId, ColorScheme cs, {Color? fallback}) {
     cs.tertiary,
     cs.secondary,
     cs.error,
-    const Color(0xFF6750A4),
-    const Color(0xFFB4846C),
-    const Color(0xFF7C9A6E),
-    const Color(0xFFC17B5F),
+    const Color(0xFF6750A4), // koheraPalette.accentRamp[0]
+    const Color(0xFFB4846C), // koheraPalette.accentRamp[1]
+    const Color(0xFF7C9A6E), // koheraPalette.accentRamp[2]
+    const Color(0xFFC17B5F), // koheraPalette.accentRamp[3]
   ];
   return palette[hash % palette.length];
 }

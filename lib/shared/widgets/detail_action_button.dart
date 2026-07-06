@@ -21,7 +21,7 @@ class DetailActionButton extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final effectiveColor = color ?? cs.onSurfaceVariant;
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

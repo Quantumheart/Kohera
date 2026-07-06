@@ -30,7 +30,7 @@ class EmojiSuggestionList extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 4),
       decoration: BoxDecoration(
         color: cs.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         boxShadow: [
           BoxShadow(
             color: cs.shadow.withValues(alpha: 0.1),

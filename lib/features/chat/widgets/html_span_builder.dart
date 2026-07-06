@@ -201,7 +201,7 @@ class HtmlSpanBuilder {
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
               decoration: BoxDecoration(
                 color: bgColor,
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
               ),
               child: Text(
                 node.text,
@@ -273,7 +273,7 @@ class HtmlSpanBuilder {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 256, maxHeight: 256),
                 child: MxcImage(

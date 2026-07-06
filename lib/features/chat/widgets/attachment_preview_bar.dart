@@ -83,7 +83,7 @@ class _AttachmentCard extends StatelessWidget {
         children: [
           Positioned.fill(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
               child: attachment.isImage
                   ? Image.memory(
                       attachment.bytes,
@@ -92,7 +92,7 @@ class _AttachmentCard extends StatelessWidget {
                   : Container(
                       decoration: BoxDecoration(
                         color: cs.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,

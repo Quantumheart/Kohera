@@ -57,7 +57,7 @@ class _PipSelfViewState extends State<PipSelfView> {
                     height: PipSelfView.height,
                     child: Material(
                       elevation: 8,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                       clipBehavior: Clip.antiAlias,
                       child: ParticipantTile(participant: widget.participant),
                     ),

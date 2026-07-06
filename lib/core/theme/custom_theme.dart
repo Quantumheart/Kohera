@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/kohera_palette.dart';
 
 class CustomTheme {
   const CustomTheme({
@@ -22,13 +23,13 @@ class CustomTheme {
   final Color highlight;
 
   static const defaults = CustomTheme(
-    background: Color(0xFF1E1E2E),
-    foreground: Color(0xFFCDD6F4),
-    primary: Color(0xFF89B4FA),
-    secondary: Color(0xFF585B70),
-    muted: Color(0xFFA6ADC8),
-    border: Color(0xFF45475A),
-    highlight: Color(0xFFF9E2AF),
+    background: Color(0xFF1E1E2E), // koheraPalette.surface
+    foreground: Color(0xFFCDD6F4), // koheraPalette.onSurface
+    primary: Color(0xFF89B4FA), // koheraPalette.primary
+    secondary: Color(0xFF585B70), // koheraPalette.secondary
+    muted: Color(0xFFA6ADC8), // koheraPalette.onSurfaceVariant
+    border: Color(0xFF45475A), // koheraPalette.borderStrong
+    highlight: Color(0xFFF9E2AF), // koheraPalette.tertiary
   );
 
   CustomTheme copyWith({
@@ -67,8 +68,8 @@ class CustomTheme {
       onTertiary: _contrastOn(highlight),
       tertiaryContainer: _shift(highlight, isLight ? 0.85 : 0.3),
       onTertiaryContainer: _shift(highlight, isLight ? 0.15 : 0.9),
-      error: const Color(0xFFF38BA8),
-      onError: const Color(0xFF1E1E2E),
+      error: const Color(0xFFF38BA8), // koheraPalette.error
+      onError: const Color(0xFF1E1E2E), // koheraPalette.onError
       surface: background,
       onSurface: foreground,
       onSurfaceVariant: muted,
@@ -114,6 +115,43 @@ class CustomTheme {
       muted: Color(map['muted'] as int),
       border: Color(map['border'] as int),
       highlight: Color(map['highlight'] as int),
+    );
+  }
+  
+  /// Converts this custom theme to a KoheraPalette
+  KoheraPalette toKoheraPalette(Brightness brightness) {
+    final isLight = brightness == Brightness.light;
+    
+    // For a custom theme, we'll map the colors to the closest palette tokens
+    return KoheraPalette(
+      borderStrong: border,
+      borderWidth: 2,
+      shadowHard: isLight ? const Color(0xFF7E2553) : const Color(0xFF7E2553), // PICO-8 dark purple
+      shadowOffset: 3,
+      radius: 0,
+      online: const Color(0xFF00E436), // PICO-8 green
+      idle: const Color(0xFFFFA300), // PICO-8 orange
+      unread: const Color(0xFFFF77A8), // PICO-8 pink
+      onUnread: isLight ? const Color(0xFFFFFFFF) : const Color(0xFF000000),
+      mention: const Color(0xFFFFEC27), // PICO-8 yellow
+      link: const Color(0xFF29ADFF), // PICO-8 blue
+      ownBubble: isLight ? const Color(0xFF0B2B3F) : const Color(0xFF0B2B3F),
+      onOwnBubble: isLight ? const Color(0xFFFFFFFF) : const Color(0xFFFFFFFF),
+      otherBubble: isLight ? const Color(0xFF0E1638) : const Color(0xFF0E1638),
+      onOtherBubble: isLight ? const Color(0xFFFFFFFF) : const Color(0xFFFFFFFF),
+      success: const Color(0xFF00E436), // PICO-8 green
+      warning: const Color(0xFFFFA300), // PICO-8 orange
+      danger: const Color(0xFFFF004D), // PICO-8 red
+      scanline: const Color(0xFF000000).withValues(alpha: 0.18),
+      dither: const Color(0xFF1D2B53), // PICO-8 dark blue
+      accentRamp: [
+        const Color(0xFFFF77A8), // PICO-8 pink
+        const Color(0xFF29ADFF), // PICO-8 blue
+        const Color(0xFF83769C), // PICO-8 lavender
+        const Color(0xFF00E436), // PICO-8 green
+        const Color(0xFFFFA300), // PICO-8 orange
+        const Color(0xFFFFEC27), // PICO-8 yellow
+      ],
     );
   }
 }

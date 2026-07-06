@@ -24,7 +24,7 @@ class InlineImagePreview extends StatelessWidget {
           unawaited(safeLaunchUrl(url));
         },
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 260, maxWidth: 280),
             child: Image.network(

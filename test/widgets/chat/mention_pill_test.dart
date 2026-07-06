@@ -72,7 +72,7 @@ void main() {
       expect(find.text('##general'), findsNothing);
     });
 
-    testWidgets('pill has rounded decoration', (tester) async {
+    testWidgets('pill has sharp pixel decoration', (tester) async {
       await tester.pumpWidget(_wrap(
         const MentionPill(
           displayName: 'Alice',
@@ -90,7 +90,7 @@ void main() {
         ),
       );
       final decoration = container.decoration! as BoxDecoration;
-      expect(decoration.borderRadius, BorderRadius.circular(12));
+      expect(decoration.borderRadius, BorderRadius.circular(0));
     });
 
     testWidgets('font size is scaled down from parent style', (tester) async {

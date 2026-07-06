@@ -232,7 +232,7 @@ class _UpgradeBanner extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: cs.secondaryContainer,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       ),
       child: Row(
         children: [

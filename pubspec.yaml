@@ -80,6 +80,15 @@ flutter:
     - assets/icons/
     - assets/openmoji/
     - assets/vodozemac/
+    - assets/fonts/
+
+  fonts:
+    - family: DepartureMono
+      fonts:
+        - asset: assets/fonts/DepartureMono-Regular.ttf
+    - family: PressStart2P
+      fonts:
+        - asset: assets/fonts/PressStart2P-Regular.ttf
 
 dependency_overrides:
   flutter_webrtc:

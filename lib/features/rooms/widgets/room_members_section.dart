@@ -192,7 +192,7 @@ class _MemberTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(
           color: cs.errorContainer,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         ),
         child: Text(
           'Admin',
@@ -205,7 +205,7 @@ class _MemberTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(
           color: cs.tertiaryContainer,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         ),
         child: Text(
           'Mod',

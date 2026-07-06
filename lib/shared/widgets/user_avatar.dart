@@ -4,8 +4,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cached_network_image_platform_interface/cached_network_image_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
-import 'package:kohera/core/utils/sender_color.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/shared/widgets/pixel_sprite_avatar.dart';
+import 'package:kohera/shared/widgets/pixelation_scope.dart';
 import 'package:kohera/shared/widgets/presence_dot.dart';
 
 /// Displays a user's Matrix avatar with a colored-initial fallback.
@@ -91,11 +92,12 @@ class _UserAvatarState extends State<UserAvatar> {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final initial = _userInitial(widget.userId);
-    final bgColor = senderColor(widget.userId, cs, fallback: cs.primaryContainer);
+    final pixelate = PixelationScope.of(context);
+    final pixelPx = (widget.size * 0.55).round().clamp(14, 48);
+    final fallback = PixelSpriteAvatar(seed: widget.userId, size: widget.size);
 
-    final avatar = ClipOval(
+    final avatar = ClipRRect(
+      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       child: SizedBox(
         width: widget.size,
         height: widget.size,
@@ -105,22 +107,21 @@ class _UserAvatarState extends State<UserAvatar> {
                 httpHeaders: _resolvedHeaders,
                 imageRenderMethodForWeb: ImageRenderMethodForWeb.HttpGet,
                 fit: BoxFit.cover,
-                placeholder: (_, _) => _Fallback(
-                  initial: initial,
-                  bgColor: bgColor,
-                  size: widget.size,
-                ),
-                errorWidget: (_, _, _) => _Fallback(
-                  initial: initial,
-                  bgColor: bgColor,
-                  size: widget.size,
-                ),
+                imageBuilder: pixelate
+                    ? (context, imageProvider) => Image(
+                          image: ResizeImage(
+                            imageProvider,
+                            width: pixelPx,
+                            height: pixelPx,
+                          ),
+                          fit: BoxFit.cover,
+                          filterQuality: FilterQuality.none,
+                        )
+                    : null,
+                placeholder: (_, _) => fallback,
+                errorWidget: (_, _, _) => fallback,
               )
-            : _Fallback(
-                initial: initial,
-                bgColor: bgColor,
-                size: widget.size,
-              ),
+            : fallback,
       ),
     );
 
@@ -132,39 +133,4 @@ class _UserAvatarState extends State<UserAvatar> {
     );
   }
 
-  static String _userInitial(String userId) {
-    if (userId.isEmpty) return '?';
-    if (userId.length > 1) return userId[1].toUpperCase();
-    return userId[0].toUpperCase();
-  }
-}
-
-class _Fallback extends StatelessWidget {
-  const _Fallback({
-    required this.initial,
-    required this.bgColor,
-    required this.size,
-  });
-
-  final String initial;
-  final Color bgColor;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      color: bgColor,
-      alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: TextStyle(
-          fontSize: size * 0.4,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
 }

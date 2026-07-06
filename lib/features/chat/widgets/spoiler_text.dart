@@ -37,7 +37,7 @@ class _SpoilerTextState extends State<SpoilerText> {
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: cs.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4),

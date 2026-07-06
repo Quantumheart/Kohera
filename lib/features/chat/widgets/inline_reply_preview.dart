@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/core/utils/sender_color.dart';
 import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
 
@@ -22,12 +23,15 @@ class InlineReplyPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final palette = KoheraPalette.of(context);
     final tt = Theme.of(context).textTheme;
 
     final parentAvailable = preview != null;
     final color = parentAvailable
         ? senderColor(preview!.parentSenderId ?? '', cs)
         : cs.onSurfaceVariant;
+
+    final onBubble = isMe ? palette.onOwnBubble : palette.onOtherBubble;
 
     return GestureDetector(
       onTap: parentAvailable ? onTap : null,
@@ -36,13 +40,7 @@ class InlineReplyPreview extends StatelessWidget {
         padding: const EdgeInsets.only(left: 8, right: 4, top: 4, bottom: 4),
         decoration: BoxDecoration(
           border: Border(left: BorderSide(color: color, width: 2)),
-          color: isMe
-              ? cs.onPrimary.withValues(alpha: 0.12)
-              : cs.onSurface.withValues(alpha: 0.06),
-          borderRadius: const BorderRadius.only(
-            topRight: Radius.circular(4),
-            bottomRight: Radius.circular(4),
-          ),
+          color: onBubble.withValues(alpha: 0.12),
         ),
         child: parentAvailable
             ? Column(
@@ -62,9 +60,7 @@ class InlineReplyPreview extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: tt.bodySmall?.copyWith(
-                      color: isMe
-                          ? cs.onPrimary.withValues(alpha: 0.7)
-                          : cs.onSurfaceVariant,
+                      color: onBubble.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -73,9 +69,7 @@ class InlineReplyPreview extends StatelessWidget {
                 'Message not available',
                 style: tt.bodySmall?.copyWith(
                   fontStyle: FontStyle.italic,
-                  color: isMe
-                      ? cs.onPrimary.withValues(alpha: 0.5)
-                      : cs.onSurfaceVariant.withValues(alpha: 0.5),
+                  color: onBubble.withValues(alpha: 0.5),
                 ),
               ),
       ),

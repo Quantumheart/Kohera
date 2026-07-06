@@ -141,7 +141,6 @@ class _MessageBubbleState extends State<MessageBubble> {
         color: widget.highlighted
             ? cs.primaryContainer.withValues(alpha: 0.3)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisAlignment:

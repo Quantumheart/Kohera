@@ -51,10 +51,10 @@ class RoomSectionHeader extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         decoration: BoxDecoration(
           color: isHovered ? cs.primaryContainer : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           onTap: () => prefs.toggleSectionCollapsed(item.sectionKey),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
@@ -143,12 +143,12 @@ class RoomSectionHeader extends StatelessWidget {
         feedback: Material(
           color: Colors.transparent,
           elevation: 4,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: cs.surfaceContainer,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
               border: Border.all(color: cs.primary, width: 1.5),
             ),
             child: Row(

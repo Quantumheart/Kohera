@@ -170,7 +170,7 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay> with Single
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
             borderSide: BorderSide.none,
           ),
           filled: true,

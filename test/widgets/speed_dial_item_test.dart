@@ -56,7 +56,7 @@ void main() {
         (m) => m.elevation == 2,
         orElse: () => throw StateError('No Material with elevation 2 found'),
       );
-      expect(labelMaterial.borderRadius, BorderRadius.circular(8));
+      expect(labelMaterial.borderRadius, BorderRadius.circular(0));
     });
   });
 }

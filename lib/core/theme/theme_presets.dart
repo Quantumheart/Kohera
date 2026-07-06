@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/kohera_palette.dart';
 
 class ThemePreset {
   const ThemePreset({
@@ -8,6 +9,7 @@ class ThemePreset {
     this.forcedMode,
     this.lightScheme,
     this.darkScheme,
+    this.pixelPalette,
   });
 
   final String id;
@@ -17,12 +19,20 @@ class ThemePreset {
   final ColorScheme? lightScheme;
   final ColorScheme? darkScheme;
 
+  /// Factory that produces the [KoheraPalette] for this preset.
+  /// If null, the theme builder defaults to PICO-8.
+  final KoheraPalette Function(Brightness)? pixelPalette;
+
   ColorScheme light() =>
       lightScheme ?? ColorScheme.fromSeed(seedColor: seedColor);
 
   ColorScheme dark() =>
       darkScheme ??
       ColorScheme.fromSeed(seedColor: seedColor, brightness: Brightness.dark);
+
+  /// Resolve the pixel palette for a given brightness, or null when this
+  /// preset defines none (the builder then derives one from the ColorScheme).
+  KoheraPalette? pixel(Brightness b) => pixelPalette?.call(b);
 }
 
 const _presets = <ThemePreset>[
@@ -329,6 +339,196 @@ const _presets = <ThemePreset>[
       surfaceContainer: Color(0xFFDCE0E8),
       surfaceContainerHigh: Color(0xFFD4D7E0),
       surfaceContainerHighest: Color(0xFFCCD0DA),
+    ),
+  ),
+
+  // ── Pixel themes ─────────────────────────────────────────────
+  ThemePreset(
+    id: 'pico8',
+    name: 'PICO-8',
+    seedColor: Color(0xFF008751),
+    pixelPalette: KoheraPalette.pico8,
+    // PICO-8 palette (https://www.lexaloffle.com/pico-8.php)
+    // 0:black 1:dark-blue 2:dark-purple 3:dark-green 4:brown
+    // 5:dark-gray 6:light-gray 7:white 8:red 9:orange
+    // 10:yellow 11:green 12:blue 13:lavender 14:pink 15:light-peach
+    darkScheme: ColorScheme(
+      brightness: Brightness.dark,
+      primary: Color(0xFF29ADFF),       // PICO-8 blue
+      onPrimary: Color(0xFF000000),     // black
+      primaryContainer: Color(0xFF1D2B53), // dark-blue
+      onPrimaryContainer: Color(0xFFFFF1E8), // white
+      secondary: Color(0xFF83769C),      // PICO-8 lavender
+      onSecondary: Color(0xFF000000),   // black
+      secondaryContainer: Color(0xFF7E2553), // dark-purple
+      onSecondaryContainer: Color(0xFFFFF1E8), // white
+      tertiary: Color(0xFFFFEC27),       // PICO-8 yellow
+      onTertiary: Color(0xFF000000),    // black
+      tertiaryContainer: Color(0xFFAB5236), // brown
+      onTertiaryContainer: Color(0xFFFFF1E8), // white
+      error: Color(0xFFFF004D),          // PICO-8 red
+      onError: Color(0xFFFFF1E8),       // white
+      surface: Color(0xFF000000),        // black
+      onSurface: Color(0xFFFFF1E8),     // white
+      onSurfaceVariant: Color(0xFFC2C3C7), // light-gray
+      outline: Color(0xFF5F574F),       // dark-gray
+      outlineVariant: Color(0xFF5F574F), // dark-gray
+      surfaceContainerLowest: Color(0xFF000000),  // black
+      surfaceContainerLow: Color(0xFF1D2B53),    // dark-blue
+      surfaceContainer: Color(0xFF1D2B53),      // dark-blue
+      surfaceContainerHigh: Color(0xFF5F574F),   // dark-gray
+      surfaceContainerHighest: Color(0xFF5F574F), // dark-gray
+    ),
+    lightScheme: ColorScheme(
+      brightness: Brightness.light,
+      primary: Color(0xFF008751),       // PICO-8 dark-green
+      onPrimary: Color(0xFFFFF1E8),     // white
+      primaryContainer: Color(0xFF00E436), // PICO-8 green
+      onPrimaryContainer: Color(0xFF000000), // black
+      secondary: Color(0xFFAB5236),      // PICO-8 brown
+      onSecondary: Color(0xFFFFF1E8),   // white
+      secondaryContainer: Color(0xFFFFCCAA), // light-peach
+      onSecondaryContainer: Color(0xFF000000), // black
+      tertiary: Color(0xFFFFA300),       // PICO-8 orange
+      onTertiary: Color(0xFF000000),    // black
+      tertiaryContainer: Color(0xFFFFEC27), // yellow
+      onTertiaryContainer: Color(0xFF000000), // black
+      error: Color(0xFFFF004D),          // PICO-8 red
+      onError: Color(0xFFFFF1E8),       // white
+      surface: Color(0xFFFFF1E8),        // PICO-8 white
+      onSurface: Color(0xFF000000),     // black
+      onSurfaceVariant: Color(0xFF5F574F), // dark-gray
+      outline: Color(0xFF5F574F),       // dark-gray
+      outlineVariant: Color(0xFFC2C3C7), // light-gray
+      surfaceContainerLowest: Color(0xFFFFF1E8),  // white
+      surfaceContainerLow: Color(0xFFFFCCAA),    // light-peach
+      surfaceContainer: Color(0xFFC2C3C7),      // light-gray
+      surfaceContainerHigh: Color(0xFFAB5236),   // brown
+      surfaceContainerHighest: Color(0xFF83769C), // lavender
+    ),
+  ),
+
+  // Game Boy DMG — 4 greens: 0F380F / 306230 / 8BAC0F / 9BBC0F
+  ThemePreset(
+    id: 'gameboy',
+    name: 'Game Boy',
+    seedColor: Color(0xFF8BAC0F),
+    pixelPalette: KoheraPalette.gameboy,
+    darkScheme: ColorScheme(
+      brightness: Brightness.dark,
+      primary: Color(0xFF8BAC0F),
+      onPrimary: Color(0xFF0F380F),
+      primaryContainer: Color(0xFF306230),
+      onPrimaryContainer: Color(0xFF9BBC0F),
+      secondary: Color(0xFF9BBC0F),
+      onSecondary: Color(0xFF0F380F),
+      secondaryContainer: Color(0xFF306230),
+      onSecondaryContainer: Color(0xFF9BBC0F),
+      tertiary: Color(0xFF8BAC0F),
+      onTertiary: Color(0xFF0F380F),
+      tertiaryContainer: Color(0xFF306230),
+      onTertiaryContainer: Color(0xFF9BBC0F),
+      error: Color(0xFF9BBC0F),
+      onError: Color(0xFF0F380F),
+      surface: Color(0xFF0F380F),
+      onSurface: Color(0xFF9BBC0F),
+      onSurfaceVariant: Color(0xFF8BAC0F),
+      outline: Color(0xFF306230),
+      outlineVariant: Color(0xFF306230),
+      surfaceContainerLowest: Color(0xFF0A280A),
+      surfaceContainerLow: Color(0xFF163E16),
+      surfaceContainer: Color(0xFF1E4A1E),
+      surfaceContainerHigh: Color(0xFF2A5A2A),
+      surfaceContainerHighest: Color(0xFF306230),
+    ),
+    lightScheme: ColorScheme(
+      brightness: Brightness.light,
+      primary: Color(0xFF0F380F),
+      onPrimary: Color(0xFF9BBC0F),
+      primaryContainer: Color(0xFF8BAC0F),
+      onPrimaryContainer: Color(0xFF0F380F),
+      secondary: Color(0xFF306230),
+      onSecondary: Color(0xFF9BBC0F),
+      secondaryContainer: Color(0xFF8BAC0F),
+      onSecondaryContainer: Color(0xFF0F380F),
+      tertiary: Color(0xFF306230),
+      onTertiary: Color(0xFF9BBC0F),
+      tertiaryContainer: Color(0xFF8BAC0F),
+      onTertiaryContainer: Color(0xFF0F380F),
+      error: Color(0xFF0F380F),
+      onError: Color(0xFF9BBC0F),
+      surface: Color(0xFF9BBC0F),
+      onSurface: Color(0xFF0F380F),
+      onSurfaceVariant: Color(0xFF306230),
+      outline: Color(0xFF306230),
+      outlineVariant: Color(0xFF8BAC0F),
+      surfaceContainerLowest: Color(0xFFAECD33),
+      surfaceContainerLow: Color(0xFF93B40F),
+      surfaceContainer: Color(0xFF8BAC0F),
+      surfaceContainerHigh: Color(0xFF6E9A1E),
+      surfaceContainerHighest: Color(0xFF4F7A22),
+    ),
+  ),
+
+  // Paper — ink on warm paper (light-native), designed dark "night paper"
+  ThemePreset(
+    id: 'paper',
+    name: 'Paper',
+    seedColor: Color(0xFFB0453A),
+    pixelPalette: KoheraPalette.paper,
+    lightScheme: ColorScheme(
+      brightness: Brightness.light,
+      primary: Color(0xFFB0453A),
+      onPrimary: Color(0xFFFBF7EC),
+      primaryContainer: Color(0xFFE8E0CC),
+      onPrimaryContainer: Color(0xFF2B2620),
+      secondary: Color(0xFF3A6EA5),
+      onSecondary: Color(0xFFFBF7EC),
+      secondaryContainer: Color(0xFFDCE4EC),
+      onSecondaryContainer: Color(0xFF2B2620),
+      tertiary: Color(0xFFC9A227),
+      onTertiary: Color(0xFF2B2620),
+      tertiaryContainer: Color(0xFFF0E6C6),
+      onTertiaryContainer: Color(0xFF2B2620),
+      error: Color(0xFFB0453A),
+      onError: Color(0xFFFBF7EC),
+      surface: Color(0xFFFBF7EC),
+      onSurface: Color(0xFF2B2620),
+      onSurfaceVariant: Color(0xFF6B6355),
+      outline: Color(0xFF8A8070),
+      outlineVariant: Color(0xFFDED5C0),
+      surfaceContainerLowest: Color(0xFFFFFDF7),
+      surfaceContainerLow: Color(0xFFF5EFE0),
+      surfaceContainer: Color(0xFFEFE8D6),
+      surfaceContainerHigh: Color(0xFFE8E0CC),
+      surfaceContainerHighest: Color(0xFFDED5C0),
+    ),
+    darkScheme: ColorScheme(
+      brightness: Brightness.dark,
+      primary: Color(0xFFC46A5B),
+      onPrimary: Color(0xFF15130F),
+      primaryContainer: Color(0xFF2A2822),
+      onPrimaryContainer: Color(0xFFEDE6D2),
+      secondary: Color(0xFF7FA6C9),
+      onSecondary: Color(0xFF15130F),
+      secondaryContainer: Color(0xFF23262B),
+      onSecondaryContainer: Color(0xFFEDE6D2),
+      tertiary: Color(0xFFD9A441),
+      onTertiary: Color(0xFF15130F),
+      tertiaryContainer: Color(0xFF2A2822),
+      onTertiaryContainer: Color(0xFFEDE6D2),
+      error: Color(0xFFC46A5B),
+      onError: Color(0xFF15130F),
+      surface: Color(0xFF15130F),
+      onSurface: Color(0xFFEDE6D2),
+      onSurfaceVariant: Color(0xFFB5AD98),
+      outline: Color(0xFF4A453B),
+      outlineVariant: Color(0xFF2A2822),
+      surfaceContainerLowest: Color(0xFF100E0B),
+      surfaceContainerLow: Color(0xFF1C1A15),
+      surfaceContainer: Color(0xFF1C1A15),
+      surfaceContainerHigh: Color(0xFF2A2822),
+      surfaceContainerHighest: Color(0xFF2A2822),
     ),
   ),
 ];

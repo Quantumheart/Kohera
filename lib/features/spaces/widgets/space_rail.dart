@@ -395,7 +395,6 @@ class _RailIconState extends State<_RailIcon> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final radius = widget.isSelected ? 14.0 : 22.0;
     final size = widget.isSelected ? 48.0 : 44.0;
 
     Widget iconContent;
@@ -454,7 +453,7 @@ class _RailIconState extends State<_RailIcon> {
                       : widget.isSelected
                           ? widget.color
                           : cs.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(radius),
+              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
               border: widget.outlined
                   ? Border.all(
                       color: cs.outlineVariant,
@@ -465,7 +464,7 @@ class _RailIconState extends State<_RailIcon> {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                borderRadius: BorderRadius.circular(radius),
+                borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                 mouseCursor: SystemMouseCursors.click,
                 onTap: widget.onTap,
                 onLongPress: widget.onLongPress,
@@ -491,7 +490,7 @@ class _RailIconState extends State<_RailIcon> {
               constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
               decoration: BoxDecoration(
                 color: cs.error,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
               ),
               child: Center(
                 child: Text(

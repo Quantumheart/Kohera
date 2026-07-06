@@ -108,9 +108,9 @@ class _InviteTileState extends State<InviteTile> {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Material(
         color: cs.tertiaryContainer.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           mouseCursor: SystemMouseCursors.click,
           onTap: _inFlight ? null : _accept,
           child: Padding(

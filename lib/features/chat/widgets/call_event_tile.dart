@@ -39,7 +39,7 @@ class CallEventTile extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
