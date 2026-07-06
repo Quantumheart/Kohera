@@ -14,7 +14,6 @@ import 'package:kohera/features/notifications/services/web_focus_listener.dart';
 import 'package:kohera/features/notifications/services/web_push_service_export.dart';
 import 'package:provider/provider.dart';
 
-
 class NotificationLifecycleObserver extends StatefulWidget {
   const NotificationLifecycleObserver({
     required this.matrixService,
@@ -110,6 +109,7 @@ class _NotificationLifecycleObserverState
         unawaited(_registerWebPush(webPushService));
         webPushService.listenForSubscriptionChanges();
       }
+      unawaited(_syncGlobalPushRules());
     }
 
     if (mounted) {
@@ -127,6 +127,14 @@ class _NotificationLifecycleObserverState
   Future<void> _registerWebPush(WebPushService service) async {
     if (!widget.preferencesService.webPushEnabled) return;
     await service.register();
+  }
+
+  /// Reconcile the homeserver's account-wide push rules with the persisted
+  /// global notification level. Ensures APNs/UnifiedPush pushes are filtered
+  /// server-side after a fresh login or session restore.
+  Future<void> _syncGlobalPushRules() async {
+    await widget.matrixService.globalPushRuleManager
+        .ensureSync(widget.preferencesService.notificationLevel);
   }
 
   void _onMatrixChanged() {
@@ -180,6 +188,7 @@ class _NotificationLifecycleObserverState
         if (kIsWeb && _webPushService != null) {
           unawaited(_registerWebPush(_webPushService!));
         }
+        unawaited(_syncGlobalPushRules());
       } else {
         _notificationService?.stopListening();
         unawaited(_notificationService?.cancelAll());
