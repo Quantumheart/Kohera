@@ -205,7 +205,7 @@ class _SpaceTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
               color: cs.primary,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
             ),
             child: Text(
               unread > 99 ? '99+' : '$unread',

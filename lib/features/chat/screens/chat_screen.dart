@@ -905,7 +905,7 @@ class _ChatScreenState extends State<ChatScreen>
     return Material(
       elevation: 8,
       color: cs.surfaceContainer,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       clipBehavior: Clip.antiAlias,
       child: SizedBox(
         width: width,

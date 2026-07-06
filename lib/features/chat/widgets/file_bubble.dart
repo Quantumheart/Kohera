@@ -68,7 +68,7 @@ class _FileBubbleState extends State<FileBubble> {
 
     return InkWell(
       onTap: _downloading ? null : _download,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Row(

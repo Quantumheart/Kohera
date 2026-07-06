@@ -344,7 +344,7 @@ void main() {
       expect(codeText.style?.fontFamily, 'monospace');
     });
 
-    testWidgets('inline <code> has rounded background container',
+    testWidgets('inline <code> has sharp background container',
         (tester) async {
       await tester.pumpWidget(_wrap(
         const HtmlMessageText(
@@ -362,7 +362,7 @@ void main() {
         ),
       );
       final decoration = container.decoration! as BoxDecoration;
-      expect(decoration.borderRadius, BorderRadius.circular(4));
+      expect(decoration.borderRadius, BorderRadius.circular(0));
       expect(decoration.color, isNotNull);
     });
 

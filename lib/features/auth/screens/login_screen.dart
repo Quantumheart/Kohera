@@ -233,7 +233,7 @@ class _LoginScreenState extends State<LoginScreen>
                         onPressed: formEnabled ? _login : null,
                         style: FilledButton.styleFrom(
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                           ),
                         ),
                         child: LoadingButtonChild(
@@ -289,7 +289,7 @@ class _LoginScreenState extends State<LoginScreen>
                               label: Text('Sign in with ${provider.name}'),
                               style: OutlinedButton.styleFrom(
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                                 ),
                               ),
                             ),
@@ -310,7 +310,7 @@ class _LoginScreenState extends State<LoginScreen>
                             label: const Text('Sign in with SSO'),
                             style: OutlinedButton.styleFrom(
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                               ),
                             ),
                           ),

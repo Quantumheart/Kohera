@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 
 BorderRadius bubbleRadii({
@@ -7,7 +8,8 @@ BorderRadius bubbleRadii({
   required double radius,
 }) {
   final r = Radius.circular(radius);
-  const tail = Radius.circular(4);
+  // Sharp corners everywhere — no rounded tail for pixel theme
+  final tail = Radius.circular(radius);
   return BorderRadius.only(
     topLeft: r,
     topRight: r,
@@ -34,7 +36,7 @@ class MessageBubbleSkin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final palette = KoheraPalette.of(context);
     final maxWidth = MediaQuery.sizeOf(context).width * 0.72;
 
     return Stack(
@@ -52,14 +54,22 @@ class MessageBubbleSkin extends StatelessWidget {
               vertical: metrics.bubbleVerticalPad,
             ),
             decoration: BoxDecoration(
-              color: isMe
-                  ? cs.primary
-                  : cs.primaryContainer.withValues(alpha: 0.6),
+              color: isMe ? palette.ownBubble : palette.otherBubble,
+              border: Border.all(
+                color: palette.borderStrong,
+                width: palette.borderWidth,
+              ),
               borderRadius: bubbleRadii(
                 isMe: isMe,
                 isFirst: isFirst,
-                radius: metrics.bubbleRadius,
+                radius: palette.radius,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: palette.shadowHard,
+                  offset: Offset(palette.shadowOffset, palette.shadowOffset),
+                ),
+              ],
             ),
             child: child,
           ),

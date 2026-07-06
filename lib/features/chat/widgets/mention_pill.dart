@@ -54,7 +54,7 @@ class MentionPill extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         ),
         child: Text(
           label,

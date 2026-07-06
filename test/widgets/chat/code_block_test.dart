@@ -174,7 +174,7 @@ void main() {
       final codeContainer = containers.firstWhere(
         (c) => c.decoration is BoxDecoration &&
             (c.decoration! as BoxDecoration).borderRadius ==
-                BorderRadius.circular(8),
+                BorderRadius.circular(0),
       );
       final decoration = codeContainer.decoration! as BoxDecoration;
       expect(decoration.color, isNotNull);
@@ -194,7 +194,7 @@ void main() {
       final codeContainer = containers.firstWhere(
         (c) => c.decoration is BoxDecoration &&
             (c.decoration! as BoxDecoration).borderRadius ==
-                BorderRadius.circular(8),
+                BorderRadius.circular(0),
       );
       final decoration = codeContainer.decoration! as BoxDecoration;
       expect(decoration.color, isNotNull);

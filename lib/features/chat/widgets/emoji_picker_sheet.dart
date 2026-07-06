@@ -27,7 +27,7 @@ class _EmojiPickerDialog extends StatelessWidget {
 
     return Dialog(
       backgroundColor: cs.surfaceContainer,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)), // Sharp corners for pixel theme
       clipBehavior: Clip.antiAlias,
       child: SizedBox(
         width: 350,

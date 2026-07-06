@@ -48,6 +48,33 @@ class AppearanceScreen extends StatelessWidget {
 
           const SizedBox(height: 24),
 
+          // ── Effects ────────────────────────────────────────
+          const SectionHeader(label: 'EFFECTS'),
+          Card(
+            child: Column(
+              children: [
+                SwitchListTile(
+                  title: const Text('CRT scanlines'),
+                  subtitle: const Text(
+                    'Faint scanline overlay for the retro console look.',
+                  ),
+                  value: prefs.scanlinesEnabled,
+                  onChanged: prefs.setScanlinesEnabled,
+                ),
+                SwitchListTile(
+                  title: const Text('Pixelate graphics'),
+                  subtitle: const Text(
+                    'Render uploaded avatars and emoji as pixel art.',
+                  ),
+                  value: prefs.pixelateGraphics,
+                  onChanged: prefs.setPixelateGraphics,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
           // ── Message density ────────────────────────────────
           const SectionHeader(label: 'MESSAGE DENSITY'),
           Card(

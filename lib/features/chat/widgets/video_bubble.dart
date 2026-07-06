@@ -213,7 +213,7 @@ class _VideoBubbleState extends State<VideoBubble> {
               ? _retry
               : _initPlayer,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 280, maxHeight: 260),
           child: Stack(
@@ -247,7 +247,7 @@ class _VideoBubbleState extends State<VideoBubble> {
                         const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                     ),
                     child: Text(
                       durationLabel,
@@ -278,7 +278,7 @@ class _VideoBubbleState extends State<VideoBubble> {
 
   Widget _buildInlinePlayer(ColorScheme cs) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 280, maxHeight: 260),
         child: Video(

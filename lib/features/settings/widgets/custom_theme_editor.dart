@@ -150,12 +150,12 @@ class _ColorSlot extends StatelessWidget {
         const SizedBox(height: 4),
         InkWell(
           onTap: () => _showColorPicker(context),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           child: Container(
             height: 36,
             decoration: BoxDecoration(
               color: color,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
               border: Border.all(color: borderColor),
             ),
           ),
@@ -227,7 +227,7 @@ class _HexColorPickerDialogState extends State<_HexColorPickerDialog> {
             width: double.infinity,
             decoration: BoxDecoration(
               color: _preview,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
               border: Border.all(
                 color: Theme.of(context).colorScheme.outlineVariant,
               ),

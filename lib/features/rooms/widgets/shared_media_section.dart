@@ -314,7 +314,7 @@ class _MediaThumbnailState extends State<_MediaThumbnail> {
         widget.avatarResolver,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         child: ColoredBox(
           color: cs.surfaceContainerHighest,
           child: _loading

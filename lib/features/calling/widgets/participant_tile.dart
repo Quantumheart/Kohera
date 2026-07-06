@@ -97,7 +97,7 @@ class _ParticipantTileState extends State<ParticipantTile> {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         border: Border.all(
           color: widget.participant.isSpeaking ? cs.primary : Colors.transparent,
           width: 2,
@@ -113,7 +113,7 @@ class _ParticipantTileState extends State<ParticipantTile> {
             : null,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -197,7 +197,7 @@ class _ParticipantTileState extends State<ParticipantTile> {
                   height: 4,
                   decoration: BoxDecoration(
                     color: cs.tertiary,
-                    borderRadius: BorderRadius.circular(2),
+                    borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                   ),
                 ),
                 const SizedBox(width: 4),

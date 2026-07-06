@@ -23,6 +23,7 @@ import 'package:highlight/languages/swift.dart' as lang_swift;
 import 'package:highlight/languages/typescript.dart' as lang_ts;
 import 'package:highlight/languages/xml.dart' as lang_xml;
 import 'package:highlight/languages/yaml.dart' as lang_yaml;
+import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart' show HtmlMessageText;
 
 /// Renders a fenced code block with syntax highlighting and a copy button.
@@ -85,6 +86,7 @@ class CodeBlock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final palette = KoheraPalette.of(context);
     final brightness = Theme.of(context).brightness;
 
     final bgColor = isMe
@@ -93,13 +95,13 @@ class CodeBlock extends StatelessWidget {
 
     final textColor = isMe ? cs.onPrimary : cs.onSurface;
 
-    final codeSpans = _buildHighlightedSpans(cs, brightness, textColor);
+    final codeSpans = _buildHighlightedSpans(cs, palette, brightness, textColor);
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -174,6 +176,7 @@ class CodeBlock extends StatelessWidget {
 
   List<TextSpan> _buildHighlightedSpans(
     ColorScheme cs,
+    KoheraPalette palette,
     Brightness brightness,
     Color defaultColor,
   ) {
@@ -192,7 +195,7 @@ class CodeBlock extends StatelessWidget {
       return [TextSpan(text: code)];
     }
 
-    final theme = _getThemeMap(cs, brightness, defaultColor);
+    final theme = _getThemeMap(cs, palette, brightness, defaultColor);
     final spans = <TextSpan>[];
     for (final node in result.nodes!) {
       _walkNode(node, theme, defaultColor, spans);
@@ -204,8 +207,8 @@ class CodeBlock extends StatelessWidget {
     hi.Node node,
     Map<String, TextStyle> theme,
     Color defaultColor,
-    List<TextSpan> spans, [
-    String? inheritedClassName,
+    List<TextSpan> spans,
+    [String? inheritedClassName,
   ]) {
     final effectiveClass = node.className ?? inheritedClassName;
     if (node.value != null) {
@@ -219,30 +222,35 @@ class CodeBlock extends StatelessWidget {
   }
 
   static ColorScheme? _cachedColorScheme;
+  static KoheraPalette? _cachedPalette;
   static Brightness? _cachedBrightness;
   static Color? _cachedDefaultColor;
   static Map<String, TextStyle>? _cachedThemeMap;
 
   static Map<String, TextStyle> _getThemeMap(
     ColorScheme cs,
+    KoheraPalette palette,
     Brightness brightness,
     Color defaultColor,
   ) {
     if (_cachedThemeMap != null &&
         cs == _cachedColorScheme &&
+        palette == _cachedPalette &&
         brightness == _cachedBrightness &&
         defaultColor == _cachedDefaultColor) {
       return _cachedThemeMap!;
     }
     _cachedColorScheme = cs;
+    _cachedPalette = palette;
     _cachedBrightness = brightness;
     _cachedDefaultColor = defaultColor;
-    _cachedThemeMap = _buildThemeMap(cs, brightness, defaultColor);
+    _cachedThemeMap = _buildThemeMap(cs, palette, brightness, defaultColor);
     return _cachedThemeMap!;
   }
 
   static Map<String, TextStyle> _buildThemeMap(
     ColorScheme cs,
+    KoheraPalette palette,
     Brightness brightness,
     Color defaultColor,
   ) {
@@ -253,7 +261,7 @@ class CodeBlock extends StatelessWidget {
       fontWeight: FontWeight.w600,
     );
     final string = TextStyle(
-      color: isLight ? const Color(0xFF2E7D32) : const Color(0xFF81C784),
+      color: isLight ? palette.success : palette.success,
     );
     final comment = TextStyle(
       color: defaultColor.withValues(alpha: 0.5),
@@ -307,7 +315,7 @@ class CodeBlock extends StatelessWidget {
       'template-variable': number,
       'addition': string,
       'deletion': TextStyle(
-        color: isLight ? const Color(0xFFC62828) : const Color(0xFFEF9A9A),
+        color: isLight ? palette.danger : palette.danger,
       ),
     };
   }

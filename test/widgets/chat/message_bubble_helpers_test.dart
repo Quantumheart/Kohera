@@ -170,12 +170,12 @@ void main() {
   group('bubbleRadii', () {
     const radius = 16.0;
 
-    test('isMe && isFirst: tail bottom-right', () {
+    test('isMe && isFirst: all corners sharp (no tail)', () {
       final r = bubbleRadii(isMe: true, isFirst: true, radius: radius);
       expect(r.topLeft, const Radius.circular(radius));
       expect(r.topRight, const Radius.circular(radius));
       expect(r.bottomLeft, const Radius.circular(radius));
-      expect(r.bottomRight, const Radius.circular(4));
+      expect(r.bottomRight, const Radius.circular(radius));
     });
 
     test('isMe && !isFirst: all full', () {
@@ -184,9 +184,9 @@ void main() {
       expect(r.bottomRight, const Radius.circular(radius));
     });
 
-    test('!isMe && isFirst: tail bottom-left', () {
+    test('!isMe && isFirst: all corners sharp (no tail)', () {
       final r = bubbleRadii(isMe: false, isFirst: true, radius: radius);
-      expect(r.bottomLeft, const Radius.circular(4));
+      expect(r.bottomLeft, const Radius.circular(radius));
       expect(r.bottomRight, const Radius.circular(radius));
     });
 

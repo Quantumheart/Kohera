@@ -48,7 +48,7 @@ class QrCodeView extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           ),
           child: QrImageView.withQr(
             qr: QrCode.fromUint8List(
@@ -121,7 +121,7 @@ class _QrScannerViewState extends State<QrScannerView> {
         ),
         const SizedBox(height: 16),
         ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           child: SizedBox(
             width: 240,
             height: 240,

@@ -212,7 +212,7 @@ class _RoleCardState extends State<_RoleCard> {
         child: Column(
           children: [
             InkWell(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
               onTap: () => setState(() => _expanded = !_expanded),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -1118,7 +1118,7 @@ class _AdvancedSectionState extends State<_AdvancedSection> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: cs.errorContainer,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,

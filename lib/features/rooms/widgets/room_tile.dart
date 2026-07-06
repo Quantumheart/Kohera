@@ -6,6 +6,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/core/utils/order_utils.dart' as order_utils;
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/calling/services/call_navigator.dart';
@@ -147,9 +148,9 @@ class _RoomTileState extends State<RoomTile> {
         color: widget.isSelected
             ? cs.primaryContainer.withValues(alpha: 0.5)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           mouseCursor: SystemMouseCursors.click,
           onTap: () => context.goNamed(
             Routes.room,
@@ -309,12 +310,13 @@ class _RoomTileState extends State<RoomTile> {
         feedback: Material(
           color: Colors.transparent,
           elevation: 4,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: cs.surfaceContainer,
-              borderRadius: BorderRadius.circular(10),
+            decoration: pixelBox(
+              context,
+              fill: cs.surfaceContainer,
+            ).copyWith(
               border: Border.all(color: cs.primary, width: 1.5),
             ),
             child: Row(
@@ -452,9 +454,9 @@ class _TrailingTimeBadge extends StatelessWidget {
           if (unread > 0)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: cs.primary,
-                borderRadius: BorderRadius.circular(10),
+              decoration: pixelBox(
+                context,
+                fill: cs.primary,
               ),
               child: Text(
                 unread > 99 ? '99+' : '$unread',

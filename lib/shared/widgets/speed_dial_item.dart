@@ -18,7 +18,7 @@ class SpeedDialItem extends StatelessWidget {
       children: [
         Material(
           elevation: 2,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           color: cs.surfaceContainerHigh,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

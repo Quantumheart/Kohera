@@ -241,7 +241,7 @@ class _StaleBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       ),
       child: Row(
         children: [

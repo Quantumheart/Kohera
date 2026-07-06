@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/core/utils/time_format.dart';
 import 'package:kohera/features/chat/models/kohera_message_status.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
@@ -28,11 +29,10 @@ class MessageBubbleTimestamp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final palette = KoheraPalette.of(context);
     final tt = Theme.of(context).textTheme;
-    final mutedColor = isMe
-        ? cs.onPrimary.withValues(alpha: 0.6)
-        : cs.onSurfaceVariant.withValues(alpha: 0.5);
+    final onBubble = isMe ? palette.onOwnBubble : palette.onOtherBubble;
+    final mutedColor = onBubble.withValues(alpha: 0.6);
 
     return Padding(
       padding: EdgeInsets.only(top: metrics.timestampTopPad),

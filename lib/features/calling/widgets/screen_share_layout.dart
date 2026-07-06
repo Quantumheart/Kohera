@@ -34,11 +34,11 @@ class ScreenShareLayout extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         color: cs.surfaceContainerHighest,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         child: Stack(
           fit: StackFit.expand,
           children: [

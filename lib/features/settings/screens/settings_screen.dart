@@ -73,7 +73,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
               ),
             ),
           ),
@@ -235,7 +235,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               foregroundColor: cs.onErrorContainer,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
               ),
             ),
             child: const Text('Sign Out'),

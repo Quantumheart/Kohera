@@ -60,16 +60,16 @@ class _PresetChip extends StatelessWidget {
 
     return Material(
       color: selected ? color : Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
             border: Border.all(
               color: selected ? color : cs.outlineVariant,
               width: selected ? 2 : 1,

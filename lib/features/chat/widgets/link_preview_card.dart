@@ -106,17 +106,17 @@ class _LinkPreviewCardState extends State<LinkPreviewCard>
           constraints: const BoxConstraints(maxWidth: 360),
           child: Material(
             color: cardColor,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
             clipBehavior: Clip.antiAlias,
             child: InkWell(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
               onTap: () {
                 unawaited(safeLaunchUrl(data.url));
               },
               child: Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: borderColor, width: 0.5),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,10 +124,6 @@ class _LinkPreviewCardState extends State<LinkPreviewCard>
                     // Thumbnail
                     if (data.imageUrl != null)
                       ClipRRect(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(8),
-                          bottomLeft: Radius.circular(8),
-                        ),
                         child: Image.network(
                           data.imageUrl!,
                           width: 60,

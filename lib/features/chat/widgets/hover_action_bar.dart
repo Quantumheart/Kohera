@@ -108,7 +108,7 @@ class _HoverActionBarState extends State<HoverActionBar> {
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Material(
         elevation: 2,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         color: widget.cs.surfaceContainerHighest,
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -118,9 +118,7 @@ class _HoverActionBarState extends State<HoverActionBar> {
                 icon: Icons.add_reaction_outlined,
                 onTap: _showQuickReactPopup,
                 cs: widget.cs,
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(16),
-                ),
+                borderRadius: BorderRadius.zero,
               ),
             if (widget.onReply != null)
               _ActionIcon(
@@ -139,9 +137,7 @@ class _HoverActionBarState extends State<HoverActionBar> {
                 widget.onMore(pos);
               },
               cs: widget.cs,
-              borderRadius: const BorderRadius.horizontal(
-                right: Radius.circular(16),
-              ),
+              borderRadius: BorderRadius.zero,
             ),
           ],
         ),
@@ -241,7 +237,7 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
                     padding: const EdgeInsets.only(bottom: gap),
                     child: Material(
                       elevation: 4,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                       color: cs.surfaceContainer,
                       clipBehavior: Clip.antiAlias,
                       child: SizedBox(
@@ -259,7 +255,7 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
                 // Quick-react bar
                 Material(
                   elevation: 4,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                   color: cs.surfaceContainerHighest,
                   clipBehavior: Clip.antiAlias,
                   child: Padding(
@@ -271,7 +267,7 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
                           () {
                             final toned = applySkinTone(emoji, tone);
                             return InkWell(
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                               onTap: () => widget.onEmojiSelected(toned),
                               child: Padding(
                                 padding: const EdgeInsets.all(6),
@@ -288,7 +284,7 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
                           }(),
                         if (widget.hasMore)
                           InkWell(
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                             onTap: () =>
                                 setState(() => _showPicker = !_showPicker),
                             child: Padding(

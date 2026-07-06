@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
@@ -62,7 +63,7 @@ class MessageBubbleBody extends StatelessWidget {
       return VerificationRequestTile(message: message);
     }
 
-    final cs = Theme.of(context).colorScheme;
+    final palette = KoheraPalette.of(context);
     final tt = Theme.of(context).textTheme;
 
     final hasHtml = message.formattedHtml != null;
@@ -70,8 +71,10 @@ class MessageBubbleBody extends StatelessWidget {
     final isEmote = message.messageType == _msgtypeEmote;
     final isServerNotice = message.messageType == _msgtypeServerNotice;
 
+    final onBubble = isMe ? palette.onOwnBubble : palette.onOtherBubble;
+
     var textStyle = tt.bodyLarge?.copyWith(
-      color: isMe ? cs.onPrimary : cs.onSurface,
+      color: onBubble,
       fontSize: metrics.bodyFontSize,
       height: metrics.bodyLineHeight,
     );
@@ -81,7 +84,7 @@ class MessageBubbleBody extends StatelessWidget {
     }
     if (isServerNotice) {
       textStyle = textStyle?.copyWith(
-        color: isMe ? cs.onPrimary.withValues(alpha: 0.8) : cs.onSurfaceVariant,
+        color: onBubble.withValues(alpha: 0.8),
       );
     }
     if (!isEmote && !isServerNotice && isEmojiOnly(message.body)) {
@@ -114,7 +117,8 @@ class MessageBubbleBody extends StatelessWidget {
   }
 
   Widget _wrapWithServerNoticeIcon(BuildContext context, Widget child) {
-    final cs = Theme.of(context).colorScheme;
+    final palette = KoheraPalette.of(context);
+    final onBubble = isMe ? palette.onOwnBubble : palette.onOtherBubble;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -124,9 +128,7 @@ class MessageBubbleBody extends StatelessWidget {
           child: Icon(
             Icons.campaign_outlined,
             size: 16,
-            color: isMe
-                ? cs.onPrimary.withValues(alpha: 0.8)
-                : cs.onSurfaceVariant,
+            color: onBubble.withValues(alpha: 0.8),
           ),
         ),
         Flexible(child: child),
@@ -143,7 +145,7 @@ class _RedactedBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final palette = KoheraPalette.of(context);
     final tt = Theme.of(context).textTheme;
 
     final label = redactionLabel(
@@ -152,13 +154,12 @@ class _RedactedBody extends StatelessWidget {
       redactor: message.redactorId,
       redactorDisplayName: message.redactorName,
     );
+    final onBubble = isMe ? palette.onOwnBubble : palette.onOtherBubble;
     return Text(
       label,
       style: tt.bodyMedium?.copyWith(
         fontStyle: FontStyle.italic,
-        color: isMe
-            ? cs.onPrimary.withValues(alpha: 0.5)
-            : cs.onSurfaceVariant.withValues(alpha: 0.5),
+        color: onBubble.withValues(alpha: 0.5),
       ),
     );
   }
@@ -171,11 +172,10 @@ class _BadEncryptedBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final palette = KoheraPalette.of(context);
     final tt = Theme.of(context).textTheme;
-    final color = isMe
-        ? cs.onPrimary.withValues(alpha: 0.5)
-        : cs.onSurfaceVariant.withValues(alpha: 0.5);
+    final onBubble = isMe ? palette.onOwnBubble : palette.onOtherBubble;
+    final color = onBubble.withValues(alpha: 0.5);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

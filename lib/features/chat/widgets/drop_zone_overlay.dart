@@ -9,7 +9,7 @@ class DropZoneOverlay extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: cs.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         border: Border.all(
           color: cs.primary.withValues(alpha: 0.4),
           width: 2,

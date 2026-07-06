@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/emoji_style.dart';
 import 'package:kohera/core/utils/openmoji.dart';
+import 'package:kohera/shared/widgets/pixelation_scope.dart';
 
 /// Edge length in pixels of the bundled OpenMoji source assets.
 const _openMojiSourcePx = 72;
@@ -33,16 +34,18 @@ class OpenMojiImage extends StatelessWidget {
     if (asset == null) return _fallback();
 
     final s = size;
-    // Decode with 2x headroom over the physical target so small paints (reaction
-    // chips, inline emoji) keep detail, then let Image's default medium-quality
-    // resampling downsample to the logical size. Decoding straight to the ~17px
-    // target box leaves nothing to filter and looks blocky. Cap the decode at the
-    // native source size so larger paints still upscale from the full 72px.
-    final cacheSize = s == null
-        ? null
-        : (s * (MediaQuery.maybeDevicePixelRatioOf(context) ?? 1.0) * 2)
-            .round()
-            .clamp(1, _openMojiSourcePx);
+    final pixelate = PixelationScope.of(context);
+    // When pixelation is on, decode at a small fixed grid and paint with
+    // nearest-neighbour (FilterQuality.none) so emoji upscale into crisp blocks,
+    // keeping their original colours. When off, decode at the native source and
+    // let default sampling render them smoothly.
+    const pixelGrid = 32;
+    final int? cacheSize;
+    if (s == null) {
+      cacheSize = _openMojiSourcePx;
+    } else {
+      cacheSize = pixelate ? pixelGrid : null;
+    }
     final image = Image.asset(
       asset,
       width: s,
@@ -50,6 +53,7 @@ class OpenMojiImage extends StatelessWidget {
       fit: BoxFit.contain,
       cacheWidth: cacheSize,
       cacheHeight: cacheSize,
+      filterQuality: pixelate ? FilterQuality.none : FilterQuality.medium,
       errorBuilder: (context, error, stackTrace) => _fallback(),
     );
     if (s == null) return image;

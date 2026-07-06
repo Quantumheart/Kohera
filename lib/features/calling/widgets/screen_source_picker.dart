@@ -181,7 +181,7 @@ class _SourceList extends StatelessWidget {
           selected: isSelected,
           selectedTileColor: cs.primaryContainer.withValues(alpha: 0.3),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
             side: BorderSide(
               color: isSelected ? cs.primary : Colors.transparent,
               width: isSelected ? 2 : 0,

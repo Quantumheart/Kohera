@@ -73,7 +73,7 @@ MarkdownStyleSheet _styleSheetFor(ThemeData theme) {
     code: codeStyle,
     codeblockDecoration: BoxDecoration(
       color: codeBg,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
     ),
     codeblockPadding: const EdgeInsets.all(12),
     blockquote: text.bodyMedium?.copyWith(

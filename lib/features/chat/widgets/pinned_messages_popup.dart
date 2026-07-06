@@ -195,7 +195,7 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
 
     return Material(
       elevation: 8,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       color: cs.surfaceContainer,
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -441,13 +441,13 @@ class _ActionChip extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
 
     return InkWell(
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
           color: cs.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         ),
         child: Text(
           label,

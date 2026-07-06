@@ -28,6 +28,8 @@ import 'package:kohera/features/notifications/widgets/notification_lifecycle_obs
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
+import 'package:kohera/shared/widgets/pixelation_scope.dart';
+import 'package:kohera/shared/widgets/scanline_overlay.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 
@@ -270,6 +272,9 @@ class _KoheraAppState extends State<KoheraApp> {
                               dynamic: customScheme.toColorScheme(
                                 Brightness.light,
                               ),
+                              palette: customScheme.toKoheraPalette(
+                                Brightness.light,
+                              ),
                             )
                           : KoheraTheme.light(
                               dynamic: lightDynamic,
@@ -278,6 +283,9 @@ class _KoheraAppState extends State<KoheraApp> {
                       final darkTheme = customScheme != null
                           ? KoheraTheme.dark(
                               dynamic: customScheme.toColorScheme(
+                                Brightness.dark,
+                              ),
+                              palette: customScheme.toKoheraPalette(
                                 Brightness.dark,
                               ),
                             )
@@ -302,12 +310,17 @@ class _KoheraAppState extends State<KoheraApp> {
                           darkTheme: darkTheme,
                           themeMode: themeMode,
                           routerConfig: router,
-                          builder: (context, child) =>
-                              VerificationRequestListener(
-                            router: router,
-                            child: IncomingCallOverlay(
-                              router: router,
-                              child: child ?? const SizedBox.shrink(),
+                          builder: (context, child) => ScanlineOverlay(
+                            enabled: prefs.scanlinesEnabled,
+                            child: PixelationScope(
+                              enabled: prefs.pixelateGraphics,
+                              child: VerificationRequestListener(
+                                router: router,
+                                child: IncomingCallOverlay(
+                                  router: router,
+                                  child: child ?? const SizedBox.shrink(),
+                                ),
+                              ),
                             ),
                           ),
                         ),

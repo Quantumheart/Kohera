@@ -292,7 +292,7 @@ class _ActionList extends StatelessWidget {
 
     return Material(
       elevation: 4,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       color: cs.surfaceContainerHighest,
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -336,7 +336,7 @@ class _QuickReactBar extends StatelessWidget {
 
     return Material(
       elevation: 4,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       color: cs.surfaceContainerHighest,
       clipBehavior: Clip.antiAlias,
       child: SizedBox(
@@ -347,7 +347,7 @@ class _QuickReactBar extends StatelessWidget {
             final toned = applySkinTone(emoji, tone);
             return Flexible(
               child: InkWell(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                 onTap: () {
                   Navigator.of(context).pop();
                   onQuickReact(toned);

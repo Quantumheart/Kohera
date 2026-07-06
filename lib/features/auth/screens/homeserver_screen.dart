@@ -205,7 +205,7 @@ class _HomeserverScreenState extends State<HomeserverScreen>
                           onPressed: isChecking ? null : _continue,
                           style: FilledButton.styleFrom(
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
                             ),
                           ),
                           child: LoadingButtonChild(

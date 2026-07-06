@@ -296,7 +296,7 @@ class _PackAvatar extends StatelessWidget {
 
     if (pack.iconUrl != null) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         child: MxcImage(
           mxcUrl: pack.iconUrl!,
           mediaResolver: mediaResolver,
@@ -313,7 +313,7 @@ class _PackAvatar extends StatelessWidget {
       height: 40,
       decoration: BoxDecoration(
         color: cs.secondaryContainer,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       ),
       child: Icon(
         Icons.emoji_emotions_outlined,

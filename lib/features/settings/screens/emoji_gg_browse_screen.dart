@@ -155,7 +155,7 @@ class _EmojiGgBrowseScreenState extends State<EmojiGgBrowseScreen> {
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
             borderSide: BorderSide.none,
           ),
           filled: true,
@@ -361,7 +361,7 @@ class _EmojiPreviewStrip extends StatelessWidget {
         itemCount: preview.length,
         separatorBuilder: (_, _) => const SizedBox(width: 4),
         itemBuilder: (context, i) => ClipRRect(
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           child: Image.network(
             'https://cdn3.emoji.gg/emojis/${preview[i]}.png',
             width: _size,
@@ -396,7 +396,7 @@ class _PackThumbnail extends StatelessWidget {
     final firstSlug = pack.emojiSlugs.isNotEmpty ? pack.emojiSlugs.first : null;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       child: Container(
         width: 48,
         height: 48,

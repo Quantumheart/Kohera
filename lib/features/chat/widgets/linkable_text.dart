@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/core/utils/safe_url_launcher.dart';
 
@@ -39,7 +40,7 @@ class LinkableText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final palette = KoheraPalette.of(context);
 
     final matches = urlRegex.allMatches(text).toList();
     if (matches.isEmpty) {
@@ -50,9 +51,10 @@ class LinkableText extends StatelessWidget {
       );
     }
 
+    final onBubble = isMe ? palette.onOwnBubble : palette.onOtherBubble;
     final linkColor = isMe
-        ? cs.onPrimary.withValues(alpha: 0.85)
-        : cs.primary;
+        ? onBubble.withValues(alpha: 0.85)
+        : palette.link;
 
     final spans = <InlineSpan>[];
     var lastEnd = 0;

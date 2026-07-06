@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
+import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/features/chat/models/kohera_message_status.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:provider/provider.dart';
@@ -22,7 +23,8 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final palette = KoheraPalette.of(context);
+    final onBubble = palette.onOwnBubble;
     OutboxService? outbox;
     try {
       outbox = context.watch<OutboxService>();
@@ -39,7 +41,7 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
               ? Icons.done_all_rounded
               : Icons.done_rounded,
           size: metrics.statusIconSize,
-          color: cs.onPrimary.withValues(alpha: 0.6),
+          color: onBubble.withValues(alpha: 0.6),
         );
       case _Phase.sending:
         return Semantics(
@@ -47,7 +49,7 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
           child: Icon(
             Icons.schedule_rounded,
             size: metrics.statusIconSize,
-            color: cs.onPrimary.withValues(alpha: 0.6),
+            color: onBubble.withValues(alpha: 0.6),
           ),
         );
       case _Phase.retrying:
@@ -65,7 +67,7 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
             child: Icon(
               Icons.schedule_rounded,
               size: metrics.statusIconSize,
-              color: cs.onPrimary.withValues(alpha: 0.4),
+              color: onBubble.withValues(alpha: 0.4),
             ),
           ),
         );
@@ -75,7 +77,7 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
           child: Icon(
             Icons.error_outline_rounded,
             size: metrics.statusIconSize,
-            color: cs.error,
+            color: palette.danger,
           ),
         );
     }

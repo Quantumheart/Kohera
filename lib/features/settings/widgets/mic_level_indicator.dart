@@ -219,7 +219,7 @@ class _MicLevelIndicatorState extends State<MicLevelIndicator> {
         ),
         const SizedBox(height: 4),
         ClipRRect(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           child: LinearProgressIndicator(
             value: displayLevel.clamp(0.0, 1.0),
             minHeight: 8,

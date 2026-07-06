@@ -72,7 +72,7 @@ Widget _buildRecaptchaView(
         label: const Text('Open CAPTCHA in browser'),
         style: FilledButton.styleFrom(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           ),
         ),
       ),
@@ -135,7 +135,7 @@ Widget _buildTermsView(
         onPressed: controller.submitTerms,
         style: FilledButton.styleFrom(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           ),
         ),
         child: const Text('I agree to the Terms of Service'),

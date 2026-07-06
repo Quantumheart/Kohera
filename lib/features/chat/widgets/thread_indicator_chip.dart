@@ -36,12 +36,12 @@ class ThreadIndicatorChip extends StatelessWidget {
         cursor: SystemMouseCursors.click,
         child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
             color: cs.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
             border: Border.all(color: cs.outlineVariant),
           ),
           child: Row(

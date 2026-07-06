@@ -79,9 +79,9 @@ class MessageSearchResultTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
           mouseCursor: SystemMouseCursors.click,
           onTap: () => context.goNamed(
             Routes.room,
