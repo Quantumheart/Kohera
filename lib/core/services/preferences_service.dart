@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kohera/core/theme/custom_theme.dart';
+import 'package:kohera/core/theme/theme_presets.dart';
 import 'package:kohera/core/utils/openmoji.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:pub_semver/pub_semver.dart';
@@ -180,7 +181,16 @@ class PreferencesService extends ChangeNotifier {
     );
   }
 
-  String get themeModeLabel => 'Change your appearance settings';
+  String get themeModeLabel {
+    final effective = themePreset == 'custom'
+        ? customThemeMode
+        : (getPreset(themePreset)?.forcedMode ?? themeMode);
+    return switch (effective) {
+      ThemeMode.system => 'System',
+      ThemeMode.light => 'Light',
+      ThemeMode.dark => 'Dark',
+    };
+  }
 
   Future<void> setThemeMode(ThemeMode mode) async {
     await _prefs?.setString(_themeModeKey, mode.name);
