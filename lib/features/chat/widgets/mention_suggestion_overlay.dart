@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/features/chat/widgets/mention_autocomplete_controller.dart';
+import 'package:kohera/features/chat/services/mention_autocomplete_controller.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';

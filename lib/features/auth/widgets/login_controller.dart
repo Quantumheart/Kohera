@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/features/auth/services/registration_controller.dart' show RegistrationController;
 import 'package:kohera/features/auth/services/sso_callback_server.dart';
-import 'package:kohera/features/auth/widgets/registration_controller.dart' show RegistrationController;
 
 // ── LoginState ──────────────────────────────────────────────────────────────
 

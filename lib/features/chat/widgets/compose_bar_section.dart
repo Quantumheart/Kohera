@@ -3,11 +3,11 @@ import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
+import 'package:kohera/features/chat/services/emoji_autocomplete_controller.dart';
+import 'package:kohera/features/chat/services/mention_autocomplete_controller.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
 import 'package:kohera/features/chat/widgets/compose_bar.dart';
-import 'package:kohera/features/chat/widgets/emoji_autocomplete_controller.dart';
-import 'package:kohera/features/chat/widgets/mention_autocomplete_controller.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/services/media_resolver.dart';
 

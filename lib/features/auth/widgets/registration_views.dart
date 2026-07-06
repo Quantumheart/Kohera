@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/features/auth/widgets/registration_controller.dart';
+import 'package:kohera/features/auth/services/registration_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:url_launcher/url_launcher.dart';
 
