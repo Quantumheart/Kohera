@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/features/e2ee/widgets/bootstrap_controller.dart';
-import 'package:kohera/features/e2ee/widgets/bootstrap_driver.dart';
+import 'package:kohera/features/e2ee/services/bootstrap_controller.dart';
+import 'package:kohera/features/e2ee/services/bootstrap_driver.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';

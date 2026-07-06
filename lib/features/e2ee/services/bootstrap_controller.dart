@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/features/e2ee/services/bootstrap_driver.dart';
 import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
-import 'package:kohera/features/e2ee/widgets/bootstrap_driver.dart';
-import 'package:kohera/features/e2ee/widgets/recovery_key_handler.dart';
+import 'package:kohera/features/e2ee/services/recovery_key_handler.dart';
 import 'package:matrix/encryption.dart';
 
 enum SetupPhase { loading, savingKey, unlock, verification, done, error }
