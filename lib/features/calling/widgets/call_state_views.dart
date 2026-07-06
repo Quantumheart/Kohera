@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/utils/format_duration.dart';
+import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/pulsing_avatar.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
+
 
 // coverage:ignore-start
 

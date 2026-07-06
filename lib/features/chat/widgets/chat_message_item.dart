@@ -4,7 +4,6 @@ import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/models/kohera_reaction.dart';
 import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
 import 'package:kohera/features/chat/services/linkable_span_builder.dart';
-import 'package:kohera/features/chat/services/media_controller.dart';
 import 'package:kohera/features/chat/widgets/audio_bubble.dart';
 import 'package:kohera/features/chat/widgets/emoji_picker_sheet.dart';
 import 'package:kohera/features/chat/widgets/file_bubble.dart';
@@ -18,6 +17,7 @@ import 'package:kohera/features/chat/widgets/swipeable_message.dart';
 import 'package:kohera/features/chat/widgets/thread_indicator_chip.dart';
 import 'package:kohera/features/chat/widgets/video_bubble.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/shared/services/media_controller.dart';
 import 'package:kohera/shared/services/media_resolver.dart';
 
 const _msgtypeImage = 'm.image';

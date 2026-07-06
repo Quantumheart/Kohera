@@ -1,15 +1,15 @@
 import 'dart:async';
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/core/utils/media_cache.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
-import 'package:kohera/features/chat/services/media_controller.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
+import 'package:kohera/shared/services/media_controller.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
+
 
 // ── Audio bubble (waveform + seek + play/pause) ───────────────
 

@@ -1,27 +1,27 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/order_utils.dart' as order_utils;
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/calling/services/call_navigator.dart';
+import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/widgets/call_state_views.dart'
     show formatCallElapsed;
 import 'package:kohera/features/chat/widgets/typing_indicator.dart'
     show TypingIndicator;
-import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/features/spaces/widgets/space_reparent_controller.dart';
+import 'package:kohera/shared/models/kohera_room_summary.dart';
 import 'package:kohera/shared/models/kohera_user_summary.dart';
 import 'package:kohera/shared/widgets/presence_dot.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:provider/provider.dart';
+
 
 bool get _isDesktop => isNativeDesktop;
 

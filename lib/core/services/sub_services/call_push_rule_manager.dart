@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:kohera/features/calling/models/call_constants.dart';
-import 'package:kohera/features/calling/services/rtc_membership_service.dart'
-    show callMemberEventType;
+import 'package:kohera/shared/models/call_constants.dart';
 import 'package:matrix/matrix.dart';
+
+/// Inlined from `rtc_membership_service.dart` to avoid core→features dependency.
+const _callMemberEventType = 'org.matrix.msc3401.call.member';
 
 // Ensures the homeserver notifies Kohera's VoIP pusher on inbound
 // m.call.member state events for 1:1 rooms only. The room_member_count
@@ -46,7 +47,7 @@ class CallPushRuleManager {
         PushCondition(
           kind: 'event_match',
           key: 'type',
-          pattern: callMemberEventType,
+          pattern: _callMemberEventType,
         ),
         PushCondition(kind: 'room_member_count', is$: '2'),
       ];

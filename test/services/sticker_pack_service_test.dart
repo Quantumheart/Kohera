@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/utils/openmoji_catalog.dart';
-import 'package:kohera/features/settings/models/kohera_sticker_pack.dart';
+import 'package:kohera/shared/models/kohera_sticker_pack.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:matrix/src/utils/space_child.dart';

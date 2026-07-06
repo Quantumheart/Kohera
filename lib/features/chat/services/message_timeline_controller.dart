@@ -1,22 +1,22 @@
 import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/features/calling/models/call_constants.dart';
 import 'package:kohera/features/chat/models/chat_message_data.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
 import 'package:kohera/features/chat/models/kohera_reaction.dart';
 import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
 import 'package:kohera/features/chat/models/kohera_state_event_text.dart';
 import 'package:kohera/features/chat/services/media_content_resolver.dart';
-import 'package:kohera/features/chat/services/media_controller.dart';
 import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:kohera/features/chat/services/reaction_resolver.dart';
 import 'package:kohera/features/chat/services/read_receipt_resolver.dart';
 import 'package:kohera/features/chat/services/sdk_media_controller.dart';
 import 'package:kohera/features/chat/services/state_event_resolver.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
+import 'package:kohera/shared/models/call_constants.dart';
+import 'package:kohera/shared/services/media_controller.dart';
 import 'package:matrix/matrix.dart';
+
 
 /// Manages the Matrix timeline for a chat room and converts SDK [Event]s
 /// into Kohera-owned domain models at the boundary.

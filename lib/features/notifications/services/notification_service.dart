@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:desktop_notifications/desktop_notifications.dart' as dn;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -13,12 +12,13 @@ import 'package:kohera/core/utils/media_cache_io.dart'
     if (dart.library.js_interop) 'package:kohera/core/utils/media_cache_web.dart';
 import 'package:kohera/core/utils/notification_filter.dart';
 import 'package:kohera/core/utils/platform_info.dart';
-import 'package:kohera/features/calling/models/call_constants.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/web_notifications.dart';
 import 'package:kohera/features/notifications/services/windows_com_register.dart';
+import 'package:kohera/shared/models/call_constants.dart';
 import 'package:matrix/matrix.dart';
 import 'package:path_provider/path_provider.dart';
+
 
 bool get _isLinux => isNativeLinux;
 

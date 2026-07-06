@@ -1,16 +1,16 @@
 import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
 import 'package:kohera/features/chat/models/kohera_media_type.dart';
-import 'package:kohera/features/chat/services/media_controller.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
 import 'package:kohera/features/chat/widgets/video_bubble.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/shared/services/media_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
+
 
 @GenerateNiceMocks([
   MockSpec<MediaController>(),

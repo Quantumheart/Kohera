@@ -10,7 +10,7 @@ import 'dart:ui' as _i22;
 import 'package:flutter/services.dart' as _i23;
 import 'package:flutter/widgets.dart' as _i24;
 import 'package:http/http.dart' as _i17;
-import 'package:kohera/core/services/call_service.dart' as _i29;
+import 'package:kohera/features/calling/services/call_service.dart' as _i29;
 import 'package:kohera/core/services/matrix_service.dart' as _i20;
 import 'package:kohera/core/services/preferences_service.dart' as _i35;
 import 'package:kohera/core/services/sticker_pack_service.dart' as _i15;
@@ -30,9 +30,9 @@ import 'package:kohera/features/calling/models/call_state.dart' as _i34;
 import 'package:kohera/features/calling/models/incoming_call_info.dart' as _i33;
 import 'package:kohera/features/calling/services/livekit_service.dart' as _i30;
 import 'package:kohera/features/calling/services/ringtone_service.dart' as _i36;
-import 'package:kohera/features/notifications/services/call_push_rule_manager.dart'
+import 'package:kohera/core/services/sub_services/call_push_rule_manager.dart'
     as _i2;
-import 'package:kohera/features/notifications/services/megolm_key_mirror.dart'
+import 'package:kohera/core/services/sub_services/megolm_key_mirror.dart'
     as _i3;
 import 'package:kohera/shared/services/avatar_resolver.dart' as _i13;
 import 'package:kohera/shared/services/media_resolver.dart' as _i14;

@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
 import 'package:kohera/features/chat/models/kohera_media_type.dart';
-import 'package:kohera/features/chat/services/media_controller.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/shared/services/media_controller.dart';
 import 'package:kohera/shared/widgets/full_image_view.dart';
+
 
 /// A page of loaded shared media from a room.
 class SharedMediaPage {

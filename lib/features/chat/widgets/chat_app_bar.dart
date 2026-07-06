@@ -1,22 +1,22 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/features/calling/models/incoming_call_info.dart'
     as model;
 import 'package:kohera/features/calling/services/call_navigator.dart';
+import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/widgets/pinned_messages_popup.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
-import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
+import 'package:kohera/shared/models/kohera_room_summary.dart';
 import 'package:kohera/shared/widgets/joined_member_count.dart';
 import 'package:kohera/shared/widgets/presence_dot.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:provider/provider.dart';
+
 
 class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   const ChatAppBar({

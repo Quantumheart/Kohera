@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/settings/models/kohera_sticker_pack.dart';
+import 'package:kohera/shared/models/kohera_sticker_pack.dart';
 
 void main() {
   group('KoheraSticker', () {

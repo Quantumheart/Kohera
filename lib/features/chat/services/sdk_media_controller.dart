@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:kohera/core/utils/media_auth.dart';
-import 'package:kohera/features/chat/services/media_controller.dart';
+import 'package:kohera/shared/services/media_controller.dart';
 import 'package:matrix/matrix.dart';
 
 /// [MediaController] backed by a Matrix SDK [Event].

@@ -5,7 +5,7 @@ import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
-import 'package:kohera/features/settings/models/kohera_sticker_pack.dart';
+import 'package:kohera/shared/models/kohera_sticker_pack.dart';
 import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:provider/provider.dart';

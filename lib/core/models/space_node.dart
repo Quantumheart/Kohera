@@ -1,4 +1,4 @@
-import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
+import 'package:kohera/shared/models/kohera_room_summary.dart';
 
 /// A node in the space tree representing a joined space and its children.
 class SpaceNode {

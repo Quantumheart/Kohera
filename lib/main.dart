@@ -1,11 +1,9 @@
 import 'dart:async';
-
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/app_router.dart';
 import 'package:kohera/core/services/app_config.dart';
-import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -18,6 +16,7 @@ import 'package:kohera/core/theme/kohera_theme.dart';
 import 'package:kohera/core/theme/theme_presets.dart';
 import 'package:kohera/core/utils/vodozemac_init.dart';
 import 'package:kohera/features/auth/services/sso_web_init.dart';
+import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/services/push_to_talk_service.dart';
 import 'package:kohera/features/calling/services/ringtone_service.dart';
 import 'package:kohera/features/calling/widgets/incoming_call_overlay.dart';
@@ -31,6 +30,7 @@ import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
+
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

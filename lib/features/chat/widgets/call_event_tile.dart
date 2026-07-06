@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/core/utils/time_format.dart';
-import 'package:kohera/features/calling/models/call_constants.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
+import 'package:kohera/shared/models/call_constants.dart';
 
 class CallEventTile extends StatelessWidget {
   const CallEventTile({

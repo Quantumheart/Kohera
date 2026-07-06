@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:kohera/features/calling/models/call_constants.dart';
+import 'package:kohera/shared/models/call_constants.dart';
 
 void main() {
   group('callEventTypes', () {

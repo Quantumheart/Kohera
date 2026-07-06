@@ -1,16 +1,16 @@
 import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:kohera/core/services/app_config.dart';
-import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
+import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/services/rtc_membership_service.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/notification_service.dart';
 import 'package:matrix/matrix.dart';
+
 
 const iosVoipMethodChannel = MethodChannel('kohera/voip');
 

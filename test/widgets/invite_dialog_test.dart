@@ -1,14 +1,14 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
+import 'package:kohera/shared/models/kohera_room_summary.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
+
 
 @GenerateNiceMocks([MockSpec<MatrixService>()])
 import 'invite_dialog_test.mocks.dart';
