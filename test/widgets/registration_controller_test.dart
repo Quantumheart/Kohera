@@ -6,7 +6,7 @@ import 'package:kohera/core/models/server_auth_capabilities.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
-import 'package:kohera/features/auth/widgets/registration_controller.dart';
+import 'package:kohera/features/auth/services/registration_controller.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';

@@ -1,20 +1,15 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
 import 'package:kohera/features/rooms/screens/room_permissions_screen.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:kohera/features/rooms/services/room_permissions_resolver.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/features/rooms/services/room_permissions_sync_watcher.dart';
 import 'package:provider/provider.dart';
 
 /// Boundary widget that subscribes to sync updates, converts `Room` to
 /// [KoheraRoomPermissions], and renders the SDK-free
 /// [RoomPermissionsScreen] with action callbacks.
-///
-/// This is the only permissions-related widget that imports
-/// `package:matrix/matrix.dart`.
 class RoomPermissionsHost extends StatefulWidget {
   const RoomPermissionsHost({required this.roomId, super.key});
 
@@ -25,37 +20,22 @@ class RoomPermissionsHost extends StatefulWidget {
 }
 
 class _RoomPermissionsHostState extends State<RoomPermissionsHost> {
-  StreamSubscription<SyncUpdate>? _syncSub;
-  Timer? _debounce;
-
-  static const Set<String> _watchedTypes = {
-    EventTypes.RoomPowerLevels,
-    EventTypes.RoomJoinRules,
-    EventTypes.Encryption,
-  };
+  late RoomPermissionsSyncWatcher _watcher;
 
   @override
   void initState() {
     super.initState();
-    final client = context.read<MatrixService>().client;
-    _syncSub = client.onSync.stream.listen(_onSync);
+    final matrix = context.read<MatrixService>();
+    _watcher = RoomPermissionsSyncWatcher(matrix: matrix);
+    _watcher.watch(widget.roomId, () {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
-    _debounce?.cancel();
-    unawaited(_syncSub?.cancel());
+    _watcher.dispose();
     super.dispose();
-  }
-
-  void _onSync(SyncUpdate update) {
-    final stateEvents =
-        update.rooms?.join?[widget.roomId]?.state ?? [];
-    if (!stateEvents.any((e) => _watchedTypes.contains(e.type))) return;
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) setState(() {});
-    });
   }
 
   @override
@@ -76,22 +56,15 @@ class _RoomPermissionsHostState extends State<RoomPermissionsHost> {
 
     return RoomPermissionsScreen(
       permissions: permissions,
-      onSetJoinRules: (rule) => room.setJoinRules(_toSdkJoinRules(rule)),
+      onSetJoinRules: (rule) => PowerLevelService.setJoinRules(room, rule),
       onEnableEncryption: room.enableEncryption,
       onUpdatePowerLevel: (patch) => PowerLevelService.update(room, patch),
       onApplyPowerLevelsContent: (content) => room.client.setRoomStateWithKey(
         room.id,
-        EventTypes.RoomPowerLevels,
+        'm.room.power_levels',
         '',
         content,
       ),
     );
   }
-
-  JoinRules _toSdkJoinRules(KoheraJoinRule rule) => switch (rule) {
-        KoheraJoinRule.public => JoinRules.public,
-        KoheraJoinRule.invite => JoinRules.invite,
-        KoheraJoinRule.knock => JoinRules.knock,
-        KoheraJoinRule.restricted => JoinRules.restricted,
-      };
 }

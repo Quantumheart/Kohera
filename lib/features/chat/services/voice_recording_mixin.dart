@@ -3,7 +3,7 @@ import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
-import 'package:kohera/features/chat/widgets/voice_send_handler.dart';
+import 'package:kohera/features/chat/services/voice_send_handler.dart';
 import 'package:provider/provider.dart';
 
 // coverage:ignore-start
