@@ -3,6 +3,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:matrix/matrix.dart';
 
+/// Shows a password prompt dialog and returns the entered password,
+/// or `null` if the user cancelled.
+typedef PasswordPromptBuilder = Future<String?> Function();
+
 class UiaService {
   UiaService({
     required Client client,
@@ -18,6 +22,13 @@ class UiaService {
   Stream<UiaRequest<dynamic>> get onUiaRequest => _uiaController.stream;
 
   StreamSubscription<UiaRequest<dynamic>>? _uiaSub;
+
+  /// Callback that shows a password prompt dialog and returns the entered
+  /// password, or `null` if the user cancelled.
+  ///
+  /// When set, password-stage UIA requests are handled internally by
+  /// calling this callback — the stream consumer never sees them.
+  PasswordPromptBuilder? passwordPromptBuilder;
 
   void listenForUia() {
     unawaited(_uiaSub?.cancel());
@@ -46,6 +57,22 @@ class UiaService {
               identifier: AuthenticationUserIdentifier(user: userId),
             ),
           );
+        }
+        if (passwordPromptBuilder != null) {
+          debugPrint('[Kohera] UIA: prompting for password via callback');
+          final entered = await passwordPromptBuilder!();
+          if (entered != null && entered.isNotEmpty && userId != null) {
+            setCachedPassword(entered);
+            return uiaRequest.completeStage(
+              AuthenticationPassword(
+                session: uiaRequest.session,
+                password: entered,
+                identifier: AuthenticationUserIdentifier(user: userId),
+              ),
+            );
+          }
+          uiaRequest.cancel();
+          return;
         }
         debugPrint('[Kohera] UIA: no cached password, forwarding to UI');
         _uiaController.add(uiaRequest);

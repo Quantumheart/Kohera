@@ -2,19 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
-import 'package:kohera/core/extensions/device_extension.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
-import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
-import 'package:kohera/features/settings/services/device_resolver.dart';
+import 'package:kohera/features/settings/models/kohera_device.dart';
+import 'package:kohera/features/settings/services/device_management_service.dart';
 import 'package:kohera/features/settings/widgets/device_list_item.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
-import 'package:matrix/matrix.dart';
-import 'package:matrix/msc_extensions/msc_3814_dehydrated_devices/api.dart';
 import 'package:provider/provider.dart';
 
 class DevicesScreen extends StatefulWidget {
@@ -25,24 +22,27 @@ class DevicesScreen extends StatefulWidget {
 }
 
 class _DevicesScreenState extends State<DevicesScreen> {
-  List<Device>? _devices;
+  List<KoheraDevice>? _devices;
   bool _loading = true;
   String? _error;
-  StreamSubscription<UiaRequest<dynamic>>? _uiaSub;
+
+  late DeviceManagementService _deviceService;
+  late MatrixService _matrix;
 
   // ── Lifecycle ──────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
-    final matrix = context.read<MatrixService>();
-    _uiaSub = matrix.uia.onUiaRequest.listen(_showUiaPasswordPrompt);
+    _matrix = context.read<MatrixService>();
+    _deviceService = DeviceManagementService(matrix: _matrix);
+    _matrix.uia.passwordPromptBuilder = _showPasswordPrompt;
     unawaited(_loadDevices());
   }
 
   @override
   void dispose() {
-    unawaited(_uiaSub?.cancel());
+    _matrix.uia.passwordPromptBuilder = null;
     super.dispose();
   }
 
@@ -54,17 +54,10 @@ class _DevicesScreenState extends State<DevicesScreen> {
       _error = null;
     });
     try {
-      final matrix = context.read<MatrixService>();
-      final client = matrix.client;
-      final devicesFuture = client.getDevices();
-      final dehydratedIdFuture = _dehydratedDeviceId(client);
-      final devices = await devicesFuture;
-      final dehydratedId = await dehydratedIdFuture;
+      final devices = await _deviceService.loadDevices();
       if (!mounted) return;
       setState(() {
-        _devices = devices == null || dehydratedId == null
-            ? devices
-            : devices.where((d) => d.deviceId != dehydratedId).toList();
+        _devices = devices;
         _loading = false;
       });
     } catch (e) {
@@ -77,20 +70,13 @@ class _DevicesScreenState extends State<DevicesScreen> {
     }
   }
 
-  Future<String?> _dehydratedDeviceId(Client client) async {
-    try {
-      final device = await client.getDehydratedDevice();
-      return device.deviceId;
-    } catch (_) {
-      return null;
-    }
-  }
-
   // ── UIA Password Prompt ────────────────────────────────────
 
-  Future<void> _showUiaPasswordPrompt(UiaRequest<dynamic> request) async {
-    if (!mounted) return;
-    final password = await showDialog<String>(
+  /// Shows a password dialog for UIA authentication.
+  /// Called by [UiaService] when a password-stage request arrives.
+  Future<String?> _showPasswordPrompt() async {
+    if (!mounted) return null;
+    return showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) {
@@ -120,19 +106,11 @@ class _DevicesScreenState extends State<DevicesScreen> {
         );
       },
     );
-    if (password != null && password.isNotEmpty && mounted) {
-      context
-          .read<MatrixService>()
-          .uia
-          .completeUiaWithPassword(request, password);
-    } else {
-      request.cancel();
-    }
   }
 
   // ── Rename Device ──────────────────────────────────────────
 
-  Future<void> _renameDevice(Device device) async {
+  Future<void> _renameDevice(KoheraDevice device) async {
     final newName = await showDialog<String>(
       context: context,
       builder: (ctx) {
@@ -165,8 +143,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
     try {
       if (!mounted) return;
-      final client = context.read<MatrixService>().client;
-      await client.updateDevice(device.deviceId, displayName: newName);
+      await _deviceService.renameDevice(device.deviceId, newName);
       await _loadDevices();
     } catch (e) {
       debugPrint('[Kohera] Failed to rename device: $e');
@@ -177,7 +154,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
   // ── Remove Device ──────────────────────────────────────────
 
-  Future<void> _removeDevice(Device device) async {
+  Future<void> _removeDevice(KoheraDevice device) async {
     final confirmed = await confirmDialog(
       context,
       title: 'Remove device?',
@@ -190,10 +167,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
     try {
       if (!mounted) return;
-      final client = context.read<MatrixService>().client;
-      await client.uiaRequestBackground(
-        (auth) => client.deleteDevices([device.deviceId], auth: auth),
-      );
+      await _deviceService.removeDevice(device.deviceId);
       await _loadDevices();
     } catch (e) {
       debugPrint('[Kohera] Failed to remove device: $e');
@@ -205,8 +179,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
   // ── Remove All Other Devices ───────────────────────────────
 
   Future<void> _removeAllOtherDevices() async {
-    final matrix = context.read<MatrixService>();
-    final currentDeviceId = matrix.client.deviceID;
+    final currentDeviceId = _deviceService.currentDeviceId;
     final otherIds = _devices
             ?.where((d) => d.deviceId != currentDeviceId)
             .map((d) => d.deviceId)
@@ -225,10 +198,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
     if (!confirmed) return;
 
     try {
-      final client = matrix.client;
-      await client.uiaRequestBackground(
-        (auth) => client.deleteDevices(otherIds, auth: auth),
-      );
+      await _deviceService.removeAllOtherDevices(otherIds);
       await _loadDevices();
     } catch (e) {
       debugPrint('[Kohera] Failed to remove devices: $e');
@@ -239,24 +209,15 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
   // ── Verify Device ──────────────────────────────────────────
 
-  Future<void> _verifyDevice(Device device) async {
-    final client = context.read<MatrixService>().client;
-    final userId = client.userID;
-    if (userId == null) return;
-
+  Future<void> _verifyDevice(KoheraDevice device) async {
     try {
-      await client.updateUserDeviceKeys();
-      final deviceKeys =
-          client.userDeviceKeys[userId]?.deviceKeys[device.deviceId];
-      if (deviceKeys == null) {
+      final kohera = await _deviceService.verifyDevice(device.deviceId);
+      if (kohera == null) {
         if (!mounted) return;
         context.showSnack('No encryption keys found for device');
         return;
       }
-
-      final verification = await deviceKeys.startVerification();
       if (!mounted) return;
-      final kohera = KoheraKeyVerification(verification);
       try {
         await KeyVerificationDialog.show(context, verification: kohera);
       } finally {
@@ -272,32 +233,15 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
   // ── Block / Unblock Device ─────────────────────────────────
 
-  Future<void> _toggleBlockDevice(Device device) async {
-    final client = context.read<MatrixService>().client;
-    final userId = client.userID;
-    if (userId == null) return;
-
-    final deviceKeys =
-        client.userDeviceKeys[userId]?.deviceKeys[device.deviceId];
-    if (deviceKeys == null) return;
-
+  Future<void> _toggleBlockDevice(KoheraDevice device) async {
     try {
-      await deviceKeys.setBlocked(!deviceKeys.blocked);
+      await _deviceService.toggleBlockDevice(device.deviceId);
       await _loadDevices();
     } catch (e) {
       debugPrint('[Kohera] Failed to toggle block: $e');
       if (!mounted) return;
       context.showSnack('Failed to update device');
     }
-  }
-
-  // ── Helpers ────────────────────────────────────────────────
-
-  DeviceKeys? _getDeviceKeys(Device device) {
-    final client = context.read<MatrixService>().client;
-    final userId = client.userID;
-    if (userId == null) return null;
-    return client.userDeviceKeys[userId]?.deviceKeys[device.deviceId];
   }
 
   // ── Build ──────────────────────────────────────────────────
@@ -328,14 +272,17 @@ class _DevicesScreenState extends State<DevicesScreen> {
     }
 
     final matrix = context.read<MatrixService>();
-    final currentDeviceId = matrix.client.deviceID;
+    final currentDeviceId = _deviceService.currentDeviceId;
     final thisDevice =
         _devices!.where((d) => d.deviceId == currentDeviceId).toList();
     final otherDevices =
         _devices!.where((d) => d.deviceId != currentDeviceId).toList()
           ..sort((a, b) {
-            final aTs = a.lastSeenTs ?? 0;
-            final bTs = b.lastSeenTs ?? 0;
+            final aTs = a.lastSeenTs;
+            final bTs = b.lastSeenTs;
+            if (aTs == null && bTs == null) return 0;
+            if (aTs == null) return 1;
+            if (bTs == null) return -1;
             return bTs.compareTo(aTs);
           });
 
@@ -375,11 +322,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
             const SectionHeader(label: 'THIS DEVICE'),
             Card(
               child: DeviceListItem(
-                device: const DeviceResolver()(
-                  thisDevice.first,
-                  isOwnDevice: true,
-                  deviceKeys: _getDeviceKeys(thisDevice.first),
-                ),
+                device: thisDevice.first,
                 isCurrentDevice: true,
                 onRename: () => _renameDevice(thisDevice.first),
               ),
@@ -408,11 +351,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   for (var i = 0; i < otherDevices.length; i++) ...[
                     if (i > 0) const Divider(height: 1, indent: 56),
                     DeviceListItem(
-                      device: const DeviceResolver()(
-                        otherDevices[i],
-                        isOwnDevice: false,
-                        deviceKeys: _getDeviceKeys(otherDevices[i]),
-                      ),
+                      device: otherDevices[i],
                       isCurrentDevice: false,
                       onRename: () => _renameDevice(otherDevices[i]),
                       onVerify: () => _verifyDevice(otherDevices[i]),

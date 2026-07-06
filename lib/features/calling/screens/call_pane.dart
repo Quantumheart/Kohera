@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/call_service.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/calling/services/call_navigator.dart';
 import 'package:kohera/features/calling/widgets/call_state_views.dart';
@@ -34,9 +35,17 @@ class CallPane extends StatelessWidget {
       KoheraCallState.ringingIncoming ||
       KoheraCallState.joining => CallJoiningView(
           displayName: _resolveRoomName(context, callService),
-          room: roomId != null
-              ? context.read<MatrixService>().client.getRoomById(roomId)
-              : null,
+          roomAvatar: () {
+            final room = roomId != null
+                ? context.read<MatrixService>().client.getRoomById(roomId)
+                : null;
+            if (room == null) return null;
+            return CallRoomAvatar(
+              avatarUrl: room.avatar?.toString(),
+              displayName: room.getLocalizedDisplayname(),
+              avatarResolver: ClientAvatarResolver(room.client),
+            );
+          }(),
           phase: callService.joinPhase,
         ),
       KoheraCallState.connected => const ConnectedCallView(),
