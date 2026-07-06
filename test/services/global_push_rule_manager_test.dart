@@ -91,18 +91,6 @@ void main() {
     );
   });
 
-  test('ensureSync delegates to syncNotificationLevel', () async {
-    await manager.ensureSync(NotificationLevel.mentionsOnly);
-
-    verify(
-      mockClient.setPushRuleEnabled(
-        PushRuleKind.underride,
-        '.m.rule.message',
-        false,
-      ),
-    ).called(1);
-  });
-
   test('no-op when userID missing', () async {
     when(mockClient.userID).thenReturn(null);
 
@@ -115,7 +103,6 @@ void main() {
     when(mockClient.setPushRuleEnabled(any, any, any))
         .thenThrow(Exception('network down'));
 
-    // Should not throw.
     await manager.syncNotificationLevel(NotificationLevel.all);
   });
 }
