@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
+import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/notifications/services/apns_push_service.dart';
@@ -48,7 +49,9 @@ class _NotificationSettingsScreenState
 
   static bool get _showPushSettings => isNativeAndroid;
 
-  static const List<({String name, String package, String description, String url})> _distributors = [
+  static const List<
+          ({String name, String package, String description, String url})>
+      _distributors = [
     (
       name: 'ntfy',
       package: 'io.heckel.ntfy',
@@ -89,16 +92,16 @@ class _NotificationSettingsScreenState
                     : TextButton(
                         onPressed: () => unawaited(
                           launchUrl(
-                              Uri.parse(d.url),
-                              mode: LaunchMode.externalApplication,
+                            Uri.parse(d.url),
+                            mode: LaunchMode.externalApplication,
                           ),
                         ),
                         child: const Text('Install'),
                       ),
                 onTap: isInstalled
                     ? () {
-                        final match = installed
-                            .firstWhere((i) => i.contains(d.package));
+                        final match =
+                            installed.firstWhere((i) => i.contains(d.package));
                         unawaited(prefs.setPushEnabled(true));
                         unawaited(pushService.selectDistributor(match));
                         Navigator.of(ctx).pop();
@@ -108,17 +111,19 @@ class _NotificationSettingsScreenState
             }),
             ...installed
                 .where((i) => !_distributors.any((d) => i.contains(d.package)))
-                .map((pkg) => ListTile(
-                      title: Text(pkg.split('.').last),
-                      subtitle: const Text('Installed'),
-                      trailing:
-                          const Icon(Icons.check_circle, color: Colors.green),
-                      onTap: () {
-                        unawaited(prefs.setPushEnabled(true));
-                        unawaited(pushService.selectDistributor(pkg));
-                        Navigator.of(ctx).pop();
-                      },
-                    ),),
+                .map(
+                  (pkg) => ListTile(
+                    title: Text(pkg.split('.').last),
+                    subtitle: const Text('Installed'),
+                    trailing:
+                        const Icon(Icons.check_circle, color: Colors.green),
+                    onTap: () {
+                      unawaited(prefs.setPushEnabled(true));
+                      unawaited(pushService.selectDistributor(pkg));
+                      Navigator.of(ctx).pop();
+                    },
+                  ),
+                ),
           ],
         ),
         actions: [
@@ -129,7 +134,6 @@ class _NotificationSettingsScreenState
         ],
       ),
     );
-
   }
 
   // ── Build ───────────────────────────────────────────────────
@@ -157,7 +161,15 @@ class _NotificationSettingsScreenState
           Card(
             child: RadioGroup<NotificationLevel>(
               groupValue: prefs.notificationLevel,
-              onChanged: (v) => prefs.setNotificationLevel(v!),
+              onChanged: (v) {
+                unawaited(prefs.setNotificationLevel(v!));
+                unawaited(
+                  context
+                      .read<MatrixService>()
+                      .globalPushRuleManager
+                      .syncNotificationLevel(v),
+                );
+              },
               child: const Column(
                 children: [
                   RadioListTile<NotificationLevel>(
@@ -179,8 +191,9 @@ class _NotificationSettingsScreenState
           Padding(
             padding: const EdgeInsets.only(left: 4, top: 8, bottom: 24),
             child: Text(
-              'Controls which messages show in-app unread indicators. '
-              'Per-room server settings are not affected.',
+              'Controls which messages trigger push notifications and '
+              'in-app unread indicators. Per-room notification settings '
+              'take precedence.',
               style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
             ),
           ),
@@ -223,8 +236,7 @@ class _NotificationSettingsScreenState
                   if (keywords.isEmpty)
                     Text(
                       'No custom keywords added',
-                      style:
-                          tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                      style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                     )
                   else
                     Wrap(
@@ -258,8 +270,7 @@ class _NotificationSettingsScreenState
                   value: prefs.osNotificationsEnabled,
                   onChanged: (value) async {
                     if (value && kIsWeb) {
-                      final granted =
-                          await WebPushService.requestPermission();
+                      final granted = await WebPushService.requestPermission();
                       if (!granted || !context.mounted) return;
                     }
                     await prefs.setOsNotificationsEnabled(value);
@@ -334,7 +345,9 @@ class _NotificationSettingsScreenState
           ],
 
           // ── APNs push notifications (iOS only) ─────────────────
-          if (!kIsWeb && isNativeIOS && AppConfig.instance.apnsPushConfigured) ...[
+          if (!kIsWeb &&
+              isNativeIOS &&
+              AppConfig.instance.apnsPushConfigured) ...[
             const SizedBox(height: 24),
             const SectionHeader(label: 'BACKGROUND PUSH'),
             Card(

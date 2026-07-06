@@ -23,7 +23,11 @@ enum MessageDensity {
       };
 }
 
-/// Global notification level (local-only, does not affect server push rules).
+/// Global notification level.
+///
+/// Persisted locally and mirrored to the homeserver's account-wide push
+/// rules by [GlobalPushRuleManager] so APNs/UnifiedPush pushes are filtered
+/// server-side. Per-room push rules take precedence over this global level.
 enum NotificationLevel {
   all,
   mentionsOnly,

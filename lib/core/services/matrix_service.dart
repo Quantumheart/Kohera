@@ -9,6 +9,7 @@ import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/core/services/sub_services/call_push_rule_manager.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/core/services/sub_services/global_push_rule_manager.dart';
 import 'package:kohera/core/services/sub_services/megolm_key_mirror.dart';
 import 'package:kohera/core/services/sub_services/outbox_connectivity.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
@@ -24,7 +25,8 @@ import 'package:matrix/matrix.dart';
 // ignore: implementation_imports, no public API for ClientInitException
 import 'package:matrix/src/utils/client_init_exception.dart';
 
-String koheraKey(String clientName, String suffix) => 'kohera_${clientName}_$suffix';
+String koheraKey(String clientName, String suffix) =>
+    'kohera_${clientName}_$suffix';
 
 class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   static String friendlyAuthError(Object e) {
@@ -70,6 +72,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       clientName: clientName,
     );
     callPushRuleManager = CallPushRuleManager(client: _client);
+    globalPushRuleManager = GlobalPushRuleManager(client: _client);
     keyMirror = MegolmKeyMirror(client: _client, clientName: clientName);
     outbox = OutboxService(
       client: _client,
@@ -83,6 +86,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   late final CallPushRuleManager callPushRuleManager;
+  late final GlobalPushRuleManager globalPushRuleManager;
   late final MegolmKeyMirror keyMirror;
 
   // ── Fields ──────────────────────────────────────────────────────
@@ -362,7 +366,8 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  bool _isAppForegrounded() => WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+  bool _isAppForegrounded() =>
+      WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
 
   void _startForegroundSync() {
     if (_foregroundSyncStarted || _disposed) return;
@@ -384,8 +389,14 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     await SessionBackup.delete(clientName: clientName, storage: _storage);
   }
 
-  Future<({String? token, String? refreshToken, String? userId, String? homeserver, String? deviceId})>
-      _readSessionKeys() async {
+  Future<
+      ({
+        String? token,
+        String? refreshToken,
+        String? userId,
+        String? homeserver,
+        String? deviceId
+      })> _readSessionKeys() async {
     final results = await Future.wait([
       _storage.read(key: koheraKey(clientName, 'access_token')),
       _storage.read(key: koheraKey(clientName, 'refresh_token')),
@@ -421,7 +432,8 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     try {
       final stored = await _client.database.getClient(clientName);
       if (stored == null) return false;
-      return stored.tryGet<String>('token') != null || stored.tryGet<String>('refresh_token') != null;
+      return stored.tryGet<String>('token') != null ||
+          stored.tryGet<String>('refresh_token') != null;
     } catch (e) {
       debugPrint('[Kohera] Database session probe failed: $e');
       return false;
@@ -462,7 +474,13 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> _restoreFromKeychain() async {
-    final ({String? token, String? refreshToken, String? userId, String? homeserver, String? deviceId}) keys;
+    final ({
+      String? token,
+      String? refreshToken,
+      String? userId,
+      String? homeserver,
+      String? deviceId
+    }) keys;
     try {
       keys = await _readSessionKeys();
     } catch (e) {
@@ -479,7 +497,8 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       storage: _storage,
     );
 
-    debugPrint('[Kohera] Database restore unavailable; seeding session from keychain '
+    debugPrint(
+        '[Kohera] Database restore unavailable; seeding session from keychain '
         'for ${keys.userId} on ${keys.homeserver} '
         '(deviceId=${keys.deviceId}, clientName=$clientName)');
 
@@ -522,5 +541,6 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── Private: Error Classification ──────────────────────────────
 
-  static Object _unwrapInitException(Object e) => e is ClientInitException ? e.originalException : e;
+  static Object _unwrapInitException(Object e) =>
+      e is ClientInitException ? e.originalException : e;
 }
