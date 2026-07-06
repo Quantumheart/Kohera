@@ -7,10 +7,9 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
-import 'package:kohera/features/e2ee/widgets/bootstrap_controller.dart';
+import 'package:kohera/features/e2ee/services/bootstrap_controller.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_inline.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -45,7 +44,6 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
   late MatrixService _matrixService;
   BootstrapController? _controller;
   final _recoveryKeyController = TextEditingController();
-  StreamSubscription<UiaRequest<dynamic>>? _uiaSub;
   bool _uiaPromptShowing = false;
   _ScreenStep? _localStep = _ScreenStep.explainer;
 
@@ -53,7 +51,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
   void initState() {
     super.initState();
     _matrixService = context.read<MatrixService>();
-    _uiaSub = _matrixService.uia.onUiaRequest.listen(_showUiaPasswordPrompt);
+    _matrixService.uia.passwordPromptBuilder = _showPasswordPrompt;
 
     if (_matrixService.chatBackup.chatBackupEnabled) {
       _localStep = _ScreenStep.management;
@@ -62,8 +60,8 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
 
   @override
   void dispose() {
+    _matrixService.uia.passwordPromptBuilder = null;
     _cleanupController();
-    unawaited(_uiaSub?.cancel());
     _recoveryKeyController.dispose();
     super.dispose();
   }
@@ -102,8 +100,10 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
 
   // ── UIA prompt ────────────────────────────────────────────────
 
-  Future<void> _showUiaPasswordPrompt(UiaRequest<dynamic> request) async {
-    if (!mounted || _uiaPromptShowing) return;
+  /// Shows a password dialog for UIA authentication.
+  /// Called by [UiaService] when a password-stage request arrives.
+  Future<String?> _showPasswordPrompt() async {
+    if (!mounted || _uiaPromptShowing) return null;
     _uiaPromptShowing = true;
     var passwordValue = '';
     final password = await showDialog<String>(
@@ -134,11 +134,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
       ),
     );
     _uiaPromptShowing = false;
-    if (password != null && password.isNotEmpty) {
-      _matrixService.uia.completeUiaWithPassword(request, password);
-    } else {
-      request.cancel();
-    }
+    return password != null && password.isNotEmpty ? password : null;
   }
 
   // ── Confirm key saved ─────────────────────────────────────────

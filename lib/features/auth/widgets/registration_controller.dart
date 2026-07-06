@@ -5,7 +5,7 @@ import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/network_error.dart';
 import 'package:kohera/features/auth/services/recaptcha_server.dart';
-import 'package:kohera/features/e2ee/widgets/bootstrap_controller.dart' show BootstrapController;
+import 'package:kohera/features/e2ee/services/bootstrap_controller.dart' show BootstrapController;
 import 'package:matrix/matrix.dart';
 
 /// States for the registration flow state machine.

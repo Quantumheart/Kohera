@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/features/e2ee/widgets/bootstrap_controller.dart';
+import 'package:kohera/features/e2ee/services/bootstrap_controller.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 
