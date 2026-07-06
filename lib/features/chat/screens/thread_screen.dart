@@ -8,11 +8,10 @@ import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
 import 'package:kohera/features/chat/services/file_send_handler.dart';
 import 'package:kohera/features/chat/services/message_timeline_controller.dart';
-import 'package:kohera/features/chat/services/thread_roots_service.dart';
+import 'package:kohera/features/chat/services/thread_reply_loader.dart';
 import 'package:kohera/features/chat/widgets/compose_bar_section.dart';
 import 'package:kohera/features/chat/widgets/message_list_view.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 class ThreadScreen extends StatefulWidget {
@@ -36,6 +35,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
   final _focusNode = FocusNode(debugLabel: 'thread-compose');
   final _messageListKey = GlobalKey<MessageListViewState>();
   final _compose = ComposeStateController();
+  final _threadLoader = ThreadReplyLoader();
 
   late MessageTimelineController _timelineController;
 
@@ -43,15 +43,6 @@ class _ThreadScreenState extends State<ThreadScreen> {
   bool _loadingRoot = true;
   bool _focusReady = false;
   bool _loadingMoreReplies = false;
-  List<Event> _threadReplies = const [];
-  Event? _threadRootEvent;
-  String? _repliesNextBatch;
-
-  List<Event> get _seedEvents {
-    final root = _threadRootEvent;
-    if (root == null) return _threadReplies;
-    return [root, ..._threadReplies];
-  }
 
   @override
   void initState() {
@@ -83,30 +74,24 @@ class _ThreadScreenState extends State<ThreadScreen> {
   }
 
   Future<void> _loadRoot() async {
-    final room =
-        context.read<MatrixService>().client.getRoomById(widget.roomId);
+    final matrix = context.read<MatrixService>();
+    final room = matrix.client.getRoomById(widget.roomId);
     if (room == null) {
       if (mounted) setState(() => _loadingRoot = false);
       _scheduleFocusReady();
       return;
     }
     try {
-      final client = context.read<MatrixService>().client;
-      final root = await room.getEventById(widget.threadRootEventId);
-      final page = await fetchThreadChildrenPage(
-        client,
-        room,
+      final rootFound = await _threadLoader.loadRoot(
+        matrix,
+        widget.roomId,
         widget.threadRootEventId,
       );
       if (!mounted) return;
-      setState(() {
-        _loadingRoot = false;
-        _threadReplies = page.events;
-        _threadRootEvent = root;
-        _repliesNextBatch = page.nextBatch;
-        if (root != null) _compose.setThreadRoot(root);
-      });
-      _timelineController.updateExtraEvents(_seedEvents);
+      final root = _threadLoader.rootEvent;
+      setState(() => _loadingRoot = false);
+      if (rootFound && root != null) _compose.setThreadRoot(root);
+      _timelineController.updateExtraEvents(_threadLoader.seedEvents);
       unawaited(_timelineController.init());
       _scheduleFocusReady();
     } catch (e) {
@@ -119,31 +104,17 @@ class _ThreadScreenState extends State<ThreadScreen> {
   }
 
   Future<void> _loadMoreReplies() async {
-    if (_loadingMoreReplies) return;
-    final from = _repliesNextBatch;
-    if (from == null) return;
-    final room =
-        context.read<MatrixService>().client.getRoomById(widget.roomId);
-    if (room == null) return;
+    if (_loadingMoreReplies || !_threadLoader.hasMore) return;
     setState(() => _loadingMoreReplies = true);
     try {
-      final page = await fetchThreadChildrenPage(
-        context.read<MatrixService>().client,
-        room,
+      final matrix = context.read<MatrixService>();
+      await _threadLoader.loadMoreReplies(
+        matrix,
+        widget.roomId,
         widget.threadRootEventId,
-        from: from,
       );
       if (!mounted) return;
-      final seen = _threadReplies.map((e) => e.eventId).toSet();
-      final merged = [
-        ..._threadReplies,
-        ...page.events.where((e) => seen.add(e.eventId)),
-      ];
-      setState(() {
-        _threadReplies = merged;
-        _repliesNextBatch = page.nextBatch;
-      });
-      _timelineController.updateExtraEvents(_seedEvents);
+      _timelineController.updateExtraEvents(_threadLoader.seedEvents);
     } catch (e) {
       debugPrint('[Kohera] Thread reply pagination failed: $e');
     } finally {
@@ -177,6 +148,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
   @override
   void dispose() {
     _timelineController.dispose();
+    _threadLoader.dispose();
     _msgCtrl.dispose();
     _focusNode.dispose();
     _compose.dispose();
