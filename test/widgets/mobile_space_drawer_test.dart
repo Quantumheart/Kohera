@@ -47,7 +47,7 @@ void main() {
         GoRoute(
           path: '/',
           name: Routes.home,
-          builder: (_, __) => Scaffold(
+          builder: (_, _) => Scaffold(
             drawer: const MobileSpaceDrawer(),
             body: Builder(
               builder: (ctx) => IconButton(

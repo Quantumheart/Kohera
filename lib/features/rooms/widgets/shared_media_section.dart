@@ -327,7 +327,7 @@ class _MediaThumbnailState extends State<_MediaThumbnail> {
                           fit: BoxFit.cover,
                           headers:
                               widget.controller.authHeaders(_thumbnailUrl!),
-                          errorBuilder: (_, __, ___) => Icon(
+                          errorBuilder: (_, _, _) => Icon(
                             Icons.broken_image_rounded,
                             color: cs.onSurfaceVariant,
                           ),

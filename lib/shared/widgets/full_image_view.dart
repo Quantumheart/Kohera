@@ -87,7 +87,7 @@ class _FullImageContentState extends State<_FullImageContent> {
                 _imageUrl!,
                 fit: BoxFit.contain,
                 headers: widget.controller.authHeaders(_imageUrl!),
-                errorBuilder: (_, __, ___) => Center(
+                errorBuilder: (_, _, _) => Center(
                   child: Icon(
                     Icons.broken_image_rounded,
                     color: cs.onSurfaceVariant,

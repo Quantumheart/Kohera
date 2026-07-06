@@ -122,7 +122,7 @@ void main() {
     when(parent.id).thenReturn('!parent:e.com');
     when(parent.getLocalizedDisplayname()).thenReturn('Parent');
 
-    await tester.pumpWidget(host(candidatesBuilder: (_, __) => [(id: '!parent:e.com', displayname: 'Parent')]));
+    await tester.pumpWidget(host(candidatesBuilder: (_, _) => [(id: '!parent:e.com', displayname: 'Parent')]));
 
     expect(
       find.byKey(const Key('join_access_space_!parent:e.com')),
@@ -133,7 +133,7 @@ void main() {
   testWidgets('empty candidates shows no-parents hint', (tester) async {
     when(access.getJoinMode(room)).thenReturn(JoinMode.restricted);
 
-    await tester.pumpWidget(host(candidatesBuilder: (_, __) => const []));
+    await tester.pumpWidget(host(candidatesBuilder: (_, _) => const []));
 
     expect(find.text('No eligible parent spaces'), findsOneWidget);
   });
@@ -141,7 +141,7 @@ void main() {
   testWidgets(
     'empty candidates disables restricted dropdown items with tooltip',
     (tester) async {
-      await tester.pumpWidget(host(candidatesBuilder: (_, __) => const []));
+      await tester.pumpWidget(host(candidatesBuilder: (_, _) => const []));
 
       final innerDropdown = tester.widget<DropdownButton<JoinMode>>(
         find.descendant(

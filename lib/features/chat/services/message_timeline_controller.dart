@@ -200,11 +200,11 @@ class MessageTimelineController extends ChangeNotifier {
           );
           if (senderKey != null) {
             try {
-              encryption.keyManager.maybeAutoRequest(
+              unawaited(Future.value(encryption.keyManager.maybeAutoRequest(
                 room.id,
                 sessionId,
                 senderKey,
-              );
+              )));
             } catch (e) {
               debugPrint('[Kohera] P2P key request failed for $sessionId: $e');
             }

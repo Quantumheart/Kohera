@@ -566,6 +566,13 @@ void main() {
       mockKeyManager = MockKeyManager();
       when(mockEncryption.crossSigning).thenReturn(mockCrossSigning);
       when(mockEncryption.keyManager).thenReturn(mockKeyManager);
+      // Stubs for Client.getCryptoIdentityState() (matrix-dart-sdk v7.5.0)
+      when(mockClient.userID).thenReturn('@user:example.com');
+      when(mockClient.accountDataLoading).thenReturn(null);
+      when(mockClient.firstSyncReceived).thenReturn(null);
+      when(mockClient.accountData).thenReturn({});
+      when(mockClient.getAccountData(any, any))
+          .thenAnswer((_) async => <String, dynamic>{});
     });
 
     group('checkChatBackupStatus', () {

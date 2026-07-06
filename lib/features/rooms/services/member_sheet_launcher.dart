@@ -28,7 +28,7 @@ Future<void> showRoomMemberSheet(
 }) {
   final client = room.client;
   final isMe = member.userId == client.userID;
-  final ownLevel = room.getPowerLevelByUserId(client.userID ?? '');
+  final ownLevel = room.getPowerLevelByUserId(client.userID ?? '').level;
 
   return showMemberSheetDialog(
     context,

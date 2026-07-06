@@ -356,7 +356,7 @@ class OpenGraphService {
         }
       },
       onDone: finish,
-      onError: (_, __) => finish(),
+      onError: (_, _) => finish(),
       cancelOnError: true,
     );
     try {

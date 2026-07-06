@@ -99,7 +99,7 @@ class _MxcImageState extends State<MxcImage> {
       height: widget.height,
       fit: widget.fit,
       headers: _resolvedHeaders,
-      errorBuilder: (_, __, ___) => Text(widget.fallbackText, style: widget.fallbackStyle),
+      errorBuilder: (_, _, _) => Text(widget.fallbackText, style: widget.fallbackStyle),
     );
   }
 }

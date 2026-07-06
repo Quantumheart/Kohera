@@ -24,9 +24,9 @@ void showMediaViewer(
     barrierColor: Colors.black,
     barrierDismissible: true,
     barrierLabel: 'Close media',
-    transitionBuilder: (_, animation, __, child) =>
+    transitionBuilder: (_, animation, _, child) =>
         FadeTransition(opacity: animation, child: child),
-    pageBuilder: (ctx, _, __) => SafeArea(
+    pageBuilder: (ctx, _, _) => SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
         child: MediaViewerShell(

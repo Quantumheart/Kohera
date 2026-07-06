@@ -42,8 +42,8 @@ Map<String, Object?> _plContent({
       'kick': kick,
       'ban': ban,
       'state_default': stateDefault,
-      if (events != null) 'events': events,
-      if (notifications != null) 'notifications': notifications,
+      'events': ?events,
+      'notifications': ?notifications,
     };
 
 KoheraRoomPermissions _perms({
@@ -587,7 +587,7 @@ void main() {
           .thenReturn(mockPlEvent);
       when(mockPlEvent.content).thenReturn(_plContent());
       when(mockRoom.getParticipants()).thenReturn([]);
-      when(mockRoom.getPowerLevelByUserId(any)).thenReturn(0);
+      when(mockRoom.getPowerLevelByUserId(any)).thenReturn(PowerLevel(0));
       when(mockRoom.canChangeStateEvent(EventTypes.RoomName)).thenReturn(false);
       when(mockRoom.canChangeStateEvent(EventTypes.RoomTopic))
           .thenReturn(false);

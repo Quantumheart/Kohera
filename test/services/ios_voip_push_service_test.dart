@@ -224,7 +224,7 @@ void main() {
           'sender_display_name': sender,
           'is_video': isVideo,
         },
-        if (nativeCallId != null) 'nativeCallId': nativeCallId,
+        'nativeCallId': ?nativeCallId,
         'callKitAlreadyShown': callKitAlreadyShown,
       };
 

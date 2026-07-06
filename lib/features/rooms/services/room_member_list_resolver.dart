@@ -21,7 +21,7 @@ class RoomMemberListResolver {
         displayname: u.calcDisplayname(),
         avatarUrl: u.avatarUrl?.toString(),
         membership: u.membership.name,
-        powerLevel: room.getPowerLevelByUserId(u.id),
+        powerLevel: room.getPowerLevelByUserId(u.id).level,
       );
     }).toList();
 

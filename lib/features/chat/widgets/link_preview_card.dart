@@ -136,7 +136,7 @@ class _LinkPreviewCardState extends State<LinkPreviewCard>
                           headers: matrixClient != null
                               ? mediaAuthHeaders(matrixClient, data.imageUrl!) ?? const {}
                               : const {},
-                          errorBuilder: (_, __, ___) => SizedBox(
+                          errorBuilder: (_, _, _) => SizedBox(
                             width: 60,
                             height: 60,
                             child: Icon(

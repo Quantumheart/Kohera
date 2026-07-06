@@ -149,7 +149,7 @@ class _CallTestHarness {
         GoRoute(
           path: '/',
           name: Routes.home,
-          builder: (_, __) => const Scaffold(
+          builder: (_, _) => const Scaffold(
             body: Center(child: Text('Home')),
           ),
         ),
@@ -165,7 +165,7 @@ class _CallTestHarness {
             GoRoute(
               path: 'call',
               name: Routes.call,
-              builder: (_, __) => const Scaffold(body: CallPane()),
+              builder: (_, _) => const Scaffold(body: CallPane()),
             ),
           ],
         ),
@@ -190,7 +190,7 @@ class _CallTestHarness {
         GoRoute(
           path: '/',
           name: Routes.home,
-          builder: (_, __) => const Scaffold(
+          builder: (_, _) => const Scaffold(
             body: Center(child: Text('Home')),
           ),
         ),
@@ -206,7 +206,7 @@ class _CallTestHarness {
             GoRoute(
               path: 'call',
               name: Routes.call,
-              builder: (_, __) => const Scaffold(body: CallPane()),
+              builder: (_, _) => const Scaffold(body: CallPane()),
             ),
           ],
         ),

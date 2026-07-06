@@ -27,9 +27,9 @@ Map<String, Object?> _plContent({
       'kick': kick,
       'ban': ban,
       'redact': redact,
-      if (users != null) 'users': users,
-      if (events != null) 'events': events,
-      if (notifications != null) 'notifications': notifications,
+      'users': ?users,
+      'events': ?events,
+      'notifications': ?notifications,
     };
 
 void main() {

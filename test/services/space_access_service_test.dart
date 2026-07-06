@@ -16,7 +16,7 @@ StrippedStateEvent _joinRulesEvent({
     senderId: '@admin:example.com',
     content: {
       'join_rule': joinRule,
-      if (allow != null) 'allow': allow,
+      'allow': ?allow,
     },
   );
 }

@@ -610,7 +610,7 @@ class _ChatScreenState extends State<ChatScreen>
       displayname: sender.calcDisplayname(),
       avatarUrl: sender.avatarUrl?.toString(),
       membership: sender.membership.name,
-      powerLevel: room.getPowerLevelByUserId(sender.id),
+      powerLevel: room.getPowerLevelByUserId(sender.id).level,
     );
     unawaited(showRoomMemberSheet(context, room: room, member: member));
   }
@@ -870,7 +870,7 @@ class _ChatScreenState extends State<ChatScreen>
           initialChildSize: 0.7,
           minChildSize: 0.7,
           maxChildSize: 0.9,
-          builder: (_, __) => StickerPickerOverlay(
+          builder: (_, _) => StickerPickerOverlay(
             packs: stickerService.packsForRoom(room),
             mediaResolver: matrix.mediaResolver,
             skinTone: skinTone,

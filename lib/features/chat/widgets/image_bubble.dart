@@ -110,7 +110,7 @@ class _ImageBubbleState extends State<ImageBubble> {
                           _imageUrl!,
                           fit: BoxFit.cover,
                           headers: widget.controller.authHeaders(_imageUrl!),
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, _, _) => Container(
                             height: 80,
                             color: cs.surfaceContainerHighest,
                             child: const Center(

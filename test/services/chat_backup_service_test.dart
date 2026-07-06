@@ -54,6 +54,13 @@ void main() {
     when(mockBackupVersion.cachedSecretMatchesServer())
         .thenAnswer((_) async => true);
     when(mockBackupVersion.hasVersion()).thenAnswer((_) async => true);
+    // Stubs for Client.getCryptoIdentityState() (matrix-dart-sdk v7.5.0)
+    when(mockClient.userID).thenReturn('@user:example.com');
+    when(mockClient.accountDataLoading).thenReturn(null);
+    when(mockClient.firstSyncReceived).thenReturn(null);
+    when(mockClient.accountData).thenReturn({});
+    when(mockClient.getAccountData(any, any))
+        .thenAnswer((_) async => <String, dynamic>{});
     service = ChatBackupService(
       client: mockClient,
       storage: mockStorage,
