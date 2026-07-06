@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/shared/models/kohera_presence_type.dart';
 
 /// A presence status dot. Rebuilds independently when [presence] changes and
 /// renders nothing (no layout shift) for unknown presence.
@@ -27,7 +27,8 @@ class PresenceDot extends StatelessWidget {
       builder: (context, _) {
         final cached = presence.presenceFor(userId);
         if (cached == null) return const SizedBox.shrink();
-        final (color, label) = _styleFor(cached.presence, cs);
+        final (color, label) =
+            _styleFor(KoheraPresenceType.fromName(cached.presence.name), cs);
         final diameter = size * 0.3;
         return Semantics(
           label: label,
@@ -45,11 +46,14 @@ class PresenceDot extends StatelessWidget {
     );
   }
 
-  static (Color, String) _styleFor(PresenceType type, ColorScheme cs) =>
+  static (Color, String) _styleFor(
+    KoheraPresenceType type,
+    ColorScheme cs,
+  ) =>
       switch (type) {
-        PresenceType.online => (cs.primary, 'Online'),
-        PresenceType.unavailable => (cs.tertiary, 'Away'),
-        PresenceType.offline => (cs.outline, 'Offline'),
+        KoheraPresenceType.online => (cs.primary, 'Online'),
+        KoheraPresenceType.unavailable => (cs.tertiary, 'Away'),
+        KoheraPresenceType.offline => (cs.outline, 'Offline'),
       };
 }
 
