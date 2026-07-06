@@ -129,12 +129,9 @@ class _NotificationLifecycleObserverState
     await service.register();
   }
 
-  /// Reconcile the homeserver's account-wide push rules with the persisted
-  /// global notification level. Ensures APNs/UnifiedPush pushes are filtered
-  /// server-side after a fresh login or session restore.
   Future<void> _syncGlobalPushRules() async {
     await widget.matrixService.globalPushRuleManager
-        .ensureSync(widget.preferencesService.notificationLevel);
+        .syncNotificationLevel(widget.preferencesService.notificationLevel);
   }
 
   void _onMatrixChanged() {
