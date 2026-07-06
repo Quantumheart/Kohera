@@ -10,7 +10,7 @@ import 'package:kohera/core/models/emoji_gg_pack.dart' as _i8;
 import 'package:kohera/core/models/sticker_pack.dart' as _i6;
 import 'package:kohera/core/services/emoji_gg_service.dart' as _i9;
 import 'package:kohera/core/services/sticker_pack_service.dart' as _i4;
-import 'package:kohera/features/settings/models/kohera_sticker_pack.dart'
+import 'package:kohera/shared/models/kohera_sticker_pack.dart'
     as _i5;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/src/models/timeline_chunk.dart' as _i13;

@@ -7,7 +7,7 @@ import 'dart:async' as _i4;
 import 'dart:typed_data' as _i5;
 import 'dart:ui' as _i8;
 
-import 'package:kohera/features/chat/services/media_controller.dart' as _i2;
+import 'package:kohera/shared/services/media_controller.dart' as _i2;
 import 'package:kohera/features/chat/services/media_playback_service.dart'
     as _i6;
 import 'package:media_kit/media_kit.dart' as _i7;

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/features/rooms/widgets/add_existing_rooms_dialog.dart';
+import 'package:kohera/shared/models/kohera_room_summary.dart';
 
 KoheraRoomSummary makeRoom(String id, String name, {bool isSpace = false}) =>
     KoheraRoomSummary(

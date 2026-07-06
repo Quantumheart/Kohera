@@ -1,6 +1,6 @@
-import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
 import 'package:kohera/features/spaces/models/space_rooms_model.dart';
+import 'package:kohera/shared/models/kohera_room_summary.dart';
 
 // ── List item types for the flat interleaved list ──────────
 sealed class ListItem {}

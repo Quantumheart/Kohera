@@ -1,10 +1,10 @@
 import 'package:kohera/core/models/space_node.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
-import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
 import 'package:kohera/features/spaces/models/space_rooms_model.dart';
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
+import 'package:kohera/shared/models/kohera_room_summary.dart';
 
 // ── Section-building helpers for the room list ──────────
 

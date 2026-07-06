@@ -1,17 +1,17 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
-import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
+import 'package:kohera/shared/models/kohera_room_summary.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:provider/provider.dart';
+
 
 Future<void> _showAddSpaceChooser(BuildContext context) async {
   final cs = Theme.of(context).colorScheme;

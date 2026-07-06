@@ -25,9 +25,9 @@ import 'package:kohera/core/services/sub_services/space_access_service.dart'
     as _i13;
 import 'package:kohera/core/services/sub_services/sync_service.dart' as _i14;
 import 'package:kohera/core/services/sub_services/uia_service.dart' as _i9;
-import 'package:kohera/features/notifications/services/call_push_rule_manager.dart'
+import 'package:kohera/core/services/sub_services/call_push_rule_manager.dart'
     as _i7;
-import 'package:kohera/features/notifications/services/megolm_key_mirror.dart'
+import 'package:kohera/core/services/sub_services/megolm_key_mirror.dart'
     as _i8;
 import 'package:kohera/shared/services/avatar_resolver.dart' as _i17;
 import 'package:kohera/shared/services/media_resolver.dart' as _i18;

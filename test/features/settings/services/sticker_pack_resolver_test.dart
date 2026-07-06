@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
-import 'package:kohera/features/settings/services/sticker_pack_resolver.dart';
+import 'package:kohera/shared/services/sticker_pack_resolver.dart';
 
 void main() {
   group('StickerPackResolver', () {

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/features/calling/models/call_constants.dart';
+import 'package:kohera/shared/models/call_constants.dart';
 import 'package:matrix/matrix.dart';
 
 // ── Constants ──────────────────────────────────────────────

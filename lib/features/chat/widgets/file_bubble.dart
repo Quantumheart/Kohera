@@ -4,7 +4,7 @@ import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/core/utils/media_cache_io.dart'
     if (dart.library.js_interop) 'package:kohera/core/utils/media_cache_web.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
-import 'package:kohera/features/chat/services/media_controller.dart';
+import 'package:kohera/shared/services/media_controller.dart';
 
 // coverage:ignore-start
 

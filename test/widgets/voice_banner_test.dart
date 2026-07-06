@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kohera/core/services/call_service.dart';
+import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/widgets/voice_banner.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';

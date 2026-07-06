@@ -4,11 +4,13 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:kohera/features/notifications/services/apns_push_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
+
+/// Inlined from `apns_push_service.dart` to avoid core→features dependency.
+const _apnsMethodChannel = MethodChannel('kohera/apns');
 
 class MegolmKeyMirror {
   MegolmKeyMirror({required this.client, required this.clientName});
@@ -52,7 +54,7 @@ class MegolmKeyMirror {
 
   Future<String?> _resolveAppGroupPath() async {
     try {
-      return await apnsMethodChannel.invokeMethod<String>('getAppGroupPath');
+      return await _apnsMethodChannel.invokeMethod<String>('getAppGroupPath');
     } on PlatformException catch (e) {
       debugPrint('[Kohera] Key mirror: failed to read App Group path: $e');
       return null;

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/macos_permissions.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
+import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/services/push_to_talk_service.dart';
 import 'package:kohera/features/calling/widgets/call_control_bar.dart';
 import 'package:kohera/features/calling/widgets/pip_self_view.dart';

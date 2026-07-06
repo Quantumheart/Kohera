@@ -5,21 +5,21 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
-import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/auth/screens/homeserver_screen.dart';
 import 'package:kohera/features/auth/screens/login_screen.dart';
 import 'package:kohera/features/auth/screens/registration_screen.dart';
+import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../services/matrix_service_test.mocks.dart';
+
 
 class _FixedServiceFactory extends MatrixServiceFactory {
   _FixedServiceFactory(this._service);

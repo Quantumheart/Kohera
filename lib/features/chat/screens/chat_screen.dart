@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
@@ -12,13 +11,13 @@ import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
-import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
+import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/screens/thread_list_screen.dart';
 import 'package:kohera/features/chat/screens/thread_screen.dart';
 import 'package:kohera/features/chat/services/chat_message_actions.dart';
@@ -59,8 +58,9 @@ import 'package:kohera/features/chat/widgets/typing_indicator.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/services/member_sheet_launcher.dart';
-import 'package:kohera/features/rooms/services/room_summary_resolver.dart';
+import 'package:kohera/shared/services/room_summary_resolver.dart';
 import 'package:provider/provider.dart';
+
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({

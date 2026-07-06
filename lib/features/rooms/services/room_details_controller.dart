@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:kohera/core/models/kohera_push_rule_state.dart';
@@ -11,7 +10,6 @@ import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:kohera/features/rooms/models/kohera_device_key.dart';
 import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
-import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
 import 'package:kohera/features/rooms/services/invite_user_dialog_params.dart';
 import 'package:kohera/features/rooms/services/join_access_controller.dart';
 import 'package:kohera/features/rooms/services/member_sheet_launcher.dart';
@@ -20,8 +18,10 @@ import 'package:kohera/features/rooms/services/room_permissions_resolver.dart';
 import 'package:kohera/features/rooms/services/shared_media_loader.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
+import 'package:kohera/shared/models/kohera_room_summary.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:matrix/matrix.dart';
+
 
 /// Owns the SDK `Room` for [RoomDetailsPanel] and exposes everything the
 /// SDK-free panel needs: display models ([KoheraRoomSummary],

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/rooms/models/kohera_room_summary.dart';
-import 'package:kohera/features/rooms/services/room_summary_resolver.dart';
+import 'package:kohera/shared/models/kohera_room_summary.dart';
+import 'package:kohera/shared/services/room_summary_resolver.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';

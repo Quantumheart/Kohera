@@ -1,17 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/call_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/notification_filter.dart';
 import 'package:kohera/core/utils/platform_info.dart';
-import 'package:kohera/features/calling/models/call_constants.dart';
+import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/notification_service.dart';
+import 'package:kohera/shared/models/call_constants.dart';
 import 'package:matrix/matrix.dart';
 import 'package:unifiedpush/unifiedpush.dart';
+
 
 class PushService {
   PushService({
