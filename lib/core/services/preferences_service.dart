@@ -24,6 +24,22 @@ enum MessageDensity {
       };
 }
 
+/// Controls the visual style of the chat timeline.
+///
+/// [bubbles] is the modern chat-bubble layout; [irc] is a compact,
+/// monospaced, line-based log (`HH:MM <nick> body`) reminiscent of
+/// traditional IRC clients.
+enum TimelineStyle {
+  bubbles,
+  irc;
+
+  /// Human-readable label for display in the UI.
+  String get label => switch (this) {
+        TimelineStyle.bubbles => 'Bubbles',
+        TimelineStyle.irc => 'IRC',
+      };
+}
+
 /// Global notification level.
 ///
 /// Persisted locally and mirrored to the homeserver's account-wide push
@@ -79,6 +95,7 @@ class PreferencesService extends ChangeNotifier {
   String? _currentVersion;
   static const _defaultHomeserverKey = 'default_homeserver';
   static const _densityKey = 'message_density';
+  static const _timelineStyleKey = 'timeline_style';
   static const _themeModeKey = 'theme_mode';
   static const _themePresetKey = 'theme_preset';
   static const _lastMobileTabKey = 'last_mobile_tab';
@@ -133,6 +150,23 @@ class PreferencesService extends ChangeNotifier {
   Future<void> setMessageDensity(MessageDensity density) async {
     await _prefs?.setString(_densityKey, density.name);
     debugPrint('[Kohera] Message density set to ${density.label}');
+    notifyListeners();
+  }
+
+  // ── Timeline style ─────────────────────────────────────────
+
+  TimelineStyle get timelineStyle {
+    final stored = _prefs?.getString(_timelineStyleKey);
+    if (stored == null) return TimelineStyle.bubbles;
+    return TimelineStyle.values.firstWhere(
+      (s) => s.name == stored,
+      orElse: () => TimelineStyle.bubbles,
+    );
+  }
+
+  Future<void> setTimelineStyle(TimelineStyle style) async {
+    await _prefs?.setString(_timelineStyleKey, style.name);
+    debugPrint('[Kohera] Timeline style set to ${style.name}');
     notifyListeners();
   }
 
