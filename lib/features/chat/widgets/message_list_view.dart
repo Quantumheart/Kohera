@@ -326,7 +326,8 @@ class MessageListViewState extends State<MessageListView> {
         );
       case MessageCategory.message:
         return timelineStyle == TimelineStyle.irc
-            ? _buildIrcMessageTile(context, data, isMobile)
+            ? _buildIrcMessageTile(
+                context, data, isMobile, avatarResolver, mediaResolver)
             : _buildMessageTile(
                 context,
                 data,
@@ -382,11 +383,14 @@ class MessageListViewState extends State<MessageListView> {
     BuildContext context,
     ChatMessageData data,
     bool isMobile,
+    AvatarResolver avatarResolver,
+    MediaResolver mediaResolver,
   ) {
     return IrcMessageTile(
       message: data.message,
       reactions: data.reactions,
       media: data.media,
+      mediaController: data.mediaController,
       isMe: data.isMe,
       isFirst: data.isFirst,
       isMobile: isMobile,
@@ -398,7 +402,7 @@ class MessageListViewState extends State<MessageListView> {
       threadUnreadCount: data.threadUnreadCount,
       inThread: controller.isThread,
       highlightedEventId: widget.highlightedEventId,
-      avatarResolver: null,
+      avatarResolver: avatarResolver,
       mentionResolver: widget.mentionResolver,
       onToggleReaction: (emoji) => widget.onToggleReaction(data.eventId, emoji),
       onReply: () => widget.onReply(data.eventId),

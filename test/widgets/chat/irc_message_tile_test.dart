@@ -55,6 +55,7 @@ void main() {
         inThread: false,
         highlightedEventId: null,
         avatarResolver: null,
+        mediaController: null,
         mentionResolver: null,
         onToggleReaction: null,
       )));
@@ -66,6 +67,8 @@ void main() {
       expect(text, contains('14:32'));
       expect(text, contains('<Alice>'));
       expect(text, contains('Hello, world!'));
+      // Regression: text messages must not be misrendered as file media.
+      expect(text, isNot(contains('[file')));
     });
 
     testWidgets('uses > marker for own messages', (tester) async {
@@ -85,6 +88,7 @@ void main() {
         inThread: false,
         highlightedEventId: null,
         avatarResolver: null,
+        mediaController: null,
         mentionResolver: null,
         onToggleReaction: null,
       )));
@@ -113,6 +117,7 @@ void main() {
         inThread: false,
         highlightedEventId: null,
         avatarResolver: null,
+        mediaController: null,
         mentionResolver: null,
         onToggleReaction: null,
       )));
@@ -142,6 +147,7 @@ void main() {
         inThread: false,
         highlightedEventId: null,
         avatarResolver: null,
+        mediaController: null,
         mentionResolver: null,
         onToggleReaction: null,
       )));
@@ -170,6 +176,7 @@ void main() {
         inThread: false,
         highlightedEventId: null,
         avatarResolver: null,
+        mediaController: null,
         mentionResolver: null,
         onToggleReaction: null,
       )));

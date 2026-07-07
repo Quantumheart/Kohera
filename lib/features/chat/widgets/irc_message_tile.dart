@@ -11,11 +11,28 @@ import 'package:kohera/features/chat/models/kohera_media_content.dart';
 import 'package:kohera/features/chat/models/kohera_media_type.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/models/kohera_reaction.dart';
+import 'package:kohera/features/chat/widgets/audio_bubble.dart';
+import 'package:kohera/features/chat/widgets/file_bubble.dart';
+import 'package:kohera/features/chat/widgets/image_bubble.dart';
 import 'package:kohera/features/chat/widgets/long_press_wrapper.dart';
 import 'package:kohera/features/chat/widgets/swipeable_message.dart';
+import 'package:kohera/features/chat/widgets/video_bubble.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/shared/services/media_controller.dart';
 
 const _msgtypeNotice = 'm.notice';
 const _msgtypeEmote = 'm.emote';
+const _msgtypeImage = 'm.image';
+const _msgtypeAudio = 'm.audio';
+const _msgtypeVideo = 'm.video';
+const _msgtypeFile = 'm.file';
+
+const Set<String> _mediaMessageTypes = {
+  _msgtypeImage,
+  _msgtypeAudio,
+  _msgtypeVideo,
+  _msgtypeFile,
+};
 
 /// Renders one timeline message as a compact, monospaced IRC-style line:
 /// `HH:MM <nick> body`.
@@ -43,6 +60,7 @@ class IrcMessageTile extends StatelessWidget {
     required this.inThread,
     required this.highlightedEventId,
     required this.avatarResolver,
+    required this.mediaController,
     required this.mentionResolver,
     required this.onToggleReaction,
     this.replyPreviewText,
@@ -74,7 +92,8 @@ class IrcMessageTile extends StatelessWidget {
   final int threadUnreadCount;
   final bool inThread;
   final String? highlightedEventId;
-  final dynamic avatarResolver; // AvatarResolver — kept dynamic to avoid SDK import
+  final AvatarResolver? avatarResolver;
+  final MediaController? mediaController;
   final String? Function(String identifier)? mentionResolver;
 
   /// One-line reply preview text (already resolved), or null.
@@ -163,6 +182,11 @@ class IrcMessageTile extends StatelessWidget {
     }
 
     // Body.
+    final isMediaMessage = !isRedacted &&
+        _mediaMessageTypes.contains(message.messageType) &&
+        media != null &&
+        mediaController != null;
+
     if (isRedacted) {
       spans.add(TextSpan(
         text: '• redacted',
@@ -177,13 +201,10 @@ class IrcMessageTile extends StatelessWidget {
           style: mono.copyWith(color: cs.onSurfaceVariant.withValues(alpha: 0.4)),
         ));
       }
-    } else if (media != null) {
-      spans.add(_mediaSpan(media!, mono, cs, palette));
-      final caption = media!.caption ?? media!.fileName;
-      if (caption != null && caption.isNotEmpty && caption != media!.fileName) {
-        spans.add(const TextSpan(text: ' '));
-        _addLinkableText(caption, mono, cs, palette, spans);
-      }
+    } else if (isMediaMessage) {
+      // Media messages render the attachment below the log line; show a
+      // compact label inline so the line is still readable.
+      spans.add(_mediaLabel(media!, mono, palette));
     } else {
       _addLinkableText(message.body, mono, cs, palette, spans);
       if (message.isEdited) {
@@ -255,29 +276,47 @@ class IrcMessageTile extends StatelessWidget {
       ),
     );
 
-    // ── Interactions ────────────────────────────────────────
-    Widget content = line;
-    if (isMobile) {
-      content = SwipeableMessage(
-        onReply: () => onReply?.call(),
-        child: LongPressWrapper(
-          onLongPress: (rect) => onShowMobileActions?.call(rect),
-          child: content,
-        ),
-      );
-    } else {
-      content = Listener(
-        onPointerDown: (event) {
-          if (event.buttons == kSecondaryMouseButton && !isRedacted) {
-            onOpenContextMenu?.call(event.position);
-          }
-        },
-        child: MouseRegion(
-          cursor: SystemMouseCursors.click,
-          child: content,
-        ),
-      );
-    }
+    // Media attachment rendered below the log line so images/gifs load.
+    final mediaWidget = isMediaMessage
+        ? _buildMediaWidget(media!, mediaController!, cs)
+        : null;
+
+    final body = mediaWidget == null
+        ? line
+        : Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                line,
+                Padding(
+                  padding: const EdgeInsets.only(left: 64, top: 1),
+                  child: mediaWidget,
+                ),
+              ],
+            ),
+          );
+
+    // ── Interactions ─────────────────────────────────────
+    final content = isMobile
+        ? SwipeableMessage(
+            onReply: () => onReply?.call(),
+            child: LongPressWrapper(
+              onLongPress: (rect) => onShowMobileActions?.call(rect),
+              child: body,
+            ),
+          )
+        : Listener(
+            onPointerDown: (event) {
+              if (event.buttons == kSecondaryMouseButton && !isRedacted) {
+                onOpenContextMenu?.call(event.position);
+              }
+            },
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: body,
+            ),
+          );
 
     return KeyedSubtree(key: ValueKey(message.eventId), child: content);
   }
@@ -320,12 +359,8 @@ class IrcMessageTile extends StatelessWidget {
     }
   }
 
-  TextSpan _mediaSpan(
-    KoheraMediaContent m,
-    TextStyle style,
-    ColorScheme cs,
-    KoheraPalette palette,
-  ) {
+  /// Compact inline label for the log line (e.g. `[image: photo.png]`).
+  TextSpan _mediaLabel(KoheraMediaContent m, TextStyle style, KoheraPalette palette) {
     final label = switch (m.mediaType) {
       KoheraMediaType.image => '[image]',
       KoheraMediaType.video => '[video]',
@@ -338,6 +373,35 @@ class IrcMessageTile extends StatelessWidget {
       text: name.isEmpty ? label : '$label: $name',
       style: style.copyWith(color: palette.link, fontWeight: FontWeight.w600),
     );
+  }
+
+  /// Renders the actual media attachment so images/gifs load and display.
+  Widget _buildMediaWidget(
+    KoheraMediaContent m,
+    MediaController controller,
+    ColorScheme cs,
+  ) {
+    switch (m.mediaType) {
+      case KoheraMediaType.image:
+        return ImageBubble(
+          media: m,
+          controller: controller,
+          avatarResolver: avatarResolver!,
+        );
+      case KoheraMediaType.video:
+        return VideoBubble(
+          media: m,
+          controller: controller,
+          isMe: isMe,
+          avatarResolver: avatarResolver!,
+        );
+      case KoheraMediaType.audio:
+        return AudioBubble(media: m, controller: controller, isMe: isMe);
+      case KoheraMediaType.file:
+        return FileBubble(media: m, controller: controller, isMe: isMe);
+      case KoheraMediaType.sticker:
+        return FileBubble(media: m, controller: controller, isMe: isMe);
+    }
   }
 
   static final _urlRegex = RegExp(r'https?://[^\s)<>]+', caseSensitive: false);
