@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/chat/models/chat_message_data.dart';
 import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
@@ -9,6 +10,7 @@ import 'package:kohera/features/chat/services/linkable_span_builder.dart';
 import 'package:kohera/features/chat/services/message_timeline_controller.dart';
 import 'package:kohera/features/chat/widgets/call_event_tile.dart';
 import 'package:kohera/features/chat/widgets/chat_message_item.dart';
+import 'package:kohera/features/chat/widgets/irc_message_tile.dart';
 import 'package:kohera/features/chat/widgets/reaction_chips.dart';
 import 'package:kohera/features/chat/widgets/state_event_tile.dart';
 import 'package:kohera/features/chat/widgets/sticker_bubble.dart';
@@ -248,6 +250,7 @@ class MessageListViewState extends State<MessageListView> {
 
     final isMobile = isTouchDevice;
     final matrix = context.read<MatrixService>();
+    final timelineStyle = context.watch<PreferencesService>().timelineStyle;
     final avatarResolver = matrix.avatarResolver;
     final mediaResolver = matrix.mediaResolver;
     final receiptMap = controller.receipts;
@@ -278,6 +281,7 @@ class MessageListViewState extends State<MessageListView> {
             avatarResolver,
             mediaResolver,
             receiptMap,
+            timelineStyle,
           );
 
           if (_shouldShowUnreadDivider(data, i)) {
@@ -302,6 +306,7 @@ class MessageListViewState extends State<MessageListView> {
     AvatarResolver avatarResolver,
     MediaResolver mediaResolver,
     Map<String, List<KoheraReadReceipt>> receiptMap,
+    TimelineStyle timelineStyle,
   ) {
     switch (data.category) {
       case MessageCategory.callEvent:
@@ -320,14 +325,16 @@ class MessageListViewState extends State<MessageListView> {
           avatarResolver,
         );
       case MessageCategory.message:
-        return _buildMessageTile(
-          context,
-          data,
-          isMobile,
-          avatarResolver,
-          mediaResolver,
-          receiptMap,
-        );
+        return timelineStyle == TimelineStyle.irc
+            ? _buildIrcMessageTile(context, data, isMobile)
+            : _buildMessageTile(
+                context,
+                data,
+                isMobile,
+                avatarResolver,
+                mediaResolver,
+                receiptMap,
+              );
     }
   }
 
@@ -368,6 +375,50 @@ class MessageListViewState extends State<MessageListView> {
           widget.onStickerMobileActions?.call(context, data.eventId, rect),
       highlightedEventId: widget.highlightedEventId,
       isPinned: data.isPinned,
+    );
+  }
+
+  Widget _buildIrcMessageTile(
+    BuildContext context,
+    ChatMessageData data,
+    bool isMobile,
+  ) {
+    return IrcMessageTile(
+      message: data.message,
+      reactions: data.reactions,
+      media: data.media,
+      isMe: data.isMe,
+      isFirst: data.isFirst,
+      isMobile: isMobile,
+      isPinned: data.isPinned,
+      canPin: data.canPin,
+      canRedact: data.canRedact,
+      hasThread: data.hasThread,
+      threadReplyCount: data.threadReplyCount,
+      threadUnreadCount: data.threadUnreadCount,
+      inThread: controller.isThread,
+      highlightedEventId: widget.highlightedEventId,
+      mentionResolver: widget.mentionResolver,
+      onToggleReaction: (emoji) => widget.onToggleReaction(data.eventId, emoji),
+      onReply: () => widget.onReply(data.eventId),
+      onEdit: () => widget.onEdit(data.eventId),
+      onPin: () => widget.onPin(data.eventId),
+      onReplyInThread: widget.onReplyInThread != null
+          ? () => widget.onReplyInThread!(data.eventId)
+          : null,
+      onOpenThread: widget.onOpenThread != null
+          ? () => widget.onOpenThread!(data.eventId)
+          : null,
+      onForward: widget.onForward != null
+          ? () => widget.onForward!(data.eventId)
+          : null,
+      onOpenContextMenu: (position) => widget.onOpenContextMenu
+          ?.call(context, data.eventId, position, data.isPinned, data.canPin),
+      onShowMobileActions: (rect) => widget.onShowMobileActions
+          ?.call(context, data.eventId, rect, data.isPinned, data.canPin),
+      onTapSender: widget.onTapSender,
+      onDelete: () => widget.onDelete?.call(context, data.eventId),
+      onTapReply: navigateToEventById,
     );
   }
 

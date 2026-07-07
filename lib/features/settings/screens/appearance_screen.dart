@@ -78,6 +78,28 @@ class AppearanceScreen extends StatelessWidget {
 
           const SizedBox(height: 24),
 
+          // ── Timeline style ──────────────────────────────────
+          const SectionHeader(label: 'TIMELINE STYLE'),
+          Card(
+            child: RadioGroup<TimelineStyle>(
+              groupValue: prefs.timelineStyle,
+              onChanged: (v) => prefs.setTimelineStyle(v!),
+              child: Column(
+                children: TimelineStyle.values.map((style) {
+                  return RadioListTile<TimelineStyle>(
+                    title: Text(style.label),
+                    subtitle: Text(style == TimelineStyle.irc
+                        ? 'Compact monospaced log: HH:MM <nick> message'
+                        : 'Modern chat bubbles with avatars and reactions'),
+                    value: style,
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
           // ── Message density ────────────────────────────────
           const SectionHeader(label: 'MESSAGE DENSITY'),
           Card(
