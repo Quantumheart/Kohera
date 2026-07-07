@@ -54,7 +54,6 @@ void main() {
         threadUnreadCount: 0,
         inThread: false,
         highlightedEventId: null,
-        avatarResolver: null,
         mentionResolver: null,
         onToggleReaction: null,
       )));
@@ -84,7 +83,6 @@ void main() {
         threadUnreadCount: 0,
         inThread: false,
         highlightedEventId: null,
-        avatarResolver: null,
         mentionResolver: null,
         onToggleReaction: null,
       )));
@@ -112,7 +110,6 @@ void main() {
         threadUnreadCount: 0,
         inThread: false,
         highlightedEventId: null,
-        avatarResolver: null,
         mentionResolver: null,
         onToggleReaction: null,
       )));
@@ -141,7 +138,6 @@ void main() {
         threadUnreadCount: 0,
         inThread: false,
         highlightedEventId: null,
-        avatarResolver: null,
         mentionResolver: null,
         onToggleReaction: null,
       )));
@@ -169,7 +165,6 @@ void main() {
         threadUnreadCount: 0,
         inThread: false,
         highlightedEventId: null,
-        avatarResolver: null,
         mentionResolver: null,
         onToggleReaction: null,
       )));

@@ -42,7 +42,6 @@ class IrcMessageTile extends StatelessWidget {
     required this.threadUnreadCount,
     required this.inThread,
     required this.highlightedEventId,
-    required this.avatarResolver,
     required this.mentionResolver,
     required this.onToggleReaction,
     this.replyPreviewText,
@@ -74,7 +73,6 @@ class IrcMessageTile extends StatelessWidget {
   final int threadUnreadCount;
   final bool inThread;
   final String? highlightedEventId;
-  final dynamic avatarResolver; // AvatarResolver — kept dynamic to avoid SDK import
   final String? Function(String identifier)? mentionResolver;
 
   /// One-line reply preview text (already resolved), or null.

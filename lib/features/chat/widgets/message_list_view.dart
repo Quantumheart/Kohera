@@ -398,7 +398,6 @@ class MessageListViewState extends State<MessageListView> {
       threadUnreadCount: data.threadUnreadCount,
       inThread: controller.isThread,
       highlightedEventId: widget.highlightedEventId,
-      avatarResolver: null,
       mentionResolver: widget.mentionResolver,
       onToggleReaction: (emoji) => widget.onToggleReaction(data.eventId, emoji),
       onReply: () => widget.onReply(data.eventId),
