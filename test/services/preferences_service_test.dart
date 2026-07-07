@@ -582,4 +582,27 @@ void main() {
       expect(svc.hasVersionBumped, isFalse);
     });
   });
+
+  group('timeline style', () {
+    test('defaults to bubbles', () {
+      expect(prefs.timelineStyle, TimelineStyle.bubbles);
+    });
+
+    test('round-trips irc', () async {
+      await prefs.setTimelineStyle(TimelineStyle.irc);
+      expect(prefs.timelineStyle, TimelineStyle.irc);
+    });
+
+    test('persists across instances', () async {
+      await prefs.setTimelineStyle(TimelineStyle.irc);
+      final sp = await SharedPreferences.getInstance();
+      final again = PreferencesService(prefs: sp);
+      expect(again.timelineStyle, TimelineStyle.irc);
+    });
+
+    test('label is human-readable', () {
+      expect(TimelineStyle.bubbles.label, 'Bubbles');
+      expect(TimelineStyle.irc.label, 'IRC');
+    });
+  });
 }
