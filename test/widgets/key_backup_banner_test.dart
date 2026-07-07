@@ -141,6 +141,21 @@ void main() {
 
       expect(find.text('Protect your messages'), findsOneWidget);
     });
+
+    testWidgets('content wrapped in SafeArea to avoid status-bar overlap',
+        (tester) async {
+      when(mockChatBackup.chatBackupNeeded).thenReturn(true);
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      expect(
+        find.ancestor(
+          of: find.byIcon(Icons.shield_outlined),
+          matching: find.byType(SafeArea),
+        ),
+        findsOneWidget,
+      );
+    });
   });
 }
 
