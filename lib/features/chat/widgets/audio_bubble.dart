@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/core/utils/media_cache.dart';
@@ -9,8 +11,6 @@ import 'package:kohera/features/chat/services/media_playback_service.dart';
 import 'package:kohera/shared/services/media_controller.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
-
-
 // ── Audio bubble (waveform + seek + play/pause) ───────────────
 
 const _maxFileSizeBytes = 104857600;
@@ -217,7 +217,7 @@ class _AudioBubbleState extends State<AudioBubble> {
       case _AudioState.initial:
         return IconButton(
           onPressed: _pendingSend ? null : _initAndPlay,
-          icon: Icon(Icons.play_arrow_rounded,
+          icon: Icon(KIcons.playArrowRounded,
               color: _pendingSend
                   ? foreground.withValues(alpha: 0.3)
                   : foreground,),
@@ -238,7 +238,7 @@ class _AudioBubbleState extends State<AudioBubble> {
         return IconButton(
           onPressed: _togglePlayPause,
           icon: Icon(
-            _playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            _playing ? KIcons.pauseRounded : KIcons.playArrowRounded,
             color: foreground,
           ),
           style: IconButton.styleFrom(
@@ -248,7 +248,7 @@ class _AudioBubbleState extends State<AudioBubble> {
       case _AudioState.error:
         return IconButton(
           onPressed: _retry,
-          icon: Icon(Icons.refresh_rounded, color: foreground),
+          icon: Icon(KIcons.refreshRounded, color: foreground),
           style: IconButton.styleFrom(
             backgroundColor: foreground.withValues(alpha: 0.1),
           ),
@@ -261,7 +261,7 @@ class _AudioBubbleState extends State<AudioBubble> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.audiotrack_rounded,
+        Icon(KIcons.audiotrackRounded,
             size: 28, color: foreground.withValues(alpha: 0.7),),
         const SizedBox(width: 8),
         Column(

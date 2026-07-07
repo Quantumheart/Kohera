@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/whats_new/widgets/release_notes_markdown.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 typedef WhatsNewLinkLauncher = Future<bool> Function(Uri uri);
 
 class WhatsNewScreen extends StatefulWidget {
@@ -158,7 +158,7 @@ class _ErrorView extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.cloud_off, size: 48, color: theme.colorScheme.onSurfaceVariant),
+        Icon(KIcons.cloudOff, size: 48, color: theme.colorScheme.onSurfaceVariant),
         const SizedBox(height: 12),
         Text(
           message,
@@ -216,7 +216,7 @@ class _NotesView extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
             onPressed: onOpenGitHub,
-            icon: const Icon(Icons.open_in_new),
+            icon: const Icon(KIcons.openInNew),
             label: const Text('View on GitHub'),
           ),
         ),
@@ -246,7 +246,7 @@ class _StaleBanner extends StatelessWidget {
       child: Row(
         children: [
           Icon(
-            Icons.cloud_off,
+            KIcons.cloudOff,
             size: 18,
             color: theme.colorScheme.onSurfaceVariant,
           ),

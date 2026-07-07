@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-
 import 'package:kohera/core/models/upload_state.dart';
-
+import 'package:kohera/core/theme/k_icons.dart';
 class UploadProgressBanner extends StatelessWidget {
   const UploadProgressBanner({
     required this.state, required this.onCancel, super.key,
@@ -27,7 +26,7 @@ class UploadProgressBanner extends StatelessWidget {
       child: Row(
         children: [
           if (isError)
-            Icon(Icons.error_outline_rounded, size: 18, color: accentColor)
+            Icon(KIcons.errorOutlineRounded, size: 18, color: accentColor)
           else
             SizedBox(
               width: 18,
@@ -64,7 +63,7 @@ class UploadProgressBanner extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close_rounded, size: 18),
+            icon: const Icon(KIcons.closeRounded, size: 18),
             onPressed: onCancel,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),

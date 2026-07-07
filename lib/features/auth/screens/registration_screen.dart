@@ -6,12 +6,12 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/auth/services/registration_controller.dart';
 import 'package:kohera/features/auth/widgets/app_logo_header.dart';
 import 'package:kohera/features/auth/widgets/registration_views.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:provider/provider.dart';
-
 class RegistrationScreen extends StatefulWidget {
   RegistrationScreen({super.key, String? initialHomeserver})
       : initialHomeserver =
@@ -164,7 +164,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
                     controller: _homeserverCtrl,
                     decoration: InputDecoration(
                       prefixIcon:
-                          Icon(Icons.dns_outlined, color: cs.onSurfaceVariant),
+                          Icon(KIcons.dnsOutlined, color: cs.onSurfaceVariant),
                       hintText: 'Homeserver',
                       errorText: homeserverError,
                       suffixIcon: isChecking
@@ -192,7 +192,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
                         controller: _tokenCtrl,
                         enabled: formEnabled,
                         decoration: InputDecoration(
-                          prefixIcon: Icon(Icons.vpn_key_outlined,
+                          prefixIcon: Icon(KIcons.vpnKeyOutlined,
                               color: cs.onSurfaceVariant,),
                           hintText: 'Registration token',
                           errorText: _controller.tokenError,
@@ -206,7 +206,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
                     controller: _usernameCtrl,
                     enabled: formEnabled,
                     decoration: InputDecoration(
-                      prefixIcon: Icon(Icons.person_outline,
+                      prefixIcon: Icon(KIcons.personOutline,
                           color: cs.onSurfaceVariant,),
                       hintText: 'Username',
                       errorText: _controller.usernameError,
@@ -222,14 +222,14 @@ class _RegistrationScreenState extends State<RegistrationScreen>
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       prefixIcon:
-                          Icon(Icons.lock_outline, color: cs.onSurfaceVariant),
+                          Icon(KIcons.lockOutline, color: cs.onSurfaceVariant),
                       hintText: 'Password',
                       errorText: _controller.passwordError,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
+                              ? KIcons.visibilityOffOutlined
+                              : KIcons.visibilityOutlined,
                           color: cs.onSurfaceVariant,
                         ),
                         onPressed: () => setState(
@@ -247,14 +247,14 @@ class _RegistrationScreenState extends State<RegistrationScreen>
                     obscureText: _obscureConfirmPassword,
                     decoration: InputDecoration(
                       prefixIcon:
-                          Icon(Icons.lock_outline, color: cs.onSurfaceVariant),
+                          Icon(KIcons.lockOutline, color: cs.onSurfaceVariant),
                       hintText: 'Confirm password',
                       errorText: _confirmPasswordError,
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscureConfirmPassword
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
+                              ? KIcons.visibilityOffOutlined
+                              : KIcons.visibilityOutlined,
                           color: cs.onSurfaceVariant,
                         ),
                         onPressed: () => setState(() =>

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:matrix/matrix.dart';
-
 /// Display helpers for [Device] objects from the Matrix SDK.
 extension DeviceExtension on Device {
   /// Returns a user-friendly display name, falling back to the device ID.
@@ -29,11 +29,11 @@ extension DeviceExtension on Device {
   /// Returns an appropriate icon based on the device display name.
   IconData get deviceIcon {
     final name = (displayName ?? '').toLowerCase();
-    if (name.contains('android')) return Icons.phone_android_outlined;
+    if (name.contains('android')) return KIcons.phoneAndroidOutlined;
     if (name.contains('ios') ||
         name.contains('iphone') ||
         name.contains('ipad')) {
-      return Icons.phone_iphone_outlined;
+      return KIcons.phoneIphoneOutlined;
     }
     if (name.contains('firefox') ||
         name.contains('chrome') ||
@@ -42,7 +42,7 @@ extension DeviceExtension on Device {
         name.contains('edge') ||
         name.contains('brave') ||
         name.contains('web')) {
-      return Icons.web_outlined;
+      return KIcons.webOutlined;
     }
     if (name.contains('windows') ||
         name.contains('macos') ||
@@ -50,9 +50,9 @@ extension DeviceExtension on Device {
         name.contains('linux') ||
         name.contains('desktop') ||
         name.contains('electron')) {
-      return Icons.desktop_mac_outlined;
+      return KIcons.desktopMacOutlined;
     }
-    return Icons.devices_other_outlined;
+    return KIcons.devicesOtherOutlined;
   }
 
   /// Returns the last-seen timestamp as a [DateTime], or null.

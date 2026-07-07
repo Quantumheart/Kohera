@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/extensions/device_extension.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:matrix/matrix.dart';
-
 void main() {
   group('DeviceExtension', () {
     group('displayNameOrId', () {
@@ -26,7 +25,7 @@ void main() {
           deviceId: 'id',
           displayName: 'Kohera Android',
         );
-        expect(device.deviceIcon, Icons.phone_android_outlined);
+        expect(device.deviceIcon, KIcons.phoneAndroidOutlined);
       });
 
       test('returns iPhone icon for iOS', () {
@@ -34,7 +33,7 @@ void main() {
           deviceId: 'id',
           displayName: 'Element iOS',
         );
-        expect(device.deviceIcon, Icons.phone_iphone_outlined);
+        expect(device.deviceIcon, KIcons.phoneIphoneOutlined);
       });
 
       test('returns iPhone icon for iPad', () {
@@ -42,7 +41,7 @@ void main() {
           deviceId: 'id',
           displayName: 'My iPad',
         );
-        expect(device.deviceIcon, Icons.phone_iphone_outlined);
+        expect(device.deviceIcon, KIcons.phoneIphoneOutlined);
       });
 
       test('returns web icon for Firefox', () {
@@ -50,7 +49,7 @@ void main() {
           deviceId: 'id',
           displayName: 'Firefox on Ubuntu',
         );
-        expect(device.deviceIcon, Icons.web_outlined);
+        expect(device.deviceIcon, KIcons.webOutlined);
       });
 
       test('returns web icon for Chrome', () {
@@ -58,7 +57,7 @@ void main() {
           deviceId: 'id',
           displayName: 'Chrome on Windows',
         );
-        expect(device.deviceIcon, Icons.web_outlined);
+        expect(device.deviceIcon, KIcons.webOutlined);
       });
 
       test('returns desktop icon for Linux', () {
@@ -66,7 +65,7 @@ void main() {
           deviceId: 'id',
           displayName: 'Element Desktop Linux',
         );
-        expect(device.deviceIcon, Icons.desktop_mac_outlined);
+        expect(device.deviceIcon, KIcons.desktopMacOutlined);
       });
 
       test('returns desktop icon for macOS', () {
@@ -74,7 +73,7 @@ void main() {
           deviceId: 'id',
           displayName: 'Kohera macOS',
         );
-        expect(device.deviceIcon, Icons.desktop_mac_outlined);
+        expect(device.deviceIcon, KIcons.desktopMacOutlined);
       });
 
       test('returns desktop icon for Windows', () {
@@ -82,7 +81,7 @@ void main() {
           deviceId: 'id',
           displayName: 'Element Windows',
         );
-        expect(device.deviceIcon, Icons.desktop_mac_outlined);
+        expect(device.deviceIcon, KIcons.desktopMacOutlined);
       });
 
       test('returns unknown icon for unrecognized name', () {
@@ -90,12 +89,12 @@ void main() {
           deviceId: 'id',
           displayName: 'My Custom Client',
         );
-        expect(device.deviceIcon, Icons.devices_other_outlined);
+        expect(device.deviceIcon, KIcons.devicesOtherOutlined);
       });
 
       test('returns unknown icon when displayName is null', () {
         final device = Device(deviceId: 'id');
-        expect(device.deviceIcon, Icons.devices_other_outlined);
+        expect(device.deviceIcon, KIcons.devicesOtherOutlined);
       });
     });
 

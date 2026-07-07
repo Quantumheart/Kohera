@@ -5,9 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 typedef WhatsNewLinkLauncher = Future<bool> Function(Uri uri);
 
 /// Dismissible banner with two modes:
@@ -105,7 +105,7 @@ class _WhatsNewBannerState extends State<WhatsNewBanner> {
       if (prefs.hasVersionBumped) {
         content = _BannerContent(
           key: const ValueKey('post-update'),
-          icon: Icons.auto_awesome,
+          icon: KIcons.autoAwesome,
           label: "What's new in v$currentVersion",
           semanticsLabel:
               "What's new in v$currentVersion. Tap View for details.",
@@ -116,7 +116,7 @@ class _WhatsNewBannerState extends State<WhatsNewBanner> {
       } else if (prefs.isUpdateAvailable(notes.tagName)) {
         content = _BannerContent(
           key: const ValueKey('update-available'),
-          icon: Icons.system_update_alt,
+          icon: KIcons.systemUpdateAlt,
           label: 'Update available · ${notes.tagName}',
           semanticsLabel:
               'Update available ${notes.tagName}. Tap Open to view the release.',
@@ -194,7 +194,7 @@ class _BannerContent extends StatelessWidget {
                 ),
                 IconButton(
                   tooltip: 'Dismiss',
-                  icon: const Icon(Icons.close, size: 18),
+                  icon: const Icon(KIcons.close, size: 18),
                   onPressed: onDismiss,
                 ),
               ],

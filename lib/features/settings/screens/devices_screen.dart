@@ -5,6 +5,7 @@ import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:kohera/features/settings/models/kohera_device.dart';
@@ -13,7 +14,6 @@ import 'package:kohera/features/settings/widgets/device_list_item.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
 import 'package:provider/provider.dart';
-
 class DevicesScreen extends StatefulWidget {
   const DevicesScreen({super.key});
 
@@ -251,7 +251,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(KIcons.arrowBack),
           onPressed: () => context.popOrGo(Routes.settings),
         ),
         title: const Text('Devices'),
@@ -301,7 +301,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, color: cs.onErrorContainer),
+                    Icon(KIcons.infoOutline, color: cs.onErrorContainer),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -365,7 +365,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: _removeAllOtherDevices,
-              icon: const Icon(Icons.delete_sweep_outlined),
+              icon: const Icon(KIcons.deleteSweepOutlined),
               label: const Text('Remove all other devices'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: cs.error,
@@ -390,7 +390,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.error_outline, size: 48, color: cs.error),
+          Icon(KIcons.errorOutline, size: 48, color: cs.error),
           const SizedBox(height: 16),
           Text(_error!, style: TextStyle(color: cs.error)),
           const SizedBox(height: 16),

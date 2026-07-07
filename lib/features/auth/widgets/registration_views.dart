@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/auth/services/registration_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 // coverage:ignore-start
 
 /// Builds content for UIA stages that appear after form submission.
@@ -68,7 +68,7 @@ Widget _buildRecaptchaView(
       const SizedBox(height: 16),
       FilledButton.icon(
         onPressed: controller.submitRecaptcha,
-        icon: const Icon(Icons.open_in_browser),
+        icon: const Icon(KIcons.openInBrowser),
         label: const Text('Open CAPTCHA in browser'),
         style: FilledButton.styleFrom(
           shape: RoundedRectangleBorder(
@@ -113,7 +113,7 @@ Widget _buildTermsView(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.open_in_new, size: 16, color: cs.primary),
+                  Icon(KIcons.openInNew, size: 16, color: cs.primary),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(

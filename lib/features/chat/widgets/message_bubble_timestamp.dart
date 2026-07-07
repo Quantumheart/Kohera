@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/core/utils/time_format.dart';
 import 'package:kohera/features/chat/models/kohera_message_status.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_outbox_status.dart';
-
 class MessageBubbleTimestamp extends StatelessWidget {
   const MessageBubbleTimestamp({
     required this.timestamp,
@@ -43,7 +43,7 @@ class MessageBubbleTimestamp extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(right: 4),
               child: Icon(
-                Icons.push_pin_rounded,
+                KIcons.pushPinRounded,
                 size: metrics.timestampFontSize + 2,
                 color: mutedColor,
               ),

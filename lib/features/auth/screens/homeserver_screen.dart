@@ -6,12 +6,12 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/matrix_service.dart' show MatrixService;
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/auth/widgets/app_logo_header.dart';
 import 'package:kohera/features/auth/widgets/homeserver_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:provider/provider.dart';
-
 class HomeserverScreen extends StatefulWidget {
   const HomeserverScreen({this.isAddAccount = false, super.key});
 
@@ -109,7 +109,7 @@ class _HomeserverScreenState extends State<HomeserverScreen>
           ? AppBar(
               forceMaterialTransparency: true,
               leading: IconButton(
-                icon: const Icon(Icons.close),
+                icon: const Icon(KIcons.close),
                 onPressed: () => context.go(RoutePaths.home),
               ),
             )
@@ -141,7 +141,7 @@ class _HomeserverScreenState extends State<HomeserverScreen>
                         controller: _homeserverCtrl,
                         enabled: !isChecking,
                         decoration: InputDecoration(
-                          prefixIcon: Icon(Icons.dns_outlined,
+                          prefixIcon: Icon(KIcons.dnsOutlined,
                               color: cs.onSurfaceVariant,),
                           hintText: 'Homeserver',
                           errorText: hasError ? _controller.error : null,

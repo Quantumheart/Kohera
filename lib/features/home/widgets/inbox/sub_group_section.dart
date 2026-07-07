@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/home/widgets/inbox/notification_tile.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/models/thread_sub_group.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
-
 class SubGroupSection extends StatefulWidget {
   const SubGroupSection({
     required this.roomId,
@@ -56,7 +56,7 @@ class _SubGroupSectionState extends State<SubGroupSection> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.forum_outlined, size: 14, color: cs.primary),
+                Icon(KIcons.forumOutlined, size: 14, color: cs.primary),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(

@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/models/kohera_state_event_text.dart';
 import 'package:matrix/matrix.dart';
-
 class StateEventResolver {
   const StateEventResolver();
 
@@ -21,7 +20,7 @@ class StateEventResolver {
         return _resolveTombstone(event);
       default:
         return KoheraStateEventText(
-          icon: Icons.info_outline,
+          icon: KIcons.infoOutline,
           text: 'Room updated',
           timestamp: event.originServerTs,
         );
@@ -31,7 +30,7 @@ class StateEventResolver {
   KoheraStateEventText _resolveRoomName(Event event, String sender) {
     final name = event.content.tryGet<String>('name') ?? '';
     return KoheraStateEventText(
-      icon: Icons.edit_outlined,
+      icon: KIcons.editOutlined,
       text: name.isEmpty
           ? '$sender removed the room name'
           : "$sender changed the room name to '$name'",
@@ -42,7 +41,7 @@ class StateEventResolver {
   KoheraStateEventText _resolveRoomTopic(Event event, String sender) {
     final topic = event.content.tryGet<String>('topic') ?? '';
     return KoheraStateEventText(
-      icon: Icons.edit_outlined,
+      icon: KIcons.editOutlined,
       text: topic.isEmpty
           ? '$sender removed the room topic'
           : "$sender changed the topic to '$topic'",
@@ -52,7 +51,7 @@ class StateEventResolver {
 
   KoheraStateEventText _resolveRoomAvatar(Event event, String sender) {
     return KoheraStateEventText(
-      icon: Icons.image_outlined,
+      icon: KIcons.imageOutlined,
       text: '$sender changed the room avatar',
       timestamp: event.originServerTs,
     );
@@ -63,7 +62,7 @@ class StateEventResolver {
     final replacement = event.content.tryGet<String>('replacement_room');
     final suffix = (body != null && body.isNotEmpty) ? ' $body' : '';
     return KoheraStateEventText(
-      icon: Icons.upgrade_rounded,
+      icon: KIcons.upgradeRounded,
       text: 'This room has been upgraded.$suffix Tap to open the new room.',
       timestamp: event.originServerTs,
       replacementRoomId: (replacement != null && replacement.isNotEmpty)
@@ -85,7 +84,7 @@ class StateEventResolver {
     switch (membership) {
       case 'invite':
         return KoheraStateEventText(
-          icon: Icons.person_add_alt_1_outlined,
+          icon: KIcons.personAddAlt1Outlined,
           text: '$targetName was invited by $sender',
           timestamp: event.originServerTs,
         );
@@ -100,7 +99,7 @@ class StateEventResolver {
                       ? target.replaceFirst('@', '').split(':').first
                       : targetName);
             return KoheraStateEventText(
-              icon: Icons.badge_outlined,
+              icon: KIcons.badgeOutlined,
               text: newDisplay == null || newDisplay.isEmpty
                   ? '$subject removed their display name'
                   : "$subject changed their display name to '$newDisplay'",
@@ -111,19 +110,19 @@ class StateEventResolver {
           final newAvatar = event.content.tryGet<String>('avatar_url');
           if (prevAvatar != newAvatar) {
             return KoheraStateEventText(
-              icon: Icons.image_outlined,
+              icon: KIcons.imageOutlined,
               text: '$targetName changed their avatar',
               timestamp: event.originServerTs,
             );
           }
           return KoheraStateEventText(
-            icon: Icons.login_rounded,
+            icon: KIcons.loginRounded,
             text: '$targetName updated their profile',
             timestamp: event.originServerTs,
           );
         }
         return KoheraStateEventText(
-          icon: Icons.login_rounded,
+          icon: KIcons.loginRounded,
           text: '$targetName joined',
           timestamp: event.originServerTs,
         );
@@ -131,13 +130,13 @@ class StateEventResolver {
         if (target == event.senderId) {
           if (prevMembership == 'invite') {
             return KoheraStateEventText(
-              icon: Icons.cancel_outlined,
+              icon: KIcons.cancelOutlined,
               text: '$targetName rejected the invitation',
               timestamp: event.originServerTs,
             );
           }
           return KoheraStateEventText(
-            icon: Icons.logout_rounded,
+            icon: KIcons.logoutRounded,
             text: '$targetName left',
             timestamp: event.originServerTs,
           );
@@ -145,7 +144,7 @@ class StateEventResolver {
         final reasonSuffix =
             (reason != null && reason.isNotEmpty) ? ' ($reason)' : '';
         return KoheraStateEventText(
-          icon: Icons.person_remove_outlined,
+          icon: KIcons.personRemoveOutlined,
           text: '$targetName was kicked by $sender$reasonSuffix',
           timestamp: event.originServerTs,
         );
@@ -153,19 +152,19 @@ class StateEventResolver {
         final reasonSuffix =
             (reason != null && reason.isNotEmpty) ? ' ($reason)' : '';
         return KoheraStateEventText(
-          icon: Icons.block_rounded,
+          icon: KIcons.blockRounded,
           text: '$targetName was banned by $sender$reasonSuffix',
           timestamp: event.originServerTs,
         );
       case 'knock':
         return KoheraStateEventText(
-          icon: Icons.front_hand_outlined,
+          icon: KIcons.frontHandOutlined,
           text: '$targetName requested to join',
           timestamp: event.originServerTs,
         );
       default:
         return KoheraStateEventText(
-          icon: Icons.info_outline,
+          icon: KIcons.infoOutline,
           text: 'Membership changed',
           timestamp: event.originServerTs,
         );

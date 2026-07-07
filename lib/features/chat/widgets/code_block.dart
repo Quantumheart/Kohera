@@ -23,9 +23,9 @@ import 'package:highlight/languages/swift.dart' as lang_swift;
 import 'package:highlight/languages/typescript.dart' as lang_ts;
 import 'package:highlight/languages/xml.dart' as lang_xml;
 import 'package:highlight/languages/yaml.dart' as lang_yaml;
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart' show HtmlMessageText;
-
 /// Renders a fenced code block with syntax highlighting and a copy button.
 ///
 /// Used by [HtmlMessageText] to render `<pre><code>` blocks from Matrix
@@ -125,7 +125,7 @@ class CodeBlock extends StatelessWidget {
                   width: 32,
                   child: IconButton(
                     icon: Icon(
-                      Icons.copy_rounded,
+                      KIcons.copyRounded,
                       size: 16,
                       color: textColor.withValues(alpha: 0.6),
                     ),

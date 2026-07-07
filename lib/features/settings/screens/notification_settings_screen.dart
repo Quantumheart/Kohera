@@ -7,6 +7,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/notifications/services/apns_push_service.dart';
 import 'package:kohera/features/notifications/services/push_service.dart';
@@ -14,7 +15,6 @@ import 'package:kohera/features/notifications/services/web_push_service_export.d
 import 'package:kohera/shared/widgets/section_header.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
 
@@ -88,7 +88,7 @@ class _NotificationSettingsScreenState
                   isInstalled ? 'Installed' : d.description,
                 ),
                 trailing: isInstalled
-                    ? const Icon(Icons.check_circle, color: Colors.green)
+                    ? const Icon(KIcons.checkCircle, color: Colors.green)
                     : TextButton(
                         onPressed: () => unawaited(
                           launchUrl(
@@ -116,7 +116,7 @@ class _NotificationSettingsScreenState
                     title: Text(pkg.split('.').last),
                     subtitle: const Text('Installed'),
                     trailing:
-                        const Icon(Icons.check_circle, color: Colors.green),
+                        const Icon(KIcons.checkCircle, color: Colors.green),
                     onTap: () {
                       unawaited(prefs.setPushEnabled(true));
                       unawaited(pushService.selectDistributor(pkg));
@@ -148,7 +148,7 @@ class _NotificationSettingsScreenState
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(KIcons.arrowBack),
           onPressed: () => context.popOrGo(Routes.settings),
         ),
         title: const Text('Notifications'),
@@ -228,7 +228,7 @@ class _NotificationSettingsScreenState
                       const SizedBox(width: 8),
                       IconButton.filled(
                         onPressed: _addKeyword,
-                        icon: const Icon(Icons.add),
+                        icon: const Icon(KIcons.add),
                       ),
                     ],
                   ),
@@ -336,7 +336,7 @@ class _NotificationSettingsScreenState
                       subtitle: Text(
                         prefs.pushDistributor?.split('.').last ?? 'None',
                       ),
-                      trailing: const Icon(Icons.chevron_right),
+                      trailing: const Icon(KIcons.chevronRight),
                       onTap: _setupDistributor,
                     ),
                 ],

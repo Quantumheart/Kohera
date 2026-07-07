@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/features/chat/models/kohera_message_status.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:provider/provider.dart';
-
 enum _Phase { sent, sending, retrying, failed }
 
 class MessageBubbleOutboxStatus extends StatelessWidget {
@@ -38,8 +38,8 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
       case _Phase.sent:
         return Icon(
           status == KoheraMessageStatus.sent
-              ? Icons.done_all_rounded
-              : Icons.done_rounded,
+              ? KIcons.doneAllRounded
+              : KIcons.doneRounded,
           size: metrics.statusIconSize,
           color: onBubble.withValues(alpha: 0.6),
         );
@@ -47,7 +47,7 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
         return Semantics(
           label: 'Sending',
           child: Icon(
-            Icons.schedule_rounded,
+            KIcons.scheduleRounded,
             size: metrics.statusIconSize,
             color: onBubble.withValues(alpha: 0.6),
           ),
@@ -65,7 +65,7 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
                 ? 'Retrying to send'
                 : 'Retrying to send, next attempt in $eta seconds',
             child: Icon(
-              Icons.schedule_rounded,
+              KIcons.scheduleRounded,
               size: metrics.statusIconSize,
               color: onBubble.withValues(alpha: 0.4),
             ),
@@ -75,7 +75,7 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
         return Semantics(
           label: 'Failed to send',
           child: Icon(
-            Icons.error_outline_rounded,
+            KIcons.errorOutlineRounded,
             size: metrics.statusIconSize,
             color: palette.danger,
           ),

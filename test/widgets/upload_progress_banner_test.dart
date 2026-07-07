@@ -1,9 +1,8 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:kohera/core/models/upload_state.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/widgets/upload_progress_banner.dart';
-
 void main() {
   Widget buildBanner({
     required UploadState state,
@@ -33,7 +32,7 @@ void main() {
       expect(find.text('Uploading…'), findsOneWidget);
       expect(find.text('photo.jpg'), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      expect(find.byIcon(Icons.error_outline_rounded), findsNothing);
+      expect(find.byIcon(KIcons.errorOutlineRounded), findsNothing);
     });
 
     testWidgets('shows error state with error icon', (tester) async {
@@ -47,7 +46,7 @@ void main() {
 
       expect(find.text('Upload failed'), findsOneWidget);
       expect(find.text('document.pdf'), findsOneWidget);
-      expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.errorOutlineRounded), findsOneWidget);
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
@@ -61,7 +60,7 @@ void main() {
         onCancel: () => cancelled = true,
       ),);
 
-      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.tap(find.byIcon(KIcons.closeRounded));
       expect(cancelled, isTrue);
     });
   });

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
-
 class ThreadListTile extends StatelessWidget {
   const ThreadListTile({
     required this.summary,
@@ -50,7 +50,7 @@ class ThreadListTile extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.forum_outlined, color: cs.primary, size: 20),
+              Icon(KIcons.forumOutlined, color: cs.primary, size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

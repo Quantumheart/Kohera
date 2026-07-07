@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
 import 'package:kohera/features/chat/services/file_send_handler.dart';
@@ -13,7 +14,6 @@ import 'package:kohera/features/chat/widgets/compose_bar_section.dart';
 import 'package:kohera/features/chat/widgets/message_list_view.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
-
 class ThreadScreen extends StatefulWidget {
   const ThreadScreen({
     required this.roomId,
@@ -179,7 +179,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
       appBar: AppBar(
         leading: widget.onClose != null
             ? IconButton(
-                icon: const Icon(Icons.close),
+                icon: const Icon(KIcons.close),
                 tooltip: 'Close thread',
                 onPressed: widget.onClose,
               )

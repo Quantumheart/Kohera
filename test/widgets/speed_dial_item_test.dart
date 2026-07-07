@@ -1,12 +1,12 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/shared/widgets/speed_dial_item.dart';
-
 void main() {
   Widget buildTestWidget({
     required VoidCallback onTap,
     String label = 'New Room',
-    IconData icon = Icons.add,
+    IconData icon = KIcons.add,
   }) {
     return MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
@@ -21,14 +21,14 @@ void main() {
       await tester.pumpWidget(
         buildTestWidget(
           label: 'New Chat',
-          icon: Icons.chat,
+          icon: KIcons.chat,
           onTap: () {},
         ),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('New Chat'), findsOneWidget);
-      expect(find.byIcon(Icons.chat), findsOneWidget);
+      expect(find.byIcon(KIcons.chat), findsOneWidget);
     });
 
     testWidgets('calls onTap callback when FAB is tapped', (tester) async {

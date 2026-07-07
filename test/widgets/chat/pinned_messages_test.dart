@@ -5,6 +5,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:matrix/matrix.dart';
@@ -12,7 +13,6 @@ import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
-
 @GenerateNiceMocks([
   MockSpec<Client>(),
   MockSpec<MatrixService>(),
@@ -157,7 +157,7 @@ void main() {
       ),);
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.push_pin_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.pushPinRounded), findsOneWidget);
       expect(find.text('2'), findsOneWidget);
     });
 
@@ -195,7 +195,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(AppBar),
-          matching: find.byIcon(Icons.push_pin_rounded),
+          matching: find.byIcon(KIcons.pushPinRounded),
         ),
         findsNothing,
       );
@@ -245,7 +245,7 @@ void main() {
       // Tap pin icon
       await tester.tap(find.descendant(
         of: find.byType(AppBar),
-        matching: find.byIcon(Icons.push_pin_rounded),
+        matching: find.byIcon(KIcons.pushPinRounded),
       ),);
       await tester.pump();
 
@@ -294,7 +294,7 @@ void main() {
       // Tap pin icon
       await tester.tap(find.descendant(
         of: find.byType(AppBar),
-        matching: find.byIcon(Icons.push_pin_rounded),
+        matching: find.byIcon(KIcons.pushPinRounded),
       ),);
       await tester.pumpAndSettle();
 
@@ -348,7 +348,7 @@ void main() {
       // Open popup
       await tester.tap(find.descendant(
         of: find.byType(AppBar),
-        matching: find.byIcon(Icons.push_pin_rounded),
+        matching: find.byIcon(KIcons.pushPinRounded),
       ),);
       await tester.pumpAndSettle();
 
@@ -572,7 +572,7 @@ void main() {
 
       // The pin icon should appear in the message bubble timestamp row
       // (not in the app bar, which also has a pin icon)
-      expect(find.byIcon(Icons.push_pin_rounded), findsWidgets);
+      expect(find.byIcon(KIcons.pushPinRounded), findsWidgets);
     });
   });
 }

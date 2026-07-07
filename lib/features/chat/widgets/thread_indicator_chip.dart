@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:kohera/core/theme/k_icons.dart';
 class ThreadIndicatorChip extends StatelessWidget {
   const ThreadIndicatorChip({
     required this.replyCount,
@@ -47,7 +47,7 @@ class ThreadIndicatorChip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.forum_outlined, size: 14, color: cs.primary),
+              Icon(KIcons.forumOutlined, size: 14, color: cs.primary),
               const SizedBox(width: 6),
               Text(
                 label,

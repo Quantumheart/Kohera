@@ -4,10 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/settings/services/profile_avatar_service.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:provider/provider.dart';
-
 class ProfileAvatarCard extends StatefulWidget {
   const ProfileAvatarCard({super.key});
 
@@ -222,7 +222,7 @@ class _ProfileAvatarCardState extends State<ProfileAvatarCard> {
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(Icons.check_rounded),
+                      : const Icon(KIcons.checkRounded),
                   tooltip: 'Save display name',
                 ),
               ],
@@ -234,14 +234,14 @@ class _ProfileAvatarCardState extends State<ProfileAvatarCard> {
               children: [
                 OutlinedButton.icon(
                   onPressed: _avatarUploading ? null : _uploadAvatar,
-                  icon: const Icon(Icons.photo_library_outlined,
+                  icon: const Icon(KIcons.photoLibraryOutlined,
                       size: 18,),
                   label: const Text('Upload avatar'),
                 ),
                 if (_avatarUrl != null)
                   OutlinedButton.icon(
                     onPressed: _avatarUploading ? null : _removeAvatar,
-                    icon: Icon(Icons.delete_outline,
+                    icon: Icon(KIcons.deleteOutline,
                         size: 18, color: cs.error,),
                     label: Text('Remove',
                         style: TextStyle(color: cs.error),),

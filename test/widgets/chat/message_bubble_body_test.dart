@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/models/kohera_message_status.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
@@ -8,7 +9,6 @@ import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_body.dart';
 import 'package:kohera/features/chat/widgets/verification_request_tile.dart';
-
 KoheraMessageDisplay _makeMessage({
   String msgtype = 'm.text',
   String body = 'hello',
@@ -117,7 +117,7 @@ void main() {
       final message = _makeMessage(msgtype: 'm.server_notice', body: 'notice');
       await tester.pumpWidget(_buildBody(message));
 
-      expect(find.byIcon(Icons.campaign_outlined), findsOneWidget);
+      expect(find.byIcon(KIcons.campaignOutlined), findsOneWidget);
       expect(find.text('notice'), findsOneWidget);
     });
   });
@@ -167,7 +167,7 @@ void main() {
       final message = _makeMessage(msgtype: 'm.bad.encrypted');
       await tester.pumpWidget(_buildBody(message));
 
-      expect(find.byIcon(Icons.lock_outline), findsOneWidget);
+      expect(find.byIcon(KIcons.lockOutline), findsOneWidget);
       expect(find.text('Unable to decrypt this message'), findsOneWidget);
     });
   });

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/client_manager.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:provider/provider.dart';
-
 class AccountSwitcher extends StatelessWidget {
   const AccountSwitcher({super.key});
 
@@ -40,7 +40,7 @@ class AccountSwitcher extends StatelessWidget {
                         : null,
                   ),
                   trailing: i == manager.activeIndex
-                      ? Icon(Icons.check, color: cs.primary)
+                      ? Icon(KIcons.check, color: cs.primary)
                       : null,
                   mouseCursor: SystemMouseCursors.click,
                   onTap: () => manager.setActiveAccount(i),

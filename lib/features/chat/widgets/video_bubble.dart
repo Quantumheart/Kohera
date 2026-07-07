@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/core/utils/media_cache.dart';
@@ -12,8 +14,6 @@ import 'package:kohera/shared/services/media_controller.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:provider/provider.dart';
-
-
 // ── Video bubble (thumbnail → inline player) ──────────────────
 
 const _maxFileSizeBytes = 104857600;
@@ -223,7 +223,7 @@ class _VideoBubbleState extends State<VideoBubble> {
               if (_state == _VideoState.loadingVideo)
                 const CircularProgressIndicator(strokeWidth: 2)
               else if (_state == _VideoState.error)
-                Icon(Icons.error_outline_rounded,
+                Icon(KIcons.errorOutlineRounded,
                     size: 40, color: cs.error,)
               else
                 Container(
@@ -233,7 +233,7 @@ class _VideoBubbleState extends State<VideoBubble> {
                   ),
                   padding: const EdgeInsets.all(12),
                   child: const Icon(
-                    Icons.play_arrow_rounded,
+                    KIcons.playArrowRounded,
                     color: Colors.white,
                     size: 32,
                   ),
@@ -298,7 +298,7 @@ class _VideoBubbleState extends State<VideoBubble> {
                     ),
                     padding: const EdgeInsets.all(12),
                     child: const Icon(
-                      Icons.play_arrow_rounded,
+                      KIcons.playArrowRounded,
                       color: Colors.white,
                       size: 32,
                     ),
@@ -308,7 +308,7 @@ class _VideoBubbleState extends State<VideoBubble> {
                   right: 6,
                   child: IconButton.filled(
                     onPressed: _openFullscreen,
-                    icon: const Icon(Icons.fullscreen_rounded, size: 20),
+                    icon: const Icon(KIcons.fullscreenRounded, size: 20),
                     style: IconButton.styleFrom(
                       backgroundColor: Colors.black.withValues(alpha: 0.5),
                       foregroundColor: Colors.white,
@@ -330,7 +330,7 @@ class _VideoBubbleState extends State<VideoBubble> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.videocam_rounded,
+        Icon(KIcons.videocamRounded,
             size: 28, color: foreground.withValues(alpha: 0.7),),
         const SizedBox(width: 8),
         Flexible(
@@ -363,7 +363,7 @@ class _VideoBubbleState extends State<VideoBubble> {
       width: 280,
       height: 180,
       color: cs.surfaceContainerHighest,
-      child: const Center(child: Icon(Icons.videocam_rounded, size: 40)),
+      child: const Center(child: Icon(KIcons.videocamRounded, size: 40)),
     );
   }
 

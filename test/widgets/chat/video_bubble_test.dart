@@ -1,6 +1,8 @@
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
 import 'package:kohera/features/chat/models/kohera_media_type.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
@@ -10,8 +12,6 @@ import 'package:kohera/shared/services/media_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
-
-
 @GenerateNiceMocks([
   MockSpec<MediaController>(),
   MockSpec<MediaPlaybackService>(),
@@ -88,7 +88,7 @@ void main() {
       await tester.pump();
 
       expect(find.byType(Image), findsOneWidget);
-      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.playArrowRounded), findsOneWidget);
       expect(find.text('00:10'), findsOneWidget);
     });
 
@@ -182,7 +182,7 @@ void main() {
 
       await tester.pumpWidget(_wrap(media, controller));
 
-      expect(find.byIcon(Icons.videocam_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.videocamRounded), findsOneWidget);
     });
 
     testWidgets('shows duration label', (tester) async {

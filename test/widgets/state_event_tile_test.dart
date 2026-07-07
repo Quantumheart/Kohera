@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/models/kohera_state_event_text.dart';
 import 'package:kohera/features/chat/widgets/state_event_tile.dart';
-
 void main() {
   Widget wrap(KoheraStateEventText item) => MaterialApp(
     theme: ThemeData(splashFactory: InkRipple.splashFactory),
@@ -11,21 +11,21 @@ void main() {
 
   testWidgets('renders icon, text and timestamp', (tester) async {
     final item = KoheraStateEventText(
-      icon: Icons.login_rounded,
+      icon: KIcons.loginRounded,
       text: 'Alice joined',
       timestamp: DateTime(2026, 1, 15, 14, 30),
     );
 
     await tester.pumpWidget(wrap(item));
 
-    expect(find.byIcon(Icons.login_rounded), findsOneWidget);
+    expect(find.byIcon(KIcons.loginRounded), findsOneWidget);
     expect(find.text('Alice joined'), findsOneWidget);
     expect(find.textContaining('14:30'), findsOneWidget);
   });
 
   testWidgets('display name change uses previous name as subject', (tester) async {
     final item = KoheraStateEventText(
-      icon: Icons.badge_outlined,
+      icon: KIcons.badgeOutlined,
       text: "testuser2 changed their display name to 'Bob Ross'",
       timestamp: DateTime(2026, 1, 15, 14, 30),
     );
@@ -44,7 +44,7 @@ void main() {
 
   testWidgets('falls back to MXID localpart when prev displayname is empty', (tester) async {
     final item = KoheraStateEventText(
-      icon: Icons.badge_outlined,
+      icon: KIcons.badgeOutlined,
       text: "testuser2 changed their display name to 'Bob Ross'",
       timestamp: DateTime(2026, 1, 15, 14, 30),
     );
@@ -59,7 +59,7 @@ void main() {
 
   testWidgets('removing displayname uses previous name as subject', (tester) async {
     final item = KoheraStateEventText(
-      icon: Icons.badge_outlined,
+      icon: KIcons.badgeOutlined,
       text: 'Old Name removed their display name',
       timestamp: DateTime(2026, 1, 15, 14, 30),
     );
@@ -71,7 +71,7 @@ void main() {
 
   testWidgets('tombstone tile is tappable', (tester) async {
     final item = KoheraStateEventText(
-      icon: Icons.upgrade_rounded,
+      icon: KIcons.upgradeRounded,
       text: 'This room has been upgraded. Tap to open the new room.',
       timestamp: DateTime(2026, 1, 15, 14, 30),
       replacementRoomId: '!newroom:example.com',
@@ -85,7 +85,7 @@ void main() {
 
   testWidgets('non-tombstone tile is not tappable', (tester) async {
     final item = KoheraStateEventText(
-      icon: Icons.login_rounded,
+      icon: KIcons.loginRounded,
       text: 'Alice joined',
       timestamp: DateTime(2026, 1, 15, 14, 30),
     );

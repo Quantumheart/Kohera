@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
-
 /// Displays a scrollable list of room members with role badges.
 /// Shows the first 5 with an expand option and a search filter.
 ///
@@ -88,13 +88,13 @@ class _RoomMembersSectionState extends State<RoomMembersSection> {
                 controller: _searchController,
                 decoration: InputDecoration(
                   isDense: true,
-                  prefixIcon: const Icon(Icons.search, size: 20),
+                  prefixIcon: const Icon(KIcons.search, size: 20),
                   hintText: 'Search members',
                   border: const OutlineInputBorder(),
                   suffixIcon: _query.isEmpty
                       ? null
                       : IconButton(
-                          icon: const Icon(Icons.close, size: 20),
+                          icon: const Icon(KIcons.close, size: 20),
                           onPressed: _searchController.clear,
                         ),
                 ),

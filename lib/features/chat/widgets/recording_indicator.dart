@@ -1,10 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
-
 // coverage:ignore-start
 
 class RecordingIndicator extends StatelessWidget {
@@ -30,7 +29,7 @@ class RecordingIndicator extends StatelessWidget {
             children: [
               IconButton(
                 onPressed: onCancel,
-                icon: Icon(Icons.close_rounded, color: cs.error),
+                icon: Icon(KIcons.closeRounded, color: cs.error),
               ),
               const _PulsingDot(),
               const SizedBox(width: 8),
@@ -51,7 +50,7 @@ class RecordingIndicator extends StatelessWidget {
               ),
               IconButton.filled(
                 onPressed: onStop,
-                icon: const Icon(Icons.stop_rounded, size: 20),
+                icon: const Icon(KIcons.stopRounded, size: 20),
                 style: IconButton.styleFrom(
                   backgroundColor: cs.primary,
                   foregroundColor: cs.onPrimary,

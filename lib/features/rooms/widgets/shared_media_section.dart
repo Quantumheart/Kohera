@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
 import 'package:kohera/features/chat/models/kohera_media_type.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/services/media_controller.dart';
 import 'package:kohera/shared/widgets/full_image_view.dart';
-
-
 /// A page of loaded shared media from a room.
 class SharedMediaPage {
   const SharedMediaPage({
@@ -219,8 +219,8 @@ class _FileListTile extends StatelessWidget {
       dense: true,
       leading: Icon(
         media.mediaType == KoheraMediaType.audio
-            ? Icons.audiotrack_rounded
-            : Icons.insert_drive_file_rounded,
+            ? KIcons.audiotrackRounded
+            : KIcons.insertDriveFileRounded,
         color: cs.onSurfaceVariant,
       ),
       title: Text(
@@ -328,12 +328,12 @@ class _MediaThumbnailState extends State<_MediaThumbnail> {
                           headers:
                               widget.controller.authHeaders(_thumbnailUrl!),
                           errorBuilder: (_, _, _) => Icon(
-                            Icons.broken_image_rounded,
+                            KIcons.brokenImageRounded,
                             color: cs.onSurfaceVariant,
                           ),
                         )
                       : Icon(
-                          Icons.image_rounded,
+                          KIcons.imageRounded,
                           color: cs.onSurfaceVariant,
                         ),
         ),

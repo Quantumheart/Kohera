@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/rooms/services/room_creation_service.dart';
 import 'package:kohera/shared/models/kohera_user_summary.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
-
 // ── New Room dialog ───────────────────────────────────────────
 
 class NewRoomDialog extends StatefulWidget {
@@ -428,7 +428,7 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
                   hintText: '@user:server.com or display name',
                   border: const OutlineInputBorder(),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.add_rounded),
+                    icon: const Icon(KIcons.addRounded),
                     onPressed: _loading ? null : _addInvite,
                   ),
                 ),

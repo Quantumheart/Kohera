@@ -5,13 +5,13 @@ import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_action.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_reparent_controller.dart';
 import 'package:provider/provider.dart';
-
 // ── Popup menu actions ──────────────────────────────────────
 enum _HeaderAddAction { createRoom, createSubspace }
 
@@ -62,8 +62,8 @@ class RoomSectionHeader extends StatelessWidget {
               children: [
                 Icon(
                   isCollapsed
-                      ? Icons.chevron_right
-                      : Icons.expand_more,
+                      ? KIcons.chevronRight
+                      : KIcons.expandMore,
                   size: 18,
                   color: cs.onSurfaceVariant,
                 ),
@@ -86,7 +86,7 @@ class RoomSectionHeader extends StatelessWidget {
                           const BoxConstraints(minWidth: 24, minHeight: 24),
                       iconSize: 18,
                       icon: Icon(
-                        Icons.add_rounded,
+                        KIcons.addRounded,
                         color: cs.onSurfaceVariant,
                       ),
                       tooltip: 'Add to space',
@@ -154,7 +154,7 @@ class RoomSectionHeader extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.workspaces_outlined, size: 16, color: cs.primary),
+                Icon(KIcons.workspacesOutlined, size: 16, color: cs.primary),
                 const SizedBox(width: 6),
                 Text(
                   item.name,
@@ -194,7 +194,7 @@ class RoomSectionHeader extends StatelessWidget {
           value: _HeaderAddAction.createRoom,
           child: Row(
             children: [
-              Icon(Icons.add_rounded, size: 18),
+              Icon(KIcons.addRounded, size: 18),
               SizedBox(width: 8),
               Text('Create room'),
             ],
@@ -204,7 +204,7 @@ class RoomSectionHeader extends StatelessWidget {
           value: _HeaderAddAction.createSubspace,
           child: Row(
             children: [
-              Icon(Icons.workspaces_outlined, size: 18),
+              Icon(KIcons.workspacesOutlined, size: 18),
               SizedBox(width: 8),
               Text('Create subspace'),
             ],

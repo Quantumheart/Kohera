@@ -6,13 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_controller.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_inline.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 const String _recoveryKeyDocsUrl =
     'https://github.com/Quantumheart/Kohera/blob/master/docs/recovery-key-storage.md';
 
@@ -499,7 +499,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
                 Uri.parse(_recoveryKeyDocsUrl),
                 mode: LaunchMode.externalApplication,
               ),),
-              icon: const Icon(Icons.open_in_new, size: 16),
+              icon: const Icon(KIcons.openInNew, size: 16),
               label: const Text('Learn more about safe storage'),
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
@@ -535,7 +535,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
                       }
                     },
               icon: Icon(
-                controller.keyCopied ? Icons.check : Icons.copy,
+                controller.keyCopied ? KIcons.check : KIcons.copy,
                 size: 18,
               ),
               label: Text(controller.keyCopied ? 'Copied' : 'Copy'),
@@ -601,7 +601,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
           Center(
             child: OutlinedButton.icon(
               onPressed: () => controller?.startVerification(),
-              icon: const Icon(Icons.devices, size: 18),
+              icon: const Icon(KIcons.devices, size: 18),
               label: const Text('Verify with another device'),
             ),
           ),
@@ -684,7 +684,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_circle, color: cs.primary, size: 64),
+          Icon(KIcons.checkCircle, color: cs.primary, size: 64),
           const SizedBox(height: 16),
           Text(
             "You're all set!",
@@ -707,7 +707,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.check_circle, color: cs.primary, size: 64),
+          Icon(KIcons.checkCircle, color: cs.primary, size: 64),
           const SizedBox(height: 16),
           Text(
             'Chat backup',
@@ -769,7 +769,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.error_outline, color: cs.error, size: 64),
+          Icon(KIcons.errorOutline, color: cs.error, size: 64),
           const SizedBox(height: 16),
           Text(
             _controller?.error ??

@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/features/chat/widgets/openmoji_picker.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
 import 'package:provider/provider.dart';
-
 /// Emoji offered in the quick-react bar, in display order.
 const kQuickReactEmojis = [
   '\u{2764}\u{FE0F}', // ❤️
@@ -115,19 +115,19 @@ class _HoverActionBarState extends State<HoverActionBar> {
           children: [
             if (hasReact)
               _ActionIcon(
-                icon: Icons.add_reaction_outlined,
+                icon: KIcons.addReactionOutlined,
                 onTap: _showQuickReactPopup,
                 cs: widget.cs,
                 borderRadius: BorderRadius.zero,
               ),
             if (widget.onReply != null)
               _ActionIcon(
-                icon: Icons.reply_rounded,
+                icon: KIcons.replyRounded,
                 onTap: widget.onReply!,
                 cs: widget.cs,
               ),
             _ActionIcon(
-              icon: Icons.more_horiz_rounded,
+              icon: KIcons.moreHorizRounded,
               onTap: () {
                 final box = context.findRenderObject() as RenderBox?;
                 if (box == null || !box.hasSize) return;
@@ -290,7 +290,7 @@ class _QuickReactOverlayState extends State<_QuickReactOverlay> {
                             child: Padding(
                               padding: const EdgeInsets.all(6),
                               child: Icon(
-                                Icons.more_horiz_rounded,
+                                KIcons.moreHorizRounded,
                                 size: 22,
                                 color: cs.onSurfaceVariant,
                               ),

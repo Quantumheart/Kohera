@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
-
 /// Admin settings for a room: edit name, topic, encryption,
 /// and power levels. Only rendered when the user has sufficient power level.
 ///
@@ -183,7 +183,7 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: _busy('name') ? null : _saveName,
-                  icon: const Icon(Icons.check_rounded),
+                  icon: const Icon(KIcons.checkRounded),
                   tooltip: 'Save name',
                 ),
               ],
@@ -212,7 +212,7 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: _busy('topic') ? null : _saveTopic,
-                  icon: const Icon(Icons.check_rounded),
+                  icon: const Icon(KIcons.checkRounded),
                   tooltip: 'Save topic',
                 ),
               ],
@@ -222,7 +222,7 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
         // Enable encryption
         if (p.canEnableEncryption)
           ListTile(
-            leading: const Icon(Icons.lock_outline_rounded),
+            leading: const Icon(KIcons.lockOutlineRounded),
             title: const Text('Enable encryption'),
             subtitle: const Text('Irreversible'),
             trailing: FilledButton.tonal(
@@ -233,9 +233,9 @@ class _AdminSettingsSectionState extends State<AdminSettingsSection> {
 
         // Permissions
         ListTile(
-          leading: const Icon(Icons.admin_panel_settings_outlined),
+          leading: const Icon(KIcons.adminPanelSettingsOutlined),
           title: const Text('Permissions'),
-          trailing: const Icon(Icons.chevron_right_rounded),
+          trailing: const Icon(KIcons.chevronRightRounded),
           onTap: () => context.goNamed(
             Routes.roomPermissions,
             pathParameters: {RouteParams.roomId: p.roomId},

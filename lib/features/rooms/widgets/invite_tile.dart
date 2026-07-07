@@ -3,11 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/shared/models/kohera_room_summary.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:provider/provider.dart';
-
 // ── Invite tile ─────────────────────────────────────────────
 class InviteTile extends StatefulWidget {
   const InviteTile({
@@ -180,7 +180,7 @@ class _InviteTileState extends State<InviteTile> {
                   )
                 else
                   IconButton(
-                    icon: Icon(Icons.close_rounded, color: cs.error),
+                    icon: Icon(KIcons.closeRounded, color: cs.error),
                     tooltip: 'Decline invite',
                     onPressed: _inFlight ? null : _decline,
                     visualDensity: VisualDensity.compact,

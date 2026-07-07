@@ -2,10 +2,10 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/shared/models/kohera_room_summary.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
-
 KoheraRoomSummary _summary({String? avatarUrl}) => KoheraRoomSummary(
       roomId: '!room:example.com',
       displayname: 'Test Room',
@@ -78,7 +78,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.closeRounded), findsOneWidget);
     });
 
     testWidgets('hides remove badge when no avatar', (tester) async {
@@ -87,7 +87,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.byIcon(Icons.close_rounded), findsNothing);
+      expect(find.byIcon(KIcons.closeRounded), findsNothing);
     });
 
     testWidgets('calls onSetAvatar(null, null) on remove tap', (tester) async {
@@ -105,7 +105,7 @@ void main() {
       );
       await tester.pump();
 
-      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.tap(find.byIcon(KIcons.closeRounded));
       await tester.pumpAndSettle();
 
       expect(capturedBytes, isNull);

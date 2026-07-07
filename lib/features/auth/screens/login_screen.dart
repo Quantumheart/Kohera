@@ -7,11 +7,11 @@ import 'package:kohera/core/models/server_auth_capabilities.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/auth/widgets/login_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:provider/provider.dart';
-
 class LoginScreen extends StatefulWidget {
   const LoginScreen({
     required this.homeserver,
@@ -125,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen>
                 children: [
                   // ── Homeserver chip ──
                   ActionChip(
-                    avatar: Icon(Icons.dns_outlined, size: 18,
+                    avatar: Icon(KIcons.dnsOutlined, size: 18,
                         color: cs.onSurfaceVariant,),
                     label: Text(widget.homeserver),
                     onPressed: () => context.pop(),
@@ -167,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen>
                             autofillHints: const [AutofillHints.username],
                             autocorrect: false,
                             decoration: InputDecoration(
-                              prefixIcon: Icon(Icons.person_outline,
+                              prefixIcon: Icon(KIcons.personOutline,
                                   color: cs.onSurfaceVariant,),
                               hintText: 'Username',
                             ),
@@ -180,14 +180,14 @@ class _LoginScreenState extends State<LoginScreen>
                             obscureText: _obscurePassword,
                             autofillHints: const [AutofillHints.password],
                             decoration: InputDecoration(
-                              prefixIcon: Icon(Icons.lock_outline,
+                              prefixIcon: Icon(KIcons.lockOutline,
                                   color: cs.onSurfaceVariant,),
                               hintText: 'Password',
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword
-                                      ? Icons.visibility_off_outlined
-                                      : Icons.visibility_outlined,
+                                      ? KIcons.visibilityOffOutlined
+                                      : KIcons.visibilityOutlined,
                                   color: cs.onSurfaceVariant,
                                 ),
                                 onPressed: () => setState(
@@ -285,7 +285,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   ? () => _controller.startSsoLogin(
                                       providerId: provider.id,)
                                   : null,
-                              icon: const Icon(Icons.open_in_browser),
+                              icon: const Icon(KIcons.openInBrowser),
                               label: Text('Sign in with ${provider.name}'),
                               style: OutlinedButton.styleFrom(
                                 shape: RoundedRectangleBorder(
@@ -306,7 +306,7 @@ class _LoginScreenState extends State<LoginScreen>
                             onPressed: formEnabled
                                 ? () => _controller.startSsoLogin()
                                 : null,
-                            icon: const Icon(Icons.open_in_browser),
+                            icon: const Icon(KIcons.openInBrowser),
                             label: const Text('Sign in with SSO'),
                             style: OutlinedButton.styleFrom(
                               shape: RoundedRectangleBorder(

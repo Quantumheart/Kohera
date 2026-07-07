@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/settings/services/device_resolver.dart';
 import 'package:matrix/matrix.dart';
-
 void main() {
   group('DeviceResolver', () {
     test('maps deviceId and displayName', () {
@@ -66,7 +65,7 @@ void main() {
         final device = Device(deviceId: 'id', displayName: 'Kohera Android');
         expect(
           const DeviceResolver()(device, isOwnDevice: false).deviceIcon,
-          Icons.phone_android_outlined,
+          KIcons.phoneAndroidOutlined,
         );
       });
 
@@ -74,7 +73,7 @@ void main() {
         final device = Device(deviceId: 'id', displayName: 'Chrome on Windows');
         expect(
           const DeviceResolver()(device, isOwnDevice: false).deviceIcon,
-          Icons.web_outlined,
+          KIcons.webOutlined,
         );
       });
 
@@ -85,7 +84,7 @@ void main() {
         );
         expect(
           const DeviceResolver()(device, isOwnDevice: false).deviceIcon,
-          Icons.desktop_mac_outlined,
+          KIcons.desktopMacOutlined,
         );
       });
 
@@ -93,7 +92,7 @@ void main() {
         final device = Device(deviceId: 'id', displayName: 'Mystery Box');
         expect(
           const DeviceResolver()(device, isOwnDevice: false).deviceIcon,
-          Icons.devices_other_outlined,
+          KIcons.devicesOtherOutlined,
         );
       });
     });

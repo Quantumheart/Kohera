@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/models/room_role.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
-
 /// Opens the member profile sheet for [member].
 ///
 /// Shows avatar, display name, Matrix ID, presence and role, plus a
@@ -347,7 +347,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.copy_outlined),
+                icon: const Icon(KIcons.copyOutlined),
                 iconSize: 14,
                 visualDensity: VisualDensity.compact,
                 tooltip: 'Copy MXID',
@@ -433,7 +433,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
                   },
             child: const Row(
               children: [
-                Icon(Icons.chat_outlined),
+                Icon(KIcons.chatOutlined),
                 SizedBox(width: 16),
                 Text('Send message'),
               ],
@@ -444,7 +444,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
             onPressed: _actionLoading ? null : _kick,
             child: Row(
               children: [
-                Icon(Icons.person_remove_outlined, color: cs.error),
+                Icon(KIcons.personRemoveOutlined, color: cs.error),
                 const SizedBox(width: 16),
                 Text('Kick', style: TextStyle(color: cs.error)),
               ],
@@ -455,7 +455,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
             onPressed: _actionLoading ? null : _ban,
             child: Row(
               children: [
-                Icon(Icons.block_rounded, color: cs.error),
+                Icon(KIcons.blockRounded, color: cs.error),
                 const SizedBox(width: 16),
                 Text('Ban', style: TextStyle(color: cs.error)),
               ],
@@ -466,7 +466,7 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
             onPressed: _actionLoading ? null : _unban,
             child: Row(
               children: [
-                Icon(Icons.lock_open_outlined, color: cs.primary),
+                Icon(KIcons.lockOpenOutlined, color: cs.primary),
                 const SizedBox(width: 16),
                 Text('Unban', style: TextStyle(color: cs.primary)),
               ],

@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/services/state_event_resolver.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-
 @GenerateNiceMocks([
   MockSpec<Event>(),
   MockSpec<User>(),
@@ -85,7 +84,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.edit_outlined);
+      expect(result.icon, KIcons.editOutlined);
       expect(result.text, "Alice changed the room name to 'New Room'");
       expect(result.replacementRoomId, isNull);
     });
@@ -128,7 +127,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.edit_outlined);
+      expect(result.icon, KIcons.editOutlined);
       expect(result.text, "Alice changed the topic to 'New topic'");
     });
 
@@ -157,7 +156,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.image_outlined);
+      expect(result.icon, KIcons.imageOutlined);
       expect(result.text, 'Alice changed the room avatar');
     });
   });
@@ -176,7 +175,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.upgrade_rounded);
+      expect(result.icon, KIcons.upgradeRounded);
       expect(
         result.text,
         'This room has been upgraded. We moved! Tap to open the new room.',
@@ -230,7 +229,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.login_rounded);
+      expect(result.icon, KIcons.loginRounded);
       expect(result.text, 'Alice joined');
     });
 
@@ -248,7 +247,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.badge_outlined);
+      expect(result.icon, KIcons.badgeOutlined);
       expect(
         result.text,
         "testuser2 changed their display name to 'Bob Ross'",
@@ -306,7 +305,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.image_outlined);
+      expect(result.icon, KIcons.imageOutlined);
       expect(result.text, 'Bob changed their avatar');
     });
 
@@ -324,7 +323,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.login_rounded);
+      expect(result.icon, KIcons.loginRounded);
       expect(result.text, 'Bob updated their profile');
     });
   });
@@ -343,7 +342,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.person_add_alt_1_outlined);
+      expect(result.icon, KIcons.personAddAlt1Outlined);
       expect(result.text, 'Bob was invited by Alice');
     });
   });
@@ -363,7 +362,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.logout_rounded);
+      expect(result.icon, KIcons.logoutRounded);
       expect(result.text, 'Alice left');
     });
 
@@ -381,7 +380,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.cancel_outlined);
+      expect(result.icon, KIcons.cancelOutlined);
       expect(result.text, 'Alice rejected the invitation');
     });
 
@@ -399,7 +398,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.person_remove_outlined);
+      expect(result.icon, KIcons.personRemoveOutlined);
       expect(result.text, 'Bob was kicked by Admin (spam)');
     });
 
@@ -436,7 +435,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.block_rounded);
+      expect(result.icon, KIcons.blockRounded);
       expect(result.text, 'Bob was banned by Admin (abuse)');
     });
 
@@ -472,7 +471,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.front_hand_outlined);
+      expect(result.icon, KIcons.frontHandOutlined);
       expect(result.text, 'Bob requested to join');
     });
   });
@@ -488,7 +487,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.info_outline);
+      expect(result.icon, KIcons.infoOutline);
       expect(result.text, 'Room updated');
     });
 
@@ -505,7 +504,7 @@ void main() {
 
       final result = resolver(event);
 
-      expect(result.icon, Icons.info_outline);
+      expect(result.icon, KIcons.infoOutline);
       expect(result.text, 'Membership changed');
     });
   });

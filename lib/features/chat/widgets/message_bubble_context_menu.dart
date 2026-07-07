@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/shared/widgets/popup_menu_item_row.dart';
-
 Future<void> showMessageContextMenu(
   BuildContext context, {
   required bool isMe,
@@ -24,33 +24,33 @@ Future<void> showMessageContextMenu(
   final items = <PopupMenuItem<String>>[
     if (isFailed) ...[
       if (onRetrySend != null)
-        menuItemRow(Icons.refresh_rounded, 'Retry sending', 'outbox_retry'),
+        menuItemRow(KIcons.refreshRounded, 'Retry sending', 'outbox_retry'),
       if (onDiscardSend != null)
         menuItemRow(
-          Icons.delete_outline_rounded,
+          KIcons.deleteOutlineRounded,
           'Discard message',
           'outbox_discard',
           color: cs.error,
         ),
     ] else ...[
-      if (onReply != null) menuItemRow(Icons.reply_rounded, 'Reply', 'reply'),
+      if (onReply != null) menuItemRow(KIcons.replyRounded, 'Reply', 'reply'),
       if (onReplyInThread != null)
-        menuItemRow(Icons.forum_outlined, 'Reply in thread', 'reply_in_thread'),
-      if (onEdit != null) menuItemRow(Icons.edit_rounded, 'Edit', 'edit'),
+        menuItemRow(KIcons.forumOutlined, 'Reply in thread', 'reply_in_thread'),
+      if (onEdit != null) menuItemRow(KIcons.editRounded, 'Edit', 'edit'),
       if (onReact != null)
-        menuItemRow(Icons.add_reaction_outlined, 'React', 'react'),
-      if (!isRedacted) menuItemRow(Icons.copy_rounded, 'Copy', 'copy'),
+        menuItemRow(KIcons.addReactionOutlined, 'React', 'react'),
+      if (!isRedacted) menuItemRow(KIcons.copyRounded, 'Copy', 'copy'),
       if (onForward != null)
-        menuItemRow(Icons.forward_rounded, 'Forward', 'forward'),
+        menuItemRow(KIcons.forwardRounded, 'Forward', 'forward'),
       if (onPin != null)
         menuItemRow(
-          isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+          isPinned ? KIcons.pushPinRounded : KIcons.pushPinOutlined,
           isPinned ? 'Unpin' : 'Pin',
           'pin',
         ),
       if (onDelete != null)
         menuItemRow(
-          Icons.delete_outline_rounded,
+          KIcons.deleteOutlineRounded,
           isMe ? 'Delete' : 'Remove',
           'delete',
           color: cs.error,

@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/services/thread_roots_service.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/widgets/thread_list_tile.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
-
 class ThreadListScreen extends StatefulWidget {
   const ThreadListScreen({
     required this.roomId,
@@ -113,7 +113,7 @@ class _ThreadListScreenState extends State<ThreadListScreen> {
       appBar: AppBar(
         leading: widget.onClose != null
             ? IconButton(
-                icon: const Icon(Icons.close),
+                icon: const Icon(KIcons.close),
                 tooltip: 'Close threads',
                 onPressed: widget.onClose,
               )
@@ -133,7 +133,7 @@ class _ThreadListScreenState extends State<ThreadListScreen> {
     return ListView(
       children: [
         const SizedBox(height: 80),
-        Icon(Icons.forum_outlined,
+        Icon(KIcons.forumOutlined,
             size: 48, color: cs.onSurfaceVariant.withValues(alpha: 0.4),),
         const SizedBox(height: 12),
         Center(
@@ -163,7 +163,7 @@ class _ThreadListScreenState extends State<ThreadListScreen> {
     return ListView(
       children: [
         const SizedBox(height: 80),
-        Icon(Icons.error_outline, size: 48, color: cs.error),
+        Icon(KIcons.errorOutline, size: 48, color: cs.error),
         const SizedBox(height: 12),
         Center(
           child: Text(

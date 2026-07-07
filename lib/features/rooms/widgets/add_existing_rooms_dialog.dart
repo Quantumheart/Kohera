@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/shared/models/kohera_room_summary.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
-
 // ── Add Existing Rooms to Space Dialog ───────────────────────────
 
 class AddExistingRoomsDialog extends StatefulWidget {
@@ -125,7 +125,7 @@ class _AddExistingRoomsDialogState extends State<AddExistingRoomsDialog> {
                     enabled: !_loading,
                     decoration: const InputDecoration(
                       labelText: 'Search rooms',
-                      prefixIcon: Icon(Icons.search_rounded),
+                      prefixIcon: Icon(KIcons.searchRounded),
                       border: OutlineInputBorder(),
                     ),
                     onChanged: (v) => setState(() => _query = v.trim()),

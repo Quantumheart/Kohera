@@ -1,9 +1,11 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
@@ -11,8 +13,6 @@ import 'package:kohera/shared/models/kohera_room_summary.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:provider/provider.dart';
-
-
 Future<void> _showAddSpaceChooser(BuildContext context) async {
   final cs = Theme.of(context).colorScheme;
   final action = await showDialog<SpaceAction>(
@@ -70,7 +70,7 @@ class MobileSpaceDrawer extends StatelessWidget {
             ListTile(
               leading: CircleAvatar(
                 backgroundColor: cs.primaryContainer,
-                child: Icon(Icons.home_rounded, color: cs.onPrimaryContainer),
+                child: Icon(KIcons.homeRounded, color: cs.onPrimaryContainer),
               ),
               title: const Text('Home'),
               selected: homeSelected,
@@ -163,7 +163,7 @@ class MobileSpaceDrawer extends StatelessWidget {
             ),
             const Divider(height: 1),
             ListTile(
-              leading: Icon(Icons.add_circle_outline, color: cs.primary),
+              leading: Icon(KIcons.addCircleOutline, color: cs.primary),
               title: const Text('Add space'),
               subtitle: const Text('Create, join, or explore'),
               onTap: () => unawaited(_showAddSpaceChooser(context)),
@@ -220,7 +220,7 @@ class _SpaceTile extends StatelessWidget {
         if (onMenuRequested != null) {
           final menuButton = Builder(
             builder: (btnContext) => IconButton(
-              icon: const Icon(Icons.more_vert),
+              icon: const Icon(KIcons.moreVert),
               tooltip: 'Space options',
               onPressed: () => onMenuRequested!(btnContext),
             ),

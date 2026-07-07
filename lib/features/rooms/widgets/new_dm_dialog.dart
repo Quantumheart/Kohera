@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/rooms/services/room_creation_service.dart';
 import 'package:kohera/shared/models/kohera_user_summary.dart';
-
 // ── New Direct Message dialog ─────────────────────────────────
 
 class NewDirectMessageDialog extends StatefulWidget {
@@ -160,7 +160,7 @@ class _NewDirectMessageDialogState extends State<NewDirectMessageDialog> {
                   labelText: 'Search users',
                   hintText: '@user:server.com or display name',
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.search_rounded),
+                  prefixIcon: Icon(KIcons.searchRounded),
                 ),
                 onChanged: _onSearchChanged,
                 onSubmitted: (_) => _submitFromField(),

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/models/kohera_message_status.dart';
 import 'package:kohera/features/chat/widgets/call_event_tile.dart';
-
 KoheraMessageDisplay _makeMessage({
   required String eventType,
   String senderName = 'Alice',
@@ -50,7 +50,7 @@ void main() {
       find.text('Missed call from Alice — legacy client'),
       findsOneWidget,
     );
-    expect(find.byIcon(Icons.call_missed_rounded), findsWidgets);
+    expect(find.byIcon(KIcons.callMissedRounded), findsWidgets);
   });
 
   testWidgets('renders call hangup', (tester) async {
@@ -58,7 +58,7 @@ void main() {
     await tester.pumpWidget(buildWidget(message));
 
     expect(find.text('Call ended'), findsOneWidget);
-    expect(find.byIcon(Icons.call_end_rounded), findsOneWidget);
+    expect(find.byIcon(KIcons.callEndRounded), findsOneWidget);
   });
 
   testWidgets('renders missed call', (tester) async {
@@ -69,7 +69,7 @@ void main() {
     await tester.pumpWidget(buildWidget(message));
 
     expect(find.text('Missed call from Alice'), findsOneWidget);
-    expect(find.byIcon(Icons.call_missed_rounded), findsOneWidget);
+    expect(find.byIcon(KIcons.callMissedRounded), findsOneWidget);
   });
 
   testWidgets('renders call duration when provided', (tester) async {
@@ -82,7 +82,7 @@ void main() {
     );
 
     expect(find.text('Call ended \u2014 5:32'), findsOneWidget);
-    expect(find.byIcon(Icons.call_end_rounded), findsOneWidget);
+    expect(find.byIcon(KIcons.callEndRounded), findsOneWidget);
   });
 
   testWidgets('renders call hangup without duration when null', (tester) async {
@@ -109,6 +109,6 @@ void main() {
     await tester.pumpWidget(buildWidget(message));
 
     expect(find.text('Alice declined the call'), findsOneWidget);
-    expect(find.byIcon(Icons.call_end_rounded), findsOneWidget);
+    expect(find.byIcon(KIcons.callEndRounded), findsOneWidget);
   });
 }

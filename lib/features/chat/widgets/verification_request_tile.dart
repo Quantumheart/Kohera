@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
-
 class VerificationRequestTile extends StatelessWidget {
   const VerificationRequestTile({required this.message, super.key});
 
@@ -14,7 +14,7 @@ class VerificationRequestTile extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.verified_user_outlined, size: 16, color: cs.primary),
+        Icon(KIcons.verifiedUserOutlined, size: 16, color: cs.primary),
         const SizedBox(width: 6),
         Flexible(
           child: Text(

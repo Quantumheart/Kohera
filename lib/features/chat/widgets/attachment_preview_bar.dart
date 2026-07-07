@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-
 import 'package:kohera/core/models/pending_attachment.dart';
-
+import 'package:kohera/core/theme/k_icons.dart';
 // coverage:ignore-start
 
 class AttachmentPreviewBar extends StatelessWidget {
@@ -49,7 +48,7 @@ class AttachmentPreviewBar extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close_rounded, size: 18),
+            icon: const Icon(KIcons.closeRounded, size: 18),
             tooltip: 'Clear all attachments',
             onPressed: onClearAll,
             padding: EdgeInsets.zero,
@@ -98,7 +97,7 @@ class _AttachmentCard extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.insert_drive_file_outlined,
+                            KIcons.insertDriveFileOutlined,
                             size: 24,
                             color: cs.onSurfaceVariant,
                           ),
@@ -136,7 +135,7 @@ class _AttachmentCard extends StatelessWidget {
                   shape: const CircleBorder(),
                 ),
                 icon: Icon(
-                  Icons.close_rounded,
+                  KIcons.closeRounded,
                   size: 12,
                   color: cs.onSurfaceVariant,
                 ),

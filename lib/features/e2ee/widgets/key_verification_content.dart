@@ -1,11 +1,11 @@
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/e2ee/models/kohera_verification_state.dart';
 import 'package:kohera/features/e2ee/models/verification_view.dart';
 import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/qr_verification_views.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
-
 // ── Title ───────────────────────────────────────────────────────
 
 String verificationTitle(KoheraKeyVerification verification) {
@@ -99,7 +99,7 @@ class KeyVerificationContent extends StatelessWidget {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle,
+            Icon(KIcons.checkCircle,
                 color: Theme.of(context).colorScheme.primary, size: 64,),
             const SizedBox(height: 16),
             const Text('QR code scanned successfully.'),
@@ -115,7 +115,7 @@ class KeyVerificationContent extends StatelessWidget {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.verified,
+            Icon(KIcons.verified,
                 color: Theme.of(context).colorScheme.primary, size: 64,),
             const SizedBox(height: 16),
             const Text('Device verified successfully!'),
@@ -126,7 +126,7 @@ class KeyVerificationContent extends StatelessWidget {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline,
+            Icon(KIcons.errorOutline,
                 color: Theme.of(context).colorScheme.error, size: 64,),
             const SizedBox(height: 16),
             Text(
@@ -163,21 +163,21 @@ class KeyVerificationContent extends StatelessWidget {
         if (verification.canScanQr)
           FilledButton.icon(
             onPressed: verification.chooseScanQr,
-            icon: const Icon(Icons.qr_code_scanner),
+            icon: const Icon(KIcons.qrCodeScanner),
             label: const Text('Scan QR code'),
           ),
         if (verification.canScanQr) const SizedBox(height: 8),
         if (verification.canShowQr)
           FilledButton.tonalIcon(
             onPressed: verification.chooseShowQr,
-            icon: const Icon(Icons.qr_code_2),
+            icon: const Icon(KIcons.qrCode2),
             label: const Text('Show QR code'),
           ),
         if (verification.canShowQr) const SizedBox(height: 8),
         if (verification.canCompareSas)
           TextButton.icon(
             onPressed: verification.chooseCompareSas,
-            icon: const Icon(Icons.numbers),
+            icon: const Icon(KIcons.numbers),
             label: const Text('Compare numbers instead'),
           ),
       ],

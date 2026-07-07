@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/services/chat_search_controller.dart';
 import 'package:kohera/features/chat/widgets/search_result_tile.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
-
 /// Displays search results for in-room message search.
 ///
 /// Shows contextual states: minimum query prompt, loading spinner,
@@ -50,7 +50,7 @@ class SearchResultsBody extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline_rounded,
+              Icon(KIcons.errorOutlineRounded,
                   size: 48, color: cs.error.withValues(alpha: 0.6),),
               const SizedBox(height: 12),
               Text(
@@ -77,7 +77,7 @@ class SearchResultsBody extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.search_off_rounded,
+              Icon(KIcons.searchOffRounded,
                   size: 48, color: cs.onSurfaceVariant.withValues(alpha: 0.4),),
               const SizedBox(height: 12),
               Text(

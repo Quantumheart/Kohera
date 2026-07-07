@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/services/mention_autocomplete_controller.dart';
 import 'package:kohera/features/chat/services/opengraph_service.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
@@ -15,7 +16,6 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 @GenerateNiceMocks([
   MockSpec<Room>(),
   MockSpec<User>(),
@@ -198,7 +198,7 @@ void main() {
       await tester.enterText(find.byType(TextField), 'hi');
       await tester.pump();
 
-      await tester.tap(find.byIcon(Icons.send_rounded));
+      await tester.tap(find.byIcon(KIcons.sendRounded));
       await tester.pump();
 
       expect(sendCount, 1);
@@ -216,7 +216,7 @@ void main() {
       // Find the send IconButton wrapping the send icon.
       final button = tester.widget<IconButton>(
         find.ancestor(
-          of: find.byIcon(Icons.send_rounded),
+          of: find.byIcon(KIcons.sendRounded),
           matching: find.byType(IconButton),
         ),
       );
@@ -275,8 +275,8 @@ void main() {
       );
 
       expect(find.text('GIF'), findsOneWidget);
-      expect(find.byIcon(Icons.gif_outlined), findsNothing);
-      expect(find.byIcon(Icons.gif_box_outlined), findsNothing);
+      expect(find.byIcon(KIcons.gifOutlined), findsNothing);
+      expect(find.byIcon(KIcons.gifBoxOutlined), findsNothing);
     });
 
     testWidgets('TextField uses newline text input action', (tester) async {
@@ -528,7 +528,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(LinkPreviewCard), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byIcon(KIcons.close));
       await tester.pump();
 
       expect(find.byType(LinkPreviewCard), findsNothing);
@@ -547,7 +547,7 @@ void main() {
       await tester.enterText(find.byType(TextField), 'https://example.com');
       await tester.pump(const Duration(milliseconds: 600));
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byIcon(KIcons.close));
       await tester.pump();
 
       // Add surrounding text — URL is still present, dismissed state must hold.
@@ -578,7 +578,7 @@ void main() {
       await tester.enterText(find.byType(TextField), 'https://example.com');
       await tester.pump(const Duration(milliseconds: 600));
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byIcon(KIcons.close));
       await tester.pump();
 
       await tester.enterText(find.byType(TextField), 'https://other.com');

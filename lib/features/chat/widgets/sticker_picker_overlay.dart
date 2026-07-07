@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/models/sticker_pack.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
-
 class StickerPickerOverlay extends StatefulWidget {
   const StickerPickerOverlay({
     required this.packs,
@@ -76,7 +76,7 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay> with Single
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.sticky_note_2_outlined,
+            KIcons.stickyNote2Outlined,
             size: 48,
             color: cs.onSurfaceVariant,
           ),
@@ -132,7 +132,7 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay> with Single
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.add_rounded),
+                icon: const Icon(KIcons.addRounded),
                 iconSize: 20,
                 tooltip: 'Manage packs',
                 onPressed: widget.onManagePacks,
@@ -160,10 +160,10 @@ class _StickerPickerOverlayState extends State<StickerPickerOverlay> with Single
         controller: _searchCtrl,
         decoration: InputDecoration(
           hintText: 'Search stickers & emoji…',
-          prefixIcon: const Icon(Icons.search, size: 20),
+          prefixIcon: const Icon(KIcons.search, size: 20),
           suffixIcon: _query.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
+                  icon: const Icon(KIcons.clear, size: 18),
                   onPressed: _searchCtrl.clear,
                 )
               : null,

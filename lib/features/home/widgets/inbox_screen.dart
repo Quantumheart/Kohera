@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/home/widgets/inbox/invitations_view.dart';
 import 'package:kohera/features/home/widgets/inbox/load_more_button.dart';
@@ -12,7 +13,6 @@ import 'package:kohera/features/notifications/models/notification_constants.dart
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
-
 class InboxScreen extends StatefulWidget {
   const InboxScreen({super.key});
 
@@ -58,7 +58,7 @@ class _InboxScreenState extends State<InboxScreen> {
         leading: isNarrow
             ? Builder(
                 builder: (ctx) => IconButton(
-                  icon: const Icon(Icons.menu),
+                  icon: const Icon(KIcons.menu),
                   tooltip: 'Spaces',
                   onPressed: () => Scaffold.of(ctx).openDrawer(),
                 ),
@@ -112,7 +112,7 @@ class _InboxScreenState extends State<InboxScreen> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.error_outline,
+                                Icon(KIcons.errorOutline,
                                     size: 48,
                                     color: cs.error.withValues(alpha: 0.6),),
                                 const SizedBox(height: 12),
@@ -135,7 +135,7 @@ class _InboxScreenState extends State<InboxScreen> {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.notifications_none_rounded,
+                                    Icon(KIcons.notificationsNoneRounded,
                                         size: 56,
                                         color: cs.onSurfaceVariant
                                             .withValues(alpha: 0.3),),

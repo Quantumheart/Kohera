@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/services/linkable_span_builder.dart';
@@ -13,7 +14,6 @@ import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:provider/provider.dart';
-
 /// Shows a popup panel anchored below the pin icon listing pinned messages.
 void showPinnedMessagesPopup(
   BuildContext context,
@@ -212,7 +212,7 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 18),
+                  icon: const Icon(KIcons.closeRounded, size: 18),
                   onPressed: widget.onClose,
                   visualDensity: VisualDensity.compact,
                   tooltip: 'Close',
@@ -372,7 +372,7 @@ class _PinnedMessageTile extends StatelessWidget {
                     child: IconButton(
                       padding: EdgeInsets.zero,
                       icon: Icon(
-                        Icons.close_rounded,
+                        KIcons.closeRounded,
                         size: 14,
                         color:
                             cs.onSurfaceVariant.withValues(alpha: 0.5),

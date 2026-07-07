@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/rooms/widgets/invite_tile.dart';
 import 'package:provider/provider.dart';
-
 class InvitationsView extends StatelessWidget {
   const InvitationsView({
     required this.cs,
@@ -25,7 +25,7 @@ class InvitationsView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.mail_outline_rounded,
+            Icon(KIcons.mailOutlineRounded,
                 size: 56,
                 color: cs.onSurfaceVariant.withValues(alpha: 0.3),),
             const SizedBox(height: 16),

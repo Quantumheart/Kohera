@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
-
 // Event type constants (replacing SDK EventTypes.*).
 const _kRoomPowerLevels = 'm.room.power_levels';
 const _kRoomName = 'm.room.name';
@@ -146,7 +146,7 @@ class _RolesSection extends StatelessWidget {
         _RoleCard(
           label: 'Admin',
           description: 'Full control over the room',
-          icon: Icons.admin_panel_settings_outlined,
+          icon: KIcons.adminPanelSettingsOutlined,
           level: 100,
           memberCount: adminCount,
           content: content,
@@ -154,7 +154,7 @@ class _RolesSection extends StatelessWidget {
         _RoleCard(
           label: 'Moderator',
           description: 'Can manage messages and members',
-          icon: Icons.shield_outlined,
+          icon: KIcons.shieldOutlined,
           level: 50,
           memberCount: modCount,
           content: content,
@@ -162,7 +162,7 @@ class _RolesSection extends StatelessWidget {
         _RoleCard(
           label: 'Member',
           description: 'Standard room participant',
-          icon: Icons.person_outline,
+          icon: KIcons.personOutline,
           level: 0,
           memberCount: memberCount,
           content: content,
@@ -244,7 +244,7 @@ class _RoleCardState extends State<_RoleCard> {
                     AnimatedRotation(
                       turns: _expanded ? 0.5 : 0,
                       duration: const Duration(milliseconds: 200),
-                      child: const Icon(Icons.expand_more, size: 20),
+                      child: const Icon(KIcons.expandMore, size: 20),
                     ),
                   ],
                 ),
@@ -284,7 +284,7 @@ class _RoleCardState extends State<_RoleCard> {
                               child: Row(
                                 children: [
                                   Icon(
-                                    Icons.check_circle_outline,
+                                    KIcons.checkCircleOutline,
                                     size: 14,
                                     color: cs.primary,
                                   ),
@@ -709,7 +709,7 @@ class _DangerZoneSectionState extends State<_DangerZoneSection> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Row(
             children: [
-              Icon(Icons.warning_amber_rounded, size: 16, color: cs.error),
+              Icon(KIcons.warningAmberRounded, size: 16, color: cs.error),
               const SizedBox(width: 6),
               Text(
                 'DANGER ZONE',
@@ -1083,7 +1083,7 @@ class _AdvancedSectionState extends State<_AdvancedSection> {
                 AnimatedRotation(
                   turns: _expanded ? 0.5 : 0,
                   duration: const Duration(milliseconds: 200),
-                  child: Icon(Icons.expand_more, size: 20, color: cs.error),
+                  child: Icon(KIcons.expandMore, size: 20, color: cs.error),
                 ),
               ],
             ),
@@ -1124,7 +1124,7 @@ class _AdvancedSectionState extends State<_AdvancedSection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(
-                  Icons.warning_amber_rounded,
+                  KIcons.warningAmberRounded,
                   size: 18,
                   color: cs.onErrorContainer,
                 ),
@@ -1170,7 +1170,7 @@ class _AdvancedSectionState extends State<_AdvancedSection> {
               Text('Per-event overrides', style: tt.labelMedium),
               const Spacer(),
               TextButton.icon(
-                icon: const Icon(Icons.add, size: 16),
+                icon: const Icon(KIcons.add, size: 16),
                 label: const Text('Add'),
                 onPressed: () => setState(() {
                   _eventRows.add(_EventRowData(type: '', level: '50'));
@@ -1312,7 +1312,7 @@ class _EventRow extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.remove_circle_outline, size: 20),
+            icon: const Icon(KIcons.removeCircleOutline, size: 20),
             onPressed: onRemove,
             tooltip: 'Remove',
           ),

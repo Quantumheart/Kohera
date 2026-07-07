@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/theme/custom_theme.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:provider/provider.dart';
-
 class CustomThemeEditor extends StatelessWidget {
   const CustomThemeEditor({super.key});
 
@@ -63,11 +63,11 @@ class CustomThemeEditor extends StatelessWidget {
               segments: const [
                 ButtonSegment(
                   value: ThemeMode.light,
-                  icon: Icon(Icons.light_mode, size: 16),
+                  icon: Icon(KIcons.lightMode, size: 16),
                 ),
                 ButtonSegment(
                   value: ThemeMode.dark,
-                  icon: Icon(Icons.dark_mode, size: 16),
+                  icon: Icon(KIcons.darkMode, size: 16),
                 ),
               ],
               selected: {prefs.customThemeMode},

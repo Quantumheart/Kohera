@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:kohera/core/theme/k_icons.dart';
 class DropZoneOverlay extends StatelessWidget {
   const DropZoneOverlay({super.key});
 
@@ -20,7 +20,7 @@ class DropZoneOverlay extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.upload_file_rounded,
+              KIcons.uploadFileRounded,
               size: 48,
               color: cs.primary,
             ),

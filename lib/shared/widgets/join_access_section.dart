@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/models/join_mode.dart';
-
+import 'package:kohera/core/theme/k_icons.dart';
 /// A self-contained (id + displayname) reference to a space, used by the
 /// SDK-free [JoinAccessSection] so shared widgets do not depend on
 /// features-layer domain models or the Matrix SDK.
@@ -156,7 +156,7 @@ class JoinAccessSection extends StatelessWidget {
       return Padding(
         key: const Key('join_access_saved_indicator'),
         padding: const EdgeInsets.all(8),
-        child: Icon(Icons.check_circle_outline, color: cs.primary, size: 20),
+        child: Icon(KIcons.checkCircleOutline, color: cs.primary, size: 20),
       );
     }
     return null;
@@ -236,7 +236,7 @@ class _UpgradeBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: cs.onSecondaryContainer),
+          Icon(KIcons.infoOutline, color: cs.onSecondaryContainer),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

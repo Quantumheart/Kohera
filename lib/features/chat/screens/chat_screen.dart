@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
@@ -15,6 +16,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -60,8 +62,6 @@ import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/services/member_sheet_launcher.dart';
 import 'package:kohera/shared/services/room_summary_resolver.dart';
 import 'package:provider/provider.dart';
-
-
 class ChatScreen extends StatefulWidget {
   const ChatScreen({
     required this.roomId,
@@ -492,7 +492,7 @@ class _ChatScreenState extends State<ChatScreen>
       actions = [
         MessageAction(
           label: 'Retry sending',
-          icon: Icons.refresh_rounded,
+          icon: KIcons.refreshRounded,
           onTap: () async {
             try {
               await event.sendAgain();
@@ -503,7 +503,7 @@ class _ChatScreenState extends State<ChatScreen>
         ),
         MessageAction(
           label: 'Discard message',
-          icon: Icons.delete_outline_rounded,
+          icon: KIcons.deleteOutlineRounded,
           onTap: () async {
             try {
               await event.cancelSend();
@@ -518,23 +518,23 @@ class _ChatScreenState extends State<ChatScreen>
       actions = [
         MessageAction(
           label: 'Reply',
-          icon: Icons.reply_rounded,
+          icon: KIcons.replyRounded,
           onTap: () => _setReplyTo(eventId),
         ),
         MessageAction(
           label: 'Reply in thread',
-          icon: Icons.forum_outlined,
+          icon: KIcons.forumOutlined,
           onTap: () => _replyInThread(eventId),
         ),
         MessageAction(
           label: 'Forward',
-          icon: Icons.forward_rounded,
+          icon: KIcons.forwardRounded,
           onTap: () => _forwardMessage(eventId),
         ),
         if (isMe)
           MessageAction(
             label: 'Edit',
-            icon: Icons.edit_rounded,
+            icon: KIcons.editRounded,
             onTap: () => _compose.setEditEvent(
               event,
               _timelineController.timeline,
@@ -543,7 +543,7 @@ class _ChatScreenState extends State<ChatScreen>
           ),
         MessageAction(
           label: 'React',
-          icon: Icons.add_reaction_outlined,
+          icon: KIcons.addReactionOutlined,
           onTap: () => showEmojiPickerSheet(
             context,
             (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
@@ -552,12 +552,12 @@ class _ChatScreenState extends State<ChatScreen>
         if (canPin)
           MessageAction(
             label: isPinned ? 'Unpin' : 'Pin',
-            icon: isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+            icon: isPinned ? KIcons.pushPinRounded : KIcons.pushPinOutlined,
             onTap: () => unawaited(_actions.togglePin(event)),
           ),
         MessageAction(
           label: 'Copy',
-          icon: Icons.copy_rounded,
+          icon: KIcons.copyRounded,
           onTap: () {
             final displayEvent = _timelineController.timeline != null
                 ? event.getDisplayEvent(_timelineController.timeline!)
@@ -572,7 +572,7 @@ class _ChatScreenState extends State<ChatScreen>
         if (event.canRedact)
           MessageAction(
             label: isMe ? 'Delete' : 'Remove',
-            icon: Icons.delete_outline_rounded,
+            icon: KIcons.deleteOutlineRounded,
             onTap: () => confirmAndDeleteEvent(
                   context,
                   isMe: isMe,
@@ -672,12 +672,12 @@ class _ChatScreenState extends State<ChatScreen>
       actions: [
         MessageAction(
           label: 'Reply',
-          icon: Icons.reply_rounded,
+          icon: KIcons.replyRounded,
           onTap: () => _setReplyTo(eventId),
         ),
         MessageAction(
           label: 'React',
-          icon: Icons.add_reaction_outlined,
+          icon: KIcons.addReactionOutlined,
           onTap: () => showEmojiPickerSheet(
             context,
             (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
@@ -685,17 +685,17 @@ class _ChatScreenState extends State<ChatScreen>
         ),
         MessageAction(
           label: 'Forward',
-          icon: Icons.forward_rounded,
+          icon: KIcons.forwardRounded,
           onTap: () => _forwardMessage(eventId),
         ),
         MessageAction(
           label: isPinned ? 'Unpin' : 'Pin',
-          icon: isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+          icon: isPinned ? KIcons.pushPinRounded : KIcons.pushPinOutlined,
           onTap: () => unawaited(_actions.togglePin(event)),
         ),
         MessageAction(
           label: 'Copy link',
-          icon: Icons.link_rounded,
+          icon: KIcons.linkRounded,
           onTap: () {
             unawaited(
               Clipboard.setData(

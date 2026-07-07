@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
-
 KoheraRoomPermissions _perms({
   String roomId = '!r:e.com',
   String displayName = 'Test Room',
@@ -100,7 +100,7 @@ void main() {
         find.widgetWithText(TextField, 'Room name'),
         'New Name',
       );
-      await tester.tap(find.byIcon(Icons.check_rounded).first);
+      await tester.tap(find.byIcon(KIcons.checkRounded).first);
       await tester.pumpAndSettle();
 
       expect(savedName, 'New Name');
@@ -124,7 +124,7 @@ void main() {
         find.widgetWithText(TextField, 'Topic'),
         'New topic',
       );
-      await tester.tap(find.byIcon(Icons.check_rounded).at(1));
+      await tester.tap(find.byIcon(KIcons.checkRounded).at(1));
       await tester.pumpAndSettle();
 
       expect(savedTopic, 'New topic');
@@ -224,7 +224,7 @@ void main() {
         find.widgetWithText(TextField, 'Room name'),
         'Failing Name',
       );
-      await tester.tap(find.byIcon(Icons.check_rounded).first);
+      await tester.tap(find.byIcon(KIcons.checkRounded).first);
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Server error'), findsOneWidget);
@@ -247,7 +247,7 @@ void main() {
         find.widgetWithText(TextField, 'Room name'),
         'Updated Name',
       );
-      await tester.tap(find.byIcon(Icons.check_rounded).first);
+      await tester.tap(find.byIcon(KIcons.checkRounded).first);
       await tester.pumpAndSettle();
 
       expect(find.text('Room name updated'), findsOneWidget);

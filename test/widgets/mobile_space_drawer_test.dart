@@ -4,13 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/home/widgets/mobile_space_drawer.dart';
 import 'package:matrix/matrix.dart' show Client, SyncUpdate;
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
-
 @GenerateNiceMocks([
   MockSpec<Client>(),
 ])
@@ -51,7 +51,7 @@ void main() {
             drawer: const MobileSpaceDrawer(),
             body: Builder(
               builder: (ctx) => IconButton(
-                icon: const Icon(Icons.menu),
+                icon: const Icon(KIcons.menu),
                 onPressed: () => Scaffold.of(ctx).openDrawer(),
               ),
             ),
@@ -74,7 +74,7 @@ void main() {
     testWidgets('renders Home and action tiles with no spaces',
         (tester) async {
       await tester.pumpWidget(buildTestWidget());
-      await tester.tap(find.byIcon(Icons.menu));
+      await tester.tap(find.byIcon(KIcons.menu));
       await tester.pumpAndSettle();
 
       expect(find.text('Home'), findsOneWidget);
@@ -83,7 +83,7 @@ void main() {
 
     testWidgets('Home tile tap clears space selection', (tester) async {
       await tester.pumpWidget(buildTestWidget());
-      await tester.tap(find.byIcon(Icons.menu));
+      await tester.tap(find.byIcon(KIcons.menu));
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Home'));

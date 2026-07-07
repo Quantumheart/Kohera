@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
 import 'package:kohera/features/chat/models/kohera_media_type.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
@@ -7,7 +8,6 @@ import 'package:kohera/shared/services/media_controller.dart';
 import 'package:kohera/shared/widgets/media_viewer_shell.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-
 @GenerateNiceMocks([
   MockSpec<MediaController>(),
   MockSpec<AvatarResolver>(),
@@ -75,14 +75,14 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pump();
 
-      expect(find.byIcon(Icons.download_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.downloadRounded), findsOneWidget);
     });
 
     testWidgets('close button is present', (tester) async {
       await tester.pumpWidget(buildTestWidget());
       await tester.pump();
 
-      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.closeRounded), findsOneWidget);
     });
   });
 }

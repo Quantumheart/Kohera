@@ -5,10 +5,10 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 const String _recoveryKeyDocsUrl =
     'https://github.com/Quantumheart/Kohera/blob/master/docs/recovery-key-storage.md';
 
@@ -103,7 +103,7 @@ class _ShowRecoveryKeyScreenState extends State<ShowRecoveryKeyScreen> {
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
               onPressed: () => unawaited(_openDocs()),
-              icon: const Icon(Icons.open_in_new, size: 16),
+              icon: const Icon(KIcons.openInNew, size: 16),
               label: const Text('Learn more about safe storage'),
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
@@ -139,7 +139,7 @@ class _ShowRecoveryKeyScreenState extends State<ShowRecoveryKeyScreen> {
                   if (mounted) setState(() => _copied = false);
                 });
               },
-              icon: Icon(_copied ? Icons.check : Icons.copy, size: 18),
+              icon: Icon(_copied ? KIcons.check : KIcons.copy, size: 18),
               label: Text(_copied ? 'Copied' : 'Copy'),
             ),
           ),
@@ -154,7 +154,7 @@ class _ShowRecoveryKeyScreenState extends State<ShowRecoveryKeyScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            Icons.key_off_outlined,
+            KIcons.keyOffOutlined,
             size: 64,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
@@ -179,7 +179,7 @@ class _ShowRecoveryKeyScreenState extends State<ShowRecoveryKeyScreen> {
           const SizedBox(height: 8),
           TextButton.icon(
             onPressed: () => unawaited(_openDocs()),
-            icon: const Icon(Icons.open_in_new, size: 16),
+            icon: const Icon(KIcons.openInNew, size: 16),
             label: const Text('Learn more about safe storage'),
           ),
         ],

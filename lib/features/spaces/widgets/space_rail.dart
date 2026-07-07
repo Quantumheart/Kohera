@@ -10,13 +10,13 @@ import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:provider/provider.dart';
-
 /// A vertical icon rail showing the user's Matrix spaces.
 /// Modelled after Discord / Slack's sidebar.
 class SpaceRail extends StatefulWidget {
@@ -283,7 +283,7 @@ class _SpaceRailState extends State<SpaceRail> {
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
             child: _RailIcon(
-              icon: Icons.inbox_rounded,
+              icon: KIcons.inboxRounded,
               label: '!',
               tooltip: 'Inbox',
               isSelected: false,
@@ -614,7 +614,7 @@ class _AccountButtonState extends State<_AccountButton> {
                     ),
                   ),
                   if (i == manager.activeIndex)
-                    Icon(Icons.check, size: 18, color: cs.primary),
+                    Icon(KIcons.check, size: 18, color: cs.primary),
                 ],
               ),
             ),
@@ -623,7 +623,7 @@ class _AccountButtonState extends State<_AccountButton> {
           value: _AccountAction.settings,
           child: Row(
             children: [
-              Icon(Icons.settings_outlined),
+              Icon(KIcons.settingsOutlined),
               SizedBox(width: 10),
               Text('Settings'),
             ],

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/theme/theme_presets.dart';
 import 'package:provider/provider.dart';
-
 /// Light / Dark / System brightness picker for the Appearance screen.
 ///
 /// Binds to the correct preference for the active theme configuration:
@@ -47,17 +47,17 @@ class ThemeModePicker extends StatelessWidget {
           segments: const [
             ButtonSegment(
               value: ThemeMode.system,
-              icon: Icon(Icons.brightness_auto_outlined),
+              icon: Icon(KIcons.brightnessAutoOutlined),
               label: Text('System'),
             ),
             ButtonSegment(
               value: ThemeMode.light,
-              icon: Icon(Icons.light_mode_outlined),
+              icon: Icon(KIcons.lightModeOutlined),
               label: Text('Light'),
             ),
             ButtonSegment(
               value: ThemeMode.dark,
-              icon: Icon(Icons.dark_mode_outlined),
+              icon: Icon(KIcons.darkModeOutlined),
               label: Text('Dark'),
             ),
           ],

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/home/widgets/mobile_space_drawer.dart';
 import 'package:kohera/features/rooms/services/room_list_builder.dart';
@@ -21,9 +22,7 @@ import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
 import 'package:kohera/features/whats_new/widgets/whats_new_banner.dart';
 import 'package:kohera/shared/widgets/speed_dial_item.dart';
-
 import 'package:provider/provider.dart';
-
 class RoomList extends StatefulWidget {
   const RoomList({super.key});
 
@@ -264,7 +263,7 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                         isDense: true,
                         suffixIcon: _query.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.close, size: 20),
+                                icon: const Icon(KIcons.close, size: 20),
                                 onPressed: () {
                                   _searchCtrl.clear();
                                   setState(() => _query = '');
@@ -282,13 +281,13 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
           ),
           leading: _searchOpen
               ? IconButton(
-                  icon: const Icon(Icons.arrow_back),
+                  icon: const Icon(KIcons.arrowBack),
                   onPressed: _closeSearch,
                 )
               : (isNarrow
                   ? Builder(
                       builder: (ctx) => IconButton(
-                        icon: const Icon(Icons.menu),
+                        icon: const Icon(KIcons.menu),
                         tooltip: 'Spaces',
                         onPressed: () => Scaffold.of(ctx).openDrawer(),
                       ),
@@ -298,7 +297,7 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
               ? null
               : [
                   IconButton(
-                    icon: const Icon(Icons.search),
+                    icon: const Icon(KIcons.search),
                     tooltip: 'Search',
                     onPressed: _toggleSearch,
                   ),
@@ -505,7 +504,7 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                         children: [
                           SpeedDialItem(
                             label: 'New Room',
-                            icon: Icons.group_add_rounded,
+                            icon: KIcons.groupAddRounded,
                             onTap: () {
                               _closeFab();
                               unawaited(
@@ -519,7 +518,7 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                           const SizedBox(height: 8),
                           SpeedDialItem(
                             label: 'New Direct Message',
-                            icon: Icons.chat_bubble_outline_rounded,
+                            icon: KIcons.chatBubbleOutlineRounded,
                             onTap: () {
                               _closeFab();
                               unawaited(
@@ -541,7 +540,7 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                     child: AnimatedRotation(
                       turns: _fabOpen ? 0.125 : 0,
                       duration: const Duration(milliseconds: 200),
-                      child: const Icon(Icons.edit_rounded),
+                      child: const Icon(KIcons.editRounded),
                     ),
                   ),
                 ],
@@ -596,7 +595,7 @@ class _UnjoinedGroupHeader extends StatelessWidget {
                 ),
               );
             },
-            icon: const Icon(Icons.open_in_new, size: 14),
+            icon: const Icon(KIcons.openInNew, size: 14),
             label: const Text('Browse all'),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -727,7 +726,7 @@ class _SubspaceOpenTile extends StatelessWidget {
         child: CircleAvatar(
           radius: 20,
           backgroundColor: cs.surfaceContainerHighest,
-          child: Icon(Icons.workspaces_outlined, color: cs.onSurfaceVariant),
+          child: Icon(KIcons.workspacesOutlined, color: cs.onSurfaceVariant),
         ),
       ),
       title: Text(
@@ -774,7 +773,7 @@ class _UnjoinedErrorTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          Icon(Icons.error_outline, size: 16, color: cs.error),
+          Icon(KIcons.errorOutline, size: 16, color: cs.error),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -810,7 +809,7 @@ class _UnjoinedForbiddenTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          Icon(Icons.lock_outline, size: 16, color: cs.onSurfaceVariant),
+          Icon(KIcons.lockOutline, size: 16, color: cs.onSurfaceVariant),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -891,7 +890,7 @@ class _SpaceEmptyState extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline, size: 40, color: cs.error),
+              Icon(KIcons.errorOutline, size: 40, color: cs.error),
               const SizedBox(height: 16),
               Text('Could not load rooms', style: tt.titleMedium),
               const SizedBox(height: 16),
@@ -915,7 +914,7 @@ class _SpaceEmptyState extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.lock_outline, size: 40, color: cs.onSurfaceVariant),
+              Icon(KIcons.lockOutline, size: 40, color: cs.onSurfaceVariant),
               const SizedBox(height: 16),
               Text(
                 "You're in the $spaceName space",
@@ -954,7 +953,7 @@ class _SpaceEmptyState extends StatelessWidget {
                 radius: 40,
                 backgroundColor: cs.surfaceContainerHighest,
                 child: Icon(
-                  Icons.workspaces_outlined,
+                  KIcons.workspacesOutlined,
                   size: 40,
                   color: cs.onSurfaceVariant,
                 ),

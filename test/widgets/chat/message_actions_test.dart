@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
@@ -27,8 +29,6 @@ import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
-
-
 @GenerateNiceMocks([
   MockSpec<Client>(),
   MockSpec<MatrixService>(),
@@ -325,7 +325,7 @@ void main() {
         ),
       );
 
-      expect(find.byIcon(Icons.edit_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.editRounded), findsOneWidget);
       expect(find.text('Editing'), findsOneWidget);
       expect(find.text('Original message text'), findsOneWidget);
     });
@@ -350,7 +350,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.tap(find.byIcon(KIcons.closeRounded));
       expect(cancelled, isTrue);
     });
 
@@ -709,7 +709,7 @@ void main() {
       expect(find.text('Editing'), findsOneWidget);
 
       // Tap cancel.
-      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.tap(find.byIcon(KIcons.closeRounded));
       await tester.pumpAndSettle();
 
       expect(find.text('Editing'), findsNothing);

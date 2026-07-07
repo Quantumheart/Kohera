@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/core/utils/openmoji_catalog.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
-
 // ── OpenMojiPicker ───────────────────────────────────────────
 
 /// In-house emoji picker rendering OpenMoji image assets in a tabbed,
@@ -35,15 +35,15 @@ class OpenMojiPicker extends StatefulWidget {
 
 class _OpenMojiPickerState extends State<OpenMojiPicker> {
   static const _icons = <String, IconData>{
-    'smileys-emotion': Icons.emoji_emotions_outlined,
-    'people-body': Icons.emoji_people_outlined,
-    'animals-nature': Icons.pets_outlined,
-    'food-drink': Icons.fastfood_outlined,
-    'travel-places': Icons.directions_car_outlined,
-    'activities': Icons.sports_basketball_outlined,
-    'objects': Icons.lightbulb_outline,
-    'symbols': Icons.emoji_symbols_outlined,
-    'flags': Icons.flag_outlined,
+    'smileys-emotion': KIcons.emojiEmotionsOutlined,
+    'people-body': KIcons.emojiPeopleOutlined,
+    'animals-nature': KIcons.petsOutlined,
+    'food-drink': KIcons.fastfoodOutlined,
+    'travel-places': KIcons.directionsCarOutlined,
+    'activities': KIcons.sportsBasketballOutlined,
+    'objects': KIcons.lightbulbOutline,
+    'symbols': KIcons.emojiSymbolsOutlined,
+    'flags': KIcons.flagOutlined,
   };
 
   List<OpenMojiCategory>? _categories;
@@ -101,7 +101,7 @@ class _OpenMojiPickerState extends State<OpenMojiPicker> {
                       decoration: InputDecoration(
                         isDense: true,
                         hintText: 'Search emoji',
-                        prefixIcon: const Icon(Icons.search, size: 20),
+                        prefixIcon: const Icon(KIcons.search, size: 20),
                         filled: true,
                         fillColor: cs.surfaceContainerHighest,
                         border: OutlineInputBorder(
@@ -293,7 +293,7 @@ class _CategoryTabs extends StatelessWidget {
             unselectedLabelColor: cs.onSurfaceVariant,
             tabs: [
               for (final c in categories)
-                Tab(icon: Icon(icons[c.key] ?? Icons.tag, size: 20)),
+                Tab(icon: Icon(icons[c.key] ?? KIcons.tag, size: 20)),
             ],
           ),
           Expanded(

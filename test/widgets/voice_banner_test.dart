@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/widgets/voice_banner.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
 import 'room_tile_test.mocks.dart';
-
 void main() {
   late MockCallService mockCallService;
   late MockClient mockClient;
@@ -102,7 +102,7 @@ void main() {
 
       expect(
         find.ancestor(
-          of: find.byIcon(Icons.headset_mic_rounded),
+          of: find.byIcon(KIcons.headsetMicRounded),
           matching: find.byType(SafeArea),
         ),
         findsOneWidget,

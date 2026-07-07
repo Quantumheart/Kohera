@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/widgets/code_block.dart';
-
 Widget _wrap(Widget child) {
   return MaterialApp(
     theme: ThemeData(splashFactory: InkRipple.splashFactory),
@@ -77,7 +76,7 @@ void main() {
         ),
       ),);
 
-      expect(find.byIcon(Icons.copy_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.copyRounded), findsOneWidget);
       expect(find.byTooltip('Copy code'), findsOneWidget);
     });
 
@@ -103,7 +102,7 @@ void main() {
         ),
       ),);
 
-      await tester.tap(find.byIcon(Icons.copy_rounded));
+      await tester.tap(find.byIcon(KIcons.copyRounded));
       await tester.pumpAndSettle();
 
       expect(clipboardContent, 'const x = 42;');

@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/home/widgets/inbox/sub_group_section.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/models/notification_group.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
-
 class NotificationGroupTile extends StatelessWidget {
   const NotificationGroupTile({
     required this.group,
@@ -62,13 +62,13 @@ class NotificationGroupTile extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.done_all_rounded, size: 20),
+                    icon: const Icon(KIcons.doneAllRounded, size: 20),
                     tooltip: InboxText.tooltipMarkAsRead,
                     onPressed: () => controller.markRoomAsRead(group.roomId),
                     visualDensity: VisualDensity.compact,
                   ),
                   IconButton(
-                    icon: const Icon(Icons.open_in_new_rounded, size: 20),
+                    icon: const Icon(KIcons.openInNewRounded, size: 20),
                     tooltip: InboxText.tooltipOpen,
                     onPressed: () {
                       final singleThread = group.subGroups.length == 1

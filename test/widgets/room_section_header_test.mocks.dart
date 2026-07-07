@@ -7116,6 +7116,15 @@ class MockPreferencesService extends _i1.Mock
           as _i29.MessageDensity);
 
   @override
+  _i29.TimelineStyle get timelineStyle =>
+      (super.noSuchMethod(
+            Invocation.getter(#timelineStyle),
+            returnValue: _i29.TimelineStyle.bubbles,
+            returnValueForMissingStub: _i29.TimelineStyle.bubbles,
+          )
+          as _i29.TimelineStyle);
+
+  @override
   _i29.MobileTab get lastMobileTab =>
       (super.noSuchMethod(
             Invocation.getter(#lastMobileTab),
@@ -7515,6 +7524,15 @@ class MockPreferencesService extends _i1.Mock
   _i5.Future<void> setMessageDensity(_i29.MessageDensity? density) =>
       (super.noSuchMethod(
             Invocation.method(#setMessageDensity, [density]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> setTimelineStyle(_i29.TimelineStyle? style) =>
+      (super.noSuchMethod(
+            Invocation.method(#setTimelineStyle, [style]),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )

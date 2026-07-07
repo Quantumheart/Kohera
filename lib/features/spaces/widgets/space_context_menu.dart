@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/rooms/services/invite_user_dialog_params.dart';
 import 'package:kohera/features/rooms/widgets/add_existing_rooms_dialog.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
@@ -18,7 +19,6 @@ import 'package:kohera/features/spaces/widgets/space_details_panel.dart'
     show SpaceDetailsPanel;
 import 'package:kohera/shared/widgets/popup_menu_item_row.dart';
 import 'package:provider/provider.dart';
-
 // ── Space Context Menu ──────────────────────────────────────────────
 
 enum SpaceContextAction {
@@ -52,41 +52,41 @@ Future<void> showSpaceContextMenu(
     constraints: const BoxConstraints(minWidth: 200, maxWidth: 320),
     items: [
       menuItemRow(
-        Icons.done_all_rounded, 'Mark as read', SpaceContextAction.markAsRead,),
+        KIcons.doneAllRounded, 'Mark as read', SpaceContextAction.markAsRead,),
       if (canInvite)
         menuItemRow(
-          Icons.person_add_outlined,
+          KIcons.personAddOutlined,
           'Invite people',
           SpaceContextAction.invitePeople,
         ),
       if (canEditName)
         menuItemRow(
-          Icons.settings_outlined,
+          KIcons.settingsOutlined,
           'Space settings',
           SpaceContextAction.spaceSettings,
         ),
       if (canManageChildren) ...[
         menuItemRow(
-          Icons.add_rounded, 'Create room', SpaceContextAction.createRoom,),
+          KIcons.addRounded, 'Create room', SpaceContextAction.createRoom,),
         menuItemRow(
-          Icons.workspaces_outlined,
+          KIcons.workspacesOutlined,
           'Create subspace',
           SpaceContextAction.createSubspace,
         ),
         menuItemRow(
-          Icons.link_rounded,
+          KIcons.linkRounded,
           'Add existing room',
           SpaceContextAction.addExistingRoom,
         ),
       ],
       menuItemRow(
-        Icons.notifications_outlined,
+        KIcons.notificationsOutlined,
         'Notifications',
         SpaceContextAction.notifications,
       ),
       const PopupMenuDivider(),
       menuItemRow(
-        Icons.logout_rounded,
+        KIcons.logoutRounded,
         'Leave space',
         SpaceContextAction.leaveSpace,
         color: cs.error,

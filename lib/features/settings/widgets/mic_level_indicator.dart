@@ -3,8 +3,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:record/record.dart';
-
 class MicLevelIndicator extends StatefulWidget {
   const MicLevelIndicator({
     this.deviceId,
@@ -198,7 +198,7 @@ class _MicLevelIndicatorState extends State<MicLevelIndicator> {
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Row(
           children: [
-            Icon(Icons.mic_off_rounded, size: 16, color: cs.error),
+            Icon(KIcons.micOffRounded, size: 16, color: cs.error),
             const SizedBox(width: 8),
             Text(_error!, style: TextStyle(color: cs.error, fontSize: 13)),
           ],

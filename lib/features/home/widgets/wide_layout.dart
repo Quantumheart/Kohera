@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/calling/screens/call_pane.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/features/rooms/widgets/room_details_panel.dart';
@@ -10,7 +11,6 @@ import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/spaces/widgets/space_rail.dart';
 import 'package:kohera/shared/widgets/kohera_mark.dart';
 import 'package:provider/provider.dart';
-
 // coverage:ignore-start
 
 class WideLayout extends StatefulWidget {
@@ -57,7 +57,7 @@ class _WideLayoutState extends State<WideLayout> {
               width: 40,
               child: Center(
                 child: IconButton(
-                  icon: const Icon(Icons.chevron_right_rounded),
+                  icon: const Icon(KIcons.chevronRightRounded),
                   tooltip: 'Expand room list',
                   onPressed: () {
                     setState(() => _dragPanelWidth = null);

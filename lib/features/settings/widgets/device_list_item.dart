@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/settings/models/kohera_device.dart';
-
 /// A list tile displaying a single Matrix device with its verification status.
 class DeviceListItem extends StatelessWidget {
   const DeviceListItem({
@@ -70,7 +70,7 @@ class DeviceListItem extends StatelessWidget {
                 const PopupMenuItem(
                   value: _DeviceAction.rename,
                   child: ListTile(
-                    leading: Icon(Icons.edit_outlined),
+                    leading: Icon(KIcons.editOutlined),
                     title: Text('Rename'),
                     dense: true,
                   ),
@@ -79,7 +79,7 @@ class DeviceListItem extends StatelessWidget {
                   const PopupMenuItem(
                     value: _DeviceAction.verify,
                     child: ListTile(
-                      leading: Icon(Icons.verified_outlined),
+                      leading: Icon(KIcons.verifiedOutlined),
                       title: Text('Verify'),
                       dense: true,
                     ),
@@ -90,8 +90,8 @@ class DeviceListItem extends StatelessWidget {
                     child: ListTile(
                       leading: Icon(
                         device.isBlocked
-                            ? Icons.shield_outlined
-                            : Icons.block_outlined,
+                            ? KIcons.shieldOutlined
+                            : KIcons.blockOutlined,
                       ),
                       title: Text(device.isBlocked ? 'Unblock' : 'Block'),
                       dense: true,
@@ -100,7 +100,7 @@ class DeviceListItem extends StatelessWidget {
                 PopupMenuItem(
                   value: _DeviceAction.remove,
                   child: ListTile(
-                    leading: Icon(Icons.delete_outlined, color: cs.error),
+                    leading: Icon(KIcons.deleteOutlined, color: cs.error),
                     title: Text('Remove', style: TextStyle(color: cs.error)),
                     dense: true,
                   ),
@@ -129,10 +129,10 @@ class _VerificationBadge extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
 
     final (IconData icon, String label, Color color) = isBlocked
-        ? (Icons.block, 'Blocked', cs.error)
+        ? (KIcons.block, 'Blocked', cs.error)
         : isVerified
-            ? (Icons.verified, 'Verified', cs.primary)
-            : (Icons.shield_outlined, 'Unverified', cs.onSurfaceVariant);
+            ? (KIcons.verified, 'Verified', cs.primary)
+            : (KIcons.shieldOutlined, 'Unverified', cs.onSurfaceVariant);
 
     return Row(
       mainAxisSize: MainAxisSize.min,

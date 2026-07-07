@@ -1,19 +1,19 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/auth/screens/registration_screen.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
+
 import '../services/matrix_service_test.mocks.dart';
-
-
-
 class _FixedServiceFactory extends MatrixServiceFactory {
   _FixedServiceFactory(this._service);
   final MatrixService _service;
@@ -229,13 +229,13 @@ void main() {
       );
       expect(passwordFields, findsNWidgets(2));
 
-      final visibilityButtons = find.byIcon(Icons.visibility_off_outlined);
+      final visibilityButtons = find.byIcon(KIcons.visibilityOffOutlined);
       expect(visibilityButtons, findsNWidgets(2));
 
       await tester.tap(visibilityButtons.first);
       await tester.pump();
 
-      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+      expect(find.byIcon(KIcons.visibilityOutlined), findsOneWidget);
     });
 
     testWidgets('confirm password visibility toggle works', (tester) async {
@@ -243,11 +243,11 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
-      final visibilityButtons = find.byIcon(Icons.visibility_off_outlined);
+      final visibilityButtons = find.byIcon(KIcons.visibilityOffOutlined);
       await tester.tap(visibilityButtons.last);
       await tester.pump();
 
-      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+      expect(find.byIcon(KIcons.visibilityOutlined), findsOneWidget);
     });
 
     // ── form validation ──────────────────────────────────────

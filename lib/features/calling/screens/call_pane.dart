@@ -3,12 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/calling/services/call_navigator.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/widgets/call_state_views.dart';
 import 'package:kohera/features/calling/widgets/connected_call_view.dart';
 import 'package:provider/provider.dart';
-
 // coverage:ignore-start
 
 class CallPane extends StatelessWidget {
@@ -64,7 +64,7 @@ class CallPane extends StatelessWidget {
             state != KoheraCallState.failed)
           AppBar(
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_rounded),
+              icon: const Icon(KIcons.arrowBackRounded),
               onPressed: () => context.goNamed(
                 Routes.room,
                 pathParameters: {RouteParams.roomId: roomId},

@@ -61,3 +61,6 @@ flatpak/.flatpak-builder-build/
 .flatpak-builder/
 .pi/
 .plans/
+
+# Flutter golden test failure artifacts
+test/widget_tests/failures/

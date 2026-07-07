@@ -5,13 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/settings/screens/devices_screen.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
-
 @GenerateNiceMocks([
   MockSpec<Client>(),
   MockSpec<MatrixService>(),
@@ -225,7 +225,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Find the popup menu button by icon (the three-dot menu).
-      final popupButton = find.byIcon(Icons.more_vert);
+      final popupButton = find.byIcon(KIcons.moreVert);
       if (popupButton.evaluate().isNotEmpty) {
         await tester.tap(popupButton);
       } else {

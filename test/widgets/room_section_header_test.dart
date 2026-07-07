@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
 import 'package:kohera/features/rooms/widgets/room_section_header.dart';
 import 'package:kohera/features/spaces/widgets/space_reparent_controller.dart';
@@ -11,7 +12,6 @@ import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
-
 @GenerateNiceMocks([
   MockSpec<Client>(),
   MockSpec<MatrixService>(),
@@ -80,7 +80,7 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
 
       // Find and tap the + button.
-      final addButton = find.byIcon(Icons.add_rounded);
+      final addButton = find.byIcon(KIcons.addRounded);
       expect(addButton, findsOneWidget);
       await tester.tap(addButton);
       await tester.pumpAndSettle();
@@ -100,7 +100,7 @@ void main() {
         (tester) async {
       when(mockSpaceRoom.canChangeStateEvent(any)).thenReturn(false);
       await tester.pumpWidget(buildTestWidget());
-      expect(find.byIcon(Icons.add_rounded), findsNothing);
+      expect(find.byIcon(KIcons.addRounded), findsNothing);
     });
 
     testWidgets('+ button not shown for non-space headers', (tester) async {
@@ -112,7 +112,7 @@ void main() {
           roomCount: 5,
         ),
       ),);
-      expect(find.byIcon(Icons.add_rounded), findsNothing);
+      expect(find.byIcon(KIcons.addRounded), findsNothing);
     });
   });
 

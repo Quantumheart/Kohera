@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:kohera/core/theme/k_icons.dart';
 enum AttachmentSource { gallery, camera, file, gif, sticker }
 
 Future<AttachmentSource?> showAttachmentSourceSheet(
@@ -16,29 +16,29 @@ Future<AttachmentSource?> showAttachmentSourceSheet(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
+              leading: const Icon(KIcons.photoLibraryOutlined),
               title: const Text('Photo or Video'),
               onTap: () => Navigator.pop(sheetContext, AttachmentSource.gallery),
             ),
             ListTile(
-              leading: const Icon(Icons.camera_alt_outlined),
+              leading: const Icon(KIcons.cameraAltOutlined),
               title: const Text('Take Photo'),
               onTap: () => Navigator.pop(sheetContext, AttachmentSource.camera),
             ),
             ListTile(
-              leading: const Icon(Icons.folder_outlined),
+              leading: const Icon(KIcons.folderOutlined),
               title: const Text('File'),
               onTap: () => Navigator.pop(sheetContext, AttachmentSource.file),
             ),
             if (showGif)
               ListTile(
-                leading: const Icon(Icons.gif_box_outlined),
+                leading: const Icon(KIcons.gifBoxOutlined),
                 title: const Text('GIF'),
                 onTap: () => Navigator.pop(sheetContext, AttachmentSource.gif),
               ),
             if (showSticker)
               ListTile(
-                leading: const Icon(Icons.emoji_emotions_outlined),
+                leading: const Icon(KIcons.emojiEmotionsOutlined),
                 title: const Text('Stickers & Emoji'),
                 onTap: () =>
                     Navigator.pop(sheetContext, AttachmentSource.sticker),

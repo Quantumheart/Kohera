@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/home/widgets/inbox_screen.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/settings/screens/settings_screen.dart';
 import 'package:provider/provider.dart';
-
 // coverage:ignore-start
 
 class NarrowLayout extends StatefulWidget {
@@ -115,20 +115,20 @@ class _NarrowLayoutState extends State<NarrowLayout> {
               icon: unread > 0
                   ? Badge(
                       label: Text(unread > 99 ? '99+' : '$unread'),
-                      child: const Icon(Icons.inbox_outlined),
+                      child: const Icon(KIcons.inboxOutlined),
                     )
-                  : const Icon(Icons.inbox_outlined),
-              selectedIcon: const Icon(Icons.inbox),
+                  : const Icon(KIcons.inboxOutlined),
+              selectedIcon: const Icon(KIcons.inbox),
               label: MobileTab.inbox.label,
             ),
             const _CompactDestination(
-              icon: Icon(Icons.chat_bubble_outline),
-              selectedIcon: Icon(Icons.chat_bubble),
+              icon: Icon(KIcons.chatBubbleOutline),
+              selectedIcon: Icon(KIcons.chatBubble),
               label: 'Chats',
             ),
             const _CompactDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
+              icon: Icon(KIcons.personOutline),
+              selectedIcon: Icon(KIcons.person),
               label: 'You',
             ),
           ],

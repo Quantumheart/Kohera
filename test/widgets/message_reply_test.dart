@@ -1,10 +1,12 @@
 import 'dart:ui' show PointerDeviceKind;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
@@ -13,8 +15,6 @@ import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
-
-
 @GenerateNiceMocks([
   MockSpec<Client>(),
   MockSpec<MatrixService>(),
@@ -182,7 +182,7 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.close_rounded), findsNothing);
+      expect(find.byIcon(KIcons.closeRounded), findsNothing);
 
       // Hover over message to show action bar, then tap reply.
       final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
@@ -193,11 +193,11 @@ void main() {
       await gesture.moveTo(tester.getCenter(messageFinder));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.reply_rounded));
+      await tester.tap(find.byIcon(KIcons.replyRounded));
       await tester.pumpAndSettle();
 
       expect(find.text('alice'), findsWidgets);
-      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.closeRounded), findsOneWidget);
     });
 
     testWidgets('cancel reply removes the preview banner', (tester) async {
@@ -226,14 +226,14 @@ void main() {
       addTearDown(gesture.removePointer);
       await gesture.moveTo(tester.getCenter(find.text('Hello world')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.reply_rounded));
+      await tester.tap(find.byIcon(KIcons.replyRounded));
       await tester.pumpAndSettle();
 
       // Cancel the reply.
-      await tester.tap(find.byIcon(Icons.close_rounded));
+      await tester.tap(find.byIcon(KIcons.closeRounded));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.close_rounded), findsNothing);
+      expect(find.byIcon(KIcons.closeRounded), findsNothing);
     });
 
     testWidgets('failed send restores reply state', (tester) async {
@@ -266,7 +266,7 @@ void main() {
       addTearDown(gesture.removePointer);
       await gesture.moveTo(tester.getCenter(find.text('Hello world')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(Icons.reply_rounded));
+      await tester.tap(find.byIcon(KIcons.replyRounded));
       await tester.pumpAndSettle();
 
       // Type a message and send.
@@ -275,7 +275,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Reply banner should still be visible after failed send.
-      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.closeRounded), findsOneWidget);
     });
   });
 }

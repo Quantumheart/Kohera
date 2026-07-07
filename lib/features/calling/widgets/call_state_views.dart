@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/pulsing_avatar.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
-
-
 // coverage:ignore-start
 
 String formatCallElapsed(Duration d) => formatClockDuration(d);
@@ -135,7 +135,7 @@ class CallReconnectingView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.warning_amber_rounded, size: 48, color: cs.error),
+          Icon(KIcons.warningAmberRounded, size: 48, color: cs.error),
           const SizedBox(height: 16),
           Text('Reconnecting...', style: tt.titleMedium),
         ],
@@ -192,7 +192,7 @@ class _CallRingingOutgoingViewState extends State<CallRingingOutgoingView> {
             backgroundColor: cs.error,
             foregroundColor: cs.onError,
             onPressed: widget.onCancel,
-            child: const Icon(Icons.call_end_rounded),
+            child: const Icon(KIcons.callEndRounded),
           ),
         ],
       ),
@@ -214,7 +214,7 @@ class CallEndedView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.call_end, size: 48, color: cs.onSurfaceVariant),
+          Icon(KIcons.callEnd, size: 48, color: cs.onSurfaceVariant),
           const SizedBox(height: 16),
           Text('Call ended', style: tt.titleMedium),
           if (error != null) ...[

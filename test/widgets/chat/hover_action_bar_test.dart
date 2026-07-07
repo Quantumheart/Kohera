@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/widgets/hover_action_bar.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 /// Finds the [OpenMojiImage] rendered for [emoji].
 Finder _emojiImage(String emoji) => find.byWidgetPredicate(
       (w) => w is OpenMojiImage && w.grapheme == emoji,
@@ -41,22 +41,22 @@ void main() {
   group('HoverActionBar', () {
     testWidgets('shows more icon always', (tester) async {
       await tester.pumpWidget(buildTestWidget());
-      expect(find.byIcon(Icons.more_horiz_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.moreHorizRounded), findsOneWidget);
     });
 
     testWidgets('shows react icon when onQuickReact provided', (tester) async {
       await tester.pumpWidget(buildTestWidget(onQuickReact: (_) {}));
-      expect(find.byIcon(Icons.add_reaction_outlined), findsOneWidget);
+      expect(find.byIcon(KIcons.addReactionOutlined), findsOneWidget);
     });
 
     testWidgets('hides react icon when no react callbacks', (tester) async {
       await tester.pumpWidget(buildTestWidget());
-      expect(find.byIcon(Icons.add_reaction_outlined), findsNothing);
+      expect(find.byIcon(KIcons.addReactionOutlined), findsNothing);
     });
 
     testWidgets('shows reply icon when onReply provided', (tester) async {
       await tester.pumpWidget(buildTestWidget(onReply: () {}));
-      expect(find.byIcon(Icons.reply_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.replyRounded), findsOneWidget);
     });
 
     testWidgets('action buttons use a clickable pointer cursor',
@@ -67,9 +67,9 @@ void main() {
       ),);
 
       for (final icon in [
-        Icons.add_reaction_outlined,
-        Icons.reply_rounded,
-        Icons.more_horiz_rounded,
+        KIcons.addReactionOutlined,
+        KIcons.replyRounded,
+        KIcons.moreHorizRounded,
       ]) {
         final inkWell = tester.widget<InkWell>(
           find.ancestor(
@@ -83,14 +83,14 @@ void main() {
 
     testWidgets('hides reply icon when onReply is null', (tester) async {
       await tester.pumpWidget(buildTestWidget());
-      expect(find.byIcon(Icons.reply_rounded), findsNothing);
+      expect(find.byIcon(KIcons.replyRounded), findsNothing);
     });
 
     testWidgets('tap reply calls onReply', (tester) async {
       var called = false;
       await tester.pumpWidget(buildTestWidget(onReply: () => called = true));
 
-      await tester.tap(find.byIcon(Icons.reply_rounded));
+      await tester.tap(find.byIcon(KIcons.replyRounded));
       expect(called, isTrue);
     });
 
@@ -98,7 +98,7 @@ void main() {
       Offset? pos;
       await tester.pumpWidget(buildTestWidget(onMore: (p) => pos = p));
 
-      await tester.tap(find.byIcon(Icons.more_horiz_rounded));
+      await tester.tap(find.byIcon(KIcons.moreHorizRounded));
       expect(pos, isNotNull);
     });
 
@@ -106,7 +106,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(buildTestWidget(onQuickReact: (_) {}));
 
-      await tester.tap(find.byIcon(Icons.add_reaction_outlined));
+      await tester.tap(find.byIcon(KIcons.addReactionOutlined));
       await tester.pumpAndSettle();
 
       expect(_emojiImage('\u{2764}\u{FE0F}'), findsOneWidget);
@@ -124,7 +124,7 @@ void main() {
         buildTestWidget(onQuickReact: (e) => selectedEmoji = e),
       );
 
-      await tester.tap(find.byIcon(Icons.add_reaction_outlined));
+      await tester.tap(find.byIcon(KIcons.addReactionOutlined));
       await tester.pumpAndSettle();
 
       await tester.tap(_emojiImage('\u{1F44D}'));
@@ -154,7 +154,7 @@ void main() {
     testWidgets('quick-react bar stays on-screen near the left edge',
         (tester) async {
       await tester.pumpWidget(buildEdgeWidget(Alignment.centerLeft));
-      await tester.tap(find.byIcon(Icons.add_reaction_outlined));
+      await tester.tap(find.byIcon(KIcons.addReactionOutlined));
       await tester.pumpAndSettle();
 
       expect(
@@ -166,7 +166,7 @@ void main() {
     testWidgets('quick-react bar stays on-screen near the right edge',
         (tester) async {
       await tester.pumpWidget(buildEdgeWidget(Alignment.centerRight));
-      await tester.tap(find.byIcon(Icons.add_reaction_outlined));
+      await tester.tap(find.byIcon(KIcons.addReactionOutlined));
       await tester.pumpAndSettle();
 
       final screenWidth = tester.getSize(find.byType(Scaffold)).width;
@@ -185,7 +185,7 @@ void main() {
       await tester.pumpWidget(
         buildTestWidget(prefs: prefs, onQuickReact: (e) => reacted = e),
       );
-      await tester.tap(find.byIcon(Icons.add_reaction_outlined));
+      await tester.tap(find.byIcon(KIcons.addReactionOutlined));
       await tester.pumpAndSettle();
 
       // 👍 is toned; ❤️ (no variant) stays base.

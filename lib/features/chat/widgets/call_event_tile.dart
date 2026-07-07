@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/core/utils/time_format.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/shared/models/call_constants.dart';
-
 class CallEventTile extends StatelessWidget {
   const CallEventTile({
     required this.message,
@@ -80,29 +80,29 @@ class CallEventTile extends StatelessWidget {
     switch (message.eventType) {
       case kCallInvite:
         return (
-          Icons.call_missed_rounded,
+          KIcons.callMissedRounded,
           'Missed call from $sender — legacy client',
         );
 
       case kCallHangup:
         final reason = message.content['reason'] as String?;
         if (reason == 'invite_timeout') {
-          return (Icons.call_missed_rounded, 'Missed call from $sender');
+          return (KIcons.callMissedRounded, 'Missed call from $sender');
         }
         final label = duration != null
             ? 'Call ended \u2014 '
                 '${formatClockDuration(duration!, padMinutes: false)}'
             : 'Call ended';
-        return (Icons.call_end_rounded, label);
+        return (KIcons.callEndRounded, label);
 
       case kCallReject:
-        return (Icons.call_end_rounded, '$sender declined the call');
+        return (KIcons.callEndRounded, '$sender declined the call');
 
       case kCallAnswer:
-        return (Icons.call_rounded, '$sender answered the call');
+        return (KIcons.callRounded, '$sender answered the call');
 
       default:
-        return (Icons.call_rounded, 'Call event');
+        return (KIcons.callRounded, 'Call event');
     }
   }
 }

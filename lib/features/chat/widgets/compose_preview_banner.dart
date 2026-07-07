@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
-
 /// Compose-bar banner showing a leading [icon], an accent-coloured [title], and
 /// a one-line preview of [preview], with a trailing close button.
 class ComposePreviewBanner extends StatelessWidget {
@@ -60,7 +59,7 @@ class ComposePreviewBanner extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close_rounded, size: 18),
+            icon: const Icon(KIcons.closeRounded, size: 18),
             onPressed: onCancel,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 36, minHeight: 36),

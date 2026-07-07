@@ -4,6 +4,7 @@ import 'package:flutter/material.dart' hide Visibility;
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
@@ -11,7 +12,6 @@ import 'package:kohera/features/spaces/services/space_menu_actions.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:provider/provider.dart';
-
 // ── Add-space actions (shared by desktop popover and mobile dialog) ──
 
 enum SpaceAction { create, join, discover }
@@ -31,17 +31,17 @@ class SpaceActionEntry {
 const spaceActionEntries = <SpaceActionEntry>[
   SpaceActionEntry(
     action: SpaceAction.create,
-    icon: Icons.add_circle_outline,
+    icon: KIcons.addCircleOutline,
     label: 'Create space',
   ),
   SpaceActionEntry(
     action: SpaceAction.join,
-    icon: Icons.tag,
+    icon: KIcons.tag,
     label: 'Join with address',
   ),
   SpaceActionEntry(
     action: SpaceAction.discover,
-    icon: Icons.travel_explore,
+    icon: KIcons.travelExplore,
     label: 'Explore spaces',
   ),
 ];
@@ -572,7 +572,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
               deleteButtonTooltipMessage: 'Remove $host',
             ),
           ActionChip(
-            avatar: const Icon(Icons.add, size: 18),
+            avatar: const Icon(KIcons.add, size: 18),
             label: const Text('Add server'),
             onPressed: _openAddServerDialog,
           ),
@@ -895,7 +895,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
       content = _buildPreview(frame);
       title = frame.fallbackName ?? frame.roomId;
       leading = IconButton(
-        icon: const Icon(Icons.arrow_back),
+        icon: const Icon(KIcons.arrowBack),
         tooltip: 'Back',
         onPressed: isJoiningAny ? null : _popPreview,
       );
@@ -1013,11 +1013,11 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               hintText: 'Search spaces',
-              prefixIcon: const Icon(Icons.search),
+              prefixIcon: const Icon(KIcons.search),
               suffixIcon: _query.isEmpty && _searchController.text.isEmpty
                   ? null
                   : IconButton(
-                      icon: const Icon(Icons.close),
+                      icon: const Icon(KIcons.close),
                       tooltip: 'Clear search',
                       onPressed: _clearSearch,
                     ),
@@ -1082,7 +1082,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.lock_outline, color: cs.onSurfaceVariant, size: 32),
+                Icon(KIcons.lockOutline, color: cs.onSurfaceVariant, size: 32),
                 const SizedBox(height: 12),
                 Text(
                   'Preview unavailable',
@@ -1257,7 +1257,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
               if (alreadyMember)
                 OutlinedButton.icon(
                   onPressed: _joiningRoomId != null ? null : () => _openExistingSpace(self.roomId),
-                  icon: const Icon(Icons.open_in_new, size: 18),
+                  icon: const Icon(KIcons.openInNew, size: 18),
                   label: const Text('Open'),
                 )
               else

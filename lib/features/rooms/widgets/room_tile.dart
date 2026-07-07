@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
@@ -6,6 +7,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/core/utils/order_utils.dart' as order_utils;
 import 'package:kohera/core/utils/platform_info.dart';
@@ -22,8 +24,6 @@ import 'package:kohera/shared/widgets/presence_dot.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:provider/provider.dart';
-
-
 bool get _isDesktop => isNativeDesktop;
 
 /// Computes the effective unread count from raw summary fields + prefs.
@@ -385,7 +385,7 @@ class _RoomTileState extends State<RoomTile> {
     if (!summary.lastEventIsThreadReply) return previewText;
     return Row(
       children: [
-        Icon(Icons.forum_outlined, size: 12, color: cs.primary),
+        Icon(KIcons.forumOutlined, size: 12, color: cs.primary),
         const SizedBox(width: 4),
         Text(
           'in thread',
@@ -473,7 +473,7 @@ class _TrailingTimeBadge extends StatelessWidget {
               child: IconButton(
                 onPressed: () =>
                     CallNavigator.startCall(context, roomId: roomId),
-                icon: const Icon(Icons.headset_mic_rounded, size: 16),
+                icon: const Icon(KIcons.headsetMicRounded, size: 16),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
                 tooltip: 'Start call',
@@ -666,7 +666,7 @@ class _CallParticipantList extends StatelessWidget {
                     ),
                     alignment: Alignment.center,
                     child: Icon(
-                      Icons.expand_less,
+                      KIcons.expandLess,
                       size: 14,
                       color: cs.onSurfaceVariant,
                     ),
@@ -695,7 +695,7 @@ class _CallIndicator extends StatelessWidget {
 
     return const Padding(
       padding: EdgeInsets.only(left: 6),
-      child: Icon(Icons.headset_mic_rounded, size: 14, color: Colors.green),
+      child: Icon(KIcons.headsetMicRounded, size: 14, color: Colors.green),
     );
   }
 }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/time_format.dart';
 import 'package:kohera/features/notifications/models/kohera_notification_item.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
-
 class NotificationTile extends StatelessWidget {
   const NotificationTile({
     required this.item,
@@ -82,7 +82,7 @@ class NotificationTile extends StatelessWidget {
                         ),
                       ),
                       if (item.isMention) ...[
-                        Icon(Icons.alternate_email_rounded,
+                        Icon(KIcons.alternateEmailRounded,
                             size: 12, color: cs.primary,),
                         const SizedBox(width: 2),
                         Text(

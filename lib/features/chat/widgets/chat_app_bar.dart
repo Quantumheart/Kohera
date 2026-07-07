@@ -1,10 +1,12 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/calling/models/incoming_call_info.dart'
     as model;
 import 'package:kohera/features/calling/services/call_navigator.dart';
@@ -16,8 +18,6 @@ import 'package:kohera/shared/widgets/joined_member_count.dart';
 import 'package:kohera/shared/widgets/presence_dot.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:provider/provider.dart';
-
-
 class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
   const ChatAppBar({
     required this.summary,
@@ -56,7 +56,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       leading: effectiveOnBack != null
           ? IconButton(
-              icon: const Icon(Icons.arrow_back_rounded),
+              icon: const Icon(KIcons.arrowBackRounded),
               onPressed: effectiveOnBack,
             )
           : null,
@@ -113,7 +113,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
               mouseCursor: SystemMouseCursors.click,
               icon: Badge.count(
                 count: pinnedCount,
-                child: const Icon(Icons.push_pin_rounded),
+                child: const Icon(KIcons.pushPinRounded),
               ),
               tooltip: 'Pinned messages',
               onPressed: () => showPinnedMessagesPopup(
@@ -132,19 +132,19 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
             icon: threadUnreadCount > 0
                 ? Badge.count(
                     count: threadUnreadCount,
-                    child: const Icon(Icons.forum_outlined),
+                    child: const Icon(KIcons.forumOutlined),
                   )
-                : const Icon(Icons.forum_outlined),
+                : const Icon(KIcons.forumOutlined),
             onPressed: onShowThreads,
           ),
         IconButton(
           mouseCursor: SystemMouseCursors.click,
-          icon: const Icon(Icons.search_rounded),
+          icon: const Icon(KIcons.searchRounded),
           onPressed: onSearch,
         ),
         Builder(
           builder: (buttonContext) => PopupMenuButton<_ChatMenuAction>(
-            icon: const Icon(Icons.more_vert_rounded),
+            icon: const Icon(KIcons.moreVertRounded),
             tooltip: 'More',
             onSelected: (action) {
               switch (action) {
@@ -177,7 +177,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                     contentPadding: EdgeInsets.zero,
                     leading: Badge.count(
                       count: pinnedCount,
-                      child: const Icon(Icons.push_pin_rounded),
+                      child: const Icon(KIcons.pushPinRounded),
                     ),
                     title: const Text('Pinned messages'),
                   ),
@@ -190,9 +190,9 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                     leading: threadUnreadCount > 0
                         ? Badge.count(
                             count: threadUnreadCount,
-                            child: const Icon(Icons.forum_outlined),
+                            child: const Icon(KIcons.forumOutlined),
                           )
-                        : const Icon(Icons.forum_outlined),
+                        : const Icon(KIcons.forumOutlined),
                     title: const Text('Threads'),
                   ),
                 ),
@@ -200,7 +200,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                 value: _ChatMenuAction.details,
                 child: ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.info_outline_rounded),
+                  leading: Icon(KIcons.infoOutlineRounded),
                   title: Text('Room details'),
                 ),
               ),
@@ -316,7 +316,7 @@ class _CallButtonState extends State<_CallButton> {
       return MouseRegion(
         cursor: SystemMouseCursors.click,
         child: TextButton.icon(
-          icon: const Icon(Icons.call_rounded),
+          icon: const Icon(KIcons.callRounded),
           label: const Text('Join'),
           style: TextButton.styleFrom(foregroundColor: Colors.green),
           onPressed: busy ? null : () => _startCall(model.CallType.voice),
@@ -328,7 +328,7 @@ class _CallButtonState extends State<_CallButton> {
       return MouseRegion(
         cursor: SystemMouseCursors.click,
         child: PopupMenuButton<String>(
-          icon: Icon(Icons.call_rounded, color: Colors.green.shade400),
+          icon: Icon(KIcons.callRounded, color: Colors.green.shade400),
           tooltip: 'In call',
           onSelected: (value) {
             if (value == 'go') {
@@ -344,7 +344,7 @@ class _CallButtonState extends State<_CallButton> {
             PopupMenuItem(
               value: 'go',
               child: ListTile(
-                leading: Icon(Icons.open_in_new_rounded),
+                leading: Icon(KIcons.openInNewRounded),
                 title: Text('Go to call'),
                 dense: true,
                 contentPadding: EdgeInsets.zero,
@@ -353,7 +353,7 @@ class _CallButtonState extends State<_CallButton> {
             PopupMenuItem(
               value: 'leave',
               child: ListTile(
-                leading: Icon(Icons.call_end_rounded, color: Colors.red),
+                leading: Icon(KIcons.callEndRounded, color: Colors.red),
                 title: Text('Leave call'),
                 dense: true,
                 contentPadding: EdgeInsets.zero,
@@ -366,7 +366,7 @@ class _CallButtonState extends State<_CallButton> {
 
     return IconButton(
       mouseCursor: SystemMouseCursors.click,
-      icon: const Icon(Icons.call_rounded),
+      icon: const Icon(KIcons.callRounded),
       tooltip: 'Call',
       onPressed: busy ? null : () => _startCall(model.CallType.voice),
     );
@@ -397,7 +397,7 @@ class ChatSearchAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     return AppBar(
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_rounded),
+        icon: const Icon(KIcons.arrowBackRounded),
         onPressed: onClose,
       ),
       titleSpacing: 0,
@@ -417,7 +417,7 @@ class ChatSearchAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         if (controller.text.isNotEmpty)
           IconButton(
-            icon: const Icon(Icons.close_rounded),
+            icon: const Icon(KIcons.closeRounded),
             onPressed: () {
               controller.clear();
               onChanged('');

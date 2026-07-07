@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/models/kohera_message_status.dart';
 import 'package:kohera/features/chat/widgets/message_action_sheet.dart';
@@ -8,7 +9,6 @@ import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
 import 'package:provider/provider.dart';
-
 class _FakeAvatarResolver implements AvatarResolver {
   const _FakeAvatarResolver();
   @override
@@ -105,11 +105,11 @@ void main() {
     testWidgets('renders all action labels', (tester) async {
       suppressLayoutErrors(tester);
       final actions = [
-        MessageAction(label: 'Reply', icon: Icons.reply, onTap: () {}),
-        MessageAction(label: 'Copy', icon: Icons.copy, onTap: () {}),
+        MessageAction(label: 'Reply', icon: KIcons.reply, onTap: () {}),
+        MessageAction(label: 'Copy', icon: KIcons.copy, onTap: () {}),
         MessageAction(
           label: 'Delete',
-          icon: Icons.delete,
+          icon: KIcons.delete,
           onTap: () {},
           color: Colors.red,
         ),
@@ -131,7 +131,7 @@ void main() {
       final actions = [
         MessageAction(
           label: 'Reply',
-          icon: Icons.reply,
+          icon: KIcons.reply,
           onTap: () => replyCalled = true,
         ),
       ];
@@ -150,7 +150,7 @@ void main() {
         (tester) async {
       suppressLayoutErrors(tester);
       final actions = [
-        MessageAction(label: 'Reply', icon: Icons.reply, onTap: () {}),
+        MessageAction(label: 'Reply', icon: KIcons.reply, onTap: () {}),
       ];
 
       await tester.pumpWidget(
@@ -170,7 +170,7 @@ void main() {
         (tester) async {
       suppressLayoutErrors(tester);
       final actions = [
-        MessageAction(label: 'Reply', icon: Icons.reply, onTap: () {}),
+        MessageAction(label: 'Reply', icon: KIcons.reply, onTap: () {}),
       ];
 
       await tester.pumpWidget(buildTestWidget(actions: actions));
@@ -185,7 +185,7 @@ void main() {
       suppressLayoutErrors(tester);
       String? selectedEmoji;
       final actions = [
-        MessageAction(label: 'Reply', icon: Icons.reply, onTap: () {}),
+        MessageAction(label: 'Reply', icon: KIcons.reply, onTap: () {}),
       ];
 
       await tester.pumpWidget(
@@ -206,7 +206,7 @@ void main() {
     testWidgets('barrier tap dismisses sheet', (tester) async {
       suppressLayoutErrors(tester);
       final actions = [
-        MessageAction(label: 'Reply', icon: Icons.reply, onTap: () {}),
+        MessageAction(label: 'Reply', icon: KIcons.reply, onTap: () {}),
       ];
 
       await tester.pumpWidget(buildTestWidget(actions: actions));

@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/media_auth.dart';
 import 'package:kohera/core/utils/safe_url_launcher.dart';
 import 'package:kohera/features/chat/services/opengraph_service.dart';
 import 'package:provider/provider.dart';
-
 /// Displays an OpenGraph preview card for a URL found in a chat message.
 class LinkPreviewCard extends StatefulWidget {
   const LinkPreviewCard({
@@ -136,7 +136,7 @@ class _LinkPreviewCardState extends State<LinkPreviewCard>
                             width: 60,
                             height: 60,
                             child: Icon(
-                              Icons.link_rounded,
+                              KIcons.linkRounded,
                               size: 24,
                               color: subtitleColor,
                             ),

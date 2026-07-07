@@ -7,9 +7,9 @@ import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/emoji_gg_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
-
 class EmojiGgBrowseScreen extends StatefulWidget {
   const EmojiGgBrowseScreen({super.key});
 
@@ -115,14 +115,14 @@ class _EmojiGgBrowseScreenState extends State<EmojiGgBrowseScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(KIcons.arrowBack),
           onPressed: () => context.popOrGo(Routes.settingsStickerPacks),
         ),
         title: const Text('Browse emoji.gg'),
         actions: [
           if (_packs != null)
             IconButton(
-              icon: const Icon(Icons.refresh),
+              icon: const Icon(KIcons.refresh),
               tooltip: 'Refresh',
               onPressed: () => _loadPacks(forceRefresh: true),
             ),
@@ -144,10 +144,10 @@ class _EmojiGgBrowseScreenState extends State<EmojiGgBrowseScreen> {
         controller: _searchCtrl,
         decoration: InputDecoration(
           hintText: 'Search packs…',
-          prefixIcon: const Icon(Icons.search, size: 20),
+          prefixIcon: const Icon(KIcons.search, size: 20),
           suffixIcon: _query.isNotEmpty
               ? IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
+                  icon: const Icon(KIcons.clear, size: 18),
                   onPressed: _searchCtrl.clear,
                 )
               : null,
@@ -175,7 +175,7 @@ class _EmojiGgBrowseScreenState extends State<EmojiGgBrowseScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.cloud_off_rounded, size: 48, color: cs.outlineVariant),
+            Icon(KIcons.cloudOffRounded, size: 48, color: cs.outlineVariant),
             const SizedBox(height: 12),
             Text(
               'Could not load packs',
@@ -282,7 +282,7 @@ class _PackCard extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Icon(
-                      Icons.check_circle_rounded,
+                      KIcons.checkCircleRounded,
                       color: cs.primary,
                       size: 20,
                     ),
@@ -372,7 +372,7 @@ class _EmojiPreviewStrip extends StatelessWidget {
               height: _size,
               color: cs.surfaceContainerHighest,
               child: Icon(
-                Icons.broken_image_outlined,
+                KIcons.brokenImageOutlined,
                 size: 20,
                 color: cs.outlineVariant,
               ),
@@ -408,12 +408,12 @@ class _PackThumbnail extends StatelessWidget {
                 height: 48,
                 fit: BoxFit.contain,
                 errorBuilder: (_, _, _) => Icon(
-                  Icons.emoji_emotions_outlined,
+                  KIcons.emojiEmotionsOutlined,
                   color: cs.onSecondaryContainer,
                 ),
               )
             : Icon(
-                Icons.emoji_emotions_outlined,
+                KIcons.emojiEmotionsOutlined,
                 color: cs.onSecondaryContainer,
               ),
       ),

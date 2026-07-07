@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/rooms/services/room_context_menu_actions.dart';
 import 'package:kohera/features/rooms/widgets/add_room_to_space_dialog.dart';
 import 'package:kohera/shared/widgets/popup_menu_item_row.dart';
 import 'package:provider/provider.dart';
-
 // ── Room Context Menu ───────────────────────────────────────────────
 
 enum _RoomContextAction { addToSpace, removeFromSpace, moveUp, moveDown }
@@ -61,19 +61,19 @@ Future<void> showRoomContextMenu(
     items: [
       if (canMoveUp)
         menuItemRow(
-          Icons.arrow_upward_rounded,
+          KIcons.arrowUpwardRounded,
           'Move up',
           _RoomContextAction.moveUp,
         ),
       if (canMoveDown)
         menuItemRow(
-          Icons.arrow_downward_rounded,
+          KIcons.arrowDownwardRounded,
           'Move down',
           _RoomContextAction.moveDown,
         ),
       if (canAdd)
         menuItemRow(
-          Icons.add_link_rounded,
+          KIcons.addLinkRounded,
           'Add to space',
           _RoomContextAction.addToSpace,
         ),
@@ -82,7 +82,7 @@ Future<void> showRoomContextMenu(
           value: _RoomContextAction.removeFromSpace,
           child: Row(
             children: [
-              Icon(Icons.link_off_rounded, size: 18, color: cs.error),
+              Icon(KIcons.linkOffRounded, size: 18, color: cs.error),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(

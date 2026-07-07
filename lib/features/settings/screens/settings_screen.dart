@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
@@ -9,6 +10,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/settings/widgets/account_switcher.dart';
 import 'package:kohera/features/settings/widgets/profile_avatar_card.dart';
@@ -16,8 +18,6 @@ import 'package:kohera/shared/widgets/kohera_mark.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -51,7 +51,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(KIcons.arrowBack),
           onPressed: () => context.goNamed(Routes.home),
         ),
         title: const Text('Settings'),
@@ -68,7 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // ── Add Account ──
           OutlinedButton.icon(
             onPressed: () => _addAccount(context, manager),
-            icon: const Icon(Icons.person_add_outlined),
+            icon: const Icon(KIcons.personAddOutlined),
             label: const Text('Add account'),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -86,21 +86,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               children: [
                 _SettingsTile(
-                  icon: Icons.palette_outlined,
+                  icon: KIcons.paletteOutlined,
                   title: 'Appearance',
                   subtitle: prefs.themeModeLabel,
                   onTap: () => context.pushOrGo(Routes.settingsAppearance),
                 ),
                 const Divider(height: 1, indent: 56),
                 _SettingsTile(
-                  icon: Icons.notifications_outlined,
+                  icon: KIcons.notificationsOutlined,
                   title: 'Notifications',
                   subtitle: prefs.notificationLevelLabel,
                   onTap: () => context.pushOrGo(Routes.settingsNotifications),
                 ),
                 const Divider(height: 1, indent: 56),
                 _SettingsTile(
-                  icon: Icons.emoji_emotions_outlined,
+                  icon: KIcons.emojiEmotionsOutlined,
                   title: 'Sticker & emoji packs',
                   subtitle: context.select<StickerPackService, String>(
                     (s) {
@@ -114,7 +114,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 56),
                 SwitchListTile(
-                  secondary: const Icon(Icons.link_rounded),
+                  secondary: const Icon(KIcons.linkRounded),
                   title: const Text('Link previews'),
                   subtitle:
                       const Text('Show previews for URLs in messages'),
@@ -123,7 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 56),
                 SwitchListTile(
-                  secondary: const Icon(Icons.keyboard_rounded),
+                  secondary: const Icon(KIcons.keyboardRounded),
                   title: const Text('Typing indicators'),
                   subtitle:
                       const Text('Send and show typing notifications'),
@@ -132,7 +132,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 56),
                 SwitchListTile(
-                  secondary: const Icon(Icons.done_all_rounded),
+                  secondary: const Icon(KIcons.doneAllRounded),
                   title: const Text('Read receipts'),
                   subtitle:
                       const Text('Send and show read receipts'),
@@ -151,7 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               children: [
                 _SettingsTile(
-                  icon: Icons.call_rounded,
+                  icon: KIcons.callRounded,
                   title: 'Voice & video',
                   subtitle: context.select<CallService, bool>(
                             (s) => s.isCallingAvailable,
@@ -172,7 +172,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               children: [
                 _SettingsTile(
-                  icon: Icons.cloud_outlined,
+                  icon: KIcons.cloudOutlined,
                   title: 'Chat backup',
                   subtitle: matrix.chatBackup.chatBackupLoading
                       ? 'Setting up…'
@@ -187,7 +187,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 56),
                 _SettingsTile(
-                  icon: Icons.devices_rounded,
+                  icon: KIcons.devicesRounded,
                   title: 'Devices',
                   subtitle: 'Manage your devices',
                   onTap: () => context.pushOrGo(Routes.settingsDevices),
@@ -204,7 +204,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               children: [
                 _SettingsTile(
-                  icon: Icons.info_outline_rounded,
+                  icon: KIcons.infoOutlineRounded,
                   leading: const KoheraMark(size: 24),
                   title: 'Kohera',
                   subtitle: prefs.currentVersion != null
@@ -214,7 +214,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 56),
                 _SettingsTile(
-                  icon: Icons.code_rounded,
+                  icon: KIcons.codeRounded,
                   title: 'Source code',
                   subtitle: 'View on GitHub',
                   onTap: () {
@@ -268,7 +268,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (backupMissing) ...[
               Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded,
+                  Icon(KIcons.warningAmberRounded,
                       color: Theme.of(ctx).colorScheme.error,),
                   const SizedBox(width: 8),
                   Expanded(
@@ -343,7 +343,7 @@ class _SettingsTile extends StatelessWidget {
       leading: leading ?? Icon(icon, color: cs.onSurfaceVariant),
       title: Text(title),
       subtitle: Text(subtitle),
-      trailing: Icon(Icons.chevron_right, color: cs.onSurfaceVariant),
+      trailing: Icon(KIcons.chevronRight, color: cs.onSurfaceVariant),
       mouseCursor: SystemMouseCursors.click,
       onTap: onTap,
     );

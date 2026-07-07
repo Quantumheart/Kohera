@@ -4,6 +4,7 @@ import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/rooms/models/kohera_device_key.dart';
 import 'package:kohera/features/rooms/services/room_details_controller.dart';
@@ -14,7 +15,6 @@ import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
 import 'package:kohera/shared/widgets/detail_action_button.dart';
 import 'package:kohera/shared/widgets/joined_member_count.dart';
 import 'package:provider/provider.dart';
-
 /// Displays room details: header, actions, members, encryption,
 /// media gallery, notification settings, and admin controls.
 ///
@@ -166,7 +166,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
       return Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(KIcons.arrowBack),
             onPressed: () => context.popOrGo(
               Routes.room,
               pathParameters: {RouteParams.roomId: widget.roomId},
@@ -288,22 +288,22 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           DetailActionButton(
-            icon: isMuted ? Icons.notifications_off_outlined : Icons.notifications_outlined,
+            icon: isMuted ? KIcons.notificationsOffOutlined : KIcons.notificationsOutlined,
             label: isMuted ? 'Unmute' : 'Mute',
             onTap: _busy('mute') ? null : () => _run('mute', _controller.toggleMute),
           ),
           DetailActionButton(
-            icon: _controller.isFavourite ? Icons.star_rounded : Icons.star_border_rounded,
+            icon: _controller.isFavourite ? KIcons.starRounded : KIcons.starBorderRounded,
             label: _controller.isFavourite ? 'Starred' : 'Star',
             onTap: _busy('favourite') ? null : () => _run('favourite', _controller.toggleFavourite),
           ),
           DetailActionButton(
-            icon: Icons.person_add_outlined,
+            icon: KIcons.personAddOutlined,
             label: 'Invite',
             onTap: _busy('invite') ? null : _showInviteDialog,
           ),
           DetailActionButton(
-            icon: Icons.exit_to_app_rounded,
+            icon: KIcons.exitToAppRounded,
             label: 'Leave',
             color: cs.error,
             onTap: _busy('leave') ? null : _confirmLeave,
@@ -322,7 +322,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
       children: [
         ListTile(
           leading: Icon(
-            encrypted ? Icons.lock_rounded : Icons.lock_open_rounded,
+            encrypted ? KIcons.lockRounded : KIcons.lockOpenRounded,
             color: encrypted ? cs.primary : cs.onSurfaceVariant,
           ),
           title: Text(encrypted ? 'Encrypted' : 'Not encrypted'),
@@ -363,7 +363,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
         ListTile(
           dense: true,
           leading: Icon(
-            allVerified ? Icons.verified : Icons.shield_outlined,
+            allVerified ? KIcons.verified : KIcons.shieldOutlined,
             color: allVerified ? cs.primary : cs.onSurfaceVariant,
             size: 20,
           ),
@@ -372,7 +372,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
             style: tt.bodyMedium,
           ),
           trailing: Icon(
-            _deviceKeysExpanded ? Icons.expand_less : Icons.expand_more,
+            _deviceKeysExpanded ? KIcons.expandLess : KIcons.expandMore,
           ),
           onTap: () => setState(() => _deviceKeysExpanded = !_deviceKeysExpanded),
         ),
@@ -387,15 +387,15 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
     final String label;
     final Color color;
     if (dk.blocked) {
-      icon = Icons.block;
+      icon = KIcons.block;
       label = 'Blocked';
       color = cs.error;
     } else if (dk.verified) {
-      icon = Icons.verified;
+      icon = KIcons.verified;
       label = 'Verified';
       color = cs.primary;
     } else {
-      icon = Icons.shield_outlined;
+      icon = KIcons.shieldOutlined;
       label = 'Unverified';
       color = cs.onSurfaceVariant;
     }
@@ -403,7 +403,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
     return ListTile(
       dense: true,
       contentPadding: const EdgeInsets.only(left: 56, right: 16),
-      leading: Icon(Icons.devices, size: 18, color: cs.onSurfaceVariant),
+      leading: Icon(KIcons.devices, size: 18, color: cs.onSurfaceVariant),
       title: Text(
         dk.displayName ?? dk.deviceId ?? 'Unknown device',
         style: tt.bodySmall,

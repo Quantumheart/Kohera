@@ -7,6 +7,7 @@ import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
 import 'package:kohera/features/chat/services/emoji_autocomplete_controller.dart';
@@ -25,7 +26,6 @@ import 'package:kohera/features/chat/widgets/upload_progress_banner.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:provider/provider.dart';
-
 class ComposeBar extends StatefulWidget {
   const ComposeBar({
     required this.controller,
@@ -353,7 +353,7 @@ class _ComposeBarState extends State<ComposeBar> {
                 color: cs.surface,
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.close, size: 14, color: cs.onSurfaceVariant),
+              child: Icon(KIcons.close, size: 14, color: cs.onSurfaceVariant),
             ),
           ),
         ),
@@ -458,7 +458,7 @@ class _ComposeBarState extends State<ComposeBar> {
         if (!canSend && widget.voiceController != null) {
           return IconButton.filled(
             onPressed: widget.onMicTap,
-            icon: const Icon(Icons.mic_rounded, size: 20),
+            icon: const Icon(KIcons.micRounded, size: 20),
             style: IconButton.styleFrom(
               backgroundColor: cs.surfaceContainerHighest,
               foregroundColor: cs.onSurfaceVariant,
@@ -467,7 +467,7 @@ class _ComposeBarState extends State<ComposeBar> {
         }
         return IconButton.filled(
           onPressed: canSend ? _handleSend : null,
-          icon: const Icon(Icons.send_rounded, size: 20),
+          icon: const Icon(KIcons.sendRounded, size: 20),
           style: IconButton.styleFrom(
             backgroundColor: canSend ? cs.primary : cs.surfaceContainerHighest,
             foregroundColor: canSend ? cs.onPrimary : cs.onSurfaceVariant,
@@ -480,7 +480,7 @@ class _ComposeBarState extends State<ComposeBar> {
   Widget _buildAttachButton(ColorScheme cs) {
     if (widget.uploadNotifier == null) {
       return IconButton(
-        icon: Icon(Icons.add_rounded, color: cs.onSurfaceVariant),
+        icon: Icon(KIcons.addRounded, color: cs.onSurfaceVariant),
         onPressed: widget.onAttach,
       );
     }
@@ -491,7 +491,7 @@ class _ComposeBarState extends State<ComposeBar> {
         final isUploading = uploadState != null &&
             uploadState.status == UploadStatus.uploading;
         return IconButton(
-          icon: Icon(Icons.add_rounded, color: cs.onSurfaceVariant),
+          icon: Icon(KIcons.addRounded, color: cs.onSurfaceVariant),
           onPressed: isUploading ? null : widget.onAttach,
         );
       },
@@ -516,7 +516,7 @@ class _ComposeBarState extends State<ComposeBar> {
 
   Widget _buildStickerButton(ColorScheme cs) {
     return IconButton(
-      icon: Icon(Icons.emoji_emotions_outlined, color: cs.onSurfaceVariant),
+      icon: Icon(KIcons.emojiEmotionsOutlined, color: cs.onSurfaceVariant),
       onPressed: widget.onSticker,
       tooltip: 'Stickers & Emoji',
     );

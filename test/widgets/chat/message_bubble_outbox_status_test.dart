@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/models/kohera_message_status.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_outbox_status.dart';
@@ -11,7 +12,6 @@ import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
 import 'message_bubble_outbox_status_test.mocks.dart';
-
 @GenerateNiceMocks([
   MockSpec<Client>(),
 ])
@@ -82,7 +82,7 @@ void main() {
         status: KoheraMessageStatus.sent,
       ),
     );
-    expect(find.byIcon(Icons.done_all_rounded), findsOneWidget);
+    expect(find.byIcon(KIcons.doneAllRounded), findsOneWidget);
   });
 
   testWidgets('sending event with no outbox entry shows schedule',
@@ -95,7 +95,7 @@ void main() {
         txid: 'tx',
       ),
     );
-    expect(find.byIcon(Icons.schedule_rounded), findsOneWidget);
+    expect(find.byIcon(KIcons.scheduleRounded), findsOneWidget);
   });
 
   testWidgets('retrying entry shows schedule with tooltip', (tester) async {
@@ -110,7 +110,7 @@ void main() {
         txid: 'tx',
       ),
     );
-    expect(find.byIcon(Icons.schedule_rounded), findsOneWidget);
+    expect(find.byIcon(KIcons.scheduleRounded), findsOneWidget);
     expect(find.byTooltip, isNotNull);
   });
 
@@ -127,7 +127,7 @@ void main() {
         txid: 'tx',
       ),
     );
-    expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
+    expect(find.byIcon(KIcons.errorOutlineRounded), findsOneWidget);
   });
 
   test('debugPhaseFor classification matrix', () {

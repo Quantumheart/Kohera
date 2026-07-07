@@ -1,11 +1,11 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/e2ee/widgets/key_backup_banner.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
-
 @GenerateNiceMocks([MockSpec<ChatBackupService>()])
 import 'key_backup_banner_test.mocks.dart';
 
@@ -48,11 +48,11 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
+      expect(find.byIcon(KIcons.shieldOutlined), findsOneWidget);
       expect(find.widgetWithText(TextButton, 'Set up'), findsOneWidget);
       expect(
         find.ancestor(
-          of: find.byIcon(Icons.shield_outlined),
+          of: find.byIcon(KIcons.shieldOutlined),
           matching: find.byType(InkWell),
         ),
         findsOneWidget,
@@ -113,7 +113,7 @@ void main() {
 
       expect(find.text('Protect your messages'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.close));
+      await tester.tap(find.byIcon(KIcons.close));
       await tester.pumpAndSettle();
 
       expect(find.text('Protect your messages'), findsNothing);
@@ -150,7 +150,7 @@ void main() {
 
       expect(
         find.ancestor(
-          of: find.byIcon(Icons.shield_outlined),
+          of: find.byIcon(KIcons.shieldOutlined),
           matching: find.byType(SafeArea),
         ),
         findsOneWidget,

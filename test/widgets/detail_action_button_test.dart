@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/shared/widgets/detail_action_button.dart';
-
 void main() {
   group('DetailActionButton', () {
     testWidgets('invokes onTap when enabled', (tester) async {
@@ -10,7 +10,7 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: DetailActionButton(
-              icon: Icons.add,
+              icon: KIcons.add,
               label: 'Add',
               onTap: () => tapped++,
             ),
@@ -27,7 +27,7 @@ void main() {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: DetailActionButton(icon: Icons.add, label: 'Add'),
+            body: DetailActionButton(icon: KIcons.add, label: 'Add'),
           ),
         ),
       );

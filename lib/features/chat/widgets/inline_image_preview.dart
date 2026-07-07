@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/safe_url_launcher.dart';
-
 class InlineImagePreview extends StatelessWidget {
   const InlineImagePreview({
     required this.url,
@@ -44,7 +44,7 @@ class InlineImagePreview extends StatelessWidget {
                 height: 80,
                 color: cs.surfaceContainerHighest,
                 child: const Center(
-                  child: Icon(Icons.broken_image_outlined),
+                  child: Icon(KIcons.brokenImageOutlined),
                 ),
               ),
             ),

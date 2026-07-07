@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +13,7 @@ import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/theme/kohera_theme.dart';
 import 'package:kohera/core/theme/theme_presets.dart';
 import 'package:kohera/core/utils/vodozemac_init.dart';
@@ -32,8 +34,6 @@ import 'package:kohera/shared/widgets/pixelation_scope.dart';
 import 'package:kohera/shared/widgets/scanline_overlay.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
-
-
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const KoheraApp());
@@ -130,7 +130,7 @@ class _KoheraAppState extends State<KoheraApp> {
                 ? Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline, size: 48),
+                      const Icon(KIcons.errorOutline, size: 48),
                       const SizedBox(height: 16),
                       Text(
                         'Failed to start Kohera',
@@ -142,7 +142,7 @@ class _KoheraAppState extends State<KoheraApp> {
                           setState(() => _initError = null);
                           unawaited(_init());
                         },
-                        icon: const Icon(Icons.refresh),
+                        icon: const Icon(KIcons.refresh),
                         label: const Text('Retry'),
                       ),
                     ],

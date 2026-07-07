@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
 import 'package:kohera/features/chat/widgets/verification_request_tile.dart';
-
 const _msgtypeServerNotice = 'm.server_notice';
 const _msgtypeBadEncrypted = 'm.bad.encrypted';
 const _msgtypeEmote = 'm.emote';
@@ -126,7 +126,7 @@ class MessageBubbleBody extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(top: 2, right: 6),
           child: Icon(
-            Icons.campaign_outlined,
+            KIcons.campaignOutlined,
             size: 16,
             color: onBubble.withValues(alpha: 0.8),
           ),
@@ -179,7 +179,7 @@ class _BadEncryptedBody extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.lock_outline, size: 16, color: color),
+        Icon(KIcons.lockOutline, size: 16, color: color),
         const SizedBox(width: 6),
         Text(
           'Unable to decrypt this message',

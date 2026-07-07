@@ -1,11 +1,11 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/core/utils/media_cache_io.dart'
     if (dart.library.js_interop) 'package:kohera/core/utils/media_cache_web.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
 import 'package:kohera/shared/services/media_controller.dart';
-
 // coverage:ignore-start
 
 // ── File bubble (generic file attachment) ─────────────────────
@@ -75,7 +75,7 @@ class _FileBubbleState extends State<FileBubble> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.insert_drive_file_rounded,
+              KIcons.insertDriveFileRounded,
               size: 28,
               color: foreground.withValues(alpha: 0.7),
             ),
@@ -115,7 +115,7 @@ class _FileBubbleState extends State<FileBubble> {
               )
             else
               Icon(
-                Icons.download_rounded,
+                KIcons.downloadRounded,
                 size: 22,
                 color: foreground.withValues(alpha: 0.7),
               ),

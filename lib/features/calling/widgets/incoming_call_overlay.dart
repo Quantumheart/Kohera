@@ -1,16 +1,16 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/calling/models/incoming_call_info.dart';
 import 'package:kohera/features/calling/services/call_permission_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/shared/widgets/pulsing_avatar.dart';
 import 'package:provider/provider.dart';
-
-
 class IncomingCallOverlay extends StatefulWidget {
   const IncomingCallOverlay({required this.child, required this.router, super.key});
 
@@ -156,7 +156,7 @@ class _IncomingCallDialog extends StatelessWidget {
                         backgroundColor: cs.error,
                         foregroundColor: cs.onError,
                         onPressed: onDecline,
-                        child: const Icon(Icons.call_end_rounded),
+                        child: const Icon(KIcons.callEndRounded),
                       ),
                       const SizedBox(width: 24),
                       FloatingActionButton(
@@ -164,7 +164,7 @@ class _IncomingCallDialog extends StatelessWidget {
                         backgroundColor: cs.primaryContainer,
                         foregroundColor: cs.onPrimaryContainer,
                         onPressed: onAcceptAudio,
-                        child: const Icon(Icons.call_rounded),
+                        child: const Icon(KIcons.callRounded),
                       ),
                       const SizedBox(width: 24),
                       FloatingActionButton(
@@ -172,7 +172,7 @@ class _IncomingCallDialog extends StatelessWidget {
                         backgroundColor: cs.primaryContainer,
                         foregroundColor: cs.onPrimaryContainer,
                         onPressed: onAcceptVideo,
-                        child: const Icon(Icons.videocam_rounded),
+                        child: const Icon(KIcons.videocamRounded),
                       ),
                     ],
                   ),

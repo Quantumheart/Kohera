@@ -5,11 +5,11 @@ import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/shared/models/kohera_sticker_pack.dart';
 import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:provider/provider.dart';
-
 class StickerPacksScreen extends StatelessWidget {
   const StickerPacksScreen({super.key});
 
@@ -22,7 +22,7 @@ class StickerPacksScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(KIcons.arrowBack),
           onPressed: () => context.popOrGo(Routes.settings),
         ),
         title: const Text('Sticker & emoji packs'),
@@ -60,7 +60,7 @@ class StickerPacksScreen extends StatelessWidget {
 
               if (accountPacks.isEmpty && openMojiPack == null)
                 const _EmptyState(
-                  icon: Icons.emoji_emotions_outlined,
+                  icon: KIcons.emojiEmotionsOutlined,
                   message: 'No packs added yet.\nBrowse available packs below.',
                 )
               else
@@ -74,7 +74,7 @@ class StickerPacksScreen extends StatelessWidget {
                           trailing: Tooltip(
                             message: 'Built-in pack — always available',
                             child: Icon(
-                              Icons.lock_outline,
+                              KIcons.lockOutline,
                               size: 18,
                               color: Theme.of(context).colorScheme.outline,
                             ),
@@ -88,7 +88,7 @@ class StickerPacksScreen extends StatelessWidget {
                           trailing: Tooltip(
                             message: 'Personal pack — cannot be removed',
                             child: Icon(
-                              Icons.lock_outline,
+                              KIcons.lockOutline,
                               size: 18,
                               color: Theme.of(context).colorScheme.outline,
                             ),
@@ -128,7 +128,7 @@ class StickerPacksScreen extends StatelessWidget {
 
               if (availablePacks.isEmpty)
                 _EmptyState(
-                  icon: Icons.search_off_rounded,
+                  icon: KIcons.searchOffRounded,
                   message: availablePacks.isEmpty && accountPacks.isNotEmpty
                       ? 'All available packs have been added.'
                       : 'No packs found in your rooms.\nAsk a room admin to add one.',
@@ -159,12 +159,12 @@ class StickerPacksScreen extends StatelessWidget {
               const _SectionLabel(label: 'BROWSE ONLINE'),
               Card(
                 child: ListTile(
-                  leading: const Icon(Icons.explore_outlined),
+                  leading: const Icon(KIcons.exploreOutlined),
                   title: const Text('Browse emoji.gg packs'),
                   subtitle: const Text(
                     'Import sticker packs from the emoji.gg library',
                   ),
-                  trailing: const Icon(Icons.chevron_right),
+                  trailing: const Icon(KIcons.chevronRight),
                   onTap: () => context.pushOrGo(Routes.settingsEmojiGgBrowse),
                 ),
               ),
@@ -219,7 +219,7 @@ class _ReorderablePackList extends StatelessWidget {
               leading: ReorderableDragStartListener(
                 index: index,
                 child: Icon(
-                  Icons.drag_handle_rounded,
+                  KIcons.dragHandleRounded,
                   color: Theme.of(context).colorScheme.outline,
                 ),
               ),
@@ -316,7 +316,7 @@ class _PackAvatar extends StatelessWidget {
         borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       ),
       child: Icon(
-        Icons.emoji_emotions_outlined,
+        KIcons.emojiEmotionsOutlined,
         color: cs.onSecondaryContainer,
         size: 22,
       ),
@@ -352,7 +352,7 @@ class _RemoveButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       icon: Icon(
-        Icons.remove_circle_outline,
+        KIcons.removeCircleOutline,
         color: Theme.of(context).colorScheme.error,
       ),
       onPressed: onTap,

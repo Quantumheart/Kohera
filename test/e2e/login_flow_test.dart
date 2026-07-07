@@ -8,6 +8,7 @@ import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/auth/screens/homeserver_screen.dart';
 import 'package:kohera/features/auth/screens/login_screen.dart';
 import 'package:kohera/features/auth/screens/registration_screen.dart';
@@ -17,9 +18,8 @@ import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../services/matrix_service_test.mocks.dart';
-
-
 class _FakeDatabase extends Fake implements DatabaseApi {
   @override
   Future<Map<String, dynamic>?> getClient(String name) async => null;
@@ -471,7 +471,7 @@ void main() {
       );
       expect(passwordField.obscureText, isTrue);
 
-      await tester.tap(find.byIcon(Icons.visibility_off_outlined));
+      await tester.tap(find.byIcon(KIcons.visibilityOffOutlined));
       await tester.pumpAndSettle();
 
       final updatedField = tester.widget<TextField>(

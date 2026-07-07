@@ -2,10 +2,10 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/shared/models/kohera_room_summary.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
-
 /// Wraps a [RoomAvatarWidget] with avatar editing controls.
 ///
 /// SDK-free: display data comes from [summary] and [canEditAvatar]; avatar
@@ -93,7 +93,7 @@ class _AvatarEditOverlayState extends State<AvatarEditOverlay> {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      Icons.close_rounded,
+                      KIcons.closeRounded,
                       size: badgeSize * 0.55,
                       color: cs.onErrorContainer,
                     ),

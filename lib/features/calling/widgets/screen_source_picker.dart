@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
-
 // coverage:ignore-start
 
 Future<rtc.DesktopCapturerSource?> showScreenSourcePicker(
@@ -173,8 +173,8 @@ class _SourceList extends StatelessWidget {
         return ListTile(
           leading: Icon(
             source.type == rtc.SourceType.Screen
-                ? Icons.monitor
-                : Icons.window,
+                ? KIcons.monitor
+                : KIcons.window,
             color: isSelected ? cs.primary : cs.onSurfaceVariant,
           ),
           title: Text(source.name),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
+import 'package:kohera/core/theme/k_icons.dart';
 class PushToTalkKeyEditor extends StatelessWidget {
   const PushToTalkKeyEditor({
     required this.keyId,
@@ -93,7 +93,7 @@ class _KeyCaptureDialogState extends State<_KeyCaptureDialog> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.keyboard_rounded, size: 48, color: cs.primary),
+            Icon(KIcons.keyboardRounded, size: 48, color: cs.primary),
             const SizedBox(height: 16),
             Text(
               'Press a key…',

@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/services/media_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/media_viewer_shell.dart';
-
-
 void showFullImageDialog(
   BuildContext context,
   KoheraMediaContent media,
@@ -89,7 +89,7 @@ class _FullImageContentState extends State<_FullImageContent> {
                 headers: widget.controller.authHeaders(_imageUrl!),
                 errorBuilder: (_, _, _) => Center(
                   child: Icon(
-                    Icons.broken_image_rounded,
+                    KIcons.brokenImageRounded,
                     color: cs.onSurfaceVariant,
                     size: 48,
                   ),

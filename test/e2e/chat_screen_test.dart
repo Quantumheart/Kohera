@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
@@ -17,11 +19,9 @@ import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
+
 import '../services/matrix_service_test.mocks.dart' show MockFlutterSecureStorage;
 import 'chat_screen_test.mocks.dart';
-
-
-
 @GenerateNiceMocks([
   MockSpec<Client>(),
   MockSpec<Room>(),
@@ -314,7 +314,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.send_rounded));
+      await tester.tap(find.byIcon(KIcons.sendRounded));
       await tester.pumpAndSettle();
 
       verify(mockRoom.sendTextEvent('Hello world')).called(1);
@@ -327,8 +327,8 @@ void main() {
       await tester.pumpWidget(buildChatApp());
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.mic_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.send_rounded), findsNothing);
+      expect(find.byIcon(KIcons.micRounded), findsOneWidget);
+      expect(find.byIcon(KIcons.sendRounded), findsNothing);
     });
   });
 
@@ -363,7 +363,7 @@ void main() {
       await tester.pumpWidget(buildChatApp());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.search_rounded));
+      await tester.tap(find.byIcon(KIcons.searchRounded));
       await tester.pumpAndSettle();
 
       expect(find.text('Search messages…'), findsOneWidget);
@@ -375,11 +375,11 @@ void main() {
       await tester.pumpWidget(buildChatApp());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.search_rounded));
+      await tester.tap(find.byIcon(KIcons.searchRounded));
       await tester.pumpAndSettle();
       expect(find.text('Search messages…'), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(KIcons.arrowBackRounded));
       await tester.pumpAndSettle();
 
       expect(find.text('Test Room'), findsOneWidget);
@@ -398,7 +398,7 @@ void main() {
       await tester.pumpWidget(buildChatApp());
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.push_pin_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.pushPinRounded), findsOneWidget);
     });
 
     testWidgets('no pin badge when no pinned events', (tester) async {
@@ -407,7 +407,7 @@ void main() {
       await tester.pumpWidget(buildChatApp());
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.push_pin_rounded), findsNothing);
+      expect(find.byIcon(KIcons.pushPinRounded), findsNothing);
     });
   });
 }

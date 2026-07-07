@@ -1,9 +1,11 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/settings/widgets/mic_level_indicator.dart';
@@ -11,8 +13,6 @@ import 'package:kohera/features/settings/widgets/push_to_talk_key_editor.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
 import 'package:livekit_client/livekit_client.dart' as livekit;
 import 'package:provider/provider.dart';
-
-
 class VoiceVideoSettingsScreen extends StatefulWidget {
   const VoiceVideoSettingsScreen({super.key});
 
@@ -110,7 +110,7 @@ class _VoiceVideoSettingsScreenState extends State<VoiceVideoSettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(KIcons.arrowBack),
           onPressed: () => context.goNamed(Routes.settings),
         ),
         title: const Text('Voice & Video'),
@@ -122,7 +122,7 @@ class _VoiceVideoSettingsScreenState extends State<VoiceVideoSettingsScreen> {
           const SectionHeader(label: 'CALLING STATUS'),
           Card(
             child: ListTile(
-              leading: Icon(Icons.call_rounded, color: cs.onSurfaceVariant),
+              leading: Icon(KIcons.callRounded, color: cs.onSurfaceVariant),
               title: const Text('Voice & video calls'),
               subtitle: Text(
                 available
@@ -132,8 +132,8 @@ class _VoiceVideoSettingsScreenState extends State<VoiceVideoSettingsScreen> {
               ),
               trailing: Icon(
                 available
-                    ? Icons.check_circle_rounded
-                    : Icons.info_outline_rounded,
+                    ? KIcons.checkCircleRounded
+                    : KIcons.infoOutlineRounded,
                 color: available ? Colors.green : cs.onSurfaceVariant,
               ),
             ),
@@ -149,7 +149,7 @@ class _VoiceVideoSettingsScreenState extends State<VoiceVideoSettingsScreen> {
                 if (isNativeDesktop || !isNativeMobile)
                   _DeviceDropdown(
                     label: 'Input device',
-                    icon: Icons.mic_rounded,
+                    icon: KIcons.micRounded,
                     devices: _audioInputs,
                     selectedId: prefs.inputDeviceId,
                     onChanged: (id) => unawaited(prefs.setInputDeviceId(id)),
@@ -170,7 +170,7 @@ class _VoiceVideoSettingsScreenState extends State<VoiceVideoSettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 16),
                 SwitchListTile(
-                  secondary: const Icon(Icons.headphones_rounded),
+                  secondary: const Icon(KIcons.headphonesRounded),
                   title: const Text('Listen to yourself'),
                   subtitle: const Text('Hear your mic through speakers'),
                   value: _loopbackEnabled,
@@ -178,7 +178,7 @@ class _VoiceVideoSettingsScreenState extends State<VoiceVideoSettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 56),
                 SwitchListTile(
-                  secondary: const Icon(Icons.mic_off_rounded),
+                  secondary: const Icon(KIcons.micOffRounded),
                   title: const Text('Auto-mute when joining'),
                   subtitle: const Text('Join calls with mic off'),
                   value: prefs.autoMuteOnJoin,
@@ -186,7 +186,7 @@ class _VoiceVideoSettingsScreenState extends State<VoiceVideoSettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 56),
                 SwitchListTile(
-                  secondary: const Icon(Icons.noise_aware_rounded),
+                  secondary: const Icon(KIcons.noiseAwareRounded),
                   title: const Text('Noise suppression'),
                   subtitle: const Text('Reduce background noise'),
                   value: prefs.noiseSuppression,
@@ -194,7 +194,7 @@ class _VoiceVideoSettingsScreenState extends State<VoiceVideoSettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 56),
                 SwitchListTile(
-                  secondary: const Icon(Icons.spatial_audio_off_rounded),
+                  secondary: const Icon(KIcons.spatialAudioOffRounded),
                   title: const Text('Echo cancellation'),
                   subtitle: const Text('Prevent audio feedback'),
                   value: prefs.echoCancellation,
@@ -202,7 +202,7 @@ class _VoiceVideoSettingsScreenState extends State<VoiceVideoSettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 56),
                 SwitchListTile(
-                  secondary: const Icon(Icons.tune_rounded),
+                  secondary: const Icon(KIcons.tuneRounded),
                   title: const Text('Auto gain control'),
                   subtitle: const Text('Normalize volume levels'),
                   value: prefs.autoGainControl,
@@ -210,7 +210,7 @@ class _VoiceVideoSettingsScreenState extends State<VoiceVideoSettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 56),
                 SwitchListTile(
-                  secondary: const Icon(Icons.person_rounded),
+                  secondary: const Icon(KIcons.personRounded),
                   title: const Text('Voice isolation'),
                   subtitle: const Text('Filter non-voice sounds'),
                   value: prefs.voiceIsolation,
@@ -218,7 +218,7 @@ class _VoiceVideoSettingsScreenState extends State<VoiceVideoSettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 56),
                 SwitchListTile(
-                  secondary: const Icon(Icons.keyboard_rounded),
+                  secondary: const Icon(KIcons.keyboardRounded),
                   title: const Text('Typing noise detection'),
                   subtitle: const Text('Suppress keyboard sounds'),
                   value: prefs.typingNoiseDetection,
@@ -227,7 +227,7 @@ class _VoiceVideoSettingsScreenState extends State<VoiceVideoSettingsScreen> {
                 ),
                 const Divider(height: 1, indent: 56),
                 SwitchListTile(
-                  secondary: const Icon(Icons.graphic_eq_rounded),
+                  secondary: const Icon(KIcons.graphicEqRounded),
                   title: const Text('High pass filter'),
                   subtitle: const Text('Remove low-frequency rumble'),
                   value: prefs.highPassFilter,
@@ -269,7 +269,7 @@ class _VoiceVideoSettingsScreenState extends State<VoiceVideoSettingsScreen> {
                 if (isNativeDesktop || !isNativeMobile)
                   _DeviceDropdown(
                     label: 'Output device',
-                    icon: Icons.volume_up_rounded,
+                    icon: KIcons.volumeUpRounded,
                     devices: _audioOutputs,
                     selectedId: prefs.outputDeviceId,
                     onChanged: (id) => unawaited(prefs.setOutputDeviceId(id)),
@@ -294,7 +294,7 @@ class _VoiceVideoSettingsScreenState extends State<VoiceVideoSettingsScreen> {
               child: Column(
                 children: [
                   SwitchListTile(
-                    secondary: const Icon(Icons.keyboard_voice_rounded),
+                    secondary: const Icon(KIcons.keyboardVoiceRounded),
                     title: const Text('Enable push-to-talk'),
                     subtitle: const Text(
                       'Hold key to unmute — overrides auto-mute',
@@ -312,7 +312,7 @@ class _VoiceVideoSettingsScreenState extends State<VoiceVideoSettingsScreen> {
                     ),
                     const Divider(height: 1, indent: 56),
                     SwitchListTile(
-                      secondary: const Icon(Icons.volume_up_rounded),
+                      secondary: const Icon(KIcons.volumeUpRounded),
                       title: const Text('Activation sound'),
                       subtitle: const Text('Play sound on key press/release'),
                       value: prefs.pttSoundEnabled,

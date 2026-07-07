@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:provider/provider.dart';
-
 class KeyBackupBanner extends StatelessWidget {
   const KeyBackupBanner({super.key});
 
@@ -56,7 +56,7 @@ class _KeyBackupBannerContent extends StatelessWidget {
               child: Row(
                 children: [
                   Icon(
-                    Icons.shield_outlined,
+                    KIcons.shieldOutlined,
                     size: 18,
                     color: cs.onTertiaryContainer,
                   ),
@@ -98,7 +98,7 @@ class _KeyBackupBannerContent extends StatelessWidget {
                   IconButton(
                     onPressed: () =>
                         context.read<ChatBackupService>().dismissBanner(),
-                    icon: const Icon(Icons.close, size: 18),
+                    icon: const Icon(KIcons.close, size: 18),
                     color: cs.onTertiaryContainer,
                     tooltip: 'Dismiss',
                     visualDensity: VisualDensity.compact,

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/calling/models/call_participant.dart';
 import 'package:kohera/features/calling/widgets/participant_tile.dart';
 import 'package:livekit_client/livekit_client.dart' as livekit;
-
 // coverage:ignore-start
 
 class ScreenShareLayout extends StatelessWidget {
@@ -46,7 +46,7 @@ class ScreenShareLayout extends StatelessWidget {
               livekit.VideoTrackRenderer(track)
             else
               Center(
-                child: Icon(Icons.screen_share, size: 48, color: cs.onSurface),
+                child: Icon(KIcons.screenShare, size: 48, color: cs.onSurface),
               ),
             Positioned(
               left: 0,
@@ -69,7 +69,7 @@ class ScreenShareLayout extends StatelessWidget {
                   child: Row(
                     children: [
                       Icon(
-                        Icons.screen_share,
+                        KIcons.screenShare,
                         size: 14,
                         color: cs.onInverseSurface,
                       ),

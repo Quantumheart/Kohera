@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/settings/models/kohera_device.dart';
-
 void main() {
   group('KoheraDevice', () {
     KoheraDevice build({
@@ -20,7 +19,7 @@ void main() {
           lastSeenTs: null,
           displayNameOrId: displayName ?? 'ABCD12',
           platformLabel: null,
-          deviceIcon: Icons.devices_other_outlined,
+          deviceIcon: KIcons.devicesOtherOutlined,
           lastActiveString: 'Unknown',
         );
 
@@ -35,7 +34,7 @@ void main() {
         lastSeenTs: DateTime(2025),
         displayNameOrId: 'My Phone',
         platformLabel: 'Android',
-        deviceIcon: Icons.phone_android_outlined,
+        deviceIcon: KIcons.phoneAndroidOutlined,
         lastActiveString: 'Active now',
       );
 
@@ -48,7 +47,7 @@ void main() {
       expect(device.lastSeenTs, DateTime(2025));
       expect(device.displayNameOrId, 'My Phone');
       expect(device.platformLabel, 'Android');
-      expect(device.deviceIcon, Icons.phone_android_outlined);
+      expect(device.deviceIcon, KIcons.phoneAndroidOutlined);
       expect(device.lastActiveString, 'Active now');
     });
 
@@ -82,7 +81,7 @@ void main() {
           lastSeenTs: DateTime(2025, 6),
           displayNameOrId: 'Completely Different Name',
           platformLabel: 'iOS',
-          deviceIcon: Icons.phone_iphone_outlined,
+          deviceIcon: KIcons.phoneIphoneOutlined,
           lastActiveString: '1m ago',
         );
 
@@ -103,7 +102,7 @@ void main() {
           lastSeenTs: null,
           displayNameOrId: 'OTHER',
           platformLabel: null,
-          deviceIcon: Icons.devices_other_outlined,
+          deviceIcon: KIcons.devicesOtherOutlined,
           lastActiveString: 'Unknown',
         );
 

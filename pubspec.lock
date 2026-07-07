@@ -1229,6 +1229,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.2"
+  pixelarticons:
+    dependency: "direct main"
+    description:
+      name: pixelarticons
+      sha256: abe536bb9710cffc2a9a30d27666bbcd43742e391b6ba2f3de89313259d9f1c9
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.4.0"
   platform:
     dependency: transitive
     description:

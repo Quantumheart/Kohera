@@ -7,11 +7,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/whats_new/screens/whats_new_screen.dart';
 import 'package:kohera/features/whats_new/widgets/release_notes_markdown.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
-
 const _sampleMarkdown = '''
 # Kohera 1.4.0
 
@@ -187,7 +187,7 @@ void main() {
       });
       await tester.pump();
 
-      expect(find.byIcon(Icons.cloud_off), findsOneWidget);
+      expect(find.byIcon(KIcons.cloudOff), findsOneWidget);
       expect(find.text('Retry'), findsOneWidget);
     });
   });

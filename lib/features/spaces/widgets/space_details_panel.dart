@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/services/invite_user_dialog_params.dart';
 import 'package:kohera/features/rooms/services/join_access_controller.dart';
@@ -23,7 +24,6 @@ import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
 import 'package:kohera/shared/widgets/detail_action_button.dart';
 import 'package:kohera/shared/widgets/joined_member_count.dart';
 import 'package:provider/provider.dart';
-
 /// Displays space details: header, actions, members, and admin controls.
 ///
 /// When [isFullPage] is true, wraps itself in a Scaffold with an AppBar
@@ -199,7 +199,7 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
       return Scaffold(
         appBar: AppBar(
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(KIcons.arrowBack),
             onPressed: () => context.goNamed(Routes.home),
           ),
           title: Text(space.getLocalizedDisplayname()),
@@ -373,18 +373,18 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           DetailActionButton(
-            icon: Icons.meeting_room_outlined,
+            icon: KIcons.meetingRoomOutlined,
             label: 'Browse rooms',
             onTap: () => _browseSpaceRooms(spaceId),
           ),
           if (canInvite)
             DetailActionButton(
-              icon: Icons.person_add_outlined,
+              icon: KIcons.personAddOutlined,
               label: 'Invite',
               onTap: _busy('invite') ? null : () => _showInviteDialog(spaceId),
             ),
           DetailActionButton(
-            icon: Icons.exit_to_app_rounded,
+            icon: KIcons.exitToAppRounded,
             label: 'Leave',
             color: cs.error,
             onTap: _busy('leave') ? null : () => _confirmLeave(spaceId),

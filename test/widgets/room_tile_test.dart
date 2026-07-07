@@ -5,6 +5,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/rooms/widgets/room_tile.dart';
 import 'package:kohera/shared/models/kohera_room_summary.dart';
@@ -313,14 +314,14 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.headset_mic_rounded), findsAtLeast(1));
+      expect(find.byIcon(KIcons.headsetMicRounded), findsAtLeast(1));
     });
 
     testWidgets('hides green call indicator when no active call', (tester) async {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
-      final greenIcons = tester.widgetList<Icon>(find.byIcon(Icons.headset_mic_rounded))
+      final greenIcons = tester.widgetList<Icon>(find.byIcon(KIcons.headsetMicRounded))
           .where((icon) => icon.color == Colors.green);
       expect(greenIcons, isEmpty);
     });
@@ -438,7 +439,7 @@ void main() {
 
       expect(find.text('Join'), findsNothing);
       expect(find.text('Leave'), findsNothing);
-      expect(find.byIcon(Icons.headset_mic_rounded), findsAtLeast(1));
+      expect(find.byIcon(KIcons.headsetMicRounded), findsAtLeast(1));
     });
   });
 
@@ -551,7 +552,7 @@ void main() {
       await tester.tap(find.text('+2'));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.expand_less), findsOneWidget);
+      expect(find.byIcon(KIcons.expandLess), findsOneWidget);
       expect(find.text('+2'), findsNothing);
       final tooltips = tester.widgetList<Tooltip>(find.byType(Tooltip))
           .where((t) => t.message == 'User 9');

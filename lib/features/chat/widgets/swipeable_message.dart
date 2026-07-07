@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
+import 'package:kohera/core/theme/k_icons.dart';
 class SwipeableMessage extends StatefulWidget {
   const SwipeableMessage({
     required this.onReply, required this.child, super.key,
@@ -119,7 +119,7 @@ class _SwipeableMessageState extends State<SwipeableMessage>
                 child: Opacity(
                   opacity: progress,
                   child: Icon(
-                    Icons.reply_rounded,
+                    KIcons.replyRounded,
                     color: cs.primary,
                     size: 24,
                   ),

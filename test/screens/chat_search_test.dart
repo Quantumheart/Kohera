@@ -1,10 +1,12 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
@@ -13,8 +15,6 @@ import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
-
-
 @GenerateNiceMocks([
   MockSpec<Client>(),
   MockSpec<MatrixService>(),
@@ -80,20 +80,20 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.search_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.searchRounded), findsOneWidget);
     });
 
     testWidgets('tapping search icon shows search app bar', (tester) async {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.search_rounded));
+      await tester.tap(find.byIcon(KIcons.searchRounded));
       await tester.pumpAndSettle();
 
       // Search text field should appear.
       expect(find.widgetWithText(TextField, ''), findsWidgets);
       // Back arrow should be present.
-      expect(find.byIcon(Icons.arrow_back_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.arrowBackRounded), findsOneWidget);
       // The original room title should be gone.
       expect(find.text('Test Room'), findsNothing);
       // Hint text should show.
@@ -105,7 +105,7 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byIcon(Icons.search_rounded));
+      await tester.tap(find.byIcon(KIcons.searchRounded));
       await tester.pumpAndSettle();
 
       // Type less than 3 characters.
@@ -124,11 +124,11 @@ void main() {
       await tester.pumpAndSettle();
 
       // Open search.
-      await tester.tap(find.byIcon(Icons.search_rounded));
+      await tester.tap(find.byIcon(KIcons.searchRounded));
       await tester.pumpAndSettle();
 
       // Tap back to close.
-      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.tap(find.byIcon(KIcons.arrowBackRounded));
       await tester.pumpAndSettle();
 
       // Room name should be back.
@@ -152,7 +152,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Open search.
-      await tester.tap(find.byIcon(Icons.search_rounded));
+      await tester.tap(find.byIcon(KIcons.searchRounded));
       await tester.pumpAndSettle();
 
       // Type a query.
@@ -177,7 +177,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Open search.
-      await tester.tap(find.byIcon(Icons.search_rounded));
+      await tester.tap(find.byIcon(KIcons.searchRounded));
       await tester.pumpAndSettle();
 
       // Type a query.
@@ -186,7 +186,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Search failed. Please try again.'), findsOneWidget);
-      expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.errorOutlineRounded), findsOneWidget);
     });
 
     testWidgets('shows loading indicator while searching', (tester) async {
@@ -202,7 +202,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Open search.
-      await tester.tap(find.byIcon(Icons.search_rounded));
+      await tester.tap(find.byIcon(KIcons.searchRounded));
       await tester.pumpAndSettle();
 
       // Type a query.

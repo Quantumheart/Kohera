@@ -1,8 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/widgets/swipeable_message.dart';
-
 void main() {
   group('SwipeableMessage', () {
     testWidgets('triggers reply on swipe past threshold', (tester) async {
@@ -105,7 +104,7 @@ void main() {
         ),
       );
 
-      expect(find.byIcon(Icons.reply_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.replyRounded), findsOneWidget);
     });
 
     testWidgets('does not trigger on leftward swipe', (tester) async {

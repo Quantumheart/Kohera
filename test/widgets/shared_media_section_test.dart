@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/rooms/services/shared_media_loader.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-
 @GenerateNiceMocks([
   MockSpec<Room>(),
   MockSpec<Event>(),
@@ -158,7 +158,7 @@ void main() {
 
       expect(find.text('document.pdf'), findsOneWidget);
       expect(find.text('1.0 MB'), findsOneWidget);
-      expect(find.byIcon(Icons.insert_drive_file_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.insertDriveFileRounded), findsOneWidget);
     });
 
     testWidgets('shows audio icon for audio events', (tester) async {
@@ -181,7 +181,7 @@ void main() {
 
       expect(find.text('recording.mp3'), findsOneWidget);
       expect(find.text('512 B'), findsOneWidget);
-      expect(find.byIcon(Icons.audiotrack_rounded), findsOneWidget);
+      expect(find.byIcon(KIcons.audiotrackRounded), findsOneWidget);
     });
 
     testWidgets('shows Load more button when there is a next batch',

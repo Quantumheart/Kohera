@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-
+import 'package:kohera/core/theme/k_icons.dart';
 // coverage:ignore-start
 
 class CallControlBar extends StatelessWidget {
@@ -55,8 +55,8 @@ class CallControlBar extends StatelessWidget {
               onPressed: onToggleMic,
             ),
             _ControlButton(
-              icon: Icons.videocam,
-              activeIcon: Icons.videocam_off,
+              icon: KIcons.videocam,
+              activeIcon: KIcons.videocamOff,
               isActive: isCameraOff,
               onPressed: onToggleCamera,
               tooltip: isCameraOff ? 'Turn on camera' : 'Turn off camera',
@@ -65,23 +65,23 @@ class CallControlBar extends StatelessWidget {
                 (defaultTargetPlatform == TargetPlatform.android ||
                     defaultTargetPlatform == TargetPlatform.iOS))
               _ControlButton(
-                icon: Icons.cameraswitch,
-                activeIcon: Icons.cameraswitch,
+                icon: KIcons.cameraswitch,
+                activeIcon: KIcons.cameraswitch,
                 isActive: false,
                 onPressed: onFlipCamera!,
                 tooltip: 'Flip camera',
               ),
             _ControlButton(
-              icon: Icons.screen_share,
-              activeIcon: Icons.stop_screen_share,
+              icon: KIcons.screenShare,
+              activeIcon: KIcons.stopScreenShare,
               isActive: isScreenSharing,
               onPressed: onToggleScreenShare,
               tooltip: isScreenSharing ? 'Stop sharing' : 'Share screen',
             ),
             if (isScreenSharing && onToggleScreenAudio != null)
               _ControlButton(
-                icon: Icons.volume_up,
-                activeIcon: Icons.volume_off,
+                icon: KIcons.volumeUp,
+                activeIcon: KIcons.volumeOff,
                 isActive: !isScreenAudioEnabled,
                 onPressed: onToggleScreenAudio!,
                 tooltip: isScreenAudioEnabled
@@ -90,8 +90,8 @@ class CallControlBar extends StatelessWidget {
               ),
             if (onToggleSpeaker != null && isSpeakerOn != null)
               _ControlButton(
-                icon: Icons.volume_up_rounded,
-                activeIcon: Icons.volume_off_rounded,
+                icon: KIcons.volumeUpRounded,
+                activeIcon: KIcons.volumeOffRounded,
                 isActive: !isSpeakerOn!,
                 onPressed: onToggleSpeaker!,
                 tooltip: isSpeakerOn! ? 'Speaker off' : 'Speaker on',
@@ -122,8 +122,8 @@ class _MicButton extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     Widget button = _ControlButton(
-      icon: Icons.mic,
-      activeIcon: Icons.mic_off,
+      icon: KIcons.mic,
+      activeIcon: KIcons.micOff,
       isActive: isMuted,
       onPressed: onPressed,
       tooltip: isPTTActive
@@ -197,7 +197,7 @@ class _HangUpButton extends StatelessWidget {
         foregroundColor: cs.onError,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       ),
-      child: const Icon(Icons.call_end),
+      child: const Icon(KIcons.callEnd),
     );
   }
 }

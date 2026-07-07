@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/calling/services/call_navigator.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
-
 // coverage:ignore-start
 
 class JoinCallBanner extends StatelessWidget {
@@ -28,7 +28,7 @@ class JoinCallBanner extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            Icon(Icons.call_rounded, size: 18, color: cs.onPrimaryContainer),
+            Icon(KIcons.callRounded, size: 18, color: cs.onPrimaryContainer),
             const SizedBox(width: 8),
             Expanded(
               child: Text(

@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/k_icons.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
 import 'package:kohera/shared/services/media_controller.dart';
-
 // coverage:ignore-start
 
 class StickerBubble extends StatefulWidget {
@@ -112,11 +112,11 @@ class _StickerBubbleState extends State<StickerBubble> {
                             headers:
                                 widget.controller.authHeaders(_imageUrl!),
                             errorBuilder: (_, _, _) => const Icon(
-                              Icons.broken_image_outlined,
+                              KIcons.brokenImageOutlined,
                               size: 48,
                             ),
                           )
-                        : const Icon(Icons.broken_image_outlined, size: 48),
+                        : const Icon(KIcons.brokenImageOutlined, size: 48),
           ),
         ],
       ),
