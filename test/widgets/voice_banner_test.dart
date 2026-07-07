@@ -84,5 +84,29 @@ void main() {
       expect(find.textContaining('Call Room'), findsOneWidget);
       expect(find.textContaining('01:30'), findsOneWidget);
     });
+
+    testWidgets('wrapped in SafeArea to avoid status-bar overlap',
+        (tester) async {
+      when(mockCallService.callState).thenReturn(KoheraCallState.connected);
+      when(mockCallService.activeCallRoomId).thenReturn('!call-room:example.com');
+      when(mockCallService.callElapsed)
+          .thenReturn(const Duration(minutes: 1));
+      when(mockClient.getRoomById('!call-room:example.com'))
+          .thenReturn(mockRoom);
+      when(mockRoom.getLocalizedDisplayname()).thenReturn('Call Room');
+
+      await tester.pumpWidget(
+        buildTestWidget(currentViewingRoomId: '!other:example.com'),
+      );
+      await tester.pump();
+
+      expect(
+        find.ancestor(
+          of: find.byIcon(Icons.headset_mic_rounded),
+          matching: find.byType(SafeArea),
+        ),
+        findsOneWidget,
+      );
+    });
   });
 }

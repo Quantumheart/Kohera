@@ -6,7 +6,6 @@ import 'package:kohera/features/calling/widgets/call_state_views.dart'
     show formatCallElapsed;
 import 'package:provider/provider.dart';
 
-
 class VoiceBanner extends StatefulWidget {
   const VoiceBanner({required this.currentViewingRoomId, super.key});
 
@@ -61,27 +60,34 @@ class _VoiceBannerState extends State<VoiceBanner> {
     final elapsedText = elapsed != null ? formatCallElapsed(elapsed) : '';
     final cs = Theme.of(context).colorScheme;
 
-    return Material(
-      color: cs.primaryContainer,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        child: Row(
-          children: [
-            Icon(Icons.headset_mic_rounded, size: 16, color: cs.onPrimaryContainer),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                '$roomName \u2014 $elapsedText',
-                style: TextStyle(color: cs.onPrimaryContainer, fontSize: 13),
-                overflow: TextOverflow.ellipsis,
+    return SafeArea(
+      bottom: false,
+      child: Material(
+        color: cs.primaryContainer,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          child: Row(
+            children: [
+              Icon(
+                Icons.headset_mic_rounded,
+                size: 16,
+                color: cs.onPrimaryContainer,
               ),
-            ),
-            TextButton(
-              onPressed: () => CallNavigator.endCall(context),
-              style: TextButton.styleFrom(foregroundColor: cs.error),
-              child: const Text('Disconnect'),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$roomName \u2014 $elapsedText',
+                  style: TextStyle(color: cs.onPrimaryContainer, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              TextButton(
+                onPressed: () => CallNavigator.endCall(context),
+                style: TextButton.styleFrom(foregroundColor: cs.error),
+                child: const Text('Disconnect'),
+              ),
+            ],
+          ),
         ),
       ),
     );
