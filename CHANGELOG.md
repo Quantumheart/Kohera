@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.10.0](https://github.com/Quantumheart/Kohera/compare/v1.9.0...v1.10.0) (2026-07-07)
+
+
+### Features
+
+* **#760:** add IRC-style chat timeline display mode ([9820ae6](https://github.com/Quantumheart/Kohera/commit/9820ae66ae54ac0835acea76a0c9a13ad1afae07))
+* **#761:** expose Light/Dark/System mode picker in Appearance ([e908350](https://github.com/Quantumheart/Kohera/commit/e908350a2c7a38c6eab018ee53aa0ed58b2d0afc))
+* **theme:** convert Kohera to a pixel-art identity with swappable palettes ([f168033](https://github.com/Quantumheart/Kohera/commit/f168033abc2bdcc775504c4d02413874599bc08a))
+* **theme:** redesign brand mark as pixel-art mushroom ([34ee547](https://github.com/Quantumheart/Kohera/commit/34ee547beafc5f61af4bb247eeff89081441efe9))
+
+
+### Bug Fixes
+
+* **#628:** derive inbox badge from global unread count ([eeae023](https://github.com/Quantumheart/Kohera/commit/eeae023f2f292645cbf962a799b67143f9ce5da5)), closes [#628](https://github.com/Quantumheart/Kohera/issues/628)
+* **#629:** concurrent decryption and TTL negative cache for inbox ([d726caf](https://github.com/Quantumheart/Kohera/commit/d726cafb357dd362de24c30eb573a6b20de0f37f)), closes [#629](https://github.com/Quantumheart/Kohera/issues/629)
+* **#700:** guard spaceChildren access for non-space rooms ([485d8e4](https://github.com/Quantumheart/Kohera/commit/485d8e46f76e71735c19c2595ae0a819dcacd035))
+* **#706:** address code review issues 1-7 ([5378af4](https://github.com/Quantumheart/Kohera/commit/5378af48861d90937e40c976d6957a779f18ac77)), closes [#697](https://github.com/Quantumheart/Kohera/issues/697) [#706](https://github.com/Quantumheart/Kohera/issues/706)
+* **#760:** render text body and load media in IRC timeline ([6f39f68](https://github.com/Quantumheart/Kohera/commit/6f39f68741abb523ef72c6b42018996c4b9eb1a8))
+* **inbox:** scope thread-root preview cache to active client ([27f2a4d](https://github.com/Quantumheart/Kohera/commit/27f2a4d9d5deae2e8c4926551a0ca119c43dd6b0)), closes [#631](https://github.com/Quantumheart/Kohera/issues/631)
+* **notifications:** sync global notification level to server push rules ([#683](https://github.com/Quantumheart/Kohera/issues/683)) ([a42170f](https://github.com/Quantumheart/Kohera/commit/a42170f6e4583828050a1535f3ea2a27d352c99e))
+* rename RoomPermissionsConverter to RoomPermissionsResolver ([472fc38](https://github.com/Quantumheart/Kohera/commit/472fc3801711c69b332980a3fbaeb34555d06635)), closes [#705](https://github.com/Quantumheart/Kohera/issues/705)
+* resolve analyze lint issues in test files ([5f72a33](https://github.com/Quantumheart/Kohera/commit/5f72a33f070aeabaf8a64a489372b8b1c726fc96)), closes [#703](https://github.com/Quantumheart/Kohera/issues/703)
+* **sync:** reduce redundant /sync calls on web and multi-account ([26b57d7](https://github.com/Quantumheart/Kohera/commit/26b57d74ed8656a7b7d48cf9004bcbd44384109e))
+
 ## [1.9.0](https://github.com/Quantumheart/Kohera/compare/v1.8.1...v1.9.0) (2026-06-28)
 
 
