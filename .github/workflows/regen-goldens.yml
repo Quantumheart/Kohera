@@ -1,0 +1,25 @@
+name: Regenerate Goldens
+
+on:
+  workflow_dispatch:
+
+env:
+  FLUTTER_CHANNEL: stable
+
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+      - run: flutter test --update-goldens
+      - name: Upload regenerated goldens
+        uses: actions/upload-artifact@v4
+        with:
+          name: goldens
+          path: test/**/goldens/*.png
