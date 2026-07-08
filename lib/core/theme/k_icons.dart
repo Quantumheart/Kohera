@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/theme/kpixel.dart';
 import 'package:pixelarticons/pixel.dart' as px;
 
 // coverage:ignore-start
@@ -65,7 +66,7 @@ class KIcons {
   static const IconData refreshRounded = px.Pixel.reload;
   static const IconData replyRounded = px.Pixel.reply;
   static const IconData forwardRounded = px.Pixel.forward;
-  static const IconData sendRounded = Icons.send_rounded; // fallback: pixelarticons has no glyph
+  static const IconData sendRounded = Kpixel.send;
   static const IconData dragHandleRounded = px.Pixel.draganddrop;
   static const IconData tuneRounded = px.Pixel.sliders;
   static const IconData upgradeRounded = px.Pixel.upload;
@@ -84,12 +85,12 @@ class KIcons {
   static const IconData videocamRounded = px.Pixel.video;
   static const IconData headsetMicRounded = px.Pixel.headset;
   static const IconData headphonesRounded = px.Pixel.headphone;
-  static const IconData mic = Icons.mic; // fallback: pixelarticons has no glyph
-  static const IconData micOff = Icons.mic_off; // fallback: pixelarticons has no glyph
-  static const IconData micOffRounded = Icons.mic_off_rounded; // fallback: pixelarticons has no glyph
-  static const IconData micRounded = Icons.mic_rounded; // fallback: pixelarticons has no glyph
+  static const IconData mic = Kpixel.mic;
+  static const IconData micOff = Kpixel.micoff;
+  static const IconData micOffRounded = Kpixel.micoff;
+  static const IconData micRounded = Kpixel.mic;
   static const IconData keyboardRounded = px.Pixel.keyboard;
-  static const IconData keyboardVoiceRounded = Icons.keyboard_voice_rounded; // fallback: pixelarticons has no glyph
+  static const IconData keyboardVoiceRounded = Kpixel.mic;
   static const IconData spatialAudioOffRounded = px.Pixel.audiodevice;
   static const IconData graphicEqRounded = px.Pixel.audiodevice;
   static const IconData audiotrackRounded = px.Pixel.music;
@@ -114,7 +115,7 @@ class KIcons {
   static const IconData pushPinRounded = px.Pixel.pin;
   static const IconData flagOutlined = px.Pixel.flag;
   static const IconData tag = px.Pixel.label;
-  static const IconData numbers = Icons.numbers; // fallback: pixelarticons has no glyph
+  static const IconData numbers = Kpixel.hash;
   static const IconData meetingRoomOutlined = px.Pixel.building;
   static const IconData workspacesOutlined = px.Pixel.group;
   static const IconData shieldOutlined = px.Pixel.shield;
@@ -173,7 +174,7 @@ class KIcons {
   static const IconData notificationsNoneRounded = px.Pixel.notification;
   static const IconData notificationsOffOutlined = px.Pixel.notificationoff;
   static const IconData scheduleRounded = px.Pixel.clock;
-  static const IconData lightbulbOutline = Icons.lightbulb_outline; // fallback: pixelarticons has no glyph
+  static const IconData lightbulbOutline = Kpixel.lightbulb;
   static const IconData autoAwesome = px.Pixel.zap;
 
   // ── Search ──────
@@ -184,7 +185,7 @@ class KIcons {
   static const IconData exploreOutlined = px.Pixel.gps;
 
   // ── Settings Theme ──────
-  static const IconData settingsOutlined = Icons.settings_outlined; // fallback: pixelarticons has no glyph
+  static const IconData settingsOutlined = Kpixel.settingscog;
   static const IconData paletteOutlined = px.Pixel.colorsswatch;
   static const IconData darkMode = px.Pixel.moon;
   static const IconData darkModeOutlined = px.Pixel.moon;
@@ -219,15 +220,15 @@ class KIcons {
   static const IconData linkOffRounded = px.Pixel.unlink;
   static const IconData pauseRounded = px.Pixel.pause;
   static const IconData playArrowRounded = px.Pixel.play;
-  static const IconData stopRounded = Icons.stop_rounded; // fallback: pixelarticons has no glyph
+  static const IconData stopRounded = Kpixel.square;
   static const IconData sportsBasketballOutlined = Icons.sports_basketball_outlined; // fallback: pixelarticons has no glyph
   static const IconData fastfoodOutlined = Icons.fastfood_outlined; // fallback: pixelarticons has no glyph
   static const IconData petsOutlined = Icons.pets_outlined; // fallback: pixelarticons has no glyph
   static const IconData directionsCarOutlined = px.Pixel.car;
   static const IconData frontHandOutlined = px.Pixel.humanhandsup;
-  static const IconData starRounded = Icons.star_rounded; // fallback: pixelarticons has no glyph
+  static const IconData starRounded = Kpixel.star;
   static const IconData starBorderRounded = Icons.star_border_rounded; // fallback: pixelarticons has no glyph
-  static const IconData webOutlined = Icons.web_outlined; // fallback: pixelarticons has no glyph
+  static const IconData webOutlined = Kpixel.globe;
   static const IconData cancel = px.Pixel.close;
   static const IconData chat = px.Pixel.chat;
   static const IconData delete = px.Pixel.trash;

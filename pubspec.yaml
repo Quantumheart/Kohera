@@ -90,6 +90,9 @@ flutter:
     - family: PressStart2P
       fonts:
         - asset: assets/fonts/PressStart2P-Regular.ttf
+    - family: Kpixel
+      fonts:
+        - asset: assets/fonts/kpixel.otf
 
 dependency_overrides:
   flutter_webrtc:
