@@ -190,9 +190,9 @@ void main() {
     });
 
     testWidgets('renders poll as [poll] label with question', (tester) async {
-      final poll = KoheraPoll(
+      const poll = KoheraPoll(
         question: 'Tea or coffee?',
-        answers: const [
+        answers: [
           KoheraPollAnswer(id: 'a1', label: 'Yes'),
           KoheraPollAnswer(id: 'a2', label: 'No'),
         ],
@@ -200,7 +200,7 @@ void main() {
         maxSelections: 1,
         ended: false,
         responseCount: 0,
-        tallies: const {'a1': 0, 'a2': 0},
+        tallies: {'a1': 0, 'a2': 0},
       );
 
       await tester.pumpWidget(_wrap(IrcMessageTile(
