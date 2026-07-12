@@ -49,4 +49,28 @@ void main() {
 
     expect(_ids(visible), [r'$b', r'$a']);
   });
+
+  test('poll start events are visible; response/end events are filtered out', () {
+    final pollStart = _event(
+      r'$p1',
+      PollEventContent.startType,
+      DateTime(2026, 1, 15, 12),
+    );
+    final pollResponse = _event(
+      r'$r1',
+      PollEventContent.responseType,
+      DateTime(2026, 1, 15, 12, 5),
+    );
+    final pollEnd = _event(
+      r'$e1',
+      PollEventContent.endType,
+      DateTime(2026, 1, 15, 12, 10),
+    );
+
+    final visible = MessageTimelineController.buildVisibleEvents(
+      [pollStart, pollResponse, pollEnd],
+    );
+
+    expect(_ids(visible), [r'$p1']);
+  });
 }

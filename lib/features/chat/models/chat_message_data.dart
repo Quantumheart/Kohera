@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
+import 'package:kohera/features/chat/models/kohera_poll.dart';
 import 'package:kohera/features/chat/models/kohera_reaction.dart';
 import 'package:kohera/features/chat/models/kohera_state_event_text.dart';
 import 'package:kohera/shared/services/media_controller.dart';
 
 /// The rendering category of a visible message in the timeline.
-enum MessageCategory { message, callEvent, stateEvent, sticker }
+enum MessageCategory { message, callEvent, stateEvent, sticker, poll }
 
 /// Pre-computed data bundle for one visible message in the chat timeline.
 ///
@@ -31,6 +32,7 @@ class ChatMessageData {
     this.media,
     this.mediaController,
     this.callDuration,
+    this.poll,
   });
 
   /// The pre-computed message display model (always present).
@@ -77,6 +79,9 @@ class ChatMessageData {
 
   /// Call duration (only for [MessageCategory.callEvent] hangup events).
   final Duration? callDuration;
+
+  /// Pre-computed poll model (only for [MessageCategory.poll]).
+  final KoheraPoll? poll;
 
   /// The event ID — convenience accessor.
   String get eventId => message.eventId;
