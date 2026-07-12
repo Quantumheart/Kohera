@@ -3,11 +3,13 @@ import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/chat/models/chat_message_data.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
+import 'package:kohera/features/chat/models/kohera_poll.dart';
 import 'package:kohera/features/chat/models/kohera_reaction.dart';
 import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
 import 'package:kohera/features/chat/models/kohera_state_event_text.dart';
 import 'package:kohera/features/chat/services/media_content_resolver.dart';
 import 'package:kohera/features/chat/services/message_display_resolver.dart';
+import 'package:kohera/features/chat/services/poll_resolver.dart';
 import 'package:kohera/features/chat/services/reaction_resolver.dart';
 import 'package:kohera/features/chat/services/read_receipt_resolver.dart';
 import 'package:kohera/features/chat/services/sdk_media_controller.dart';
@@ -351,7 +353,8 @@ class MessageTimelineController extends ChangeNotifier {
                       !_isCallMemberEvent(e)) ||
                   callEventTypes.contains(e.type) ||
                   _isStateEvent(e) ||
-                  e.type == EventTypes.Sticker) &&
+                  e.type == EventTypes.Sticker ||
+                  e.type == PollEventContent.startType) &&
               _matchesThread(e, threadRootId),
         )
         .toList()
@@ -486,6 +489,7 @@ class MessageTimelineController extends ChangeNotifier {
       KoheraMediaContent? media;
       MediaController? mediaController;
       Duration? callDuration;
+      KoheraPoll? poll;
 
       switch (category) {
         case MessageCategory.stateEvent:
@@ -495,6 +499,10 @@ class MessageTimelineController extends ChangeNotifier {
           mediaController = SdkMediaController(event);
         case MessageCategory.callEvent:
           callDuration = _callDuration(event);
+        case MessageCategory.poll:
+          if (timeline != null) {
+            poll = const PollResolver()(event, timeline);
+          }
         case MessageCategory.message:
           if (!isRedacted) {
             media = const MediaContentResolver()(event);
@@ -518,6 +526,7 @@ class MessageTimelineController extends ChangeNotifier {
         media: media,
         mediaController: mediaController,
         callDuration: callDuration,
+        poll: poll,
       ),);
     }
 
@@ -528,6 +537,7 @@ class MessageTimelineController extends ChangeNotifier {
     if (_isCallEvent(event)) return MessageCategory.callEvent;
     if (_isStateEvent(event)) return MessageCategory.stateEvent;
     if (event.type == EventTypes.Sticker) return MessageCategory.sticker;
+    if (event.type == PollEventContent.startType) return MessageCategory.poll;
     return MessageCategory.message;
   }
 

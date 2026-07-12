@@ -11,6 +11,7 @@ import 'package:kohera/features/chat/services/message_timeline_controller.dart';
 import 'package:kohera/features/chat/widgets/call_event_tile.dart';
 import 'package:kohera/features/chat/widgets/chat_message_item.dart';
 import 'package:kohera/features/chat/widgets/irc_message_tile.dart';
+import 'package:kohera/features/chat/widgets/poll_message_item.dart';
 import 'package:kohera/features/chat/widgets/reaction_chips.dart';
 import 'package:kohera/features/chat/widgets/state_event_tile.dart';
 import 'package:kohera/features/chat/widgets/sticker_bubble.dart';
@@ -324,6 +325,8 @@ class MessageListViewState extends State<MessageListView> {
           isMobile,
           avatarResolver,
         );
+      case MessageCategory.poll:
+        return _buildPollTile(data);
       case MessageCategory.message:
         return timelineStyle == TimelineStyle.irc
             ? _buildIrcMessageTile(
@@ -376,6 +379,17 @@ class MessageListViewState extends State<MessageListView> {
           widget.onStickerMobileActions?.call(context, data.eventId, rect),
       highlightedEventId: widget.highlightedEventId,
       isPinned: data.isPinned,
+    );
+  }
+
+  Widget _buildPollTile(ChatMessageData data) {
+    final poll = data.poll;
+    if (poll == null) return const SizedBox.shrink();
+    return PollMessageItem(
+      key: ValueKey(data.eventId),
+      poll: poll,
+      isMe: data.isMe,
+      isFirst: data.isFirst,
     );
   }
 
