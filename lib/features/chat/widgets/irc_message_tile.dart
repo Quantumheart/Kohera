@@ -10,6 +10,7 @@ import 'package:kohera/core/utils/time_format.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
 import 'package:kohera/features/chat/models/kohera_media_type.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
+import 'package:kohera/features/chat/models/kohera_poll.dart';
 import 'package:kohera/features/chat/models/kohera_reaction.dart';
 import 'package:kohera/features/chat/widgets/audio_bubble.dart';
 import 'package:kohera/features/chat/widgets/file_bubble.dart';
@@ -63,6 +64,7 @@ class IrcMessageTile extends StatelessWidget {
     required this.mediaController,
     required this.mentionResolver,
     required this.onToggleReaction,
+    this.poll,
     this.replyPreviewText,
     this.onReply,
     this.onEdit,
@@ -94,6 +96,7 @@ class IrcMessageTile extends StatelessWidget {
   final String? highlightedEventId;
   final AvatarResolver? avatarResolver;
   final MediaController? mediaController;
+  final KoheraPoll? poll;
   final String? Function(String identifier)? mentionResolver;
 
   /// One-line reply preview text (already resolved), or null.
@@ -205,6 +208,8 @@ class IrcMessageTile extends StatelessWidget {
       // Media messages render the attachment below the log line; show a
       // compact label inline so the line is still readable.
       spans.add(_mediaLabel(media!, mono, palette));
+    } else if (poll != null) {
+      spans.add(_pollLabel(poll!, mono, palette));
     } else {
       _addLinkableText(message.body, mono, cs, palette, spans);
       if (message.isEdited) {
@@ -371,6 +376,15 @@ class IrcMessageTile extends StatelessWidget {
     final name = m.fileName ?? '';
     return TextSpan(
       text: name.isEmpty ? label : '$label: $name',
+      style: style.copyWith(color: palette.link, fontWeight: FontWeight.w600),
+    );
+  }
+
+  /// Compact inline label for a poll-start event (`[poll] question`).
+  TextSpan _pollLabel(KoheraPoll p, TextStyle style, KoheraPalette palette) {
+    final state = p.ended ? 'ended' : 'open';
+    return TextSpan(
+      text: '[poll: $state] ${p.question}',
       style: style.copyWith(color: palette.link, fontWeight: FontWeight.w600),
     );
   }

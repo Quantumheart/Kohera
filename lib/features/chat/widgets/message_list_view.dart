@@ -326,7 +326,10 @@ class MessageListViewState extends State<MessageListView> {
           avatarResolver,
         );
       case MessageCategory.poll:
-        return _buildPollTile(data);
+        return timelineStyle == TimelineStyle.irc
+            ? _buildIrcMessageTile(
+                context, data, isMobile, avatarResolver, mediaResolver)
+            : _buildPollTile(data);
       case MessageCategory.message:
         return timelineStyle == TimelineStyle.irc
             ? _buildIrcMessageTile(
@@ -405,6 +408,7 @@ class MessageListViewState extends State<MessageListView> {
       reactions: data.reactions,
       media: data.media,
       mediaController: data.mediaController,
+      poll: data.poll,
       isMe: data.isMe,
       isFirst: data.isFirst,
       isMobile: isMobile,
