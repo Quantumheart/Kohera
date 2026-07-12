@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/features/chat/models/kohera_poll_draft.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
 import 'package:kohera/features/chat/services/file_send_handler.dart';
 import 'package:matrix/matrix.dart';
@@ -161,5 +162,41 @@ class ChatMessageActions {
     return children
         .reduce((a, b) => a.originServerTs.isAfter(b.originServerTs) ? a : b)
         .eventId;
+  }
+
+  // ── Polls ────────────────────────────────────────────
+
+  Future<void> sendPoll(KoheraPollDraft draft) async {
+    final room = getRoom();
+    final scaffold = getScaffold();
+    if (room == null) return;
+
+    final client = room.client;
+    final answers = draft.answers
+        .map(
+          (label) => PollAnswer(
+            id: client.generateUniqueTransactionId(),
+            mText: label,
+          ),
+        )
+        .toList(growable: false);
+
+    try {
+      await room.startPoll(
+        question: draft.question,
+        answers: answers,
+        kind: draft.disclosed
+            ? PollKind.disclosed
+            : PollKind.undisclosed,
+        maxSelections: draft.maxSelections,
+      );
+    } catch (e) {
+      debugPrint('[Kohera] Failed to send poll: $e');
+      scaffold.showSnackBar(
+        SnackBar(
+          content: Text('Failed to send poll: ${MatrixService.friendlyAuthError(e)}'),
+        ),
+      );
+    }
   }
 }

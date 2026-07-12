@@ -66,4 +66,29 @@ void main() {
 
     expect(result, AttachmentSource.gif);
   });
+
+  testWidgets('always shows Poll option and returns poll source when tapped',
+      (tester) async {
+    AttachmentSource? result;
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => ElevatedButton(
+            onPressed: () async {
+              result = await showAttachmentSourceSheet(context);
+            },
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Poll'), findsOneWidget);
+    await tester.tap(find.text('Poll'));
+    await tester.pumpAndSettle();
+
+    expect(result, AttachmentSource.poll);
+  });
 }
