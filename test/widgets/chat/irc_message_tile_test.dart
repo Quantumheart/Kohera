@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/theme/kohera_theme.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/models/kohera_message_status.dart';
+import 'package:kohera/features/chat/models/kohera_poll.dart';
 import 'package:kohera/features/chat/widgets/irc_message_tile.dart';
 
 KoheraMessageDisplay _msg({
@@ -186,6 +187,50 @@ void main() {
         return rich?.toPlainText() ?? (e.widget as Text).data ?? '';
       }).join();
       expect(text, contains('redacted'));
+    });
+
+    testWidgets('renders poll as [poll] label with question', (tester) async {
+      final poll = KoheraPoll(
+        question: 'Tea or coffee?',
+        answers: const [
+          KoheraPollAnswer(id: 'a1', label: 'Yes'),
+          KoheraPollAnswer(id: 'a2', label: 'No'),
+        ],
+        kind: KoheraPollKind.undisclosed,
+        maxSelections: 1,
+        ended: false,
+        responseCount: 0,
+        tallies: const {'a1': 0, 'a2': 0},
+      );
+
+      await tester.pumpWidget(_wrap(IrcMessageTile(
+        message: _msg(body: ''),
+        reactions: null,
+        media: null,
+        poll: poll,
+        isMe: false,
+        isFirst: true,
+        isMobile: false,
+        isPinned: false,
+        canPin: false,
+        canRedact: false,
+        hasThread: false,
+        threadReplyCount: 0,
+        threadUnreadCount: 0,
+        inThread: false,
+        highlightedEventId: null,
+        avatarResolver: null,
+        mediaController: null,
+        mentionResolver: null,
+        onToggleReaction: null,
+      )));
+
+      final text = find.byType(Text).evaluate().map((e) {
+        final rich = (e.widget as Text).textSpan;
+        return rich?.toPlainText() ?? (e.widget as Text).data ?? '';
+      }).join();
+      expect(text, contains('[poll: open]'));
+      expect(text, contains('Tea or coffee?'));
     });
   });
 }
