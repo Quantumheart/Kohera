@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -20,6 +20,9 @@ class FakeKeyVerification extends Fake implements KeyVerification {
 
   @override
   String? canceledReason;
+
+  @override
+  String? canceledCode;
 
   @override
   bool canceled;
@@ -54,6 +57,7 @@ class FakeKeyVerification extends Fake implements KeyVerification {
   FakeKeyVerification({
     this.state = KeyVerificationState.waitingAccept,
     this.canceledReason,
+    this.canceledCode,
     this.canceled = false,
   });
 
@@ -100,8 +104,10 @@ class FakeKeyVerification extends Fake implements KeyVerification {
   Future<void> acceptQRScanConfirmation() async {}
 
   @override
-  Future<void> continueVerification(String type,
-      {Uint8List? qrDataRawBytes,}) async {
+  Future<void> continueVerification(
+    String type, {
+    Uint8List? qrDataRawBytes,
+  }) async {
     continueVerificationMethod = type;
   }
 
@@ -123,14 +129,15 @@ void main() {
           builder: (context) => Center(
             child: ElevatedButton(
               onPressed: () {
-                unawaited(showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (_) =>
-                      KeyVerificationDialog(
-                        verification: KoheraKeyVerification(verification),
-                      ),
-                ),);
+                unawaited(
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (_) => KeyVerificationDialog(
+                      verification: KoheraKeyVerification(verification),
+                    ),
+                  ),
+                );
               },
               child: const Text('Open'),
             ),
@@ -140,8 +147,10 @@ void main() {
     );
   }
 
-  Future<void> openDialog(WidgetTester tester,
-      {required FakeKeyVerification verification,}) async {
+  Future<void> openDialog(
+    WidgetTester tester, {
+    required FakeKeyVerification verification,
+  }) async {
     await tester.pumpWidget(buildTestApp(verification: verification));
     await tester.tap(find.text('Open'));
     // Use pump() not pumpAndSettle() because CircularProgressIndicator
@@ -151,14 +160,14 @@ void main() {
 
   group('KeyVerificationDialog', () {
     testWidgets('shows spinner in waitingAccept state', (tester) async {
-      final verification = FakeKeyVerification(
-        
-      );
+      final verification = FakeKeyVerification();
       await openDialog(tester, verification: verification);
 
       expect(find.byType(KoheraLoader), findsOneWidget);
-      expect(find.text('Waiting for the other device to accept...'),
-          findsOneWidget,);
+      expect(
+        find.text('Waiting for the other device to accept...'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('renders SAS emoji with Semantics labels', (tester) async {
@@ -187,8 +196,9 @@ void main() {
       expect(find.text('Compare emoji'), findsOneWidget);
     });
 
-    testWidgets('renders decimal SAS when decimal is negotiated',
-        (tester) async {
+    testWidgets('renders decimal SAS when decimal is negotiated', (
+      tester,
+    ) async {
       final verification = FakeKeyVerification(
         state: KeyVerificationState.askSas,
       );
@@ -208,8 +218,9 @@ void main() {
       expect(verification.acceptSasCalled, isTrue);
     });
 
-    testWidgets('prefers numbers when both emoji and decimal are negotiated',
-        (tester) async {
+    testWidgets('prefers numbers when both emoji and decimal are negotiated', (
+      tester,
+    ) async {
       final verification = FakeKeyVerification(
         state: KeyVerificationState.askSas,
       );
@@ -223,13 +234,17 @@ void main() {
       expect(find.text('1234'), findsOneWidget);
     });
 
-    testWidgets('falls back to emoji when no numbers are available',
-        (tester) async {
+    testWidgets('falls back to emoji when no numbers are available', (
+      tester,
+    ) async {
       final verification = FakeKeyVerification(
         state: KeyVerificationState.askSas,
       );
       verification.setSasTypes(['emoji']);
-      verification.setSasEmojis([KeyVerificationEmoji(0), KeyVerificationEmoji(1)]);
+      verification.setSasEmojis([
+        KeyVerificationEmoji(0),
+        KeyVerificationEmoji(1),
+      ]);
 
       await openDialog(tester, verification: verification);
 
@@ -237,9 +252,7 @@ void main() {
     });
 
     testWidgets('cancel calls verification.cancel() and pops', (tester) async {
-      final verification = FakeKeyVerification(
-        
-      );
+      final verification = FakeKeyVerification();
       await openDialog(tester, verification: verification);
 
       await tester.tap(find.text('Cancel'));
@@ -264,14 +277,17 @@ void main() {
       expect(find.byType(KeyVerificationDialog), findsNothing);
     });
 
-    testWidgets('error state displays canceledReason', (tester) async {
+    testWidgets('error state displays mapped cancel message', (tester) async {
       final verification = FakeKeyVerification(
         state: KeyVerificationState.error,
-        canceledReason: 'User rejected the keys',
+        canceledCode: 'm.mismatched_sas',
       );
       await openDialog(tester, verification: verification);
 
-      expect(find.text('User rejected the keys'), findsOneWidget);
+      expect(
+        find.text("The emoji/numbers didn't match. Verification cancelled."),
+        findsOneWidget,
+      );
       expect(find.text('Verification failed'), findsOneWidget);
     });
 
@@ -284,8 +300,9 @@ void main() {
       expect(find.text('Unlocking encryption secrets...'), findsOneWidget);
     });
 
-    testWidgets('askChoice shows the QR/emoji chooser when QR is possible',
-        (tester) async {
+    testWidgets('askChoice shows the QR/emoji chooser when QR is possible', (
+      tester,
+    ) async {
       final verification = FakeKeyVerification();
       verification.possibleMethods = [EventTypes.Sas, EventTypes.QRScan];
 
@@ -301,7 +318,9 @@ void main() {
       expect(find.text('Compare numbers instead'), findsOneWidget);
     });
 
-    testWidgets('chooser "Compare numbers instead" selects SAS', (tester) async {
+    testWidgets('chooser "Compare numbers instead" selects SAS', (
+      tester,
+    ) async {
       final verification = FakeKeyVerification(
         state: KeyVerificationState.askChoice,
       );
@@ -316,8 +335,9 @@ void main() {
       expect(verification.continueVerificationMethod, EventTypes.Sas);
     });
 
-    testWidgets('askChoice auto-selects SAS when QR is not possible',
-        (tester) async {
+    testWidgets('askChoice auto-selects SAS when QR is not possible', (
+      tester,
+    ) async {
       final verification = FakeKeyVerification(
         state: KeyVerificationState.askChoice,
       );
@@ -331,9 +351,7 @@ void main() {
     });
 
     testWidgets('state transitions update the UI', (tester) async {
-      final verification = FakeKeyVerification(
-        
-      );
+      final verification = FakeKeyVerification();
       await openDialog(tester, verification: verification);
 
       expect(find.text('Verify device'), findsOneWidget);

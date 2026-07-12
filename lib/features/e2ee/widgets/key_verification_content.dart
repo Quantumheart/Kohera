@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:kohera/features/e2ee/models/kohera_verification_state.dart';
 import 'package:kohera/features/e2ee/models/verification_view.dart';
@@ -99,8 +98,11 @@ class KeyVerificationContent extends StatelessWidget {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.check_circle,
-                color: Theme.of(context).colorScheme.primary, size: 64,),
+            Icon(
+              Icons.check_circle,
+              color: Theme.of(context).colorScheme.primary,
+              size: 64,
+            ),
             const SizedBox(height: 16),
             const Text('QR code scanned successfully.'),
           ],
@@ -115,8 +117,11 @@ class KeyVerificationContent extends StatelessWidget {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.verified,
-                color: Theme.of(context).colorScheme.primary, size: 64,),
+            Icon(
+              Icons.verified,
+              color: Theme.of(context).colorScheme.primary,
+              size: 64,
+            ),
             const SizedBox(height: 16),
             const Text('Device verified successfully!'),
           ],
@@ -126,11 +131,14 @@ class KeyVerificationContent extends StatelessWidget {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline,
-                color: Theme.of(context).colorScheme.error, size: 64,),
+            Icon(
+              Icons.error_outline,
+              color: Theme.of(context).colorScheme.error,
+              size: 64,
+            ),
             const SizedBox(height: 16),
             Text(
-              verification.canceledReason ??
+              verification.canceledMessage ??
                   'Verification was cancelled or failed.',
               textAlign: TextAlign.center,
             ),
@@ -199,13 +207,15 @@ class KeyVerificationContent extends StatelessWidget {
           spacing: 24,
           runSpacing: 8,
           children: numbers
-              .map((n) => Text(
-                    '$n',
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),)
+              .map(
+                (n) => Text(
+                  '$n',
+                  style: const TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              )
               .toList(),
         ),
       ],
@@ -227,21 +237,27 @@ class KeyVerificationContent extends StatelessWidget {
           spacing: 16,
           runSpacing: 8,
           children: emojis
-              .map((e) => Semantics(
-                    label: e.name,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ExcludeSemantics(
-                          child: Text(e.emoji,
-                              style: const TextStyle(fontSize: 32),),
+              .map(
+                (e) => Semantics(
+                  label: e.name,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ExcludeSemantics(
+                        child: Text(
+                          e.emoji,
+                          style: const TextStyle(fontSize: 32),
                         ),
-                        const SizedBox(height: 4),
-                        Text(e.name,
-                            style: Theme.of(context).textTheme.bodySmall,),
-                      ],
-                    ),
-                  ),)
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        e.name,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              )
               .toList(),
         ),
       ],
