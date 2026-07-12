@@ -12,7 +12,7 @@ import 'package:mockito/mockito.dart';
 ])
 import 'poll_resolver_test.mocks.dart';
 
-const _startType = PollEventContent.startType;
+const String _startType = PollEventContent.startType;
 
 Map<String, Object?> _pollContent({
   required String question,
@@ -23,7 +23,7 @@ Map<String, Object?> _pollContent({
   return {
     PollEventContent.mTextJsonKey: question,
     _startType: {
-      if (kind != null) 'kind': kind.name,
+      'kind': kind.name,
       'max_selections': maxSelections,
       'question': {
         PollEventContent.mTextJsonKey: question,
@@ -94,7 +94,6 @@ void main() {
         content: _pollContent(
           question: 'Secret?',
           answers: answers,
-          kind: PollKind.undisclosed,
         ),
       );
       final timeline = _emptyTimeline(r'$p2');
