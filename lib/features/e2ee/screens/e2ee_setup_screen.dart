@@ -6,18 +6,20 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_controller.dart';
-import 'package:kohera/features/e2ee/widgets/key_verification_inline.dart';
+import 'package:kohera/features/e2ee/widgets/setup/setup_actions_bar.dart';
+import 'package:kohera/features/e2ee/widgets/setup/setup_custody_gate.dart';
+import 'package:kohera/features/e2ee/widgets/setup/setup_done_banner.dart';
+import 'package:kohera/features/e2ee/widgets/setup/setup_error_section.dart';
+import 'package:kohera/features/e2ee/widgets/setup/setup_explainer.dart';
+import 'package:kohera/features/e2ee/widgets/setup/setup_key_card.dart';
+import 'package:kohera/features/e2ee/widgets/setup/setup_management_panel.dart';
+import 'package:kohera/features/e2ee/widgets/setup/setup_status_line.dart';
+import 'package:kohera/features/e2ee/widgets/setup/setup_unlock_section.dart';
+import 'package:kohera/features/e2ee/widgets/setup/setup_verify_section.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
-
-const String _recoveryKeyDocsUrl =
-    'https://github.com/Quantumheart/Kohera/blob/master/docs/recovery-key-storage.md';
-
-// ── Screen-local steps (outside bootstrap lifecycle) ───────────
-
-enum _ScreenStep { skipConfirm, createNewKey, management, disableConfirm }
 
 class E2eeSetupScreen extends StatefulWidget {
   const E2eeSetupScreen({super.key});
@@ -32,8 +34,8 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
   final _recoveryKeyController = TextEditingController();
   bool _uiaPromptShowing = false;
   bool _autoStarted = false;
+  bool _showManagement = false;
   Timer? _doneTimer;
-  _ScreenStep? _localStep;
 
   @override
   void initState() {
@@ -42,7 +44,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
     _matrixService.uia.passwordPromptBuilder = _showPasswordPrompt;
 
     if (_matrixService.chatBackup.chatBackupEnabled) {
-      _localStep = _ScreenStep.management;
+      _showManagement = true;
     }
   }
 
@@ -59,12 +61,13 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
 
   void _startBootstrap({bool wipeExisting = false}) {
     _cleanupController();
+    _showManagement = false;
     _controller = BootstrapController(
       matrixService: _matrixService,
       wipeExisting: wipeExisting,
     );
     _controller!.addListener(_onControllerChanged);
-    setState(() => _localStep = null);
+    if (mounted) setState(() {});
     unawaited(_controller!.startBootstrap());
   }
 
@@ -143,6 +146,61 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
     return password != null && password.isNotEmpty ? password : null;
   }
 
+  // ── Confirmations ─────────────────────────────────────────────
+
+  Future<void> _confirmSkip() async {
+    final confirmed = await confirmDialog(
+      context,
+      title: 'Skip chat backup setup?',
+      message:
+          'Without key backup:\n'
+          '• Message history is lost\n'
+          "• Cross-device verification won't work\n"
+          '• Some features may not work\n\n'
+          'You can set this up later in Settings > Chat backup.',
+      confirmLabel: 'Skip anyway',
+      cancelLabel: 'Go back',
+      barrierDismissible: false,
+    );
+    if (confirmed) _skip();
+  }
+
+  Future<void> _confirmCreateNewKey() async {
+    final confirmed = await confirmDialog(
+      context,
+      title: 'Create new backup?',
+      message:
+          'This will create a new recovery key. If you had a previous '
+          'backup, that encrypted message history may be lost.',
+      confirmLabel: 'Create new backup',
+      cancelLabel: 'Go back',
+    );
+    if (confirmed) {
+      _recoveryKeyController.clear();
+      _controller?.restartWithWipe();
+      if (mounted) setState(() {});
+    }
+  }
+
+  Future<void> _confirmDisable() async {
+    final confirmed = await confirmDialog(
+      context,
+      title: 'Disable backup?',
+      message:
+          'Your recovery key and server-side backup will be deleted. '
+          'You will lose access to your encrypted message history on '
+          'other devices.',
+      confirmLabel: 'Disable backup',
+      cancelLabel: 'Go back',
+      destructive: true,
+    );
+    if (confirmed) {
+      await _matrixService.chatBackup.disableChatBackup();
+      _matrixService.skipSetup();
+      if (mounted) context.go(RoutePaths.home);
+    }
+  }
+
   // ── Finish / Skip ─────────────────────────────────────────────
 
   Future<void> _finishSetup() async {
@@ -163,17 +221,6 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
 
   // ── Build ─────────────────────────────────────────────────────
 
-  int get _currentDot {
-    if (_localStep != null) {
-      return _localStep == _ScreenStep.skipConfirm ? 0 : 1;
-    }
-    return _controller?.phase == SetupPhase.done ? 2 : 1;
-  }
-
-  bool get _showDots =>
-      _localStep != _ScreenStep.management &&
-      _localStep != _ScreenStep.disableConfirm;
-
   @override
   Widget build(BuildContext context) {
     final backupNeeded = context.select<ChatBackupService, bool?>(
@@ -186,18 +233,18 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
       );
     }
 
-    if (backupNeeded &&
-        _localStep == null &&
-        _controller == null &&
-        !_autoStarted) {
+    if (backupNeeded && _controller == null && !_autoStarted) {
       _autoStarted = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _startBootstrap();
       });
     }
 
-    if (!backupNeeded && _localStep == null && !_autoStarted) {
-      _localStep = _ScreenStep.management;
+    if (!backupNeeded &&
+        !_showManagement &&
+        _controller == null &&
+        !_autoStarted) {
+      _showManagement = true;
     }
 
     final isBlocking = !_matrixService.hasSkippedSetup && backupNeeded;
@@ -205,22 +252,16 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
     return PopScope(
       canPop: !isBlocking,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && isBlocking) {
-          setState(() => _localStep = _ScreenStep.skipConfirm);
-        }
+        if (!didPop && isBlocking) unawaited(_confirmSkip());
       },
       child: Scaffold(
         appBar: isBlocking
             ? null
             : AppBar(
                 leading: BackButton(
-                  onPressed: () {
-                    if (_localStep != null) {
-                      context.go(RoutePaths.home);
-                    } else {
-                      setState(() => _localStep = _ScreenStep.skipConfirm);
-                    }
-                  },
+                  onPressed: _showManagement
+                      ? () => context.go(RoutePaths.home)
+                      : () => unawaited(_finishSetup()),
                 ),
               ),
         body: SafeArea(
@@ -231,15 +272,9 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   children: [
-                    if (_showDots) ...[
-                      const SizedBox(height: 24),
-                      _StepDots(current: _currentDot, total: 3),
-                      const SizedBox(height: 32),
-                    ] else
-                      const SizedBox(height: 24),
-                    Expanded(child: _buildContent()),
+                    Expanded(child: _buildBody()),
                     const SizedBox(height: 16),
-                    _buildActions(),
+                    _buildActionsBar(),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -251,602 +286,130 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
     );
   }
 
-  Widget _buildContent() {
-    if (_localStep != null) {
-      return switch (_localStep!) {
-        _ScreenStep.skipConfirm => _buildSkipConfirm(),
-        _ScreenStep.createNewKey => _buildCreateNewKey(),
-        _ScreenStep.management => _buildManagement(),
-        _ScreenStep.disableConfirm => _buildDisableConfirm(),
-      };
-    }
-    final controller = _controller;
-    if (controller == null) {
-      return _buildLoading();
-    }
-    return switch (controller.phase) {
-      SetupPhase.loading => _buildLoading(),
-      SetupPhase.savingKey => _buildSavingKey(),
-      SetupPhase.unlock => _buildUnlock(),
-      SetupPhase.verification => _buildDeviceVerification(),
-      SetupPhase.done => _buildDone(),
-      SetupPhase.error => _buildError(),
-    };
-  }
+  // ── Body ──────────────────────────────────────────────────────
 
-  Widget _buildActions() {
-    if (_localStep != null) {
-      return switch (_localStep!) {
-        _ScreenStep.skipConfirm => Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton(
-              onPressed: () {
-                if (_controller == null) {
-                  _startBootstrap();
-                } else {
-                  setState(() => _localStep = null);
-                }
-              },
-              child: const Text('Go back'),
-            ),
-            FilledButton(
-              onPressed: _skip,
-              child: const Text('Skip anyway'),
-            ),
-          ],
-        ),
-        _ScreenStep.createNewKey => Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton(
-              onPressed: () => setState(() => _localStep = null),
-              child: const Text('Go back'),
-            ),
-            FilledButton(
-              onPressed: () {
-                _recoveryKeyController.clear();
-                _controller?.restartWithWipe();
-                setState(() => _localStep = null);
-              },
-              child: const Text('Create new backup'),
-            ),
-          ],
-        ),
-        _ScreenStep.management => const SizedBox.shrink(),
-        _ScreenStep.disableConfirm => Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton(
-              onPressed: () =>
-                  setState(() => _localStep = _ScreenStep.management),
-              child: const Text('Go back'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                await _matrixService.chatBackup.disableChatBackup();
-                _matrixService.skipSetup();
-                if (mounted) context.go(RoutePaths.home);
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
-              child: const Text('Disable backup'),
-            ),
-          ],
-        ),
-      };
-    }
-
-    final controller = _controller;
-    if (controller == null) return const SizedBox.shrink();
-
-    return switch (controller.phase) {
-      SetupPhase.loading || SetupPhase.verification => const SizedBox.shrink(),
-      SetupPhase.savingKey => Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          TextButton(
-            onPressed: () =>
-                setState(() => _localStep = _ScreenStep.skipConfirm),
-            child: const Text('Back'),
-          ),
-          FilledButton(
-            onPressed: !controller.generatingKey && controller.canConfirmNewKey
-                ? controller.confirmNewSsss
-                : null,
-            child: const Text('Next'),
-          ),
-        ],
-      ),
-      SetupPhase.unlock => Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          TextButton(
-            onPressed: () =>
-                setState(() => _localStep = _ScreenStep.skipConfirm),
-            child: const Text('Back'),
-          ),
-          FilledButton(
-            onPressed: () => controller.unlockExistingSsss(
-              _recoveryKeyController.text.trim(),
-            ),
-            child: const Text('Unlock'),
-          ),
-        ],
-      ),
-      SetupPhase.done => FilledButton(
-        onPressed: _finishSetup,
-        child: const Text('Done'),
-      ),
-      SetupPhase.error => Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          TextButton(
-            onPressed: () => context.go(RoutePaths.home),
-            child: const Text('Close'),
-          ),
-          FilledButton(
-            onPressed: controller.retry,
-            child: const Text('Retry'),
-          ),
-        ],
-      ),
-    };
-  }
-
-  // ── Content views ─────────────────────────────────────────────
-
-  Widget _buildExplainer() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'What is key backup?',
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Your messages are encrypted end-to-end. A recovery key '
-          'lets you access them on new devices or if you reinstall.',
-        ),
-        const SizedBox(height: 24),
-        const Text('Without it:'),
-        const SizedBox(height: 8),
-        ..._bulletPoints([
-          'Message history is lost',
-          "Cross-device verification won't work",
-          'Some features may not work',
-        ]),
-      ],
-    );
-  }
-
-  Widget _buildSkipConfirm() {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Are you sure?',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 16),
-          const Text('Without key backup:'),
-          const SizedBox(height: 8),
-          ..._bulletPoints([
-            'Message history is lost',
-            "Cross-device verification won't work",
-            'Some features may not work',
-          ]),
-          const SizedBox(height: 16),
-          const Text('You can set this up later in Settings > Chat backup.'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLoading() {
-    final showExplainer =
-        _autoStarted &&
-        (_controller?.phase ?? SetupPhase.loading) == SetupPhase.loading;
-    return Column(
-      children: [
-        if (showExplainer)
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: _buildExplainer(),
-              ),
-            ),
-          )
-        else
-          const Expanded(child: SizedBox.shrink()),
-        const KoheraLoader(),
-        const SizedBox(height: 16),
-        Text(_controller?.loadingMessage ?? 'Preparing...'),
-        const SizedBox(height: 24),
-      ],
-    );
-  }
-
-  Widget _buildSavingKey() {
-    final controller = _controller!;
-    if (controller.generatingKey) {
-      return _buildLoading();
-    }
-
-    final cs = Theme.of(context).colorScheme;
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Save your recovery key',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Save this key in a password manager, or print it and store '
-            'the paper somewhere safe.',
-          ),
-          const SizedBox(height: 8),
-          Text(
-            "Don't save it in screenshots, unencrypted notes apps, or chat "
-            'messages. If you lose this key, your message history is gone '
-            "\u2014 we can't recover it for you.",
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: cs.error,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () => unawaited(
-                launchUrl(
-                  Uri.parse(_recoveryKeyDocsUrl),
-                  mode: LaunchMode.externalApplication,
-                ),
-              ),
-              icon: const Icon(Icons.open_in_new, size: 16),
-              label: const Text('Learn more about safe storage'),
-              style: TextButton.styleFrom(
-                padding: EdgeInsets.zero,
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: cs.surfaceContainerHighest,
-              borderRadius: BorderRadius.zero,
-            ),
-            child: SelectableText(
-              controller.newRecoveryKey ?? '',
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 14),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: controller.keyCopied
-                  ? null
-                  : () {
-                      if (controller.newRecoveryKey != null) {
-                        unawaited(
-                          Clipboard.setData(
-                            ClipboardData(text: controller.newRecoveryKey!),
-                          ),
-                        );
-                        controller.setKeyCopied();
-                      }
-                    },
-              icon: Icon(
-                controller.keyCopied ? Icons.check : Icons.copy,
-                size: 18,
-              ),
-              label: Text(controller.keyCopied ? 'Copied' : 'Copy'),
-            ),
-          ),
-          CheckboxListTile(
-            value: controller.saveToDevice,
-            onChanged: (v) => controller.setSaveToDevice(v ?? false),
-            title: const Text('Also keep a copy on this device'),
-            subtitle: Text(
-              'Convenient for unlocking on this device. This is not a '
-              'backup — if you lose the device, this copy is gone too.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-            mouseCursor: SystemMouseCursors.click,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUnlock() {
-    final controller = _controller;
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Unlock your backup',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Enter your recovery key to restore your message history.',
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _recoveryKeyController,
-            decoration: InputDecoration(
-              labelText: 'Recovery key',
-              errorText: controller?.recoveryKeyError,
-              border: const OutlineInputBorder(),
-            ),
-            style: const TextStyle(fontFamily: 'monospace'),
-          ),
-          const SizedBox(height: 8),
-          CheckboxListTile(
-            value: controller?.saveToDevice ?? false,
-            onChanged: (v) => controller?.setSaveToDevice(v ?? false),
-            title: const Text('Also keep a copy on this device'),
-            subtitle: Text(
-              'Convenient for unlocking on this device. This is not a '
-              'backup — if you lose the device, this copy is gone too.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            controlAffinity: ListTileControlAffinity.leading,
-            contentPadding: EdgeInsets.zero,
-            mouseCursor: SystemMouseCursors.click,
-          ),
-          const SizedBox(height: 4),
-          const Divider(),
-          const SizedBox(height: 4),
-          Center(
-            child: OutlinedButton.icon(
-              onPressed: () => controller?.startVerification(),
-              icon: const Icon(Icons.devices, size: 18),
-              label: const Text('Verify with another device'),
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () =>
-                setState(() => _localStep = _ScreenStep.createNewKey),
-            child: const Text('Create new key'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCreateNewKey() {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Create new backup?',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'This will create a new recovery key. If you had a previous '
-            'backup, that encrypted message history may be lost.',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDeviceVerification() {
-    final verification = _controller?.koheraVerification;
-    if (verification == null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const KoheraLoader(),
-            const SizedBox(height: 16),
-            const Text('Starting verification...'),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () => _controller?.onVerificationCancel(),
-              child: const Text('Cancel'),
-            ),
-          ],
+  Widget _buildBody() {
+    if (_showManagement) {
+      return SingleChildScrollView(
+        child: E2eeSetupManagementPanel(
+          onShowRecoveryKey: () => context.go(RoutePaths.settingsRecoveryKey),
+          onCreateNewKey: () => _startBootstrap(wipeExisting: true),
+          onDisable: _confirmDisable,
         ),
       );
     }
 
+    final controller = _controller;
+    final sections = <Widget>[
+      const SizedBox(height: 24),
+      const E2eeSetupExplainer(),
+      const SizedBox(height: 24),
+    ];
+
+    if (controller == null) {
+      sections.add(const E2eeSetupStatusLine(message: 'Preparing...'));
+    } else {
+      switch (controller.phase) {
+        case SetupPhase.loading:
+          sections.add(E2eeSetupStatusLine(message: controller.loadingMessage));
+        case SetupPhase.savingKey:
+          if (controller.generatingKey) {
+            sections.add(
+              E2eeSetupStatusLine(message: controller.loadingMessage),
+            );
+          } else {
+            sections.add(
+              E2eeSetupKeyCard(
+                recoveryKey: controller.newRecoveryKey,
+                copied: controller.keyCopied,
+                onCopy: controller.setKeyCopied,
+              ),
+            );
+            sections.add(const SizedBox(height: 8));
+            sections.add(
+              E2eeSetupCustodyGate(
+                saveToDevice: controller.saveToDevice,
+                onChanged: controller.setSaveToDevice,
+              ),
+            );
+          }
+        case SetupPhase.unlock:
+          sections.add(
+            E2eeSetupUnlockSection(
+              recoveryKeyController: _recoveryKeyController,
+              recoveryKeyError: controller.recoveryKeyError,
+              saveToDevice: controller.saveToDevice,
+              onSaveToDeviceChanged: controller.setSaveToDevice,
+              onVerify: controller.startVerification,
+              onCreateNewKey: _confirmCreateNewKey,
+            ),
+          );
+        case SetupPhase.verification:
+          sections.add(
+            E2eeSetupVerifySection(
+              verification: controller.koheraVerification,
+              onDone: controller.onVerificationDone,
+              onCancel: controller.onVerificationCancel,
+            ),
+          );
+        case SetupPhase.done:
+          sections.add(const E2eeSetupDoneBanner());
+        case SetupPhase.error:
+          sections.add(E2eeSetupErrorSection(message: controller.error));
+      }
+    }
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Verify with another device',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Open Kohera on another device and confirm the emoji match.',
-          ),
-          const SizedBox(height: 24),
-          KeyVerificationInline(
-            verification: verification,
-            onDone: (success) => _controller?.onVerificationDone(success),
-            onCancel: () => _controller?.onVerificationCancel(),
-          ),
-        ],
+        children: sections,
       ),
     );
   }
 
-  Widget _buildDone() {
-    final cs = Theme.of(context).colorScheme;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.check_circle, color: cs.primary, size: 64),
-          const SizedBox(height: 16),
-          Text(
-            "You're all set!",
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Your messages are backed up and will be available '
-            'across all your devices.',
-            textAlign: TextAlign.center,
-          ),
-        ],
+  // ── Actions ───────────────────────────────────────────────────
+
+  Widget _buildActionsBar() {
+    if (_showManagement) return const E2eeSetupActionsBar();
+
+    final controller = _controller;
+    if (controller == null) {
+      return E2eeSetupActionsBar(
+        secondaryLabel: 'Skip for now',
+        onSecondary: _confirmSkip,
+      );
+    }
+
+    return switch (controller.phase) {
+      SetupPhase.loading ||
+      SetupPhase.verification ||
+      SetupPhase.done => const E2eeSetupActionsBar(),
+      SetupPhase.savingKey =>
+        controller.generatingKey
+            ? E2eeSetupActionsBar(
+                secondaryLabel: 'Skip for now',
+                onSecondary: _confirmSkip,
+              )
+            : E2eeSetupActionsBar(
+                secondaryLabel: 'Skip for now',
+                onSecondary: _confirmSkip,
+                primaryLabel: 'Next',
+                onPrimary: controller.confirmNewSsss,
+                primaryEnabled: controller.canConfirmNewKey,
+              ),
+      SetupPhase.unlock => E2eeSetupActionsBar(
+        secondaryLabel: 'Skip for now',
+        onSecondary: _confirmSkip,
+        primaryLabel: 'Unlock',
+        onPrimary: () =>
+            controller.unlockExistingSsss(_recoveryKeyController.text.trim()),
       ),
-    );
-  }
-
-  Widget _buildManagement() {
-    final cs = Theme.of(context).colorScheme;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.check_circle, color: cs.primary, size: 64),
-          const SizedBox(height: 16),
-          Text(
-            'Chat backup',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Your keys are backed up. Your encrypted messages are '
-            'secure and accessible from any device.',
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 32),
-          OutlinedButton(
-            onPressed: () => context.go(RoutePaths.settingsRecoveryKey),
-            child: const Text('Show recovery key'),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton(
-            onPressed: () => _startBootstrap(wipeExisting: true),
-            child: const Text('Create new key'),
-          ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () =>
-                setState(() => _localStep = _ScreenStep.disableConfirm),
-            child: Text(
-              'Disable backup',
-              style: TextStyle(color: cs.error),
-            ),
-          ),
-        ],
+      SetupPhase.error => E2eeSetupActionsBar(
+        secondaryLabel: 'Close',
+        onSecondary: () => context.go(RoutePaths.home),
+        primaryLabel: 'Retry',
+        onPrimary: controller.retry,
       ),
-    );
-  }
-
-  Widget _buildDisableConfirm() {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Disable backup?',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Your recovery key and server-side backup will be deleted. '
-            'You will lose access to your encrypted message history on '
-            'other devices.',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildError() {
-    final cs = Theme.of(context).colorScheme;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.error_outline, color: cs.error, size: 64),
-          const SizedBox(height: 16),
-          Text(
-            _controller?.error ??
-                'An unexpected error occurred during backup setup.',
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Helpers ───────────────────────────────────────────────────
-
-  List<Widget> _bulletPoints(List<String> items) {
-    return items
-        .map(
-          (item) => Padding(
-            padding: const EdgeInsets.only(left: 8, bottom: 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('\u2022  '),
-                Expanded(
-                  child: Text(item),
-                ),
-              ],
-            ),
-          ),
-        )
-        .toList();
-  }
-}
-
-// ── Step dot indicator ──────────────────────────────────────────
-
-class _StepDots extends StatelessWidget {
-  const _StepDots({required this.current, required this.total});
-
-  final int current;
-  final int total;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(total, (i) {
-        final isActive = i <= current;
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isActive ? cs.primary : cs.outlineVariant,
-            ),
-          ),
-        );
-      }),
-    );
+    };
   }
 }
