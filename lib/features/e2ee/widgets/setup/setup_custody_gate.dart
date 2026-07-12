@@ -3,18 +3,18 @@ import 'package:flutter/material.dart';
 class E2eeSetupCustodyGate extends StatelessWidget {
   const E2eeSetupCustodyGate({
     required this.saveToDevice,
-    required this.onChanged,
+    this.onChanged,
     super.key,
   });
 
   final bool saveToDevice;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
 
   @override
   Widget build(BuildContext context) {
     return CheckboxListTile(
       value: saveToDevice,
-      onChanged: (v) => onChanged(v ?? false),
+      onChanged: onChanged == null ? null : (v) => onChanged!(v ?? false),
       title: const Text('Also keep a copy on this device'),
       subtitle: Text(
         'Convenient for unlocking on this device. This is not a '

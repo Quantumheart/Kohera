@@ -9,6 +9,7 @@ class E2eeSetupUnlockSection extends StatelessWidget {
     required this.onSaveToDeviceChanged,
     required this.onVerify,
     required this.onCreateNewKey,
+    this.enabled = true,
     super.key,
   });
 
@@ -18,6 +19,7 @@ class E2eeSetupUnlockSection extends StatelessWidget {
   final ValueChanged<bool> onSaveToDeviceChanged;
   final VoidCallback onVerify;
   final VoidCallback onCreateNewKey;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +35,7 @@ class E2eeSetupUnlockSection extends StatelessWidget {
         const SizedBox(height: 16),
         TextField(
           controller: recoveryKeyController,
+          enabled: enabled,
           decoration: InputDecoration(
             labelText: 'Recovery key',
             errorText: recoveryKeyError,
@@ -43,14 +46,14 @@ class E2eeSetupUnlockSection extends StatelessWidget {
         const SizedBox(height: 8),
         E2eeSetupCustodyGate(
           saveToDevice: saveToDevice,
-          onChanged: onSaveToDeviceChanged,
+          onChanged: enabled ? onSaveToDeviceChanged : null,
         ),
         const SizedBox(height: 4),
         const Divider(),
         const SizedBox(height: 4),
         Center(
           child: OutlinedButton.icon(
-            onPressed: onVerify,
+            onPressed: enabled ? onVerify : null,
             icon: const Icon(Icons.devices, size: 18),
             label: const Text('Verify with another device'),
           ),
@@ -59,7 +62,7 @@ class E2eeSetupUnlockSection extends StatelessWidget {
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton(
-            onPressed: onCreateNewKey,
+            onPressed: enabled ? onCreateNewKey : null,
             child: const Text('Create new key'),
           ),
         ),

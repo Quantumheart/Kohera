@@ -46,6 +46,7 @@ class BootstrapController extends ChangeNotifier {
   bool get generatingKey => _keyHandler.generatingKey;
   bool get saveToDevice => _keyHandler.saveToDevice;
   bool get keyCopied => _keyHandler.keyCopied;
+  bool get unlocking => _keyHandler.unlocking;
   bool get canConfirmNewKey => _keyHandler.canConfirmNewKey;
   String? get recoveryKeyError => _keyHandler.recoveryKeyError;
   KeyVerification? get verification => _verification;
@@ -131,8 +132,11 @@ class BootstrapController extends ChangeNotifier {
     final bootstrap = _driver.bootstrap;
     if (bootstrap == null) return;
 
+    _keyHandler.markUnlocking();
+    _notify();
     final success = await _keyHandler.unlockExisting(bootstrap, key);
-    if (!success && _keyHandler.recoveryKeyError != null &&
+    if (!success &&
+        _keyHandler.recoveryKeyError != null &&
         _keyHandler.recoveryKeyError!.startsWith('Failed to open')) {
       _phase = SetupPhase.error;
       _error = _keyHandler.recoveryKeyError;
@@ -178,7 +182,8 @@ class BootstrapController extends ChangeNotifier {
     if (encryption != null) {
       for (var i = 0; i < 10; i++) {
         if (_isDisposed) return;
-        final cached = await encryption.keyManager.isCached() &&
+        final cached =
+            await encryption.keyManager.isCached() &&
             await encryption.crossSigning.isCached();
         if (cached) break;
         await Future<void>.delayed(const Duration(seconds: 1));
