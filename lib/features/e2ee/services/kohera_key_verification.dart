@@ -23,7 +23,8 @@ import 'package:matrix/matrix.dart';
 /// `devices_screen`, `e2ee_setup_screen`) and pass this wrapper to the
 /// verification widgets.
 class KoheraKeyVerification extends ChangeNotifier {
-  KoheraKeyVerification(KeyVerification verification) : _verification = verification {
+  KoheraKeyVerification(KeyVerification verification)
+    : _verification = verification {
     verification.onUpdate = _onUpdate;
     state = _mapState(verification.state);
     _resolveView(state);
@@ -47,6 +48,24 @@ class KoheraKeyVerification extends ChangeNotifier {
 
   /// The cancel/failure reason, if any.
   String? get canceledReason => _verification.canceledReason;
+
+  /// The cancel/failure code, if any.
+  String? get canceledCode => _verification.canceledCode;
+
+  /// Human-readable cancel reason, mapped from the Matrix cancel code.
+  /// Returns `null` when there is no cancellation or the code is unknown.
+  String? get canceledMessage {
+    final code = _verification.canceledCode ?? _verification.canceledReason;
+    return switch (code) {
+      'm.mismatched_sas' =>
+        "The emoji/numbers didn't match. Verification cancelled.",
+      'm.key_mismatch' => "The keys didn't match. Verification cancelled.",
+      'm.timeout' => 'Verification timed out.',
+      'm.user' => 'Verification was cancelled.',
+      'm.accepted' => 'Verification was cancelled.',
+      _ => null,
+    };
+  }
 
   // ── SAS data ────────────────────────────────────────────────
 
@@ -86,7 +105,8 @@ class KoheraKeyVerification extends ChangeNotifier {
       _verification.possibleMethods.contains(EventTypes.QRScan) &&
       qrScanSupported;
 
-  bool get canCompareSas => _verification.possibleMethods.contains(EventTypes.Sas);
+  bool get canCompareSas =>
+      _verification.possibleMethods.contains(EventTypes.Sas);
 
   // ── State mapping + view resolution ─────────────────────────
 
