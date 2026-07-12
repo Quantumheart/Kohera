@@ -43,6 +43,7 @@ import 'package:kohera/features/chat/services/web_image_paste.dart';
 import 'package:kohera/features/chat/widgets/attachment_source_sheet.dart';
 import 'package:kohera/features/chat/widgets/chat_app_bar.dart';
 import 'package:kohera/features/chat/widgets/compose_bar_section.dart';
+import 'package:kohera/features/chat/widgets/create_poll_dialog.dart';
 import 'package:kohera/features/chat/widgets/delete_event_dialog.dart';
 import 'package:kohera/features/chat/widgets/desktop_drop_wrapper.dart';
 import 'package:kohera/features/chat/widgets/emoji_picker_sheet.dart';
@@ -740,6 +741,9 @@ class _ChatScreenState extends State<ChatScreen>
         await _handleGifPressed();
       case AttachmentSource.sticker:
         _toggleStickerPicker();
+      case AttachmentSource.poll:
+        final draft = await CreatePollDialog.show(context);
+        if (draft != null && mounted) await _actions.sendPoll(draft);
       case AttachmentSource.file:
         final attachment = await pickFileAsAttachment();
         if (attachment != null && mounted) _addAttachment(attachment);
