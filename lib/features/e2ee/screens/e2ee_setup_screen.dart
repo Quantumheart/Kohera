@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
-import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_controller.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_inline.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
@@ -16,22 +15,9 @@ import 'package:url_launcher/url_launcher.dart';
 const String _recoveryKeyDocsUrl =
     'https://github.com/Quantumheart/Kohera/blob/master/docs/recovery-key-storage.md';
 
-Future<bool> showRecoveryKeySavedConfirmation(BuildContext context) {
-  return confirmDialog(
-    context,
-    title: 'Have you saved your recovery key?',
-    message: 'If you lose this key, your encrypted messages cannot be '
-        "recovered. Make sure it's stored somewhere you'll still have "
-        'access to if you lose this device.',
-    confirmLabel: "I've saved it",
-    cancelLabel: 'Not yet',
-    barrierDismissible: false,
-  );
-}
-
 // ── Screen-local steps (outside bootstrap lifecycle) ───────────
 
-enum _ScreenStep { explainer, skipConfirm, createNewKey, management, disableConfirm }
+enum _ScreenStep { skipConfirm, createNewKey, management, disableConfirm }
 
 class E2eeSetupScreen extends StatefulWidget {
   const E2eeSetupScreen({super.key});
@@ -45,7 +31,9 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
   BootstrapController? _controller;
   final _recoveryKeyController = TextEditingController();
   bool _uiaPromptShowing = false;
-  _ScreenStep? _localStep = _ScreenStep.explainer;
+  bool _autoStarted = false;
+  Timer? _doneTimer;
+  _ScreenStep? _localStep;
 
   @override
   void initState() {
@@ -60,6 +48,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
 
   @override
   void dispose() {
+    _doneTimer?.cancel();
     _matrixService.uia.passwordPromptBuilder = null;
     _cleanupController();
     _recoveryKeyController.dispose();
@@ -95,7 +84,24 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
     if (storedKey != null) {
       _recoveryKeyController.text = storedKey;
     }
+    _scheduleDoneDismissal();
     if (mounted) setState(() {});
+  }
+
+  void _scheduleDoneDismissal() {
+    final phase = _controller?.phase;
+    if (phase == SetupPhase.done) {
+      if (_doneTimer != null) return;
+      _doneTimer = Timer(const Duration(seconds: 2), () {
+        _doneTimer = null;
+        if (mounted && _controller?.phase == SetupPhase.done) {
+          unawaited(_finishSetup());
+        }
+      });
+    } else {
+      _doneTimer?.cancel();
+      _doneTimer = null;
+    }
   }
 
   // ── UIA prompt ────────────────────────────────────────────────
@@ -137,20 +143,11 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
     return password != null && password.isNotEmpty ? password : null;
   }
 
-  // ── Confirm key saved ─────────────────────────────────────────
-
-  Future<void> _confirmKeyStoredAndAdvance() async {
-    final controller = _controller;
-    if (controller == null) return;
-    final confirmed = await showRecoveryKeySavedConfirmation(context);
-    if (confirmed) {
-      controller.confirmNewSsss();
-    }
-  }
-
   // ── Finish / Skip ─────────────────────────────────────────────
 
   Future<void> _finishSetup() async {
+    _doneTimer?.cancel();
+    _doneTimer = null;
     final shouldClearClipboard = _controller?.keyCopied ?? false;
     _matrixService.skipSetup();
     if (mounted) context.go(RoutePaths.home);
@@ -168,10 +165,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
 
   int get _currentDot {
     if (_localStep != null) {
-      return _localStep == _ScreenStep.explainer ||
-              _localStep == _ScreenStep.skipConfirm
-          ? 0
-          : 1;
+      return _localStep == _ScreenStep.skipConfirm ? 0 : 1;
     }
     return _controller?.phase == SetupPhase.done ? 2 : 1;
   }
@@ -192,7 +186,14 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
       );
     }
 
-    if (!backupNeeded && _localStep == _ScreenStep.explainer) {
+    if (backupNeeded && _localStep == null && _controller == null && !_autoStarted) {
+      _autoStarted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _startBootstrap();
+      });
+    }
+
+    if (!backupNeeded && _localStep == null && !_autoStarted) {
       _localStep = _ScreenStep.management;
     }
 
@@ -250,14 +251,17 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
   Widget _buildContent() {
     if (_localStep != null) {
       return switch (_localStep!) {
-        _ScreenStep.explainer => _buildExplainer(),
         _ScreenStep.skipConfirm => _buildSkipConfirm(),
         _ScreenStep.createNewKey => _buildCreateNewKey(),
         _ScreenStep.management => _buildManagement(),
         _ScreenStep.disableConfirm => _buildDisableConfirm(),
       };
     }
-    return switch (_controller!.phase) {
+    final controller = _controller;
+    if (controller == null) {
+      return _buildLoading();
+    }
+    return switch (controller.phase) {
       SetupPhase.loading => _buildLoading(),
       SetupPhase.savingKey => _buildSavingKey(),
       SetupPhase.unlock => _buildUnlock(),
@@ -270,26 +274,17 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
   Widget _buildActions() {
     if (_localStep != null) {
       return switch (_localStep!) {
-        _ScreenStep.explainer => Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              TextButton(
-                onPressed: () =>
-                    setState(() => _localStep = _ScreenStep.skipConfirm),
-                child: const Text('Skip for now'),
-              ),
-              FilledButton(
-                onPressed: _startBootstrap,
-                child: const Text('Next'),
-              ),
-            ],
-          ),
         _ScreenStep.skipConfirm => Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               TextButton(
-                onPressed: () =>
-                    setState(() => _localStep = _ScreenStep.explainer),
+                onPressed: () {
+                  if (_controller == null) {
+                    _startBootstrap();
+                  } else {
+                    setState(() => _localStep = null);
+                  }
+                },
                 child: const Text('Go back'),
               ),
               FilledButton(
@@ -355,7 +350,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
             ),
             FilledButton(
               onPressed: !controller.generatingKey && controller.canConfirmNewKey
-                  ? _confirmKeyStoredAndAdvance
+                  ? controller.confirmNewSsss
                   : null,
               child: const Text('Next'),
             ),
@@ -399,29 +394,27 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
   // ── Content views ─────────────────────────────────────────────
 
   Widget _buildExplainer() {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'What is key backup?',
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Your messages are encrypted end-to-end. A recovery key '
-            'lets you access them on new devices or if you reinstall.',
-          ),
-          const SizedBox(height: 24),
-          const Text('Without it:'),
-          const SizedBox(height: 8),
-          ..._bulletPoints([
-            'Message history is lost',
-            "Cross-device verification won't work",
-            'Some features may not work',
-          ]),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'What is key backup?',
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Your messages are encrypted end-to-end. A recovery key '
+          'lets you access them on new devices or if you reinstall.',
+        ),
+        const SizedBox(height: 24),
+        const Text('Without it:'),
+        const SizedBox(height: 8),
+        ..._bulletPoints([
+          'Message history is lost',
+          "Cross-device verification won't work",
+          'Some features may not work',
+        ]),
+      ],
     );
   }
 
@@ -450,15 +443,25 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
   }
 
   Widget _buildLoading() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const KoheraLoader(),
-          const SizedBox(height: 16),
-          Text(_controller?.loadingMessage ?? 'Preparing...'),
-        ],
-      ),
+    return Column(
+      children: [
+        if (_autoStarted && (_controller?.phase ?? SetupPhase.loading) ==
+            SetupPhase.loading)
+          Expanded(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: _buildExplainer(),
+              ),
+            ),
+          )
+        else
+          const Expanded(child: SizedBox.shrink()),
+        const KoheraLoader(),
+        const SizedBox(height: 16),
+        Text(_controller?.loadingMessage ?? 'Preparing...'),
+        const SizedBox(height: 24),
+      ],
     );
   }
 
