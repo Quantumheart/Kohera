@@ -186,7 +186,10 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
       );
     }
 
-    if (backupNeeded && _localStep == null && _controller == null && !_autoStarted) {
+    if (backupNeeded &&
+        _localStep == null &&
+        _controller == null &&
+        !_autoStarted) {
       _autoStarted = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _startBootstrap();
@@ -275,63 +278,63 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
     if (_localStep != null) {
       return switch (_localStep!) {
         _ScreenStep.skipConfirm => Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              TextButton(
-                onPressed: () {
-                  if (_controller == null) {
-                    _startBootstrap();
-                  } else {
-                    setState(() => _localStep = null);
-                  }
-                },
-                child: const Text('Go back'),
-              ),
-              FilledButton(
-                onPressed: _skip,
-                child: const Text('Skip anyway'),
-              ),
-            ],
-          ),
-        _ScreenStep.createNewKey => Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              TextButton(
-                onPressed: () => setState(() => _localStep = null),
-                child: const Text('Go back'),
-              ),
-              FilledButton(
-                onPressed: () {
-                  _recoveryKeyController.clear();
-                  _controller?.restartWithWipe();
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            TextButton(
+              onPressed: () {
+                if (_controller == null) {
+                  _startBootstrap();
+                } else {
                   setState(() => _localStep = null);
-                },
-                child: const Text('Create new backup'),
-              ),
-            ],
-          ),
+                }
+              },
+              child: const Text('Go back'),
+            ),
+            FilledButton(
+              onPressed: _skip,
+              child: const Text('Skip anyway'),
+            ),
+          ],
+        ),
+        _ScreenStep.createNewKey => Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            TextButton(
+              onPressed: () => setState(() => _localStep = null),
+              child: const Text('Go back'),
+            ),
+            FilledButton(
+              onPressed: () {
+                _recoveryKeyController.clear();
+                _controller?.restartWithWipe();
+                setState(() => _localStep = null);
+              },
+              child: const Text('Create new backup'),
+            ),
+          ],
+        ),
         _ScreenStep.management => const SizedBox.shrink(),
         _ScreenStep.disableConfirm => Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              TextButton(
-                onPressed: () =>
-                    setState(() => _localStep = _ScreenStep.management),
-                child: const Text('Go back'),
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            TextButton(
+              onPressed: () =>
+                  setState(() => _localStep = _ScreenStep.management),
+              child: const Text('Go back'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                await _matrixService.chatBackup.disableChatBackup();
+                _matrixService.skipSetup();
+                if (mounted) context.go(RoutePaths.home);
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
-              FilledButton(
-                onPressed: () async {
-                  await _matrixService.chatBackup.disableChatBackup();
-                  _matrixService.skipSetup();
-                  if (mounted) context.go(RoutePaths.home);
-                },
-                style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                ),
-                child: const Text('Disable backup'),
-              ),
-            ],
-          ),
+              child: const Text('Disable backup'),
+            ),
+          ],
+        ),
       };
     }
 
@@ -341,53 +344,54 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
     return switch (controller.phase) {
       SetupPhase.loading || SetupPhase.verification => const SizedBox.shrink(),
       SetupPhase.savingKey => Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton(
-              onPressed: () =>
-                  setState(() => _localStep = _ScreenStep.skipConfirm),
-              child: const Text('Back'),
-            ),
-            FilledButton(
-              onPressed: !controller.generatingKey && controller.canConfirmNewKey
-                  ? controller.confirmNewSsss
-                  : null,
-              child: const Text('Next'),
-            ),
-          ],
-        ),
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          TextButton(
+            onPressed: () =>
+                setState(() => _localStep = _ScreenStep.skipConfirm),
+            child: const Text('Back'),
+          ),
+          FilledButton(
+            onPressed: !controller.generatingKey && controller.canConfirmNewKey
+                ? controller.confirmNewSsss
+                : null,
+            child: const Text('Next'),
+          ),
+        ],
+      ),
       SetupPhase.unlock => Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton(
-              onPressed: () =>
-                  setState(() => _localStep = _ScreenStep.skipConfirm),
-              child: const Text('Back'),
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          TextButton(
+            onPressed: () =>
+                setState(() => _localStep = _ScreenStep.skipConfirm),
+            child: const Text('Back'),
+          ),
+          FilledButton(
+            onPressed: () => controller.unlockExistingSsss(
+              _recoveryKeyController.text.trim(),
             ),
-            FilledButton(
-              onPressed: () => controller
-                  .unlockExistingSsss(_recoveryKeyController.text.trim()),
-              child: const Text('Unlock'),
-            ),
-          ],
-        ),
+            child: const Text('Unlock'),
+          ),
+        ],
+      ),
       SetupPhase.done => FilledButton(
-          onPressed: _finishSetup,
-          child: const Text('Done'),
-        ),
+        onPressed: _finishSetup,
+        child: const Text('Done'),
+      ),
       SetupPhase.error => Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            TextButton(
-              onPressed: () => context.go(RoutePaths.home),
-              child: const Text('Close'),
-            ),
-            FilledButton(
-              onPressed: controller.retry,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          TextButton(
+            onPressed: () => context.go(RoutePaths.home),
+            child: const Text('Close'),
+          ),
+          FilledButton(
+            onPressed: controller.retry,
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
     };
   }
 
@@ -443,10 +447,12 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
   }
 
   Widget _buildLoading() {
+    final showExplainer =
+        _autoStarted &&
+        (_controller?.phase ?? SetupPhase.loading) == SetupPhase.loading;
     return Column(
       children: [
-        if (_autoStarted && (_controller?.phase ?? SetupPhase.loading) ==
-            SetupPhase.loading)
+        if (showExplainer)
           Expanded(
             child: SingleChildScrollView(
               child: Padding(
@@ -491,17 +497,19 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
             'messages. If you lose this key, your message history is gone '
             "\u2014 we can't recover it for you.",
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: cs.error,
-                ),
+              color: cs.error,
+            ),
           ),
           const SizedBox(height: 4),
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
-              onPressed: () => unawaited(launchUrl(
-                Uri.parse(_recoveryKeyDocsUrl),
-                mode: LaunchMode.externalApplication,
-              ),),
+              onPressed: () => unawaited(
+                launchUrl(
+                  Uri.parse(_recoveryKeyDocsUrl),
+                  mode: LaunchMode.externalApplication,
+                ),
+              ),
               icon: const Icon(Icons.open_in_new, size: 16),
               label: const Text('Learn more about safe storage'),
               style: TextButton.styleFrom(
@@ -517,7 +525,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: cs.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
+              borderRadius: BorderRadius.zero,
             ),
             child: SelectableText(
               controller.newRecoveryKey ?? '',
@@ -532,8 +540,11 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
                   ? null
                   : () {
                       if (controller.newRecoveryKey != null) {
-                        unawaited(Clipboard.setData(
-                            ClipboardData(text: controller.newRecoveryKey!),),);
+                        unawaited(
+                          Clipboard.setData(
+                            ClipboardData(text: controller.newRecoveryKey!),
+                          ),
+                        );
                         controller.setKeyCopied();
                       }
                     },
@@ -573,7 +584,9 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
             style: Theme.of(context).textTheme.headlineSmall,
           ),
           const SizedBox(height: 16),
-          const Text('Enter your recovery key to restore your message history.'),
+          const Text(
+            'Enter your recovery key to restore your message history.',
+          ),
           const SizedBox(height: 16),
           TextField(
             controller: _recoveryKeyController,
@@ -788,16 +801,20 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
 
   List<Widget> _bulletPoints(List<String> items) {
     return items
-        .map((item) => Padding(
-              padding: const EdgeInsets.only(left: 8, bottom: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('\u2022  '),
-                  Expanded(child: Text(item),),
-                ],
-              ),
-            ),)
+        .map(
+          (item) => Padding(
+            padding: const EdgeInsets.only(left: 8, bottom: 4),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('\u2022  '),
+                Expanded(
+                  child: Text(item),
+                ),
+              ],
+            ),
+          ),
+        )
         .toList();
   }
 }

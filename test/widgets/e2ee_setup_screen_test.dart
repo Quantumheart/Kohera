@@ -27,7 +27,6 @@ void main() {
 
     when(mockChatBackup.chatBackupEnabled).thenReturn(false);
     when(mockChatBackup.chatBackupNeeded).thenReturn(true);
-    when(mockChatBackup.setupSkipped).thenReturn(false);
 
     when(mockClient.encryption).thenReturn(null);
   });
@@ -49,25 +48,29 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('fresh-login path auto-starts bootstrap with no explainer Next or skip button',
-      (tester) async {
-    await pumpScreen(tester);
+  testWidgets(
+    'fresh-login path auto-starts bootstrap with no explainer Next or skip button',
+    (tester) async {
+      await pumpScreen(tester);
 
-    expect(find.text('Next'), findsNothing);
-    expect(find.text('Skip for now'), findsNothing);
-    expect(find.text('Retry'), findsOneWidget);
-  });
+      expect(find.text('Next'), findsNothing);
+      expect(find.text('Skip for now'), findsNothing);
+      expect(find.text('Retry'), findsOneWidget);
+    },
+  );
 
-  testWidgets('saved-confirmation dialog is not present in the widget tree',
-      (tester) async {
+  testWidgets('saved-confirmation dialog is not present in the widget tree', (
+    tester,
+  ) async {
     await pumpScreen(tester);
 
     expect(find.text('Have you saved your recovery key?'), findsNothing);
     expect(find.text("I've saved it"), findsNothing);
   });
 
-  testWidgets('management path renders when backup already enabled',
-      (tester) async {
+  testWidgets('management path renders when backup already enabled', (
+    tester,
+  ) async {
     when(mockChatBackup.chatBackupEnabled).thenReturn(true);
     when(mockChatBackup.chatBackupNeeded).thenReturn(false);
 
