@@ -13,6 +13,7 @@ class RecoveryKeyHandler {
   bool _generatingKey = false;
   bool _saveToDevice = false;
   bool _keyCopied = false;
+  bool _unlocking = false;
   String? _recoveryKeyError;
   OpenSSSS? _unlockedSsssKey;
   String? _storedRecoveryKey;
@@ -23,6 +24,7 @@ class RecoveryKeyHandler {
   bool get generatingKey => _generatingKey;
   bool get saveToDevice => _saveToDevice;
   bool get keyCopied => _keyCopied;
+  bool get unlocking => _unlocking;
   bool get canConfirmNewKey => _keyCopied || _saveToDevice;
   String? get recoveryKeyError => _recoveryKeyError;
   OpenSSSS? get unlockedSsssKey => _unlockedSsssKey;
@@ -35,6 +37,10 @@ class RecoveryKeyHandler {
 
   void setKeyCopied() {
     _keyCopied = true;
+  }
+
+  void markUnlocking() {
+    _unlocking = true;
   }
 
   Future<void> generateNewKey(Bootstrap bootstrap) async {
@@ -66,37 +72,42 @@ class RecoveryKeyHandler {
     final ssssKey = bootstrap.newSsssKey;
     if (ssssKey == null) return false;
 
-    if (key.isEmpty) {
-      _recoveryKeyError = 'Please enter a recovery key';
-      return false;
-    }
-
+    _unlocking = true;
     try {
-      await ssssKey.unlock(keyOrPassphrase: key);
-      _unlockedSsssKey = ssssKey;
-    } catch (e) {
-      _recoveryKeyError = 'Invalid recovery key';
-      return false;
-    }
-
-    _recoveryKeyError = null;
-    if (_saveToDevice) {
-      await matrixService.chatBackup.storeRecoveryKey(key);
-    }
-
-    try {
-      await bootstrap.openExistingSsss();
-      final encryption = matrixService.client.encryption;
-      if (encryption != null && encryption.crossSigning.enabled) {
-        debugPrint('[Bootstrap] Self-signing after SSSS unlock');
-        await encryption.crossSigning.selfSign(recoveryKey: key);
+      if (key.isEmpty) {
+        _recoveryKeyError = 'Please enter a recovery key';
+        return false;
       }
-    } catch (e) {
-      _recoveryKeyError = 'Failed to open backup: $e';
-      return false;
-    }
 
-    return true;
+      try {
+        await ssssKey.unlock(keyOrPassphrase: key);
+        _unlockedSsssKey = ssssKey;
+      } catch (e) {
+        _recoveryKeyError = 'Invalid recovery key';
+        return false;
+      }
+
+      _recoveryKeyError = null;
+      if (_saveToDevice) {
+        await matrixService.chatBackup.storeRecoveryKey(key);
+      }
+
+      try {
+        await bootstrap.openExistingSsss();
+        final encryption = matrixService.client.encryption;
+        if (encryption != null && encryption.crossSigning.enabled) {
+          debugPrint('[Bootstrap] Self-signing after SSSS unlock');
+          await encryption.crossSigning.selfSign(recoveryKey: key);
+        }
+      } catch (e) {
+        _recoveryKeyError = 'Failed to open backup: $e';
+        return false;
+      }
+
+      return true;
+    } finally {
+      _unlocking = false;
+    }
   }
 
   Future<void> storeIfNeeded() async {
@@ -109,6 +120,7 @@ class RecoveryKeyHandler {
     _newRecoveryKey = null;
     _generatingKey = false;
     _keyCopied = false;
+    _unlocking = false;
     _recoveryKeyError = null;
     _unlockedSsssKey = null;
     _storedRecoveryKey = null;

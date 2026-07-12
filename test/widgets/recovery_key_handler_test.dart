@@ -60,8 +60,9 @@ void main() {
       final mockBootstrap = MockBootstrap();
       final mockSsssKey = MockOpenSSSS();
       when(mockBootstrap.newSsssKey).thenReturn(mockSsssKey);
-      when(mockSsssKey.unlock(keyOrPassphrase: anyNamed('keyOrPassphrase')))
-          .thenThrow(Exception('bad key'));
+      when(
+        mockSsssKey.unlock(keyOrPassphrase: anyNamed('keyOrPassphrase')),
+      ).thenThrow(Exception('bad key'));
 
       final result = await handler.unlockExisting(mockBootstrap, 'bad-key');
 
@@ -73,8 +74,9 @@ void main() {
       final mockBootstrap = MockBootstrap();
       final mockSsssKey = MockOpenSSSS();
       when(mockBootstrap.newSsssKey).thenReturn(mockSsssKey);
-      when(mockSsssKey.unlock(keyOrPassphrase: anyNamed('keyOrPassphrase')))
-          .thenAnswer((_) async {});
+      when(
+        mockSsssKey.unlock(keyOrPassphrase: anyNamed('keyOrPassphrase')),
+      ).thenAnswer((_) async {});
       when(mockBootstrap.openExistingSsss()).thenAnswer((_) async {});
       when(mockChatBackup.storeRecoveryKey(any)).thenAnswer((_) async {});
       final mockClient = MockClient();
@@ -98,21 +100,40 @@ void main() {
       expect(result, isFalse);
     });
 
-    test('storeIfNeeded stores key when saveToDevice and newRecoveryKey set',
-        () async {
+    test('markUnlocking exposes busy state until unlock completes', () async {
       final mockBootstrap = MockBootstrap();
-      when(mockBootstrap.newSsss()).thenAnswer((_) async {});
       final mockSsssKey = MockOpenSSSS();
       when(mockBootstrap.newSsssKey).thenReturn(mockSsssKey);
-      when(mockSsssKey.recoveryKey).thenReturn('KEY');
-      when(mockChatBackup.storeRecoveryKey(any)).thenAnswer((_) async {});
+      when(mockSsssKey.unlock(keyOrPassphrase: anyNamed('keyOrPassphrase')))
+          .thenAnswer((_) async {});
+      when(mockBootstrap.openExistingSsss()).thenAnswer((_) async {});
+      when(mockMatrixService.client).thenReturn(MockClient());
 
-      await handler.generateNewKey(mockBootstrap);
-      handler.setSaveToDevice(true);
-      await handler.storeIfNeeded();
+      handler.markUnlocking();
+      expect(handler.unlocking, isTrue);
 
-      verify(mockChatBackup.storeRecoveryKey('KEY')).called(1);
+      await handler.unlockExisting(mockBootstrap, 'valid-key');
+
+      expect(handler.unlocking, isFalse);
     });
+
+    test(
+      'storeIfNeeded stores key when saveToDevice and newRecoveryKey set',
+      () async {
+        final mockBootstrap = MockBootstrap();
+        when(mockBootstrap.newSsss()).thenAnswer((_) async {});
+        final mockSsssKey = MockOpenSSSS();
+        when(mockBootstrap.newSsssKey).thenReturn(mockSsssKey);
+        when(mockSsssKey.recoveryKey).thenReturn('KEY');
+        when(mockChatBackup.storeRecoveryKey(any)).thenAnswer((_) async {});
+
+        await handler.generateNewKey(mockBootstrap);
+        handler.setSaveToDevice(true);
+        await handler.storeIfNeeded();
+
+        verify(mockChatBackup.storeRecoveryKey('KEY')).called(1);
+      },
+    );
 
     test('storeIfNeeded is no-op when saveToDevice is false', () async {
       final mockBootstrap = MockBootstrap();
@@ -148,8 +169,9 @@ void main() {
     });
 
     test('consumeStoredRecoveryKey returns and clears key', () async {
-      when(mockChatBackup.getStoredRecoveryKey())
-          .thenAnswer((_) async => 'stored-key');
+      when(
+        mockChatBackup.getStoredRecoveryKey(),
+      ).thenAnswer((_) async => 'stored-key');
 
       await handler.loadStoredKey();
 

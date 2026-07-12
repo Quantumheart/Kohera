@@ -342,6 +342,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
               onSaveToDeviceChanged: controller.setSaveToDevice,
               onVerify: controller.startVerification,
               onCreateNewKey: _confirmCreateNewKey,
+              enabled: !controller.unlocking,
             ),
           );
         case SetupPhase.verification:
@@ -400,9 +401,12 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
       SetupPhase.unlock => E2eeSetupActionsBar(
         secondaryLabel: 'Skip for now',
         onSecondary: _confirmSkip,
+        secondaryEnabled: !controller.unlocking,
         primaryLabel: 'Unlock',
         onPrimary: () =>
             controller.unlockExistingSsss(_recoveryKeyController.text.trim()),
+        primaryEnabled: !controller.unlocking,
+        primaryBusy: controller.unlocking,
       ),
       SetupPhase.error => E2eeSetupActionsBar(
         secondaryLabel: 'Close',
