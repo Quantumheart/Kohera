@@ -201,6 +201,7 @@ void main() {
         ended: false,
         responseCount: 0,
         tallies: {'a1': 0, 'a2': 0},
+        mySelections: {},
       );
 
       await tester.pumpWidget(_wrap(IrcMessageTile(

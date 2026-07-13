@@ -9,7 +9,7 @@ import 'package:matrix/matrix.dart';
 class PollResolver {
   const PollResolver();
 
-  KoheraPoll call(Event event, Timeline timeline) {
+  KoheraPoll call(Event event, Timeline timeline, {required String myUserId}) {
     assert(event.type == PollEventContent.startType, 'PollResolver requires a poll-start event');
 
     final content = event.parsedPollEventContent.pollStartContent;
@@ -26,9 +26,11 @@ class PollResolver {
     final tallies = <String, int>{for (final a in answers) a.id: 0};
     var responseCount = 0;
 
+    final responses = event.getPollResponses(timeline);
+    final mySelections = Set<String>.from(responses[myUserId] ?? const {});
+
     final showTally = kind == KoheraPollKind.disclosed || ended;
     if (showTally) {
-      final responses = event.getPollResponses(timeline);
       responseCount = responses.length;
       for (final answerIds in responses.values) {
         for (final id in answerIds) {
@@ -46,6 +48,7 @@ class PollResolver {
       ended: ended,
       responseCount: responseCount,
       tallies: tallies,
+      mySelections: mySelections,
     );
   }
 }
