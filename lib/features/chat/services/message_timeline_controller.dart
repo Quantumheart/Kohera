@@ -501,7 +501,7 @@ class MessageTimelineController extends ChangeNotifier {
           callDuration = _callDuration(event);
         case MessageCategory.poll:
           if (timeline != null) {
-            poll = const PollResolver()(event, timeline);
+            poll = const PollResolver()(event, timeline, myUserId: uid);
           }
         case MessageCategory.message:
           if (!isRedacted) {

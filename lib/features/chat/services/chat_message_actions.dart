@@ -199,4 +199,33 @@ class ChatMessageActions {
       );
     }
   }
+
+  Future<void> votePoll(String eventId, List<String> answerIds) async {
+    final timeline = getTimeline();
+    final scaffold = getScaffold();
+    if (timeline == null) return;
+
+    Event? event;
+    for (final e in timeline.events) {
+      if (e.eventId == eventId) {
+        event = e;
+        break;
+      }
+    }
+    if (event == null) {
+      debugPrint('[Kohera] Poll start event not found in timeline: $eventId');
+      return;
+    }
+
+    try {
+      await event.answerPoll(answerIds);
+    } catch (e) {
+      debugPrint('[Kohera] Failed to submit poll vote: $e');
+      scaffold.showSnackBar(
+        SnackBar(
+          content: Text('Failed to vote: ${MatrixService.friendlyAuthError(e)}'),
+        ),
+      );
+    }
+  }
 }
