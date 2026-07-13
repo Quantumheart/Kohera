@@ -36,6 +36,7 @@ class KoheraPoll {
     required this.ended,
     required this.responseCount,
     required this.tallies,
+    required this.mySelections,
   });
 
   final String question;
@@ -57,6 +58,11 @@ class KoheraPoll {
   /// Per-answer tally: answer id → vote count. Empty (all zero) when the
   /// tally is hidden for an open undisclosed poll.
   final Map<String, int> tallies;
+
+  /// Answer ids the current user has selected, derived from
+  /// `Event.getPollResponses(timeline)[myUserId]`. Empty when the user has
+  /// not voted (or retracted).
+  final Set<String> mySelections;
 
   /// Whether the running tally should be rendered.
   ///

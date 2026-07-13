@@ -51,12 +51,41 @@ MockEvent _startEvent({
   when(event.senderId).thenReturn(senderId);
   when(event.originServerTs).thenReturn(DateTime(2026, 1, 15, 12));
   when(event.content).thenReturn(content);
+  when(event.room).thenReturn(MockRoom());
   return event;
 }
 
 MockTimeline _emptyTimeline(String eventId) {
   final timeline = MockTimeline();
   when(timeline.aggregatedEvents).thenReturn({});
+  return timeline;
+}
+
+MockEvent _responseEvent({
+  required String senderId,
+  required List<String> answerIds,
+  DateTime? ts,
+}) {
+  final event = MockEvent();
+  when(event.type).thenReturn(PollEventContent.responseType);
+  when(event.senderId).thenReturn(senderId);
+  when(event.originServerTs).thenReturn(ts ?? DateTime(2026, 1, 15, 12, 5));
+  when(event.content).thenReturn({
+    PollEventContent.responseType: {'answers': answerIds},
+  });
+  return event;
+}
+
+MockTimeline _timelineWithResponses(
+  String pollEventId, {
+  List<MockEvent> responses = const [],
+}) {
+  final timeline = MockTimeline();
+  when(timeline.aggregatedEvents).thenReturn({
+    pollEventId: {
+      RelationshipTypes.reference: responses.toSet(),
+    },
+  });
   return timeline;
 }
 
@@ -78,7 +107,7 @@ void main() {
       );
       final timeline = _emptyTimeline(r'$p1');
 
-      final poll = const PollResolver()(event, timeline);
+      final poll = const PollResolver()(event, timeline, myUserId: '@me:example.com');
 
       expect(poll.kind, KoheraPollKind.disclosed);
       expect(poll.ended, isFalse);
@@ -98,13 +127,45 @@ void main() {
       );
       final timeline = _emptyTimeline(r'$p2');
 
-      final poll = const PollResolver()(event, timeline);
+      final poll = const PollResolver()(event, timeline, myUserId: '@me:example.com');
 
       expect(poll.kind, KoheraPollKind.undisclosed);
       expect(poll.ended, isFalse);
       expect(poll.showsTally, isFalse);
       expect(poll.tallies, {'a1': 0, 'a2': 0});
       expect(poll.responseCount, 0);
+    });
+
+    test('mySelections reflects the current user latest response', () {
+      final event = _startEvent(
+        eventId: r'$p3',
+        content: _pollContent(
+          question: 'Tea or coffee?',
+          answers: answers,
+          kind: PollKind.disclosed,
+        ),
+      );
+      final timeline = _timelineWithResponses(
+        r'$p3',
+        responses: [
+          _responseEvent(senderId: '@me:example.com', answerIds: ['a1']),
+          _responseEvent(
+            senderId: '@me:example.com',
+            answerIds: ['a2'],
+            ts: DateTime(2026, 1, 15, 12, 6),
+          ),
+        ],
+      );
+
+      final poll = const PollResolver()(
+        event,
+        timeline,
+        myUserId: '@me:example.com',
+      );
+
+      expect(poll.mySelections, {'a2'});
+      expect(poll.tallies, {'a1': 0, 'a2': 1});
+      expect(poll.responseCount, 1);
     });
   });
 }

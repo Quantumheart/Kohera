@@ -47,6 +47,7 @@ class MessageListView extends StatefulWidget {
     this.buildReplyPreview,
     this.onStickerContextMenu,
     this.onStickerMobileActions,
+    this.onVotePoll,
     super.key,
   });
 
@@ -91,6 +92,10 @@ class MessageListView extends StatefulWidget {
       onStickerContextMenu;
   final void Function(BuildContext, String eventId, Rect)?
       onStickerMobileActions;
+
+  /// Called with the full new answer-id list when the user changes their
+  /// poll selection in a poll bubble.
+  final void Function(String eventId, List<String> answerIds)? onVotePoll;
 
   @override
   State<MessageListView> createState() => MessageListViewState();
@@ -393,6 +398,9 @@ class MessageListViewState extends State<MessageListView> {
       poll: poll,
       isMe: data.isMe,
       isFirst: data.isFirst,
+      onVote: widget.onVotePoll == null
+          ? null
+          : (answerIds) => widget.onVotePoll!(data.eventId, answerIds),
     );
   }
 
