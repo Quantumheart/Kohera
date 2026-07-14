@@ -1085,14 +1085,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.0"
-  ogg_caf_converter:
+  ogg_opus_player:
     dependency: "direct main"
     description:
-      name: ogg_caf_converter
-      sha256: "3faa20f7ae854d6eda233773756de3eddb6c8d4fdc6d0165da992ded95240818"
+      name: ogg_opus_player
+      sha256: d9bba5c2e276ff13ceae1c216a2650560c805d6b06de4bf4eb608bc38f1b75f4
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.4"
+    version: "0.8.0"
   package_config:
     dependency: transitive
     description:
@@ -1722,6 +1722,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.4.0+1"
+  system_clock:
+    dependency: transitive
+    description:
+      name: system_clock
+      sha256: "8133d7707b4bed8a5e62f0809f040975f8854e11b1c7ee851e56f929f153cc8a"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.0.1"
   term_glyph:
     dependency: transitive
     description:

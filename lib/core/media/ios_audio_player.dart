@@ -1,21 +1,24 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart' hide PlayerState;
 import 'package:kohera/core/media/audio_session_setup.dart';
 import 'package:kohera/core/media/media_player.dart';
 import 'package:kohera/core/media/resolved_media.dart';
-import 'package:ogg_caf_converter/ogg_caf_converter.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:ogg_opus_player/ogg_opus_player.dart';
 
-// ── iOS audio: just_audio; Ogg/Opus remuxed to CAF (native playback+seek) ─
+// ── iOS audio: just_audio (MP3/AAC) + ogg_opus_player (Ogg/Opus) ─
+// AVPlayer parses Opus-in-CAF but produces no audible output, so Opus voice
+// messages use the native ogg_opus_player decoder instead. Seek is unsupported
+// for Opus on iOS (ogg_opus_player has no seek API); audio_bubble disables the
+// waveform drag via canSeek=false for that case.
 
 class IosAudioPlayer implements MediaPlayer {
   IosAudioPlayer();
 
-  AudioPlayer? _player;
-  String? _cafTempPath;
+  AudioPlayer? _audioPlayer;
+  OggOpusPlayer? _opusPlayer;
+  Timer? _opusPositionTimer;
   final List<StreamSubscription<dynamic>> _subs = [];
 
   final _playingController = StreamController<bool>.broadcast();
@@ -26,6 +29,8 @@ class IosAudioPlayer implements MediaPlayer {
   bool _isPlaying = false;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
+  bool _loop = false;
+  bool _isOpus = false;
 
   @override
   Stream<bool> get onPlayingChanged => _playingController.stream;
@@ -43,120 +48,11 @@ class IosAudioPlayer implements MediaPlayer {
   @override
   Duration get duration => _duration;
   @override
-  bool get canSeek => true;
+  bool get canSeek => !_isOpus;
 
   bool _isOggOpus(ResolvedMedia media) {
     final mime = media.mimeType?.toLowerCase();
     return mime == 'audio/ogg' || mime == 'audio/opus';
-  }
-
-  static final _oggSig = [0x4f, 0x67, 0x67, 0x53]; // 'OggS'
-
-  Future<String?> _toCaf(String oggPath) async {
-    final bytes = File(oggPath).readAsBytesSync();
-    if (bytes.length < 4) return null;
-
-    // libmpv probed past junk (e.g. ID3 tags); the strict Ogg reader does
-    // not. Find the first 'OggS' capture pattern and convert from there.
-    final scanLen = bytes.length < 4096 ? bytes.length : 4096;
-    final oggStart = _indexOf(bytes.sublist(0, scanLen), _oggSig);
-    if (oggStart < 0) {
-      debugPrint(
-        '[Kohera] iOS Opus file has no OggS marker '
-        '(magic="${_magicBytesString(bytes)}"); skipping CAF remux, '
-        'playing original directly.',
-      );
-      return null;
-    }
-
-    final dir = await getTemporaryDirectory();
-    final ts = DateTime.now().microsecondsSinceEpoch;
-    final sourcePath = oggStart == 0
-        ? oggPath
-        : '${dir.path}/kohera_opus_src_$ts.ogg';
-    if (oggStart > 0) {
-      debugPrint(
-        '[Kohera] iOS Opus file has ${oggStart}B prefix before OggS '
-        '(magic="${_magicBytesString(bytes)}"); stripping before CAF remux.',
-      );
-      File(sourcePath).writeAsBytesSync(bytes.sublist(oggStart));
-    }
-    final outPath = '${dir.path}/kohera_opus_$ts.caf';
-    try {
-      await OggCafConverter().convertOggToCaf(input: sourcePath, output: outPath);
-      if (oggStart > 0) {
-        try {
-          File(sourcePath).deleteSync();
-        } catch (_) {}
-      }
-      return outPath;
-    } catch (e) {
-      debugPrint('[Kohera] Ogg->CAF conversion failed: $e');
-      return null;
-    }
-  }
-
-  int _indexOf(Uint8List haystack, List<int> needle) {
-    final n = needle.length;
-    for (var i = 0; i + n <= haystack.length; i++) {
-      var match = true;
-      for (var j = 0; j < n; j++) {
-        if (haystack[i + j] != needle[j]) {
-          match = false;
-          break;
-        }
-      }
-      if (match) return i;
-    }
-    return -1;
-  }
-
-  String _magicBytesString(Uint8List bytes) {
-    final n = bytes.length < 8 ? bytes.length : 8;
-    return bytes.sublist(0, n).map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
-  }
-
-
-  @override
-  Future<void> open(ResolvedMedia media) async {
-    await ensureMediaAudioSession();
-    _cancelSubs();
-    await _player?.dispose();
-    _deleteCafTemp();
-    _player = AudioPlayer();
-    _listen();
-    final path = media.filePath!;
-    var playPath = path;
-    final route = _isOggOpus(media) ? 'ogg->caf' : 'direct';
-    if (_isOggOpus(media)) {
-      final cafPath = await _toCaf(path);
-      if (cafPath != null) {
-        _cafTempPath = cafPath;
-        playPath = cafPath;
-      } else {
-        debugPrint('[Kohera] iOS audio: CAF remux skipped, playing original.');
-      }
-    }
-    try {
-      final loadedDuration = await _player!.setFilePath(playPath);
-      debugPrint(
-        '[Kohera] iOS audio opened (route=$route, '
-        'loadedDuration=$loadedDuration).',
-      );
-    } catch (e) {
-      debugPrint('[Kohera] iOS audio setFilePath failed (route=$route): $e');
-      rethrow;
-    }
-  }
-
-  @override
-  Future<void> openAsset(String assetPath) async {
-    _cancelSubs();
-    await _player?.dispose();
-    _deleteCafTemp();
-    _player = AudioPlayer();
-    _listen();
-    await _player!.setAsset(assetPath);
   }
 
   void _cancelSubs() {
@@ -166,14 +62,45 @@ class IosAudioPlayer implements MediaPlayer {
     _subs.clear();
   }
 
-  void _listen() {
-    final p = _player;
+  @override
+  Future<void> open(ResolvedMedia media) async {
+    await ensureMediaAudioSession();
+    _cancelSubs();
+    await _disposeCurrent();
+    _isOpus = _isOggOpus(media);
+    debugPrint(
+      '[Kohera] iOS audio open (route=${_isOpus ? 'ogg_opus_player' : 'just_audio'}).',
+    );
+    if (_isOpus) {
+      _opusPlayer = OggOpusPlayer(media.filePath!);
+      _opusPlayer!.state.addListener(_onOpusStateChanged);
+    } else {
+      _audioPlayer = AudioPlayer();
+      try {
+        await _audioPlayer!.setFilePath(media.filePath!);
+      } catch (e) {
+        debugPrint('[Kohera] iOS audio setFilePath failed: $e');
+        rethrow;
+      }
+      _listenJustAudio();
+    }
+  }
+
+  @override
+  Future<void> openAsset(String assetPath) async {
+    await ensureMediaAudioSession();
+    _cancelSubs();
+    await _disposeCurrent();
+    _isOpus = false;
+    _audioPlayer = AudioPlayer();
+    await _audioPlayer!.setAsset(assetPath);
+    _listenJustAudio();
+  }
+
+  void _listenJustAudio() {
+    final p = _audioPlayer;
     if (p == null) return;
     _subs.add(p.playerStateStream.listen((state) {
-      debugPrint(
-        '[Kohera] iOS audio playerState playing=${state.playing} '
-        'processing=${state.processingState}',
-      );
       if (_playingController.isClosed) return;
       _isPlaying = state.playing;
       _playingController.add(state.playing);
@@ -189,61 +116,126 @@ class IosAudioPlayer implements MediaPlayer {
       _durationController.add(d);
     }));
     _subs.add(p.processingStateStream.listen((state) async {
-      debugPrint('[Kohera] iOS audio processingState=$state');
       if (_completedController.isClosed) return;
       if (state == ProcessingState.completed) {
         _completedController.add(true);
-        await _player?.pause();
-        await _player?.seek(Duration.zero);
+        await _audioPlayer?.pause();
+        await _audioPlayer?.seek(Duration.zero);
       }
     }));
   }
 
+  void _onOpusStateChanged() {
+    final player = _opusPlayer;
+    if (player == null) return;
+    final state = player.state.value;
+    switch (state) {
+      case PlayerState.playing:
+        _isPlaying = true;
+        if (!_playingController.isClosed) _playingController.add(true);
+        _startOpusPositionPolling();
+      case PlayerState.paused:
+        _isPlaying = false;
+        if (!_playingController.isClosed) _playingController.add(false);
+        _stopOpusPositionPolling();
+      case PlayerState.ended:
+        _isPlaying = false;
+        if (!_playingController.isClosed) _playingController.add(false);
+        _stopOpusPositionPolling();
+        if (_loop) {
+          player.play();
+        } else if (!_completedController.isClosed) {
+          _completedController.add(true);
+        }
+      case PlayerState.error:
+      case PlayerState.idle:
+        _isPlaying = false;
+        if (!_playingController.isClosed) _playingController.add(false);
+        _stopOpusPositionPolling();
+    }
+  }
+
+  void _startOpusPositionPolling() {
+    _stopOpusPositionPolling();
+    _opusPositionTimer = Timer.periodic(
+      const Duration(milliseconds: 100),
+      (_) {
+        final player = _opusPlayer;
+        if (player == null || _positionController.isClosed) return;
+        final pos = Duration(milliseconds: (player.currentPosition * 1000).round());
+        _position = pos;
+        _positionController.add(pos);
+      },
+    );
+  }
+
+  void _stopOpusPositionPolling() {
+    _opusPositionTimer?.cancel();
+    _opusPositionTimer = null;
+  }
+
   @override
   Future<void> play() async {
-    debugPrint(
-      '[Kohera] iOS audio play() called '
-      '(duration=${_player?.duration}, volume=${_player?.volume}).',
-    );
-    try {
-      await _player?.play();
-    } catch (e) {
-      debugPrint('[Kohera] iOS audio play() threw: $e');
+    if (_isOpus) {
+      _opusPlayer?.play();
+    } else {
+      await _audioPlayer?.play();
     }
   }
 
   @override
-  Future<void> pause() => _player?.pause() ?? Future.value();
+  Future<void> pause() async {
+    if (_isOpus) {
+      _opusPlayer?.pause();
+    } else {
+      await _audioPlayer?.pause();
+    }
+  }
 
   @override
-  Future<void> stop() => _player?.stop() ?? Future.value();
+  Future<void> stop() async {
+    if (_isOpus) {
+      _opusPlayer?.pause();
+    } else {
+      await _audioPlayer?.stop();
+    }
+  }
 
   @override
-  Future<void> seek(Duration position) =>
-      _player?.seek(position) ?? Future.value();
+  Future<void> seek(Duration position) async {
+    if (!_isOpus) {
+      await _audioPlayer?.seek(position);
+    }
+  }
 
   @override
   void setLoopMode(bool loop) {
-    unawaited(_player?.setLoopMode(loop ? LoopMode.one : LoopMode.off));
+    _loop = loop;
+    if (!_isOpus) {
+      unawaited(_audioPlayer?.setLoopMode(loop ? LoopMode.one : LoopMode.off));
+    }
   }
 
-  void _deleteCafTemp() {
-    if (_cafTempPath != null) {
-      try {
-        File(_cafTempPath!).deleteSync();
-      } catch (_) {}
-      _cafTempPath = null;
+  Future<void> _disposeCurrent() async {
+    _stopOpusPositionPolling();
+    if (_opusPlayer != null) {
+      _opusPlayer!.state.removeListener(_onOpusStateChanged);
+      _opusPlayer!.dispose();
+      _opusPlayer = null;
+    }
+    if (_audioPlayer != null) {
+      await _audioPlayer!.dispose();
+      _audioPlayer = null;
     }
   }
 
   @override
   Future<void> dispose() async {
     _cancelSubs();
-    await _player?.dispose();
+    await _disposeCurrent();
     await _playingController.close();
     await _positionController.close();
     await _durationController.close();
     await _completedController.close();
-    _deleteCafTemp();
   }
 }
