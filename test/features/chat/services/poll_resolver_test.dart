@@ -107,7 +107,7 @@ void main() {
       );
       final timeline = _emptyTimeline(r'$p1');
 
-      final poll = const PollResolver()(event, timeline, myUserId: '@me:example.com');
+      final poll = const PollResolver()(event, timeline, myUserId: '@me:example.com', canRedact: false);
 
       expect(poll.kind, KoheraPollKind.disclosed);
       expect(poll.ended, isFalse);
@@ -115,6 +115,7 @@ void main() {
       expect(poll.answers.map((a) => a.label), ['Yes', 'No']);
       expect(poll.tallies, {'a1': 0, 'a2': 0});
       expect(poll.responseCount, 0);
+      expect(poll.canEnd, isFalse);
     });
 
     test('undisclosed open poll hides tally', () {
@@ -127,13 +128,14 @@ void main() {
       );
       final timeline = _emptyTimeline(r'$p2');
 
-      final poll = const PollResolver()(event, timeline, myUserId: '@me:example.com');
+      final poll = const PollResolver()(event, timeline, myUserId: '@me:example.com', canRedact: false);
 
       expect(poll.kind, KoheraPollKind.undisclosed);
       expect(poll.ended, isFalse);
       expect(poll.showsTally, isFalse);
       expect(poll.tallies, {'a1': 0, 'a2': 0});
       expect(poll.responseCount, 0);
+      expect(poll.canEnd, isFalse);
     });
 
     test('mySelections reflects the current user latest response', () {
@@ -161,11 +163,50 @@ void main() {
         event,
         timeline,
         myUserId: '@me:example.com',
+        canRedact: false,
       );
 
       expect(poll.mySelections, {'a2'});
       expect(poll.tallies, {'a1': 0, 'a2': 1});
       expect(poll.responseCount, 1);
+      expect(poll.canEnd, isFalse);
+    });
+
+    test('canEnd is true for the creator and when redact power is held', () {
+      // Creator is the current user.
+      final creatorEvent = _startEvent(
+        eventId: r'$p4',
+        content: _pollContent(
+          question: 'Owner poll?',
+          answers: answers,
+          kind: PollKind.disclosed,
+        ),
+        senderId: '@me:example.com',
+      );
+      final creatorPoll = const PollResolver()(
+        creatorEvent,
+        _emptyTimeline(r'$p4'),
+        myUserId: '@me:example.com',
+        canRedact: false,
+      );
+      expect(creatorPoll.canEnd, isTrue);
+
+      // Non-creator with redact power.
+      final redactEvent = _startEvent(
+        eventId: r'$p5',
+        content: _pollContent(
+          question: 'Mod poll?',
+          answers: answers,
+          kind: PollKind.disclosed,
+        ),
+      );
+      final redactPoll = const PollResolver()(
+        redactEvent,
+        _emptyTimeline(r'$p5'),
+        myUserId: '@me:example.com',
+        canRedact: true,
+      );
+      expect(redactPoll.canEnd, isTrue);
     });
   });
 }

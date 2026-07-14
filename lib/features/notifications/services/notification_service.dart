@@ -290,7 +290,9 @@ class NotificationService {
     // If any event is from the current user, they're active in this room —
     // clear any existing notification and stop processing.
     final hasOwnMessage = events.any((e) =>
-        (e.type == EventTypes.Message || e.type == EventTypes.Encrypted) &&
+        (e.type == EventTypes.Message ||
+            e.type == EventTypes.Encrypted ||
+            e.type == PollEventContent.startType) &&
         e.senderId == client.userID,);
     if (hasOwnMessage) {
       await cancelForRoom(roomId);
@@ -319,8 +321,10 @@ class NotificationService {
     final notifiable = <(String senderName, String body, Uri? avatarUrl)>[];
 
     for (final matrixEvent in events) {
+      final isPollStart = matrixEvent.type == PollEventContent.startType;
       if (matrixEvent.type != EventTypes.Message &&
-          matrixEvent.type != EventTypes.Encrypted) {
+          matrixEvent.type != EventTypes.Encrypted &&
+          !isPollStart) {
         continue;
       }
 
@@ -329,6 +333,10 @@ class NotificationService {
 
       if (matrixEvent.type == EventTypes.Encrypted) {
         body = await _tryDecrypt(room, event);
+      } else if (isPollStart) {
+        final question =
+            event.parsedPollEventContent.pollStartContent.question.mText;
+        body = question.isEmpty ? '📊 Poll' : '📊 Poll: $question';
       } else {
         body = event.body;
       }

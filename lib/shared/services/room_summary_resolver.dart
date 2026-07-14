@@ -49,6 +49,11 @@ class RoomSummaryResolver {
   /// Replicates the last-event preview logic from RoomTile._lastMessagePreview.
   String _lastEventPreview(Event? event, Room room, String? myUserId) {
     if (event == null) return 'No messages yet';
+    if (event.type == PollEventContent.startType) {
+      final question =
+          event.parsedPollEventContent.pollStartContent.question.mText;
+      return question.isEmpty ? '📊 Poll' : '📊 Poll: $question';
+    }
     if (event.type == kCallInvite) return 'Call in progress';
     if (event.type == kCallMember ||
         event.type == kCallMemberMsc ||

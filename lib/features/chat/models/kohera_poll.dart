@@ -37,6 +37,7 @@ class KoheraPoll {
     required this.responseCount,
     required this.tallies,
     required this.mySelections,
+    required this.canEnd,
   });
 
   final String question;
@@ -63,6 +64,13 @@ class KoheraPoll {
   /// `Event.getPollResponses(timeline)[myUserId]`. Empty when the user has
   /// not voted (or retracted).
   final Set<String> mySelections;
+
+  /// Whether the current user is allowed to end this poll.
+  ///
+  /// True when the user is the poll creator (`event.senderId == myUserId`)
+  /// or holds redact power in the room. The SDK enforces this server-side;
+  /// this flag only gates the UI affordance.
+  final bool canEnd;
 
   /// Whether the running tally should be rendered.
   ///

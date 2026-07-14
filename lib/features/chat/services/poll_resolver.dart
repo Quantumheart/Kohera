@@ -9,7 +9,8 @@ import 'package:matrix/matrix.dart';
 class PollResolver {
   const PollResolver();
 
-  KoheraPoll call(Event event, Timeline timeline, {required String myUserId}) {
+  KoheraPoll call(Event event, Timeline timeline,
+      {required String myUserId, required bool canRedact}) {
     assert(event.type == PollEventContent.startType, 'PollResolver requires a poll-start event');
 
     final content = event.parsedPollEventContent.pollStartContent;
@@ -49,6 +50,7 @@ class PollResolver {
       responseCount: responseCount,
       tallies: tallies,
       mySelections: mySelections,
+      canEnd: event.senderId == myUserId || canRedact,
     );
   }
 }

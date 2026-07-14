@@ -21,6 +21,7 @@ class PollMessageItem extends StatefulWidget {
     required this.isMe,
     required this.isFirst,
     this.onVote,
+    this.onEnd,
     super.key,
   });
 
@@ -31,6 +32,10 @@ class PollMessageItem extends StatefulWidget {
   /// Called with the full new answer-id list when the user changes their
   /// selection. `null` (or the poll being ended) disables interaction.
   final void Function(List<String> answerIds)? onVote;
+
+  /// Called when the user ends the poll. Only invoked when [KoheraPoll.canEnd]
+  /// is true and the poll has not already ended. `null` hides the affordance.
+  final Future<void> Function()? onEnd;
 
   @override
   State<PollMessageItem> createState() => _PollMessageItemState();
@@ -55,6 +60,9 @@ class _PollMessageItemState extends State<PollMessageItem> {
 
   bool get _interactive => !widget.poll.ended && widget.onVote != null;
 
+  bool get _canEnd =>
+      widget.onEnd != null && widget.poll.canEnd && !widget.poll.ended;
+
   void _tap(String answerId) {
     if (!_interactive) return;
     final next = computeNextSelection(
@@ -67,6 +75,18 @@ class _PollMessageItemState extends State<PollMessageItem> {
     widget.onVote!.call(next);
   }
 
+  bool _ending = false;
+
+  Future<void> _endPoll() async {
+    if (_ending || !_canEnd) return;
+    setState(() => _ending = true);
+    try {
+      await widget.onEnd!();
+    } finally {
+      if (mounted) setState(() => _ending = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final density = context.watch<PreferencesService>().messageDensity;
@@ -75,7 +95,10 @@ class _PollMessageItemState extends State<PollMessageItem> {
       poll: widget.poll,
       selections: _selections,
       interactive: _interactive,
+      canEnd: _canEnd,
+      ending: _ending,
       onTap: _tap,
+      onEnd: _endPoll,
     );
 
     return Align(
@@ -121,13 +144,19 @@ class _PollBody extends StatelessWidget {
     required this.poll,
     required this.selections,
     required this.interactive,
+    required this.canEnd,
+    required this.ending,
     required this.onTap,
+    required this.onEnd,
   });
 
   final KoheraPoll poll;
   final Set<String> selections;
   final bool interactive;
+  final bool canEnd;
+  final bool ending;
   final void Function(String answerId) onTap;
+  final Future<void> Function() onEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -177,6 +206,43 @@ class _PollBody extends StatelessWidget {
           Text(
             '${poll.responseCount} ${poll.responseCount == 1 ? "vote" : "votes"}',
             style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+          ),
+        if (poll.ended)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              'Final results',
+              style: tt.labelSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+          )
+        else if (canEnd)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: ending ? null : onEnd,
+                icon: ending
+                    ? SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: cs.primary,
+                        ),
+                      )
+                    : const Icon(Icons.stop_circle_outlined, size: 16),
+                label: const Text('End poll'),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: const Size(0, 28),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ),
           ),
       ],
     );
