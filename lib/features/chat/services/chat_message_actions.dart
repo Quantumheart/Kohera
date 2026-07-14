@@ -228,4 +228,39 @@ class ChatMessageActions {
       );
     }
   }
+
+  /// Ends the MSC3381 poll whose start event has [eventId].
+  ///
+  /// The SDK (`Event.endPoll`) enforces that only the poll creator or a user
+  /// with redact power may end the poll; the UI gates the action upstream
+  /// via `KoheraPoll.canEnd`, so no extra permission check is needed here.
+  Future<void> endPoll(String eventId) async {
+    final timeline = getTimeline();
+    final scaffold = getScaffold();
+    if (timeline == null) return;
+
+    Event? event;
+    for (final e in timeline.events) {
+      if (e.eventId == eventId) {
+        event = e;
+        break;
+      }
+    }
+    if (event == null) {
+      debugPrint('[Kohera] Poll start event not found in timeline: $eventId');
+      return;
+    }
+
+    try {
+      await event.endPoll();
+    } catch (e) {
+      debugPrint('[Kohera] Failed to end poll: $e');
+      scaffold.showSnackBar(
+        SnackBar(
+          content:
+              Text('Failed to end poll: ${MatrixService.friendlyAuthError(e)}'),
+        ),
+      );
+    }
+  }
 }

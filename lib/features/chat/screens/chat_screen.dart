@@ -1134,6 +1134,8 @@ class _ChatScreenState extends State<ChatScreen>
                 onStickerMobileActions: _showStickerMobileActions,
                 onVotePoll: (eventId, answerIds) =>
                     unawaited(_actions.votePoll(eventId, answerIds)),
+                onEndPoll: (eventId) =>
+                    _actions.endPoll(eventId),
               ),
               if (_emojiPanelOpen) ...[
                 Positioned.fill(
