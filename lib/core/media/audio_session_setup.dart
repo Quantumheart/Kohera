@@ -13,7 +13,8 @@ Future<void> ensureMediaAudioSession() async {
   _configured = true;
   try {
     final session = await AudioSession.instance;
-    await session.configure(const AudioSessionConfiguration.speech());
+    await session.configure(const AudioSessionConfiguration.music());
+    await session.setActive(true);
   } catch (e) {
     debugPrint('[Kohera] audio session config failed: $e');
   }

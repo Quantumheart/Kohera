@@ -170,6 +170,10 @@ class IosAudioPlayer implements MediaPlayer {
     final p = _player;
     if (p == null) return;
     _subs.add(p.playerStateStream.listen((state) {
+      debugPrint(
+        '[Kohera] iOS audio playerState playing=${state.playing} '
+        'processing=${state.processingState}',
+      );
       if (_playingController.isClosed) return;
       _isPlaying = state.playing;
       _playingController.add(state.playing);
@@ -196,7 +200,17 @@ class IosAudioPlayer implements MediaPlayer {
   }
 
   @override
-  Future<void> play() => _player?.play() ?? Future.value();
+  Future<void> play() async {
+    debugPrint(
+      '[Kohera] iOS audio play() called '
+      '(duration=${_player?.duration}, volume=${_player?.volume}).',
+    );
+    try {
+      await _player?.play();
+    } catch (e) {
+      debugPrint('[Kohera] iOS audio play() threw: $e');
+    }
+  }
 
   @override
   Future<void> pause() => _player?.pause() ?? Future.value();
