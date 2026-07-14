@@ -13,6 +13,7 @@ KoheraPoll _poll({
   Set<String> mySelections = const {},
   Map<String, int> tallies = const {},
   int responseCount = 0,
+  bool canEnd = false,
 }) {
   return KoheraPoll(
     question: 'Tea or coffee?',
@@ -27,12 +28,14 @@ KoheraPoll _poll({
     responseCount: responseCount,
     tallies: tallies,
     mySelections: mySelections,
+    canEnd: canEnd,
   );
 }
 
 Widget _harness(
   KoheraPoll poll, {
   void Function(List<String> answerIds)? onVote,
+  Future<void> Function()? onEnd,
 }) {
   return MaterialApp(
     theme: KoheraTheme.light(),
@@ -44,6 +47,7 @@ Widget _harness(
           isMe: false,
           isFirst: true,
           onVote: onVote,
+          onEnd: onEnd,
         ),
       ),
     ),
@@ -154,5 +158,50 @@ void main() {
 
     expect(find.byIcon(Icons.check_circle), findsOneWidget);
     expect(find.byIcon(Icons.radio_button_unchecked), findsNWidgets(2));
+  });
+
+  testWidgets('shows End poll button when canEnd and not ended',
+      (tester) async {
+    await tester.pumpWidget(_harness(
+      _poll(canEnd: true),
+      onEnd: () async {},
+    ));
+
+    expect(find.text('End poll'), findsOneWidget);
+  });
+
+  testWidgets('hides End poll button when canEnd is false', (tester) async {
+    await tester.pumpWidget(_harness(
+      _poll(),
+      onEnd: () async {},
+    ));
+
+    expect(find.text('End poll'), findsNothing);
+  });
+
+  testWidgets('hides End poll button and shows Final results when ended',
+      (tester) async {
+    await tester.pumpWidget(_harness(
+      _poll(ended: true, canEnd: true),
+      onEnd: () async {},
+    ));
+
+    expect(find.text('End poll'), findsNothing);
+    expect(find.text('Final results'), findsOneWidget);
+  });
+
+  testWidgets('tapping End poll fires onEnd', (tester) async {
+    var ended = false;
+    await tester.pumpWidget(_harness(
+      _poll(canEnd: true),
+      onEnd: () async {
+        ended = true;
+      },
+    ));
+
+    await tester.tap(find.text('End poll'));
+    await tester.pump();
+
+    expect(ended, isTrue);
   });
 }

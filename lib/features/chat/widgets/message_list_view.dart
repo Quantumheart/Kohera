@@ -48,6 +48,7 @@ class MessageListView extends StatefulWidget {
     this.onStickerContextMenu,
     this.onStickerMobileActions,
     this.onVotePoll,
+    this.onEndPoll,
     super.key,
   });
 
@@ -96,6 +97,10 @@ class MessageListView extends StatefulWidget {
   /// Called with the full new answer-id list when the user changes their
   /// poll selection in a poll bubble.
   final void Function(String eventId, List<String> answerIds)? onVotePoll;
+
+  /// Called when the user taps the "End poll" affordance on a poll bubble
+  /// they are allowed to end. Resolves to `ChatMessageActions.endPoll`.
+  final Future<void> Function(String eventId)? onEndPoll;
 
   @override
   State<MessageListView> createState() => MessageListViewState();
@@ -401,6 +406,9 @@ class MessageListViewState extends State<MessageListView> {
       onVote: widget.onVotePoll == null
           ? null
           : (answerIds) => widget.onVotePoll!(data.eventId, answerIds),
+      onEnd: widget.onEndPoll == null
+          ? null
+          : () => widget.onEndPoll!(data.eventId),
     );
   }
 
