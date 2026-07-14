@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:kohera/core/media/media_player_factory.dart';
+import 'package:kohera/core/media/video_media_player.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/core/utils/media_cache.dart';
@@ -9,8 +11,6 @@ import 'package:kohera/features/chat/services/media_playback_service.dart';
 import 'package:kohera/features/chat/widgets/full_video_view.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/services/media_controller.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
 import 'package:provider/provider.dart';
 
 
@@ -42,8 +42,7 @@ class _VideoBubbleState extends State<VideoBubble> {
   _VideoState _state = _VideoState.initial;
   Uint8List? _thumbBytes;
   String? _thumbUrl;
-  Player? _player;
-  VideoController? _controller;
+  VideoMediaPlayer? _player;
   bool _isPlaying = false;
   late final MediaPlaybackService _playbackService;
   final List<StreamSubscription<dynamic>> _subs = [];
@@ -117,18 +116,17 @@ class _VideoBubbleState extends State<VideoBubble> {
       final media = await MediaCache.resolve(widget.controller);
       if (!mounted) return;
 
-      _player = Player();
-      _controller = VideoController(_player!);
+      _player = MediaPlayerFactory.createVideo();
 
-      _subs.add(_player!.stream.playing.listen((playing) {
+      _subs.add(_player!.onPlayingChanged.listen((playing) {
         if (mounted) setState(() => _isPlaying = playing);
-      }),);
-      _subs.add(_player!.stream.completed.listen((completed) {
+      }));
+      _subs.add(_player!.onCompleted.listen((completed) {
         if (completed && mounted) {
           unawaited(_player!.seek(Duration.zero));
           unawaited(_player!.pause());
         }
-      }),);
+      }));
 
       await _player!.open(media);
       if (!mounted) return;
@@ -151,19 +149,17 @@ class _VideoBubbleState extends State<VideoBubble> {
     _subs.clear();
     if (_player != null) unawaited(_player!.dispose());
     _player = null;
-    _controller = null;
     unawaited(_initPlayer());
   }
 
   void _openFullscreen() {
-    if (_player == null || _controller == null) return;
+    if (_player == null) return;
     showFullVideoDialog(
       context,
       media: widget.media,
       mediaController: widget.controller,
       avatarResolver: widget.avatarResolver,
       player: _player!,
-      controller: _controller!,
     );
   }
 
@@ -177,7 +173,7 @@ class _VideoBubbleState extends State<VideoBubble> {
       return _buildFileFallback(foreground, tt);
     }
 
-    if (_state == _VideoState.playing && _controller != null) {
+    if (_state == _VideoState.playing && _player != null) {
       return _buildInlinePlayer(cs);
     }
 
@@ -281,44 +277,42 @@ class _VideoBubbleState extends State<VideoBubble> {
       borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 280, maxHeight: 260),
-        child: Video(
-          controller: _controller!,
-          controls: (state) => GestureDetector(
-            onTap: _togglePlayPause,
-            behavior: HitTestBehavior.opaque,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                const SizedBox.expand(),
-                if (!_isPlaying)
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      shape: BoxShape.circle,
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    child: const Icon(
-                      Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 32,
-                    ),
+        child: GestureDetector(
+          onTap: _togglePlayPause,
+          behavior: HitTestBehavior.opaque,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const SizedBox.expand(),
+              Positioned.fill(child: _player!.buildView()),
+              if (!_isPlaying)
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    shape: BoxShape.circle,
                   ),
-                Positioned(
-                  top: 6,
-                  right: 6,
-                  child: IconButton.filled(
-                    onPressed: _openFullscreen,
-                    icon: const Icon(Icons.fullscreen_rounded, size: 20),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.black.withValues(alpha: 0.5),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.all(4),
-                      minimumSize: const Size(32, 32),
-                    ),
+                  padding: const EdgeInsets.all(12),
+                  child: const Icon(
+                    Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 32,
                   ),
                 ),
-              ],
-            ),
+              Positioned(
+                top: 6,
+                right: 6,
+                child: IconButton.filled(
+                  onPressed: _openFullscreen,
+                  icon: const Icon(Icons.fullscreen_rounded, size: 20),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black.withValues(alpha: 0.5),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.all(4),
+                    minimumSize: const Size(32, 32),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

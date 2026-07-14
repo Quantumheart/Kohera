@@ -13,8 +13,6 @@ PODS:
     - Flutter
     - flutter_webrtc
     - WebRTC-SDK (= 144.7559.01)
-  - media_kit_libs_ios_video (1.0.4):
-    - Flutter
   - media_kit_video (0.0.1):
     - Flutter
   - permission_handler_apple (9.3.0):
@@ -30,7 +28,6 @@ DEPENDENCIES:
   - flutter_vodozemac (from `.symlinks/plugins/flutter_vodozemac/ios`)
   - flutter_webrtc (from `.symlinks/plugins/flutter_webrtc/ios`)
   - livekit_client (from `.symlinks/plugins/livekit_client/ios`)
-  - media_kit_libs_ios_video (from `.symlinks/plugins/media_kit_libs_ios_video/ios`)
   - media_kit_video (from `.symlinks/plugins/media_kit_video/ios`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - webcrypto (from `.symlinks/plugins/webcrypto/darwin`)
@@ -51,8 +48,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/flutter_webrtc/ios"
   livekit_client:
     :path: ".symlinks/plugins/livekit_client/ios"
-  media_kit_libs_ios_video:
-    :path: ".symlinks/plugins/media_kit_libs_ios_video/ios"
   media_kit_video:
     :path: ".symlinks/plugins/media_kit_video/ios"
   permission_handler_apple:
@@ -63,16 +58,15 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   CryptoSwift: e2e7776512f250e66205955da748e7a4e4abffe0
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_callkit_incoming: cb8138af67cda6dd981f7101a5d709003af21502
-  flutter_vodozemac: 46015daf07988356d46784d05ab0c7afca00ff36
-  flutter_webrtc: ec91d94b484ad49cf191ef93413f64a40ffd3b4c
-  livekit_client: 9b9a08c5c78f694ac6a9e70c1c269704ba574b73
-  media_kit_libs_ios_video: 5a18affdb97d1f5d466dc79988b13eff6c5e2854
-  media_kit_video: 1746e198cb697d1ffb734b1d05ec429d1fcd1474
-  permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
-  webcrypto: a5f5eb3e375cf0a99993e207e97cdcab5c94ce2e
+  flutter_callkit_incoming: 417dd1b46541cdd5d855ad795ccbe97d1c18155e
+  flutter_vodozemac: a13abe22ea9e3c4a518c88b0e91288ef7726e372
+  flutter_webrtc: 5aa37bfb8b834bff989a03182d1c4266a4f93377
+  livekit_client: e3c4fe5a12a8b70841db479ddf45e0a4e88d68c4
+  media_kit_video: 26c5b265a4094a2df3e8d41e6724d9b964c13151
+  permission_handler_apple: 9878588469a2b0d0fc1e048d9f43605f92e6cec2
+  webcrypto: aa788ff6b0a956e5d6e613b35b99c13e220ca2d0
   WebRTC-SDK: ab9b5319e458c2bfebdc92b3600740da35d5630d
 
 PODFILE CHECKSUM: cdc04c4a97433c1a4d9dbd755a1cc6c60e8c2b30
 
-COCOAPODS: 1.16.2
+COCOAPODS: 1.17.0

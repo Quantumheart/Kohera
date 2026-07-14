@@ -2,29 +2,30 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:media_kit/media_kit.dart';
+import 'package:kohera/core/media/media_player.dart';
+import 'package:kohera/core/media/media_player_factory.dart';
 
 // coverage:ignore-start
 class RingtoneService {
-  Player? _player;
+  MediaPlayer? _player;
 
-  Player _ensurePlayer() => _player ??= Player();
+  MediaPlayer _ensurePlayer() => _player ??= MediaPlayerFactory.createAudio();
 
   Future<void> playRingtone({bool loop = true}) async {
     await stop();
-    await _ensurePlayer().open(Media('asset:///assets/audio/ringtone.mp3'));
-    if (loop) {
-      await _player!.setPlaylistMode(PlaylistMode.loop);
-    }
+    final player = _ensurePlayer();
+    await player.openAsset('assets/audio/ringtone.mp3');
+    if (loop) player.setLoopMode(true);
+    await player.play();
     if (!kIsWeb) unawaited(HapticFeedback.mediumImpact().catchError((_) {}));
   }
 
   Future<void> playDialtone({bool loop = true}) async {
     await stop();
-    await _ensurePlayer().open(Media('asset:///assets/audio/dialtone.mp3'));
-    if (loop) {
-      await _player!.setPlaylistMode(PlaylistMode.loop);
-    }
+    final player = _ensurePlayer();
+    await player.openAsset('assets/audio/dialtone.mp3');
+    if (loop) player.setLoopMode(true);
+    await player.play();
   }
 
   Future<void> stop() async {
@@ -35,33 +36,37 @@ class RingtoneService {
 
   // ── PTT sounds ──────────────────────────────────────────────
 
-  Player? _pttPlayer;
+  MediaPlayer? _pttPlayer;
 
-  Player _ensurePttPlayer() => _pttPlayer ??= Player();
+  MediaPlayer _ensurePttPlayer() =>
+      _pttPlayer ??= MediaPlayerFactory.createAudio();
 
   Future<void> playPTTOn() async {
-    await _ensurePttPlayer().open(Media('asset:///assets/audio/ptt_on.mp3'));
+    await _ensurePttPlayer().openAsset('assets/audio/ptt_on.mp3');
+    unawaited(_pttPlayer?.play());
   }
 
   Future<void> playPTTOff() async {
-    await _ensurePttPlayer().open(Media('asset:///assets/audio/ptt_off.mp3'));
+    await _ensurePttPlayer().openAsset('assets/audio/ptt_off.mp3');
+    unawaited(_pttPlayer?.play());
   }
 
   // ── Participant join/leave sounds ──────────────────────────
 
-  final List<Player?> _participantPlayers = [null, null];
+  final List<MediaPlayer?> _participantPlayers = [null, null];
   int _participantPlayerIndex = 0;
 
-  Player _nextParticipantPlayer() {
+  MediaPlayer _nextParticipantPlayer() {
     final idx = _participantPlayerIndex;
     _participantPlayerIndex = (idx + 1) % _participantPlayers.length;
-    return _participantPlayers[idx] ??= Player();
+    return _participantPlayers[idx] ??= MediaPlayerFactory.createAudio();
   }
 
   Future<void> playUserJoined() async {
     try {
-      await _nextParticipantPlayer()
-          .open(Media('asset:///assets/audio/user_join.mp3'));
+      final player = _nextParticipantPlayer();
+      await player.openAsset('assets/audio/user_join.mp3');
+      unawaited(player.play());
     } catch (e) {
       debugPrint('[Kohera] playUserJoined failed: $e');
     }
@@ -69,8 +74,9 @@ class RingtoneService {
 
   Future<void> playUserLeft() async {
     try {
-      await _nextParticipantPlayer()
-          .open(Media('asset:///assets/audio/user_leave.mp3'));
+      final player = _nextParticipantPlayer();
+      await player.openAsset('assets/audio/user_leave.mp3');
+      unawaited(player.play());
     } catch (e) {
       debugPrint('[Kohera] playUserLeft failed: $e');
     }

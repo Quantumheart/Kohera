@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:kohera/core/media/media_player.dart';
+import 'package:kohera/core/media/media_player_factory.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/core/utils/media_cache.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
 import 'package:kohera/shared/services/media_controller.dart';
-import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 
 
@@ -36,7 +37,7 @@ enum _AudioState { initial, loading, ready, error }
 
 class _AudioBubbleState extends State<AudioBubble> {
   _AudioState _state = _AudioState.initial;
-  Player? _player;
+  MediaPlayer? _player;
   bool _playing = false;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
@@ -83,24 +84,24 @@ class _AudioBubbleState extends State<AudioBubble> {
       final media = await MediaCache.resolve(widget.controller);
       if (!mounted) return;
 
-      _player = Player();
-      _subs.add(_player!.stream.playing.listen((playing) {
+      _player = MediaPlayerFactory.createAudio();
+      _subs.add(_player!.onPlayingChanged.listen((playing) {
         if (mounted) setState(() => _playing = playing);
-      }),);
-      _subs.add(_player!.stream.position.listen((pos) {
+      }));
+      _subs.add(_player!.onPositionChanged.listen((pos) {
         if (mounted) setState(() => _position = pos);
-      }),);
-      _subs.add(_player!.stream.duration.listen((dur) {
+      }));
+      _subs.add(_player!.onDurationChanged.listen((dur) {
         if (mounted) setState(() => _duration = dur);
-      }),);
-      _subs.add(_player!.stream.completed.listen((completed) {
+      }));
+      _subs.add(_player!.onCompleted.listen((completed) {
         if (completed && mounted) {
           setState(() {
             _playing = false;
             _position = Duration.zero;
           });
         }
-      }),);
+      }));
 
       await _player!.open(media);
       if (!mounted) return;
@@ -130,7 +131,9 @@ class _AudioBubbleState extends State<AudioBubble> {
   }
 
   void _seek(double fraction) {
-    if (_player == null || _duration == Duration.zero) return;
+    if (_player == null || !_player!.canSeek || _duration == Duration.zero) {
+      return;
+    }
     final target = Duration(
       milliseconds: (fraction * _duration.inMilliseconds).round(),
     );
@@ -177,10 +180,14 @@ class _AudioBubbleState extends State<AudioBubble> {
                       _seek((dx / box.size.width).clamp(0.0, 1.0));
                     }
 
+                    final canSeek = _player?.canSeek == true;
                     return GestureDetector(
-                      onTapDown: (d) => seekFromOffset(d.localPosition.dx),
-                      onHorizontalDragUpdate: (d) =>
-                          seekFromOffset(d.localPosition.dx),
+                      onTapDown: canSeek
+                          ? (d) => seekFromOffset(d.localPosition.dx)
+                          : null,
+                      onHorizontalDragUpdate: canSeek
+                          ? (d) => seekFromOffset(d.localPosition.dx)
+                          : null,
                       child: CustomPaint(
                         size: const Size(double.infinity, 32),
                         painter: _WaveformPainter(

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/app_router.dart';
@@ -14,6 +15,7 @@ import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/theme/kohera_theme.dart';
 import 'package:kohera/core/theme/theme_presets.dart';
+import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/core/utils/vodozemac_init.dart';
 import 'package:kohera/features/auth/services/sso_web_init.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -64,7 +66,9 @@ class _KoheraAppState extends State<KoheraApp> {
     // Keep the branded splash up long enough for its growth animation to play.
     final minSplash = Future<void>.delayed(const Duration(seconds: 3));
     try {
-      MediaKit.ensureInitialized();
+      if (kIsWeb || isNativeDesktop) {
+        MediaKit.ensureInitialized();
+      }
 
       final prefs = PreferencesService();
       await Future.wait([initVodozemac(), AppConfig.load(), prefs.init()]);
