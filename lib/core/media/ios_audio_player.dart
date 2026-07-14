@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart' hide PlayerState;
+import 'package:kohera/core/media/audio_session_setup.dart';
 import 'package:kohera/core/media/media_player.dart';
 import 'package:kohera/core/media/resolved_media.dart';
 import 'package:ogg_caf_converter/ogg_caf_converter.dart';
@@ -118,6 +119,7 @@ class IosAudioPlayer implements MediaPlayer {
 
   @override
   Future<void> open(ResolvedMedia media) async {
+    await ensureMediaAudioSession();
     _cancelSubs();
     await _player?.dispose();
     _deleteCafTemp();
@@ -125,14 +127,26 @@ class IosAudioPlayer implements MediaPlayer {
     _listen();
     final path = media.filePath!;
     var playPath = path;
+    final route = _isOggOpus(media) ? 'ogg->caf' : 'direct';
     if (_isOggOpus(media)) {
       final cafPath = await _toCaf(path);
       if (cafPath != null) {
         _cafTempPath = cafPath;
         playPath = cafPath;
+      } else {
+        debugPrint('[Kohera] iOS audio: CAF remux skipped, playing original.');
       }
     }
-    await _player!.setFilePath(playPath);
+    try {
+      final loadedDuration = await _player!.setFilePath(playPath);
+      debugPrint(
+        '[Kohera] iOS audio opened (route=$route, '
+        'loadedDuration=$loadedDuration).',
+      );
+    } catch (e) {
+      debugPrint('[Kohera] iOS audio setFilePath failed (route=$route): $e');
+      rethrow;
+    }
   }
 
   @override
@@ -171,6 +185,7 @@ class IosAudioPlayer implements MediaPlayer {
       _durationController.add(d);
     }));
     _subs.add(p.processingStateStream.listen((state) async {
+      debugPrint('[Kohera] iOS audio processingState=$state');
       if (_completedController.isClosed) return;
       if (state == ProcessingState.completed) {
         _completedController.add(true);

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:just_audio/just_audio.dart';
+import 'package:kohera/core/media/audio_session_setup.dart';
 import 'package:kohera/core/media/media_player.dart';
 import 'package:kohera/core/media/resolved_media.dart';
 
@@ -42,6 +43,7 @@ class AndroidAudioPlayer implements MediaPlayer {
 
   @override
   Future<void> open(ResolvedMedia media) async {
+    await ensureMediaAudioSession();
     await _player.setFilePath(media.filePath!);
   }
 
