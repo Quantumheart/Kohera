@@ -103,13 +103,10 @@ class _AudioBubbleState extends State<AudioBubble> {
         }
       }),);
 
+      _playbackService.registerPlayer(widget.controller.eventId, _player!);
       await _player!.open(media);
       if (!mounted) return;
 
-      _playbackService.registerPlayer(
-            widget.controller.eventId,
-            _player!,
-          );
       setState(() => _state = _AudioState.ready);
     } catch (e) {
       debugPrint('[Kohera] Audio playback failed: $e');
