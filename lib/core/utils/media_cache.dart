@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:kohera/core/media/kohera_media_source.dart';
 import 'package:kohera/core/utils/media_cache_io.dart'
     if (dart.library.js_interop) 'package:kohera/core/utils/media_cache_web.dart';
+import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/shared/services/media_controller.dart';
+import 'package:ogg_caf_converter/ogg_caf_converter.dart';
 import 'package:path_provider/path_provider.dart';
 
 // ── Media cache (download/decrypt → temp file or memory) ──────
@@ -35,10 +37,36 @@ class MediaCache {
     final path = '${dir.path}/kohera_media_$sanitized$ext';
     final file = File(path);
     await file.writeAsBytes(bytes);
-    _tempFiles[eventId] = path;
+    final playablePath = await _ensureIosPlayable(path, mimetype);
+    _tempFiles[eventId] = playablePath;
     _evictOldest();
-    return KoheraFileSource(path);
+    return KoheraFileSource(playablePath);
   }
+
+  // ── iOS Opus handling ───────────────────────────────────────
+  // iOS AVPlayer cannot decode Ogg/Opus. Remux Ogg/Opus to CAF/Opus (CAF is
+  // AVPlayer-supported on iOS 11+) so just_audio can play voice messages.
+  // Falls back to the original path if the input is not valid Ogg/Opus.
+  static Future<String> _ensureIosPlayable(String path, String? mime) async {
+    if (!isNativeIOS || !_isOggOpus(mime)) return path;
+    final cafPath = path.replaceAll(_oggOpusExt, '.caf');
+    try {
+      await OggCafConverter().convertOggToCaf(
+        input: path,
+        output: cafPath,
+        deleteInput: true,
+      );
+      return cafPath;
+    } catch (e) {
+      debugPrint('[Kohera] iOS Ogg to CAF remux failed, using original: $e');
+      return path;
+    }
+  }
+
+  static bool _isOggOpus(String? mime) =>
+      mime == 'audio/ogg' || mime == 'audio/opus';
+
+  static final RegExp _oggOpusExt = RegExp(r'\.(ogg|opus)$');
 
   static String _extensionForMime(String? mime) {
     if (mime == null) return '';
