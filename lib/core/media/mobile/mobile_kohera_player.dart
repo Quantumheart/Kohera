@@ -13,10 +13,14 @@ class MobileKoheraPlayer implements KoheraPlayer {
 
   final AudioPlayer _audio;
   bool _loop = false;
+  File? _tempFile;
 
   @override
   Future<void> open(KoheraMediaSource source) async {
-    await _audio.setAudioSource(await _toAudioSource(source));
+    _deleteTempFile();
+    final sourceResult = await _toAudioSource(source);
+    _tempFile = sourceResult.tempFile;
+    await _audio.setAudioSource(sourceResult.audioSource);
     await _audio.setLoopMode(_loop ? LoopMode.one : LoopMode.off);
     unawaited(_audio.play());
   }
@@ -61,20 +65,40 @@ class MobileKoheraPlayer implements KoheraPlayer {
       .map((_) => true);
 
   @override
-  Future<void> dispose() => _audio.dispose();
+  Future<void> dispose() async {
+    await _audio.dispose();
+    _deleteTempFile();
+  }
 
-  Future<AudioSource> _toAudioSource(KoheraMediaSource source) async =>
-      switch (source) {
-        KoheraFileSource(:final path) => AudioSource.file(path),
-        KoheraBytesSource(:final bytes) =>
-          AudioSource.file(await _bytesToTempPath(bytes)),
-        KoheraAssetSource(:final assetPath) => AudioSource.asset(assetPath),
-      };
+  void _deleteTempFile() {
+    final temp = _tempFile;
+    _tempFile = null;
+    if (temp != null) unawaited(_deleteQuietly(temp));
+  }
 
-  Future<String> _bytesToTempPath(Uint8List bytes) async {
+  Future<void> _deleteQuietly(File f) async {
+    try {
+      await f.delete();
+    } catch (_) {}
+  }
+
+  Future<({AudioSource audioSource, File? tempFile})> _toAudioSource(
+      KoheraMediaSource source) async {
+    switch (source) {
+      case KoheraFileSource(:final path):
+        return (audioSource: AudioSource.file(path), tempFile: null);
+      case KoheraBytesSource(:final bytes):
+        final file = await _bytesToTempFile(bytes);
+        return (audioSource: AudioSource.file(file.path), tempFile: file);
+      case KoheraAssetSource(:final assetPath):
+        return (audioSource: AudioSource.asset(assetPath), tempFile: null);
+    }
+  }
+
+  Future<File> _bytesToTempFile(Uint8List bytes) async {
     final dir = await Directory.systemTemp.createTemp('kohera_audio_');
     final file = File('${dir.path}/media');
     await file.writeAsBytes(bytes);
-    return file.path;
+    return file;
   }
 }

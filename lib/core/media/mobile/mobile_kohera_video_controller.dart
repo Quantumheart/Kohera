@@ -14,6 +14,7 @@ class MobileKoheraVideoController implements KoheraVideoController {
 
   VideoPlayerController? _vp;
   bool _loop = false;
+  File? _tempFile;
 
   final StreamController<bool> _playing = StreamController<bool>.broadcast();
   final StreamController<Duration> _position =
@@ -30,8 +31,10 @@ class MobileKoheraVideoController implements KoheraVideoController {
 
   @override
   Future<void> open(KoheraMediaSource source) async {
-    await _vp?.dispose();
-    _vp = await _makeController(source);
+    _disposeCurrent();
+    final made = await _makeController(source);
+    _vp = made.controller;
+    _tempFile = made.tempFile;
     await _vp!.initialize();
     _wire(_vp!);
     await _vp!.setLooping(_loop);
@@ -40,6 +43,9 @@ class MobileKoheraVideoController implements KoheraVideoController {
 
   @override
   Future<void> play() async {
+    if (_vp?.value.isCompleted == true) {
+      await _vp!.seekTo(Duration.zero);
+    }
     await _vp?.play();
   }
 
@@ -79,12 +85,29 @@ class MobileKoheraVideoController implements KoheraVideoController {
 
   @override
   Future<void> dispose() async {
-    _vp?.removeListener(_listener ?? () {});
-    await _vp?.dispose();
+    _disposeCurrent();
     await _playing.close();
     await _position.close();
     await _duration.close();
     await _completed.close();
+  }
+
+  void _disposeCurrent() {
+    final vp = _vp;
+    final listener = _listener;
+    if (vp != null && listener != null) vp.removeListener(listener);
+    unawaited(vp?.dispose());
+    _vp = null;
+    _listener = null;
+    final temp = _tempFile;
+    _tempFile = null;
+    if (temp != null) unawaited(_deleteQuietly(temp));
+  }
+
+  Future<void> _deleteQuietly(File f) async {
+    try {
+      await f.delete();
+    } catch (_) {}
   }
 
   @override
@@ -116,14 +139,27 @@ class MobileKoheraVideoController implements KoheraVideoController {
     );
   }
 
-  Future<VideoPlayerController> _makeController(KoheraMediaSource source) async =>
-      switch (source) {
-        KoheraFileSource(:final path) => VideoPlayerController.file(File(path)),
-        KoheraAssetSource(:final assetPath) =>
-          VideoPlayerController.asset(assetPath),
-        KoheraBytesSource(:final bytes) =>
-          VideoPlayerController.file(await _bytesToTempFile(bytes)),
-      };
+  Future<({VideoPlayerController controller, File? tempFile})>
+      _makeController(KoheraMediaSource source) async {
+    switch (source) {
+      case KoheraFileSource(:final path):
+        return (
+          controller: VideoPlayerController.file(File(path)),
+          tempFile: null,
+        );
+      case KoheraAssetSource(:final assetPath):
+        return (
+          controller: VideoPlayerController.asset(assetPath),
+          tempFile: null,
+        );
+      case KoheraBytesSource(:final bytes):
+        final file = await _bytesToTempFile(bytes);
+        return (
+          controller: VideoPlayerController.file(file),
+          tempFile: file,
+        );
+    }
+  }
 
   Future<File> _bytesToTempFile(Uint8List bytes) async {
     final dir = await Directory.systemTemp.createTemp('kohera_video_');
@@ -177,6 +213,8 @@ class _MobileFullscreenControlsState extends State<_MobileFullscreenControls> {
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   bool _barVisible = true;
+  bool _scrubbing = false;
+  bool _scrubWasPlaying = false;
 
   @override
   void initState() {
@@ -185,7 +223,7 @@ class _MobileFullscreenControlsState extends State<_MobileFullscreenControls> {
       if (mounted) setState(() => _isPlaying = p);
     });
     _positionSub = widget.controller.position.listen((p) {
-      if (mounted) setState(() => _position = p);
+      if (mounted && !_scrubbing) setState(() => _position = p);
     });
     _durationSub = widget.controller.duration.listen((d) {
       if (mounted) setState(() => _duration = d);
@@ -206,33 +244,31 @@ class _MobileFullscreenControlsState extends State<_MobileFullscreenControls> {
 
   @override
   Widget build(BuildContext context) {
+    final showBar = _barVisible && _duration > Duration.zero;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () {
-        setState(() => _barVisible = !_barVisible);
-        if (_isPlaying) {
-          unawaited(widget.controller.pause());
-        } else {
-          unawaited(widget.controller.play());
-        }
-      },
+      onTap: () => setState(() => _barVisible = !_barVisible),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          if (!_isPlaying)
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.4),
-                shape: BoxShape.circle,
+          if (showBar && _isPlaying)
+            IconButton(
+              icon: const Icon(Icons.pause_rounded, color: Colors.white, size: 40),
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.black.withValues(alpha: 0.4),
               ),
-              padding: const EdgeInsets.all(12),
-              child: const Icon(
-                Icons.play_arrow_rounded,
-                color: Colors.white,
-                size: 32,
-              ),
+              onPressed: () => unawaited(widget.controller.pause()),
             ),
-          if (_barVisible && _duration > Duration.zero)
+          if (!_isPlaying)
+            IconButton(
+              icon: const Icon(Icons.play_arrow_rounded,
+                  color: Colors.white, size: 40),
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.black.withValues(alpha: 0.4),
+              ),
+              onPressed: () => unawaited(widget.controller.play()),
+            ),
+          if (showBar)
             Positioned(
               bottom: 0,
               left: 0,
@@ -242,8 +278,22 @@ class _MobileFullscreenControlsState extends State<_MobileFullscreenControls> {
                     .clamp(0, _duration.inMilliseconds)
                     .toDouble(),
                 max: _duration.inMilliseconds.toDouble(),
+                onChangeStart: (_) {
+                  setState(() => _scrubbing = true);
+                  _scrubWasPlaying = _isPlaying;
+                  if (_scrubWasPlaying) unawaited(widget.controller.pause());
+                },
                 onChanged: (v) =>
-                    unawaited(widget.controller.seek(Duration(milliseconds: v.toInt()))),
+                    setState(() => _position = Duration(milliseconds: v.toInt())),
+                onChangeEnd: (v) {
+                  final target = Duration(milliseconds: v.toInt());
+                  setState(() => _scrubbing = false);
+                  unawaited(widget.controller.seek(target).then((_) {
+                    if (_scrubWasPlaying && mounted && !_scrubbing) {
+                      unawaited(widget.controller.play());
+                    }
+                  }));
+                },
               ),
             ),
         ],

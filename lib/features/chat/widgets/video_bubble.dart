@@ -128,13 +128,10 @@ class _VideoBubbleState extends State<VideoBubble> {
         }
       }),);
 
+      _playbackService.registerPlayer(widget.controller.eventId, _videoController!);
       await _videoController!.open(media);
       if (!mounted) return;
 
-      _playbackService.registerPlayer(
-            widget.controller.eventId,
-            _videoController!,
-          );
       setState(() => _state = _VideoState.playing);
     } catch (e) {
       debugPrint('[Kohera] Video playback failed: $e');
