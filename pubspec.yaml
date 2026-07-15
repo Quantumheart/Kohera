@@ -42,6 +42,7 @@ dependencies:
   media_kit_libs_windows_video: ^1.0.11
   media_kit_video: ^2.0.1
   mobile_scanner: ^7.2.0
+  ogg_caf_converter: ^0.1.4
   package_info_plus: ^8.0.0
   pasteboard: ^0.5.0
   path: ^1.9.1
