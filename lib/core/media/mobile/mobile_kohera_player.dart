@@ -18,7 +18,7 @@ class MobileKoheraPlayer implements KoheraPlayer {
   Future<void> open(KoheraMediaSource source) async {
     await _audio.setAudioSource(await _toAudioSource(source));
     await _audio.setLoopMode(_loop ? LoopMode.one : LoopMode.off);
-    await _audio.play();
+    unawaited(_audio.play());
   }
 
   @override
