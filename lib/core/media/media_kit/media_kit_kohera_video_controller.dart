@@ -17,7 +17,7 @@ class MediaKitKoheraVideoController implements KoheraVideoController {
   Future<void> open(KoheraMediaSource source) async {
     await _player.open(await _toMedia(source));
     await _player.setPlaylistMode(
-      _loop ? PlaylistMode.loop : PlaylistMode.single,
+      _loop ? PlaylistMode.loop : PlaylistMode.none,
     );
   }
 
@@ -36,7 +36,7 @@ class MediaKitKoheraVideoController implements KoheraVideoController {
   @override
   Future<void> setLoop(bool loop) {
     _loop = loop;
-    return _player.setPlaylistMode(loop ? PlaylistMode.loop : PlaylistMode.single);
+    return _player.setPlaylistMode(loop ? PlaylistMode.loop : PlaylistMode.none);
   }
 
   @override
