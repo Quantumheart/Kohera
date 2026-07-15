@@ -37,36 +37,67 @@ class MediaCache {
     final path = '${dir.path}/kohera_media_$sanitized$ext';
     final file = File(path);
     await file.writeAsBytes(bytes);
-    final playablePath = await _ensureIosPlayable(path, mimetype);
+    final playablePath = await _ensureIosPlayable(path, bytes);
     _tempFiles[eventId] = playablePath;
     _evictOldest();
     return KoheraFileSource(playablePath);
   }
 
-  // ── iOS Opus handling ───────────────────────────────────────
-  // iOS AVPlayer cannot decode Ogg/Opus. Remux Ogg/Opus to CAF/Opus (CAF is
-  // AVPlayer-supported on iOS 11+) so just_audio can play voice messages.
-  // Falls back to the original path if the input is not valid Ogg/Opus.
-  static Future<String> _ensureIosPlayable(String path, String? mime) async {
-    if (!isNativeIOS || !_isOggOpus(mime)) return path;
-    final cafPath = path.replaceAll(_oggOpusExt, '.caf');
-    try {
-      await OggCafConverter().convertOggToCaf(
-        input: path,
-        output: cafPath,
-        deleteInput: true,
-      );
-      return cafPath;
-    } catch (e) {
-      debugPrint('[Kohera] iOS Ogg to CAF remux failed, using original: $e');
-      return path;
+  // ── iOS playback prep ────────────────────────────────────────
+  // iOS AVPlayer cannot decode the Ogg container. Sniff the actual content
+  // (the mimetype label is unreliable: Kohera previously sent AAC/m4a bytes
+  // labelled audio/ogg) and:
+  //   - real Ogg/Opus → remux to CAF/Opus (AVPlayer-supported on iOS 11+)
+  //   - real m4a/mp4 → rename to .m4a so AVPlayer decodes AAC natively
+  // Falls back to the original path if the format is unknown.
+  static Future<String> _ensureIosPlayable(String path, Uint8List bytes) async {
+    if (!isNativeIOS) return path;
+    final fmt = _sniffFormat(bytes);
+    switch (fmt) {
+      case _AudioFormat.ogg:
+        final cafPath = _replaceExt(path, '.caf');
+        try {
+          await OggCafConverter().convertOggToCaf(
+            input: path,
+            output: cafPath,
+            deleteInput: true,
+          );
+          return cafPath;
+        } catch (e) {
+          debugPrint('[Kohera] iOS Ogg to CAF remux failed: $e');
+          return path;
+        }
+      case _AudioFormat.mp4:
+        final m4aPath = _replaceExt(path, '.m4a');
+        if (m4aPath == path) return path;
+        try {
+          await File(path).rename(m4aPath);
+          return m4aPath;
+        } catch (e) {
+          debugPrint('[Kohera] iOS m4a rename failed: $e');
+          return path;
+        }
+      case _AudioFormat.unknown:
+        return path;
     }
   }
 
-  static bool _isOggOpus(String? mime) =>
-      mime == 'audio/ogg' || mime == 'audio/opus';
+  static _AudioFormat _sniffFormat(Uint8List b) {
+    if (b.length >= 4 &&
+        b[0] == 0x4F && b[1] == 0x67 && b[2] == 0x67 && b[3] == 0x53) {
+      return _AudioFormat.ogg;
+    }
+    if (b.length >= 8 &&
+        b[4] == 0x66 && b[5] == 0x74 && b[6] == 0x79 && b[7] == 0x70) {
+      return _AudioFormat.mp4;
+    }
+    return _AudioFormat.unknown;
+  }
 
-  static final RegExp _oggOpusExt = RegExp(r'\.(ogg|opus)$');
+  static String _replaceExt(String path, String newExt) {
+    final dot = path.lastIndexOf('.');
+    return dot >= 0 ? '${path.substring(0, dot)}$newExt' : '$path$newExt';
+  }
 
   static String _extensionForMime(String? mime) {
     if (mime == null) return '';
@@ -117,3 +148,5 @@ class MediaCache {
     _tempFiles.clear();
   }
 }
+
+enum _AudioFormat { ogg, mp4, unknown }
