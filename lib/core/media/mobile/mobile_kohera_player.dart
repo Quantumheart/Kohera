@@ -22,7 +22,12 @@ class MobileKoheraPlayer implements KoheraPlayer {
   }
 
   @override
-  Future<void> play() => _audio.play();
+  Future<void> play() async {
+    if (_audio.processingState == ProcessingState.completed) {
+      await _audio.seek(Duration.zero);
+    }
+    await _audio.play();
+  }
 
   @override
   Future<void> pause() => _audio.pause();
