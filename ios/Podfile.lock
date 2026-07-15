@@ -15,9 +15,6 @@ PODS:
     - WebRTC-SDK (= 144.7559.01)
   - media_kit_video (0.0.1):
     - Flutter
-  - ogg_opus_player (0.0.1):
-    - Flutter
-    - FlutterMacOS
   - permission_handler_apple (9.3.0):
     - Flutter
   - webcrypto (0.1.1):
@@ -32,7 +29,6 @@ DEPENDENCIES:
   - flutter_webrtc (from `.symlinks/plugins/flutter_webrtc/ios`)
   - livekit_client (from `.symlinks/plugins/livekit_client/ios`)
   - media_kit_video (from `.symlinks/plugins/media_kit_video/ios`)
-  - ogg_opus_player (from `.symlinks/plugins/ogg_opus_player/darwin`)
   - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - webcrypto (from `.symlinks/plugins/webcrypto/darwin`)
 
@@ -54,8 +50,6 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/livekit_client/ios"
   media_kit_video:
     :path: ".symlinks/plugins/media_kit_video/ios"
-  ogg_opus_player:
-    :path: ".symlinks/plugins/ogg_opus_player/darwin"
   permission_handler_apple:
     :path: ".symlinks/plugins/permission_handler_apple/ios"
   webcrypto:
@@ -69,7 +63,6 @@ SPEC CHECKSUMS:
   flutter_webrtc: 5aa37bfb8b834bff989a03182d1c4266a4f93377
   livekit_client: e3c4fe5a12a8b70841db479ddf45e0a4e88d68c4
   media_kit_video: 26c5b265a4094a2df3e8d41e6724d9b964c13151
-  ogg_opus_player: 2ac8b0e580020239b26b7982e3e5d09edc581be4
   permission_handler_apple: 9878588469a2b0d0fc1e048d9f43605f92e6cec2
   webcrypto: aa788ff6b0a956e5d6e613b35b99c13e220ca2d0
   WebRTC-SDK: ab9b5319e458c2bfebdc92b3600740da35d5630d

@@ -10,19 +10,16 @@ players per-OS, media_kit desktop/web only.
 | Linux / Windows / macOS | media_kit `Video` | media_kit `Player` | media_kit `Player` | media_kit `Player` |
 | Web | media_kit (web) | media_kit (web) | media_kit (web) | media_kit (web) |
 | Android | `video_player` (ExoPlayer) | `just_audio` | `just_audio` (ExoPlayer Opus) | `just_audio` `LoopingAudioSource` |
-| iOS | `video_player` (AVPlayer) | `just_audio` (AVAudioPlayer) | `ogg_opus_player` (native Opus decoder) | `just_audio` `LoopingAudioSource` |
+| iOS | `video_player` (AVPlayer) | `just_audio` (AVAudioPlayer) | `ogg_caf_converter` Ogg→CAF + `just_audio` | `just_audio` `LoopingAudioSource` |
 
 ### Known limitations (accepted)
 
 - **iOS VP9/WebM video**: AVPlayer cannot play. Falls to "can't play"
   error state — matches issue's accepted trade-off.
-- **iOS Ogg/Opus via `ogg_opus_player`**: native Opus decoder produces sound.
-  No seek API (`canSeek=false`; audio_bubble disables waveform drag). This is
-  the proven-audible route — AVPlayer parses Opus-in-CAF but emits no audio,
-  so the CAF remux approach was abandoned.
-- iOS Opus duration: `ogg_opus_player` exposes no duration stream; audio_bubble
-  shows the event-metadata duration (`widget.media.duration`) for the initial
-  label and `canSeek=false`.
+- iOS Ogg/Opus **no longer has seek/duration gaps**: Ogg/Opus is remuxed to
+  CAF (pure Dart, no re-encode) before `just_audio` playback. CAF packet table
+  carries `numberValidFrames` → duration known → seek works. `canSeek` is
+  `true` on all platforms.
 
 ## Abstraction
 
@@ -132,18 +129,19 @@ Selection:
 - `buildView()` → `VideoPlayer(controller)`.
 - Streams from `controller.value` (`isPlaying`, `position`, `duration`).
 
-### `IosAudioPlayer` (just_audio + ogg_opus_player)
+### `IosAudioPlayer` (just_audio + ogg_caf_converter)
 
 - MIME routing in `open()`:
-  - `audio/ogg` | `audio/opus` → `ogg_opus_player` (native Opus decoder,
-    guaranteed audible). `canSeek=false`; position polled via a 100 ms timer;
-    loop = manual restart on `ended`.
-  - else → `just_audio` `AudioPlayer` (MP3/AAC/WAV, seekable).
-- `just_audio` path pauses + seeks to zero on `ProcessingState.completed` to
-  prevent looping (just_audio keeps `playWhenReady` after completed).
-- Audio session configured to playback (`.music()`) + activated, so messages
-  are audible even on silent and route to the speaker.
-- Streams/loop reuse the same `just_audio` plumbing as `AndroidAudioPlayer`.
+  - `audio/ogg` | `audio/opus` → remux Ogg→CAF temp file via
+    `OggCafConverter().convertOggToCaf(...)`, then `just_audio` plays the
+    CAF. AVAudioPlayer plays Opus-in-CAF natively with seek + duration.
+  - else → `just_audio` plays the file directly.
+- `canSeek` = `true` always (CAF packet table gives duration; WAV/AAC also
+  seekable).
+- Streams/loop reuse the same `just_audio` plumbing as
+  `AndroidAudioPlayer` (playerState/position/duration/processingState).
+- CAF temp file deleted on next `open()` and on `dispose()`.
+- No native binary (`ogg_caf_converter` is pure Dart).
 
 ### `IosVideoPlayer` (video_player)
 
