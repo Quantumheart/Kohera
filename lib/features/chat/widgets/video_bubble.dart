@@ -185,8 +185,14 @@ class _VideoBubbleState extends State<VideoBubble> {
         : null;
 
     Widget thumb;
-    if (_thumbBytes != null) {
-      thumb = Image.memory(_thumbBytes!, fit: BoxFit.cover, width: 280, height: 180);
+    if (_thumbBytes != null && _thumbBytes!.isNotEmpty) {
+      thumb = Image.memory(
+        _thumbBytes!,
+        fit: BoxFit.cover,
+        width: 280,
+        height: 180,
+        errorBuilder: (_, _, _) => _placeholderThumb(cs),
+      );
     } else if (_thumbUrl != null) {
       thumb = Image.network(
         _thumbUrl!,
