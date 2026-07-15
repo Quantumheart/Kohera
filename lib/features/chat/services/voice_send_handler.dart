@@ -38,7 +38,7 @@ Future<void> sendVoiceMessage(
       extraContent: {
         'info': {
           'duration': duration.inMilliseconds,
-          'mimetype': 'audio/ogg',
+          'mimetype': 'audio/mp4',
           'size': bytes.length,
         },
         'org.matrix.msc3245.voice': <String, dynamic>{},
