@@ -56,9 +56,17 @@ class MediaKitKoheraVideoController implements KoheraVideoController {
 
   @override
   Widget buildView({Widget? controlsOverlay}) {
-    return Video(
-      controller: _controller,
-      controls: controlsOverlay == null ? null : (_) => controlsOverlay,
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Positioned.fill(
+          child: Video(
+            controller: _controller,
+            controls: (_) => const SizedBox.shrink(),
+          ),
+        ),
+        ?controlsOverlay,
+      ],
     );
   }
 
