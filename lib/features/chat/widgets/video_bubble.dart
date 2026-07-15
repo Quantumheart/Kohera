@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:kohera/core/media/kohera_player_factory.dart';
+import 'package:kohera/core/media/kohera_video_controller.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/core/utils/media_cache.dart';
@@ -9,8 +11,6 @@ import 'package:kohera/features/chat/services/media_playback_service.dart';
 import 'package:kohera/features/chat/widgets/full_video_view.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/services/media_controller.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
 import 'package:provider/provider.dart';
 
 
@@ -42,8 +42,7 @@ class _VideoBubbleState extends State<VideoBubble> {
   _VideoState _state = _VideoState.initial;
   Uint8List? _thumbBytes;
   String? _thumbUrl;
-  Player? _player;
-  VideoController? _controller;
+  KoheraVideoController? _videoController;
   bool _isPlaying = false;
   late final MediaPlaybackService _playbackService;
   final List<StreamSubscription<dynamic>> _subs = [];
@@ -65,9 +64,9 @@ class _VideoBubbleState extends State<VideoBubble> {
     for (final sub in _subs) {
       unawaited(sub.cancel());
     }
-    if (_player != null) {
+    if (_videoController != null) {
       _playbackService.unregisterPlayer(widget.controller.eventId);
-      unawaited(_player!.dispose());
+      unawaited(_videoController!.dispose());
     }
     super.dispose();
   }
@@ -117,25 +116,24 @@ class _VideoBubbleState extends State<VideoBubble> {
       final media = await MediaCache.resolve(widget.controller);
       if (!mounted) return;
 
-      _player = Player();
-      _controller = VideoController(_player!);
+      _videoController = createKoheraVideoController();
 
-      _subs.add(_player!.stream.playing.listen((playing) {
+      _subs.add(_videoController!.playing.listen((playing) {
         if (mounted) setState(() => _isPlaying = playing);
       }),);
-      _subs.add(_player!.stream.completed.listen((completed) {
+      _subs.add(_videoController!.completed.listen((completed) {
         if (completed && mounted) {
-          unawaited(_player!.seek(Duration.zero));
-          unawaited(_player!.pause());
+          unawaited(_videoController!.seek(Duration.zero));
+          unawaited(_videoController!.pause());
         }
       }),);
 
-      await _player!.open(media);
+      await _videoController!.open(media);
       if (!mounted) return;
 
       _playbackService.registerPlayer(
             widget.controller.eventId,
-            _player!,
+            _videoController!,
           );
       setState(() => _state = _VideoState.playing);
     } catch (e) {
@@ -149,21 +147,20 @@ class _VideoBubbleState extends State<VideoBubble> {
       unawaited(sub.cancel());
     }
     _subs.clear();
-    if (_player != null) unawaited(_player!.dispose());
-    _player = null;
-    _controller = null;
+    if (_videoController != null) unawaited(_videoController!.dispose());
+    _videoController = null;
     unawaited(_initPlayer());
   }
 
   void _openFullscreen() {
-    if (_player == null || _controller == null) return;
+    final controller = _videoController;
+    if (controller == null) return;
     showFullVideoDialog(
       context,
       media: widget.media,
       mediaController: widget.controller,
       avatarResolver: widget.avatarResolver,
-      player: _player!,
-      controller: _controller!,
+      controller: controller,
     );
   }
 
@@ -177,7 +174,7 @@ class _VideoBubbleState extends State<VideoBubble> {
       return _buildFileFallback(foreground, tt);
     }
 
-    if (_state == _VideoState.playing && _controller != null) {
+    if (_state == _VideoState.playing && _videoController != null) {
       return _buildInlinePlayer(cs);
     }
 
@@ -267,12 +264,13 @@ class _VideoBubbleState extends State<VideoBubble> {
   }
 
   void _togglePlayPause() {
-    if (_player == null) return;
+    final controller = _videoController;
+    if (controller == null) return;
     if (_isPlaying) {
-      unawaited(_player!.pause());
+      unawaited(controller.pause());
     } else {
-      _playbackService.registerPlayer(widget.controller.eventId, _player!);
-      unawaited(_player!.play());
+      _playbackService.registerPlayer(widget.controller.eventId, controller);
+      unawaited(controller.play());
     }
   }
 
@@ -281,9 +279,8 @@ class _VideoBubbleState extends State<VideoBubble> {
       borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 280, maxHeight: 260),
-        child: Video(
-          controller: _controller!,
-          controls: (state) => GestureDetector(
+        child: _videoController!.buildView(
+          controlsOverlay: GestureDetector(
             onTap: _togglePlayPause,
             behavior: HitTestBehavior.opaque,
             child: Stack(
