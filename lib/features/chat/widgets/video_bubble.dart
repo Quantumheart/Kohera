@@ -39,20 +39,28 @@ class VideoBubble extends StatefulWidget {
 
 enum _VideoState { initial, loadingThumb, loadingVideo, playing, error }
 
-class _VideoBubbleState extends State<VideoBubble> {
+class _VideoBubbleState extends State<VideoBubble>
+    with SingleTickerProviderStateMixin {
   _VideoState _state = _VideoState.initial;
   Uint8List? _thumbBytes;
   String? _thumbUrl;
+  bool _thumbFailed = false;
   KoheraVideoController? _videoController;
   bool _isPlaying = false;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   late final MediaPlaybackService _playbackService;
   final List<StreamSubscription<dynamic>> _subs = [];
+  AnimationController? _shimmer;
 
   @override
   void initState() {
     super.initState();
+    _shimmer = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    unawaited(_shimmer!.repeat(reverse: true));
     unawaited(_loadThumbnail());
   }
 
@@ -64,6 +72,7 @@ class _VideoBubbleState extends State<VideoBubble> {
 
   @override
   void dispose() {
+    _shimmer?.dispose();
     for (final sub in _subs) {
       unawaited(sub.cancel());
     }
@@ -80,7 +89,10 @@ class _VideoBubbleState extends State<VideoBubble> {
   }
 
   Future<void> _loadThumbnail() async {
-    setState(() => _state = _VideoState.loadingThumb);
+    setState(() {
+      _state = _VideoState.loadingThumb;
+      _thumbFailed = false;
+    });
     try {
       if (widget.controller.isEncrypted) {
         final bytes = await widget.controller.downloadAndDecrypt(
@@ -107,12 +119,21 @@ class _VideoBubbleState extends State<VideoBubble> {
       }
     } catch (e) {
       debugPrint('[Kohera] Video thumbnail load failed: $e');
-      if (mounted) setState(() => _state = _VideoState.initial);
+      if (mounted) {
+        setState(() {
+          _thumbFailed = true;
+          _state = _VideoState.initial;
+        });
+      }
     }
   }
 
   Future<void> _initPlayer() async {
     if (_tooLarge) return;
+    if (_state == _VideoState.loadingVideo ||
+        _state == _VideoState.playing) {
+      return;
+    }
     setState(() => _state = _VideoState.loadingVideo);
 
     try {
@@ -153,6 +174,7 @@ class _VideoBubbleState extends State<VideoBubble> {
   }
 
   void _retry() {
+    if (_state == _VideoState.loadingVideo) return;
     for (final sub in _subs) {
       unawaited(sub.cancel());
     }
@@ -197,14 +219,18 @@ class _VideoBubbleState extends State<VideoBubble> {
         ? formatDuration(Duration(milliseconds: durationMs))
         : null;
 
-    Widget thumb;
-    if (_thumbBytes != null && _thumbBytes!.isNotEmpty) {
+    final Widget thumb;
+    if (_state == _VideoState.loadingThumb) {
+      thumb = _buildSkeleton(cs);
+    } else if (_thumbFailed) {
+      thumb = _placeholderThumb(cs);
+    } else if (_thumbBytes != null && _thumbBytes!.isNotEmpty) {
       thumb = Image.memory(
         _thumbBytes!,
         fit: BoxFit.cover,
         width: 280,
         height: 180,
-        errorBuilder: (_, _, _) => _placeholderThumb(cs),
+        errorBuilder: (_, _, _) => _onImageError(cs),
       );
     } else if (_thumbUrl != null) {
       thumb = Image.network(
@@ -213,14 +239,17 @@ class _VideoBubbleState extends State<VideoBubble> {
         width: 280,
         height: 180,
         headers: widget.controller.authHeaders(_thumbUrl!),
-        errorBuilder: (_, _, _) => _placeholderThumb(cs),
+        errorBuilder: (_, _, _) => _onImageError(cs),
       );
     } else {
       thumb = _placeholderThumb(cs);
     }
 
+    final loading =
+        _state == _VideoState.loadingThumb || _state == _VideoState.loadingVideo;
+
     return GestureDetector(
-      onTap: _state == _VideoState.loadingVideo
+      onTap: loading
           ? null
           : _state == _VideoState.error
               ? _retry
@@ -238,7 +267,7 @@ class _VideoBubbleState extends State<VideoBubble> {
               else if (_state == _VideoState.error)
                 Icon(Icons.error_outline_rounded,
                     size: 40, color: cs.error,)
-              else
+              else if (!loading)
                 Container(
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.5),
@@ -249,6 +278,21 @@ class _VideoBubbleState extends State<VideoBubble> {
                     Icons.play_arrow_rounded,
                     color: Colors.white,
                     size: 32,
+                  ),
+                ),
+              if (_thumbFailed && !loading)
+                Positioned(
+                  top: 6,
+                  right: 6,
+                  child: IconButton.filled(
+                    onPressed: _loadThumbnail,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.black.withValues(alpha: 0.6),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.all(4),
+                      minimumSize: const Size(28, 28),
+                    ),
                   ),
                 ),
               if (durationLabel != null)
@@ -340,5 +384,30 @@ class _VideoBubbleState extends State<VideoBubble> {
       color: cs.surfaceContainerHighest,
       child: const Center(child: Icon(Icons.videocam_rounded, size: 40)),
     );
+  }
+
+  Widget _buildSkeleton(ColorScheme cs) {
+    final shimmer = _shimmer;
+    if (shimmer == null) return _placeholderThumb(cs);
+    return AnimatedBuilder(
+      animation: shimmer,
+      builder: (context, _) {
+        final t = shimmer.value.clamp(0.0, 1.0);
+        final alpha = 0.35 + 0.30 * t;
+        return Container(
+          key: const ValueKey('videoSkeleton'),
+          width: 280,
+          height: 180,
+          color: cs.surfaceContainerHighest.withValues(alpha: alpha),
+        );
+      },
+    );
+  }
+
+  Widget _onImageError(ColorScheme cs) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _thumbFailed = true);
+    });
+    return _placeholderThumb(cs);
   }
 }
