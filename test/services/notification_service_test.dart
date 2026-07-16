@@ -436,6 +436,21 @@ void main() {
           .called(1);
     });
 
+    test('reply fallback is stripped from notification body', () async {
+      await skipFirstSync();
+
+      const replyBody = '> <@bob:example.com> original message\n\nmy reply';
+      final update = makeSyncUpdate(
+        roomId: roomId,
+        events: [makeMessageEvent(body: replyBody)],
+      );
+      mockClient.onSync.add(update);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      verify(mockPlugin.show(id: anyNamed('id'), title: 'General', body: 'Alice: my reply', notificationDetails: anyNamed('notificationDetails'), payload: roomId))
+          .called(1);
+    });
+
     test('multiple messages from same sender are grouped', () async {
       await skipFirstSync();
 
