@@ -84,5 +84,63 @@ void main() {
 
       expect(find.byIcon(Icons.close_rounded), findsOneWidget);
     });
+
+    Future<void> openViewer(WidgetTester tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (ctx) => ElevatedButton(
+              onPressed: () => Navigator.push(
+                ctx,
+                MaterialPageRoute<void>(
+                  builder: (_) => Scaffold(
+                    backgroundColor: Colors.black,
+                    body: MediaViewerShell(
+                      media: _makeMedia(),
+                      controller: _makeController(),
+                      avatarResolver: MockAvatarResolver(),
+                      child: const Placeholder(),
+                    ),
+                  ),
+                ),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('swipe down dismisses the viewer', (tester) async {
+      await openViewer(tester);
+      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+
+      await tester.timedDrag(
+        find.byType(MediaViewerShell),
+        const Offset(0, 200),
+        const Duration(milliseconds: 300),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('open'), findsOneWidget);
+      expect(find.byIcon(Icons.close_rounded), findsNothing);
+    });
+
+    testWidgets('small drag snaps back without dismissing', (tester) async {
+      await openViewer(tester);
+      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+
+      await tester.timedDrag(
+        find.byType(MediaViewerShell),
+        const Offset(0, 60),
+        const Duration(milliseconds: 200),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+      expect(find.text('open'), findsNothing);
+    });
   });
 }

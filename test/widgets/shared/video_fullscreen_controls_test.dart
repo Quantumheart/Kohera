@@ -114,14 +114,13 @@ void main() {
       expect(controller.pauseCount, 1);
     });
 
-    testWidgets('slider seeks on change end', (tester) async {
+    testWidgets('seeking does not toggle playback', (tester) async {
       final controller = _FakeVideoController();
       await tester.pumpWidget(
         _wrap(VideoFullscreenControls(controller: controller)),
       );
       await tester.pump();
       controller.emitDuration(const Duration(seconds: 10));
-      controller.emitPlaying(true);
       await tester.pumpAndSettle();
 
       final slider = find.byType(Slider);
@@ -131,10 +130,11 @@ void main() {
       await tester.pump();
 
       expect(controller.seeks, isNotEmpty);
-      expect(controller.playCount, greaterThanOrEqualTo(1));
+      expect(controller.playCount, 0);
+      expect(controller.pauseCount, 0);
     });
 
-    testWidgets('toggles bar visibility on tap', (tester) async {
+    testWidgets('toggles playback on tap', (tester) async {
       final controller = _FakeVideoController();
       await tester.pumpWidget(
         _wrap(VideoFullscreenControls(controller: controller)),
@@ -144,12 +144,23 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(Slider), findsOneWidget);
+      expect(controller.playCount, 0);
+      expect(controller.pauseCount, 0);
 
       final rect = tester.getRect(find.byType(VideoFullscreenControls));
       await tester.tapAt(rect.topLeft + const Offset(10, 10));
       await tester.pump();
 
-      expect(find.byType(Slider), findsNothing);
+      expect(controller.playCount, 1);
+      expect(controller.pauseCount, 0);
+
+      controller.emitPlaying(true);
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(rect.topLeft + const Offset(10, 10));
+      await tester.pump();
+
+      expect(controller.pauseCount, 1);
     });
   });
 }
