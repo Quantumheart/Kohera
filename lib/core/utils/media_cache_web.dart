@@ -6,6 +6,7 @@ class File {
   bool existsSync() => false;
   Future<Uint8List> readAsBytes() async => Uint8List(0);
   Future<File> writeAsBytes(List<int> bytes) async => this;
+  Future<File> rename(String newPath) async => File(newPath);
   Future<void> delete() async {}
   void deleteSync() {}
 }
