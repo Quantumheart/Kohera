@@ -5,6 +5,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/notification_filter.dart';
 import 'package:kohera/core/utils/platform_info.dart';
+import 'package:kohera/core/utils/poll_body.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/notification_service.dart';
@@ -227,7 +228,7 @@ class PushService {
     if (matrixEvent.type == EventTypes.Encrypted) {
       body = await _tryDecrypt(room, event);
     } else {
-      body = event.body;
+      body = pollStartBody(event) ?? event.body;
     }
 
     if (!shouldNotifyForEvent(
@@ -273,6 +274,10 @@ class PushService {
       final decrypted = await room.client.encryption
           ?.decryptRoomEvent(event)
           .timeout(const Duration(seconds: 3));
+      if (decrypted != null) {
+        final poll = pollStartBody(decrypted);
+        if (poll != null) return poll;
+      }
       return decrypted?.body ?? NotificationText.encryptedMessage;
     } catch (e) {
       debugPrint('[Kohera] Push decryption failed: $e');

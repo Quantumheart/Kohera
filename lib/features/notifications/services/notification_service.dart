@@ -12,6 +12,7 @@ import 'package:kohera/core/utils/media_cache_io.dart'
     if (dart.library.js_interop) 'package:kohera/core/utils/media_cache_web.dart';
 import 'package:kohera/core/utils/notification_filter.dart';
 import 'package:kohera/core/utils/platform_info.dart';
+import 'package:kohera/core/utils/poll_body.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/web_notifications.dart';
@@ -334,12 +335,8 @@ class NotificationService {
 
       if (matrixEvent.type == EventTypes.Encrypted) {
         body = await _tryDecrypt(room, event);
-      } else if (isPollStart) {
-        final question =
-            event.parsedPollEventContent.pollStartContent.question.mText;
-        body = question.isEmpty ? '📊 Poll' : '📊 Poll: $question';
       } else {
-        body = stripReplyFallback(event.body).trim();
+        body = pollStartBody(event) ?? stripReplyFallback(event.body).trim();
         if (body.isEmpty) body = event.body;
       }
 
@@ -426,10 +423,14 @@ class NotificationService {
       if (decrypted != null && callEventTypes.contains(decrypted.type)) {
         return _formatCallEvent(decrypted);
       }
-      final decryptedBody = decrypted?.body;
-      if (decryptedBody == null) return NotificationText.encryptedMessage;
-      final stripped = stripReplyFallback(decryptedBody).trim();
-      return stripped.isEmpty ? decryptedBody : stripped;
+      if (decrypted != null) {
+        final poll = pollStartBody(decrypted);
+        if (poll != null) return poll;
+        final decryptedBody = decrypted.body;
+        final stripped = stripReplyFallback(decryptedBody).trim();
+        return stripped.isEmpty ? decryptedBody : stripped;
+      }
+      return NotificationText.encryptedMessage;
     } catch (e) {
       debugPrint('[Kohera] Decryption failed for notification: $e');
       return NotificationText.encryptedMessage;
