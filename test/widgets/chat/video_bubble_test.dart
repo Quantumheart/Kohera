@@ -23,6 +23,8 @@ import 'video_bubble_test.mocks.dart';
 KoheraMediaContent _makeMedia({
   int? duration,
   int? fileSize,
+  int? width,
+  int? height,
   String fileName = 'video.mp4',
 }) =>
     KoheraMediaContent(
@@ -30,6 +32,8 @@ KoheraMediaContent _makeMedia({
       mxcUrl: 'mxc://server/video',
       mimeType: 'video/mp4',
       fileSize: fileSize ?? 5 * 1024 * 1024,
+      width: width,
+      height: height,
       duration: duration,
       fileName: fileName,
     );
@@ -291,6 +295,77 @@ void main() {
       final center = tester.getCenter(find.byType(VideoBubble));
       await tester.tapAt(center);
       expect(fullMediaCalls, 2);
+    });
+
+    testWidgets('portrait video renders a portrait aspect box',
+        (tester) async {
+      final media = _makeMedia(width: 1080, height: 1920, duration: 10000);
+      final controller = _makeController();
+
+      await tester.pumpWidget(_wrap(media, controller));
+      await tester.pump();
+
+      final box = tester.getSize(
+        find.descendant(
+          of: find.byType(VideoBubble),
+          matching: find.byType(Stack),
+        ),
+      );
+      expect(box.width, closeTo(260 * (1080 / 1920), 0.01));
+      expect(box.height, closeTo(260, 0.01));
+    });
+
+    testWidgets('landscape video renders a landscape aspect box',
+        (tester) async {
+      final media = _makeMedia(width: 1920, height: 1080, duration: 10000);
+      final controller = _makeController();
+
+      await tester.pumpWidget(_wrap(media, controller));
+      await tester.pump();
+
+      final box = tester.getSize(
+        find.descendant(
+          of: find.byType(VideoBubble),
+          matching: find.byType(Stack),
+        ),
+      );
+      expect(box.width, closeTo(280, 0.01));
+      expect(box.height, closeTo(280 / (1920 / 1080), 0.01));
+    });
+
+    testWidgets('missing dimensions fall back to default 16:9 box',
+        (tester) async {
+      final media = _makeMedia(duration: 10000);
+      final controller = _makeController();
+
+      await tester.pumpWidget(_wrap(media, controller));
+      await tester.pump();
+
+      final box = tester.getSize(
+        find.descendant(
+          of: find.byType(VideoBubble),
+          matching: find.byType(Stack),
+        ),
+      );
+      expect(box.width, closeTo(280, 0.01));
+      expect(box.height, closeTo(280 / (16 / 9), 0.01));
+    });
+
+    testWidgets('box never exceeds max bubble bounds', (tester) async {
+      final media = _makeMedia(width: 1080, height: 1920, duration: 10000);
+      final controller = _makeController();
+
+      await tester.pumpWidget(_wrap(media, controller));
+      await tester.pump();
+
+      final box = tester.getSize(
+        find.descendant(
+          of: find.byType(VideoBubble),
+          matching: find.byType(Stack),
+        ),
+      );
+      expect(box.width, lessThanOrEqualTo(280));
+      expect(box.height, lessThanOrEqualTo(260));
     });
   });
 }

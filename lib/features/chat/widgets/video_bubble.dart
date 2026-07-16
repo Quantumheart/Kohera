@@ -18,6 +18,9 @@ import 'package:provider/provider.dart';
 // ── Video bubble (thumbnail → inline player) ──────────────────
 
 const _maxFileSizeBytes = 104857600;
+const double _maxBubbleWidth = 280;
+const double _maxBubbleHeight = 260;
+const double _defaultAspectRatio = 16 / 9;
 
 class VideoBubble extends StatefulWidget {
   const VideoBubble({
@@ -88,6 +91,24 @@ class _VideoBubbleState extends State<VideoBubble>
     return size != null && size > _maxFileSizeBytes;
   }
 
+  double get _aspectRatio {
+    final w = widget.media.width;
+    final h = widget.media.height;
+    if (w == null || h == null || w <= 0 || h <= 0) return _defaultAspectRatio;
+    return w / h;
+  }
+
+  Size get _boxSize {
+    final ratio = _aspectRatio;
+    var width = _maxBubbleWidth;
+    var height = _maxBubbleWidth / ratio;
+    if (height > _maxBubbleHeight) {
+      height = _maxBubbleHeight;
+      width = _maxBubbleHeight * ratio;
+    }
+    return Size(width, height);
+  }
+
   Future<void> _loadThumbnail() async {
     setState(() {
       _state = _VideoState.loadingThumb;
@@ -105,10 +126,11 @@ class _VideoBubbleState extends State<VideoBubble>
           });
         }
       } else {
+        final box = _boxSize;
         final uri = await widget.controller.getAttachmentUri(
           getThumbnail: true,
-          width: 280,
-          height: 260,
+          width: box.width.round(),
+          height: box.height.round(),
         );
         if (mounted) {
           setState(() {
@@ -219,6 +241,7 @@ class _VideoBubbleState extends State<VideoBubble>
         ? formatDuration(Duration(milliseconds: durationMs))
         : null;
 
+    final box = _boxSize;
     final Widget thumb;
     if (_state == _VideoState.loadingThumb) {
       thumb = _buildSkeleton(cs);
@@ -228,16 +251,12 @@ class _VideoBubbleState extends State<VideoBubble>
       thumb = Image.memory(
         _thumbBytes!,
         fit: BoxFit.cover,
-        width: 280,
-        height: 180,
         errorBuilder: (_, _, _) => _onImageError(cs),
       );
     } else if (_thumbUrl != null) {
       thumb = Image.network(
         _thumbUrl!,
         fit: BoxFit.cover,
-        width: 280,
-        height: 180,
         headers: widget.controller.authHeaders(_thumbUrl!),
         errorBuilder: (_, _, _) => _onImageError(cs),
       );
@@ -256,8 +275,9 @@ class _VideoBubbleState extends State<VideoBubble>
               : _initPlayer,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 280, maxHeight: 260),
+        child: SizedBox(
+          width: box.width,
+          height: box.height,
           child: Stack(
             alignment: Alignment.center,
             children: [
@@ -326,10 +346,12 @@ class _VideoBubbleState extends State<VideoBubble>
   Widget _buildInlinePlayer() {
     final controller = _videoController;
     if (controller == null) return const SizedBox.shrink();
+    final box = _boxSize;
     return ClipRRect(
       borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 280, maxHeight: 260),
+      child: SizedBox(
+        width: box.width,
+        height: box.height,
         child: controller.buildView(
           controlsOverlay: InlineVideoControls(
             controller: controller,
@@ -378,9 +400,7 @@ class _VideoBubbleState extends State<VideoBubble>
   }
 
   Widget _placeholderThumb(ColorScheme cs) {
-    return Container(
-      width: 280,
-      height: 180,
+    return ColoredBox(
       color: cs.surfaceContainerHighest,
       child: const Center(child: Icon(Icons.videocam_rounded, size: 40)),
     );
@@ -396,8 +416,6 @@ class _VideoBubbleState extends State<VideoBubble>
         final alpha = 0.35 + 0.30 * t;
         return Container(
           key: const ValueKey('videoSkeleton'),
-          width: 280,
-          height: 180,
           color: cs.surfaceContainerHighest.withValues(alpha: alpha),
         );
       },
