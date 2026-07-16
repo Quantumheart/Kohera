@@ -20,6 +20,7 @@ void showFullVideoDialog(
   Duration position = Duration.zero,
   Duration duration = Duration.zero,
 }) {
+  final barVisibility = MediaViewerBarVisibility();
   showMediaViewer(
     context,
     media: media,
@@ -28,6 +29,7 @@ void showFullVideoDialog(
     child: controller.buildView(
       controlsOverlay: VideoFullscreenControls(
         controller: controller,
+        barVisibility: barVisibility,
         initialIsPlaying: isPlaying,
         initialPosition: position,
         initialDuration: duration,

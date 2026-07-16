@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/media/kohera_video_controller.dart';
 import 'package:kohera/core/utils/format_duration.dart';
+import 'package:kohera/shared/widgets/media_viewer_shell.dart';
 
 // ── Shared fullscreen video controls (mobile + desktop) ──────
 //
@@ -18,6 +19,7 @@ import 'package:kohera/core/utils/format_duration.dart';
 class VideoFullscreenControls extends StatefulWidget {
   const VideoFullscreenControls({
     required this.controller,
+    this.barVisibility,
     this.initialIsPlaying = false,
     this.initialPosition = Duration.zero,
     this.initialDuration = Duration.zero,
@@ -25,6 +27,7 @@ class VideoFullscreenControls extends StatefulWidget {
   });
 
   final KoheraVideoController controller;
+  final MediaViewerBarVisibility? barVisibility;
   final bool initialIsPlaying;
   final Duration initialPosition;
   final Duration initialDuration;
@@ -80,6 +83,7 @@ class _VideoFullscreenControlsState extends State<VideoFullscreenControls> {
     } else {
       unawaited(widget.controller.play());
     }
+    widget.barVisibility?.show();
   }
 
   @override
