@@ -102,6 +102,34 @@ void main() {
     );
   }
 
+  MatrixEvent makePollStartEvent({
+    String senderId = otherUserId,
+    String question = 'Tea or coffee?',
+  }) {
+    const startType = PollEventContent.startType;
+    return MatrixEvent(
+      type: startType,
+      content: {
+        PollEventContent.mTextJsonKey: question,
+        startType: {
+          'kind': 'org.matrix.msc3381.poll.disclosed',
+          'max_selections': 1,
+          'question': {
+            PollEventContent.mTextJsonKey: question,
+            'body': question,
+          },
+          'answers': [
+            {'id': 'a1', PollEventContent.mTextJsonKey: 'Yes'},
+            {'id': 'a2', PollEventContent.mTextJsonKey: 'No'},
+          ],
+        },
+      },
+      senderId: senderId,
+      eventId: 'poll-event-id',
+      originServerTs: DateTime.now(),
+    );
+  }
+
   group('sync lifecycle', () {
     test('first sync is skipped', () async {
       service.startListening();
@@ -448,6 +476,34 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
       verify(mockPlugin.show(id: anyNamed('id'), title: 'General', body: 'Alice: my reply', notificationDetails: anyNamed('notificationDetails'), payload: roomId))
+          .called(1);
+    });
+
+    test('poll-start event shows poll question body', () async {
+      await skipFirstSync();
+
+      final update = makeSyncUpdate(
+        roomId: roomId,
+        events: [makePollStartEvent(question: 'Lunch?')],
+      );
+      mockClient.onSync.add(update);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      verify(mockPlugin.show(id: anyNamed('id'), title: 'General', body: 'Alice: 📊 Poll: Lunch?', notificationDetails: anyNamed('notificationDetails'), payload: roomId))
+          .called(1);
+    });
+
+    test('poll-start event with empty question shows generic poll body', () async {
+      await skipFirstSync();
+
+      final update = makeSyncUpdate(
+        roomId: roomId,
+        events: [makePollStartEvent(question: '')],
+      );
+      mockClient.onSync.add(update);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      verify(mockPlugin.show(id: anyNamed('id'), title: 'General', body: 'Alice: 📊 Poll', notificationDetails: anyNamed('notificationDetails'), payload: roomId))
           .called(1);
     });
 

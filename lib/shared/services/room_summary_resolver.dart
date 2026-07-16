@@ -1,3 +1,4 @@
+import 'package:kohera/core/utils/poll_body.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/shared/models/call_constants.dart';
 import 'package:kohera/shared/models/kohera_room_summary.dart';
@@ -49,11 +50,8 @@ class RoomSummaryResolver {
   /// Replicates the last-event preview logic from RoomTile._lastMessagePreview.
   String _lastEventPreview(Event? event, Room room, String? myUserId) {
     if (event == null) return 'No messages yet';
-    if (event.type == PollEventContent.startType) {
-      final question =
-          event.parsedPollEventContent.pollStartContent.question.mText;
-      return question.isEmpty ? '📊 Poll' : '📊 Poll: $question';
-    }
+    final poll = pollStartBody(event);
+    if (poll != null) return poll;
     if (event.type == kCallInvite) return 'Call in progress';
     if (event.type == kCallMember ||
         event.type == kCallMemberMsc ||
