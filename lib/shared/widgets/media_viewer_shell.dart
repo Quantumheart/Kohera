@@ -58,21 +58,64 @@ class MediaViewerShell extends StatefulWidget {
   State<MediaViewerShell> createState() => _MediaViewerShellState();
 }
 
-class _MediaViewerShellState extends State<MediaViewerShell> {
+class _MediaViewerShellState extends State<MediaViewerShell>
+    with SingleTickerProviderStateMixin {
   bool _barVisible = true;
   bool _downloading = false;
   Timer? _autoHideTimer;
+
+  static const _dismissDistance = 120.0;
+  static const _dismissVelocity = 500.0;
+  static const _maxDrag = 400.0;
+
+  Offset _dragOffset = Offset.zero;
+  late final AnimationController _snapBack;
+  Animation<Offset>? _snapAnim;
 
   @override
   void initState() {
     super.initState();
     _startAutoHideTimer();
+    _snapBack = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+    _snapBack.addListener(() {
+      if (_snapAnim != null) setState(() => _dragOffset = _snapAnim!.value);
+    });
   }
 
   @override
   void dispose() {
     _autoHideTimer?.cancel();
+    _snapBack.dispose();
     super.dispose();
+  }
+
+  void _onVerticalDragStart(DragStartDetails _) {
+    _snapBack.stop();
+  }
+
+  void _onVerticalDragUpdate(DragUpdateDetails details) {
+    final delta = details.primaryDelta ?? 0;
+    final ny = (_dragOffset.dy + delta).clamp(0.0, _maxDrag);
+    if (ny != _dragOffset.dy) {
+      setState(() => _dragOffset = Offset(0, ny));
+    }
+  }
+
+  void _onVerticalDragEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    if (_dragOffset.dy >= _dismissDistance || velocity >= _dismissVelocity) {
+      Navigator.of(context).pop();
+      return;
+    }
+    _snapAnim = Tween<Offset>(
+      begin: _dragOffset,
+      end: Offset.zero,
+    ).animate(_snapBack);
+    _snapBack.reset();
+    unawaited(_snapBack.forward());
   }
 
   void _startAutoHideTimer() {
@@ -117,15 +160,24 @@ class _MediaViewerShellState extends State<MediaViewerShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: _toggleBar,
-            child: widget.child,
-          ),
-        ),
+    final opacity =
+        (1 - (_dragOffset.dy / 600).clamp(0.0, 1.0)).clamp(0.3, 1.0);
+    return Opacity(
+      opacity: opacity,
+      child: Transform.translate(
+        offset: _dragOffset,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: _toggleBar,
+                onVerticalDragStart: _onVerticalDragStart,
+                onVerticalDragUpdate: _onVerticalDragUpdate,
+                onVerticalDragEnd: _onVerticalDragEnd,
+                child: widget.child,
+              ),
+            ),
         Positioned(
           top: 0,
           left: 0,
@@ -208,7 +260,9 @@ class _MediaViewerShellState extends State<MediaViewerShell> {
             ),
           ),
         ),
-      ],
+          ],
+        ),
+      ),
     );
   }
 }
