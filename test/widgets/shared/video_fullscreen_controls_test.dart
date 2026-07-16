@@ -96,7 +96,8 @@ void main() {
       expect(controller.playCount, 1);
     });
 
-    testWidgets('shows pause button when playing and calls pause', (tester) async {
+    testWidgets('shows pause button when playing and calls pause',
+        (tester) async {
       final controller = _FakeVideoController();
       await tester.pumpWidget(
         _wrap(VideoFullscreenControls(controller: controller)),
@@ -161,6 +162,28 @@ void main() {
       await tester.pump();
 
       expect(controller.pauseCount, 1);
+    });
+
+    testWidgets('seeded playing state pauses on first tap', (tester) async {
+      final controller = _FakeVideoController();
+      await tester.pumpWidget(
+        _wrap(VideoFullscreenControls(
+          controller: controller,
+          initialIsPlaying: true,
+          initialDuration: const Duration(seconds: 10),
+        )),
+      );
+      await tester.pump();
+
+      expect(find.byIcon(Icons.pause_rounded), findsOneWidget);
+      expect(controller.pauseCount, 0);
+      expect(controller.playCount, 0);
+
+      await tester.tap(find.byIcon(Icons.pause_rounded));
+      await tester.pump();
+
+      expect(controller.pauseCount, 1);
+      expect(controller.playCount, 0);
     });
   });
 }

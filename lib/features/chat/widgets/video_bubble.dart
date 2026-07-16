@@ -215,6 +215,9 @@ class _VideoBubbleState extends State<VideoBubble>
       mediaController: widget.controller,
       avatarResolver: widget.avatarResolver,
       controller: controller,
+      isPlaying: _isPlaying,
+      position: _position,
+      duration: _duration,
     );
   }
 

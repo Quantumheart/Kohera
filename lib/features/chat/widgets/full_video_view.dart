@@ -16,6 +16,9 @@ void showFullVideoDialog(
   required MediaController mediaController,
   required AvatarResolver avatarResolver,
   required KoheraVideoController controller,
+  bool isPlaying = false,
+  Duration position = Duration.zero,
+  Duration duration = Duration.zero,
 }) {
   showMediaViewer(
     context,
@@ -23,7 +26,12 @@ void showFullVideoDialog(
     controller: mediaController,
     avatarResolver: avatarResolver,
     child: controller.buildView(
-      controlsOverlay: VideoFullscreenControls(controller: controller),
+      controlsOverlay: VideoFullscreenControls(
+        controller: controller,
+        initialIsPlaying: isPlaying,
+        initialPosition: position,
+        initialDuration: duration,
+      ),
     ),
   );
 }

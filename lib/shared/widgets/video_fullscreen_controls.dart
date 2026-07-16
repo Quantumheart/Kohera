@@ -15,9 +15,18 @@ import 'package:kohera/core/media/kohera_video_controller.dart';
 // `MediaViewerShell`.
 
 class VideoFullscreenControls extends StatefulWidget {
-  const VideoFullscreenControls({required this.controller, super.key});
+  const VideoFullscreenControls({
+    required this.controller,
+    this.initialIsPlaying = false,
+    this.initialPosition = Duration.zero,
+    this.initialDuration = Duration.zero,
+    super.key,
+  });
 
   final KoheraVideoController controller;
+  final bool initialIsPlaying;
+  final Duration initialPosition;
+  final Duration initialDuration;
 
   @override
   State<VideoFullscreenControls> createState() =>
@@ -29,15 +38,18 @@ class _VideoFullscreenControlsState extends State<VideoFullscreenControls> {
   late final StreamSubscription<dynamic> _positionSub;
   late final StreamSubscription<dynamic> _durationSub;
   late final StreamSubscription<dynamic> _completedSub;
-  bool _isPlaying = false;
-  Duration _position = Duration.zero;
-  Duration _duration = Duration.zero;
+  late bool _isPlaying;
+  late Duration _position;
+  late Duration _duration;
   bool _scrubbing = false;
   bool _scrubWasPlaying = false;
 
   @override
   void initState() {
     super.initState();
+    _isPlaying = widget.initialIsPlaying;
+    _position = widget.initialPosition;
+    _duration = widget.initialDuration;
     _playingSub = widget.controller.playing.listen((p) {
       if (mounted) setState(() => _isPlaying = p);
     });
