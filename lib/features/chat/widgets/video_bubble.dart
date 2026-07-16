@@ -9,6 +9,7 @@ import 'package:kohera/core/utils/media_cache.dart';
 import 'package:kohera/features/chat/models/kohera_media_content.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
 import 'package:kohera/features/chat/widgets/full_video_view.dart';
+import 'package:kohera/features/chat/widgets/inline_video_controls.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/services/media_controller.dart';
 import 'package:provider/provider.dart';
@@ -44,6 +45,8 @@ class _VideoBubbleState extends State<VideoBubble> {
   String? _thumbUrl;
   KoheraVideoController? _videoController;
   bool _isPlaying = false;
+  Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
   late final MediaPlaybackService _playbackService;
   final List<StreamSubscription<dynamic>> _subs = [];
 
@@ -121,10 +124,20 @@ class _VideoBubbleState extends State<VideoBubble> {
       _subs.add(_videoController!.playing.listen((playing) {
         if (mounted) setState(() => _isPlaying = playing);
       }),);
+      _subs.add(_videoController!.position.listen((pos) {
+        if (mounted) setState(() => _position = pos);
+      }),);
+      _subs.add(_videoController!.duration.listen((dur) {
+        if (mounted) setState(() => _duration = dur);
+      }),);
       _subs.add(_videoController!.completed.listen((completed) {
         if (completed && mounted) {
           unawaited(_videoController!.seek(Duration.zero));
           unawaited(_videoController!.pause());
+          setState(() {
+            _isPlaying = false;
+            _position = Duration.zero;
+          });
         }
       }),);
 
@@ -172,7 +185,7 @@ class _VideoBubbleState extends State<VideoBubble> {
     }
 
     if (_state == _VideoState.playing && _videoController != null) {
-      return _buildInlinePlayer(cs);
+      return _buildInlinePlayer();
     }
 
     return _buildThumbnailPreview(cs, foreground);
@@ -266,64 +279,26 @@ class _VideoBubbleState extends State<VideoBubble> {
     );
   }
 
-  void _togglePlayPause() {
+  Widget _buildInlinePlayer() {
     final controller = _videoController;
-    if (controller == null) return;
-    if (_isPlaying) {
-      unawaited(controller.pause());
-    } else {
-      _playbackService.registerPlayer(widget.controller.eventId, controller);
-      unawaited(controller.play());
-    }
-  }
-
-  Widget _buildInlinePlayer(ColorScheme cs) {
+    if (controller == null) return const SizedBox.shrink();
     return ClipRRect(
       borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 280, maxHeight: 260),
-        child: _videoController!.buildView(
-          controlsOverlay: GestureDetector(
-            onTap: _togglePlayPause,
-            behavior: HitTestBehavior.opaque,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                const SizedBox.expand(),
-                if (!_isPlaying)
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      shape: BoxShape.circle,
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    child: const Icon(
-                      Icons.play_arrow_rounded,
-                      color: Colors.white,
-                      size: 32,
-                    ),
-                  ),
-                Positioned(
-                  top: 6,
-                  right: 6,
-                  child: IconButton.filled(
-                    onPressed: _openFullscreen,
-                    icon: const Icon(Icons.fullscreen_rounded, size: 20),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.black.withValues(alpha: 0.5),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.all(4),
-                      minimumSize: const Size(32, 32),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+        child: controller.buildView(
+          controlsOverlay: InlineVideoControls(
+            controller: controller,
+            isPlaying: _isPlaying,
+            position: _position,
+            duration: _duration,
+            onOpenFullscreen: _openFullscreen,
           ),
         ),
       ),
     );
   }
+
 
   Widget _buildFileFallback(Color foreground, TextTheme tt) {
     final size = widget.media.fileSize;
@@ -366,5 +341,4 @@ class _VideoBubbleState extends State<VideoBubble> {
       child: const Center(child: Icon(Icons.videocam_rounded, size: 40)),
     );
   }
-
 }
