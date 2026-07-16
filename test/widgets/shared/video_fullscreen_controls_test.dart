@@ -185,5 +185,21 @@ void main() {
       expect(controller.pauseCount, 1);
       expect(controller.playCount, 0);
     });
+
+    testWidgets('shows position and duration labels', (tester) async {
+      final controller = _FakeVideoController();
+      await tester.pumpWidget(
+        _wrap(VideoFullscreenControls(
+          controller: controller,
+          initialIsPlaying: true,
+          initialPosition: const Duration(seconds: 3),
+          initialDuration: const Duration(seconds: 10),
+        )),
+      );
+      await tester.pump();
+
+      expect(find.text('00:03'), findsOneWidget);
+      expect(find.text('00:10'), findsOneWidget);
+    });
   });
 }

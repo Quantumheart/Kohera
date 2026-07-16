@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/media/kohera_video_controller.dart';
+import 'package:kohera/core/utils/format_duration.dart';
 
 // ── Shared fullscreen video controls (mobile + desktop) ──────
 //
@@ -114,30 +115,58 @@ class _VideoFullscreenControlsState extends State<VideoFullscreenControls> {
             bottom: 0,
             left: 0,
             right: 0,
-            child: Slider(
-              value: _position.inMilliseconds
-                  .clamp(0, _duration.inMilliseconds)
-                  .toDouble(),
-              max: _duration.inMilliseconds.toDouble(),
-              onChangeStart: (_) {
-                setState(() => _scrubbing = true);
-                _scrubWasPlaying = _isPlaying;
-                if (_scrubWasPlaying) unawaited(widget.controller.pause());
-              },
-              onChanged: (v) =>
-                  setState(() => _position = Duration(milliseconds: v.toInt())),
-              onChangeEnd: (v) {
-                final target = Duration(milliseconds: v.toInt());
-                setState(() => _scrubbing = false);
-                unawaited(widget.controller.seek(target).then((_) {
-                  if (_scrubWasPlaying && mounted && !_scrubbing) {
-                    unawaited(widget.controller.play());
-                  }
-                }));
-              },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                children: [
+                  _timeLabel(formatDuration(_position)),
+                  Expanded(
+                    child: Slider(
+                      value: _position.inMilliseconds
+                          .clamp(0, _duration.inMilliseconds)
+                          .toDouble(),
+                      max: _duration.inMilliseconds.toDouble(),
+                      onChangeStart: (_) {
+                        setState(() => _scrubbing = true);
+                        _scrubWasPlaying = _isPlaying;
+                        if (_scrubWasPlaying) {
+                          unawaited(widget.controller.pause());
+                        }
+                      },
+                      onChanged: (v) => setState(
+                        () => _position = Duration(milliseconds: v.toInt()),
+                      ),
+                      onChangeEnd: (v) {
+                        final target = Duration(milliseconds: v.toInt());
+                        setState(() => _scrubbing = false);
+                        unawaited(widget.controller.seek(target).then((_) {
+                          if (_scrubWasPlaying && mounted && !_scrubbing) {
+                            unawaited(widget.controller.play());
+                          }
+                        }));
+                      },
+                    ),
+                  ),
+                  _timeLabel(formatDuration(_duration)),
+                ],
+              ),
             ),
           ),
       ],
+    );
+  }
+
+  Widget _timeLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
     );
   }
 }
