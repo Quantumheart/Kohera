@@ -26,14 +26,17 @@ void showMediaViewer(
     barrierLabel: 'Close media',
     transitionBuilder: (_, animation, _, child) =>
         FadeTransition(opacity: animation, child: child),
-    pageBuilder: (ctx, _, _) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-        child: MediaViewerShell(
-          media: media,
-          controller: controller,
-          avatarResolver: avatarResolver,
-          child: child,
+    pageBuilder: (ctx, _, _) => Material(
+      type: MaterialType.transparency,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+          child: MediaViewerShell(
+            media: media,
+            controller: controller,
+            avatarResolver: avatarResolver,
+            child: child,
+          ),
         ),
       ),
     ),
