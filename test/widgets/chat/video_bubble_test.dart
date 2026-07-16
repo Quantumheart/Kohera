@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -79,6 +80,18 @@ Widget _wrap(
 }
 
 void main() {
+  Future<void> pumpUntil(
+    WidgetTester tester,
+    Finder finder, {
+    int maxFrames = 30,
+  }) async {
+    for (var i = 0; i < maxFrames; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+      if (tester.any(finder)) return;
+    }
+    fail('pumpUntil: $finder not found within $maxFrames frames');
+  }
+
   group('VideoBubble', () {
     testWidgets('renders thumbnail correctly (unencrypted)', (tester) async {
       final media = _makeMedia(duration: 10000, fileSize: 5 * 1024 * 1024);
@@ -193,6 +206,91 @@ void main() {
       await tester.pump();
 
       expect(find.text('00:10'), findsOneWidget);
+    });
+
+    testWidgets('shows skeleton while the thumbnail loads', (tester) async {
+      final completer = Completer<String?>();
+      final media = _makeMedia(duration: 10000);
+      final controller = _makeController();
+      when(
+        controller.getAttachmentUri(
+          getThumbnail: anyNamed('getThumbnail'),
+          width: anyNamed('width'),
+          height: anyNamed('height'),
+        ),
+      ).thenAnswer((_) => completer.future);
+
+      await tester.pumpWidget(_wrap(media, controller));
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('videoSkeleton')), findsOneWidget);
+      expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+
+      completer.complete('https://example.com/thumb.jpg');
+      await pumpUntil(tester, find.byIcon(Icons.play_arrow_rounded));
+
+      expect(find.byKey(const ValueKey('videoSkeleton')), findsNothing);
+    });
+
+    testWidgets('failed thumbnail keeps play button and offers retry that refetches',
+        (tester) async {
+      var fail = true;
+      final media = _makeMedia(duration: 10000);
+      final controller = _makeController();
+      when(
+        controller.getAttachmentUri(
+          getThumbnail: anyNamed('getThumbnail'),
+          width: anyNamed('width'),
+          height: anyNamed('height'),
+        ),
+      ).thenAnswer((_) async {
+        if (fail) throw Exception('uri boom');
+        return 'https://example.com/thumb.jpg';
+      });
+
+      await tester.pumpWidget(_wrap(media, controller));
+      await pumpUntil(tester, find.byIcon(Icons.refresh_rounded));
+
+      expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.refresh_rounded), findsOneWidget);
+
+      fail = false;
+      await tester.tap(find.byIcon(Icons.refresh_rounded));
+      await pumpUntil(tester, find.byIcon(Icons.play_arrow_rounded));
+
+      expect(find.byIcon(Icons.refresh_rounded), findsNothing);
+    });
+
+    testWidgets('retry re-runs init synchronously and ignores repeat taps',
+        (tester) async {
+      var fullMediaCalls = 0;
+      final hang = Completer<Uint8List>();
+      final media = _makeMedia(duration: 10000);
+      final controller = _makeController();
+      when(
+        controller.downloadAndDecrypt(getThumbnail: anyNamed('getThumbnail')),
+      ).thenAnswer((_) {
+        fullMediaCalls++;
+        if (fullMediaCalls == 1) {
+          return Future<Uint8List>.error(Exception('media fetch failed'));
+        }
+        return hang.future;
+      });
+
+      await tester.pumpWidget(_wrap(media, controller));
+      await pumpUntil(tester, find.byIcon(Icons.play_arrow_rounded));
+      expect(fullMediaCalls, 0);
+
+      await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+      await pumpUntil(tester, find.byIcon(Icons.error_outline_rounded));
+      expect(fullMediaCalls, 1);
+
+      await tester.tap(find.byIcon(Icons.error_outline_rounded));
+      expect(fullMediaCalls, 2);
+
+      final center = tester.getCenter(find.byType(VideoBubble));
+      await tester.tapAt(center);
+      expect(fullMediaCalls, 2);
     });
   });
 }
