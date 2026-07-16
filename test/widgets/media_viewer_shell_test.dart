@@ -142,5 +142,33 @@ void main() {
       expect(find.byIcon(Icons.close_rounded), findsOneWidget);
       expect(find.text('open'), findsNothing);
     });
+
+    testWidgets('dialog provides a Material ancestor for Material children',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (ctx) => ElevatedButton(
+              onPressed: () => showMediaViewer(
+                ctx,
+                media: _makeMedia(),
+                controller: _makeController(),
+                avatarResolver: MockAvatarResolver(),
+                child: Slider(
+                  value: 0,
+                  onChanged: (_) {},
+                ),
+              ),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(Slider), findsOneWidget);
+    });
   });
 }
