@@ -1,5 +1,44 @@
 # Changelog
 
+## [1.11.0](https://github.com/Quantumheart/Kohera/compare/v1.10.0...v1.11.0) (2026-07-16)
+
+
+### Features
+
+* **#784:** use platform media players on iOS instead of bundled libmpv ([50349fe](https://github.com/Quantumheart/Kohera/commit/50349fe745a945c79fce50464c02abb34d969538)), closes [#784](https://github.com/Quantumheart/Kohera/issues/784) [#611](https://github.com/Quantumheart/Kohera/issues/611)
+* **#790:** inline video seek bar, time labels, and play-button tap target ([ff05a75](https://github.com/Quantumheart/Kohera/commit/ff05a75c491f6092e6e701262f286ef5d7ca510f)), closes [#790](https://github.com/Quantumheart/Kohera/issues/790)
+* **#791:** video bubble skeleton, thumbnail retry, and retry-state guard ([0887a9a](https://github.com/Quantumheart/Kohera/commit/0887a9a54392cf9d758158e52ab787e2bc2367e7)), closes [#791](https://github.com/Quantumheart/Kohera/issues/791)
+* **#793:** derive video bubble box from media dimensions ([8afa5ed](https://github.com/Quantumheart/Kohera/commit/8afa5ed4cfe75594ed5bea47aa2e4d970053aebc)), closes [#793](https://github.com/Quantumheart/Kohera/issues/793) [#797](https://github.com/Quantumheart/Kohera/issues/797)
+* **#795:** enable web video playback via HTML5 video_player ([a988bae](https://github.com/Quantumheart/Kohera/commit/a988bae3582bce9f74b30ad22c0e2cff239e66e1)), closes [#795](https://github.com/Quantumheart/Kohera/issues/795)
+* **chat:** create polls from the compose attachment menu ([2164a9d](https://github.com/Quantumheart/Kohera/commit/2164a9d1f28fb887a48089e173fea52fe0b96efa)), closes [#596](https://github.com/Quantumheart/Kohera/issues/596) [#524](https://github.com/Quantumheart/Kohera/issues/524)
+* **chat:** end polls and show poll preview text ([67b598e](https://github.com/Quantumheart/Kohera/commit/67b598e4388b7f2f7c9e78c649e99cbc675f16db)), closes [#598](https://github.com/Quantumheart/Kohera/issues/598) [#599](https://github.com/Quantumheart/Kohera/issues/599) [#524](https://github.com/Quantumheart/Kohera/issues/524)
+* **chat:** render MSC3381 poll-start events as read-only bubbles ([6f4bde2](https://github.com/Quantumheart/Kohera/commit/6f4bde2fb32bb1fc2a757cd7d5dd625c9394e620)), closes [#595](https://github.com/Quantumheart/Kohera/issues/595)
+* **chat:** render poll label in IRC timeline style ([5aa3c85](https://github.com/Quantumheart/Kohera/commit/5aa3c8506d16b2e37a704bd190b6f3dc0e2fad5e)), closes [#595](https://github.com/Quantumheart/Kohera/issues/595)
+* **chat:** vote on polls, change, and retract ([d7c7ec7](https://github.com/Quantumheart/Kohera/commit/d7c7ec71a4416f8fba0cd8dba4779439935d9548)), closes [#597](https://github.com/Quantumheart/Kohera/issues/597) [#524](https://github.com/Quantumheart/Kohera/issues/524)
+* **e2ee:** trim redundant taps in E2EE setup screen ([50e299f](https://github.com/Quantumheart/Kohera/commit/50e299f09d620fe12c492f519533189a47813a15)), closes [#622](https://github.com/Quantumheart/Kohera/issues/622)
+* show position and duration labels in fullscreen video slider ([faae947](https://github.com/Quantumheart/Kohera/commit/faae947c41fd75d460c32415e6f9df2f07809ea3)), closes [#797](https://github.com/Quantumheart/Kohera/issues/797)
+* swipe-to-dismiss and tap-to-pause fullscreen video ([1a036ff](https://github.com/Quantumheart/Kohera/commit/1a036ffea901bc662f5b23eebdf6715b9a69b744)), closes [#797](https://github.com/Quantumheart/Kohera/issues/797)
+
+
+### Bug Fixes
+
+* **#784:** do not await just_audio play in open ([d2b5715](https://github.com/Quantumheart/Kohera/commit/d2b571544dc882818a891badfea5dc2a0cdd9c65)), closes [#784](https://github.com/Quantumheart/Kohera/issues/784)
+* **#784:** harden mobile video/audio player lifecycle ([91d957a](https://github.com/Quantumheart/Kohera/commit/91d957a3794ef0afd26d798c49bef6a1f90eb492)), closes [#785](https://github.com/Quantumheart/Kohera/issues/785)
+* **#784:** label recorded voice messages as audio/mp4 not audio/ogg ([80e2839](https://github.com/Quantumheart/Kohera/commit/80e28390b1654b9df36104f7681fad4709b84cd9)), closes [#784](https://github.com/Quantumheart/Kohera/issues/784)
+* **#784:** remux Ogg/Opus voice messages to CAF on iOS ([7dda848](https://github.com/Quantumheart/Kohera/commit/7dda848ec392599bca4141196ac42d9cbadf3644)), closes [#784](https://github.com/Quantumheart/Kohera/issues/784)
+* **#784:** seek to start before replay on iOS/Android audio ([820b37d](https://github.com/Quantumheart/Kohera/commit/820b37d9db67cbc88e632ab49f4617c66af9a678)), closes [#784](https://github.com/Quantumheart/Kohera/issues/784)
+* **#784:** sniff audio content magic bytes on iOS instead of mimetype ([deecdf6](https://github.com/Quantumheart/Kohera/commit/deecdf62091aea358f870dd6964282f6c4422edd)), closes [#784](https://github.com/Quantumheart/Kohera/issues/784)
+* **#784:** use PlaylistMode.none for non-loop media_kit playback ([06867af](https://github.com/Quantumheart/Kohera/commit/06867afc43270e036f1c68c7b11332552323661f)), closes [#784](https://github.com/Quantumheart/Kohera/issues/784)
+* **chat:** guard encrypted video/attachment thumbnails against invalid image data ([ad1eb19](https://github.com/Quantumheart/Kohera/commit/ad1eb199265b2aba41a09c70cb164314cffe8f68))
+* **e2ee:** map verification cancel codes to friendly text ([0c31188](https://github.com/Quantumheart/Kohera/commit/0c311885915208653e976527dbf8fd140b375133)), closes [#626](https://github.com/Quantumheart/Kohera/issues/626)
+* **e2ee:** show busy state while unlocking existing backup ([4f9cbec](https://github.com/Quantumheart/Kohera/commit/4f9cbec30acc2c0cff54b2db82b9a9d900bb05ce)), closes [#626](https://github.com/Quantumheart/Kohera/issues/626)
+* fullscreen top bar reappears on tap and auto-hides slower ([30b6039](https://github.com/Quantumheart/Kohera/commit/30b60392a26fd2fcb682b0a418d2fb21370af8ae)), closes [#797](https://github.com/Quantumheart/Kohera/issues/797)
+* provide Material ancestor for media viewer dialog ([e3a1c7b](https://github.com/Quantumheart/Kohera/commit/e3a1c7b3914e66a37e8622eecf5f6b1cbc70cb98)), closes [#797](https://github.com/Quantumheart/Kohera/issues/797)
+* render poll question in push notification body ([f69cddb](https://github.com/Quantumheart/Kohera/commit/f69cddb434e442012b7f7a9fea81f98e04a878d3)), closes [#799](https://github.com/Quantumheart/Kohera/issues/799)
+* respect top safe-area inset on call and key-backup banners ([acad2aa](https://github.com/Quantumheart/Kohera/commit/acad2aa2af2773deeb696894f6656105ccbc57a3)), closes [#771](https://github.com/Quantumheart/Kohera/issues/771)
+* seed fullscreen video controls with current playback state ([ac1ed6b](https://github.com/Quantumheart/Kohera/commit/ac1ed6b9bda24e4871b4d6e935ab0f8b679823a1)), closes [#797](https://github.com/Quantumheart/Kohera/issues/797)
+* strip reply fallback from OS notification body ([7c86e1d](https://github.com/Quantumheart/Kohera/commit/7c86e1da76709e54b4761faede0a04c521eb6842))
+
 ## [1.10.0](https://github.com/Quantumheart/Kohera/compare/v1.9.0...v1.10.0) (2026-07-07)
 
 
