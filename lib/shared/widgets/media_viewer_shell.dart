@@ -12,27 +12,13 @@ import 'package:kohera/shared/widgets/user_avatar.dart';
 
 // ── Shared fullscreen media viewer shell ─────────────────────
 
-class MediaViewerBarVisibility extends ValueNotifier<bool> {
-  MediaViewerBarVisibility([super.value = true]);
-
-  void show() {
-    if (value) {
-      notifyListeners();
-    } else {
-      value = true;
-    }
-  }
-}
-
 void showMediaViewer(
   BuildContext context, {
   required KoheraMediaContent media,
   required MediaController controller,
   required AvatarResolver avatarResolver,
   required Widget child,
-  MediaViewerBarVisibility? barVisibility,
 }) {
-  final bar = barVisibility ?? MediaViewerBarVisibility();
   unawaited(showGeneralDialog(
     context: context,
     barrierColor: Colors.black,
@@ -49,7 +35,6 @@ void showMediaViewer(
             media: media,
             controller: controller,
             avatarResolver: avatarResolver,
-            barVisibility: bar,
             child: child,
           ),
         ),
@@ -63,7 +48,6 @@ class MediaViewerShell extends StatefulWidget {
     required this.media,
     required this.controller,
     required this.avatarResolver,
-    required this.barVisibility,
     required this.child,
     super.key,
   });
@@ -71,7 +55,6 @@ class MediaViewerShell extends StatefulWidget {
   final KoheraMediaContent media;
   final MediaController controller;
   final AvatarResolver avatarResolver;
-  final MediaViewerBarVisibility barVisibility;
   final Widget child;
 
   @override
@@ -80,15 +63,14 @@ class MediaViewerShell extends StatefulWidget {
 
 class _MediaViewerShellState extends State<MediaViewerShell>
     with SingleTickerProviderStateMixin {
+  bool _barVisible = true;
   bool _downloading = false;
   Timer? _autoHideTimer;
 
-  static const _autoHideDelay = Duration(seconds: 4);
   static const _dismissDistance = 120.0;
   static const _dismissVelocity = 500.0;
   static const _maxDrag = 400.0;
 
-  late final MediaViewerBarVisibility _bar;
   Offset _dragOffset = Offset.zero;
   late final AnimationController _snapBack;
   Animation<Offset>? _snapAnim;
@@ -96,8 +78,6 @@ class _MediaViewerShellState extends State<MediaViewerShell>
   @override
   void initState() {
     super.initState();
-    _bar = widget.barVisibility;
-    _bar.addListener(_onBarChanged);
     _startAutoHideTimer();
     _snapBack = AnimationController(
       vsync: this,
@@ -111,19 +91,8 @@ class _MediaViewerShellState extends State<MediaViewerShell>
   @override
   void dispose() {
     _autoHideTimer?.cancel();
-    _bar.removeListener(_onBarChanged);
     _snapBack.dispose();
     super.dispose();
-  }
-
-  void _onBarChanged() {
-    if (!mounted) return;
-    if (_bar.value) {
-      _startAutoHideTimer();
-    } else {
-      _autoHideTimer?.cancel();
-    }
-    setState(() {});
   }
 
   void _onVerticalDragStart(DragStartDetails _) {
@@ -154,13 +123,14 @@ class _MediaViewerShellState extends State<MediaViewerShell>
 
   void _startAutoHideTimer() {
     _autoHideTimer?.cancel();
-    _autoHideTimer = Timer(_autoHideDelay, () {
-      if (mounted) _bar.value = false;
+    _autoHideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _barVisible = false);
     });
   }
 
   void _toggleBar() {
-    _bar.value = !_bar.value;
+    setState(() => _barVisible = !_barVisible);
+    if (_barVisible) _startAutoHideTimer();
   }
 
   Future<void> _download() async {
@@ -216,10 +186,10 @@ class _MediaViewerShellState extends State<MediaViewerShell>
           left: 0,
           right: 0,
           child: AnimatedOpacity(
-            opacity: _bar.value ? 1.0 : 0.0,
+            opacity: _barVisible ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 200),
             child: IgnorePointer(
-              ignoring: !_bar.value,
+              ignoring: !_barVisible,
               child: SafeArea(
                 bottom: false,
                 child: Container(

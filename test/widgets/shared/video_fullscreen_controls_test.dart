@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/media/kohera_media_source.dart';
 import 'package:kohera/core/media/kohera_video_controller.dart';
-import 'package:kohera/shared/widgets/media_viewer_shell.dart';
 import 'package:kohera/shared/widgets/video_fullscreen_controls.dart';
 
 class _FakeVideoController implements KoheraVideoController {
@@ -201,27 +200,6 @@ void main() {
 
       expect(find.text('00:03'), findsOneWidget);
       expect(find.text('00:10'), findsOneWidget);
-    });
-
-    testWidgets('tap reveals the shared bar visibility', (tester) async {
-      final controller = _FakeVideoController();
-      final bar = MediaViewerBarVisibility(false);
-      await tester.pumpWidget(
-        _wrap(VideoFullscreenControls(
-          controller: controller,
-          barVisibility: bar,
-          initialDuration: const Duration(seconds: 10),
-        )),
-      );
-      await tester.pump();
-
-      expect(bar.value, isFalse);
-
-      final rect = tester.getRect(find.byType(VideoFullscreenControls));
-      await tester.tapAt(rect.topLeft + const Offset(10, 10));
-      await tester.pump();
-
-      expect(bar.value, isTrue);
     });
   });
 }

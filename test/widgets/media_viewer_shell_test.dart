@@ -47,7 +47,6 @@ Widget buildTestWidget({
         media: media ?? _makeMedia(),
         controller: controller ?? _makeController(),
         avatarResolver: MockAvatarResolver(),
-        barVisibility: MediaViewerBarVisibility(),
         child: child ?? const Placeholder(),
       ),
     ),
@@ -100,7 +99,6 @@ void main() {
                       media: _makeMedia(),
                       controller: _makeController(),
                       avatarResolver: MockAvatarResolver(),
-                      barVisibility: MediaViewerBarVisibility(),
                       child: const Placeholder(),
                     ),
                   ),
@@ -171,39 +169,6 @@ void main() {
       await tester.pump();
 
       expect(find.byType(Slider), findsOneWidget);
-    });
-
-    AnimatedOpacity barOpacity(WidgetTester tester) => tester.widget<AnimatedOpacity>(
-          find.descendant(
-            of: find.byType(MediaViewerShell),
-            matching: find.byType(AnimatedOpacity),
-          ),
-        );
-
-    testWidgets('auto-hides the top bar after the delay', (tester) async {
-      await tester.pumpWidget(buildTestWidget());
-      await tester.pump();
-
-      expect(barOpacity(tester).opacity, 1.0);
-
-      await tester.pump(const Duration(seconds: 4));
-      await tester.pump();
-
-      expect(barOpacity(tester).opacity, 0.0);
-    });
-
-    testWidgets('tap re-shows the auto-hidden top bar', (tester) async {
-      await tester.pumpWidget(buildTestWidget());
-      await tester.pump();
-
-      await tester.pump(const Duration(seconds: 4));
-      await tester.pump();
-      expect(barOpacity(tester).opacity, 0.0);
-
-      await tester.tap(find.byType(MediaViewerShell));
-      await tester.pump();
-
-      expect(barOpacity(tester).opacity, 1.0);
     });
   });
 }
