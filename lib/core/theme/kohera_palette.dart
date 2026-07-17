@@ -370,6 +370,97 @@ class KoheraPalette extends ThemeExtension<KoheraPalette> {
     );
   }
 
+  /// Creates a SNES-inspired palette — 16-bit soft-beveled pixel theme
+  /// (snes.css inspired, revised spec). Grey #e5e5e5 light surface (snes.css
+  /// default canvas), aged-yellow #fcf4d9 as an elevated accent + dark
+  /// onSurface text, phantom purple #9b5de5 primary, dusk #2c3e50 text/border,
+  /// 9-color snes.css accent ramp. radius 4 (soft-pixel), shadowOffset 6
+  /// (wide grid), translucent shadowHard rgba(#000,0.2).
+  factory KoheraPalette.snes(Brightness brightness) {
+    const phantomPurple = Color(0xFF9b5de5);
+    const oceanBlue = Color(0xFF4eb6d9);
+    const sunshineYellow = Color(0xFFf2c019);
+    const natureGreen = Color(0xFF4bb244);
+    const plumberRed = Color(0xFFf22561);
+    const rose = Color(0xFFf784b2);
+    const galaxyBlue = Color(0xFF5a7d9a);
+    const lavaOrange = Color(0xFFff6f00);
+
+    const dusk = Color(0xFF2c3e50);
+    const agedYellow = Color(0xFFfcf4d9);
+    const secondaryPurple = Color(0xFFf0e4ff);
+    const turquoise = Color(0xFF40e0d0);
+
+    if (brightness == Brightness.dark) {
+      return const KoheraPalette(
+        borderStrong: dusk,
+        borderWidth: 2,
+        shadowHard: Color(0x33000000),
+        shadowOffset: 6,
+        radius: 4,
+        online: natureGreen,
+        idle: sunshineYellow,
+        unread: plumberRed,
+        onUnread: Color(0xFFFFFFFF),
+        mention: sunshineYellow,
+        link: oceanBlue,
+        ownBubble: phantomPurple,
+        onOwnBubble: Color(0xFFFFFFFF),
+        otherBubble: Color(0xFF384a5c),
+        onOtherBubble: agedYellow,
+        success: natureGreen,
+        warning: sunshineYellow,
+        danger: plumberRed,
+        scanline: Color(0x2E000000),
+        dither: Color(0xFFf0e4ff),
+        accentRamp: [
+          plumberRed,
+          natureGreen,
+          sunshineYellow,
+          oceanBlue,
+          turquoise,
+          phantomPurple,
+          rose,
+          galaxyBlue,
+          lavaOrange,
+        ],
+      );
+    }
+    return const KoheraPalette(
+      borderStrong: dusk,
+      borderWidth: 2,
+      shadowHard: Color(0x33000000),
+      shadowOffset: 6,
+      radius: 4,
+      online: Color(0xFF2f7d2a),
+      idle: Color(0xFFb8900f),
+      unread: Color(0xFFc41a4d),
+      onUnread: Color(0xFFFFFFFF),
+      mention: Color(0xFFb8900f),
+      link: Color(0xFF2a6d8a),
+      ownBubble: Color(0xFF7b3dc4),             // deeper phantom purple — light-mode contrast + brightness adaptation
+      onOwnBubble: Color(0xFFFFFFFF),
+      otherBubble: secondaryPurple,
+      onOtherBubble: dusk,
+      success: Color(0xFF2f7d2a),
+      warning: Color(0xFFb8900f),
+      danger: Color(0xFFc41a4d),
+      scanline: Color(0x1A000000),
+      dither: Color(0xFFdcdcdc),
+      accentRamp: [
+        plumberRed,
+        natureGreen,
+        sunshineYellow,
+        oceanBlue,
+        turquoise,
+        phantomPurple,
+        rose,
+        galaxyBlue,
+        lavaOrange,
+      ],
+    );
+  }
+
   @override
   KoheraPalette copyWith({
     Color? borderStrong,
