@@ -1,6 +1,8 @@
+import 'package:kohera/core/brand/brand_constants.dart';
+
 abstract class NotificationChannel {
   static const appId = 'io.github.quantumheart.kohera';
-  static const appName = 'Kohera';
+  static const String appName = BrandConstants.appName;
   static const windowsGuid = 'ef82b5e7-fd65-431d-bcbb-9c7fa9acb761';
 
   static const androidChannelId = 'kohera_messages';
