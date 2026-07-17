@@ -7,12 +7,12 @@ import 'package:kohera/core/theme/theme_presets.dart';
 /// themes so they respect the user's Light/Dark/System selection rather than
 /// rendering a single fixed brightness.
 ///
-/// Each pixel preset (PICO-8, Game Boy, Paper) declares both a `lightScheme`
+/// Each pixel preset (PICO-8, Game Boy, Paper, SNES) declares both a `lightScheme`
 /// and a `darkScheme`, no `forcedMode`, and a brightness-aware `pixelPalette`.
 /// These tests pin that contract so a future change cannot silently collapse
 /// the two modes into one.
 void main() {
-  const pixelPresets = ['pico8', 'gameboy', 'paper'];
+  const pixelPresets = ['pico8', 'gameboy', 'paper', 'snes'];
 
   for (final id in pixelPresets) {
     final preset = getPreset(id)!;
