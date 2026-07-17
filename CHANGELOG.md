@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.1](https://github.com/Quantumheart/Kohera/compare/v1.11.0...v1.11.1) (2026-07-17)
+
+
+### Bug Fixes
+
+* align install icons with pixel-art in-app branding ([3c117d9](https://github.com/Quantumheart/Kohera/commit/3c117d9f5c17bf184a6e07b0fd07d88f6716f876))
+
 ## [1.11.0](https://github.com/Quantumheart/Kohera/compare/v1.10.0...v1.11.0) (2026-07-16)
 
 
