@@ -17,10 +17,31 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Match the in-app logo exactly: a flat primaryContainer tile (#D4E3FF) with an
 # onPrimaryContainer (#224876) mark, so the shipped icon and login logo are one.
-BG = (212, 227, 255, 255)    # #D4E3FF — flat fill, no gradient
+BG = (255, 255, 255, 255)    # #FFFFFF — flat white tile (neutral, opaque)
 FG = (34, 72, 118, 255)     # #224876 — onPrimaryContainer, the mark colour
+GILL = (22, 47, 77, 255)     # darker primary (#162F4D) — gills under the cap
+SPORE = (144, 163, 186, 255)  # lighter primary (#90A3BA) — spores falling
 
 GRID = 32
+
+# Gills: short ticks hanging under the cap rim, beside the stem (rows 9-10;
+# the stem occupies x14-18 so these sit in the empty gill space either side).
+GILL_GX = [7, 10, 13, 19, 22, 25]
+GILL_ROWS = [9, 10]
+
+# Spore positions in mask-grid coords (fractional ok): a frozen snapshot of
+# spores released from the gills under the cap, falling down alongside the
+# stem and dispersing before the mycelial fan (rows 20+).
+SPORES = [
+    (7.0,  9.5),
+    (24.0, 9.5),
+    (8.0, 12.0),
+    (23.0, 12.0),
+    (10.0, 14.5),
+    (21.0, 14.5),
+    (9.0, 17.0),
+    (22.0, 17.0),
+]
 
 # ── Canonical 32×32 pixel mask ──────────────────────────────────────────────
 # '#' = mark pixel, '.' = transparent. This is the single source of truth shared
@@ -89,6 +110,32 @@ def _mark_image():
 _MARK = _mark_image()
 
 
+def _draw_gills(img, size, pad):
+    """Short ticks hanging under the cap rim, beside the stem — the spore-
+    bearing surface. One cell wide, drawn at mask-grid rows 9-10."""
+    box = size - 2 * pad
+    cell = box / GRID
+    d = ImageDraw.Draw(img)
+    for gx in GILL_GX:
+        for gy in GILL_ROWS:
+            x = pad + gx * cell
+            y = pad + gy * cell
+            d.rectangle([x, y, x + cell, y + cell], fill=GILL)
+
+
+def _draw_spores(img, size, pad):
+    """Stamp the falling spores at mask-grid coords (fractional). Released from
+    the gills under the cap, drifting down alongside the stem. One spore = one
+    mask cell, solid square so it shares the mushroom's hard pixel edges."""
+    box = size - 2 * pad
+    cell = box / GRID
+    d = ImageDraw.Draw(img)
+    for (gx, gy) in SPORES:
+        x = pad + gx * cell
+        y = pad + gy * cell
+        d.rectangle([x, y, x + cell, y + cell], fill=SPORE)
+
+
 def draw_mark(img, x0, y0, w, h, compact=False):
     """Stamp the pixel mask into a content box of size w×h, nearest-scaled.
 
@@ -143,17 +190,19 @@ def render(size, mode):
     if mode in ("rounded", "square", "maskable", "adaptive_bg"):
         img = Image.alpha_composite(img, make_background(size, rounded=(mode == "rounded")))
 
-    if mode == "maskable":
-        pad = size * 0.30
-    elif mode == "square":
-        pad = size * 0.16
-    elif mode == "adaptive_fg":
-        pad = size * 0.21  # keep mark inside the 72dp safe zone of the 108dp layer
-    else:
-        pad = size * 0.18
-
     if mode != "adaptive_bg":
+        # Full-icon platforms (rounded/square) pad 12 per the brand look; the
+        # shape-cropped modes (maskable web, Android adaptive-fg) keep the mark
+        # inside the launcher safe zone so the thread tips aren't chopped.
+        if mode == "maskable":
+            pad = size * 0.24
+        elif mode == "adaptive_fg":
+            pad = size * 0.21
+        else:
+            pad = size * 0.12
         draw_mark(img, pad, pad, size - 2 * pad, size - 2 * pad)
+        _draw_gills(img, size, pad)
+        _draw_spores(img, size, pad)
 
     return img
 
