@@ -2,10 +2,14 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// Animated brand loader: the pixelated mycelial mark stands static while a
-/// spark of light travels from the cap down the stem and out along one thread
-/// to its node, picking a different thread each cycle so the network appears to
-/// signal at random.
+/// Animated brand loader: the pixelated mycelial mushroom stands static while
+/// a spark of light travels from the cap down the stem and out along one
+/// thread to its node (a different thread each cycle, so the network appears
+/// to signal at random), and pale spores are released from the gills under the
+/// cap and fall downward, dispersing before the mycelial fan. The mushroom +
+/// spark follow [color] (default the theme primary); gills are a darker primary,
+/// spores a lighter primary — all from the active theme. See
+/// `plans/brand_colorized_mark_brief.md`.
 class KoheraLoader extends StatefulWidget {
   const KoheraLoader({this.size = 48, this.color, super.key});
 
@@ -57,7 +61,8 @@ class _KoheraLoaderState extends State<KoheraLoader>
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.color ?? Theme.of(context).colorScheme.primary;
+    final cs = Theme.of(context).colorScheme;
+    final color = widget.color ?? cs.primary;
     return SizedBox(
       width: widget.size,
       height: widget.size,
@@ -111,6 +116,20 @@ class _Leg {
 
 const int _samples = 16;
 const int _grid = 32;
+
+// ── Spore release ───────────────────────────────────────────────────────────
+// The mushroom+spark is drawn in an inner box (0.70 of the tile) so spores
+// released from the gills under the cap fall into the space alongside the
+// stem. Six spores drift down and outward, fading before the mycelial fan
+// (rows 20+), staggered so the release looks continuous. Gills are short ticks
+// under the cap rim (rows 9-10) where the spores are born.
+const double _innerScale = 0.70;
+const int _sporeCount = 6;
+const double _sporeSpawnGy = 9.5; // release row, just under the cap / gills
+const double _sporeFall = 9;    // grid rows fallen over one spore's life
+const List<double> _sporeGx = [6, 9, 11, 21, 23, 25];
+const List<int> _gillGx = [7, 10, 13, 19, 22, 25];
+const List<int> _gillRows = [9, 10];
 
 // Where the spark ignites — the top edge of the mushroom cap.
 const Offset _capSource = Offset(50, 4);
@@ -224,9 +243,13 @@ class _MyceliumPulsePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.scale(size.width / _grid);
+    // ── Mushroom + gills + spark in the inner box (spores fall beside the stem) ──
+    final inner = size.width * _innerScale;
+    final off = (size.width - inner) / 2;
+    canvas.save();
+    canvas.translate(off, off);
+    canvas.scale(inner / _grid);
 
-    // ── Static pixel mark ──
     final markPaint = Paint()..color = color;
     for (var y = 0; y < _grid; y++) {
       final row = _mask[y];
@@ -236,9 +259,46 @@ class _MyceliumPulsePainter extends CustomPainter {
         }
       }
     }
-
-    // ── Spark travelling along the active thread ──
+    _drawGills(canvas);
     _drawPulse(canvas);
+    _drawSpores(canvas);
+    canvas.restore();
+  }
+
+  void _drawGills(Canvas canvas) {
+    // Short ticks hanging under the cap rim, beside the stem — the spore-
+    // bearing surface. Darker primary so they read as gill shadow.
+    final gillColor = Color.lerp(color, Colors.black, 0.35)!;
+    final paint = Paint()..color = gillColor;
+    for (final gx in _gillGx) {
+      for (final gy in _gillRows) {
+        canvas.drawRect(Rect.fromLTWH(gx.toDouble(), gy.toDouble(), 1, 1), paint);
+      }
+    }
+  }
+
+  void _drawSpores(Canvas canvas) {
+    // Six spores released from the gills under the cap, staggered so the fall
+    // is continuous. Each falls _sporeFall grid rows over its life, drifting
+    // outward (outer spores more), fading in at release and out before the
+    // mycelial fan. Snapped to grid rows to stay pixel-crisp.
+    final sporeColor = Color.lerp(color, Colors.white, 0.5)!;
+    for (var i = 0; i < _sporeCount; i++) {
+      final local = (progress + i / _sporeCount) % 1.0;
+      final gy = (_sporeSpawnGy + _sporeFall * local).round();
+      final drift = (_sporeGx[i] - 16) * 0.18 * local;
+      final gx = (_sporeGx[i] + drift).round();
+      var alpha = 1.0;
+      if (local < 0.12) {
+        alpha = local / 0.12;
+      } else if (local > 0.65) {
+        alpha = ((1 - local) / 0.35).clamp(0.0, 1.0);
+      }
+      canvas.drawRect(
+        Rect.fromLTWH(gx.toDouble(), gy.toDouble(), 1, 1),
+        Paint()..color = sporeColor.withValues(alpha: alpha),
+      );
+    }
   }
 
   void _drawPulse(Canvas canvas) {
