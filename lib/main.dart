@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/brand/brand_constants.dart';
 import 'package:kohera/core/routing/app_router.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/client_manager.dart';
@@ -305,25 +307,42 @@ class _KoheraAppState extends State<KoheraApp> {
                         callService: callService,
                         router: router,
                         child: MaterialApp.router(
-                          title: 'Kohera',
+                          title: BrandConstants.appName,
                           debugShowCheckedModeBanner: false,
                           theme: theme,
                           darkTheme: darkTheme,
                           themeMode: themeMode,
                           routerConfig: router,
-                          builder: (context, child) => ScanlineOverlay(
-                            enabled: prefs.scanlinesEnabled,
-                            child: PixelationScope(
-                              enabled: prefs.pixelateGraphics,
-                              child: VerificationRequestListener(
-                                router: router,
-                                child: IncomingCallOverlay(
-                                  router: router,
-                                  child: child ?? const SizedBox.shrink(),
+                          builder: (context, child) {
+                            final theme = Theme.of(context);
+                            final isDark = theme.brightness == Brightness.dark;
+                            return AnnotatedRegion<SystemUiOverlayStyle>(
+                              value: SystemUiOverlayStyle(
+                                statusBarColor: Colors.transparent,
+                                statusBarIconBrightness:
+                                    isDark ? Brightness.light : Brightness.dark,
+                                statusBarBrightness:
+                                    isDark ? Brightness.light : Brightness.dark,
+                                systemNavigationBarColor:
+                                    theme.colorScheme.surface,
+                                systemNavigationBarIconBrightness:
+                                    isDark ? Brightness.light : Brightness.dark,
+                              ),
+                              child: ScanlineOverlay(
+                                enabled: prefs.scanlinesEnabled,
+                                child: PixelationScope(
+                                  enabled: prefs.pixelateGraphics,
+                                  child: VerificationRequestListener(
+                                    router: router,
+                                    child: IncomingCallOverlay(
+                                      router: router,
+                                      child: child ?? const SizedBox.shrink(),
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
+                            );
+                          },
                         ),
                       );
                     },
