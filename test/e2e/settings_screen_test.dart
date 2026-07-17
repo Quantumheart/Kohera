@@ -241,7 +241,14 @@ void main() {
         (tester) async {
       await tester.pumpWidget(buildSettingsApp());
       await tester.pumpAndSettle();
-      await scrollToBottom(tester);
+
+      final securityFinder = find.text('SECURITY');
+      var scrolls = 0;
+      while (!tester.any(securityFinder) && scrolls < 20) {
+        await tester.drag(find.byType(ListView), const Offset(0, -200));
+        await tester.pumpAndSettle();
+        scrolls++;
+      }
 
       expect(find.text('SECURITY'), findsOneWidget);
       expect(find.text('Devices'), findsOneWidget);

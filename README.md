@@ -1,6 +1,10 @@
 # Kohera
 
-A modern, adaptive Matrix chat client built with Flutter. Supports end-to-end encryption, rich messaging, spaces, and responsive layouts from mobile to desktop.
+**Threads that hang together.**
+
+Kohera is a retro-pixel Matrix chat client — coherent threads for encrypted messaging, voice/video calls, and spaces. Built with Flutter, runs on desktop, mobile, and web.
+
+<!-- Hero: stacked brand lockup (assets/icons/kohera_lockup_stacked.svg) + themed screenshots (SNES / PICO-8 / Paper) — tracked in issue #811. -->
 
 ## Features
 
