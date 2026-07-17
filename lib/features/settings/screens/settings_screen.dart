@@ -212,6 +212,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : "What's new",
                   onTap: () => context.pushNamed(Routes.whatsNew),
                 ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(56, 4, 16, 12),
+                  child: Text(
+                    'Kohera is a retro-pixel Matrix client. The mark — a pixel '
+                    'mushroom above a mycelial root network — stands for the '
+                    'coherent threads of a decentralized chat network: the '
+                    'visible conversation and the hidden web that carries it.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                  ),
+                ),
                 const Divider(height: 1, indent: 56),
                 _SettingsTile(
                   icon: Icons.code_rounded,
