@@ -20,20 +20,8 @@ class BrandConstants {
       'encrypted messaging, voice/video calls, and spaces. Built with Flutter, '
       'runs on desktop, mobile, and web.';
 
-  /// Brand signature color: SNES Phantom Purple.
-  static const Color brandColor = Color(0xFF9b5de5);
-
-  /// SNES light surface (snes.css default canvas grey).
-  static const Color lightSurface = Color(0xFFe5e5e5);
-
-  /// SNES dark surface (dusk).
-  static const Color darkSurface = Color(0xFF2c3e50);
-
-  /// Mark color on the light surface (dusk).
-  static const Color markOnLight = Color(0xFF2c3e50);
-
-  /// Mark color on the dark surface (aged-yellow accent).
-  static const Color markOnDark = Color(0xFFfcf4d9);
+  /// Brand signature color: Flutter blue (the theme seed + web theme-color).
+  static const Color brandColor = Color(0xFF1976D2);
 
   /// Windows AppUserModelID (reverse-DNS, keep lowercase).
   static const String appUserModelId = 'io.github.quantumheart.kohera';
