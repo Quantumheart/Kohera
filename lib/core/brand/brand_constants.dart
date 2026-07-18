@@ -12,7 +12,7 @@ class BrandConstants {
   static const String appName = 'Kohera';
 
   /// Brand tagline. Auth header + README hero + store listings.
-  static const String tagline = 'Threads that hang together.';
+  static const String tagline = 'Coherent threads, encrypted.';
 
   /// One-to-two sentence description for manifest, store listings, README.
   static const String description =
