@@ -1,6 +1,6 @@
 # Kohera
 
-**Threads that hang together.**
+**Coherent threads, encrypted.**
 
 Kohera is a retro-pixel Matrix chat client — coherent threads for encrypted messaging, voice/video calls, and spaces. Built with Flutter, runs on desktop, mobile, and web.
 

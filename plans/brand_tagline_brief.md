@@ -5,7 +5,7 @@ Status: design brief. No code changes.
 
 ## Decisions (locked)
 
-1. Primary tagline: **"Threads that hang together."**
+1. Primary tagline: **"Coherent threads, encrypted."**
 2. Short title form (browser tab / window / PWA): **"Kohera" alone** — tagline lives in README/manifest/auth, not the tab.
 3. Description: **candidate A (retro-pixel lead)** — see §3.
 4. Auth: **tagline + keep per-screen contextual subtitle** — tagline = identity (top of lockup), per-screen subtitle = action (below).
@@ -154,7 +154,7 @@ Tracked separately — does not block this brief's copy work. Copy/lockup land f
 ## 8. Deliverables (this task)
 
 1. This brief.
-2. Tagline locked: "Threads that hang together."
+2. Tagline locked: "Coherent threads, encrypted."
 3. Description locked (§3 candidate A).
 4. Copy placement spec (§5).
 5. BrandConstants spec (§4).
