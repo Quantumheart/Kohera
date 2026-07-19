@@ -371,11 +371,11 @@ class KoheraPalette extends ThemeExtension<KoheraPalette> {
   }
 
   /// Creates a SNES-inspired palette — 16-bit soft-beveled pixel theme
-  /// (snes.css inspired, revised spec). Grey #e5e5e5 light surface (snes.css
-  /// default canvas), aged-yellow #fcf4d9 as an elevated accent + dark
-  /// onSurface text, phantom purple #9b5de5 primary, dusk #2c3e50 text/border,
-  /// 9-color snes.css accent ramp. radius 4 (soft-pixel), shadowOffset 6
-  /// (wide grid), translucent shadowHard rgba(#000,0.2).
+  /// (snes.css inspired). Grey #e5e5e5 light surface (snes.css default
+  /// canvas), aged-yellow #fcf4d9 as an elevated accent + dark onSurface
+  /// text, phantom purple #9b5de5 primary, dusk #2c3e50 text/border, 9-color
+  /// snes.css accent ramp. radius 4 (soft-pixel), shadowOffset 6 (wide
+  /// grid), translucent shadowHard rgba(#000,0.2).
   factory KoheraPalette.snes(Brightness brightness) {
     const phantomPurple = Color(0xFF9b5de5);
     const oceanBlue = Color(0xFF4eb6d9);
@@ -438,7 +438,7 @@ class KoheraPalette extends ThemeExtension<KoheraPalette> {
       onUnread: Color(0xFFFFFFFF),
       mention: Color(0xFFb8900f),
       link: Color(0xFF2a6d8a),
-      ownBubble: Color(0xFF7b3dc4),             // deeper phantom purple — light-mode contrast + brightness adaptation
+      ownBubble: Color(0xFF7b3dc4),
       onOwnBubble: Color(0xFFFFFFFF),
       otherBubble: secondaryPurple,
       onOtherBubble: dusk,

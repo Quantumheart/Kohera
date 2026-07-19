@@ -532,9 +532,10 @@ const _presets = <ThemePreset>[
     ),
   ),
 
-  // SNES — 16-bit soft-beveled pixel theme (snes.css inspired, revised spec)
-  // grey #e5e5e5 light surface (snes.css default canvas), aged-yellow #fcf4d9
-  // as surfaceContainerHighest elevated accent + dark onSurface text accent,
+  // ── SNES ─────────────────────────────────────────────────────────────
+  // 16-bit soft-beveled pixel theme (snes.css inspired). grey #e5e5e5
+  // light surface (snes.css default canvas), aged-yellow #fcf4d9 as
+  // surfaceContainerHighest elevated accent + dark onSurface text accent,
   // phantom purple #9b5de5 primary, dusk #2c3e50 text/border, 9-color ramp.
   ThemePreset(
     id: 'snes',
