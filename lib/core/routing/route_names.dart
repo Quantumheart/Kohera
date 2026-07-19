@@ -50,6 +50,7 @@ abstract class RouteSegments {
   static const settingsVoiceVideo = 'voice-video';
   static const settingsRecoveryKey = 'recovery-key';
   static const settingsStickerPacks = 'sticker-packs';
+  static const settingsIgnoredUsers = 'ignored-users';
   static const settingsEmojiGgBrowse = 'emoji-gg-browse';
 }
 
@@ -71,6 +72,7 @@ abstract class Routes {
   static const settingsVoiceVideo = 'settings-voice-video';
   static const settingsRecoveryKey = 'settings-recovery-key';
   static const settingsStickerPacks = 'settings-sticker-packs';
+  static const settingsIgnoredUsers = 'settings-ignored-users';
   static const settingsEmojiGgBrowse = 'settings-emoji-gg-browse';
   static const inbox = 'inbox';
   static const spaceDetails = 'space-details';

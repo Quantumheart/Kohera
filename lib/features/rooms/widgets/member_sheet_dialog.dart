@@ -27,11 +27,14 @@ Future<void> showMemberSheetDialog(
   required bool canBan,
   required AvatarResolver avatarResolver,
   required PresenceService presence,
+  bool isIgnored = false,
   Future<void> Function()? onStartDm,
   Future<void> Function(int newLevel)? onRoleChange,
   Future<void> Function(String? reason)? onKick,
   Future<void> Function(String? reason)? onBan,
   Future<void> Function(String? reason)? onUnban,
+  Future<void> Function()? onIgnore,
+  Future<void> Function()? onUnignore,
   String Function(Object error)? formatError,
 }) {
   return showDialog<void>(
@@ -45,11 +48,14 @@ Future<void> showMemberSheetDialog(
       canBan: canBan,
       avatarResolver: avatarResolver,
       presence: presence,
+      isIgnored: isIgnored,
       onStartDm: onStartDm,
       onRoleChange: onRoleChange,
       onKick: onKick,
       onBan: onBan,
       onUnban: onUnban,
+      onIgnore: onIgnore,
+      onUnignore: onUnignore,
       formatError: formatError,
     ),
   );
@@ -67,11 +73,14 @@ class MemberSheetDialog extends StatefulWidget {
     required this.canBan,
     required this.avatarResolver,
     required this.presence,
+    this.isIgnored = false,
     this.onStartDm,
     this.onRoleChange,
     this.onKick,
     this.onBan,
     this.onUnban,
+    this.onIgnore,
+    this.onUnignore,
     this.formatError,
     super.key,
   });
@@ -84,11 +93,14 @@ class MemberSheetDialog extends StatefulWidget {
   final bool canBan;
   final AvatarResolver avatarResolver;
   final PresenceService presence;
+  final bool isIgnored;
   final Future<void> Function()? onStartDm;
   final Future<void> Function(int newLevel)? onRoleChange;
   final Future<void> Function(String? reason)? onKick;
   final Future<void> Function(String? reason)? onBan;
   final Future<void> Function(String? reason)? onUnban;
+  final Future<void> Function()? onIgnore;
+  final Future<void> Function()? onUnignore;
 
   /// Formats caught errors for user-facing display.
   /// When null, errors fall back to `e.toString()`.
@@ -232,6 +244,54 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
       if (mounted) Navigator.pop(context);
     } catch (e) {
       debugPrint('[Kohera] Unban failed: $e');
+      if (mounted) {
+        setState(() {
+          _actionLoading = false;
+          _actionError = widget.formatError?.call(e) ?? e.toString();
+        });
+      }
+    }
+  }
+
+  Future<void> _ignore() async {
+    final displayName = widget.member.displayname;
+    final confirmed = await confirmDialog(
+      context,
+      title: 'Ignore user?',
+      message:
+          'Hide messages and invites from $displayName across all rooms?',
+      confirmLabel: 'Ignore',
+      destructive: true,
+    );
+    if (!confirmed || !mounted) return;
+    setState(() {
+      _actionLoading = true;
+      _actionError = null;
+    });
+    try {
+      await widget.onIgnore?.call();
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      debugPrint('[Kohera] Ignore failed: $e');
+      if (mounted) {
+        setState(() {
+          _actionLoading = false;
+          _actionError = widget.formatError?.call(e) ?? e.toString();
+        });
+      }
+    }
+  }
+
+  Future<void> _unignore() async {
+    setState(() {
+      _actionLoading = true;
+      _actionError = null;
+    });
+    try {
+      await widget.onUnignore?.call();
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      debugPrint('[Kohera] Unignore failed: $e');
       if (mounted) {
         setState(() {
           _actionLoading = false;
@@ -436,6 +496,28 @@ class _MemberSheetDialogState extends State<MemberSheetDialog> {
                 Icon(Icons.chat_outlined),
                 SizedBox(width: 16),
                 Text('Send message'),
+              ],
+            ),
+          ),
+        if (!widget.isMe && !widget.isIgnored && widget.onIgnore != null)
+          SimpleDialogOption(
+            onPressed: _actionLoading ? null : _ignore,
+            child: Row(
+              children: [
+                Icon(Icons.do_not_disturb_on_outlined, color: cs.error),
+                const SizedBox(width: 16),
+                Text('Ignore user', style: TextStyle(color: cs.error)),
+              ],
+            ),
+          ),
+        if (!widget.isMe && widget.isIgnored && widget.onUnignore != null)
+          SimpleDialogOption(
+            onPressed: _actionLoading ? null : _unignore,
+            child: Row(
+              children: [
+                Icon(Icons.visibility_outlined, color: cs.primary),
+                const SizedBox(width: 16),
+                Text('Unignore user', style: TextStyle(color: cs.primary)),
               ],
             ),
           ),

@@ -26,6 +26,7 @@ import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/settings/screens/appearance_screen.dart';
 import 'package:kohera/features/settings/screens/devices_screen.dart';
 import 'package:kohera/features/settings/screens/emoji_gg_browse_screen.dart';
+import 'package:kohera/features/settings/screens/ignored_users_screen.dart';
 import 'package:kohera/features/settings/screens/notification_settings_screen.dart';
 import 'package:kohera/features/settings/screens/settings_screen.dart';
 import 'package:kohera/features/settings/screens/sticker_packs_screen.dart';
@@ -302,6 +303,12 @@ GoRouter buildRouter(ClientManager manager) {
                     name: Routes.settingsStickerPacks,
                     builder: (context, state) =>
                         const StickerPacksScreen(),
+                  ),
+                  GoRoute(
+                    path: RouteSegments.settingsIgnoredUsers,
+                    name: Routes.settingsIgnoredUsers,
+                    builder: (context, state) =>
+                        const IgnoredUsersScreen(),
                   ),
                   GoRoute(
                     path: RouteSegments.settingsEmojiGgBrowse,

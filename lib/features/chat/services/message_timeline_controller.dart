@@ -77,6 +77,7 @@ class MessageTimelineController extends ChangeNotifier {
       timelineEvents,
       extraEvents: _extraEvents,
       threadRootId: threadRootEventId,
+      ignoredUserIds: matrix.client.ignoredUsers,
     );
     _cachedMessages = _buildMessageData(visible);
     return _cachedMessages!;
@@ -334,6 +335,7 @@ class MessageTimelineController extends ChangeNotifier {
     Iterable<Event> timelineEvents, {
     List<Event>? extraEvents,
     String? threadRootId,
+    List<String> ignoredUserIds = const [],
   }) {
     final seen = <String>{};
     final merged = <Event>[];
@@ -348,7 +350,9 @@ class MessageTimelineController extends ChangeNotifier {
     return merged
         .where(
           (e) =>
-              (((e.type == EventTypes.Message || e.type == EventTypes.Encrypted) &&
+              !ignoredUserIds.contains(e.senderId) &&
+              (((e.type == EventTypes.Message ||
+                          e.type == EventTypes.Encrypted) &&
                       e.relationshipType != RelationshipTypes.edit &&
                       !_isCallMemberEvent(e)) ||
                   callEventTypes.contains(e.type) ||

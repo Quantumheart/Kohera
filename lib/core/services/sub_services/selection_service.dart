@@ -258,16 +258,30 @@ class SelectionService extends ChangeNotifier {
   }
 
   List<Room> get invitedRooms => _client.rooms
-      .where((r) => !r.isSpace && r.membership == Membership.invite)
+      .where((r) =>
+          !r.isSpace &&
+          r.membership == Membership.invite &&
+          !_isInviterIgnored(r))
       .toList()
     ..sort((a, b) => a.getLocalizedDisplayname().compareTo(
         b.getLocalizedDisplayname(),),);
 
   List<Room> get invitedSpaces => _client.rooms
-      .where((r) => r.isSpace && r.membership == Membership.invite)
+      .where((r) =>
+          r.isSpace &&
+          r.membership == Membership.invite &&
+          !_isInviterIgnored(r))
       .toList()
     ..sort((a, b) => a.getLocalizedDisplayname().compareTo(
         b.getLocalizedDisplayname(),),);
+
+  bool _isInviterIgnored(Room room) {
+    final userId = _client.userID;
+    if (userId == null) return false;
+    final inviteState = room.getState(EventTypes.RoomMember, userId);
+    if (inviteState == null) return false;
+    return _client.ignoredUsers.contains(inviteState.senderId);
+  }
 
   String? inviterDisplayName(Room room) {
     final userId = _client.userID;
