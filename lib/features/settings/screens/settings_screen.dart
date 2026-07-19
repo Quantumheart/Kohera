@@ -192,6 +192,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: 'Manage your devices',
                   onTap: () => context.pushOrGo(Routes.settingsDevices),
                 ),
+                const Divider(height: 1, indent: 56),
+                _SettingsTile(
+                  icon: Icons.do_not_disturb_alt_outlined,
+                  title: 'Ignored users',
+                  subtitle: 'Manage who you’ve muted',
+                  onTap: () =>
+                      context.pushOrGo(Routes.settingsIgnoredUsers),
+                ),
               ],
             ),
           ),

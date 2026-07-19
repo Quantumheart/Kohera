@@ -244,6 +244,48 @@ void main() {
         'Invited Room',
       );
     });
+
+    test('hides invites from ignored users', () {
+      when(mockClient.userID).thenReturn('@me:example.com');
+      when(mockClient.ignoredUsers).thenReturn(['@bad:example.com']);
+
+      final inviteFromBad = MockRoom();
+      final inviteFromGood = MockRoom();
+
+      when(inviteFromBad.isSpace).thenReturn(false);
+      when(inviteFromBad.membership).thenReturn(Membership.invite);
+      when(inviteFromBad.getLocalizedDisplayname()).thenReturn('Bad Invite');
+      when(inviteFromBad.getState(EventTypes.RoomMember, '@me:example.com'))
+          .thenReturn(
+        StrippedStateEvent(
+          type: EventTypes.RoomMember,
+          content: {'membership': 'invite'},
+          senderId: '@bad:example.com',
+          stateKey: '@me:example.com',
+        ),
+      );
+
+      when(inviteFromGood.isSpace).thenReturn(false);
+      when(inviteFromGood.membership).thenReturn(Membership.invite);
+      when(inviteFromGood.getLocalizedDisplayname()).thenReturn('Good Invite');
+      when(inviteFromGood.getState(EventTypes.RoomMember, '@me:example.com'))
+          .thenReturn(
+        StrippedStateEvent(
+          type: EventTypes.RoomMember,
+          content: {'membership': 'invite'},
+          senderId: '@friend:example.com',
+          stateKey: '@me:example.com',
+        ),
+      );
+
+      when(mockClient.rooms).thenReturn([inviteFromBad, inviteFromGood]);
+
+      expect(service.invitedRooms, hasLength(1));
+      expect(
+        service.invitedRooms[0].getLocalizedDisplayname(),
+        'Good Invite',
+      );
+    });
   });
 
   group('invitedSpaces', () {

@@ -29,6 +29,7 @@ Future<void> showRoomMemberSheet(
   final client = room.client;
   final isMe = member.userId == client.userID;
   final ownLevel = room.getPowerLevelByUserId(client.userID ?? '').level;
+  final isIgnored = client.ignoredUsers.contains(member.userId);
 
   return showMemberSheetDialog(
     context,
@@ -47,6 +48,7 @@ Future<void> showRoomMemberSheet(
         !member.isBanned,
     avatarResolver: context.read<MatrixService>().avatarResolver,
     presence: context.read<MatrixService>().presence,
+    isIgnored: isIgnored,
     formatError: MatrixService.friendlyAuthError,
     onStartDm: isMe
         ? null
@@ -74,5 +76,7 @@ Future<void> showRoomMemberSheet(
     onKick: (reason) => client.kick(room.id, member.userId, reason: reason),
     onBan: (reason) => client.ban(room.id, member.userId, reason: reason),
     onUnban: (_) => client.unban(room.id, member.userId),
+    onIgnore: isMe ? null : () => client.ignoreUser(member.userId, leaveRooms: false),
+    onUnignore: isMe ? null : () => client.unignoreUser(member.userId),
   );
 }

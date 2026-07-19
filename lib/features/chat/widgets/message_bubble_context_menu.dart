@@ -19,6 +19,7 @@ Future<void> showMessageContextMenu(
   VoidCallback? onForward,
   VoidCallback? onRetrySend,
   VoidCallback? onDiscardSend,
+  VoidCallback? onIgnoreSender,
 }) async {
   final cs = Theme.of(context).colorScheme;
   final items = <PopupMenuItem<String>>[
@@ -47,6 +48,13 @@ Future<void> showMessageContextMenu(
           isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
           isPinned ? 'Unpin' : 'Pin',
           'pin',
+        ),
+      if (onIgnoreSender != null)
+        menuItemRow(
+          Icons.do_not_disturb_on_outlined,
+          'Ignore user',
+          'ignore_sender',
+          color: cs.error,
         ),
       if (onDelete != null)
         menuItemRow(
@@ -80,6 +88,7 @@ Future<void> showMessageContextMenu(
   if (value == 'react') onReact?.call();
   if (value == 'edit') onEdit?.call();
   if (value == 'pin') onPin?.call();
+  if (value == 'ignore_sender') onIgnoreSender?.call();
   if (value == 'copy') {
     await Clipboard.setData(ClipboardData(text: copyableBody));
   }

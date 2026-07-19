@@ -7,11 +7,12 @@ import 'package:mockito/mockito.dart';
 @GenerateNiceMocks([MockSpec<Event>()])
 import 'message_list_view_order_test.mocks.dart';
 
-MockEvent _event(String id, String type, DateTime ts) {
+MockEvent _event(String id, String type, DateTime ts, {String sender = '@me:example.com'}) {
   final e = MockEvent();
   when(e.eventId).thenReturn(id);
   when(e.type).thenReturn(type);
   when(e.originServerTs).thenReturn(ts);
+  when(e.senderId).thenReturn(sender);
   when(e.body).thenReturn('');
   return e;
 }
@@ -72,5 +73,27 @@ void main() {
     );
 
     expect(_ids(visible), [r'$p1']);
+  });
+
+  test('filters out events from ignored users', () {
+    final mine = _event(
+      r'$m1',
+      EventTypes.Message,
+      DateTime(2026, 1, 15, 10),
+      sender: '@me:example.com',
+    );
+    final ignored = _event(
+      r'$m2',
+      EventTypes.Message,
+      DateTime(2026, 1, 15, 11),
+      sender: '@bad:example.com',
+    );
+
+    final visible = MessageTimelineController.buildVisibleEvents(
+      [mine, ignored],
+      ignoredUserIds: ['@bad:example.com'],
+    );
+
+    expect(_ids(visible), [r'$m1']);
   });
 }

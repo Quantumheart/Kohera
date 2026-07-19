@@ -15,6 +15,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -60,6 +61,7 @@ import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/services/member_sheet_launcher.dart';
 import 'package:kohera/shared/services/room_summary_resolver.dart';
+import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 
@@ -459,6 +461,9 @@ class _ChatScreenState extends State<ChatScreen>
         onForward: isRedacted
             ? null
             : () => _forwardMessage(eventId),
+        onIgnoreSender: (!isRedacted && !isMe)
+            ? () => unawaited(_ignoreSender(event))
+            : null,
         onRetrySend: () async {
           try {
             await event.sendAgain();
@@ -570,6 +575,13 @@ class _ChatScreenState extends State<ChatScreen>
             );
           },
         ),
+        if (!isMe)
+          MessageAction(
+            label: 'Ignore user',
+            icon: Icons.do_not_disturb_on_outlined,
+            onTap: () => unawaited(_ignoreSender(event)),
+            color: cs.error,
+          ),
         if (event.canRedact)
           MessageAction(
             label: isMe ? 'Delete' : 'Remove',
@@ -614,6 +626,33 @@ class _ChatScreenState extends State<ChatScreen>
       powerLevel: room.getPowerLevelByUserId(sender.id).level,
     );
     unawaited(showRoomMemberSheet(context, room: room, member: member));
+  }
+
+  Future<void> _ignoreSender(Event event) async {
+    final senderId = event.senderId;
+    final myId = _timelineController.myUserId;
+    if (senderId == myId) return;
+    final sender = event.senderFromMemoryOrFallback;
+    final displayName = sender.calcDisplayname();
+    final confirmed = await confirmDialog(
+      context,
+      title: 'Ignore user?',
+      message:
+          'Hide messages and invites from $displayName across all rooms?',
+      confirmLabel: 'Ignore',
+      destructive: true,
+    );
+    if (!confirmed || !mounted) return;
+    final matrix = context.read<MatrixService>();
+    try {
+      await matrix.client.ignoreUser(senderId, leaveRooms: false);
+      if (mounted) context.showSnack('Ignored $displayName');
+    } catch (e) {
+      debugPrint('[Kohera] Ignore sender failed: $e');
+      if (mounted) {
+        context.showSnack('Failed to ignore: ${MatrixService.friendlyAuthError(e)}');
+      }
+    }
   }
 
   void _showStickerContextMenu(
