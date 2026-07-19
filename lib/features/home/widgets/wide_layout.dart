@@ -126,6 +126,7 @@ class _WideLayoutState extends State<WideLayout> {
         name == Routes.settingsVoiceVideo ||
         name == Routes.settingsRecoveryKey ||
         name == Routes.settingsStickerPacks ||
+        name == Routes.settingsIgnoredUsers ||
         name == Routes.settingsEmojiGgBrowse ||
         name == Routes.spaces ||
         name == Routes.spaceDetails ||

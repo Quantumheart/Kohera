@@ -21,6 +21,22 @@ class IgnoredUsersScreen extends StatefulWidget {
 class _IgnoredUsersScreenState extends State<IgnoredUsersScreen> {
   final _displayNames = <String, String>{};
   final _loading = <String>{};
+  StreamSubscription<SyncUpdate>? _syncSub;
+
+  @override
+  void initState() {
+    super.initState();
+    final client = context.read<MatrixService>().client;
+    _syncSub = client.onSync.stream.listen((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_syncSub?.cancel());
+    super.dispose();
+  }
 
   Future<void> _loadProfile(String userId, Client client) async {
     if (_displayNames.containsKey(userId) || _loading.contains(userId)) return;
@@ -112,7 +128,9 @@ class _IgnoredUsersScreenState extends State<IgnoredUsersScreen> {
               separatorBuilder: (_, _) => const Divider(height: 1, indent: 72),
               itemBuilder: (context, index) {
                 final userId = ignored[index];
-                unawaited(_loadProfile(userId, client));
+                WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => _loadProfile(userId, client),
+                );
                 final displayName = _displayNames[userId] ?? userId;
                 return _IgnoredUserTile(
                   userId: userId,

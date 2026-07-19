@@ -14,6 +14,7 @@ import 'package:kohera/features/settings/widgets/account_switcher.dart';
 import 'package:kohera/features/settings/widgets/profile_avatar_card.dart';
 import 'package:kohera/shared/widgets/kohera_mark.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
+import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -27,6 +28,28 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   String? _lastShownError;
+  StreamSubscription<SyncUpdate>? _syncSub;
+  int _ignoredCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final client = context.read<MatrixService>().client;
+    _ignoredCount = client.ignoredUsers.length;
+    _syncSub = client.onSync.stream.listen((_) {
+      if (!mounted) return;
+      final count = client.ignoredUsers.length;
+      if (count != _ignoredCount) {
+        setState(() => _ignoredCount = count);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    unawaited(_syncSub?.cancel());
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -196,9 +219,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _SettingsTile(
                   icon: Icons.do_not_disturb_alt_outlined,
                   title: 'Ignored users',
-                  subtitle: 'Manage who you’ve muted',
-                  onTap: () =>
-                      context.pushOrGo(Routes.settingsIgnoredUsers),
+                  subtitle: _ignoredUsersLabel(_ignoredCount),
+                  onTap: () => context.goNamed(Routes.settingsIgnoredUsers),
                 ),
               ],
             ),
@@ -339,6 +361,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ),);
   }
 
+}
+
+String _ignoredUsersLabel(int count) {
+  if (count == 0) return 'None';
+  return '$count user${count == 1 ? '' : 's'}';
 }
 
 class _SettingsTile extends StatelessWidget {
