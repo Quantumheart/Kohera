@@ -247,7 +247,12 @@ class _HeaderSubtitle extends StatelessWidget {
       },
       builder: (context, count) {
         if (presence == null || userId == null) {
-          return Text(_memberCountLabel(count), style: style);
+          return Text(
+            _memberCountLabel(count),
+            style: style,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          );
         }
         return ListenableBuilder(
           listenable: presence,
