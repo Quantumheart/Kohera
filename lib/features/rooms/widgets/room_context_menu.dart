@@ -6,11 +6,12 @@ import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/rooms/services/room_context_menu_actions.dart';
 import 'package:kohera/features/rooms/widgets/add_room_to_space_dialog.dart';
 import 'package:kohera/shared/widgets/popup_menu_item_row.dart';
+import 'package:kohera/shared/widgets/report_content_dialog.dart';
 import 'package:provider/provider.dart';
 
 // ── Room Context Menu ───────────────────────────────────────────────
 
-enum _RoomContextAction { addToSpace, removeFromSpace, moveUp, moveDown }
+enum _RoomContextAction { addToSpace, removeFromSpace, moveUp, moveDown, reportRoom }
 
 /// Shows a context menu for a room in the room list.
 ///
@@ -47,8 +48,9 @@ Future<void> showRoomContextMenu(
       orderedRoomIds != null &&
       roomIndex >= 0 &&
       roomIndex < orderedRoomIds.length - 1;
+  final canReport = matrix.client.getRoomById(roomId)?.lastEvent != null;
 
-  if (!canAdd && !canRemove && !canMoveUp && !canMoveDown) return;
+  if (!canAdd && !canRemove && !canMoveUp && !canMoveDown && !canReport) return;
 
   final activeSpaceName =
       activeSpaceId != null ? actions.roomDisplayName(activeSpaceId) : null;
@@ -93,6 +95,13 @@ Future<void> showRoomContextMenu(
               ),
             ],
           ),
+        ),
+      if (canReport)
+        menuItemRow(
+          Icons.flag_outlined,
+          'Report room',
+          _RoomContextAction.reportRoom,
+          color: cs.error,
         ),
     ],
   );
@@ -142,6 +151,10 @@ Future<void> showRoomContextMenu(
           roomIndex,
           roomIndex + 1,
         );
+      }
+    case _RoomContextAction.reportRoom:
+      if (context.mounted) {
+        await reportRoomContent(context, matrix.client, roomId);
       }
   }
 }
