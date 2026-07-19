@@ -50,7 +50,14 @@ You can disable push notifications at any time in your iOS Settings or in Kohera
 
 ### Voice and video calls
 
-Voice and video calls are delivered using [LiveKit](https://livekit.io). The LiveKit server you connect to is determined by your homeserver or by the room you are calling in. Audio and video streams are routed through that server. Call media is encrypted in transit.
+Voice and video calls have two layers, and they differ in what your homeserver and the push gateway can see:
+
+- **Call media** (audio and video) is delivered through [LiveKit](https://livekit.io). The LiveKit server you connect to is determined by your homeserver or by the room you are calling in. Audio and video streams are routed through that server. Call media is encrypted in transit to the LiveKit server; the LiveKit server operator can, however, see and hear call media while it is routed. Kohera does not currently enable LiveKit end-to-end media encryption.
+- **Call signaling** (the fact that a call is happening, who is calling whom, when, which device, and whether it is a video or audio call) is carried in a Matrix room **state event** (`m.call.member`, per the [MatrixRTC](https://matrixrtc.io/) / MSC3401 call spec). This state event is **not end-to-end encrypted**, by design, so that your homeserver and the push gateway can read its type and route VoIP push notifications to your device without first decrypting anything. Without this, every encrypted message in a call room would look identical to a VoIP ring and your phone would fire the incoming-call UI for normal chat messages.
+
+As a result, your homeserver operator and the developer-operated push gateway (`push.quantum-matrix.xyz`, see the Push notifications section above) can see, for each call you make or receive in a 1:1 room: the fact that a call occurred, the participants, the timestamp, the calling device ID, and whether the call was video or audio (Kohera includes an `io.kohera.is_video` field so the system can show the correct video or audio incoming-call screen at ring time, before the app has decrypted anything). This metadata is visible to the homeserver in the room state and passes through the push gateway in transit; the gateway does not persist it to disk (see the Push notifications section for the gateway's retention practices).
+
+Call **content** — what is said or shown during the call — is not carried in the state event and is not visible to your homeserver or the push gateway. It is, however, visible to the LiveKit server operator as noted above.
 
 ### Giphy
 
