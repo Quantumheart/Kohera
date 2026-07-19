@@ -61,6 +61,7 @@ import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/services/member_sheet_launcher.dart';
 import 'package:kohera/shared/services/room_summary_resolver.dart';
+import 'package:kohera/shared/widgets/report_content_dialog.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
@@ -464,6 +465,9 @@ class _ChatScreenState extends State<ChatScreen>
         onIgnoreSender: (!isRedacted && !isMe)
             ? () => unawaited(_ignoreSender(event))
             : null,
+        onReport: (!isRedacted && !isMe)
+            ? () => unawaited(_reportMessage(event))
+            : null,
         onRetrySend: () async {
           try {
             await event.sendAgain();
@@ -582,6 +586,13 @@ class _ChatScreenState extends State<ChatScreen>
             onTap: () => unawaited(_ignoreSender(event)),
             color: cs.error,
           ),
+        if (!isMe && !event.redacted)
+          MessageAction(
+            label: 'Report',
+            icon: Icons.flag_outlined,
+            onTap: () => unawaited(_reportMessage(event)),
+            color: cs.error,
+          ),
         if (event.canRedact)
           MessageAction(
             label: isMe ? 'Delete' : 'Remove',
@@ -651,6 +662,27 @@ class _ChatScreenState extends State<ChatScreen>
       debugPrint('[Kohera] Ignore sender failed: $e');
       if (mounted) {
         context.showSnack('Failed to ignore: ${MatrixService.friendlyAuthError(e)}');
+      }
+    }
+  }
+
+  Future<void> _reportMessage(Event event) async {
+    final reason = await showReportContentDialog(context);
+    if (reason == null || reason.isEmpty || !mounted) return;
+    final matrix = context.read<MatrixService>();
+    try {
+      await matrix.client.reportEvent(
+        event.room.id,
+        event.eventId,
+        reason: reason,
+      );
+      if (mounted) context.showSnack('Reported to homeserver');
+    } catch (e) {
+      debugPrint('[Kohera] Report message failed: $e');
+      if (mounted) {
+        context.showSnack(
+          'Failed to report: ${MatrixService.friendlyAuthError(e)}',
+        );
       }
     }
   }

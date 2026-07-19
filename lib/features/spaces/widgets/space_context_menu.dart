@@ -17,6 +17,7 @@ import 'package:kohera/features/spaces/widgets/notification_radio_group.dart';
 import 'package:kohera/features/spaces/widgets/space_details_panel.dart'
     show SpaceDetailsPanel;
 import 'package:kohera/shared/widgets/popup_menu_item_row.dart';
+import 'package:kohera/shared/widgets/report_content_dialog.dart';
 import 'package:provider/provider.dart';
 
 // ── Space Context Menu ──────────────────────────────────────────────
@@ -30,6 +31,7 @@ enum SpaceContextAction {
   addExistingRoom,
   notifications,
   leaveSpace,
+  reportRoom,
 }
 
 Future<void> showSpaceContextMenu(
@@ -44,6 +46,7 @@ Future<void> showSpaceContextMenu(
   final canInvite = actions.canInvite(spaceId);
   final canManageChildren = actions.canManageChildren(spaceId);
   final canEditName = actions.canEditName(spaceId);
+  final canReport = matrix.client.getRoomById(spaceId)?.lastEvent != null;
 
   final action = await showMenu<SpaceContextAction>(
     context: context,
@@ -84,6 +87,13 @@ Future<void> showSpaceContextMenu(
         'Notifications',
         SpaceContextAction.notifications,
       ),
+      if (canReport)
+        menuItemRow(
+          Icons.flag_outlined,
+          'Report room',
+          SpaceContextAction.reportRoom,
+          color: cs.error,
+        ),
       const PopupMenuDivider(),
       menuItemRow(
         Icons.logout_rounded,
@@ -157,6 +167,10 @@ Future<void> showSpaceContextMenu(
       }
     case SpaceContextAction.notifications:
       if (context.mounted) await _handleNotifications(context, actions, spaceId);
+    case SpaceContextAction.reportRoom:
+      if (context.mounted) {
+        await reportRoomContent(context, matrix.client, spaceId);
+      }
   }
 }
 

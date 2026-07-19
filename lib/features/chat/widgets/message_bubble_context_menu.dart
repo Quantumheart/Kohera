@@ -20,6 +20,7 @@ Future<void> showMessageContextMenu(
   VoidCallback? onRetrySend,
   VoidCallback? onDiscardSend,
   VoidCallback? onIgnoreSender,
+  VoidCallback? onReport,
 }) async {
   final cs = Theme.of(context).colorScheme;
   final items = <PopupMenuItem<String>>[
@@ -56,6 +57,13 @@ Future<void> showMessageContextMenu(
           'ignore_sender',
           color: cs.error,
         ),
+      if (onReport != null)
+        menuItemRow(
+          Icons.flag_outlined,
+          'Report',
+          'report',
+          color: cs.error,
+        ),
       if (onDelete != null)
         menuItemRow(
           Icons.delete_outline_rounded,
@@ -89,6 +97,7 @@ Future<void> showMessageContextMenu(
   if (value == 'edit') onEdit?.call();
   if (value == 'pin') onPin?.call();
   if (value == 'ignore_sender') onIgnoreSender?.call();
+  if (value == 'report') onReport?.call();
   if (value == 'copy') {
     await Clipboard.setData(ClipboardData(text: copyableBody));
   }
