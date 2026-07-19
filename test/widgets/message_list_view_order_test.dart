@@ -80,7 +80,6 @@ void main() {
       r'$m1',
       EventTypes.Message,
       DateTime(2026, 1, 15, 10),
-      sender: '@me:example.com',
     );
     final ignored = _event(
       r'$m2',
