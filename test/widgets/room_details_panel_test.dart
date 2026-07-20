@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/join_mode.dart';
-import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
@@ -20,6 +18,7 @@ import 'package:provider/provider.dart';
   MockSpec<Room>(),
   MockSpec<SpaceAccessService>(),
 ])
+import '../helpers/room_details_test_router.dart';
 import 'room_details_panel_test.mocks.dart';
 
 void main() {
@@ -40,10 +39,12 @@ void main() {
     when(mockMatrixService.spaceAccess).thenReturn(mockAccess);
     when(mockAccess.getJoinMode(mockRoom)).thenReturn(JoinMode.invite);
     when(mockAccess.allowedSpaceIds(mockRoom)).thenReturn(const []);
-    when(mockAccess.needsUpgradeForRestricted(
-      mockRoom,
-      wantKnock: anyNamed('wantKnock'),
-    ),).thenReturn(false);
+    when(
+      mockAccess.needsUpgradeForRestricted(
+        mockRoom,
+        wantKnock: anyNamed('wantKnock'),
+      ),
+    ).thenReturn(false);
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
     when(mockClient.userID).thenReturn('@me:example.com');
     when(mockClient.updateUserDeviceKeys()).thenAnswer((_) async {});
@@ -56,10 +57,12 @@ void main() {
     when(mockRoom.isDirectChat).thenReturn(false);
     when(mockRoom.isFavourite).thenReturn(false);
     when(mockRoom.pushRuleState).thenReturn(PushRuleState.notify);
-    when(mockRoom.summary).thenReturn(RoomSummary.fromJson({
-      'm.joined_member_count': 3,
-      'm.invited_member_count': 0,
-    }),);
+    when(mockRoom.summary).thenReturn(
+      RoomSummary.fromJson({
+        'm.joined_member_count': 3,
+        'm.invited_member_count': 0,
+      }),
+    );
     when(mockRoom.client).thenReturn(mockClient);
     when(mockRoom.avatar).thenReturn(null);
     when(mockRoom.canChangeStateEvent(any)).thenReturn(false);
@@ -70,34 +73,12 @@ void main() {
     when(mockClient.rooms).thenReturn([]);
     selectionService = SelectionService(client: mockClient);
     when(mockMatrixService.selection).thenReturn(selectionService);
-    when(mockMatrixService.avatarResolver)
-        .thenReturn(const _NullAvatarResolver());
+    when(
+      mockMatrixService.avatarResolver,
+    ).thenReturn(const _NullAvatarResolver());
   });
 
   Widget buildTestWidget() {
-    final router = GoRouter(
-      initialLocation: '/rooms/!room:example.com/details',
-      routes: [
-        GoRoute(
-          path: '/',
-          name: Routes.home,
-          builder: (_, _) => const Scaffold(body: SizedBox.shrink()),
-        ),
-        GoRoute(
-          path: '/rooms/:${RouteParams.roomId}',
-          builder: (_, _) => const Scaffold(body: SizedBox.shrink()),
-          routes: [
-            GoRoute(
-              path: RouteSegments.roomDetails,
-              name: Routes.roomDetails,
-              builder: (_, state) => RoomDetailsScreen(
-                roomId: state.pathParameters[RouteParams.roomId]!,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
@@ -105,7 +86,7 @@ void main() {
       ],
       child: MaterialApp.router(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),
-        routerConfig: router,
+        routerConfig: buildRoomDetailsTestRouter(roomId: '!room:example.com'),
       ),
     );
   }
@@ -228,63 +209,96 @@ void main() {
       expect(find.text('Muted'), findsOneWidget);
     });
 
-  testWidgets('RoomDetailsScreen AppBar shows room displayname', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: MultiProvider(
-        providers: [
-          ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
-          ChangeNotifierProvider<SelectionService>.value(value: selectionService),
-        ],
-        child: const RoomDetailsScreen(roomId: '!room:example.com'),
-      ),
-    ),);
-    await tester.pumpAndSettle();
+    testWidgets('RoomDetailsScreen AppBar shows room displayname', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<MatrixService>.value(
+                value: mockMatrixService,
+              ),
+              ChangeNotifierProvider<SelectionService>.value(
+                value: selectionService,
+              ),
+            ],
+            child: const RoomDetailsScreen(roomId: '!room:example.com'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(AppBar, 'Test Room'), findsOneWidget);
-  });
+      expect(find.widgetWithText(AppBar, 'Test Room'), findsOneWidget);
+      expect(find.byType(BackButton), findsOneWidget);
+    });
 
-  testWidgets('RoomDetailsScreen falls back to roomId when room missing',
-      (tester) async {
-    when(mockClient.getRoomById('!missing:example.com')).thenReturn(null);
-    await tester.pumpWidget(MaterialApp(
-      home: MultiProvider(
-        providers: [
-          ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
-          ChangeNotifierProvider<SelectionService>.value(value: selectionService),
-        ],
-        child: const RoomDetailsScreen(roomId: '!missing:example.com'),
-      ),
-    ),);
-    await tester.pumpAndSettle();
+    testWidgets('RoomDetailsScreen falls back to roomId when room missing', (
+      tester,
+    ) async {
+      when(mockClient.getRoomById('!missing:example.com')).thenReturn(null);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<MatrixService>.value(
+                value: mockMatrixService,
+              ),
+              ChangeNotifierProvider<SelectionService>.value(
+                value: selectionService,
+              ),
+            ],
+            child: const RoomDetailsScreen(roomId: '!missing:example.com'),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(AppBar, '!missing:example.com'), findsOneWidget);
-    expect(find.text('Room not found'), findsOneWidget);
-  });
+      expect(
+        find.widgetWithText(AppBar, '!missing:example.com'),
+        findsOneWidget,
+      );
+      expect(find.text('Room not found'), findsOneWidget);
+    });
 
-  testWidgets('encrypted DM shows device verification summary', (tester) async {
+    testWidgets('encrypted DM shows device verification summary', (
+      tester,
+    ) async {
       when(mockRoom.encrypted).thenReturn(true);
       when(mockRoom.isDirectChat).thenReturn(true);
       when(mockRoom.directChatMatrixID).thenReturn('@bob:example.com');
 
       final bobKeys = DeviceKeysList('@bob:example.com', mockClient);
-      bobKeys.deviceKeys['DEVICE1'] = DeviceKeys.fromJson({
-        'user_id': '@bob:example.com',
-        'device_id': 'DEVICE1',
-        'algorithms': ['m.olm.v1.curve25519-aes-sha2', 'm.megolm.v1.aes-sha2'],
-        'keys': {
-          'curve25519:DEVICE1': 'fakekey1',
-          'ed25519:DEVICE1': 'fakekey2',
+      bobKeys.deviceKeys['DEVICE1'] = DeviceKeys.fromJson(
+        {
+          'user_id': '@bob:example.com',
+          'device_id': 'DEVICE1',
+          'algorithms': [
+            'm.olm.v1.curve25519-aes-sha2',
+            'm.megolm.v1.aes-sha2',
+          ],
+          'keys': {
+            'curve25519:DEVICE1': 'fakekey1',
+            'ed25519:DEVICE1': 'fakekey2',
+          },
         },
-      }, mockClient,);
-      bobKeys.deviceKeys['DEVICE2'] = DeviceKeys.fromJson({
-        'user_id': '@bob:example.com',
-        'device_id': 'DEVICE2',
-        'algorithms': ['m.olm.v1.curve25519-aes-sha2', 'm.megolm.v1.aes-sha2'],
-        'keys': {
-          'curve25519:DEVICE2': 'fakekey3',
-          'ed25519:DEVICE2': 'fakekey4',
+        mockClient,
+      );
+      bobKeys.deviceKeys['DEVICE2'] = DeviceKeys.fromJson(
+        {
+          'user_id': '@bob:example.com',
+          'device_id': 'DEVICE2',
+          'algorithms': [
+            'm.olm.v1.curve25519-aes-sha2',
+            'm.megolm.v1.aes-sha2',
+          ],
+          'keys': {
+            'curve25519:DEVICE2': 'fakekey3',
+            'ed25519:DEVICE2': 'fakekey4',
+          },
         },
-      }, mockClient,);
+        mockClient,
+      );
 
       when(mockClient.userDeviceKeys).thenReturn({
         '@bob:example.com': bobKeys,
@@ -297,7 +311,9 @@ void main() {
       expect(find.textContaining('of 2 devices verified'), findsOneWidget);
     });
 
-    testWidgets('encrypted non-DM room does not show device verification', (tester) async {
+    testWidgets('encrypted non-DM room does not show device verification', (
+      tester,
+    ) async {
       when(mockRoom.encrypted).thenReturn(true);
       when(mockRoom.isDirectChat).thenReturn(false);
 
@@ -314,15 +330,21 @@ void main() {
       when(mockRoom.directChatMatrixID).thenReturn('@bob:example.com');
 
       final bobKeys = DeviceKeysList('@bob:example.com', mockClient);
-      bobKeys.deviceKeys['DEVICE1'] = DeviceKeys.fromJson({
-        'user_id': '@bob:example.com',
-        'device_id': 'DEVICE1',
-        'algorithms': ['m.olm.v1.curve25519-aes-sha2', 'm.megolm.v1.aes-sha2'],
-        'keys': {
-          'curve25519:DEVICE1': 'fakekey1',
-          'ed25519:DEVICE1': 'fakekey2',
+      bobKeys.deviceKeys['DEVICE1'] = DeviceKeys.fromJson(
+        {
+          'user_id': '@bob:example.com',
+          'device_id': 'DEVICE1',
+          'algorithms': [
+            'm.olm.v1.curve25519-aes-sha2',
+            'm.megolm.v1.aes-sha2',
+          ],
+          'keys': {
+            'curve25519:DEVICE1': 'fakekey1',
+            'ed25519:DEVICE1': 'fakekey2',
+          },
         },
-      }, mockClient,);
+        mockClient,
+      );
 
       when(mockClient.userDeviceKeys).thenReturn({
         '@bob:example.com': bobKeys,

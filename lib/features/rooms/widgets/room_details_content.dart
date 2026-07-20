@@ -16,22 +16,20 @@ import 'package:kohera/shared/widgets/joined_member_count.dart';
 ///
 /// SDK-free presentational widget: it receives the [controller] (the
 /// conversion boundary that owns the `Room`) and only depends on Kohera
-/// domain models and callbacks. Hosts ([RoomDetailsScreen] and the
-/// wide-layout side panel) own the controller and pass it here.
+/// domain models and callbacks. [RoomDetailsScreen] owns the controller
+/// and passes it here.
 class RoomDetailsContent extends StatefulWidget {
   const RoomDetailsContent({
     required this.controller,
+    required this.onLeft,
     super.key,
-    this.onLeft,
   });
 
   final RoomDetailsController controller;
 
-  /// Invoked after the user leaves the room, when provided. The push route
-  /// ([RoomDetailsScreen]) uses it to pop itself; the wide-layout side
-  /// panel leaves it null so the content simply re-renders as
-  /// "Room not found" after the room is gone.
-  final VoidCallback? onLeft;
+  /// Invoked after the user leaves the room. [RoomDetailsScreen] uses it to
+  /// pop back to home so the user does not land on a stale room route.
+  final VoidCallback onLeft;
 
   @override
   State<RoomDetailsContent> createState() => _RoomDetailsContentState();
@@ -92,7 +90,7 @@ class _RoomDetailsContentState extends State<RoomDetailsContent> {
 
     await _run('leave', () async {
       await _controller.leave();
-      if (mounted && widget.onLeft != null) widget.onLeft!();
+      if (mounted) widget.onLeft();
     });
   }
 
@@ -139,7 +137,10 @@ class _RoomDetailsContentState extends State<RoomDetailsContent> {
         if (_error != null)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Text(_error!, style: TextStyle(color: cs.error, fontSize: 13)),
+            child: Text(
+              _error!,
+              style: TextStyle(color: cs.error, fontSize: 13),
+            ),
           ),
         const Divider(),
         _controller.buildJoinAccessSection(),
@@ -147,7 +148,8 @@ class _RoomDetailsContentState extends State<RoomDetailsContent> {
         if (_controller.memberList != null)
           RoomMembersSection(
             members: _controller.memberList!,
-            onMemberTap: (member) => _controller.showMemberSheet(context, member),
+            onMemberTap: (member) =>
+                _controller.showMemberSheet(context, member),
             avatarResolver: _controller.avatarResolver,
             presence: _controller.presence,
             canBan: _controller.canBan,
@@ -233,14 +235,22 @@ class _RoomDetailsContentState extends State<RoomDetailsContent> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           DetailActionButton(
-            icon: isMuted ? Icons.notifications_off_outlined : Icons.notifications_outlined,
+            icon: isMuted
+                ? Icons.notifications_off_outlined
+                : Icons.notifications_outlined,
             label: isMuted ? 'Unmute' : 'Mute',
-            onTap: _busy('mute') ? null : () => _run('mute', _controller.toggleMute),
+            onTap: _busy('mute')
+                ? null
+                : () => _run('mute', _controller.toggleMute),
           ),
           DetailActionButton(
-            icon: _controller.isFavourite ? Icons.star_rounded : Icons.star_border_rounded,
+            icon: _controller.isFavourite
+                ? Icons.star_rounded
+                : Icons.star_border_rounded,
             label: _controller.isFavourite ? 'Starred' : 'Star',
-            onTap: _busy('favourite') ? null : () => _run('favourite', _controller.toggleFavourite),
+            onTap: _busy('favourite')
+                ? null
+                : () => _run('favourite', _controller.toggleFavourite),
           ),
           DetailActionButton(
             icon: Icons.person_add_outlined,
@@ -319,7 +329,8 @@ class _RoomDetailsContentState extends State<RoomDetailsContent> {
           trailing: Icon(
             _deviceKeysExpanded ? Icons.expand_less : Icons.expand_more,
           ),
-          onTap: () => setState(() => _deviceKeysExpanded = !_deviceKeysExpanded),
+          onTap: () =>
+              setState(() => _deviceKeysExpanded = !_deviceKeysExpanded),
         ),
         if (_deviceKeysExpanded)
           ...devices.map((dk) => _buildDeviceKeyTile(dk, cs, tt)),

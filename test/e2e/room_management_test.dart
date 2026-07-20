@@ -2,11 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:go_router/go_router.dart';
-import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
-import 'package:kohera/features/rooms/screens/room_details_screen.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -14,7 +11,9 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
-import '../services/matrix_service_test.mocks.dart' show MockFlutterSecureStorage;
+import '../helpers/room_details_test_router.dart';
+import '../services/matrix_service_test.mocks.dart'
+    show MockFlutterSecureStorage;
 import 'room_management_test.mocks.dart';
 
 @GenerateNiceMocks([
@@ -22,9 +21,7 @@ import 'room_management_test.mocks.dart';
   MockSpec<Room>(),
   MockSpec<User>(),
 ])
-
 // ── Constants ─────────────────────────────────────────────────────────
-
 const _roomId = '!room:example.com';
 const _spaceId = '!space:example.com';
 const _newRoomId = '!newroom:example.com';
@@ -39,8 +36,9 @@ void stubClientDefaults(
   when(mockClient.userID).thenReturn(_myUserId);
   when(mockClient.rooms).thenReturn([]);
   when(mockClient.onSync).thenReturn(syncController);
-  when(mockClient.onPresenceChanged)
-      .thenReturn(CachedStreamController<CachedPresence>());
+  when(
+    mockClient.onPresenceChanged,
+  ).thenReturn(CachedStreamController<CachedPresence>());
   when(mockClient.encryption).thenReturn(null);
   when(mockClient.homeserver).thenReturn(Uri.parse('https://example.com'));
   when(mockClient.updateUserDeviceKeys()).thenAnswer((_) async {});
@@ -69,15 +67,18 @@ void stubRoomDefaults(MockRoom mockRoom, MockClient mockClient) {
 }
 
 void stubCreateRoom(MockClient mockClient) {
-  when(mockClient.createRoom(
-    name: anyNamed('name'),
-    topic: anyNamed('topic'),
-    visibility: anyNamed('visibility'),
-    initialState: anyNamed('initialState'),
-    invite: anyNamed('invite'),
-  ),).thenAnswer((_) async => _newRoomId);
-  when(mockClient.waitForRoomInSync(any, join: anyNamed('join')))
-      .thenAnswer((_) async => SyncUpdate(nextBatch: ''));
+  when(
+    mockClient.createRoom(
+      name: anyNamed('name'),
+      topic: anyNamed('topic'),
+      visibility: anyNamed('visibility'),
+      initialState: anyNamed('initialState'),
+      invite: anyNamed('invite'),
+    ),
+  ).thenAnswer((_) async => _newRoomId);
+  when(
+    mockClient.waitForRoomInSync(any, join: anyNamed('join')),
+  ).thenAnswer((_) async => SyncUpdate(nextBatch: ''));
 }
 
 MockUser makeUser(String id, String displayName, {Room? room}) {
@@ -128,10 +129,12 @@ void main() {
             builder: (context) => Center(
               child: ElevatedButton(
                 onPressed: () {
-                  unawaited(NewRoomDialog.show(
-                    context,
-                    matrixService: matrixService,
-                  ),);
+                  unawaited(
+                    NewRoomDialog.show(
+                      context,
+                      matrixService: matrixService,
+                    ),
+                  );
                 },
                 child: const Text('Open'),
               ),
@@ -151,38 +154,16 @@ void main() {
   // ── Room Details builder ────────────────────────────────────────
 
   Widget buildDetailsApp() {
-    final router = GoRouter(
-      initialLocation: '/rooms/$_roomId/details',
-      routes: [
-        GoRoute(
-          path: '/',
-          name: Routes.home,
-          builder: (_, _) => const Scaffold(body: SizedBox.shrink()),
-        ),
-        GoRoute(
-          path: '/rooms/:${RouteParams.roomId}',
-          builder: (_, _) => const Scaffold(body: SizedBox.shrink()),
-          routes: [
-            GoRoute(
-              path: RouteSegments.roomDetails,
-              name: Routes.roomDetails,
-              builder: (_, state) => RoomDetailsScreen(
-                roomId: state.pathParameters[RouteParams.roomId]!,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
         ChangeNotifierProvider<SelectionService>.value(
-            value: matrixService.selection,),
+          value: matrixService.selection,
+        ),
       ],
       child: MaterialApp.router(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),
-        routerConfig: router,
+        routerConfig: buildRoomDetailsTestRouter(roomId: _roomId),
       ),
     );
   }
@@ -205,12 +186,14 @@ void main() {
       await tester.tap(find.text('Create'));
       await tester.pumpAndSettle();
 
-      verify(mockClient.createRoom(
-        name: 'My Room',
-        topic: 'A topic',
-        visibility: Visibility.private,
-        initialState: anyNamed('initialState'),
-      ),).called(1);
+      verify(
+        mockClient.createRoom(
+          name: 'My Room',
+          topic: 'A topic',
+          visibility: Visibility.private,
+          initialState: anyNamed('initialState'),
+        ),
+      ).called(1);
       verify(mockClient.waitForRoomInSync(_newRoomId, join: true)).called(1);
       expect(matrixService.selection.selectedRoomId, _newRoomId);
     });
@@ -237,11 +220,13 @@ void main() {
       await tester.tap(find.text('Create'));
       await tester.pumpAndSettle();
 
-      final captured = verify(mockClient.createRoom(
-        name: 'Public Room',
-        visibility: Visibility.public,
-        initialState: captureAnyNamed('initialState'),
-      ),).captured;
+      final captured = verify(
+        mockClient.createRoom(
+          name: 'Public Room',
+          visibility: Visibility.public,
+          initialState: captureAnyNamed('initialState'),
+        ),
+      ).captured;
       final initialState = captured.last as List<StateEvent>;
       expect(
         initialState.any((s) => s.type == EventTypes.Encryption),
@@ -269,23 +254,28 @@ void main() {
       await tester.tap(find.text('Create'));
       await tester.pumpAndSettle();
 
-      verify(mockClient.createRoom(
-        name: 'Invite Room',
-        visibility: Visibility.private,
-        initialState: anyNamed('initialState'),
-        invite: ['@alice:example.com'],
-      ),).called(1);
+      verify(
+        mockClient.createRoom(
+          name: 'Invite Room',
+          visibility: Visibility.private,
+          initialState: anyNamed('initialState'),
+          invite: ['@alice:example.com'],
+        ),
+      ).called(1);
     });
 
-    testWidgets('creation failure shows error and keeps dialog open',
-        (tester) async {
-      when(mockClient.createRoom(
-        name: anyNamed('name'),
-        topic: anyNamed('topic'),
-        visibility: anyNamed('visibility'),
-        initialState: anyNamed('initialState'),
-        invite: anyNamed('invite'),
-      ),).thenThrow(Exception('Server error'));
+    testWidgets('creation failure shows error and keeps dialog open', (
+      tester,
+    ) async {
+      when(
+        mockClient.createRoom(
+          name: anyNamed('name'),
+          topic: anyNamed('topic'),
+          visibility: anyNamed('visibility'),
+          initialState: anyNamed('initialState'),
+          invite: anyNamed('invite'),
+        ),
+      ).thenThrow(Exception('Server error'));
 
       await openNewRoomDialog(tester);
 
@@ -307,13 +297,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Name is required'), findsOneWidget);
-      verifyNever(mockClient.createRoom(
-        name: anyNamed('name'),
-        topic: anyNamed('topic'),
-        visibility: anyNamed('visibility'),
-        initialState: anyNamed('initialState'),
-        invite: anyNamed('invite'),
-      ),);
+      verifyNever(
+        mockClient.createRoom(
+          name: anyNamed('name'),
+          topic: anyNamed('topic'),
+          visibility: anyNamed('visibility'),
+          initialState: anyNamed('initialState'),
+          invite: anyNamed('invite'),
+        ),
+      );
     });
 
     testWidgets('cancel closes dialog without creating room', (tester) async {
@@ -323,13 +315,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('New Room'), findsNothing);
-      verifyNever(mockClient.createRoom(
-        name: anyNamed('name'),
-        topic: anyNamed('topic'),
-        visibility: anyNamed('visibility'),
-        initialState: anyNamed('initialState'),
-        invite: anyNamed('invite'),
-      ),);
+      verifyNever(
+        mockClient.createRoom(
+          name: anyNamed('name'),
+          topic: anyNamed('topic'),
+          visibility: anyNamed('visibility'),
+          initialState: anyNamed('initialState'),
+          invite: anyNamed('invite'),
+        ),
+      );
     });
 
     testWidgets('invalid MXID in invite field shows error', (tester) async {
@@ -352,8 +346,9 @@ void main() {
   // ── Group 2: Space Parenting ────────────────────────────────────
 
   group('Room creation — space parenting', () {
-    testWidgets('room created inside selected space is auto-parented',
-        (tester) async {
+    testWidgets('room created inside selected space is auto-parented', (
+      tester,
+    ) async {
       final mockSpace = MockRoom();
       when(mockSpace.id).thenReturn(_spaceId);
       when(mockSpace.getLocalizedDisplayname()).thenReturn('My Space');
@@ -364,27 +359,31 @@ void main() {
       matrixService.selection.selectSpace(_spaceId);
       stubCreateRoom(mockClient);
 
-      await tester.pumpWidget(MaterialApp(
-        theme: ThemeData(splashFactory: InkRipple.splashFactory),
-        home: ChangeNotifierProvider<MatrixService>.value(
-          value: matrixService,
-          child: Scaffold(
-            body: Builder(
-              builder: (context) => Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    unawaited(NewRoomDialog.show(
-                      context,
-                      matrixService: matrixService,
-                    ),);
-                  },
-                  child: const Text('Open'),
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
+          home: ChangeNotifierProvider<MatrixService>.value(
+            value: matrixService,
+            child: Scaffold(
+              body: Builder(
+                builder: (context) => Center(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      unawaited(
+                        NewRoomDialog.show(
+                          context,
+                          matrixService: matrixService,
+                        ),
+                      );
+                    },
+                    child: const Text('Open'),
+                  ),
                 ),
               ),
             ),
           ),
         ),
-      ),);
+      );
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
@@ -509,10 +508,13 @@ void main() {
     });
 
     testWidgets('kick member from member dialog', (tester) async {
-      when(mockRoom.getPowerLevelByUserId(_myUserId)).thenReturn(PowerLevel(50));
+      when(
+        mockRoom.getPowerLevelByUserId(_myUserId),
+      ).thenReturn(PowerLevel(50));
       when(mockRoom.canKick).thenReturn(true);
-      when(mockClient.kick(any, any, reason: anyNamed('reason')))
-          .thenAnswer((_) async {});
+      when(
+        mockClient.kick(any, any, reason: anyNamed('reason')),
+      ).thenAnswer((_) async {});
 
       await tester.pumpWidget(buildDetailsApp());
       await tester.pumpAndSettle();
@@ -528,18 +530,23 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Kick'));
       await tester.pumpAndSettle();
 
-      verify(mockClient.kick(
-        _roomId,
-        '@alice:example.com',
-        reason: argThat(isNull, named: 'reason'),
-      ),).called(1);
+      verify(
+        mockClient.kick(
+          _roomId,
+          '@alice:example.com',
+          reason: argThat(isNull, named: 'reason'),
+        ),
+      ).called(1);
     });
 
     testWidgets('ban member from member dialog', (tester) async {
-      when(mockRoom.getPowerLevelByUserId(_myUserId)).thenReturn(PowerLevel(50));
+      when(
+        mockRoom.getPowerLevelByUserId(_myUserId),
+      ).thenReturn(PowerLevel(50));
       when(mockRoom.canBan).thenReturn(true);
-      when(mockClient.ban(any, any, reason: anyNamed('reason')))
-          .thenAnswer((_) async {});
+      when(
+        mockClient.ban(any, any, reason: anyNamed('reason')),
+      ).thenAnswer((_) async {});
 
       await tester.pumpWidget(buildDetailsApp());
       await tester.pumpAndSettle();
@@ -555,15 +562,19 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Ban'));
       await tester.pumpAndSettle();
 
-      verify(mockClient.ban(
-        _roomId,
-        '@alice:example.com',
-        reason: argThat(isNull, named: 'reason'),
-      ),).called(1);
+      verify(
+        mockClient.ban(
+          _roomId,
+          '@alice:example.com',
+          reason: argThat(isNull, named: 'reason'),
+        ),
+      ).called(1);
     });
 
     testWidgets('cancel kick does not call client.kick', (tester) async {
-      when(mockRoom.getPowerLevelByUserId(_myUserId)).thenReturn(PowerLevel(50));
+      when(
+        mockRoom.getPowerLevelByUserId(_myUserId),
+      ).thenReturn(PowerLevel(50));
       when(mockRoom.canKick).thenReturn(true);
 
       await tester.pumpWidget(buildDetailsApp());
@@ -597,8 +608,9 @@ void main() {
       expect(find.text('Ban'), findsNothing);
     });
 
-    testWidgets('member sheet hides kick/ban without permissions',
-        (tester) async {
+    testWidgets('member sheet hides kick/ban without permissions', (
+      tester,
+    ) async {
       when(mockRoom.canKick).thenReturn(false);
       when(mockRoom.canBan).thenReturn(false);
 

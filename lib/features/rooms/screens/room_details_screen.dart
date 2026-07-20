@@ -64,8 +64,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+        leading: BackButton(
           onPressed: () => context.popOrGo(
             Routes.room,
             pathParameters: {RouteParams.roomId: widget.roomId},
