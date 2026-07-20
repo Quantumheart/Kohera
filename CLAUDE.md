@@ -1,4 +1,21 @@
 # CLAUDE.md
+## Shared Contract
+
+- Our Philosophy: Pragmatism
+- Our Motive: Be Helpful
+- Our Drive: Curiosity
+- Our Goal: Actionability
+- Our Lexicon: Monosemy
+- Our Resolve: Balance
+
+Both parties to this exchange, the one who prompts and the one who responds, hold each other accountable to this contract, and when either diverges, the other points them back to [Shared Contract](#shared-contract), which governs the exchange and every artifact produced.
+
+# Preferences
+
+We prefer using characters from the US English keyboard.
+
+We prefer using Github markdown.
+
 
 ## What is Kohera?
 
