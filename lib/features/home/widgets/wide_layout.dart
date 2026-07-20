@@ -47,7 +47,9 @@ class _WideLayoutState extends State<WideLayout> {
         children: [
           const SpaceRail(),
 
-          if (showChat && _dragPanelWidth == null && prefs.panelWidth < _collapseThreshold) ...[
+          if (showChat &&
+              _dragPanelWidth == null &&
+              prefs.panelWidth < _collapseThreshold) ...[
             SizedBox(
               width: 40,
               child: Center(
@@ -56,12 +58,17 @@ class _WideLayoutState extends State<WideLayout> {
                   tooltip: 'Expand room list',
                   onPressed: () {
                     setState(() => _dragPanelWidth = null);
-                    unawaited(prefs.setPanelWidth(PreferencesService.defaultPanelWidth));
+                    unawaited(
+                      prefs.setPanelWidth(PreferencesService.defaultPanelWidth),
+                    );
                   },
                 ),
               ),
             ),
-            VerticalDivider(width: 1, color: cs.outlineVariant.withValues(alpha: 0.3)),
+            VerticalDivider(
+              width: 1,
+              color: cs.outlineVariant.withValues(alpha: 0.3),
+            ),
           ] else ...[
             SizedBox(
               width: showChat
@@ -83,14 +90,18 @@ class _WideLayoutState extends State<WideLayout> {
                   onHorizontalDragUpdate: (details) {
                     final current = _dragPanelWidth ?? prefs.panelWidth;
                     setState(() {
-                      _dragPanelWidth = (current + details.delta.dx)
-                          .clamp(_collapseThreshold * 0.5, PreferencesService.maxPanelWidth);
+                      _dragPanelWidth = (current + details.delta.dx).clamp(
+                        _collapseThreshold * 0.5,
+                        PreferencesService.maxPanelWidth,
+                      );
                     });
                   },
                   onHorizontalDragEnd: (_) {
                     final w = _dragPanelWidth ?? prefs.panelWidth;
                     setState(() => _dragPanelWidth = null);
-                    unawaited(prefs.setPanelWidth(w < _collapseThreshold ? 0 : w));
+                    unawaited(
+                      prefs.setPanelWidth(w < _collapseThreshold ? 0 : w),
+                    );
                   },
                   child: Container(
                     width: 5,
@@ -99,7 +110,10 @@ class _WideLayoutState extends State<WideLayout> {
                 ),
               )
             else
-              VerticalDivider(width: 1, color: cs.outlineVariant.withValues(alpha: 0.3)),
+              VerticalDivider(
+                width: 1,
+                color: cs.outlineVariant.withValues(alpha: 0.3),
+              ),
           ],
 
           Expanded(
@@ -140,16 +154,7 @@ class _WideLayoutState extends State<WideLayout> {
 
     if (roomId == null) return _buildEmptyChat();
 
-    return Row(
-      children: [
-        Expanded(
-          child: ChatScreen(
-            roomId: roomId,
-            key: ValueKey(roomId),
-          ),
-        ),
-      ],
-    );
+    return ChatScreen(roomId: roomId, key: ValueKey(roomId));
   }
 
   Widget _buildEmptyChat() {
@@ -176,4 +181,5 @@ class _WideLayoutState extends State<WideLayout> {
     );
   }
 }
+
 // coverage:ignore-end
