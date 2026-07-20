@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/models/kohera_push_rule_state.dart';
-import 'package:kohera/core/routing/nav_helper.dart';
-import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
@@ -22,18 +20,21 @@ import 'package:provider/provider.dart';
 /// the conversion boundary that owns the `Room`. The panel only depends on
 /// Kohera domain models and callbacks.
 ///
-/// When [isFullPage] is true, wraps itself in a Scaffold with an AppBar
-/// (for mobile/tablet push route). Otherwise renders as a bare panel
-/// (for the desktop side panel).
+/// Renders as a bare content widget. Hosts that need full-page chrome
+/// (e.g. [RoomDetailsScreen]) wrap it in their own `Scaffold`/`AppBar`.
 class RoomDetailsPanel extends StatefulWidget {
   const RoomDetailsPanel({
     required this.roomId,
     super.key,
-    this.isFullPage = false,
+    this.onLeft,
   });
 
   final String roomId;
-  final bool isFullPage;
+
+  /// Invoked after the user leaves the room, when provided. The push route
+  /// ([RoomDetailsScreen]) uses it to pop itself; the wide-layout side panel
+  /// leaves it null so the panel simply re-renders as "Room not found".
+  final VoidCallback? onLeft;
 
   @override
   State<RoomDetailsPanel> createState() => _RoomDetailsPanelState();
@@ -124,10 +125,9 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
 
     if (!confirmed || !mounted) return;
 
-    final navigator = Navigator.of(context);
     await _run('leave', () async {
       await _controller.leave();
-      if (mounted && widget.isFullPage) navigator.pop();
+      if (mounted && widget.onLeft != null) widget.onLeft!();
     });
   }
 
@@ -156,31 +156,12 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
     final tt = Theme.of(context).textTheme;
 
     if (!_controller.hasRoom) {
-      final body = Center(child: Text('Room not found', style: tt.bodyLarge));
-      return widget.isFullPage ? Scaffold(appBar: AppBar(), body: body) : body;
-    }
-
-    final content = _buildContent(cs, tt);
-
-    if (widget.isFullPage) {
-      return Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.popOrGo(
-              Routes.room,
-              pathParameters: {RouteParams.roomId: widget.roomId},
-            ),
-          ),
-          title: Text(_controller.summary!.displayname),
-        ),
-        body: content,
-      );
+      return Center(child: Text('Room not found', style: tt.bodyLarge));
     }
 
     return Material(
       color: cs.surface,
-      child: content,
+      child: _buildContent(cs, tt),
     );
   }
 

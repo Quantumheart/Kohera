@@ -20,8 +20,8 @@ import 'package:kohera/features/e2ee/screens/e2ee_setup_screen.dart';
 import 'package:kohera/features/e2ee/screens/show_recovery_key_screen.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/home/widgets/inbox_screen.dart';
+import 'package:kohera/features/rooms/screens/room_details_screen.dart';
 import 'package:kohera/features/rooms/screens/room_permissions_host.dart';
-import 'package:kohera/features/rooms/widgets/room_details_panel.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/settings/screens/appearance_screen.dart';
 import 'package:kohera/features/settings/screens/devices_screen.dart';
@@ -177,9 +177,8 @@ GoRouter buildRouter(ClientManager manager) {
                     name: Routes.roomDetails,
                     builder: (context, state) {
                       final roomId = state.pathParameters[RouteParams.roomId]!;
-                      return RoomDetailsPanel(
+                      return RoomDetailsScreen(
                         roomId: roomId,
-                        isFullPage: true,
                         key: ValueKey('details-$roomId'),
                       );
                     },
