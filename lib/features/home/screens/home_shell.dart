@@ -28,9 +28,7 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  bool _showRoomDetails = false;
   bool _syncScheduled = false;
-  bool _wasWide = false;
 
   static const double _wideBreakpoint = HomeShell.wideBreakpoint;
 
@@ -61,7 +59,6 @@ class _HomeShellState extends State<HomeShell> {
 
     if (oldRoomId != newRoomId) {
       _syncRoomSelection();
-      _showRoomDetails = false;
     }
   }
 
@@ -69,17 +66,6 @@ class _HomeShellState extends State<HomeShell> {
   void initState() {
     super.initState();
     _syncRoomSelection();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final width = MediaQuery.sizeOf(context).width;
-    final isWide = width >= _wideBreakpoint;
-    if (_wasWide && !isWide) {
-      _showRoomDetails = false;
-    }
-    _wasWide = isWide;
   }
 
   @override
@@ -99,8 +85,6 @@ class _HomeShellState extends State<HomeShell> {
             routerChild: widget.routerChild,
             routeName: _routeName,
             roomId: _routeRoomId,
-            showRoomDetails: _showRoomDetails,
-            onToggleDetails: () => setState(() => _showRoomDetails = !_showRoomDetails),
           )
         : NarrowLayout(
             routerChild: widget.routerChild,

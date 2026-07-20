@@ -5,7 +5,6 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/calling/screens/call_pane.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
-import 'package:kohera/features/rooms/widgets/room_details_side_panel.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/spaces/widgets/space_rail.dart';
 import 'package:kohera/shared/widgets/kohera_mark.dart';
@@ -19,8 +18,6 @@ class WideLayout extends StatefulWidget {
     required this.routerChild,
     required this.routeName,
     required this.roomId,
-    required this.showRoomDetails,
-    required this.onToggleDetails,
     super.key,
   });
 
@@ -28,8 +25,6 @@ class WideLayout extends StatefulWidget {
   final Widget routerChild;
   final String? routeName;
   final String? roomId;
-  final bool showRoomDetails;
-  final VoidCallback onToggleDetails;
 
   @override
   State<WideLayout> createState() => _WideLayoutState();
@@ -108,14 +103,14 @@ class _WideLayoutState extends State<WideLayout> {
           ],
 
           Expanded(
-            child: _buildContentPane(cs),
+            child: _buildContentPane(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildContentPane(ColorScheme cs) {
+  Widget _buildContentPane() {
     final roomId = widget.roomId;
     final name = widget.routeName;
 
@@ -134,7 +129,8 @@ class _WideLayoutState extends State<WideLayout> {
         name == Routes.roomThread ||
         name == Routes.roomThreads ||
         name == Routes.whatsNew ||
-        name == Routes.roomPermissions) {
+        name == Routes.roomPermissions ||
+        name == Routes.roomDetails) {
       return widget.routerChild;
     }
 
@@ -150,19 +146,8 @@ class _WideLayoutState extends State<WideLayout> {
           child: ChatScreen(
             roomId: roomId,
             key: ValueKey(roomId),
-            onShowDetails: widget.onToggleDetails,
           ),
         ),
-        if (widget.showRoomDetails) ...[
-          VerticalDivider(width: 1, color: cs.outlineVariant.withValues(alpha: 0.3)),
-          SizedBox(
-            width: 320,
-            child: RoomDetailsSidePanel(
-              roomId: roomId,
-              key: ValueKey('details-$roomId'),
-            ),
-          ),
-        ],
       ],
     );
   }
