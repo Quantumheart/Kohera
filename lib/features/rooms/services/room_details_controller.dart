@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/kohera_push_rule_state.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
@@ -65,6 +66,9 @@ class RoomDetailsController extends ChangeNotifier {
   bool get loadingMembers => _loadingMembers;
   int? get summaryMemberCount => _room?.summary.mJoinedMemberCount;
   bool get participantListComplete => _room?.participantListComplete ?? false;
+
+  /// Whether the current user has power to ban/unban in this room.
+  bool get canBan => _room?.canBan ?? false;
 
   bool get isFavourite => _room?.isFavourite ?? false;
   bool get isMuted => pushRuleState != KoheraPushRuleState.notify;
@@ -261,6 +265,26 @@ class RoomDetailsController extends ChangeNotifier {
     KoheraRoomMember member,
   ) =>
       showRoomMemberSheet(context, room: _room!, member: member);
+
+  Future<void> unbanMember(
+    BuildContext context,
+    KoheraRoomMember member,
+  ) async {
+    final room = _room;
+    if (room == null) return;
+    try {
+      await room.client.unban(room.id, member.userId);
+      if (context.mounted) context.showSnack('Unbanned ${member.displayname}');
+      unawaited(loadMembers());
+    } catch (e) {
+      debugPrint('[Kohera] Unban failed: $e');
+      if (context.mounted) {
+        context.showSnack(
+          'Failed to unban: ${MatrixService.friendlyAuthError(e)}',
+        );
+      }
+    }
+  }
 
   Widget buildJoinAccessSection() => JoinAccessController(roomId: _room!.id);
   Widget buildSharedMediaSection() => SharedMediaSection(

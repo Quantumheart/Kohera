@@ -139,6 +139,33 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
     return showRoomMemberSheet(context, room: space, member: member);
   }
 
+  bool _canBan(String spaceId) {
+    final space = context.read<MatrixService>().client.getRoomById(spaceId);
+    return space?.canBan ?? false;
+  }
+
+  Future<void> _unbanMember(
+    BuildContext context,
+    String spaceId,
+    KoheraRoomMember member,
+  ) async {
+    final matrix = context.read<MatrixService>();
+    final space = matrix.client.getRoomById(spaceId);
+    if (space == null) return;
+    try {
+      await space.client.unban(space.id, member.userId);
+      if (context.mounted) context.showSnack('Unbanned ${member.displayname}');
+      unawaited(_loadMembers(spaceId));
+    } catch (e) {
+      debugPrint('[Kohera] Unban failed: $e');
+      if (context.mounted) {
+        context.showSnack(
+          'Failed to unban: ${MatrixService.friendlyAuthError(e)}',
+        );
+      }
+    }
+  }
+
   Future<void> _run(String action, Future<void> Function() task) async {
     setState(() {
       _inFlight.add(action);
@@ -250,6 +277,8 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
                 _showMemberSheet(context, spaceId, member),
             avatarResolver: context.read<MatrixService>().avatarResolver,
             presence: context.read<MatrixService>().presence,
+            canBan: _canBan(spaceId),
+            onUnban: (member) => _unbanMember(context, spaceId, member),
           ),
         const Divider(),
         _buildNotificationSection(spaceId, cs, tt),
