@@ -207,6 +207,8 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
             onMemberTap: (member) => _controller.showMemberSheet(context, member),
             avatarResolver: _controller.avatarResolver,
             presence: _controller.presence,
+            canBan: _controller.canBan,
+            onUnban: (member) => _controller.unbanMember(context, member),
           ),
         const Divider(),
         _buildEncryptionSection(cs, tt),

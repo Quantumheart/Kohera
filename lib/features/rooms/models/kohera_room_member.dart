@@ -82,11 +82,16 @@ class KoheraRoomMemberList {
     required this.members,
     required this.participantListComplete,
     required this.memberCount,
+    this.bannedMembers = const [],
   });
 
   /// The member entries, sorted by power level (admins first, then mods,
   /// then alphabetical).
   final List<KoheraRoomMember> members;
+
+  /// Banned users in this room (membership `ban`). Listed separately so the
+  /// member list can render an Unban section.
+  final List<KoheraRoomMember> bannedMembers;
 
   /// Whether the participant list is complete (all members loaded from
   /// the server).
@@ -101,5 +106,6 @@ class KoheraRoomMemberList {
   @override
   String toString() =>
       'KoheraRoomMemberList(${members.length} members, '
+      'banned: ${bannedMembers.length}, '
       'complete: $participantListComplete, count: $memberCount)';
 }

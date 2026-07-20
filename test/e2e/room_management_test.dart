@@ -483,6 +483,9 @@ void main() {
     setUp(() {
       alice = makeUser('@alice:example.com', 'Alice', room: mockRoom);
       when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [alice]);
+      when(
+        mockRoom.requestParticipants(argThat(contains(Membership.ban))),
+      ).thenAnswer((_) async => []);
     });
 
     testWidgets('kick member from member dialog', (tester) async {
@@ -561,6 +564,9 @@ void main() {
     testWidgets('member sheet hides kick/ban for self', (tester) async {
       final me = makeUser(_myUserId, 'Me', room: mockRoom);
       when(mockRoom.requestParticipants(any)).thenAnswer((_) async => [me]);
+      when(
+        mockRoom.requestParticipants(argThat(contains(Membership.ban))),
+      ).thenAnswer((_) async => []);
       when(mockRoom.canKick).thenReturn(true);
       when(mockRoom.canBan).thenReturn(true);
 

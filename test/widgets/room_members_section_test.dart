@@ -44,11 +44,13 @@ KoheraRoomMemberList _list(
   List<KoheraRoomMember> members, {
   bool complete = true,
   int count = 0,
+  List<KoheraRoomMember> bannedMembers = const [],
 }) =>
     KoheraRoomMemberList(
       members: members,
       participantListComplete: complete,
       memberCount: count,
+      bannedMembers: bannedMembers,
     );
 
 const _avatarResolver = _NullAvatarResolver();
@@ -58,6 +60,8 @@ PresenceService _nullPresence() => _NullPresence();
 Widget _wrapSection(
   KoheraRoomMemberList members, {
   void Function(KoheraRoomMember)? onMemberTap,
+  bool canBan = false,
+  Future<void> Function(KoheraRoomMember)? onUnban,
 }) =>
     MaterialApp(
       home: Scaffold(
@@ -67,6 +71,8 @@ Widget _wrapSection(
             onMemberTap: onMemberTap ?? (_) {},
             avatarResolver: _avatarResolver,
             presence: _nullPresence(),
+            canBan: canBan,
+            onUnban: onUnban,
           ),
         ),
       ),
@@ -229,6 +235,75 @@ void main() {
 
       expect(tapped, isNotNull);
       expect(tapped?.userId, '@alice:e.com');
+    });
+
+    testWidgets('renders BANNED section when bannedMembers non-empty',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrapSection(
+          _list([_member()], bannedMembers: [
+            _member(displayname: 'Spammer', userId: '@spam:e.com', membership: 'ban'),
+          ]),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('BANNED'), findsOneWidget);
+      expect(find.text('Spammer'), findsOneWidget);
+    });
+
+    testWidgets('hides BANNED section when no banned members', (tester) async {
+      await tester.pumpWidget(_wrapSection(_list([_member()])));
+      await tester.pump();
+
+      expect(find.text('BANNED'), findsNothing);
+    });
+
+    testWidgets('shows Unban button only when canBan', (tester) async {
+      final banned = _member(
+        displayname: 'Spammer',
+        userId: '@spam:e.com',
+        membership: 'ban',
+      );
+      final list = _list([_member()], bannedMembers: [banned]);
+
+      await tester.pumpWidget(_wrapSection(list));
+      await tester.pump();
+      expect(find.byTooltip('Unban'), findsNothing);
+
+      await tester.pumpWidget(_wrapSection(list, canBan: true, onUnban: (_) async {}));
+      await tester.pump();
+      expect(find.byTooltip('Unban'), findsOneWidget);
+    });
+
+    testWidgets('unban shows confirm dialog then calls onUnban', (tester) async {
+      KoheraRoomMember? unbanned;
+      final banned = _member(
+        displayname: 'Spammer',
+        userId: '@spam:e.com',
+        membership: 'ban',
+      );
+      await tester.pumpWidget(
+        _wrapSection(
+          _list([_member()], bannedMembers: [banned]),
+          canBan: true,
+          onUnban: (m) async {
+            unbanned = m;
+          },
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byTooltip('Unban'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Unban member?'), findsOneWidget);
+
+      await tester.tap(find.text('Unban').last);
+      await tester.pumpAndSettle();
+
+      expect(unbanned, isNotNull);
+      expect(unbanned?.userId, '@spam:e.com');
     });
   });
 
