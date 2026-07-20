@@ -2,10 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/features/rooms/screens/room_details_screen.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
-import 'package:kohera/features/rooms/widgets/room_details_panel.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
@@ -149,17 +151,38 @@ void main() {
   // ── Room Details builder ────────────────────────────────────────
 
   Widget buildDetailsApp() {
+    final router = GoRouter(
+      initialLocation: '/rooms/$_roomId/details',
+      routes: [
+        GoRoute(
+          path: '/',
+          name: Routes.home,
+          builder: (_, _) => const Scaffold(body: SizedBox.shrink()),
+        ),
+        GoRoute(
+          path: '/rooms/:${RouteParams.roomId}',
+          builder: (_, _) => const Scaffold(body: SizedBox.shrink()),
+          routes: [
+            GoRoute(
+              path: RouteSegments.roomDetails,
+              name: Routes.roomDetails,
+              builder: (_, state) => RoomDetailsScreen(
+                roomId: state.pathParameters[RouteParams.roomId]!,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
         ChangeNotifierProvider<SelectionService>.value(
             value: matrixService.selection,),
       ],
-      child: MaterialApp(
+      child: MaterialApp.router(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),
-        home: const Scaffold(
-          body: RoomDetailsPanel(roomId: _roomId),
-        ),
+        routerConfig: router,
       ),
     );
   }

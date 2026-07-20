@@ -1,25 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/core/routing/nav_helper.dart';
-import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/rooms/services/room_details_controller.dart';
 import 'package:kohera/features/rooms/widgets/room_details_content.dart';
 import 'package:provider/provider.dart';
 
-/// Full-page host for room details. Owns the [RoomDetailsController]
-/// (the SDK conversion boundary) and provides the `Scaffold`/`AppBar` with
-/// back navigation; the body is the shared [RoomDetailsContent].
-class RoomDetailsScreen extends StatefulWidget {
-  const RoomDetailsScreen({required this.roomId, super.key});
+/// Wide-layout side panel for room details. Owns the
+/// [RoomDetailsController] and hosts the shared [RoomDetailsContent]
+/// without a `Scaffold` (the side panel's chrome is provided by the layout).
+class RoomDetailsSidePanel extends StatefulWidget {
+  const RoomDetailsSidePanel({required this.roomId, super.key});
 
   final String roomId;
 
   @override
-  State<RoomDetailsScreen> createState() => _RoomDetailsScreenState();
+  State<RoomDetailsSidePanel> createState() => _RoomDetailsSidePanelState();
 }
 
-class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
+class _RoomDetailsSidePanelState extends State<RoomDetailsSidePanel> {
   late RoomDetailsController _controller;
   bool _created = false;
 
@@ -44,7 +42,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
   }
 
   @override
-  void didUpdateWidget(covariant RoomDetailsScreen oldWidget) {
+  void didUpdateWidget(covariant RoomDetailsSidePanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     _controller.checkRoomChanged();
   }
@@ -60,25 +58,6 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = _controller.summary?.displayname ?? widget.roomId;
-
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.popOrGo(
-            Routes.room,
-            pathParameters: {RouteParams.roomId: widget.roomId},
-          ),
-        ),
-        title: Text(title),
-      ),
-      body: RoomDetailsContent(
-        controller: _controller,
-        onLeft: () {
-          if (context.mounted) context.popOrGo(Routes.home);
-        },
-      ),
-    );
+    return RoomDetailsContent(controller: _controller);
   }
 }
