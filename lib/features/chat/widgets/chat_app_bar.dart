@@ -24,7 +24,6 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.onSearch,
     super.key,
     this.onBack,
-    this.onShowDetails,
     this.onPinnedEvent,
     this.onShowThreads,
     this.threadUnreadCount = 0,
@@ -32,7 +31,6 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final KoheraRoomSummary summary;
   final VoidCallback? onBack;
-  final VoidCallback? onShowDetails;
   final VoidCallback onSearch;
   final void Function(String eventId)? onPinnedEvent;
   final VoidCallback? onShowThreads;
@@ -159,14 +157,10 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
                 case _ChatMenuAction.threads:
                   onShowThreads?.call();
                 case _ChatMenuAction.details:
-                  if (onShowDetails != null) {
-                    onShowDetails!();
-                  } else {
-                    context.pushOrGo(
-                      Routes.roomDetails,
-                      pathParameters: {RouteParams.roomId: summary.roomId},
-                    );
-                  }
+                  context.pushOrGo(
+                    Routes.roomDetails,
+                    pathParameters: {RouteParams.roomId: summary.roomId},
+                  );
               }
             },
             itemBuilder: (context) => [

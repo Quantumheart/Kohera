@@ -72,7 +72,6 @@ class ChatScreen extends StatefulWidget {
     super.key,
     this.initialEventId,
     this.onBack,
-    this.onShowDetails,
   });
 
   final String roomId;
@@ -80,9 +79,6 @@ class ChatScreen extends StatefulWidget {
 
   /// On narrow layouts, called to pop back to room list.
   final VoidCallback? onBack;
-
-  /// On desktop, called to toggle the room details side panel.
-  final VoidCallback? onShowDetails;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -1085,7 +1081,6 @@ class _ChatScreenState extends State<ChatScreen>
       appBar = ChatAppBar(
         summary: matrix.selection.summaryFor(room),
         onBack: widget.onBack,
-        onShowDetails: widget.onShowDetails,
         onSearch: _openSearch,
         onPinnedEvent: (eventId) async {
           final event = await room.getEventById(eventId);
