@@ -11,8 +11,8 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/auth/screens/homeserver_screen.dart';
 import 'package:kohera/features/auth/screens/login_screen.dart';
 import 'package:kohera/features/auth/screens/registration_screen.dart';
+import 'package:kohera/features/rooms/screens/room_details_screen.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
-import 'package:kohera/features/rooms/widgets/room_details_panel.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
@@ -315,7 +315,7 @@ Widget buildRoomTestApp({
             path: 'details',
             builder: (context, state) {
               final roomId = state.pathParameters['roomId']!;
-              return RoomDetailsPanel(roomId: roomId, isFullPage: true);
+              return RoomDetailsScreen(roomId: roomId);
             },
           ),
         ],

@@ -4,6 +4,7 @@ import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
+import 'package:kohera/features/rooms/screens/room_details_screen.dart';
 import 'package:kohera/features/rooms/widgets/room_details_panel.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:matrix/matrix.dart';
@@ -72,7 +73,7 @@ void main() {
         .thenReturn(const _NullAvatarResolver());
   });
 
-  Widget buildTestWidget({bool isFullPage = false}) {
+  Widget buildTestWidget() {
     return MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: MultiProvider(
@@ -80,10 +81,9 @@ void main() {
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
           ChangeNotifierProvider<SelectionService>.value(value: selectionService),
         ],
-        child: Scaffold(
+        child: const Scaffold(
           body: RoomDetailsPanel(
             roomId: '!room:example.com',
-            isFullPage: isFullPage,
           ),
         ),
       ),
@@ -208,26 +208,40 @@ void main() {
       expect(find.text('Muted'), findsOneWidget);
     });
 
-    testWidgets('renders as Scaffold when isFullPage is true', (tester) async {
-      await tester.pumpWidget(MaterialApp(
-        home: MultiProvider(
-          providers: [
-            ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
-            ChangeNotifierProvider<SelectionService>.value(value: selectionService),
-          ],
-          child: const RoomDetailsPanel(
-            roomId: '!room:example.com',
-            isFullPage: true,
-          ),
-        ),
-      ),);
-      await tester.pumpAndSettle();
+  testWidgets('RoomDetailsScreen AppBar shows room displayname', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: MultiProvider(
+        providers: [
+          ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
+          ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+        ],
+        child: const RoomDetailsScreen(roomId: '!room:example.com'),
+      ),
+    ),);
+    await tester.pumpAndSettle();
 
-      // AppBar should show the room name
-      expect(find.widgetWithText(AppBar, 'Test Room'), findsOneWidget);
-    });
+    expect(find.widgetWithText(AppBar, 'Test Room'), findsOneWidget);
+  });
 
-    testWidgets('encrypted DM shows device verification summary', (tester) async {
+  testWidgets('RoomDetailsScreen falls back to roomId when room missing',
+      (tester) async {
+    when(mockClient.getRoomById('!missing:example.com')).thenReturn(null);
+    await tester.pumpWidget(MaterialApp(
+      home: MultiProvider(
+        providers: [
+          ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
+          ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+        ],
+        child: const RoomDetailsScreen(roomId: '!missing:example.com'),
+      ),
+    ),);
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(AppBar, '!missing:example.com'), findsOneWidget);
+    expect(find.text('Room not found'), findsOneWidget);
+  });
+
+  testWidgets('encrypted DM shows device verification summary', (tester) async {
       when(mockRoom.encrypted).thenReturn(true);
       when(mockRoom.isDirectChat).thenReturn(true);
       when(mockRoom.directChatMatrixID).thenReturn('@bob:example.com');
