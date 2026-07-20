@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
@@ -79,4 +80,30 @@ Future<void> showRoomMemberSheet(
     onIgnore: isMe ? null : () => client.ignoreUser(member.userId, leaveRooms: false),
     onUnignore: isMe ? null : () => client.unignoreUser(member.userId),
   );
+}
+
+// ── Inline unban launcher ───────────────────────────────────────
+
+/// Unbans [member] from [room] and surfaces the result via snackbar.
+///
+/// Used by the banned-users section of [RoomMembersSection] so the snackbar,
+/// error formatting, and [Kohera] logging live in one place. The caller is
+/// responsible for reloading its member list after this returns.
+Future<void> unbanRoomMember(
+  BuildContext context,
+  Room room,
+  KoheraRoomMember member, {
+  String? reason,
+}) async {
+  try {
+    await room.client.unban(room.id, member.userId, reason: reason);
+    if (context.mounted) context.showSnack('Unbanned ${member.displayname}');
+  } catch (e) {
+    debugPrint('[Kohera] Unban failed: $e');
+    if (context.mounted) {
+      context.showSnack(
+        'Failed to unban: ${MatrixService.friendlyAuthError(e)}',
+      );
+    }
+  }
 }
