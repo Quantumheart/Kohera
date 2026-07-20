@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/models/kohera_push_rule_state.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/rooms/models/kohera_device_key.dart';
 import 'package:kohera/features/rooms/services/room_details_controller.dart';
@@ -11,77 +10,42 @@ import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
 import 'package:kohera/shared/widgets/detail_action_button.dart';
 import 'package:kohera/shared/widgets/joined_member_count.dart';
-import 'package:provider/provider.dart';
 
-/// Displays room details: header, actions, members, encryption,
-/// media gallery, notification settings, and admin controls.
+/// Renders the room details body (header, actions, members, encryption,
+/// media gallery, notification settings, admin controls).
 ///
-/// SDK-free: all data and SDK actions are provided by [RoomDetailsController],
-/// the conversion boundary that owns the `Room`. The panel only depends on
-/// Kohera domain models and callbacks.
-///
-/// Renders as a bare content widget. Hosts that need full-page chrome
-/// (e.g. [RoomDetailsScreen]) wrap it in their own `Scaffold`/`AppBar`.
-class RoomDetailsPanel extends StatefulWidget {
-  const RoomDetailsPanel({
-    required this.roomId,
+/// SDK-free presentational widget: it receives the [controller] (the
+/// conversion boundary that owns the `Room`) and only depends on Kohera
+/// domain models and callbacks. Hosts ([RoomDetailsScreen] and the
+/// wide-layout side panel) own the controller and pass it here.
+class RoomDetailsContent extends StatefulWidget {
+  const RoomDetailsContent({
+    required this.controller,
     super.key,
     this.onLeft,
   });
 
-  final String roomId;
+  final RoomDetailsController controller;
 
   /// Invoked after the user leaves the room, when provided. The push route
-  /// ([RoomDetailsScreen]) uses it to pop itself; the wide-layout side panel
-  /// leaves it null so the panel simply re-renders as "Room not found".
+  /// ([RoomDetailsScreen]) uses it to pop itself; the wide-layout side
+  /// panel leaves it null so the content simply re-renders as
+  /// "Room not found" after the room is gone.
   final VoidCallback? onLeft;
 
   @override
-  State<RoomDetailsPanel> createState() => _RoomDetailsPanelState();
+  State<RoomDetailsContent> createState() => _RoomDetailsContentState();
 }
 
-class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
-  late RoomDetailsController _controller;
+class _RoomDetailsContentState extends State<RoomDetailsContent> {
   final Set<String> _inFlight = {};
   String? _error;
   bool _deviceKeysExpanded = false;
-  bool _created = false;
+
+  RoomDetailsController get _controller => widget.controller;
 
   bool get _loading => _inFlight.isNotEmpty;
   bool _busy(String action) => _inFlight.contains(action);
-
-  // ── Lifecycle ───────────────────────────────────────────────
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_created) {
-      _created = true;
-      _controller = RoomDetailsController(
-        roomId: widget.roomId,
-        matrix: context.read<MatrixService>(),
-        selection: context.read<SelectionService>(),
-      )..addListener(_onChanged);
-      _controller.init();
-    }
-  }
-
-  void _onChanged() {
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void didUpdateWidget(RoomDetailsPanel oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _controller.checkRoomChanged();
-  }
-
-  @override
-  void dispose() {
-    _controller.removeListener(_onChanged);
-    _controller.dispose();
-    super.dispose();
-  }
 
   // ── Actions ────────────────────────────────────────────────
 
@@ -101,16 +65,16 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
   }
 
   Future<void> _showInviteDialog() async {
-    final result =
-        await InviteUserDialog.show(context, params: _controller.inviteDialogParams());
+    final result = await InviteUserDialog.show(
+      context,
+      params: _controller.inviteDialogParams(),
+    );
     if (result == null || !mounted) return;
 
     final scaffold = ScaffoldMessenger.of(context);
     await _run('invite', () async {
       await _controller.invite(result);
-      scaffold.showSnackBar(
-        SnackBar(content: Text('Invited $result')),
-      );
+      scaffold.showSnackBar(SnackBar(content: Text('Invited $result')));
     });
   }
 
@@ -118,7 +82,8 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
     final confirmed = await confirmDialog(
       context,
       title: 'Leave room?',
-      message: 'You will leave "${_controller.summary?.displayname ?? widget.roomId}".',
+      message:
+          'You will leave "${_controller.summary?.displayname ?? _controller.roomId}".',
       confirmLabel: 'Leave',
       destructive: true,
     );
@@ -159,10 +124,7 @@ class _RoomDetailsPanelState extends State<RoomDetailsPanel> {
       return Center(child: Text('Room not found', style: tt.bodyLarge));
     }
 
-    return Material(
-      color: cs.surface,
-      child: _buildContent(cs, tt),
-    );
+    return Material(color: cs.surface, child: _buildContent(cs, tt));
   }
 
   Widget _buildContent(ColorScheme cs, TextTheme tt) {

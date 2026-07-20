@@ -5,7 +5,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/calling/screens/call_pane.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
-import 'package:kohera/features/rooms/widgets/room_details_panel.dart';
+import 'package:kohera/features/rooms/widgets/room_details_side_panel.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/spaces/widgets/space_rail.dart';
 import 'package:kohera/shared/widgets/kohera_mark.dart';
@@ -157,7 +157,7 @@ class _WideLayoutState extends State<WideLayout> {
           VerticalDivider(width: 1, color: cs.outlineVariant.withValues(alpha: 0.3)),
           SizedBox(
             width: 320,
-            child: RoomDetailsPanel(
+            child: RoomDetailsSidePanel(
               roomId: roomId,
               key: ValueKey('details-$roomId'),
             ),

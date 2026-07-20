@@ -23,7 +23,7 @@ import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:matrix/matrix.dart';
 
 
-/// Owns the SDK `Room` for [RoomDetailsPanel] and exposes everything the
+/// Owns the SDK `Room` for [RoomDetailsContent] and exposes everything the
 /// SDK-free panel needs: display models ([KoheraRoomSummary],
 /// [KoheraRoomPermissions], [KoheraRoomMemberList]), action callbacks, device
 /// verification, and the Room-typed child widgets ([JoinAccessController],

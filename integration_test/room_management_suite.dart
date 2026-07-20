@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/features/rooms/widgets/room_details_panel.dart';
+import 'package:kohera/features/rooms/screens/room_details_screen.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
@@ -104,14 +104,14 @@ void roomManagementTests() {
       await tester.tap(find.byIcon(Icons.info_outline));
       await tester.pumpAndSettle();
 
-      expect(find.byType(RoomDetailsPanel), findsOneWidget);
+      expect(find.byType(RoomDetailsScreen), findsOneWidget);
       expect(find.text('Test Room'), findsWidgets);
       expect(find.text('3 members'), findsOneWidget);
 
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
 
-      expect(find.byType(RoomDetailsPanel), findsNothing);
+      expect(find.byType(RoomDetailsScreen), findsNothing);
       expect(find.text('Test Room'), findsWidgets);
     });
 
@@ -128,7 +128,7 @@ void roomManagementTests() {
       await tester.tap(find.byIcon(Icons.info_outline));
       await tester.pumpAndSettle();
 
-      expect(find.byType(RoomDetailsPanel), findsOneWidget);
+      expect(find.byType(RoomDetailsScreen), findsOneWidget);
 
       await tester.tap(find.text('Leave'));
       await tester.pumpAndSettle();
@@ -178,7 +178,7 @@ void roomManagementTests() {
       await tester.tap(find.byIcon(Icons.info_outline));
       await tester.pumpAndSettle();
 
-      expect(find.byType(RoomDetailsPanel), findsOneWidget);
+      expect(find.byType(RoomDetailsScreen), findsOneWidget);
 
       // Invite user
       await tester.tap(find.text('Invite'));

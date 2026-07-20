@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/join_mode.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/features/rooms/screens/room_details_screen.dart';
-import 'package:kohera/features/rooms/widgets/room_details_panel.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -74,23 +75,42 @@ void main() {
   });
 
   Widget buildTestWidget() {
-    return MaterialApp(
-      theme: ThemeData(splashFactory: InkRipple.splashFactory),
-      home: MultiProvider(
-        providers: [
-          ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
-          ChangeNotifierProvider<SelectionService>.value(value: selectionService),
-        ],
-        child: const Scaffold(
-          body: RoomDetailsPanel(
-            roomId: '!room:example.com',
-          ),
+    final router = GoRouter(
+      initialLocation: '/rooms/!room:example.com/details',
+      routes: [
+        GoRoute(
+          path: '/',
+          name: Routes.home,
+          builder: (_, _) => const Scaffold(body: SizedBox.shrink()),
         ),
+        GoRoute(
+          path: '/rooms/:${RouteParams.roomId}',
+          builder: (_, _) => const Scaffold(body: SizedBox.shrink()),
+          routes: [
+            GoRoute(
+              path: RouteSegments.roomDetails,
+              name: Routes.roomDetails,
+              builder: (_, state) => RoomDetailsScreen(
+                roomId: state.pathParameters[RouteParams.roomId]!,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
+        ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+      ],
+      child: MaterialApp.router(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+        routerConfig: router,
       ),
     );
   }
 
-  group('RoomDetailsPanel', () {
+  group('RoomDetailsScreen', () {
     testWidgets('shows room name and topic', (tester) async {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
