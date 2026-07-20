@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/kohera_push_rule_state.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
@@ -272,18 +271,8 @@ class RoomDetailsController extends ChangeNotifier {
   ) async {
     final room = _room;
     if (room == null) return;
-    try {
-      await room.client.unban(room.id, member.userId);
-      if (context.mounted) context.showSnack('Unbanned ${member.displayname}');
-      unawaited(loadMembers());
-    } catch (e) {
-      debugPrint('[Kohera] Unban failed: $e');
-      if (context.mounted) {
-        context.showSnack(
-          'Failed to unban: ${MatrixService.friendlyAuthError(e)}',
-        );
-      }
-    }
+    await unbanRoomMember(context, room, member);
+    unawaited(loadMembers());
   }
 
   Widget buildJoinAccessSection() => JoinAccessController(roomId: _room!.id);

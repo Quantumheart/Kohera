@@ -13,29 +13,29 @@ class RoomMemberListResolver {
   const RoomMemberListResolver();
 
   Future<KoheraRoomMemberList> resolve(Room room) async {
-    final users = await room.requestParticipants([Membership.join]);
-    final bannedUsers = await room.requestParticipants([Membership.ban]);
+    final users = await room.requestParticipants([
+      Membership.join,
+      Membership.ban,
+    ]);
 
-    final members = users.map((u) {
-      return KoheraRoomMember(
-        userId: u.id,
-        displayname: u.calcDisplayname(),
-        avatarUrl: u.avatarUrl?.toString(),
-        membership: u.membership.name,
-        powerLevel: room.getPowerLevelByUserId(u.id).level,
-      );
-    }).toList();
+    KoheraRoomMember toMember(User u) => KoheraRoomMember(
+      userId: u.id,
+      displayname: u.calcDisplayname(),
+      avatarUrl: u.avatarUrl?.toString(),
+      membership: u.membership.name,
+      powerLevel: room.getPowerLevelByUserId(u.id).level,
+    );
 
-    final bannedMembers = bannedUsers.map((u) {
-      return KoheraRoomMember(
-        userId: u.id,
-        displayname: u.calcDisplayname(),
-        avatarUrl: u.avatarUrl?.toString(),
-        membership: u.membership.name,
-        powerLevel: room.getPowerLevelByUserId(u.id).level,
-      );
-    }).toList()
-      ..sort((a, b) => a.displayname.compareTo(b.displayname));
+    final members = <KoheraRoomMember>[];
+    final bannedMembers = <KoheraRoomMember>[];
+    for (final u in users) {
+      if (u.membership == Membership.ban) {
+        bannedMembers.add(toMember(u));
+      } else {
+        members.add(toMember(u));
+      }
+    }
+    bannedMembers.sort((a, b) => a.displayname.compareTo(b.displayname));
 
     // Sort: admins first, then mods, then alphabetical by displayname.
     members.sort((a, b) {

@@ -48,6 +48,7 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
   KoheraRoomMemberList? _memberList;
   bool _loadingMembers = false;
   int? _lastMemberCount;
+  bool _canBan = false;
   int _memberLoadGen = 0;
   StreamSubscription<dynamic>? _syncSub;
   Timer? _syncDebounce;
@@ -120,6 +121,7 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
         _memberList = list;
         _loadingMembers = false;
         _lastMemberCount = list.memberCount;
+        _canBan = space.canBan;
       });
     } catch (e) {
       debugPrint('[Kohera] Failed to load members: $e');
@@ -139,31 +141,15 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
     return showRoomMemberSheet(context, room: space, member: member);
   }
 
-  bool _canBan(String spaceId) {
-    final space = context.read<MatrixService>().client.getRoomById(spaceId);
-    return space?.canBan ?? false;
-  }
-
   Future<void> _unbanMember(
     BuildContext context,
     String spaceId,
     KoheraRoomMember member,
   ) async {
-    final matrix = context.read<MatrixService>();
-    final space = matrix.client.getRoomById(spaceId);
+    final space = context.read<MatrixService>().client.getRoomById(spaceId);
     if (space == null) return;
-    try {
-      await space.client.unban(space.id, member.userId);
-      if (context.mounted) context.showSnack('Unbanned ${member.displayname}');
-      unawaited(_loadMembers(spaceId));
-    } catch (e) {
-      debugPrint('[Kohera] Unban failed: $e');
-      if (context.mounted) {
-        context.showSnack(
-          'Failed to unban: ${MatrixService.friendlyAuthError(e)}',
-        );
-      }
-    }
+    await unbanRoomMember(context, space, member);
+    unawaited(_loadMembers(spaceId));
   }
 
   Future<void> _run(String action, Future<void> Function() task) async {
@@ -277,7 +263,7 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
                 _showMemberSheet(context, spaceId, member),
             avatarResolver: context.read<MatrixService>().avatarResolver,
             presence: context.read<MatrixService>().presence,
-            canBan: _canBan(spaceId),
+            canBan: _canBan,
             onUnban: (member) => _unbanMember(context, spaceId, member),
           ),
         const Divider(),
