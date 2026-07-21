@@ -7,11 +7,17 @@ class SyncService extends ChangeNotifier {
   SyncService({
     required Client client,
     required Future<void> Function() onPostSyncBackup,
+    bool Function()? shouldRetryBackup,
+    Duration retryDebounce = const Duration(seconds: 5),
   })  : _client = client,
-        _onPostSyncBackup = onPostSyncBackup;
+        _onPostSyncBackup = onPostSyncBackup,
+        _shouldRetryBackup = shouldRetryBackup,
+        _retryDebounceDuration = retryDebounce;
 
   final Client _client;
   final Future<void> Function() _onPostSyncBackup;
+  final bool Function()? _shouldRetryBackup;
+  final Duration _retryDebounceDuration;
 
   // ── Sync ─────────────────────────────────────────────────────
   bool _syncing = false;
@@ -21,11 +27,13 @@ class SyncService extends ChangeNotifier {
   String? get autoUnlockError => _autoUnlockError;
 
   StreamSubscription<SyncUpdate>? _syncSub;
+  Timer? _retryDebounce;
   bool _disposed = false;
 
   @override
   void dispose() {
     _disposed = true;
+    _retryDebounce?.cancel();
     super.dispose();
   }
 
@@ -38,6 +46,7 @@ class SyncService extends ChangeNotifier {
     unawaited(_syncSub?.cancel());
     _syncSub = _client.onSync.stream.listen((_) {
       if (!firstSync.isCompleted) firstSync.complete();
+      _maybeRetryBackup();
     });
 
     unawaited(firstSync.future.then((_) {
@@ -61,6 +70,25 @@ class SyncService extends ChangeNotifier {
     } else {
       await firstSync.future;
     }
+  }
+
+  /// Retry auto-unlock backup on subsequent syncs, debounced, when the
+  /// [shouldRetryBackup] predicate says the backup is still needed.
+  /// Stops retrying once the predicate returns false.
+  void _maybeRetryBackup() {
+    final check = _shouldRetryBackup;
+    if (check == null || !check()) return;
+
+    _retryDebounce?.cancel();
+    _retryDebounce = Timer(_retryDebounceDuration, () {
+      if (_disposed) return;
+      if (!check()) return;
+      unawaited(
+        _onPostSyncBackup().catchError((Object e) {
+          debugPrint('[Kohera] Background E2EE auto-unlock retry error: $e');
+        }),
+      );
+    });
   }
 
   Future<void> pause() async {
