@@ -56,6 +56,8 @@ class _KoheraAppState extends State<KoheraApp> {
   GoRouter? _router;
   Object? _initError;
   MatrixService? _displayedService;
+  ThemeData? _splashLight;
+  ThemeData? _splashDark;
   final _ringtoneService = RingtoneService();
 
   @override
@@ -71,7 +73,11 @@ class _KoheraAppState extends State<KoheraApp> {
       if (isNativeDesktop) MediaKit.ensureInitialized();
 
       final prefs = PreferencesService();
-      await Future.wait([initVodozemac(), AppConfig.load(), prefs.init()]);
+      await prefs.init();
+      if (!mounted) return;
+      _applySplashTheme(prefs);
+
+      await Future.wait([initVodozemac(), AppConfig.load()]);
 
       final clientManager = ClientManager();
       await clientManager.init();
@@ -100,6 +106,26 @@ class _KoheraAppState extends State<KoheraApp> {
     }
   }
 
+  void _applySplashTheme(PreferencesService prefs) {
+    final isCustom = prefs.themePreset == 'custom';
+    final preset = isCustom ? null : getPreset(prefs.themePreset);
+    final customScheme = isCustom ? prefs.customTheme : null;
+    setState(() {
+      _splashLight = customScheme != null
+          ? KoheraTheme.light(
+              dynamic: customScheme.toColorScheme(Brightness.light),
+              palette: customScheme.toKoheraPalette(Brightness.light),
+            )
+          : KoheraTheme.light(preset: preset);
+      _splashDark = customScheme != null
+          ? KoheraTheme.dark(
+              dynamic: customScheme.toColorScheme(Brightness.dark),
+              palette: customScheme.toKoheraPalette(Brightness.dark),
+            )
+          : KoheraTheme.dark(preset: preset);
+    });
+  }
+
   void _onActiveServiceChanged() {
     final manager = _clientManager;
     if (manager == null) return;
@@ -126,17 +152,19 @@ class _KoheraAppState extends State<KoheraApp> {
     if (clientManager == null) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: BrandConstants.brandColor,
-          ),
-        ),
-        darkTheme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: BrandConstants.brandColor,
-            brightness: Brightness.dark,
-          ),
-        ),
+        theme: _splashLight ??
+            ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: BrandConstants.brandColor,
+              ),
+            ),
+        darkTheme: _splashDark ??
+            ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: BrandConstants.brandColor,
+                brightness: Brightness.dark,
+              ),
+            ),
         home: Scaffold(
           body: Center(
             child: _initError != null
