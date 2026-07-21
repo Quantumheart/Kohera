@@ -549,9 +549,29 @@ void main() {
   });
 
   group('ringing actions', () {
-    test('declineCall resets state', () {
+    test('declineCall removes RTC membership and resets state', () {
+      setupMockRoom();
+      when(mockClient.setRoomStateWithKey(any, any, any, any))
+          .thenAnswer((_) async => 'event_id');
+
+      service.handlePushCallInvite(
+        roomId: '!room:example.com',
+        callId: 'call1',
+        callerName: 'Alice',
+        isVideo: false,
+        callKitAlreadyShown: true,
+      );
+      expect(service.callState, KoheraCallState.ringingIncoming);
+
       service.declineCall();
+
       expect(service.callState, KoheraCallState.idle);
+      verify(mockClient.setRoomStateWithKey(
+        '!room:example.com',
+        'org.matrix.msc3401.call.member',
+        any,
+        {},
+      )).called(1);
     });
 
     test('cancelOutgoingCall resets state', () {
