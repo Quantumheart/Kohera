@@ -246,7 +246,7 @@ jobs:
           storeFile=$KEYSTORE_PATH
           EOF
       - run: flutter pub get
-      - run: flutter build apk --release --split-per-abi --target-platform android-arm64 --build-number=${{ github.run_number }} --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
+      - run: flutter build apk --release --split-per-abi --target-platform android-arm64 --build-number=${{ github.run_number }} --obfuscate --split-debug-info=build/android/debug-info --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
       - name: Rename APK
         run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk kohera-android-arm64.apk
       - name: Verify APK is arm64-only
@@ -270,6 +270,10 @@ jobs:
           path: |
             kohera-android-arm64.apk
             kohera-android-arm64.apk.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: android-debug-info
+          path: build/android/debug-info
       - name: Clean up keystore
         if: always()
         run: rm -f "$RUNNER_TEMP/kohera-release.jks" android/key.properties
