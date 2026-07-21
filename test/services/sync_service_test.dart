@@ -95,6 +95,90 @@ void main() {
     });
   });
 
+  group('retry auto-unlock backup', () {
+    late int retryCount;
+    late SyncService retryService;
+
+    setUp(() {
+      retryCount = 0;
+      retryService = SyncService(
+        client: mockClient,
+        onPostSyncBackup: () async {
+          retryCount++;
+        },
+        shouldRetryBackup: () => true,
+        retryDebounce: const Duration(milliseconds: 100),
+      );
+    });
+
+    tearDown(() => retryService.dispose());
+
+    test('retries on subsequent syncs when backup still needed', () async {
+      Future<void>.delayed(
+        Duration.zero,
+        () => syncController.add(SyncUpdate(nextBatch: 'b1')),
+      );
+
+      await retryService.startSync();
+      await Future<void>.delayed(Duration.zero);
+      expect(retryCount, 1);
+
+      // Simulate a second sync — should trigger a retry after debounce.
+      syncController.add(SyncUpdate(nextBatch: 'b2'));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+
+      expect(retryCount, 2);
+    });
+
+    test('does not retry when shouldRetryBackup returns false', () async {
+      const backupNeeded = false;
+      final noRetryService = SyncService(
+        client: mockClient,
+        onPostSyncBackup: () async {
+          retryCount++;
+        },
+        shouldRetryBackup: () => backupNeeded,
+        retryDebounce: const Duration(milliseconds: 100),
+      );
+
+      Future<void>.delayed(
+        Duration.zero,
+        () => syncController.add(SyncUpdate(nextBatch: 'b1')),
+      );
+
+      await noRetryService.startSync();
+      await Future<void>.delayed(Duration.zero);
+      expect(retryCount, 1);
+
+      syncController.add(SyncUpdate(nextBatch: 'b2'));
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+
+      expect(retryCount, 1);
+      noRetryService.dispose();
+    });
+
+    test('debounces rapid syncs into one retry', () async {
+      Future<void>.delayed(
+        Duration.zero,
+        () => syncController.add(SyncUpdate(nextBatch: 'b1')),
+      );
+
+      await retryService.startSync();
+      await Future<void>.delayed(Duration.zero);
+      expect(retryCount, 1);
+
+      // Fire several syncs in quick succession.
+      syncController.add(SyncUpdate(nextBatch: 'b2'));
+      syncController.add(SyncUpdate(nextBatch: 'b3'));
+      syncController.add(SyncUpdate(nextBatch: 'b4'));
+
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+
+      // Only one retry should have happened despite 3 syncs.
+      expect(retryCount, 2);
+    });
+  });
+
   group('cancelSyncSub', () {
     test('cancels the sync subscription', () async {
       Future<void>.delayed(

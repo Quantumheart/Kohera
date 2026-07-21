@@ -65,6 +65,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       onPostSyncBackup: () async {
         await chatBackup.tryAutoUnlockBackup();
       },
+      shouldRetryBackup: () => chatBackup.chatBackupNeeded != false,
     );
     auth = AuthService(
       client: _client,
