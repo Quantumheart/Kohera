@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/shared/models/kohera_user_summary.dart';
 
 /// SDK-free inputs for [InviteUserDialog].
@@ -15,10 +17,15 @@ class InviteUserDialogParams {
     required this.knownContacts,
     required this.roomContacts,
     required this.onSearchUserDirectory,
+    this.canonicalAlias,
   });
 
   /// The Matrix room/space ID the user will be invited to.
   final String roomId;
+
+  /// Canonical alias (``#room:server``) if the room has one. Used to build a
+  /// shareable matrix.to invite link.
+  final String? canonicalAlias;
 
   /// MXIDs already participating in the room (to exclude from suggestions).
   final Set<String> existingMemberIds;
@@ -127,6 +134,13 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
 
   void _selectProfile(KoheraUserSummary profile) {
     Navigator.pop(context, profile.userId);
+  }
+
+  void _copyInviteLink() {
+    final alias = widget.params.canonicalAlias;
+    final link = 'https://matrix.to/#/${alias ?? widget.params.roomId}';
+    unawaited(Clipboard.setData(ClipboardData(text: link)));
+    context.showSnack('Invite link copied to clipboard');
   }
 
   void _submit() {
@@ -268,6 +282,10 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
                 alignment: MainAxisAlignment.end,
                 spacing: 8,
                 children: [
+                  TextButton(
+                    onPressed: _copyInviteLink,
+                    child: const Text('Copy invite link'),
+                  ),
                   TextButton(
                     onPressed: () => Navigator.pop(context),
                     child: const Text('Cancel'),
