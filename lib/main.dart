@@ -14,6 +14,7 @@ import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/services/web_shell_sync.dart';
 import 'package:kohera/core/theme/kohera_theme.dart';
 import 'package:kohera/core/theme/theme_presets.dart';
 import 'package:kohera/core/utils/platform_info.dart';
@@ -152,7 +153,7 @@ class _KoheraAppState extends State<KoheraApp> {
                   )
                 // Brand seed colour — this splash renders before the Kohera
                 // theme is applied, so the default scheme would be wrong.
-                : const KoheraLoader(size: 96, color: Color(0xFF1976D2)),
+                : const KoheraLoader(size: 96, color: BrandConstants.brandColor),
           ),
         ),
       );
@@ -316,7 +317,25 @@ class _KoheraAppState extends State<KoheraApp> {
                           builder: (context, child) {
                             final theme = Theme.of(context);
                             final isDark = theme.brightness == Brightness.dark;
-                            return AnnotatedRegion<SystemUiOverlayStyle>(
+                            setWebShellAccent(theme.colorScheme.primary);
+                            final mq = MediaQuery.of(context);
+                            final webBottom = webSafeAreaInsets().bottom;
+                            final effectiveWebBottom =
+                                mq.viewInsets.bottom > 0 ? 0.0 : webBottom;
+                            final paddedMq = effectiveWebBottom > 0
+                                ? mq.copyWith(
+                                    padding: mq.padding.copyWith(
+                                      bottom:
+                                          mq.padding.bottom >
+                                                  effectiveWebBottom
+                                              ? mq.padding.bottom
+                                              : effectiveWebBottom,
+                                    ),
+                                  )
+                                : mq;
+                            return MediaQuery(
+                              data: paddedMq,
+                              child: AnnotatedRegion<SystemUiOverlayStyle>(
                               value: SystemUiOverlayStyle(
                                 statusBarColor: Colors.transparent,
                                 statusBarIconBrightness:
@@ -341,7 +360,8 @@ class _KoheraAppState extends State<KoheraApp> {
                                   ),
                                 ),
                               ),
-                            );
+                            ),
+                          );
                           },
                         ),
                       );
