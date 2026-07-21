@@ -126,8 +126,17 @@ class _KoheraAppState extends State<KoheraApp> {
     if (clientManager == null) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: ThemeData.light(),
-        darkTheme: ThemeData.dark(),
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: BrandConstants.brandColor,
+          ),
+        ),
+        darkTheme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: BrandConstants.brandColor,
+            brightness: Brightness.dark,
+          ),
+        ),
         home: Scaffold(
           body: Center(
             child: _initError != null
@@ -151,9 +160,10 @@ class _KoheraAppState extends State<KoheraApp> {
                       ),
                     ],
                   )
-                // Brand seed colour — this splash renders before the Kohera
-                // theme is applied, so the default scheme would be wrong.
-                : const KoheraLoader(size: 96, color: BrandConstants.brandColor),
+                // Loader defaults to colorScheme.primary; the splash theme is
+                // seeded by the brand color so it renders brand-blue before the
+                // Kohera theme (prefs) is loaded.
+                : const KoheraLoader(size: 96),
           ),
         ),
       );
