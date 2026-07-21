@@ -102,6 +102,7 @@ class PreferencesService extends ChangeNotifier {
   static const _lastSeenVersionKey = 'last_seen_version';
   static const _lastDismissedUpdateKey = 'last_dismissed_update';
   static const _skinToneKey = 'emoji_skin_tone';
+  static const _bubbleVibeKey = 'bubble_vibe';
 
   /// Initialise the underlying [SharedPreferences] instance.
   /// Must be called (and awaited) before reading any values.
@@ -167,6 +168,22 @@ class PreferencesService extends ChangeNotifier {
   Future<void> setTimelineStyle(TimelineStyle style) async {
     await _prefs?.setString(_timelineStyleKey, style.name);
     debugPrint('[Kohera] Timeline style set to ${style.name}');
+    notifyListeners();
+  }
+
+  // ── Bubble vibe (retro ↔ modern) ──────────────────────────
+
+  /// Current bubble vibe. 0.0 = retro (pixel), 1.0 = modern (rounded soft
+  /// shadow). Default 0.0 produces no visual change.
+  double get bubbleVibe {
+    final stored = _prefs?.getDouble(_bubbleVibeKey);
+    return stored ?? 0.0;
+  }
+
+  Future<void> setBubbleVibe(double value) async {
+    final clamped = value.clamp(0.0, 1.0);
+    await _prefs?.setDouble(_bubbleVibeKey, clamped);
+    debugPrint('[Kohera] Bubble vibe set to $clamped');
     notifyListeners();
   }
 
