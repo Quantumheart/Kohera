@@ -29,6 +29,7 @@ Client buildClient(
       KeyVerificationMethod.qrScan,
     },
     enableDehydratedDevices: true,
+    enableLatexMarkdown: false,
     nativeImplementations: nativeImplementations,
   );
   client.roomPreviewLastEvents.removeAll(callPreviewTypes);
