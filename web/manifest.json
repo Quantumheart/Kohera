@@ -8,6 +8,22 @@
     "theme_color": "#1976D2",
     "description": "Kohera is a retro-pixel Matrix chat client — coherent threads for encrypted messaging, voice/video calls, and spaces. Built with Flutter, runs on desktop, mobile, and web.",
     "categories": ["social", "communication"],
+    "screenshots": [
+        {
+            "src": "screenshots/narrow.png",
+            "sizes": "390x844",
+            "type": "image/png",
+            "form_factor": "narrow",
+            "label": "Kohera chat on mobile"
+        },
+        {
+            "src": "screenshots/wide.png",
+            "sizes": "1280x800",
+            "type": "image/png",
+            "form_factor": "wide",
+            "label": "Kohera chat on desktop"
+        }
+    ],
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
