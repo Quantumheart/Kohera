@@ -60,6 +60,9 @@ InviteUserDialogParams inviteUserDialogParams(
     existingMemberIds: existingMemberIds(),
     knownContacts: dm,
     roomContacts: groupContacts(),
+    canonicalAlias: room?.canonicalAlias.isNotEmpty == true
+        ? room!.canonicalAlias
+        : null,
     onSearchUserDirectory: (query) async {
       final response = await client.searchUserDirectory(query, limit: 20);
       return response.results

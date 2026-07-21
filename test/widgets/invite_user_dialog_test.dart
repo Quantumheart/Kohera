@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
 import 'package:kohera/shared/models/kohera_user_summary.dart';
@@ -8,6 +9,7 @@ InviteUserDialogParams _params({
   List<KoheraUserSummary> knownContacts = const [],
   List<KoheraUserSummary> roomContacts = const [],
   Future<List<KoheraUserSummary>> Function(String query)? onSearchUserDirectory,
+  String? canonicalAlias,
 }) =>
     InviteUserDialogParams(
       roomId: '!room:example.com',
@@ -15,6 +17,7 @@ InviteUserDialogParams _params({
       knownContacts: knownContacts,
       roomContacts: roomContacts,
       onSearchUserDirectory: onSearchUserDirectory ?? (_) async => const [],
+      canonicalAlias: canonicalAlias,
     );
 
 KoheraUserSummary _user(String id, {String? displayName}) => KoheraUserSummary(
@@ -205,6 +208,66 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Bob'), findsOneWidget);
+      });
+    });
+
+    group('copy invite link', () {
+      testWidgets('shows copy invite link button', (tester) async {
+        await openDialog(tester, _params());
+
+        expect(find.text('Copy invite link'), findsOneWidget);
+      });
+
+      testWidgets('copies room ID when no canonical alias', (tester) async {
+        String? clipboardContent;
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboardContent =
+                  (call.arguments as Map<String, dynamic>)['text'] as String;
+            }
+            return null;
+          },
+        );
+
+        await openDialog(tester, _params());
+
+        await tester.tap(find.text('Copy invite link'));
+        await tester.pumpAndSettle();
+
+        expect(clipboardContent, 'https://matrix.to/#/!room:example.com');
+        expect(find.text('Invite link copied to clipboard'), findsOneWidget);
+
+        tester.binding.defaultBinaryMessenger
+            .setMockMethodCallHandler(SystemChannels.platform, null);
+      });
+
+      testWidgets('copies canonical alias when available', (tester) async {
+        String? clipboardContent;
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (call) async {
+            if (call.method == 'Clipboard.setData') {
+              clipboardContent =
+                  (call.arguments as Map<String, dynamic>)['text'] as String;
+            }
+            return null;
+          },
+        );
+
+        await openDialog(
+          tester,
+          _params(canonicalAlias: '#kohera:example.com'),
+        );
+
+        await tester.tap(find.text('Copy invite link'));
+        await tester.pumpAndSettle();
+
+        expect(clipboardContent, 'https://matrix.to/#/#kohera:example.com');
+
+        tester.binding.defaultBinaryMessenger
+            .setMockMethodCallHandler(SystemChannels.platform, null);
       });
     });
   });
