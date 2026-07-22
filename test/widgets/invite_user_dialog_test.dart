@@ -236,7 +236,7 @@ void main() {
         await tester.tap(find.text('Copy invite link'));
         await tester.pumpAndSettle();
 
-        expect(clipboardContent, 'https://matrix.to/#/!room:example.com');
+        expect(clipboardContent, 'https://example.com/#/!room:example.com');
         expect(find.text('Invite link copied to clipboard'), findsOneWidget);
 
         tester.binding.defaultBinaryMessenger
@@ -264,7 +264,7 @@ void main() {
         await tester.tap(find.text('Copy invite link'));
         await tester.pumpAndSettle();
 
-        expect(clipboardContent, 'https://matrix.to/#/#kohera:example.com');
+        expect(clipboardContent, 'https://example.com/#/#kohera:example.com');
 
         tester.binding.defaultBinaryMessenger
             .setMockMethodCallHandler(SystemChannels.platform, null);
