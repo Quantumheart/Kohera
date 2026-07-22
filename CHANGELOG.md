@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.12.0](https://github.com/Quantumheart/Kohera/compare/v1.11.1...v1.12.0) (2026-07-22)
+
+
+### Features
+
+* **#446:** copy matrix.to invite link from invite dialog ([4f32d59](https://github.com/Quantumheart/Kohera/commit/4f32d59182ac0891139d7dfad9a67c96875a453c))
+* add brand constants and rebrand the web/OS shell ([f613147](https://github.com/Quantumheart/Kohera/commit/f613147725277b10fda0c7e021fd15a6e609a0e5))
+* add pixeled wordmark and stacked auth lockup ([bd79704](https://github.com/Quantumheart/Kohera/commit/bd79704765361bdfc79b92a7f8c0da14cd42fccb))
+* add SNES theme preset and spec ([c7ae387](https://github.com/Quantumheart/Kohera/commit/c7ae38712e8189a179074d9c69995c67981d7188))
+* add tagline, README hero, and a why-Kohera settings blurb ([21f7080](https://github.com/Quantumheart/Kohera/commit/21f7080338c068c217db9b57009538d8136355dd))
+* banned-users section with per-row unban ([c1746f2](https://github.com/Quantumheart/Kohera/commit/c1746f24056332e4d11a152eb78eb9ba1e2b9388)), closes [#823](https://github.com/Quantumheart/Kohera/issues/823) [#525](https://github.com/Quantumheart/Kohera/issues/525)
+* ignore/unignore users (hide messages & invites) ([3218ccf](https://github.com/Quantumheart/Kohera/commit/3218ccf9b18fc92c9d95c708256c98987c5083bd)), closes [#821](https://github.com/Quantumheart/Kohera/issues/821) [#525](https://github.com/Quantumheart/Kohera/issues/525)
+* rebrand app icon and loader with a spore-release mushroom mark ([66a439c](https://github.com/Quantumheart/Kohera/commit/66a439ceec8ecec291551ee509744317519421e1))
+* report message/room content with reason ([acfa6af](https://github.com/Quantumheart/Kohera/commit/acfa6af26f73f42e6c5864f869b559e647397d40)), closes [#822](https://github.com/Quantumheart/Kohera/issues/822) [#525](https://github.com/Quantumheart/Kohera/issues/525)
+* theme boot splash from user preset ([c31f943](https://github.com/Quantumheart/Kohera/commit/c31f943e11d9eced32e3bfebe288ef9dd64be32f))
+* update brand tagline to Coherent threads, encrypted ([966cf0c](https://github.com/Quantumheart/Kohera/commit/966cf0cdd189cfbd77bcebe2b5f9bc505c4f14b3))
+
+
+### Bug Fixes
+
+* **#240:** add screenshots to PWA manifest for richer install UI ([9d19999](https://github.com/Quantumheart/Kohera/commit/9d1999965ec0b0f6fb9024debbcc61a17d5e8633)), closes [#240](https://github.com/Quantumheart/Kohera/issues/240)
+* **#240:** inject iOS safe-area inset on web + sync brand shell ([deca183](https://github.com/Quantumheart/Kohera/commit/deca183b6091e0248d27f25d3cb47883d0c58832)), closes [#240](https://github.com/Quantumheart/Kohera/issues/240)
+* **#287:** retry auto-unlock backup on subsequent syncs ([ef47366](https://github.com/Quantumheart/Kohera/commit/ef473660780d69effa3c92316830edc159bc8a8e)), closes [#287](https://github.com/Quantumheart/Kohera/issues/287)
+* **#352:** clear MatrixRTC membership on declineCall ([e5764b9](https://github.com/Quantumheart/Kohera/commit/e5764b9939d759af1c46db605eb6f4a6ac99199a))
+* **#446:** route invite link through room homeserver ([ba50743](https://github.com/Quantumheart/Kohera/commit/ba5074385d0b24c0d1386145b46a0f78dcdcdbe2))
+* align web pre-boot body bg with native launch ([3c19ca1](https://github.com/Quantumheart/Kohera/commit/3c19ca1af275178fa24d80a18387c97102cb68c2))
+* correct brand constants to the blue brand ([70dba99](https://github.com/Quantumheart/Kohera/commit/70dba999402afe92a2cc9164bec7d1e59053ae67))
+* ellipsize chat app bar member-count subtitle ([75093e3](https://github.com/Quantumheart/Kohera/commit/75093e38007c5f4cee681ffeee8f97e4e4eec847))
+* remove Flutter default launch image from iOS launch screen ([f6d5518](https://github.com/Quantumheart/Kohera/commit/f6d5518d3d08c201a05df0b8b336fb7f50f04b7d))
+* render ignored-users screen on narrow + wide layouts ([6e0736d](https://github.com/Quantumheart/Kohera/commit/6e0736d97866f514b9e1231a038456a2b9d47cc9)), closes [#821](https://github.com/Quantumheart/Kohera/issues/821)
+* restore CI-baselined PICO-8 goldens ([9adfd41](https://github.com/Quantumheart/Kohera/commit/9adfd41d213656b7bff4d16ffb0d063e281b103b))
+
 ## [1.11.1](https://github.com/Quantumheart/Kohera/compare/v1.11.0...v1.11.1) (2026-07-17)
 
 

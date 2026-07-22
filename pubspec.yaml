@@ -1,7 +1,7 @@
 name: kohera
 description: A Flutter Matrix client with multiple adaptive layouts.
 publish_to: "none"
-version: 1.11.1+18
+version: 1.12.0+19
 
 environment:
   sdk: ">=3.11.0 <4.0.0"
