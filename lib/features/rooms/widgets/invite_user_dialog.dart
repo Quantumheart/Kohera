@@ -138,7 +138,11 @@ class _InviteUserDialogState extends State<InviteUserDialog> {
 
   void _copyInviteLink() {
     final alias = widget.params.canonicalAlias;
-    final link = 'https://matrix.to/#/${alias ?? widget.params.roomId}';
+    final id = alias ?? widget.params.roomId;
+    final colon = id.indexOf(':');
+    final link = colon > 0
+        ? 'https://${id.substring(colon + 1)}/#/$id'
+        : 'https://matrix.to/#/$id';
     unawaited(Clipboard.setData(ClipboardData(text: link)));
     context.showSnack('Invite link copied to clipboard');
   }
