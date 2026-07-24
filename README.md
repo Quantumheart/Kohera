@@ -28,6 +28,7 @@ Kohera is a retro-pixel Matrix chat client — coherent threads for encrypted me
 - Discord/Slack-style vertical space rail
 - Create, edit, and manage spaces
 - Room creation, DM creation, and invite flows
+- Join any room or space by address (alias, room ID, or matrix.to link)
 - Room details panel with member list and shared media
 - Room admin controls
 

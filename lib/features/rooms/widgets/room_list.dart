@@ -530,6 +530,20 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                               );
                             },
                           ),
+                          const SizedBox(height: 8),
+                          SpeedDialItem(
+                            label: 'Join with address',
+                            icon: Icons.tag_rounded,
+                            onTap: () {
+                              _closeFab();
+                              unawaited(
+                                JoinWithAddressDialog.show(
+                                  context,
+                                  matrixService: matrix,
+                                ),
+                              );
+                            },
+                          ),
                         ],
                       ),
                     ),
