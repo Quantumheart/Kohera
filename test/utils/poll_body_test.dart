@@ -44,5 +44,31 @@ void main() {
       when(event.type).thenReturn(EventTypes.Message);
       expect(pollStartBody(event), isNull);
     });
+
+    test('does not throw on a malformed poll missing org.matrix.msc1767.text', () {
+      // Reproduces the crash where PollEventContent.fromJson did
+      // `mText: json[mTextJsonKey]` with a null value.
+      final event = MockEvent();
+      when(event.type).thenReturn(_startType);
+      when(event.content).thenReturn({
+        // No top-level PollEventContent.mTextJsonKey.
+        _startType: {
+          'kind': 'org.matrix.msc3381.poll.disclosed',
+          'max_selections': 1,
+          'question': {'body': 'Tea or coffee?'},
+          'answers': [
+            {'id': 'a1'},
+          ],
+        },
+      });
+      expect(pollStartBody(event), '📊 Poll: Tea or coffee?');
+    });
+
+    test('returns generic body when start content is missing entirely', () {
+      final event = MockEvent();
+      when(event.type).thenReturn(_startType);
+      when(event.content).thenReturn(<String, Object?>{});
+      expect(pollStartBody(event), '📊 Poll');
+    });
   });
 }

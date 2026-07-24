@@ -1,3 +1,4 @@
+import 'package:kohera/core/utils/poll_content.dart';
 import 'package:kohera/features/chat/models/kohera_poll.dart';
 import 'package:matrix/matrix.dart';
 
@@ -6,6 +7,10 @@ import 'package:matrix/matrix.dart';
 ///
 /// This is the SDK conversion boundary for poll rendering. Display widgets
 /// below consume [KoheraPoll] and never import `package:matrix/matrix.dart`.
+///
+/// Parsing is null-safe: a malformed poll-start event (e.g. missing the
+/// `org.matrix.msc1767.text` fallback) degrades to an empty poll instead of
+/// throwing and crashing the message list.
 class PollResolver {
   const PollResolver();
 
@@ -13,15 +18,15 @@ class PollResolver {
       {required String myUserId, required bool canRedact}) {
     assert(event.type == PollEventContent.startType, 'PollResolver requires a poll-start event');
 
-    final content = event.parsedPollEventContent.pollStartContent;
-    final kind = content.kind == PollKind.disclosed
+    final parsed = safePollStart(event);
+    final kind = (parsed?.disclosed ?? false)
         ? KoheraPollKind.disclosed
         : KoheraPollKind.undisclosed;
 
     final ended = event.getPollHasBeenEnded(timeline);
 
-    final answers = content.answers
-        .map((a) => KoheraPollAnswer(id: a.id, label: a.mText))
+    final answers = (parsed?.answers ?? const <SafePollAnswer>[])
+        .map((a) => KoheraPollAnswer(id: a.id, label: a.label))
         .toList(growable: false);
 
     final tallies = <String, int>{for (final a in answers) a.id: 0};
@@ -42,10 +47,10 @@ class PollResolver {
     }
 
     return KoheraPoll(
-      question: content.question.mText,
+      question: parsed?.question ?? '',
       answers: answers,
       kind: kind,
-      maxSelections: content.maxSelections,
+      maxSelections: parsed?.maxSelections ?? 1,
       ended: ended,
       responseCount: responseCount,
       tallies: tallies,

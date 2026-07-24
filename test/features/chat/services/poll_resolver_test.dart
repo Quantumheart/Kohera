@@ -208,5 +208,55 @@ void main() {
       );
       expect(redactPoll.canEnd, isTrue);
     });
+
+    test('does not throw on a malformed poll missing org.matrix.msc1767.text', () {
+      // Reproduces the crash: `type 'Null' is not a subtype of type 'String'
+      // from PollEventContent.fromJson when the top-level msc1767 text and an
+      // answer label are absent.
+      final content = <String, Object?>{
+        // Note: no PollEventContent.mTextJsonKey at the top level.
+        _startType: {
+          'kind': PollKind.disclosed.name,
+          'max_selections': 2,
+          'question': {'body': 'Tea or coffee?'},
+          'answers': [
+            {'id': 'a1'}, // no msc1767 text label
+            {'id': 'a2', 'body': 'No'},
+          ],
+        },
+      };
+      final event = _startEvent(eventId: r'$malformed', content: content);
+      final timeline = _emptyTimeline(r'$malformed');
+
+      final poll = const PollResolver()(
+        event,
+        timeline,
+        myUserId: '@me:example.com',
+        canRedact: false,
+      );
+
+      expect(poll.kind, KoheraPollKind.disclosed);
+      expect(poll.question, 'Tea or coffee?');
+      expect(poll.answers.map((a) => a.label), ['a1', 'No']);
+      expect(poll.maxSelections, 2);
+      expect(poll.tallies, {'a1': 0, 'a2': 0});
+    });
+
+    test('degrades to an empty poll when start content is missing entirely', () {
+      final content = <String, Object?>{}; // redacted / no start map
+      final event = _startEvent(eventId: r'$empty', content: content);
+      final timeline = _emptyTimeline(r'$empty');
+
+      final poll = const PollResolver()(
+        event,
+        timeline,
+        myUserId: '@me:example.com',
+        canRedact: false,
+      );
+
+      expect(poll.question, '');
+      expect(poll.answers, isEmpty);
+      expect(poll.maxSelections, 1);
+    });
   });
 }
