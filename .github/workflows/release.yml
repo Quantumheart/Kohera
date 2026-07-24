@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'v*'
+  release:
+    types: [published]
   workflow_dispatch:
 
 concurrency:
@@ -18,7 +20,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Verify tag is on master
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'release'
         run: |
           if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
             echo "::error::Tag must point to a commit on master"
@@ -190,13 +192,15 @@ jobs:
             -t ios \
             --apiKey "$APPSTORE_CONNECT_KEY_ID" \
             --apiIssuer "$APPSTORE_CONNECT_ISSUER_ID"
-      - name: Generate checksum
-        run: shasum -a 256 build/ios/ipa/kohera.ipa > kohera-ios-arm64.ipa.sha256
+      - name: Stage IPA and generate checksum
+        run: |
+          cp build/ios/ipa/kohera.ipa kohera-ios-arm64.ipa
+          shasum -a 256 kohera-ios-arm64.ipa > kohera-ios-arm64.ipa.sha256
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ios-release
           path: |
-            build/ios/ipa/kohera.ipa
+            kohera-ios-arm64.ipa
             kohera-ios-arm64.ipa.sha256
       - name: Clean up keychain
         if: always()
@@ -306,7 +310,7 @@ jobs:
             kohera-windows-x64-setup.exe.sha256
             kohera-macos-universal.zip
             kohera-macos-universal.zip.sha256
-            kohera.ipa
+            kohera-ios-arm64.ipa
             kohera-ios-arm64.ipa.sha256
             kohera-android-arm64.apk
             kohera-android-arm64.apk.sha256
