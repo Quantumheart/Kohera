@@ -285,16 +285,31 @@ class SpaceMenuActions {
     return roomId;
   }
 
-  /// Joins a space by address (room ID or alias).
-  /// Returns the joined room ID, or null if the room is not a space.
-  Future<String?> joinSpace(String address) async {
+  /// Joins a room or space by address (room ID or alias), with optional via
+  /// servers (e.g. extracted from a `matrix.to` link).
+  ///
+  /// Returns the joined room ID and whether the room is a space.
+  Future<JoinByAddressResult> joinByAddress(
+    String address, {
+    List<String>? via,
+  }) async {
     final client = _matrix.client;
-    final roomId = await client.joinRoom(address);
+    final roomId = await client.joinRoom(address, via: via);
     await client
         .waitForRoomInSync(roomId, join: true)
         .timeout(const Duration(seconds: 30));
     final room = client.getRoomById(roomId);
-    return (room != null && room.isSpace) ? roomId : null;
+    return JoinByAddressResult(
+      roomId: roomId,
+      isSpace: room?.isSpace ?? false,
+    );
+  }
+
+  /// Joins a space by address (room ID or alias).
+  /// Returns the joined room ID, or null if the room is not a space.
+  Future<String?> joinSpace(String address) async {
+    final result = await joinByAddress(address);
+    return result.isSpace ? result.roomId : null;
   }
 
   /// Whether [e] is a Matrix `M_FORBIDDEN` exception.
@@ -331,4 +346,15 @@ class SpaceMenuActions {
       KoheraPushRuleState.dontNotify => PushRuleState.dontNotify,
     };
   }
+}
+
+/// Result of joining a room by address.
+class JoinByAddressResult {
+  const JoinByAddressResult({required this.roomId, required this.isSpace});
+
+  /// The joined room ID.
+  final String roomId;
+
+  /// Whether the joined room is a space.
+  final bool isSpace;
 }

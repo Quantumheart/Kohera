@@ -1,5 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
@@ -167,7 +169,7 @@ void main() {
     });
   });
 
-  group('JoinSpaceDialog', () {
+  group('JoinWithAddressDialog', () {
     Widget buildTestWidget() {
       return MultiProvider(
         providers: [
@@ -179,7 +181,7 @@ void main() {
           home: Builder(
             builder: (context) => Scaffold(
               body: ElevatedButton(
-                onPressed: () => JoinSpaceDialog.show(
+                onPressed: () => JoinWithAddressDialog.show(
                   context,
                   matrixService: mockMatrixService,
                 ),
@@ -196,8 +198,27 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Join Space'), findsOneWidget);
-      expect(find.widgetWithText(TextField, 'Space address'), findsOneWidget);
+      expect(find.text('Join with address'), findsOneWidget);
+      expect(
+        find.widgetWithText(TextField, 'Room or space address'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('rejects a non-matrix address', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Room or space address'),
+        'not a room',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Join'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Enter a room alias'), findsOneWidget);
+      verifyNever(mockClient.joinRoom(any, via: anyNamed('via')));
     });
 
     testWidgets('validates empty address', (tester) async {
@@ -211,11 +232,11 @@ void main() {
       expect(find.text('Address is required'), findsOneWidget);
     });
 
-    testWidgets('submitting calls client.joinRoom', (tester) async {
+    testWidgets('submitting a space selects the space', (tester) async {
       final mockSpace = MockRoom();
       when(mockSpace.isSpace).thenReturn(true);
 
-      when(mockClient.joinRoom(any))
+      when(mockClient.joinRoom(any, via: anyNamed('via')))
           .thenAnswer((_) async => '!space:example.com');
       when(mockClient.waitForRoomInSync(any, join: anyNamed('join')))
           .thenAnswer((_) async => SyncUpdate(nextBatch: ''));
@@ -226,25 +247,140 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextField, 'Space address'),
+        find.widgetWithText(TextField, 'Room or space address'),
         '#myspace:example.com',
       );
       await tester.tap(find.widgetWithText(FilledButton, 'Join'));
       await tester.pumpAndSettle();
 
-      verify(mockClient.joinRoom('#myspace:example.com')).called(1);
+      verify(
+        mockClient.joinRoom('#myspace:example.com', via: anyNamed('via')),
+      ).called(1);
       expect(selectionService.selectedSpaceIds, contains('!space:example.com'));
     });
 
-    testWidgets('shows error on join failure', (tester) async {
-      when(mockClient.joinRoom(any)).thenThrow(Exception('Room not found'));
+    testWidgets('submitting a regular room navigates to the room',
+        (tester) async {
+      final mockRoom = MockRoom();
+      when(mockRoom.isSpace).thenReturn(false);
+
+      when(mockClient.joinRoom(any, via: anyNamed('via')))
+          .thenAnswer((_) async => '!room:example.com');
+      when(mockClient.waitForRoomInSync(any, join: anyNamed('join')))
+          .thenAnswer((_) async => SyncUpdate(nextBatch: ''));
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
+
+      String? navigatedRoom;
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) => Scaffold(
+              body: ElevatedButton(
+                onPressed: () => JoinWithAddressDialog.show(
+                  context,
+                  matrixService: mockMatrixService,
+                ),
+                child: const Text('Open'),
+              ),
+            ),
+            routes: [
+              GoRoute(
+                path: RouteSegments.room,
+                name: Routes.room,
+                builder: (context, state) {
+                  navigatedRoom = state.pathParameters[RouteParams.roomId];
+                  return Scaffold(
+                    body: Text(
+                      'Room ${state.pathParameters[RouteParams.roomId]}',
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<MatrixService>.value(
+              value: mockMatrixService,
+            ),
+            ChangeNotifierProvider<SelectionService>.value(
+              value: selectionService,
+            ),
+          ],
+          child: MaterialApp.router(
+            theme: ThemeData(splashFactory: InkRipple.splashFactory),
+            routerConfig: router,
+          ),
+        ),
+      );
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Room or space address'),
+        '#general:example.com',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Join'));
+      await tester.pumpAndSettle();
+
+      verify(
+        mockClient.joinRoom('#general:example.com', via: anyNamed('via')),
+      ).called(1);
+      // A regular room is selected as a room (not a space)…
+      expect(selectionService.selectedRoomId, '!room:example.com');
+      expect(
+        selectionService.selectedSpaceIds,
+        isNot(contains('!room:example.com')),
+      );
+      // …and the router navigated to the room screen.
+      expect(navigatedRoom, '!room:example.com');
+      expect(find.text('Room !room:example.com'), findsOneWidget);
+    });
+
+    testWidgets('passes via servers from a matrix.to link', (tester) async {
+      final mockSpace = MockRoom();
+      when(mockSpace.isSpace).thenReturn(true);
+      when(mockClient.joinRoom(any, via: anyNamed('via')))
+          .thenAnswer((_) async => '!space:example.com');
+      when(mockClient.waitForRoomInSync(any, join: anyNamed('join')))
+          .thenAnswer((_) async => SyncUpdate(nextBatch: ''));
+      when(mockClient.getRoomById('!space:example.com')).thenReturn(mockSpace);
 
       await tester.pumpWidget(buildTestWidget());
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
       await tester.enterText(
-        find.widgetWithText(TextField, 'Space address'),
+        find.widgetWithText(TextField, 'Room or space address'),
+        'https://matrix.to/#/#space:example.com?via=s1.org&via=s2.org',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Join'));
+      await tester.pumpAndSettle();
+
+      verify(
+        mockClient.joinRoom(
+          '#space:example.com',
+          via: argThat(equals(['s1.org', 's2.org']), named: 'via'),
+        ),
+      ).called(1);
+    });
+
+    testWidgets('shows error on join failure', (tester) async {
+      when(mockClient.joinRoom(any, via: anyNamed('via')))
+          .thenThrow(Exception('Room not found'));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Room or space address'),
         '#bad:example.com',
       );
       await tester.tap(find.widgetWithText(FilledButton, 'Join'));
@@ -258,12 +394,12 @@ void main() {
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Join Space'), findsOneWidget);
+      expect(find.text('Join with address'), findsOneWidget);
 
       await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Join Space'), findsNothing);
+      expect(find.text('Join with address'), findsNothing);
     });
   });
 
