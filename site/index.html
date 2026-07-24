@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kohera — Coherent threads, encrypted.</title>
+<meta name="description" content="Kohera is a retro-pixel Matrix chat client. Encrypted messaging, voice/video calls, and spaces. Built with Flutter — runs on desktop, mobile, and web.">
+<meta name="theme-color" content="#0b0e14">
+<meta property="og:title" content="Kohera — Coherent threads, encrypted.">
+<meta property="og:description" content="A retro-pixel Matrix chat client. Encrypted messaging, voice/video calls, and spaces. Built with Flutter.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='%2362d0ff' shape-rendering='crispEdges'%3E%3Crect x='12' y='1' width='5' height='1'/%3E%3Crect x='9' y='2' width='13' height='1'/%3E%3Crect x='7' y='3' width='17' height='1'/%3E%3Crect x='6' y='4' width='19' height='1'/%3E%3Crect x='6' y='5' width='20' height='1'/%3E%3Crect x='5' y='6' width='21' height='1'/%3E%3Crect x='5' y='7' width='21' height='1'/%3E%3Crect x='5' y='8' width='21' height='1'/%3E%3Crect x='14' y='9' width='4' height='1'/%3E%3Crect x='14' y='10' width='5' height='1'/%3E%3Crect x='14' y='11' width='5' height='1'/%3E%3Crect x='14' y='12' width='5' height='1'/%3E%3Crect x='15' y='13' width='4' height='1'/%3E%3Crect x='15' y='14' width='3' height='1'/%3E%3Crect x='15' y='15' width='3' height='1'/%3E%3Crect x='14' y='16' width='4' height='1'/%3E%3Crect x='14' y='17' width='4' height='1'/%3E%3Crect x='14' y='18' width='5' height='1'/%3E%3Crect x='13' y='19' width='7' height='1'/%3E%3Crect x='12' y='20' width='8' height='1'/%3E%3Crect x='11' y='21' width='4' height='1'/%3E%3Crect x='16' y='21' width='1' height='1'/%3E%3Crect x='18' y='21' width='4' height='1'/%3E%3Crect x='10' y='22' width='2' height='1'/%3E%3Crect x='13' y='22' width='1' height='1'/%3E%3Crect x='15' y='22' width='2' height='1'/%3E%3Crect x='18' y='22' width='5' height='1'/%3E%3Crect x='9' y='23' width='2' height='1'/%3E%3Crect x='12' y='23' width='2' height='1'/%3E%3Crect x='15' y='23' width='2' height='1'/%3E%3Crect x='19' y='23' width='1' height='1'/%3E%3Crect x='22' y='23' width='2' height='1'/%3E%3Crect x='8' y='24' width='2' height='1'/%3E%3Crect x='12' y='24' width='1' height='1'/%3E%3Crect x='16' y='24' width='1' height='1'/%3E%3Crect x='19' y='24' width='2' height='1'/%3E%3Crect x='23' y='24' width='2' height='1'/%3E%3Crect x='6' y='25' width='3' height='1'/%3E%3Crect x='11' y='25' width='2' height='1'/%3E%3Crect x='15' y='25' width='2' height='1'/%3E%3Crect x='20' y='25' width='2' height='1'/%3E%3Crect x='24' y='25' width='2' height='1'/%3E%3Crect x='5' y='26' width='2' height='1'/%3E%3Crect x='10' y='26' width='2' height='1'/%3E%3Crect x='15' y='26' width='2' height='1'/%3E%3Crect x='20' y='26' width='2' height='1'/%3E%3Crect x='25' y='26' width='3' height='1'/%3E%3Crect x='2' y='27' width='4' height='1'/%3E%3Crect x='9' y='27' width='2' height='1'/%3E%3Crect x='15' y='27' width='2' height='1'/%3E%3Crect x='21' y='27' width='3' height='1'/%3E%3Crect x='26' y='27' width='4' height='1'/%3E%3Crect x='2' y='28' width='3' height='1'/%3E%3Crect x='8' y='28' width='3' height='1'/%3E%3Crect x='15' y='28' width='2' height='1'/%3E%3Crect x='21' y='28' width='3' height='1'/%3E%3Crect x='27' y='28' width='3' height='1'/%3E%3Crect x='2' y='29' width='3' height='1'/%3E%3Crect x='8' y='29' width='3' height='1'/%3E%3Crect x='15' y='29' width='2' height='1'/%3E%3Crect x='21' y='29' width='3' height='1'/%3E%3Crect x='28' y='29' width='2' height='1'/%3E%3Crect x='14' y='30' width='4' height='1'/%3E%3Crect x='15' y='31' width='2' height='1'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0e14; --bg2:#11161f; --panel:#161c27; --panel2:#1b2330;
+    --ink:#e7ecf3; --dim:#9aa7b8; --fade:#5d6b7d;
+    --accent:#62d0ff; --accent2:#7cf2c4; --accent3:#b48bff;
+    --warn:#ffcf5c; --line:#22303f;
+    --pixel:"Press Start 2P", ui-monospace, monospace;
+    --mono:"VT323", ui-monospace, "Courier New", monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--mono); font-size:20px; line-height:1.45;
+    -webkit-font-smoothing:none; image-rendering:pixelated;
+    overflow-x:hidden;
+  }
+  /* CRT scanline + vignette overlay */
+  body::before{
+    content:""; position:fixed; inset:0; z-index:9999; pointer-events:none;
+    background:repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.18) 2px 4px);
+    mix-blend-mode:multiply; opacity:.55;
+  }
+  body::after{
+    content:""; position:fixed; inset:0; z-index:9998; pointer-events:none;
+    background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.45) 100%);
+  }
+  a{color:var(--accent); text-decoration:none}
+  a:hover{text-decoration:underline; text-underline-offset:3px}
+  .wrap{max-width:1080px; margin:0 auto; padding:0 24px}
+
+  /* Top bar */
+  header.top{position:sticky; top:0; z-index:50; background:rgba(11,14,20,.86);
+    backdrop-filter:blur(6px); border-bottom:2px solid var(--line)}
+  .top .wrap{display:flex; align-items:center; gap:14px; height:60px}
+  .brand{display:flex; align-items:center; gap:12px; font-family:var(--pixel);
+    font-size:13px; letter-spacing:1px; color:var(--ink)}
+  .brand svg{width:30px; height:30px; color:var(--accent)}
+  .brand small{color:var(--accent2); font-family:var(--mono); font-size:18px; letter-spacing:0}
+  nav.top-links{margin-left:auto; display:flex; gap:22px; font-family:var(--mono); font-size:22px}
+  nav.top-links a{color:var(--dim)}
+  nav.top-links a:hover{color:var(--accent)}
+  .nav-toggle{display:none; background:none; border:2px solid var(--line); color:var(--ink);
+    font-family:var(--pixel); font-size:11px; padding:6px 9px; cursor:pointer}
+
+  /* Hero */
+  .hero{position:relative; padding:78px 0 60px; text-align:center;
+    background:
+      radial-gradient(900px 420px at 50% -8%, rgba(98,208,255,.14), transparent 70%),
+      radial-gradient(700px 360px at 85% 8%, rgba(180,139,255,.10), transparent 70%),
+      radial-gradient(700px 360px at 12% 18%, rgba(124,242,196,.08), transparent 70%);
+    border-bottom:2px solid var(--line)}
+  .hero .logo{width:128px; height:128px; color:var(--accent); margin:0 auto 26px;
+    filter:drop-shadow(0 0 18px rgba(98,208,255,.45))}
+  .hero h1{font-family:var(--pixel); font-size:42px; margin:0 0 18px; letter-spacing:2px;
+    text-shadow:0 0 24px rgba(98,208,255,.35)}
+  .hero .tag{font-family:var(--pixel); font-size:14px; color:var(--accent2);
+    letter-spacing:1px; margin:0 0 30px}
+  .hero p.lead{max-width:640px; margin:0 auto 34px; color:var(--dim); font-size:23px}
+  .cta{display:flex; gap:16px; justify-content:center; flex-wrap:wrap}
+  .btn{font-family:var(--pixel); font-size:12px; letter-spacing:.5px; padding:15px 22px;
+    border:2px solid var(--line); background:var(--panel); color:var(--ink); cursor:pointer;
+    display:inline-flex; align-items:center; gap:10px; transition:transform .08s, border-color .15s, background .15s}
+  .btn:hover{text-decoration:none; transform:translate(-2px,-2px); border-color:var(--accent); background:var(--panel2)}
+  .btn:active{transform:translate(0,0)}
+  .btn.primary{border-color:var(--accent); background:linear-gradient(180deg, rgba(98,208,255,.18), rgba(98,208,255,.04));
+    color:var(--accent)}
+  .btn.primary:hover{background:linear-gradient(180deg, rgba(98,208,255,.30), rgba(98,208,255,.08))}
+  .btn svg{width:18px; height:18px}
+  .hero .ver{margin-top:26px; font-size:18px; color:var(--fade)}
+  .hero .ver b{color:var(--accent3)}
+
+  /* Sections */
+  section{padding:64px 0; border-bottom:2px solid var(--line)}
+  .eyebrow{font-family:var(--pixel); font-size:11px; color:var(--accent); letter-spacing:2px;
+    text-transform:uppercase; margin:0 0 14px}
+  h2{font-family:var(--pixel); font-size:22px; margin:0 0 10px; letter-spacing:1px}
+  .sec-sub{color:var(--dim); font-size:22px; margin:0 0 40px; max-width:680px}
+
+  /* Feature grid */
+  .grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+  .card{background:var(--panel); border:2px solid var(--line); padding:22px 20px; position:relative}
+  .card::before{content:""; position:absolute; top:-2px; left:-2px; width:8px; height:8px;
+    background:var(--accent)}
+  .card h3{font-family:var(--pixel); font-size:13px; margin:0 0 12px; color:var(--ink); letter-spacing:.5px}
+  .card .ic{width:24px; height:24px; color:var(--accent2); margin-bottom:14px}
+  .card ul{margin:0; padding-left:20px; color:var(--dim); font-size:20px}
+  .card li{margin:5px 0}
+  .card li::marker{color:var(--accent)}
+
+  /* Platforms */
+  .platforms{display:flex; flex-wrap:wrap; gap:12px}
+  .chip{font-family:var(--pixel); font-size:11px; padding:11px 15px; border:2px solid var(--line);
+    background:var(--panel); color:var(--dim); letter-spacing:.5px}
+  .chip:hover{border-color:var(--accent); color:var(--accent)}
+
+  /* Layout table */
+  .layout-table{width:100%; border-collapse:collapse; font-size:20px}
+  .layout-table th,.layout-table td{border:2px solid var(--line); padding:12px 14px; text-align:left}
+  .layout-table th{background:var(--panel); font-family:var(--pixel); font-size:11px; color:var(--accent); letter-spacing:.5px}
+  .layout-table td:first-child{color:var(--accent2); font-family:var(--mono); white-space:nowrap}
+
+  /* Install */
+  .tabs{display:flex; gap:0; flex-wrap:wrap; margin-bottom:0}
+  .tab{font-family:var(--pixel); font-size:11px; padding:11px 16px; border:2px solid var(--line);
+    background:var(--bg2); color:var(--dim); cursor:pointer; border-bottom:none; letter-spacing:.5px}
+  .tab.active{background:var(--panel); color:var(--accent); border-color:var(--accent)}
+  .codebox{background:var(--panel); border:2px solid var(--line); padding:18px 20px; overflow-x:auto}
+  .codebox.active-tab{border-top-color:var(--accent)}
+  pre{margin:0; font-family:var(--mono); font-size:20px; color:var(--ink); white-space:pre}
+  pre .c{color:var(--fade)} pre .k{color:var(--accent3)} pre .s{color:var(--accent2)}
+  .codebox[data-tab]{display:none}
+  .codebox[data-tab].active{display:block}
+
+  /* Privacy callout */
+  .callout{display:flex; gap:18px; align-items:flex-start; background:var(--panel);
+    border:2px solid var(--line); padding:22px 22px; border-left:6px solid var(--accent2)}
+  .callout .ic{flex:0 0 auto; width:30px; height:30px; color:var(--accent2)}
+  .callout p{margin:4px 0 0; color:var(--dim); font-size:21px}
+
+  /* Footer */
+  footer{padding:46px 0 60px; background:var(--bg2)}
+  footer .cols{display:flex; gap:40px; flex-wrap:wrap; justify-content:space-between}
+  footer .col h4{font-family:var(--pixel); font-size:11px; color:var(--accent); letter-spacing:1px; margin:0 0 14px}
+  footer .col a{display:block; color:var(--dim); font-size:20px; margin:6px 0}
+  footer .col a:hover{color:var(--accent)}
+  footer .legal{margin-top:34px; padding-top:20px; border-top:2px solid var(--line);
+    color:var(--fade); font-size:18px; display:flex; gap:18px; flex-wrap:wrap; justify-content:space-between}
+  footer .legal a{color:var(--fade)}
+  footer .brand-foot{display:flex; align-items:center; gap:10px; font-family:var(--pixel); font-size:12px; color:var(--ink)}
+  footer .brand-foot svg{width:22px; height:22px; color:var(--accent)}
+
+  /* Pixel divider */
+  .pixline{height:6px; background:repeating-linear-gradient(90deg, var(--accent) 0 6px, transparent 6px 12px);
+    opacity:.35}
+
+  @media (max-width:860px){
+    .grid{grid-template-columns:repeat(2,1fr)}
+    nav.top-links{display:none}
+    nav.top-links.open{display:flex; position:absolute; top:60px; left:0; right:0; flex-direction:column;
+      background:var(--bg2); border-bottom:2px solid var(--line); padding:14px 24px; gap:12px}
+    .nav-toggle{display:block; margin-left:auto}
+    .hero h1{font-size:30px}
+  }
+  @media (max-width:560px){
+    .grid{grid-template-columns:1fr}
+    .hero h1{font-size:24px}
+    .hero .tag{font-size:11px}
+    body{font-size:18px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none!important; scroll-behavior:auto!important}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Pixel-art Kohera mark (inlined from assets/icons/kohera_mark.svg) ===== -->
+<svg width="0" height="0" style="position:absolute"><symbol id="kohera-mark" viewBox="0 0 32 32" fill="currentColor" shape-rendering="crispEdges">
+<rect x="12" y="1" width="5" height="1"/><rect x="9" y="2" width="13" height="1"/><rect x="7" y="3" width="17" height="1"/><rect x="6" y="4" width="19" height="1"/><rect x="6" y="5" width="20" height="1"/><rect x="5" y="6" width="21" height="1"/><rect x="5" y="7" width="21" height="1"/><rect x="5" y="8" width="21" height="1"/><rect x="14" y="9" width="4" height="1"/><rect x="14" y="10" width="5" height="1"/><rect x="14" y="11" width="5" height="1"/><rect x="14" y="12" width="5" height="1"/><rect x="15" y="13" width="4" height="1"/><rect x="15" y="14" width="3" height="1"/><rect x="15" y="15" width="3" height="1"/><rect x="14" y="16" width="4" height="1"/><rect x="14" y="17" width="4" height="1"/><rect x="14" y="18" width="5" height="1"/><rect x="13" y="19" width="7" height="1"/><rect x="12" y="20" width="8" height="1"/><rect x="11" y="21" width="4" height="1"/><rect x="16" y="21" width="1" height="1"/><rect x="18" y="21" width="4" height="1"/><rect x="10" y="22" width="2" height="1"/><rect x="13" y="22" width="1" height="1"/><rect x="15" y="22" width="2" height="1"/><rect x="18" y="22" width="5" height="1"/><rect x="9" y="23" width="2" height="1"/><rect x="12" y="23" width="2" height="1"/><rect x="15" y="23" width="2" height="1"/><rect x="19" y="23" width="1" height="1"/><rect x="22" y="23" width="2" height="1"/><rect x="8" y="24" width="2" height="1"/><rect x="12" y="24" width="1" height="1"/><rect x="16" y="24" width="1" height="1"/><rect x="19" y="24" width="2" height="1"/><rect x="23" y="24" width="2" height="1"/><rect x="6" y="25" width="3" height="1"/><rect x="11" y="25" width="2" height="1"/><rect x="15" y="25" width="2" height="1"/><rect x="20" y="25" width="2" height="1"/><rect x="24" y="25" width="2" height="1"/><rect x="5" y="26" width="2" height="1"/><rect x="10" y="26" width="2" height="1"/><rect x="15" y="26" width="2" height="1"/><rect x="20" y="26" width="2" height="1"/><rect x="25" y="26" width="3" height="1"/><rect x="2" y="27" width="4" height="1"/><rect x="9" y="27" width="2" height="1"/><rect x="15" y="27" width="2" height="1"/><rect x="21" y="27" width="3" height="1"/><rect x="26" y="27" width="4" height="1"/><rect x="2" y="28" width="3" height="1"/><rect x="8" y="28" width="3" height="1"/><rect x="15" y="28" width="2" height="1"/><rect x="21" y="28" width="3" height="1"/><rect x="27" y="28" width="3" height="1"/><rect x="2" y="29" width="3" height="1"/><rect x="8" y="29" width="3" height="1"/><rect x="15" y="29" width="2" height="1"/><rect x="21" y="29" width="3" height="1"/><rect x="28" y="29" width="2" height="1"/><rect x="14" y="30" width="4" height="1"/><rect x="15" y="31" width="2" height="1"/>
+</symbol></svg>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#top" style="text-decoration:none">
+      <svg><use href="#kohera-mark"/></svg>
+      <span>KOHERA <small>v1.12.0</small></span>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Menu">MENU</button>
+    <nav class="top-links" id="topNav">
+      <a href="#features">Features</a>
+      <a href="#platforms">Platforms</a>
+      <a href="#layout">Layout</a>
+      <a href="#install">Install</a>
+      <a href="#privacy">Privacy</a>
+      <a href="https://github.com/Quantumheart/Kohera" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<a id="top"></a>
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <div class="wrap">
+    <svg class="logo"><use href="#kohera-mark"/></svg>
+    <h1>KOHERA</h1>
+    <p class="tag">&gt; Coherent threads, encrypted.</p>
+    <p class="lead">A retro-pixel Matrix chat client. Encrypted messaging, voice/video calls, and spaces — built with Flutter and running on desktop, mobile, and web.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/Quantumheart/Kohera/releases" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+        Download
+      </a>
+      <a class="btn" href="https://github.com/Quantumheart/Kohera" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-1.8c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.7.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.4-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0C17 4.6 18 4.9 18 4.9c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
+        View Source
+      </a>
+    </div>
+    <p class="ver">Version <b>1.12.0</b> &middot; GPL-3.0 &middot; Open source</p>
+  </div>
+</section>
+
+<!-- ===== FEATURES ===== -->
+<section id="features">
+  <div class="wrap">
+    <p class="eyebrow">// Features</p>
+    <h2>Everything a thread needs</h2>
+    <p class="sec-sub">A complete Matrix client experience — rich messaging, real end-to-end encryption, and organized spaces, all wrapped in a pixel-perfect retro shell.</p>
+    <div class="grid">
+
+      <div class="card">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-6.4A8.4 8.4 0 1 1 21 11.5z"/></svg>
+        <h3>Messaging</h3>
+        <ul>
+          <li>Rich text: HTML, Markdown, syntax-highlighted code</li>
+          <li>Reactions, replies, edit &amp; delete</li>
+          <li>File &amp; image uploads with progress</li>
+          <li>OpenGraph link previews</li>
+          <li>@mention autocomplete with styled pills</li>
+          <li>Typing indicators &amp; read receipts</li>
+          <li>Pinned messages &amp; in-room search</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><rect x="4" y="10" width="16" height="11" rx="1"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        <h3>End-to-End Encryption</h3>
+        <ul>
+          <li>Cross-signing &amp; device verification (SAS emoji)</li>
+          <li>Key backup with recovery key</li>
+          <li>Auto-unlock from secure storage on startup</li>
+          <li>Backup status indicators &amp; management</li>
+          <li>Olm &amp; Megolm by default</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h18M9 3v18"/></svg>
+        <h3>Spaces &amp; Rooms</h3>
+        <ul>
+          <li>Discord/Slack-style vertical space rail</li>
+          <li>Create, edit &amp; manage spaces</li>
+          <li>Room &amp; DM creation, invite flows</li>
+          <li>Join by alias, room ID, or matrix.to link</li>
+          <li>Room details, member list, shared media</li>
+          <li>Room admin controls</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><rect x="2" y="4" width="20" height="14" rx="1"/><path d="M8 21h8M12 18v3"/></svg>
+        <h3>Adaptive Layouts</h3>
+        <ul>
+          <li>1-column on phones, full-screen chat</li>
+          <li>2-column on tablets &amp; small desktops</li>
+          <li>3-column with resizable panes on desktop</li>
+          <li>Responsive device helpers throughout</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18M3 12h18"/></svg>
+        <h3>Material You Theming</h3>
+        <ul>
+          <li>Dynamic color palette extraction</li>
+          <li>Light &amp; dark modes</li>
+          <li>Theme &amp; layout density picker</li>
+          <li>Retro-pixel type (Press Start 2P)</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
+        <h3>Calls &amp; Notifications</h3>
+        <ul>
+          <li>Voice &amp; video calls via LiveKit</li>
+          <li>Local &amp; desktop push notifications</li>
+          <li>UnifiedPush support</li>
+          <li>SSO &amp; reCAPTCHA login</li>
+          <li>Device management</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="pixline"></div>
+
+<!-- ===== PLATFORMS ===== -->
+<section id="platforms">
+  <div class="wrap">
+    <p class="eyebrow">// Platforms</p>
+    <h2>Run it anywhere</h2>
+    <p class="sec-sub">One codebase, six targets. Kohera runs natively on every major platform.</p>
+    <div class="platforms">
+      <span class="chip">Linux</span>
+      <span class="chip">Windows</span>
+      <span class="chip">macOS</span>
+      <span class="chip">Android</span>
+      <span class="chip">iOS</span>
+      <span class="chip">Web</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===== LAYOUT ===== -->
+<section id="layout">
+  <div class="wrap">
+    <p class="eyebrow">// Adaptive</p>
+    <h2>One app, three layouts</h2>
+    <p class="sec-sub">The shell reshapes itself to the viewport — from a single column on your phone to a full three-pane workspace on desktop.</p>
+    <table class="layout-table">
+      <thead><tr><th>Viewport width</th><th>Layout</th></tr></thead>
+      <tbody>
+        <tr><td>&lt; 720 px</td><td>Space rail + room list; chat pushes full-screen</td></tr>
+        <tr><td>720 – 1100 px</td><td>Space rail + room list + content pane (2-column)</td></tr>
+        <tr><td>&ge; 1100 px</td><td>Space rail + resizable room list + chat pane (3-column)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ===== INSTALL ===== -->
+<section id="install">
+  <div class="wrap">
+    <p class="eyebrow">// Install</p>
+    <h2>Get Kohera</h2>
+    <p class="sec-sub">Grab a release build, run the containerized web app, or build from source.</p>
+
+    <div class="tabs" id="tabs">
+      <button class="tab active" data-tab="docker">Docker (Web)</button>
+      <button class="tab" data-tab="source">Build from source</button>
+      <button class="tab" data-tab="release">Releases</button>
+    </div>
+
+    <div class="codebox active-tab active" data-tab="docker">
+<pre><span class="c"># Pull the latest web image from GHCR</span>
+docker pull <span class="s">ghcr.io/quantumheart/kohera:latest</span>
+
+<span class="c"># Run it locally on port 8080</span>
+docker run -p <span class="k">8080:80</span> ghcr.io/quantumheart/kohera:latest
+
+<span class="c"># Then open http://localhost:8080</span></pre>
+    </div>
+
+    <div class="codebox" data-tab="source">
+<pre><span class="c"># Requires Flutter 3.16+ (stable) and Dart 3.1+</span>
+git clone https://github.com/Quantumheart/Kohera.git
+cd Kohera
+flutter pub get
+
+<span class="c"># Run on a device</span>
+flutter run -d linux      <span class="c"># Linux desktop</span>
+flutter run -d chrome     <span class="c"># Web</span>
+
+<span class="c"># Release builds</span>
+flutter build linux --release
+flutter build windows --release</pre>
+    </div>
+
+    <div class="codebox" data-tab="release">
+<pre><span class="c"># Tagged releases publish GitHub Release artifacts:</span>
+<span class="c">#   - Linux tar.gz</span>
+<span class="c">#   - Windows Inno Setup installer</span>
+<span class="c">#   - Web Docker image to ghcr.io</span>
+
+<span class="c"># Browse and download from:</span>
+https://github.com/Quantumheart/Kohera/releases</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ===== PRIVACY ===== -->
+<section id="privacy">
+  <div class="wrap">
+    <p class="eyebrow">// Privacy</p>
+    <h2>No servers. No tracking.</h2>
+    <div class="callout">
+      <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>
+      <div>
+        <h3 style="font-family:var(--pixel);font-size:13px;margin:0 0 8px;letter-spacing:.5px">Encrypted by default</h3>
+        <p>The developer of Kohera operates <b>no servers that store your messages, contacts, or account data</b>. Your data lives on the Matrix homeserver <i>you choose</i>. Conversations are protected with end-to-end encryption using the Olm and Megolm protocols. Kohera contains no advertising, analytics, tracking, or telemetry SDKs.</p>
+        <p style="margin-top:10px"><a href="https://github.com/Quantumheart/Kohera/blob/master/PRIVACY.md" target="_blank" rel="noopener">Read the full privacy policy &rarr;</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div class="col">
+        <div class="brand-foot"><svg><use href="#kohera-mark"/></svg> KOHERA</div>
+        <p style="color:var(--dim);font-size:20px;margin:14px 0 0;max-width:280px">Coherent threads, encrypted. A retro-pixel Matrix chat client.</p>
+      </div>
+      <div class="col">
+        <h4>Project</h4>
+        <a href="https://github.com/Quantumheart/Kohera" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/Quantumheart/Kohera/releases" target="_blank" rel="noopener">Releases</a>
+        <a href="https://github.com/Quantumheart/Kohera/issues" target="_blank" rel="noopener">Issues</a>
+        <a href="https://github.com/Quantumheart/Kohera/blob/master/CONTRIBUTING.md" target="_blank" rel="noopener">Contributing</a>
+      </div>
+      <div class="col">
+        <h4>Docs</h4>
+        <a href="https://github.com/Quantumheart/Kohera/blob/master/README.md" target="_blank" rel="noopener">README</a>
+        <a href="https://github.com/Quantumheart/Kohera/blob/master/docs/e2ee-flow.md" target="_blank" rel="noopener">E2EE flow</a>
+        <a href="https://github.com/Quantumheart/Kohera/blob/master/PRIVACY.md" target="_blank" rel="noopener">Privacy policy</a>
+        <a href="https://github.com/Quantumheart/Kohera/blob/master/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a>
+      </div>
+      <div class="col">
+        <h4>Community</h4>
+        <a href="https://matrix.org" target="_blank" rel="noopener">Matrix.org</a>
+        <a href="https://spec.matrix.org" target="_blank" rel="noopener">Matrix spec</a>
+        <a href="https://openmoji.org" target="_blank" rel="noopener">OpenMoji</a>
+      </div>
+    </div>
+    <div class="legal">
+      <span>&copy; Kohera contributors. Licensed under <a href="https://github.com/Quantumheart/Kohera/blob/master/LICENSE" target="_blank" rel="noopener">GPL-3.0</a>.</span>
+      <span>Emojis by <a href="https://openmoji.org" target="_blank" rel="noopener">OpenMoji</a> &mdash; CC BY-SA 4.0.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Mobile nav toggle
+  (function(){
+    var t=document.getElementById('navToggle'),n=document.getElementById('topNav');
+    t.addEventListener('click',function(){n.classList.toggle('open')});
+    n.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){n.classList.remove('open')})});
+  })();
+
+  // Install tabs
+  (function(){
+    var tabs=document.querySelectorAll('#tabs .tab'),boxes=document.querySelectorAll('.codebox');
+    tabs.forEach(function(tab){
+      tab.addEventListener('click',function(){
+        var name=tab.getAttribute('data-tab');
+        tabs.forEach(function(t){t.classList.toggle('active',t===tab)});
+        boxes.forEach(function(b){var on=b.getAttribute('data-tab')===name;
+          b.classList.toggle('active',on);b.classList.toggle('active-tab',on)});
+      });
+    });
+  })();
+</script>
+</body>
+</html>
