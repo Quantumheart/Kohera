@@ -1,10 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart' hide Visibility;
+import 'package:go_router/go_router.dart';
+import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
+import 'package:kohera/core/utils/matrix_address_parser.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
 import 'package:kohera/features/spaces/services/space_menu_actions.dart';
@@ -52,7 +55,7 @@ Future<void> runSpaceAction(BuildContext context, SpaceAction action) async {
     case SpaceAction.create:
       await CreateSpaceDialog.show(context, matrixService: matrix);
     case SpaceAction.join:
-      await JoinSpaceDialog.show(context, matrixService: matrix);
+      await JoinWithAddressDialog.show(context, matrixService: matrix);
     case SpaceAction.discover:
       await SpaceDiscoveryDialog.show(context, matrixService: matrix);
   }
@@ -257,10 +260,13 @@ class _CreateSpaceDialogState extends State<CreateSpaceDialog> {
   }
 }
 
-// ── Join Space dialog ───────────────────────────────────────────
+// ── Join with address dialog ────────────────────────────────────
 
-class JoinSpaceDialog extends StatefulWidget {
-  const JoinSpaceDialog._({required this.matrixService});
+/// A dialog that joins any room or space by address (room ID, alias, or
+/// `matrix.to` link). After joining it routes to the space rail if the result
+/// is a space, or to the room screen if it is a regular room.
+class JoinWithAddressDialog extends StatefulWidget {
+  const JoinWithAddressDialog._({required this.matrixService});
 
   final MatrixService matrixService;
 
@@ -270,15 +276,15 @@ class JoinSpaceDialog extends StatefulWidget {
   }) {
     return showDialog(
       context: context,
-      builder: (_) => JoinSpaceDialog._(matrixService: matrixService),
+      builder: (_) => JoinWithAddressDialog._(matrixService: matrixService),
     );
   }
 
   @override
-  State<JoinSpaceDialog> createState() => _JoinSpaceDialogState();
+  State<JoinWithAddressDialog> createState() => _JoinWithAddressDialogState();
 }
 
-class _JoinSpaceDialogState extends State<JoinSpaceDialog> {
+class _JoinWithAddressDialogState extends State<JoinWithAddressDialog> {
   final _addressController = TextEditingController();
   bool _loading = false;
   String? _addressError;
@@ -291,10 +297,20 @@ class _JoinSpaceDialogState extends State<JoinSpaceDialog> {
   }
 
   Future<void> _submit() async {
-    final address = _addressController.text.trim();
-    if (address.isEmpty) {
+    final raw = _addressController.text.trim();
+    if (raw.isEmpty) {
       setState(() {
         _addressError = 'Address is required';
+        _networkError = null;
+      });
+      return;
+    }
+
+    final parsed = parseMatrixAddress(raw);
+    if (parsed == null) {
+      setState(() {
+        _addressError =
+            'Enter a room alias (#alias:server), room ID (!id:server), or matrix.to link';
         _networkError = null;
       });
       return;
@@ -308,13 +324,29 @@ class _JoinSpaceDialogState extends State<JoinSpaceDialog> {
 
     try {
       final actions = SpaceMenuActions(widget.matrixService);
-      final roomId = await actions.joinSpace(address);
+      final result = await actions.joinByAddress(
+        parsed.address,
+        via: parsed.via,
+      );
 
       if (!mounted) return;
-      if (roomId != null) {
-        context.read<SelectionService>().selectSpace(roomId);
+      final selection = context.read<SelectionService>();
+      if (result.isSpace) {
+        selection.selectSpace(result.roomId);
+      } else {
+        selection.selectRoom(result.roomId);
       }
+
+      // Pop the dialog, then navigate (for regular rooms). Spaces only need
+      // the selection update above; the room list reacts to selectedSpaceIds.
+      final router = GoRouter.of(context);
       Navigator.pop(context);
+      if (!result.isSpace) {
+        router.goNamed(
+          Routes.room,
+          pathParameters: {RouteParams.roomId: result.roomId},
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() => _networkError = MatrixService.friendlyAuthError(e));
@@ -328,7 +360,7 @@ class _JoinSpaceDialogState extends State<JoinSpaceDialog> {
     final cs = Theme.of(context).colorScheme;
 
     return SimpleDialog(
-      title: const Text('Join Space'),
+      title: const Text('Join with address'),
       contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
       children: [
         ConstrainedBox(
@@ -342,8 +374,9 @@ class _JoinSpaceDialogState extends State<JoinSpaceDialog> {
                 autofocus: true,
                 enabled: !_loading,
                 decoration: InputDecoration(
-                  labelText: 'Space address',
+                  labelText: 'Room or space address',
                   hintText: '#space:example.com',
+                  helperText: 'Alias, room ID, or matrix.to link',
                   border: const OutlineInputBorder(),
                   errorText: _addressError,
                 ),
