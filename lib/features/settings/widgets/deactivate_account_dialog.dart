@@ -14,14 +14,13 @@ import 'package:provider/provider.dart';
 class DeactivateAccountDialog extends StatefulWidget {
   const DeactivateAccountDialog({super.key});
 
-  /// Opens the dialog. Returns `true` if deactivation succeeded.
-  static Future<bool> show(BuildContext context) async {
-    final result = await showDialog<bool>(
+  /// Opens the dialog.
+  static Future<void> show(BuildContext context) async {
+    await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => const DeactivateAccountDialog(),
     );
-    return result ?? false;
   }
 
   @override
@@ -35,6 +34,7 @@ class _DeactivateAccountDialogState extends State<DeactivateAccountDialog> {
   final _idServerController = TextEditingController();
   bool _busy = false;
   String? _error;
+  String? _idServerError;
 
   late final MatrixService _matrix;
   late final ClientManager _manager;
@@ -65,9 +65,14 @@ class _DeactivateAccountDialogState extends State<DeactivateAccountDialog> {
 
   Future<void> _confirm() async {
     final idServer = _idServerController.text.trim();
+    if (_showIdServer && idServer.isNotEmpty && !_isValidIdServer(idServer)) {
+      setState(() => _idServerError = 'Enter a valid identity server URL.');
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
+      _idServerError = null;
     });
     try {
       await _service.deactivate(
@@ -75,13 +80,33 @@ class _DeactivateAccountDialogState extends State<DeactivateAccountDialog> {
         idServer: _showIdServer && idServer.isNotEmpty ? idServer : null,
       );
       if (!mounted) return;
-      Navigator.of(context).pop(true);
+      Navigator.of(context).pop();
       await _manager.removeService(_matrix);
     } on MatrixException catch (e) {
+      _matrix.uia.clearCachedPassword();
       _setError(e.errorMessage);
+    } on Exception catch (e) {
+      if (_isCancelError(e)) {
+        if (!mounted) return;
+        setState(() => _busy = false);
+        return;
+      }
+      _setError('Deactivation failed: $e');
     } catch (e) {
       _setError('Deactivation failed: $e');
     }
+  }
+
+  bool _isCancelError(Object e) {
+    final message = e.toString().toLowerCase();
+    return message.contains('canceled') || message.contains('cancelled');
+  }
+
+  bool _isValidIdServer(String value) {
+    final uri = Uri.tryParse(value);
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
   }
 
   void _setError(String message) {
@@ -143,7 +168,10 @@ class _DeactivateAccountDialogState extends State<DeactivateAccountDialog> {
                 value: _showIdServer,
                 onChanged: _busy
                     ? null
-                    : (v) => setState(() => _showIdServer = v ?? false),
+                    : (v) => setState(() {
+                        _showIdServer = v ?? false;
+                        _idServerError = null;
+                      }),
                 title: const Text('Unbind third-party identifiers'),
                 subtitle: const Text(
                   'Provide an identity server to unbind your 3PIDs from. '
@@ -159,11 +187,17 @@ class _DeactivateAccountDialogState extends State<DeactivateAccountDialog> {
                 TextField(
                   controller: _idServerController,
                   enabled: !_busy,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Identity server',
                     hintText: 'https://vector.im',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
+                    errorText: _idServerError,
                   ),
+                  onChanged: (_) {
+                    if (_idServerError != null) {
+                      setState(() => _idServerError = null);
+                    }
+                  },
                 ),
               ],
               if (_error != null) ...[
@@ -179,7 +213,7 @@ class _DeactivateAccountDialogState extends State<DeactivateAccountDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _busy ? null : () => Navigator.of(context).pop(false),
+          onPressed: _busy ? null : () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
         FilledButton(
