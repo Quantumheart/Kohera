@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.13.0](https://github.com/Quantumheart/Kohera/compare/v1.12.0...v1.13.0) (2026-07-25)
+
+
+### Features
+
+* **#166:** room alias management in room details ([f9888d2](https://github.com/Quantumheart/Kohera/commit/f9888d28b357023d9114b1a4d61ce8ddf599d4ea)), closes [#166](https://github.com/Quantumheart/Kohera/issues/166)
+* **android:** enable R8 minification and resource shrinking ([385c7ad](https://github.com/Quantumheart/Kohera/commit/385c7adeeeef6ab70d4663421c42d15dd987b153)), closes [#0](https://github.com/Quantumheart/Kohera/issues/0)
+* join any room or space by address (alias, room ID, or matrix.to link) ([c2c15a9](https://github.com/Quantumheart/Kohera/commit/c2c15a9782db5b5c8ebf9b0f1895ba1b419eafd9)), closes [#844](https://github.com/Quantumheart/Kohera/issues/844)
+
+
+### Bug Fixes
+
+* **#613:** enable obfuscation + split-debug-info for Android release ([e7eb16e](https://github.com/Quantumheart/Kohera/commit/e7eb16e5d947d5b21bcdb3b1d7df068dee188ad6)), closes [#613](https://github.com/Quantumheart/Kohera/issues/613)
+* **#755:** gate LaTeX markdown parsing behind enableLatexMarkdown flag ([c841152](https://github.com/Quantumheart/Kohera/commit/c841152d703fff97ee4308948942d3ab95f958ef)), closes [#755](https://github.com/Quantumheart/Kohera/issues/755)
+* do not crash on malformed MSC3381 poll-start events ([a6f9889](https://github.com/Quantumheart/Kohera/commit/a6f98893931fdef99632be0e9759ef5707a9e50f))
+
 ## [1.12.0](https://github.com/Quantumheart/Kohera/compare/v1.11.1...v1.12.0) (2026-07-22)
 
 
