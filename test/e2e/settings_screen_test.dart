@@ -118,7 +118,7 @@ void main() {
   }
 
   Future<void> scrollToBottom(WidgetTester tester) async {
-    await tester.drag(find.byType(ListView), const Offset(0, -1000));
+    await tester.drag(find.byType(ListView), const Offset(0, -5000));
     await tester.pumpAndSettle();
   }
 
