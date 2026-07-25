@@ -10,6 +10,8 @@ import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:kohera/features/settings/models/kohera_device.dart';
 import 'package:kohera/features/settings/services/device_management_service.dart';
 import 'package:kohera/features/settings/widgets/device_list_item.dart';
+import 'package:kohera/features/settings/widgets/rename_device_dialog.dart';
+import 'package:kohera/features/settings/widgets/uia_password_prompt_dialog.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
 import 'package:provider/provider.dart';
@@ -76,68 +78,15 @@ class _DevicesScreenState extends State<DevicesScreen> {
   /// Called by [UiaService] when a password-stage request arrives.
   Future<String?> _showPasswordPrompt() async {
     if (!mounted) return null;
-    return showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        final passwordController = TextEditingController();
-        return AlertDialog(
-          title: const Text('Authentication required'),
-          content: TextField(
-            controller: passwordController,
-            obscureText: true,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Password',
-              border: OutlineInputBorder(),
-            ),
-            onSubmitted: (value) => Navigator.pop(ctx, value),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, passwordController.text),
-              child: const Text('Submit'),
-            ),
-          ],
-        );
-      },
-    );
+    return UiaPasswordPromptDialog.show(context);
   }
 
   // ── Rename Device ──────────────────────────────────────────
 
   Future<void> _renameDevice(KoheraDevice device) async {
-    final newName = await showDialog<String>(
-      context: context,
-      builder: (ctx) {
-        final controller = TextEditingController(text: device.displayName);
-        return AlertDialog(
-          title: const Text('Rename device'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Device name',
-              border: OutlineInputBorder(),
-            ),
-            onSubmitted: (value) => Navigator.pop(ctx, value),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, controller.text),
-              child: const Text('Rename'),
-            ),
-          ],
-        );
-      },
+    final newName = await RenameDeviceDialog.show(
+      context,
+      initialName: device.displayName ?? '',
     );
     if (newName == null || newName.isEmpty) return;
 
