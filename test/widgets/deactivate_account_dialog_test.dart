@@ -17,6 +17,7 @@ import 'package:provider/provider.dart';
   MockSpec<MatrixService>(),
   MockSpec<ChatBackupService>(),
   MockSpec<ClientManager>(),
+  MockSpec<UiaService>(),
 ])
 import 'deactivate_account_dialog_test.mocks.dart';
 
@@ -25,17 +26,17 @@ void main() {
   late MockMatrixService mockMatrix;
   late MockChatBackupService mockChatBackup;
   late MockClientManager mockManager;
-  late UiaService uiaService;
+  late MockUiaService mockUia;
 
   setUp(() {
     mockClient = MockClient();
     mockMatrix = MockMatrixService();
     mockChatBackup = MockChatBackupService();
     mockManager = MockClientManager();
-    uiaService = UiaService(client: mockClient);
+    mockUia = MockUiaService();
 
     when(mockMatrix.client).thenReturn(mockClient);
-    when(mockMatrix.uia).thenReturn(uiaService);
+    when(mockMatrix.uia).thenReturn(mockUia);
     when(mockMatrix.chatBackup).thenReturn(mockChatBackup);
     when(mockClient.userID).thenReturn('@alice:example.com');
     when(mockChatBackup.chatBackupNeeded).thenReturn(false);
@@ -178,6 +179,70 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.textContaining('Wrong password'), findsOneWidget);
+      verifyNever(mockManager.removeService(mockMatrix));
+    });
+
+    testWidgets('password-prompt cancel is benign (no error shown)',
+        (tester) async {
+      when(mockClient.uiaRequestBackground<IdServerUnbindResult>(any))
+          .thenThrow(Exception('Request has been canceled'));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Deactivate'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('canceled'), findsNothing);
+      expect(find.textContaining('Deactivation failed'), findsNothing);
+      expect(find.text('Deactivate'), findsOneWidget);
+      verifyNever(mockManager.removeService(mockMatrix));
+    });
+
+    testWidgets('clears cached password after a wrong-password failure',
+        (tester) async {
+      when(mockClient.deactivateAccount(
+        auth: anyNamed('auth'),
+        erase: anyNamed('erase'),
+        idServer: anyNamed('idServer'),
+      )).thenThrow(MatrixException.fromJson({
+        'errcode': 'M_FORBIDDEN',
+        'error': 'Wrong password',
+      }));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Deactivate'));
+      await tester.pumpAndSettle();
+
+      verify(mockUia.clearCachedPassword()).called(1);
+    });
+
+    testWidgets('rejects an invalid identity server without deactivating',
+        (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Unbind third-party identifiers'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Identity server').first,
+        'not a url',
+      );
+
+      await tester.tap(find.text('Deactivate'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('valid identity server'), findsOneWidget);
+      verifyNever(mockClient.deactivateAccount(
+        auth: anyNamed('auth'),
+        erase: anyNamed('erase'),
+        idServer: anyNamed('idServer'),
+      ));
       verifyNever(mockManager.removeService(mockMatrix));
     });
   });
