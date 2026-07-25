@@ -7,6 +7,7 @@ import 'package:kohera/features/rooms/services/room_aliases_controller.dart';
 import 'package:kohera/features/rooms/services/room_details_controller.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
+import 'package:kohera/features/rooms/widgets/room_history_export_section.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
 import 'package:kohera/shared/widgets/detail_action_button.dart';
@@ -177,6 +178,12 @@ class _RoomDetailsContentState extends State<RoomDetailsContent> {
             onEnableEncryption: _controller.enableEncryption,
           ),
         ],
+        const Divider(),
+        RoomHistoryExportSection(
+          roomId: _controller.roomId,
+          roomDisplayname:
+              _controller.summary?.displayname ?? _controller.roomId,
+        ),
       ],
     );
   }
