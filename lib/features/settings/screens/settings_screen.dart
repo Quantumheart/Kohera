@@ -11,6 +11,7 @@ import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/settings/widgets/account_switcher.dart';
+import 'package:kohera/features/settings/widgets/deactivate_account_dialog.dart';
 import 'package:kohera/features/settings/widgets/profile_avatar_card.dart';
 import 'package:kohera/shared/widgets/kohera_mark.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
@@ -222,6 +223,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: _ignoredUsersLabel(_ignoredCount),
                   onTap: () => context.goNamed(Routes.settingsIgnoredUsers),
                 ),
+                const Divider(height: 1, indent: 56),
+                _SettingsTile(
+                  icon: Icons.no_accounts_outlined,
+                  title: 'Deactivate account',
+                  subtitle: 'Permanently delete this account',
+                  onTap: () => _confirmDeactivate(context),
+                ),
               ],
             ),
           ),
@@ -292,6 +300,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _addAccount(BuildContext context, ClientManager manager) async {
     await manager.createLoginService();
     if (context.mounted) context.go(RoutePaths.addAccount);
+  }
+
+  Future<void> _confirmDeactivate(BuildContext context) async {
+    await DeactivateAccountDialog.show(context);
   }
 
   void _confirmLogout(BuildContext context) {
