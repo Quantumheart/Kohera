@@ -43,6 +43,7 @@ void stubClientDefaults(
   when(mockClient.homeserver).thenReturn(Uri.parse('https://example.com'));
   when(mockClient.updateUserDeviceKeys()).thenAnswer((_) async {});
   when(mockClient.userDeviceKeys).thenReturn({});
+  when(mockClient.getLocalAliases(any)).thenAnswer((_) async => const []);
 }
 
 void stubRoomDefaults(MockRoom mockRoom, MockClient mockClient) {
@@ -56,6 +57,7 @@ void stubRoomDefaults(MockRoom mockRoom, MockClient mockClient) {
   when(mockRoom.isFavourite).thenReturn(false);
   when(mockRoom.pushRuleState).thenReturn(PushRuleState.notify);
   when(mockRoom.canChangeStateEvent(any)).thenReturn(false);
+  when(mockRoom.canonicalAlias).thenReturn('');
   when(mockRoom.canChangePowerLevel).thenReturn(false);
   when(mockRoom.canKick).thenReturn(false);
   when(mockRoom.canBan).thenReturn(false);
@@ -516,9 +518,16 @@ void main() {
         mockClient.kick(any, any, reason: anyNamed('reason')),
       ).thenAnswer((_) async {});
 
+      await tester.binding.setSurfaceSize(const Size(800, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(buildDetailsApp());
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.text('Alice'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.text('Alice'));
       await tester.pumpAndSettle();
 
@@ -548,9 +557,16 @@ void main() {
         mockClient.ban(any, any, reason: anyNamed('reason')),
       ).thenAnswer((_) async {});
 
+      await tester.binding.setSurfaceSize(const Size(800, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(buildDetailsApp());
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.text('Alice'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.text('Alice'));
       await tester.pumpAndSettle();
 
@@ -577,9 +593,16 @@ void main() {
       ).thenReturn(PowerLevel(50));
       when(mockRoom.canKick).thenReturn(true);
 
+      await tester.binding.setSurfaceSize(const Size(800, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(buildDetailsApp());
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.text('Alice'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.text('Alice'));
       await tester.pumpAndSettle();
 
@@ -617,6 +640,11 @@ void main() {
       await tester.pumpWidget(buildDetailsApp());
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.text('Alice'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.text('Alice'));
       await tester.pumpAndSettle();
 

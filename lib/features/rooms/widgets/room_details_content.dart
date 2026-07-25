@@ -3,6 +3,7 @@ import 'package:kohera/core/models/kohera_push_rule_state.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/rooms/models/kohera_device_key.dart';
+import 'package:kohera/features/rooms/services/room_aliases_controller.dart';
 import 'package:kohera/features/rooms/services/room_details_controller.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
@@ -145,6 +146,8 @@ class _RoomDetailsContentState extends State<RoomDetailsContent> {
         const Divider(),
         _controller.buildJoinAccessSection(),
         const Divider(),
+        RoomAliasesController(roomId: _controller.roomId),
+        const Divider(),
         if (_controller.memberList != null)
           RoomMembersSection(
             members: _controller.memberList!,
@@ -199,6 +202,15 @@ class _RoomDetailsContentState extends State<RoomDetailsContent> {
             style: tt.titleLarge,
             textAlign: TextAlign.center,
           ),
+          if (summary.canonicalAlias != null &&
+              summary.canonicalAlias!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              summary.canonicalAlias!,
+              style: tt.bodyMedium?.copyWith(color: cs.primary),
+              textAlign: TextAlign.center,
+            ),
+          ],
           if (summary.topic != null && summary.topic!.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(

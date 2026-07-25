@@ -65,6 +65,7 @@ class KoheraRoomPermissions {
     this.displayName,
     this.topic,
     this.joinRule,
+    this.canChangeCanonicalAlias = false,
   });
 
   /// The Matrix room ID (e.g. `!abc:example.com`).
@@ -97,6 +98,9 @@ class KoheraRoomPermissions {
   /// Whether the local user can enable encryption (not already encrypted
   /// and has permission to change the encryption state event).
   final bool canEnableEncryption;
+
+  /// Whether the local user can change the canonical alias event.
+  final bool canChangeCanonicalAlias;
 
   /// The current join rule, or `null` if not set.
   final KoheraJoinRule? joinRule;
@@ -134,6 +138,7 @@ class KoheraRoomPermissions {
     bool? canChangePowerLevels,
     bool? canEnableEncryption,
     KoheraJoinRule? joinRule,
+    bool? canChangeCanonicalAlias,
     bool? isEncrypted,
     Map<String, Object?>? powerLevelsContent,
     List<KoheraRoomMember>? participants,
@@ -150,6 +155,8 @@ class KoheraRoomPermissions {
         canChangeJoinRules: canChangeJoinRules ?? this.canChangeJoinRules,
         canChangePowerLevels: canChangePowerLevels ?? this.canChangePowerLevels,
         canEnableEncryption: canEnableEncryption ?? this.canEnableEncryption,
+        canChangeCanonicalAlias:
+            canChangeCanonicalAlias ?? this.canChangeCanonicalAlias,
         joinRule: joinRule ?? this.joinRule,
         isEncrypted: isEncrypted ?? this.isEncrypted,
         powerLevelsContent: powerLevelsContent ?? this.powerLevelsContent,
