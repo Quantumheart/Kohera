@@ -118,7 +118,16 @@ void main() {
   }
 
   Future<void> scrollToBottom(WidgetTester tester) async {
-    await tester.drag(find.byType(ListView), const Offset(0, -5000));
+    await tester.scrollUntilVisible(
+      find.text('Sign Out'),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.pumpAndSettle();
   }
 

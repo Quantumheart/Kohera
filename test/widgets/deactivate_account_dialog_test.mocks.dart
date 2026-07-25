@@ -7419,3 +7419,64 @@ class MockClientManager extends _i1.Mock implements _i28.ClientManager {
     returnValueForMissingStub: null,
   );
 }
+
+/// A class which mocks [UiaService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockUiaService extends _i1.Mock implements _i10.UiaService {
+  @override
+  _i5.Stream<_i2.UiaRequest<dynamic>> get onUiaRequest =>
+      (super.noSuchMethod(
+            Invocation.getter(#onUiaRequest),
+            returnValue: _i5.Stream<_i2.UiaRequest<dynamic>>.empty(),
+            returnValueForMissingStub:
+                _i5.Stream<_i2.UiaRequest<dynamic>>.empty(),
+          )
+          as _i5.Stream<_i2.UiaRequest<dynamic>>);
+
+  @override
+  set passwordPromptBuilder(_i10.PasswordPromptBuilder? value) =>
+      super.noSuchMethod(
+        Invocation.setter(#passwordPromptBuilder, value),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void listenForUia() => super.noSuchMethod(
+    Invocation.method(#listenForUia, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void completeUiaWithPassword(
+    _i2.UiaRequest<dynamic>? request,
+    String? password,
+  ) => super.noSuchMethod(
+    Invocation.method(#completeUiaWithPassword, [request, password]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void setCachedPassword(String? password) => super.noSuchMethod(
+    Invocation.method(#setCachedPassword, [password]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void clearCachedPassword() => super.noSuchMethod(
+    Invocation.method(#clearCachedPassword, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void cancelUiaSub() => super.noSuchMethod(
+    Invocation.method(#cancelUiaSub, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void dispose() => super.noSuchMethod(
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
+}
