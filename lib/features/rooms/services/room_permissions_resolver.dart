@@ -41,6 +41,8 @@ class RoomPermissionsResolver {
               (powerLevelsContent['invite'] as int? ?? 0),
       canChangeJoinRules: room.canChangeJoinRules,
       canChangePowerLevels: room.canChangePowerLevel,
+      canChangeCanonicalAlias:
+          room.canChangeStateEvent(EventTypes.RoomCanonicalAlias),
       canEnableEncryption:
           !room.encrypted && room.canChangeStateEvent(EventTypes.Encryption),
       joinRule: _toKoheraJoinRule(room.joinRules),

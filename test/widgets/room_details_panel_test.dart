@@ -66,6 +66,8 @@ void main() {
     when(mockRoom.client).thenReturn(mockClient);
     when(mockRoom.avatar).thenReturn(null);
     when(mockRoom.canChangeStateEvent(any)).thenReturn(false);
+    when(mockRoom.canonicalAlias).thenReturn('');
+    when(mockClient.getLocalAliases(any)).thenAnswer((_) async => const []);
     when(mockRoom.canChangePowerLevel).thenReturn(false);
     when(mockRoom.canKick).thenReturn(false);
     when(mockRoom.canBan).thenReturn(false);
@@ -120,6 +122,12 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.text('Not encrypted'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
       expect(find.text('Not encrypted'), findsOneWidget);
     });
 
@@ -128,6 +136,12 @@ void main() {
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Encrypted'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
 
       expect(find.text('Encrypted'), findsOneWidget);
     });
@@ -307,6 +321,12 @@ void main() {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
+      await tester.scrollUntilVisible(
+        find.text('Encrypted'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+
       expect(find.text('Encrypted'), findsOneWidget);
       expect(find.textContaining('of 2 devices verified'), findsOneWidget);
     });
@@ -319,6 +339,12 @@ void main() {
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
+
+      await tester.scrollUntilVisible(
+        find.text('Encrypted'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
 
       expect(find.text('Encrypted'), findsOneWidget);
       expect(find.textContaining('devices verified'), findsNothing);
