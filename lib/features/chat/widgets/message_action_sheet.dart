@@ -40,6 +40,7 @@ void showMessageActionSheet({
   required AvatarResolver avatarResolver,
   required MentionDisplayNameResolver mentionResolver,
   required MediaResolver mediaResolver,
+  List<MessageAction> secondaryActions = const [],
   void Function(String emoji)? onQuickReact,
 }) {
   unawaited(
@@ -49,6 +50,7 @@ void showMessageActionSheet({
         isMe: isMe,
         bubbleRect: bubbleRect,
         actions: actions,
+        secondaryActions: secondaryActions,
         avatarResolver: avatarResolver,
         mentionResolver: mentionResolver,
         mediaResolver: mediaResolver,
@@ -67,6 +69,7 @@ class _MessageActionSheetRoute extends PopupRoute<void> {
     required this.isMe,
     required this.bubbleRect,
     required this.actions,
+    required this.secondaryActions,
     required this.avatarResolver,
     required this.mentionResolver,
     required this.mediaResolver,
@@ -78,6 +81,7 @@ class _MessageActionSheetRoute extends PopupRoute<void> {
   final bool isMe;
   final Rect bubbleRect;
   final List<MessageAction> actions;
+  final List<MessageAction> secondaryActions;
   final AvatarResolver avatarResolver;
   final MentionDisplayNameResolver mentionResolver;
   final MediaResolver mediaResolver;
@@ -107,6 +111,7 @@ class _MessageActionSheetRoute extends PopupRoute<void> {
       isMe: isMe,
       bubbleRect: bubbleRect,
       actions: actions,
+      secondaryActions: secondaryActions,
       avatarResolver: avatarResolver,
       mentionResolver: mentionResolver,
       mediaResolver: mediaResolver,
@@ -125,6 +130,7 @@ class _MessageActionSheet extends StatefulWidget {
     required this.isMe,
     required this.bubbleRect,
     required this.actions,
+    required this.secondaryActions,
     required this.avatarResolver,
     required this.mentionResolver,
     required this.mediaResolver,
@@ -137,6 +143,7 @@ class _MessageActionSheet extends StatefulWidget {
   final bool isMe;
   final Rect bubbleRect;
   final List<MessageAction> actions;
+  final List<MessageAction> secondaryActions;
   final AvatarResolver avatarResolver;
   final MentionDisplayNameResolver mentionResolver;
   final MediaResolver mediaResolver;
@@ -155,6 +162,19 @@ class _MessageActionSheetState extends State<_MessageActionSheet> {
   static const _gap = 8.0;
 
   late final CurvedAnimation _curved;
+  bool _showSecondary = false;
+
+  MessageAction? get _moreAction => (!_showSecondary &&
+          widget.secondaryActions.isNotEmpty)
+      ? MessageAction(
+          label: 'More…',
+          icon: Icons.more_horiz_rounded,
+          onTap: () => setState(() => _showSecondary = true),
+        )
+      : null;
+
+  List<MessageAction> get _visibleActions =>
+      _showSecondary ? widget.secondaryActions : widget.actions;
 
   @override
   void initState() {
@@ -180,7 +200,10 @@ class _MessageActionSheetState extends State<_MessageActionSheet> {
     final safeBottom = mq.padding.bottom + 8;
 
     final hasQuickReact = widget.onQuickReact != null;
-    final actionListHeight = widget.actions.length * _actionRowHeight;
+    final visibleActions = _visibleActions;
+    final moreAction = _moreAction;
+    final rowCount = visibleActions.length + (moreAction != null ? 1 : 0);
+    final actionListHeight = rowCount * _actionRowHeight;
     final quickReactSpace = hasQuickReact ? _quickReactHeight + _gap : 0.0;
 
     final totalHeight =
@@ -270,7 +293,10 @@ class _MessageActionSheetState extends State<_MessageActionSheet> {
                 begin: const Offset(0, 0.08),
                 end: Offset.zero,
               ).animate(_curved),
-              child: _ActionList(actions: widget.actions),
+              child: _ActionList(
+              actions: visibleActions,
+              moreAction: moreAction,
+            ),
             ),
           ),
         ),
@@ -282,13 +308,22 @@ class _MessageActionSheetState extends State<_MessageActionSheet> {
 // ── Action list widget ──────────────────────────────────
 
 class _ActionList extends StatelessWidget {
-  const _ActionList({required this.actions});
+  const _ActionList({required this.actions, this.moreAction});
 
   final List<MessageAction> actions;
+
+  /// Optional trailing "More…" row that swaps to the secondary tier instead
+  /// of dismissing the sheet.
+  final MessageAction? moreAction;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final divider = Divider(
+      height: 1,
+      thickness: 0.5,
+      color: cs.outlineVariant.withValues(alpha: 0.4),
+    );
 
     return Material(
       elevation: 4,
@@ -299,13 +334,12 @@ class _ActionList extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           for (int i = 0; i < actions.length; i++) ...[
-            if (i > 0)
-              Divider(
-                height: 1,
-                thickness: 0.5,
-                color: cs.outlineVariant.withValues(alpha: 0.4),
-              ),
+            if (i > 0) divider,
             _ActionRow(action: actions[i]),
+          ],
+          if (moreAction != null) ...[
+            if (actions.isNotEmpty) divider,
+            _ActionRow(action: moreAction!, popOnTap: false),
           ],
         ],
       ),
@@ -373,9 +407,13 @@ class _QuickReactBar extends StatelessWidget {
 }
 
 class _ActionRow extends StatelessWidget {
-  const _ActionRow({required this.action});
+  const _ActionRow({required this.action, this.popOnTap = true});
 
   final MessageAction action;
+
+  /// When false the row invokes [action.onTap] without dismissing the sheet
+  /// (used by the "More…" row to swap tiers).
+  final bool popOnTap;
 
   @override
   Widget build(BuildContext context) {
@@ -384,7 +422,7 @@ class _ActionRow extends StatelessWidget {
 
     return InkWell(
       onTap: () {
-        Navigator.of(context).pop();
+        if (popOnTap) Navigator.of(context).pop();
         action.onTap();
       },
       child: SizedBox(
