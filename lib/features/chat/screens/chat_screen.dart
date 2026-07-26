@@ -493,9 +493,10 @@ class _ChatScreenState extends State<ChatScreen>
     if (event == null || event.redacted) return;
     final isMe = event.senderId == _timelineController.myUserId;
     final cs = Theme.of(context).colorScheme;
-    final List<MessageAction> actions;
+    final List<MessageAction> primaryActions;
+    final List<MessageAction> secondaryActions;
     if (event.status.name == 'error') {
-      actions = [
+      primaryActions = [
         MessageAction(
           label: 'Retry sending',
           icon: Icons.refresh_rounded,
@@ -520,22 +521,21 @@ class _ChatScreenState extends State<ChatScreen>
           color: cs.error,
         ),
       ];
+      secondaryActions = const <MessageAction>[];
     } else {
-      actions = [
+      primaryActions = [
         MessageAction(
           label: 'Reply',
           icon: Icons.reply_rounded,
           onTap: () => _setReplyTo(eventId),
         ),
         MessageAction(
-          label: 'Reply in thread',
-          icon: Icons.forum_outlined,
-          onTap: () => _replyInThread(eventId),
-        ),
-        MessageAction(
-          label: 'Forward',
-          icon: Icons.forward_rounded,
-          onTap: () => _forwardMessage(eventId),
+          label: 'React',
+          icon: Icons.add_reaction_outlined,
+          onTap: () => showEmojiPickerSheet(
+            context,
+            (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
+          ),
         ),
         if (isMe)
           MessageAction(
@@ -546,20 +546,6 @@ class _ChatScreenState extends State<ChatScreen>
               _timelineController.timeline,
               _msgCtrl,
             ),
-          ),
-        MessageAction(
-          label: 'React',
-          icon: Icons.add_reaction_outlined,
-          onTap: () => showEmojiPickerSheet(
-            context,
-            (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
-          ),
-        ),
-        if (canPin)
-          MessageAction(
-            label: isPinned ? 'Unpin' : 'Pin',
-            icon: isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
-            onTap: () => unawaited(_actions.togglePin(event)),
           ),
         MessageAction(
           label: 'Copy',
@@ -575,6 +561,35 @@ class _ChatScreenState extends State<ChatScreen>
             );
           },
         ),
+        if (event.canRedact)
+          MessageAction(
+            label: isMe ? 'Delete' : 'Remove',
+            icon: Icons.delete_outline_rounded,
+            onTap: () => confirmAndDeleteEvent(
+                  context,
+                  isMe: isMe,
+                  onRedact: () => event.room.redactEvent(event.eventId),
+                ),
+            color: cs.error,
+          ),
+      ];
+      secondaryActions = [
+        MessageAction(
+          label: 'Reply in thread',
+          icon: Icons.forum_outlined,
+          onTap: () => _replyInThread(eventId),
+        ),
+        MessageAction(
+          label: 'Forward',
+          icon: Icons.forward_rounded,
+          onTap: () => _forwardMessage(eventId),
+        ),
+        if (canPin)
+          MessageAction(
+            label: isPinned ? 'Unpin' : 'Pin',
+            icon: isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+            onTap: () => unawaited(_actions.togglePin(event)),
+          ),
         if (!isMe)
           MessageAction(
             label: 'Ignore user',
@@ -589,17 +604,6 @@ class _ChatScreenState extends State<ChatScreen>
             onTap: () => unawaited(_reportMessage(event)),
             color: cs.error,
           ),
-        if (event.canRedact)
-          MessageAction(
-            label: isMe ? 'Delete' : 'Remove',
-            icon: Icons.delete_outline_rounded,
-            onTap: () => confirmAndDeleteEvent(
-                  context,
-                  isMe: isMe,
-                  onRedact: () => event.room.redactEvent(event.eventId),
-                ),
-            color: cs.error,
-          ),
       ];
     }
     final matrix = context.read<MatrixService>();
@@ -612,7 +616,8 @@ class _ChatScreenState extends State<ChatScreen>
       message: message,
       isMe: isMe,
       bubbleRect: bubbleRect,
-      actions: actions,
+      actions: primaryActions,
+      secondaryActions: secondaryActions,
       avatarResolver: matrix.avatarResolver,
       mentionResolver: _buildMentionResolver(event.room.id),
       mediaResolver: matrix.mediaResolver,

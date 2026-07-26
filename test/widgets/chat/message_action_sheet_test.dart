@@ -56,6 +56,7 @@ Finder _emojiImage(String emoji) => find.byWidgetPredicate(
 void main() {
   Widget buildTestWidget({
     required List<MessageAction> actions,
+    List<MessageAction> secondaryActions = const [],
     void Function(String emoji)? onQuickReact,
     KoheraMessageDisplay? message,
   }) {
@@ -75,6 +76,7 @@ void main() {
                   isMe: true,
                   bubbleRect: const Rect.fromLTWH(50, 50, 300, 60),
                   actions: actions,
+                  secondaryActions: secondaryActions,
                   avatarResolver: const _FakeAvatarResolver(),
                   mentionResolver: (_) => null,
                   mediaResolver: const _FakeMediaResolver(),
@@ -219,6 +221,72 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Reply'), findsNothing);
+    });
+  });
+
+  group('Two-tier More…', () {
+    testWidgets('More… row appears only when secondary actions are set',
+        (tester) async {
+      suppressLayoutErrors(tester);
+      final primary = [
+        MessageAction(label: 'Reply', icon: Icons.reply, onTap: () {}),
+      ];
+
+      await tester.pumpWidget(buildTestWidget(actions: primary));
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('More…'), findsNothing);
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(buildTestWidget(
+        actions: primary,
+        secondaryActions: [
+          MessageAction(label: 'Forward', icon: Icons.forward, onTap: () {}),
+        ],
+      ));
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('More…'), findsOneWidget);
+      expect(find.text('Forward'), findsNothing);
+    });
+
+    testWidgets('tapping More… swaps to the secondary tier and fires its handler',
+        (tester) async {
+      suppressLayoutErrors(tester);
+      var forwarded = false;
+      await tester.pumpWidget(buildTestWidget(
+        actions: [
+          MessageAction(label: 'Reply', icon: Icons.reply, onTap: () {}),
+        ],
+        secondaryActions: [
+          MessageAction(
+            label: 'Forward',
+            icon: Icons.forward,
+            onTap: () => forwarded = true,
+          ),
+        ],
+      ));
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reply'), findsOneWidget);
+      expect(find.text('Forward'), findsNothing);
+
+      await tester.tap(find.text('More…'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Forward'), findsOneWidget);
+      expect(find.text('Reply'), findsNothing);
+      expect(find.text('More…'), findsNothing);
+
+      await tester.tap(find.text('Forward'));
+      await tester.pumpAndSettle();
+
+      expect(forwarded, isTrue);
+      expect(find.text('Forward'), findsNothing);
     });
   });
 }
