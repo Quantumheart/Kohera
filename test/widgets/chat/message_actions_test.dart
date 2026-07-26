@@ -1059,4 +1059,202 @@ void main() {
       expect(find.text('Edited message'), findsNothing);
     });
   });
+
+  // ── Two-tier context menu ───────────────────────────────────
+
+  Widget menuHarness({required VoidCallback onOpen}) {
+    return MaterialApp(
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => Center(
+            child: ElevatedButton(
+              onPressed: onOpen,
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  group('Two-tier context menu', () {
+    testWidgets('primary tier shows 5 actions + More… when all callbacks set',
+        (tester) async {
+      final fired = <String>[];
+      await tester.pumpWidget(
+        menuHarness(
+          onOpen: () => showMessageContextMenu(
+            tester.element(find.text('open')),
+            isMe: false,
+            isPinned: false,
+            isFailed: false,
+            isRedacted: false,
+            copyableBody: 'hi',
+            position: const Offset(100, 100),
+            onReply: () => fired.add('reply'),
+            onEdit: () => fired.add('edit'),
+            onReact: () => fired.add('react'),
+            onDelete: () => fired.add('delete'),
+            onReplyInThread: () => fired.add('reply_in_thread'),
+            onForward: () => fired.add('forward'),
+            onPin: () => fired.add('pin'),
+            onIgnoreSender: () => fired.add('ignore_sender'),
+            onReport: () => fired.add('report'),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byWidgetPredicate((w) => w is PopupMenuItem<String>),
+        findsNWidgets(6),
+      );
+      expect(find.text('Reply'), findsOneWidget);
+      expect(find.text('React'), findsOneWidget);
+      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('Copy'), findsOneWidget);
+      expect(find.text('Remove'), findsOneWidget);
+      expect(find.text('More…'), findsOneWidget);
+      // Secondary actions are not yet visible.
+      expect(find.text('Reply in thread'), findsNothing);
+      expect(find.text('Forward'), findsNothing);
+      expect(find.text('Ignore user'), findsNothing);
+      expect(fired, isEmpty);
+    });
+
+    testWidgets('More… is omitted when no secondary callbacks are set',
+        (tester) async {
+      await tester.pumpWidget(
+        menuHarness(
+          onOpen: () => showMessageContextMenu(
+            tester.element(find.text('open')),
+            isMe: true,
+            isPinned: false,
+            isFailed: false,
+            isRedacted: false,
+            copyableBody: 'hi',
+            position: const Offset(100, 100),
+            onReply: () {},
+            onEdit: () {},
+            onDelete: () {},
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reply'), findsOneWidget);
+      expect(find.text('Edit'), findsOneWidget);
+      expect(find.text('Delete'), findsOneWidget);
+      expect(find.text('More…'), findsNothing);
+    });
+
+    testWidgets('tapping More… opens the secondary tier and fires its handler',
+        (tester) async {
+      final fired = <String>[];
+      await tester.pumpWidget(
+        menuHarness(
+          onOpen: () => showMessageContextMenu(
+            tester.element(find.text('open')),
+            isMe: false,
+            isPinned: false,
+            isFailed: false,
+            isRedacted: false,
+            copyableBody: 'hi',
+            position: const Offset(100, 100),
+            onReply: () => fired.add('reply'),
+            onEdit: () => fired.add('edit'),
+            onReact: () => fired.add('react'),
+            onDelete: () => fired.add('delete'),
+            onReplyInThread: () => fired.add('reply_in_thread'),
+            onForward: () => fired.add('forward'),
+            onPin: () => fired.add('pin'),
+            onIgnoreSender: () => fired.add('ignore_sender'),
+            onReport: () => fired.add('report'),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('More…'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reply in thread'), findsOneWidget);
+      expect(find.text('Forward'), findsOneWidget);
+      expect(find.text('Pin'), findsOneWidget);
+      expect(find.text('Ignore user'), findsOneWidget);
+      expect(find.text('Report'), findsOneWidget);
+      // Primary tier closed.
+      expect(find.text('Reply'), findsNothing);
+      expect(find.text('More…'), findsNothing);
+
+      await tester.tap(find.text('Forward'));
+      await tester.pumpAndSettle();
+
+      expect(fired, ['forward']);
+    });
+
+    testWidgets('secondary tier reflects pinned state as Unpin', (tester) async {
+      await tester.pumpWidget(
+        menuHarness(
+          onOpen: () => showMessageContextMenu(
+            tester.element(find.text('open')),
+            isMe: true,
+            isPinned: true,
+            isFailed: false,
+            isRedacted: false,
+            copyableBody: 'hi',
+            position: const Offset(100, 100),
+            onReply: () {},
+            onPin: () {},
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('More…'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Unpin'), findsOneWidget);
+      expect(find.text('Pin'), findsNothing);
+    });
+
+    testWidgets('failed branch shows only Retry / Discard', (tester) async {
+      final fired = <String>[];
+      await tester.pumpWidget(
+        menuHarness(
+          onOpen: () => showMessageContextMenu(
+            tester.element(find.text('open')),
+            isMe: true,
+            isPinned: false,
+            isFailed: true,
+            isRedacted: false,
+            copyableBody: 'hi',
+            position: const Offset(100, 100),
+            onRetrySend: () => fired.add('retry'),
+            onDiscardSend: () => fired.add('discard'),
+            onReply: () => fired.add('reply'),
+            onReport: () => fired.add('report'),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Retry sending'), findsOneWidget);
+      expect(find.text('Discard message'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate((w) => w is PopupMenuItem<String>),
+        findsNWidgets(2),
+      );
+      expect(find.text('More…'), findsNothing);
+      expect(find.text('Reply'), findsNothing);
+
+      await tester.tap(find.text('Retry sending'));
+      await tester.pumpAndSettle();
+      expect(fired, ['retry']);
+    });
+  });
 }
