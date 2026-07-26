@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kohera/shared/widgets/popup_menu_item_row.dart';
 
+/// Vertical offset of the secondary "More…" menu from the primary anchor,
+/// so the second tier does not reopen over the same tap point.
+const double _secondaryMenuOffset = 48;
+
 Future<void> showMessageContextMenu(
   BuildContext context, {
   required bool isMe,
@@ -23,8 +27,10 @@ Future<void> showMessageContextMenu(
   VoidCallback? onReport,
 }) async {
   final cs = Theme.of(context).colorScheme;
-  final items = <PopupMenuItem<String>>[
-    if (isFailed) ...[
+
+  // ── Failed branch: Retry / Discard only ──────────────────────
+  if (isFailed) {
+    final failedItems = <PopupMenuItem<String>>[
       if (onRetrySend != null)
         menuItemRow(Icons.refresh_rounded, 'Retry sending', 'outbox_retry'),
       if (onDiscardSend != null)
@@ -34,14 +40,67 @@ Future<void> showMessageContextMenu(
           'outbox_discard',
           color: cs.error,
         ),
-    ] else ...[
-      if (onReply != null) menuItemRow(Icons.reply_rounded, 'Reply', 'reply'),
+    ];
+    if (failedItems.isEmpty) return;
+    final value = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx,
+        position.dy,
+      ),
+      color: cs.surfaceContainer,
+      items: failedItems,
+    );
+    if (!context.mounted) return;
+    if (value == 'outbox_retry') onRetrySend?.call();
+    if (value == 'outbox_discard') onDiscardSend?.call();
+    return;
+  }
+
+  // ── Primary tier ─────────────────────────────────────────────
+  final hasSecondary = [
+    onReplyInThread,
+    onForward,
+    onPin,
+    onIgnoreSender,
+    onReport,
+  ].any((c) => c != null);
+
+  final primaryItems = <PopupMenuItem<String>>[
+    if (onReply != null) menuItemRow(Icons.reply_rounded, 'Reply', 'reply'),
+    if (onReact != null)
+      menuItemRow(Icons.add_reaction_outlined, 'React', 'react'),
+    if (onEdit != null) menuItemRow(Icons.edit_rounded, 'Edit', 'edit'),
+    if (!isRedacted) menuItemRow(Icons.copy_rounded, 'Copy', 'copy'),
+    if (onDelete != null)
+      menuItemRow(
+        Icons.delete_outline_rounded,
+        isMe ? 'Delete' : 'Remove',
+        'delete',
+        color: cs.error,
+      ),
+    if (hasSecondary) menuItemRow(Icons.more_horiz_rounded, 'More…', 'more'),
+  ];
+  if (primaryItems.isEmpty) return;
+
+  final primary = await showMenu<String>(
+    context: context,
+    position: RelativeRect.fromLTRB(
+      position.dx,
+      position.dy,
+      position.dx,
+      position.dy,
+    ),
+    color: cs.surfaceContainer,
+    items: primaryItems,
+  );
+  if (!context.mounted) return;
+  if (primary == 'more') {
+    final secondaryItems = <PopupMenuItem<String>>[
       if (onReplyInThread != null)
         menuItemRow(Icons.forum_outlined, 'Reply in thread', 'reply_in_thread'),
-      if (onEdit != null) menuItemRow(Icons.edit_rounded, 'Edit', 'edit'),
-      if (onReact != null)
-        menuItemRow(Icons.add_reaction_outlined, 'React', 'react'),
-      if (!isRedacted) menuItemRow(Icons.copy_rounded, 'Copy', 'copy'),
       if (onForward != null)
         menuItemRow(Icons.forward_rounded, 'Forward', 'forward'),
       if (onPin != null)
@@ -64,42 +123,85 @@ Future<void> showMessageContextMenu(
           'report',
           color: cs.error,
         ),
-      if (onDelete != null)
-        menuItemRow(
-          Icons.delete_outline_rounded,
-          isMe ? 'Delete' : 'Remove',
-          'delete',
-          color: cs.error,
-        ),
-    ],
-  ];
-  if (items.isEmpty) return;
-  final value = await showMenu<String>(
-    context: context,
-    position: RelativeRect.fromLTRB(
-        position.dx, position.dy, position.dx, position.dy,),
-    color: cs.surfaceContainer,
-    items: items,
+    ];
+    final secondary = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy + _secondaryMenuOffset,
+        position.dx,
+        position.dy + _secondaryMenuOffset,
+      ),
+      color: cs.surfaceContainer,
+      items: secondaryItems,
+    );
+    if (!context.mounted) return;
+    await _dispatchMenuValue(
+      secondary,
+      onReply: onReply,
+      onEdit: onEdit,
+      onReact: onReact,
+      onPin: onPin,
+      onDelete: onDelete,
+      onReplyInThread: onReplyInThread,
+      onForward: onForward,
+      onIgnoreSender: onIgnoreSender,
+      onReport: onReport,
+      copyableBody: copyableBody,
+    );
+    return;
+  }
+
+  await _dispatchMenuValue(
+    primary,
+    onReply: onReply,
+    onEdit: onEdit,
+    onReact: onReact,
+    onPin: onPin,
+    onDelete: onDelete,
+    onReplyInThread: onReplyInThread,
+    onForward: onForward,
+    onIgnoreSender: onIgnoreSender,
+    onReport: onReport,
+    copyableBody: copyableBody,
   );
-  if (!context.mounted) return;
-  if (value == 'outbox_retry') {
-    onRetrySend?.call();
-    return;
+}
+
+Future<void> _dispatchMenuValue(
+  String? value, {
+  required String copyableBody,
+  VoidCallback? onReply,
+  VoidCallback? onEdit,
+  VoidCallback? onReact,
+  VoidCallback? onPin,
+  VoidCallback? onDelete,
+  VoidCallback? onReplyInThread,
+  VoidCallback? onForward,
+  VoidCallback? onIgnoreSender,
+  VoidCallback? onReport,
+}) async {
+  switch (value) {
+    case 'reply':
+      onReply?.call();
+    case 'forward':
+      onForward?.call();
+    case 'reply_in_thread':
+      onReplyInThread?.call();
+    case 'react':
+      onReact?.call();
+    case 'edit':
+      onEdit?.call();
+    case 'pin':
+      onPin?.call();
+    case 'ignore_sender':
+      onIgnoreSender?.call();
+    case 'report':
+      onReport?.call();
+    case 'copy':
+      await Clipboard.setData(ClipboardData(text: copyableBody));
+    case 'delete':
+      onDelete?.call();
+    default:
+      break;
   }
-  if (value == 'outbox_discard') {
-    onDiscardSend?.call();
-    return;
-  }
-  if (value == 'reply') onReply?.call();
-  if (value == 'forward') onForward?.call();
-  if (value == 'reply_in_thread') onReplyInThread?.call();
-  if (value == 'react') onReact?.call();
-  if (value == 'edit') onEdit?.call();
-  if (value == 'pin') onPin?.call();
-  if (value == 'ignore_sender') onIgnoreSender?.call();
-  if (value == 'report') onReport?.call();
-  if (value == 'copy') {
-    await Clipboard.setData(ClipboardData(text: copyableBody));
-  }
-  if (value == 'delete') onDelete?.call();
 }

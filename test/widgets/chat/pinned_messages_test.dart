@@ -405,6 +405,8 @@ void main() {
         buttons: kSecondaryButton,
       );
       await tester.pumpAndSettle();
+      await tester.tap(find.text('More…'));
+      await tester.pumpAndSettle();
 
       expect(find.text('Pin'), findsOneWidget);
     });
@@ -487,6 +489,8 @@ void main() {
         buttons: kSecondaryButton,
       );
       await tester.pumpAndSettle();
+      await tester.tap(find.text('More…'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Pin'));
       await tester.pumpAndSettle();
 
@@ -529,6 +533,8 @@ void main() {
         tester.getTopLeft(find.text('Unpin me')) + const Offset(8, 8),
         buttons: kSecondaryButton,
       );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('More…'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Unpin'));
       await tester.pumpAndSettle();
