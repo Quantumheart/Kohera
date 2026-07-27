@@ -35,9 +35,10 @@ final class ShareViewController: SLComposeServiceViewController {
 
   override func viewDidLoad() {
     super.viewDidLoad()
+    // Make the main compose sheet taller so config items are more visible.
     preferredContentSize = CGSize(
       width: UIScreen.main.bounds.width,
-      height: 360
+      height: 600
     )
   }
 
@@ -304,10 +305,12 @@ final class RoomPickerController: UITableViewController {
   }
 
   private func sizeSheet() {
-    let rows = CGFloat(min(max(rooms.count, 1), 12))
+    // Fill the sheet: SLComposeServiceViewController sizes the pushed
+    // configuration VC to its preferredContentSize, so request the full
+    // screen height to make the room list span the whole sheet.
     preferredContentSize = CGSize(
       width: UIScreen.main.bounds.width,
-      height: rows * tableView.rowHeight + 16
+      height: UIScreen.main.bounds.height
     )
   }
 
