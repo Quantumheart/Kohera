@@ -15,6 +15,9 @@ final class ShareViewController: UIViewController {
   private let pendingKey = "pendingShares"
   private let activeAccountKey = "activeAccountId"
 
+  // Serializes concurrent NSItemProvider callbacks appending to `staged`.
+  private let stagingQueue = DispatchQueue(label: "kohera.share.staging")
+
   private var rooms: [RoomPick] = []
   private var accountId: String?
   private var selectedRoom: RoomPick?
@@ -149,11 +152,13 @@ final class ShareViewController: UIViewController {
     var staged: [[String: Any]] = []
 
     for item in items {
-      guard let attachments = item.attachments else { continue }
+      guard let attachments = item.attachments, !attachments.isEmpty else { continue }
       for provider in attachments {
         group.enter()
         stageAttachment(provider: provider) { entry in
-          if let entry = entry { staged.append(entry) }
+          // NSItemProvider callbacks arrive on arbitrary threads; serialize
+          // appends to avoid concurrent mutation of `staged`.
+          self.stagingQueue.sync { if let entry = entry { staged.append(entry) } }
           group.leave()
         }
       }
@@ -162,8 +167,12 @@ final class ShareViewController: UIViewController {
     group.notify(queue: .main) { [weak self] in
       guard let self else { completion(); return }
       if staged.isEmpty {
-        // Fallback: treat the share as plain text if we could not stage a file.
-        self.enqueueTextShare(targetRoom: targetRoom, text: nil, completion: completion)
+        // No file/url/text attachment staged — fall back to the host's inline
+        // text (e.g. selected text in Notes arrives as attributedContentText,
+        // not as an NSItemProvider attachment).
+        let text = items.compactMap { $0.attributedContentText?.string }
+          .first(where: { !$0.isEmpty })
+        self.enqueueTextShare(targetRoom: targetRoom, text: text, completion: completion)
       } else {
         self.enqueue(staged: staged, targetRoom: targetRoom, completion: completion)
       }
@@ -174,7 +183,6 @@ final class ShareViewController: UIViewController {
     provider: NSItemProvider,
     done: @escaping ([String: Any]?) -> Void
   ) {
-    // Text payload → no file staging; carry the string directly.
     if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
       provider.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { item, _ in
         let text = (item as? String) ?? (item as? URL)?.absoluteString
@@ -183,7 +191,6 @@ final class ShareViewController: UIViewController {
       return
     }
 
-    // URL payload → carry the URL string as a text share.
     if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
       provider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in
         let text = (item as? URL)?.absoluteString ?? (item as? String)
@@ -192,8 +199,6 @@ final class ShareViewController: UIViewController {
       return
     }
 
-    // File-backed payload → copy into the App Group container via
-    // NSFileCoordinator (required for Photos / iCloud provider items).
     let typeIdentifier = provider.registeredTypeIdentifiers.first ?? UTType.data.identifier
     provider.loadFileRepresentation(forTypeIdentifier: typeIdentifier) { [weak self] tempURL, error in
       guard let self, let tempURL = tempURL, error == nil else { done(nil); return }
