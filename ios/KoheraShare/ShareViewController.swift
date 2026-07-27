@@ -43,7 +43,6 @@ final class ShareViewController: UINavigationController {
       height: UIScreen.main.bounds.height
     )
     accountId = UserDefaults(suiteName: appGroup)?.string(forKey: activeAccountKey)
-    NSLog("[Kohera] Share: root viewDidLoad, accountId=\(accountId ?? "nil")")
 
     let picker = RoomPickerController(appGroup: appGroup)
     picker.onSelect = { [weak self] room in
