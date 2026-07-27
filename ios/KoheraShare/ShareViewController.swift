@@ -1,35 +1,28 @@
 import UIKit
+import Social
 import MobileCoreServices
 import UniformTypeIdentifiers
 
 /// Share Extension principal class.
 ///
-/// Shows an in-sheet room picker populated from the App-Group `roomSnapshot`
-/// store the main app writes on sync. On Post, copies each attachment into the
-/// App-Group container via NSFileCoordinator and appends a `pendingShares`
-/// entry (matching the Dart `PendingShare` schema) so the main app can drain
-/// it and perform the real Matrix send. The Matrix SDK never runs here.
-final class ShareViewController: UIViewController {
+/// Subclasses `SLComposeServiceViewController` so the system provides the
+/// compose text field, attachment preview, and Post/Cancel chrome. The room
+/// picker is a configuration item ("To: <room>") that pushes a
+/// `RoomPickerController` reading the App-Group `roomSnapshot` store the main
+/// app writes on sync. On Post, attachments are staged into the App-Group
+/// container via NSFileCoordinator and a `pendingShares` entry (matching the
+/// Dart `PendingShare` schema) is appended so the main app can drain it and
+/// perform the real Matrix send. The Matrix SDK never runs here.
+final class ShareViewController: SLComposeServiceViewController {
   private let appGroup = "group.io.github.quantumheart.kohera"
-  private let snapshotKey = "roomSnapshot"
   private let pendingKey = "pendingShares"
   private let activeAccountKey = "activeAccountId"
 
   // Serializes concurrent NSItemProvider callbacks appending to `staged`.
   private let stagingQueue = DispatchQueue(label: "kohera.share.staging")
 
-  private var rooms: [RoomPick] = []
   private var accountId: String?
   private var selectedRoom: RoomPick?
-
-  private let tableView = UITableView(frame: .zero, style: .plain)
-  private let emptyLabel = UILabel()
-  private let postButton = UIBarButtonItem(
-    title: "Post",
-    style: .done,
-    target: nil,
-    action: nil
-  )
 
   struct RoomPick {
     let roomId: String
@@ -40,146 +33,44 @@ final class ShareViewController: UIViewController {
 
   // ── Lifecycle ───────────────────────────────────────────────
 
-  override func viewDidLoad() {
-    super.viewDidLoad()
-    title = "Share to Kohera"
-    navigationItem.leftBarButtonItem = UIBarButtonItem(
-      barButtonSystemItem: .cancel,
-      target: self,
-      action: #selector(cancel)
-    )
-    postButton.isEnabled = false
-    postButton.target = self
-    postButton.action = #selector(post)
-    navigationItem.rightBarButtonItem = postButton
-
-    view.backgroundColor = .systemBackground
-    configureEmptyLabel()
-    configureTableView()
-    loadFromAppGroup()
+  override func presentationAnimationDidFinish() {
+    super.presentationAnimationDidFinish()
+    placeholder = "Add a message (optional)…"
+    accountId = UserDefaults(suiteName: appGroup)?.string(forKey: activeAccountKey)
+    validateContent()
   }
 
-  private func configureEmptyLabel() {
-    emptyLabel.translatesAutoresizingMaskIntoConstraints = false
-    emptyLabel.text = "Open Kohera and log in to populate the room list."
-    emptyLabel.textAlignment = .center
-    emptyLabel.textColor = .secondaryLabel
-    emptyLabel.numberOfLines = 0
-    emptyLabel.font = .preferredFont(forTextStyle: .body)
-    view.addSubview(emptyLabel)
-    NSLayoutConstraint.activate([
-      emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-      emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-      emptyLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 24),
-      emptyLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -24),
-    ])
+  override func isContentValid() -> Bool {
+    selectedRoom != nil
   }
 
-  private func configureTableView() {
-    tableView.translatesAutoresizingMaskIntoConstraints = false
-    tableView.dataSource = self
-    tableView.delegate = self
-    tableView.register(UITableViewCell.self, forCellReuseIdentifier: "room")
-    view.addSubview(tableView)
-    NSLayoutConstraint.activate([
-      tableView.topAnchor.constraint(equalTo: view.topAnchor),
-      tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-      tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-      tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-    ])
+  override func configurationItems() -> [Any]! {
+    let item = SLComposeSheetConfigurationItem()
+    item.title = "To"
+    item.value = selectedRoom?.displayname ?? "Choose room…"
+    item.tapHandler = { [weak self] in
+      guard let self else { return }
+      let picker = RoomPickerController(appGroup: self.appGroup)
+      picker.onSelect = { self.selectRoom($0) }
+      self.pushConfigurationViewController(picker)
+    }
+    return [item]
   }
 
-  // ── App-Group read ──────────────────────────────────────────
+  private func selectRoom(_ room: RoomPick) {
+    selectedRoom = room
+    popConfigurationViewController()
+    reloadConfigurationItems()
+    validateContent()
+  }
 
-  private func loadFromAppGroup() {
-    guard let suite = UserDefaults(suiteName: appGroup) else {
-      showEmpty()
+  // ── Post ────────────────────────────────────────────────────
+
+  override func didSelectPost() {
+    guard let room = selectedRoom else {
+      extensionContext?.completeRequest(returningItems: nil)
       return
     }
-    accountId = suite.string(forKey: activeAccountKey)
-
-    guard let raw = suite.string(forKey: snapshotKey),
-          let data = raw.data(using: .utf8),
-          let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-      showEmpty()
-      return
-    }
-
-    rooms = arr.compactMap { dict in
-      guard let roomId = dict["roomId"] as? String,
-            let displayname = dict["displayname"] as? String else { return nil }
-      return RoomPick(
-        roomId: roomId,
-        displayname: displayname,
-        avatarMxc: dict["avatarMxc"] as? String,
-        avatarPath: dict["avatarPath"] as? String
-      )
-    }
-    showEmpty()
-  }
-
-  private func showEmpty() {
-    let empty = rooms.isEmpty
-    tableView.isHidden = empty
-    emptyLabel.isHidden = !empty
-    tableView.reloadData()
-  }
-
-  /// Returns the room's avatar image: the pre-rendered file at `avatarPath`
-  /// if present and loadable, otherwise a colored-initial placeholder circle.
-  private func avatarImage(for room: RoomPick) -> UIImage? {
-    if let path = room.avatarPath,
-       let image = UIImage(contentsOfFile: path) {
-      return image
-    }
-    return initialPlaceholder(for: room)
-  }
-
-  /// Renders a 72x72 circle filled with a color derived from the roomId, with
-  /// the display name's first character as a white glyph.
-  private func initialPlaceholder(for room: RoomPick) -> UIImage {
-    let size = CGSize(width: 72, height: 72)
-    let renderer = UIGraphicsImageRenderer(size: size)
-    return renderer.image { ctx in
-      let rect = CGRect(origin: .zero, size: size)
-      ctx.cgContext.setFillColor(placeholderColor(for: room.roomId).cgColor)
-      ctx.cgContext.fillEllipse(in: rect)
-      let initial = String(room.displayname.prefix(1)).uppercased()
-      let attrs: [NSAttributedString.Key: Any] = [
-        .font: UIFont.systemFont(ofSize: 30, weight: .semibold),
-        .foregroundColor: UIColor.white,
-      ]
-      let drawn = (initial as NSString).size(withAttributes: attrs)
-      let drawRect = CGRect(
-        x: (size.width - drawn.width) / 2,
-        y: (size.height - drawn.height) / 2,
-        width: drawn.width,
-        height: drawn.height
-      )
-      (initial as NSString).draw(in: drawRect, withAttributes: attrs)
-    }
-  }
-
-  /// Deterministic color from the roomId hash.
-  private func placeholderColor(for roomId: String) -> UIColor {
-    let hash = roomId.unicodeScalars.reduce(0) { $0 &+ Int($1.value) }
-    let palette: [UIColor] = [
-      .systemBlue, .systemTeal, .systemGreen, .systemOrange,
-      .systemPink, .systemPurple, .systemIndigo, .systemBrown,
-    ]
-    return palette[abs(hash) % palette.count]
-  }
-
-  // ── Actions ─────────────────────────────────────────────────
-
-  @objc private func cancel() {
-    extensionContext?.cancelRequest(withError: NSError(domain: "KoheraShare", code: 0))
-  }
-
-  @objc private func post() {
-    guard let room = selectedRoom else { return }
-    postButton.isEnabled = false
-
     stageAndEnqueue(targetRoom: room) { [weak self] in
       DispatchQueue.main.async {
         self?.extensionContext?.completeRequest(returningItems: nil)
@@ -190,10 +81,7 @@ final class ShareViewController: UIViewController {
   // ── Staging ─────────────────────────────────────────────────
 
   private func stageAndEnqueue(targetRoom: RoomPick, completion: @escaping () -> Void) {
-    guard let items = extensionContext?.inputItems as? [NSExtensionItem], !items.isEmpty else {
-      enqueueTextShare(targetRoom: targetRoom, text: nil, completion: completion)
-      return
-    }
+    let items = (extensionContext?.inputItems as? [NSExtensionItem]) ?? []
 
     let group = DispatchGroup()
     var staged: [[String: Any]] = []
@@ -203,8 +91,6 @@ final class ShareViewController: UIViewController {
       for provider in attachments {
         group.enter()
         stageAttachment(provider: provider) { entry in
-          // NSItemProvider callbacks arrive on arbitrary threads; serialize
-          // appends to avoid concurrent mutation of `staged`.
           self.stagingQueue.sync { if let entry = entry { staged.append(entry) } }
           group.leave()
         }
@@ -213,14 +99,19 @@ final class ShareViewController: UIViewController {
 
     group.notify(queue: .main) { [weak self] in
       guard let self else { completion(); return }
+      let typed = self.contentText?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
       if staged.isEmpty {
-        // No file/url/text attachment staged — fall back to the host's inline
-        // text (e.g. selected text in Notes arrives as attributedContentText,
-        // not as an NSItemProvider attachment).
-        let text = items.compactMap { $0.attributedContentText?.string }
-          .first(where: { !$0.isEmpty })
-        self.enqueueTextShare(targetRoom: targetRoom, text: text, completion: completion)
+        // No file/url attachment staged — fall back to inline text (typed
+        // message, or e.g. Notes selected text via attributedContentText).
+        let inline = typed.isEmpty
+          ? items.compactMap { $0.attributedContentText?.string }
+              .first(where: { !$0.isEmpty })
+          : typed
+        self.enqueueTextShare(targetRoom: targetRoom, text: inline, completion: completion)
       } else {
+        if !typed.isEmpty {
+          self.enqueueTextShare(targetRoom: targetRoom, text: typed) {}
+        }
         self.enqueue(staged: staged, targetRoom: targetRoom, completion: completion)
       }
     }
@@ -359,14 +250,93 @@ final class ShareViewController: UIViewController {
   }
 }
 
-// ── Table view ─────────────────────────────────────────────────
+// ── Room picker (pushed configuration VC) ──────────────────────
 
-extension ShareViewController: UITableViewDataSource, UITableViewDelegate {
-  func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+final class RoomPickerController: UITableViewController {
+  private let snapshotKey = "roomSnapshot"
+  private let appGroup: String
+  private var rooms: [ShareViewController.RoomPick] = []
+  var onSelect: ((ShareViewController.RoomPick) -> Void)?
+
+  private let emptyLabel = UILabel()
+
+  init(appGroup: String) {
+    self.appGroup = appGroup
+    super.init(style: .plain)
+  }
+
+  @available(*, unavailable)
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    title = "Choose room"
+    navigationItem.leftBarButtonItem = UIBarButtonItem(
+      barButtonSystemItem: .cancel,
+      target: self,
+      action: #selector(cancel)
+    )
+    tableView.register(UITableViewCell.self, forCellReuseIdentifier: "room")
+    tableView.rowHeight = 56
+    loadFromAppGroup()
+    sizeSheet()
+  }
+
+  private func sizeSheet() {
+    let rows = CGFloat(min(max(rooms.count, 1), 12))
+    preferredContentSize = CGSize(
+      width: UIScreen.main.bounds.width,
+      height: rows * tableView.rowHeight + 16
+    )
+  }
+
+  @objc private func cancel() {
+    navigationController?.popViewController(animated: true)
+  }
+
+  private func loadFromAppGroup() {
+    guard let suite = UserDefaults(suiteName: appGroup),
+          let raw = suite.string(forKey: snapshotKey),
+          let data = raw.data(using: .utf8),
+          let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+      showEmpty()
+      return
+    }
+    rooms = arr.compactMap { dict in
+      guard let roomId = dict["roomId"] as? String,
+            let displayname = dict["displayname"] as? String else { return nil }
+      return ShareViewController.RoomPick(
+        roomId: roomId,
+        displayname: displayname,
+        avatarMxc: dict["avatarMxc"] as? String,
+        avatarPath: dict["avatarPath"] as? String
+      )
+    }
+    showEmpty()
+  }
+
+  private func showEmpty() {
+    let empty = rooms.isEmpty
+    if empty, emptyLabel.superview == nil {
+      emptyLabel.translatesAutoresizingMaskIntoConstraints = false
+      emptyLabel.text = "Open Kohera and log in to populate the room list."
+      emptyLabel.textAlignment = .center
+      emptyLabel.textColor = .secondaryLabel
+      emptyLabel.numberOfLines = 0
+      emptyLabel.font = .preferredFont(forTextStyle: .body)
+      tableView.backgroundView = emptyLabel
+    }
+    tableView.separatorStyle = empty ? .none : .singleLine
+    tableView.reloadData()
+  }
+
+  // ── Table view ──────────────────────────────────────────────
+
+  override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
     rooms.count
   }
 
-  func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+  override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     let cell = tableView.dequeueReusableCell(withIdentifier: "room", for: indexPath)
     var content = cell.defaultContentConfiguration()
     let room = rooms[indexPath.row]
@@ -375,13 +345,52 @@ extension ShareViewController: UITableViewDataSource, UITableViewDelegate {
     content.imageProperties.maximumSize = CGSize(width: 36, height: 36)
     content.imageProperties.cornerRadius = 6
     cell.contentConfiguration = content
-    cell.accessoryType = room.roomId == selectedRoom?.roomId ? .checkmark : .none
     return cell
   }
 
-  func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-    selectedRoom = rooms[indexPath.row]
-    postButton.isEnabled = true
-    tableView.reloadRows(at: [indexPath], with: .none)
+  override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    onSelect?(rooms[indexPath.row])
+  }
+
+  // ── Avatar helpers (shared with the picker) ────────────────
+
+  private func avatarImage(for room: ShareViewController.RoomPick) -> UIImage? {
+    if let path = room.avatarPath,
+       let image = UIImage(contentsOfFile: path) {
+      return image
+    }
+    return initialPlaceholder(for: room)
+  }
+
+  private func initialPlaceholder(for room: ShareViewController.RoomPick) -> UIImage {
+    let size = CGSize(width: 72, height: 72)
+    let renderer = UIGraphicsImageRenderer(size: size)
+    return renderer.image { ctx in
+      let rect = CGRect(origin: .zero, size: size)
+      ctx.cgContext.setFillColor(placeholderColor(for: room.roomId).cgColor)
+      ctx.cgContext.fillEllipse(in: rect)
+      let initial = String(room.displayname.prefix(1)).uppercased()
+      let attrs: [NSAttributedString.Key: Any] = [
+        .font: UIFont.systemFont(ofSize: 30, weight: .semibold),
+        .foregroundColor: UIColor.white,
+      ]
+      let drawn = (initial as NSString).size(withAttributes: attrs)
+      let drawRect = CGRect(
+        x: (size.width - drawn.width) / 2,
+        y: (size.height - drawn.height) / 2,
+        width: drawn.width,
+        height: drawn.height
+      )
+      (initial as NSString).draw(in: drawRect, withAttributes: attrs)
+    }
+  }
+
+  private func placeholderColor(for roomId: String) -> UIColor {
+    let hash = roomId.unicodeScalars.reduce(0) { $0 &+ Int($1.value) }
+    let palette: [UIColor] = [
+      .systemBlue, .systemTeal, .systemGreen, .systemOrange,
+      .systemPink, .systemPurple, .systemIndigo, .systemBrown,
+    ]
+    return palette[abs(hash) % palette.count]
   }
 }
