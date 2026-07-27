@@ -37,6 +37,8 @@ final class ShareViewController: SLComposeServiceViewController {
     super.presentationAnimationDidFinish()
     placeholder = "Add a message (optional)…"
     accountId = UserDefaults(suiteName: appGroup)?.string(forKey: activeAccountKey)
+    NSLog("[Kohera] Share: presentationAnimationDidFinish, accountId=\(accountId ?? "nil")")
+    reloadConfigurationItems()
     validateContent()
   }
 
@@ -45,7 +47,10 @@ final class ShareViewController: SLComposeServiceViewController {
   }
 
   override func configurationItems() -> [Any]! {
-    guard let item = SLComposeSheetConfigurationItem() else { return [] }
+    guard let item = SLComposeSheetConfigurationItem() else {
+      NSLog("[Kohera] Share: configurationItems - item init returned nil")
+      return []
+    }
     item.title = "To"
     item.value = selectedRoom?.displayname ?? "Choose room…"
     item.tapHandler = { [weak self] in
@@ -54,6 +59,7 @@ final class ShareViewController: SLComposeServiceViewController {
       picker.onSelect = { self.selectRoom($0) }
       self.pushConfigurationViewController(picker)
     }
+    NSLog("[Kohera] Share: configurationItems returning item (selectedRoom=\(selectedRoom?.displayname ?? "nil"))")
     return [item]
   }
 
