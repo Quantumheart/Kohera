@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:dynamic_color/dynamic_color.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -101,6 +102,21 @@ class _KoheraAppState extends State<KoheraApp> {
         _displayedService = clientManager.activeService;
         _router = buildRouter(clientManager);
       });
+      // TEMP(#862 debug): one-shot readback to confirm the App-Group
+      // snapshot round-trip on iOS. Remove before merge.
+      if (kDebugMode) {
+        Timer(const Duration(seconds: 15), () {
+          if (!mounted) return;
+          unawaited(
+            ShareInStore().readRoomSnapshot().then((rooms) {
+              debugPrint(
+                '[Kohera] (debug) roomSnapshot readback: ${rooms.length} rooms'
+                '${rooms.isEmpty ? '' : ", first=${rooms.first.roomId}"}',
+              );
+            }),
+          );
+        });
+      }
     } catch (e) {
       debugPrint('[Kohera] Initialization failed: $e');
       if (!mounted) return;

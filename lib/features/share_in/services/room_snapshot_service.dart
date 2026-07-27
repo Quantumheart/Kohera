@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:kohera/features/share_in/models/room_snapshot.dart';
 import 'package:kohera/features/share_in/services/share_in_store.dart';
 import 'package:matrix/matrix.dart';
@@ -41,7 +42,13 @@ class RoomSnapshotService {
 
   Future<void> _flushSnapshots() async {
     if (_disposed) return;
-    await _sink.writeRoomSnapshot(_buildSnapshots());
+    final snapshots = _buildSnapshots();
+    await _sink.writeRoomSnapshot(snapshots);
+    if (kDebugMode) {
+      debugPrint(
+        '[Kohera] (debug) roomSnapshot wrote ${snapshots.length} rooms',
+      );
+    }
   }
 
   /// Exposed for tests: builds the snapshot projection from the client's
