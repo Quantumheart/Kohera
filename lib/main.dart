@@ -29,6 +29,7 @@ import 'package:kohera/features/chat/services/opengraph_service.dart';
 import 'package:kohera/features/e2ee/widgets/verification_request_listener.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/features/notifications/widgets/notification_lifecycle_observer.dart';
+import 'package:kohera/features/share_in/services/avatar_cache_service.dart';
 import 'package:kohera/features/share_in/services/room_snapshot_service.dart';
 import 'package:kohera/features/share_in/services/share_in_store.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
@@ -62,11 +63,37 @@ class _KoheraAppState extends State<KoheraApp> {
   ThemeData? _splashDark;
   final _ringtoneService = RingtoneService();
   RoomSnapshotService? _roomSnapshotService;
+  AvatarCacheService? _avatarCacheService;
 
   @override
   void initState() {
     super.initState();
     unawaited(_init());
+  }
+
+  Future<String?> _getAppGroupPath() async {
+    try {
+      return await const MethodChannel('kohera/apns')
+          .invokeMethod<String>('getAppGroupPath');
+    } on PlatformException catch (e) {
+      debugPrint('[Kohera] App Group path lookup failed: $e');
+      return null;
+    }
+  }
+
+  void _bindShareIn(MatrixService service) {
+    _roomSnapshotService?.dispose();
+    unawaited(_avatarCacheService?.dispose());
+    _avatarCacheService = AvatarCacheService(
+      mediaResolver: service.mediaResolver,
+      getAppGroupPath: _getAppGroupPath,
+    );
+    _roomSnapshotService = RoomSnapshotService(
+      client: service.client,
+      sink: ShareInStore(),
+      avatarCache: _avatarCacheService,
+    )..start();
+    unawaited(ShareInStore().writeActiveAccountId(service.clientName));
   }
 
   Future<void> _init() async {
@@ -102,14 +129,7 @@ class _KoheraAppState extends State<KoheraApp> {
         _displayedService = clientManager.activeService;
         _router = buildRouter(clientManager);
       });
-      _roomSnapshotService?.dispose();
-      _roomSnapshotService = RoomSnapshotService(
-        client: clientManager.activeService.client,
-        sink: ShareInStore(),
-      )..start();
-      unawaited(ShareInStore().writeActiveAccountId(
-        clientManager.activeService.clientName,
-      ));
+      _bindShareIn(clientManager.activeService);
     } catch (e) {
       debugPrint('[Kohera] Initialization failed: $e');
       if (!mounted) return;
@@ -145,12 +165,7 @@ class _KoheraAppState extends State<KoheraApp> {
       if (!mounted) return;
       final current = _clientManager?.activeService;
       if (current == null || identical(current, _displayedService)) return;
-      _roomSnapshotService?.dispose();
-      _roomSnapshotService = RoomSnapshotService(
-        client: current.client,
-        sink: ShareInStore(),
-      )..start();
-      unawaited(ShareInStore().writeActiveAccountId(current.clientName));
+      _bindShareIn(current);
       setState(() => _displayedService = current);
     });
   }
@@ -160,6 +175,7 @@ class _KoheraAppState extends State<KoheraApp> {
     _clientManager?.removeListener(_onActiveServiceChanged);
     _router?.dispose();
     _roomSnapshotService?.dispose();
+    unawaited(_avatarCacheService?.dispose());
     unawaited(_ringtoneService.dispose());
     super.dispose();
   }

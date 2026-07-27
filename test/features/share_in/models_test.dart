@@ -111,9 +111,24 @@ void main() {
 
       final map = jsonDecode(snap.encode()) as Map<String, dynamic>;
       expect(map.containsKey('avatarMxc'), isFalse);
+      expect(map.containsKey('avatarPath'), isFalse);
 
       final decoded = RoomSnapshot.decode(snap.encode());
       expect(decoded.avatarMxc, isNull);
+      expect(decoded.avatarPath, isNull);
+    });
+
+    test('round-trips with avatarPath', () {
+      const snap = RoomSnapshot(
+        roomId: '!room:example.com',
+        displayname: 'Project',
+        avatarMxc: 'mxc://srv/abc',
+        avatarPath: '/var/group/avatars/!room.png',
+      );
+
+      final decoded = RoomSnapshot.decode(snap.encode());
+      expect(decoded.avatarMxc, 'mxc://srv/abc');
+      expect(decoded.avatarPath, '/var/group/avatars/!room.png');
     });
 
     test('equality is by roomId only', () {
