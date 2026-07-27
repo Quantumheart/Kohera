@@ -32,20 +32,19 @@ class RoomSnapshotService {
 
   void start() {
     if (_sub != null) return;
+    if (kDebugMode) debugPrint('[Kohera] (debug) RoomSnapshotService.start()');
     _sub = _client.onSync.stream.listen((_) => _scheduleFlush());
-    // Write immediately at launch so the store is populated even when the
-    // initial sync already completed before this listener attached (the
-    // common case for an already-logged-in client). Subsequent updates ride
-    // the throttled sync listener.
     unawaited(_initialFlush());
   }
 
   Future<void> _initialFlush() async {
+    if (kDebugMode) debugPrint('[Kohera] (debug) RoomSnapshot awaiting roomsLoading');
     try {
       await _client.roomsLoading;
     } catch (e) {
       debugPrint('[Kohera] RoomSnapshot roomsLoading wait failed: $e');
     }
+    if (kDebugMode) debugPrint('[Kohera] (debug) RoomSnapshot roomsLoading done, disposed=$_disposed');
     if (_disposed) return;
     await _flushSnapshots();
   }
@@ -56,6 +55,7 @@ class RoomSnapshotService {
   /// flushes instead of resetting a debounce forever.
   void _scheduleFlush() {
     if (_disposed || _flush != null) return;
+    if (kDebugMode) debugPrint('[Kohera] (debug) RoomSnapshot sync tick, scheduling flush');
     _flush = Timer(_flushInterval, () => unawaited(_flushSnapshots()));
   }
 
