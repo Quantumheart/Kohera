@@ -45,7 +45,7 @@ final class ShareViewController: SLComposeServiceViewController {
   }
 
   override func configurationItems() -> [Any]! {
-    let item = SLComposeSheetConfigurationItem()
+    guard let item = SLComposeSheetConfigurationItem() else { return [] }
     item.title = "To"
     item.value = selectedRoom?.displayname ?? "Choose room…"
     item.tapHandler = { [weak self] in
