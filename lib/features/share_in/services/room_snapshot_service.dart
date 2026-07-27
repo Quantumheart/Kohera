@@ -31,7 +31,23 @@ class RoomSnapshotService {
   bool _disposed = false;
 
   void start() {
-    _sub ??= _client.onSync.stream.listen((_) => _scheduleFlush());
+    if (_sub != null) return;
+    _sub = _client.onSync.stream.listen((_) => _scheduleFlush());
+    // Write immediately at launch so the store is populated even when the
+    // initial sync already completed before this listener attached (the
+    // common case for an already-logged-in client). Subsequent updates ride
+    // the throttled sync listener.
+    unawaited(_initialFlush());
+  }
+
+  Future<void> _initialFlush() async {
+    try {
+      await _client.roomsLoading;
+    } catch (e) {
+      debugPrint('[Kohera] RoomSnapshot roomsLoading wait failed: $e');
+    }
+    if (_disposed) return;
+    await _flushSnapshots();
   }
 
   /// Trailing throttle: the first sync after a flush schedules a write

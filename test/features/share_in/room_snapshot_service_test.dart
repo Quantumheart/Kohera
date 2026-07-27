@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/share_in/models/room_snapshot.dart';
@@ -46,6 +48,9 @@ void main() {
     syncController = CachedStreamController<SyncUpdate>();
     sink = _RecordingSink();
     when(client.onSync).thenReturn(syncController);
+    // Keep the initial launch flush pending so sync-driven tests stay
+    // isolated; tests that exercise the initial flush override this stub.
+    when(client.roomsLoading).thenAnswer((_) => Completer<void>().future);
   });
 
   RoomSnapshotService startService({Duration flushInterval = const Duration(seconds: 10)}) {
@@ -169,6 +174,28 @@ void main() {
       async.flushMicrotasks();
 
       expect(sink.writes, isEmpty);
+    });
+  });
+
+  test('writes an initial snapshot at start once rooms are loaded', () {
+    final rooms = [
+      _room(id: '!a:s', displayname: 'A', membership: Membership.join),
+    ];
+    when(client.rooms).thenReturn(rooms);
+
+    fakeAsync((async) {
+      final loaded = Completer<void>();
+      when(client.roomsLoading).thenAnswer((_) => loaded.future);
+      final service = startService();
+      expect(sink.writes, isEmpty);
+
+      loaded.complete();
+      async.flushMicrotasks();
+
+      expect(sink.writes, hasLength(1));
+      expect(sink.writes.single.single.roomId, '!a:s');
+
+      service.dispose();
     });
   });
 }
