@@ -62,6 +62,7 @@ class _KoheraAppState extends State<KoheraApp> {
   ThemeData? _splashLight;
   ThemeData? _splashDark;
   final _ringtoneService = RingtoneService();
+  RoomSnapshotService? _roomSnapshotService;
 
   @override
   void initState() {
@@ -102,6 +103,11 @@ class _KoheraAppState extends State<KoheraApp> {
         _displayedService = clientManager.activeService;
         _router = buildRouter(clientManager);
       });
+      _roomSnapshotService?.dispose();
+      _roomSnapshotService = RoomSnapshotService(
+        client: clientManager.activeService.client,
+        sink: ShareInStore(),
+      )..start();
       // TEMP(#862 debug): one-shot readback to confirm the App-Group
       // snapshot round-trip on iOS. Remove before merge.
       if (kDebugMode) {
@@ -152,6 +158,11 @@ class _KoheraAppState extends State<KoheraApp> {
       if (!mounted) return;
       final current = _clientManager?.activeService;
       if (current == null || identical(current, _displayedService)) return;
+      _roomSnapshotService?.dispose();
+      _roomSnapshotService = RoomSnapshotService(
+        client: current.client,
+        sink: ShareInStore(),
+      )..start();
       setState(() => _displayedService = current);
     });
   }
@@ -160,6 +171,7 @@ class _KoheraAppState extends State<KoheraApp> {
   void dispose() {
     _clientManager?.removeListener(_onActiveServiceChanged);
     _router?.dispose();
+    _roomSnapshotService?.dispose();
     unawaited(_ringtoneService.dispose());
     super.dispose();
   }
@@ -311,20 +323,6 @@ class _KoheraAppState extends State<KoheraApp> {
                       }
                       return previous;
                     },
-                  ),
-                  ProxyProvider<MatrixService, RoomSnapshotService>(
-                    create: (ctx) => RoomSnapshotService(
-                      client: ctx.read<MatrixService>().client,
-                      sink: ShareInStore(),
-                    )..start(),
-                    update: (_, matrix, previous) {
-                      previous?.dispose();
-                      return RoomSnapshotService(
-                        client: matrix.client,
-                        sink: ShareInStore(),
-                      )..start();
-                    },
-                    dispose: (_, service) => service.dispose(),
                   ),
                 ],
                 child: ChangeNotifierProvider(
