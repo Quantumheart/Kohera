@@ -48,11 +48,11 @@ void main() {
     when(client.onSync).thenReturn(syncController);
   });
 
-  RoomSnapshotService startService({Duration debounce = const Duration(seconds: 10)}) {
+  RoomSnapshotService startService({Duration flushInterval = const Duration(seconds: 10)}) {
     return RoomSnapshotService(
       client: client,
       sink: sink,
-      debounce: debounce,
+      flushInterval: flushInterval,
     )..start();
   }
 
@@ -108,7 +108,7 @@ void main() {
     });
   });
 
-  test('throttles: multiple syncs within debounce produce a single write', () {
+  test('throttles: continuous syncs within the interval still flush once', () {
     final rooms = [
       _room(id: '!a:s', displayname: 'A', membership: Membership.join),
     ];
@@ -116,10 +116,13 @@ void main() {
 
     fakeAsync((async) {
       final service = startService();
-      for (var i = 0; i < 5; i++) {
-        syncController.add(SyncUpdate(nextBatch: ''));
-      }
-      async.elapse(const Duration(seconds: 10));
+      // Long-polling-like cadence: events spread across the window.
+      syncController.add(SyncUpdate(nextBatch: ''));
+      async.elapse(const Duration(seconds: 3));
+      syncController.add(SyncUpdate(nextBatch: ''));
+      async.elapse(const Duration(seconds: 3));
+      syncController.add(SyncUpdate(nextBatch: ''));
+      async.elapse(const Duration(seconds: 4));
       async.flushMicrotasks();
 
       expect(sink.writes, hasLength(1));
