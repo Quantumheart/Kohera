@@ -17,14 +17,14 @@ class RoomSnapshotService {
   RoomSnapshotService({
     required Client client,
     required RoomSnapshotSink sink,
-    Duration debounce = const Duration(seconds: 10),
+    Duration flushInterval = const Duration(seconds: 10),
   })  : _client = client,
         _sink = sink,
-        _debounce = debounce;
+        _flushInterval = flushInterval;
 
   final Client _client;
   final RoomSnapshotSink _sink;
-  final Duration _debounce;
+  final Duration _flushInterval;
 
   StreamSubscription<SyncUpdate>? _sub;
   Timer? _flush;
@@ -34,13 +34,17 @@ class RoomSnapshotService {
     _sub ??= _client.onSync.stream.listen((_) => _scheduleFlush());
   }
 
+  /// Trailing throttle: the first sync after a flush schedules a write
+  /// after [_flushInterval]; syncs within that window are coalesced so a
+  /// continuously long-polling client (events every few seconds) still
+  /// flushes instead of resetting a debounce forever.
   void _scheduleFlush() {
-    if (_disposed) return;
-    _flush?.cancel();
-    _flush = Timer(_debounce, () => unawaited(_flushSnapshots()));
+    if (_disposed || _flush != null) return;
+    _flush = Timer(_flushInterval, () => unawaited(_flushSnapshots()));
   }
 
   Future<void> _flushSnapshots() async {
+    _flush = null;
     if (_disposed) return;
     final snapshots = _buildSnapshots();
     await _sink.writeRoomSnapshot(snapshots);
