@@ -11,6 +11,11 @@ const String kRoomSnapshotKey = 'roomSnapshot';
 /// App-Group shared-defaults key holding the JSON array of [PendingShare].
 const String kPendingSharesKey = 'pendingShares';
 
+/// App-Group shared-defaults key holding the active account's clientName
+/// (the `MatrixService.clientName` the Share Extension should attribute
+/// staged shares to).
+const String kActiveAccountIdKey = 'activeAccountId';
+
 /// Write-only target for [RoomSnapshotService] so it can be tested without a
 /// real platform channel.
 abstract class RoomSnapshotSink {
@@ -55,6 +60,21 @@ class ShareInStore implements RoomSnapshotSink {
 
   Future<void> clearAllPendingShares() async {
     await _invokeVoid('clearAllPendingShares', null);
+  }
+
+  Future<String?> readActiveAccountId() async {
+    try {
+      return await _channel.invokeMethod<String>('readActiveAccountId');
+    } on PlatformException catch (e) {
+      debugPrint('[Kohera] ShareInStore readActiveAccountId unavailable: $e');
+      return null;
+    } on MissingPluginException {
+      return null;
+    }
+  }
+
+  Future<void> writeActiveAccountId(String accountId) async {
+    await _invokeVoid('writeActiveAccountId', accountId);
   }
 
   Future<T?> _invokeJson<T>(String method) async {

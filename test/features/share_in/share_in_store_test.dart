@@ -142,6 +142,31 @@ void main() {
     });
   });
 
+  group('ShareInStore.activeAccountId', () {
+    test('reads the id returned by native', () async {
+      setHandler((call) async {
+        if (call.method == 'readActiveAccountId') return 'default';
+        return null;
+      });
+      expect(await store.readActiveAccountId(), 'default');
+    });
+
+    test('returns null when native returns null', () async {
+      setHandler((call) async => null);
+      expect(await store.readActiveAccountId(), isNull);
+    });
+
+    test('write invokes with id argument', () async {
+      setHandler((call) async {
+        calls.add(MapEntry(call.method, call.arguments));
+        return null;
+      });
+      await store.writeActiveAccountId('work');
+      expect(calls.single.key, 'writeActiveAccountId');
+      expect(calls.single.value, 'work');
+    });
+  });
+
   group('ShareInStore platform-missing degradation', () {
     test('read returns empty when no native handler registered', () async {
       // No mock handler set → MissingPluginException path.

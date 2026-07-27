@@ -1,0 +1,331 @@
+import UIKit
+import MobileCoreServices
+import UniformTypeIdentifiers
+
+/// Share Extension principal class.
+///
+/// Shows an in-sheet room picker populated from the App-Group `roomSnapshot`
+/// store the main app writes on sync. On Post, copies each attachment into the
+/// App-Group container via NSFileCoordinator and appends a `pendingShares`
+/// entry (matching the Dart `PendingShare` schema) so the main app can drain
+/// it and perform the real Matrix send. The Matrix SDK never runs here.
+final class ShareViewController: UIViewController {
+  private let appGroup = "group.io.github.quantumheart.kohera"
+  private let snapshotKey = "roomSnapshot"
+  private let pendingKey = "pendingShares"
+  private let activeAccountKey = "activeAccountId"
+
+  private var rooms: [RoomPick] = []
+  private var accountId: String?
+  private var selectedRoom: RoomPick?
+
+  private let tableView = UITableView(frame: .zero, style: .plain)
+  private let emptyLabel = UILabel()
+  private let postButton = UIBarButtonItem(
+    title: "Post",
+    style: .done,
+    target: nil,
+    action: nil
+  )
+
+  struct RoomPick {
+    let roomId: String
+    let displayname: String
+    let avatarMxc: String?
+  }
+
+  // ── Lifecycle ───────────────────────────────────────────────
+
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    title = "Share to Kohera"
+    navigationItem.leftBarButtonItem = UIBarButtonItem(
+      barButtonSystemItem: .cancel,
+      target: self,
+      action: #selector(cancel)
+    )
+    postButton.isEnabled = false
+    postButton.target = self
+    postButton.action = #selector(post)
+    navigationItem.rightBarButtonItem = postButton
+
+    view.backgroundColor = .systemBackground
+    configureEmptyLabel()
+    configureTableView()
+    loadFromAppGroup()
+  }
+
+  private func configureEmptyLabel() {
+    emptyLabel.translatesAutoresizingMaskIntoConstraints = false
+    emptyLabel.text = "Open Kohera and log in to populate the room list."
+    emptyLabel.textAlignment = .center
+    emptyLabel.textColor = .secondaryLabel
+    emptyLabel.numberOfLines = 0
+    emptyLabel.font = .preferredFont(forTextStyle: .body)
+    view.addSubview(emptyLabel)
+    NSLayoutConstraint.activate([
+      emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+      emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+      emptyLabel.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 24),
+      emptyLabel.trailingAnchor.constraint(lessThanOrEqualTo: view.trailingAnchor, constant: -24),
+    ])
+  }
+
+  private func configureTableView() {
+    tableView.translatesAutoresizingMaskIntoConstraints = false
+    tableView.dataSource = self
+    tableView.delegate = self
+    tableView.register(UITableViewCell.self, forCellReuseIdentifier: "room")
+    view.addSubview(tableView)
+    NSLayoutConstraint.activate([
+      tableView.topAnchor.constraint(equalTo: view.topAnchor),
+      tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+      tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+      tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+    ])
+  }
+
+  // ── App-Group read ──────────────────────────────────────────
+
+  private func loadFromAppGroup() {
+    guard let suite = UserDefaults(suiteName: appGroup) else {
+      showEmpty()
+      return
+    }
+    accountId = suite.string(forKey: activeAccountKey)
+
+    guard let raw = suite.string(forKey: snapshotKey),
+          let data = raw.data(using: .utf8),
+          let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+      showEmpty()
+      return
+    }
+
+    rooms = arr.compactMap { dict in
+      guard let roomId = dict["roomId"] as? String,
+            let displayname = dict["displayname"] as? String else { return nil }
+      return RoomPick(
+        roomId: roomId,
+        displayname: displayname,
+        avatarMxc: dict["avatarMxc"] as? String
+      )
+    }
+    showEmpty()
+  }
+
+  private func showEmpty() {
+    let empty = rooms.isEmpty
+    tableView.isHidden = empty
+    emptyLabel.isHidden = !empty
+    tableView.reloadData()
+  }
+
+  // ── Actions ─────────────────────────────────────────────────
+
+  @objc private func cancel() {
+    extensionContext?.cancelRequest(withError: NSError(domain: "KoheraShare", code: 0))
+  }
+
+  @objc private func post() {
+    guard let room = selectedRoom else { return }
+    postButton.isEnabled = false
+
+    stageAndEnqueue(targetRoom: room) { [weak self] in
+      DispatchQueue.main.async {
+        self?.extensionContext?.completeRequest(returningItems: nil)
+      }
+    }
+  }
+
+  // ── Staging ─────────────────────────────────────────────────
+
+  private func stageAndEnqueue(targetRoom: RoomPick, completion: @escaping () -> Void) {
+    guard let items = extensionContext?.inputItems as? [NSExtensionItem], !items.isEmpty else {
+      enqueueTextShare(targetRoom: targetRoom, text: nil, completion: completion)
+      return
+    }
+
+    let group = DispatchGroup()
+    var staged: [[String: Any]] = []
+
+    for item in items {
+      guard let attachments = item.attachments else { continue }
+      for provider in attachments {
+        group.enter()
+        stageAttachment(provider: provider) { entry in
+          if let entry = entry { staged.append(entry) }
+          group.leave()
+        }
+      }
+    }
+
+    group.notify(queue: .main) { [weak self] in
+      guard let self else { completion(); return }
+      if staged.isEmpty {
+        // Fallback: treat the share as plain text if we could not stage a file.
+        self.enqueueTextShare(targetRoom: targetRoom, text: nil, completion: completion)
+      } else {
+        self.enqueue(staged: staged, targetRoom: targetRoom, completion: completion)
+      }
+    }
+  }
+
+  private func stageAttachment(
+    provider: NSItemProvider,
+    done: @escaping ([String: Any]?) -> Void
+  ) {
+    // Text payload → no file staging; carry the string directly.
+    if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
+      provider.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { item, _ in
+        let text = (item as? String) ?? (item as? URL)?.absoluteString
+        done(text.map { ["kind": "text", "text": $0] })
+      }
+      return
+    }
+
+    // URL payload → carry the URL string as a text share.
+    if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
+      provider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { item, _ in
+        let text = (item as? URL)?.absoluteString ?? (item as? String)
+        done(text.map { ["kind": "text", "text": $0] })
+      }
+      return
+    }
+
+    // File-backed payload → copy into the App Group container via
+    // NSFileCoordinator (required for Photos / iCloud provider items).
+    let typeIdentifier = provider.registeredTypeIdentifiers.first ?? UTType.data.identifier
+    provider.loadFileRepresentation(forTypeIdentifier: typeIdentifier) { [weak self] tempURL, error in
+      guard let self, let tempURL = tempURL, error == nil else { done(nil); return }
+      self.copyIntoAppGroup(tempURL: tempURL, provider: provider) { entry in
+        done(entry)
+      }
+    }
+  }
+
+  private func copyIntoAppGroup(
+    tempURL: URL,
+    provider: NSItemProvider,
+    done: @escaping ([String: Any]?) -> Void
+  ) {
+    guard let container = FileManager.default.containerURL(
+      forSecurityApplicationGroupIdentifier: appGroup
+    ) else { done(nil); return }
+
+    let dir = container.appendingPathComponent("share_in", isDirectory: true)
+    try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+
+    let originalName = provider.suggestedName ?? tempURL.lastPathComponent
+    let stagedName = "\(UUID().uuidString)_\(originalName)"
+    let dest = dir.appendingPathComponent(stagedName)
+
+    let coordinator = NSFileCoordinator()
+    coordinator.coordinate(readingItemAt: tempURL, options: [.withoutChanges], error: nil) { src in
+      do {
+        try FileManager.default.copyItem(at: src, to: dest)
+        let mime = self.mime(for: tempURL, provider: provider)
+        done([
+          "kind": "file",
+          "filePath": dest.path,
+          "mimeType": mime,
+          "originalFileName": originalName,
+        ])
+      } catch {
+        NSLog("[Kohera] Share staging copy failed: \(error)")
+        done(nil)
+      }
+    }
+  }
+
+  private func mime(for url: URL, provider: NSItemProvider) -> String {
+    if let type = UTType(filenameExtension: url.pathExtension),
+       let mime = type.preferredMIMEType {
+      return mime
+    }
+    if let id = provider.registeredTypeIdentifiers.first,
+       let type = UTType(id), let mime = type.preferredMIMEType {
+      return mime
+    }
+    return "application/octet-stream"
+  }
+
+  // ── Enqueue ─────────────────────────────────────────────────
+
+  private func enqueueTextShare(
+    targetRoom: RoomPick,
+    text: String?,
+    completion: @escaping () -> Void
+  ) {
+    guard let text = text, !text.isEmpty else { completion(); return }
+    let entry: [String: Any] = [
+      "id": UUID().uuidString,
+      "targetRoomId": targetRoom.roomId,
+      "accountId": accountId ?? "",
+      "kind": "text",
+      "text": text,
+      "createdAt": Int(Date().timeIntervalSince1970 * 1000),
+    ]
+    appendPending(entry: entry, completion: completion)
+  }
+
+  private func enqueue(
+    staged: [[String: Any]],
+    targetRoom: RoomPick,
+    completion: @escaping () -> Void
+  ) {
+    let createdAt = Int(Date().timeIntervalSince1970 * 1000)
+    let group = DispatchGroup()
+    for entry in staged {
+      group.enter()
+      var full: [String: Any] = [
+        "id": UUID().uuidString,
+        "targetRoomId": targetRoom.roomId,
+        "accountId": accountId ?? "",
+        "createdAt": createdAt,
+      ]
+      for (k, v) in entry { full[k] = v }
+      appendPending(entry: full) { group.leave() }
+    }
+    group.notify(queue: .main) { completion() }
+  }
+
+  private func appendPending(entry: [String: Any], completion: @escaping () -> Void) {
+    guard let suite = UserDefaults(suiteName: appGroup) else { completion(); return }
+    var arr: [[String: Any]] = []
+    if let raw = suite.string(forKey: pendingKey),
+       let data = raw.data(using: .utf8),
+       let existing = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+      arr = existing
+    }
+    arr.append(entry)
+    if let back = try? JSONSerialization.data(withJSONObject: arr),
+       let s = String(data: back, encoding: .utf8) {
+      suite.set(s, forKey: pendingKey)
+      NSLog("[Kohera] Share enqueued for room \(entry["targetRoomId"] ?? "?")")
+    }
+    completion()
+  }
+}
+
+// ── Table view ─────────────────────────────────────────────────
+
+extension ShareViewController: UITableViewDataSource, UITableViewDelegate {
+  func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+    rooms.count
+  }
+
+  func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+    let cell = tableView.dequeueReusableCell(withIdentifier: "room", for: indexPath)
+    var content = cell.defaultContentConfiguration()
+    content.text = rooms[indexPath.row].displayname
+    cell.contentConfiguration = content
+    cell.accessoryType = rooms[indexPath.row].roomId == selectedRoom?.roomId ? .checkmark : .none
+    return cell
+  }
+
+  func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+    selectedRoom = rooms[indexPath.row]
+    postButton.isEnabled = true
+    tableView.reloadRows(at: [indexPath], with: .none)
+  }
+}
