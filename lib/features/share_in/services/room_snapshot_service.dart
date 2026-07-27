@@ -32,19 +32,16 @@ class RoomSnapshotService {
 
   void start() {
     if (_sub != null) return;
-    if (kDebugMode) debugPrint('[Kohera] (debug) RoomSnapshotService.start()');
     _sub = _client.onSync.stream.listen((_) => _scheduleFlush());
     unawaited(_initialFlush());
   }
 
   Future<void> _initialFlush() async {
-    if (kDebugMode) debugPrint('[Kohera] (debug) RoomSnapshot awaiting roomsLoading');
     try {
       await _client.roomsLoading;
     } catch (e) {
       debugPrint('[Kohera] RoomSnapshot roomsLoading wait failed: $e');
     }
-    if (kDebugMode) debugPrint('[Kohera] (debug) RoomSnapshot roomsLoading done, disposed=$_disposed');
     if (_disposed) return;
     await _flushSnapshots();
   }
@@ -55,7 +52,6 @@ class RoomSnapshotService {
   /// flushes instead of resetting a debounce forever.
   void _scheduleFlush() {
     if (_disposed || _flush != null) return;
-    if (kDebugMode) debugPrint('[Kohera] (debug) RoomSnapshot sync tick, scheduling flush');
     _flush = Timer(_flushInterval, () => unawaited(_flushSnapshots()));
   }
 
@@ -64,11 +60,6 @@ class RoomSnapshotService {
     if (_disposed) return;
     final snapshots = _buildSnapshots();
     await _sink.writeRoomSnapshot(snapshots);
-    if (kDebugMode) {
-      debugPrint(
-        '[Kohera] (debug) roomSnapshot wrote ${snapshots.length} rooms',
-      );
-    }
   }
 
   /// Exposed for tests: builds the snapshot projection from the client's
