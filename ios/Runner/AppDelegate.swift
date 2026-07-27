@@ -241,6 +241,43 @@ import UserNotifications
         result(FlutterMethodNotImplemented)
       }
     }
+
+    // ── Share-in (App-Group staged shares) ───────────────────────
+    // The iOS Share Extension writes `pendingShares` and reads
+    // `roomSnapshot` from the App-Group `UserDefaults` suite. The main
+    // app does the reverse. The Matrix SDK stays out of the extension.
+    let shareChannel = FlutterMethodChannel(name: "kohera/share", binaryMessenger: messenger)
+    shareChannel.setMethodCallHandler { (call, result) in
+      let suite = UserDefaults(suiteName: "group.io.github.quantumheart.kohera")
+      switch call.method {
+      case "readRoomSnapshot":
+        result(suite?.string(forKey: "roomSnapshot"))
+      case "writeRoomSnapshot":
+        if let raw = call.arguments as? String {
+          suite?.set(raw, forKey: "roomSnapshot")
+        }
+        result(nil)
+      case "readPendingShares":
+        result(suite?.string(forKey: "pendingShares"))
+      case "clearPendingShare":
+        if let id = call.arguments as? String,
+           let raw = suite?.string(forKey: "pendingShares"),
+           let data = raw.data(using: .utf8),
+           let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
+          let filtered = arr.filter { ($0["id"] as? String) != id }
+          if let back = try? JSONSerialization.data(withJSONObject: filtered),
+             let s = String(data: back, encoding: .utf8) {
+            suite?.set(s, forKey: "pendingShares")
+          }
+        }
+        result(nil)
+      case "clearAllPendingShares":
+        suite?.removeObject(forKey: "pendingShares")
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
   }
 
   // ── PushKit delegate ────────────────────────────────────────
