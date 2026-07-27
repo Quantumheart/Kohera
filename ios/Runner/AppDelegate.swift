@@ -274,6 +274,13 @@ import UserNotifications
       case "clearAllPendingShares":
         suite?.removeObject(forKey: "pendingShares")
         result(nil)
+      case "readActiveAccountId":
+        result(suite?.string(forKey: "activeAccountId"))
+      case "writeActiveAccountId":
+        if let id = call.arguments as? String {
+          suite?.set(id, forKey: "activeAccountId")
+        }
+        result(nil)
       default:
         result(FlutterMethodNotImplemented)
       }

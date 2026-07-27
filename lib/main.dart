@@ -107,6 +107,9 @@ class _KoheraAppState extends State<KoheraApp> {
         client: clientManager.activeService.client,
         sink: ShareInStore(),
       )..start();
+      unawaited(ShareInStore().writeActiveAccountId(
+        clientManager.activeService.clientName,
+      ));
     } catch (e) {
       debugPrint('[Kohera] Initialization failed: $e');
       if (!mounted) return;
@@ -147,6 +150,7 @@ class _KoheraAppState extends State<KoheraApp> {
         client: current.client,
         sink: ShareInStore(),
       )..start();
+      unawaited(ShareInStore().writeActiveAccountId(current.clientName));
       setState(() => _displayedService = current);
     });
   }
