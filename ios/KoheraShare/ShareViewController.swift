@@ -35,6 +35,7 @@ final class ShareViewController: UIViewController {
     let roomId: String
     let displayname: String
     let avatarMxc: String?
+    let avatarPath: String?
   }
 
   // ── Lifecycle ───────────────────────────────────────────────
@@ -110,7 +111,8 @@ final class ShareViewController: UIViewController {
       return RoomPick(
         roomId: roomId,
         displayname: displayname,
-        avatarMxc: dict["avatarMxc"] as? String
+        avatarMxc: dict["avatarMxc"] as? String,
+        avatarPath: dict["avatarPath"] as? String
       )
     }
     showEmpty()
@@ -121,6 +123,51 @@ final class ShareViewController: UIViewController {
     tableView.isHidden = empty
     emptyLabel.isHidden = !empty
     tableView.reloadData()
+  }
+
+  /// Returns the room's avatar image: the pre-rendered file at `avatarPath`
+  /// if present and loadable, otherwise a colored-initial placeholder circle.
+  private func avatarImage(for room: RoomPick) -> UIImage? {
+    if let path = room.avatarPath,
+       let image = UIImage(contentsOfFile: path) {
+      return image
+    }
+    return initialPlaceholder(for: room)
+  }
+
+  /// Renders a 72x72 circle filled with a color derived from the roomId, with
+  /// the display name's first character as a white glyph.
+  private func initialPlaceholder(for room: RoomPick) -> UIImage {
+    let size = CGSize(width: 72, height: 72)
+    let renderer = UIGraphicsImageRenderer(size: size)
+    return renderer.image { ctx in
+      let rect = CGRect(origin: .zero, size: size)
+      ctx.cgContext.setFillColor(placeholderColor(for: room.roomId).cgColor)
+      ctx.cgContext.fillEllipse(in: rect)
+      let initial = String(room.displayname.prefix(1)).uppercased()
+      let attrs: [NSAttributedString.Key: Any] = [
+        .font: UIFont.systemFont(ofSize: 30, weight: .semibold),
+        .foregroundColor: UIColor.white,
+      ]
+      let drawn = (initial as NSString).size(withAttributes: attrs)
+      let drawRect = CGRect(
+        x: (size.width - drawn.width) / 2,
+        y: (size.height - drawn.height) / 2,
+        width: drawn.width,
+        height: drawn.height
+      )
+      (initial as NSString).draw(in: drawRect, withAttributes: attrs)
+    }
+  }
+
+  /// Deterministic color from the roomId hash.
+  private func placeholderColor(for roomId: String) -> UIColor {
+    let hash = roomId.unicodeScalars.reduce(0) { $0 &+ Int($1.value) }
+    let palette: [UIColor] = [
+      .systemBlue, .systemTeal, .systemGreen, .systemOrange,
+      .systemPink, .systemPurple, .systemIndigo, .systemBrown,
+    ]
+    return palette[abs(hash) % palette.count]
   }
 
   // ── Actions ─────────────────────────────────────────────────
@@ -322,9 +369,13 @@ extension ShareViewController: UITableViewDataSource, UITableViewDelegate {
   func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
     let cell = tableView.dequeueReusableCell(withIdentifier: "room", for: indexPath)
     var content = cell.defaultContentConfiguration()
-    content.text = rooms[indexPath.row].displayname
+    let room = rooms[indexPath.row]
+    content.text = room.displayname
+    content.image = avatarImage(for: room)
+    content.imageProperties.maximumSize = CGSize(width: 36, height: 36)
+    content.imageProperties.cornerRadius = 6
     cell.contentConfiguration = content
-    cell.accessoryType = rooms[indexPath.row].roomId == selectedRoom?.roomId ? .checkmark : .none
+    cell.accessoryType = room.roomId == selectedRoom?.roomId ? .checkmark : .none
     return cell
   }
 
