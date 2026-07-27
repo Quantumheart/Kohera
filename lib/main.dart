@@ -29,6 +29,8 @@ import 'package:kohera/features/chat/services/opengraph_service.dart';
 import 'package:kohera/features/e2ee/widgets/verification_request_listener.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/features/notifications/widgets/notification_lifecycle_observer.dart';
+import 'package:kohera/features/share_in/services/room_snapshot_service.dart';
+import 'package:kohera/features/share_in/services/share_in_store.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
@@ -293,6 +295,20 @@ class _KoheraAppState extends State<KoheraApp> {
                       }
                       return previous;
                     },
+                  ),
+                  ProxyProvider<MatrixService, RoomSnapshotService>(
+                    create: (ctx) => RoomSnapshotService(
+                      client: ctx.read<MatrixService>().client,
+                      sink: ShareInStore(),
+                    )..start(),
+                    update: (_, matrix, previous) {
+                      previous?.dispose();
+                      return RoomSnapshotService(
+                        client: matrix.client,
+                        sink: ShareInStore(),
+                      )..start();
+                    },
+                    dispose: (_, service) => service.dispose(),
                   ),
                 ],
                 child: ChangeNotifierProvider(
