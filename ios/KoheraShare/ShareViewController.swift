@@ -33,6 +33,14 @@ final class ShareViewController: SLComposeServiceViewController {
 
   // ── Lifecycle ───────────────────────────────────────────────
 
+  override func viewDidLoad() {
+    super.viewDidLoad()
+    preferredContentSize = CGSize(
+      width: UIScreen.main.bounds.width,
+      height: 360
+    )
+  }
+
   override func presentationAnimationDidFinish() {
     super.presentationAnimationDidFinish()
     placeholder = "Add a message (optional)…"
@@ -40,6 +48,13 @@ final class ShareViewController: SLComposeServiceViewController {
     NSLog("[Kohera] Share: presentationAnimationDidFinish, accountId=\(accountId ?? "nil")")
     reloadConfigurationItems()
     validateContent()
+    if selectedRoom == nil {
+      // Make room selection front-and-center so Post is functional without
+      // the user scrolling to the "To" config row.
+      let picker = RoomPickerController(appGroup: appGroup)
+      picker.onSelect = { self.selectRoom($0) }
+      pushConfigurationViewController(picker)
+    }
   }
 
   override func isContentValid() -> Bool {
