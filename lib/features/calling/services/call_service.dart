@@ -132,10 +132,12 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> setOutputVolume(double volume) =>
       _liveKit.setOutputVolume(volume);
 
-  bool get isSpeakerOn => livekit.Hardware.instance.speakerOn ?? true;
+  bool get isSpeakerOn =>
+      livekit.AudioManager.instance.isSpeakerOutputPreferred;
   Future<void> toggleSpeaker() async {
     final current = isSpeakerOn;
-    await livekit.Hardware.instance.setSpeakerphoneOn(!current);
+    await livekit.AudioManager.instance
+        .setSpeakerOutputPreferred(!current);
     notifyListeners();
   }
 
