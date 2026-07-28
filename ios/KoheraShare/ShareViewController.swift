@@ -4,28 +4,19 @@ import UniformTypeIdentifiers
 
 /// Share Extension principal class.
 ///
-/// Custom `UINavigationController` (Signal-style) so we control the full UI
-/// stack and height, instead of the system-clamped `SLComposeServiceViewController`
-/// sheet. Flow:
-///
-///   RoomPickerController (search + avatars, full height)
-///     └─> ComposeViewController (attachment preview + message + Send/Cancel)
-///           └─> stage attachments into the App-Group container, append a
-///               `pendingShares` entry, complete the extension request.
-///
-/// The Matrix SDK never runs here. Rooms come from the App-Group `roomSnapshot`
-/// the main app writes on sync; avatars are pre-rendered into the App Group.
+/// Room picker only: tapping a room stages the shared content into the
+/// App-Group container, writes a single `incomingShare` record
+/// `{roomId, text, files}`, and redirects to the host app via the
+/// `koherashare://` URL scheme. Kohera wakes, sends to that room (Matrix SDK
+/// + E2EE keys live in the main app), and navigates to it. No compose sheet,
+/// no caption, no queue. Rooms + avatars come from the App-Group
+/// `roomSnapshot` the main app writes on sync.
 final class ShareViewController: UINavigationController {
 
   let appGroup = "group.io.github.quantumheart.kohera"
-  let pendingKey = "pendingShares"
-  let activeAccountKey = "activeAccountId"
 
   // Serializes concurrent NSItemProvider callbacks appending to staged.
   let stagingQueue = DispatchQueue(label: "kohera.share.staging")
-
-  var accountId: String?
-  private(set) var selectedRoom: RoomPick?
 
   struct RoomPick {
     let roomId: String
@@ -42,13 +33,10 @@ final class ShareViewController: UINavigationController {
       width: UIScreen.main.bounds.width,
       height: UIScreen.main.bounds.height
     )
-    accountId = UserDefaults(suiteName: appGroup)?.string(forKey: activeAccountKey)
 
     let picker = RoomPickerController(appGroup: appGroup)
     picker.onSelect = { [weak self] room in
-      guard let self else { return }
-      self.selectedRoom = room
-      self.pushCompose(for: room)
+      self?.stageAndHandoff(room: room)
     }
     picker.onCancel = { [weak self] in
       self?.cancelExtension()
@@ -56,56 +44,28 @@ final class ShareViewController: UINavigationController {
     setViewControllers([picker], animated: false)
   }
 
-  private func pushCompose(for room: RoomPick) {
-    let compose = ComposeViewController(targetRoom: room)
-    compose.onSend = { [weak self] text in
-      self?.stageAndEnqueue(typedText: text)
-    }
-    compose.onCancel = { [weak self] in
-      self?.popComposeOrCancel()
-    }
-    pushViewController(compose, animated: true)
-  }
-
-  private func popComposeOrCancel() {
-    if viewControllers.count > 1 {
-      popViewController(animated: true)
-    } else {
-      cancelExtension()
-    }
-  }
-
   func cancelExtension() {
     extensionContext?.completeRequest(returningItems: nil)
   }
 
-  // ── Staging + enqueue ───────────────────────────────────────
+  // ── Stage + hand off ─────────────────────────────────────────
 
-  private func stageAndEnqueue(typedText: String) {
-    guard let room = selectedRoom else {
-      cancelExtension()
-      return
-    }
+  private func stageAndHandoff(room: RoomPick) {
     let items = (extensionContext?.inputItems as? [NSExtensionItem]) ?? []
     let group = DispatchGroup()
-    var staged: [[String: Any]] = []
-    var inlineText = typedText
+    var textParts: [String] = []
+    var files: [[String: Any]] = []
 
     for item in items {
-      guard let attachments = item.attachments, !attachments.isEmpty else { continue }
+      guard let attachments = item.attachments else { continue }
       for provider in attachments {
-        // Text/URL attachments fold into the compose text, not staged as files.
+        // Text/URL attachments fold into the message body, not staged as files.
         if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier),
            !provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
           group.enter()
           provider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { raw, _ in
             let s = (raw as? URL)?.absoluteString ?? (raw as? String)
-            if let s = s, !s.isEmpty {
-              self.stagingQueue.sync {
-                if inlineText.isEmpty { inlineText = s }
-                else if !inlineText.contains(s) { inlineText += "\n\(s)" }
-              }
-            }
+            if let s = s, !s.isEmpty { self.stagingQueue.sync { textParts.append(s) } }
             group.leave()
           }
           continue
@@ -115,19 +75,15 @@ final class ShareViewController: UINavigationController {
           group.enter()
           provider.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { raw, _ in
             let s = (raw as? String) ?? (raw as? URL)?.absoluteString
-            if let s = s, !s.isEmpty {
-              self.stagingQueue.sync {
-                if inlineText.isEmpty { inlineText = s }
-                else if !inlineText.contains(s) { inlineText += "\n\(s)" }
-              }
-            }
+            if let s = s, !s.isEmpty { self.stagingQueue.sync { textParts.append(s) } }
             group.leave()
           }
           continue
         }
+        // Image/video/file attachments stage into the App-Group container.
         group.enter()
         stageFile(provider: provider) { entry in
-          self.stagingQueue.sync { if let entry = entry { staged.append(entry) } }
+          self.stagingQueue.sync { if let entry = entry { files.append(entry) } }
           group.leave()
         }
       }
@@ -135,18 +91,9 @@ final class ShareViewController: UINavigationController {
 
     group.notify(queue: .main) { [weak self] in
       guard let self else { return }
-      let sendGroup = DispatchGroup()
-      if !inlineText.isEmpty {
-        sendGroup.enter()
-        self.enqueueTextShare(targetRoom: room, text: inlineText) { sendGroup.leave() }
-      }
-      if !staged.isEmpty {
-        sendGroup.enter()
-        self.enqueue(staged: staged, targetRoom: room) { sendGroup.leave() }
-      }
-      sendGroup.notify(queue: .main) { [weak self] in
-        self?.extensionContext?.completeRequest(returningItems: nil)
-      }
+      self.writeIncomingShare(roomId: room.roomId, text: textParts.joined(separator: "\n"), files: files)
+      self.redirectToHostApp()
+      self.extensionContext?.completeRequest(returningItems: nil)
     }
   }
 
@@ -154,10 +101,7 @@ final class ShareViewController: UINavigationController {
     provider: NSItemProvider,
     done: @escaping ([String: Any]?) -> Void
   ) {
-    let typeIdentifier = provider.registeredTypeIdentifiers.first(where: {
-      UTType($0)?.conforms(to: .image) == false
-    }) ?? provider.registeredTypeIdentifiers.first ?? UTType.data.identifier
-
+    let typeIdentifier = provider.registeredTypeIdentifiers.first ?? UTType.data.identifier
     provider.loadFileRepresentation(forTypeIdentifier: typeIdentifier) { [weak self] tempURL, error in
       guard let self, let tempURL = tempURL, error == nil else { done(nil); return }
       self.copyIntoAppGroup(tempURL: tempURL, provider: provider, done: done)
@@ -186,10 +130,9 @@ final class ShareViewController: UINavigationController {
         try FileManager.default.copyItem(at: src, to: dest)
         let mime = self.mime(for: tempURL, provider: provider)
         done([
-          "kind": "file",
           "filePath": dest.path,
+          "name": originalName,
           "mimeType": mime,
-          "originalFileName": originalName,
         ])
       } catch {
         NSLog("[Kohera] Share staging copy failed: \(error)")
@@ -210,60 +153,40 @@ final class ShareViewController: UINavigationController {
     return "application/octet-stream"
   }
 
-  // ── Enqueue ─────────────────────────────────────────────────
-
-  private func enqueueTextShare(
-    targetRoom: RoomPick,
-    text: String,
-    completion: @escaping () -> Void
-  ) {
-    let entry: [String: Any] = [
-      "id": UUID().uuidString,
-      "targetRoomId": targetRoom.roomId,
-      "accountId": accountId ?? "",
-      "kind": "text",
-      "text": text,
-      "createdAt": Int(Date().timeIntervalSince1970 * 1000),
-    ]
-    appendPending(entry: entry, completion: completion)
+  private func writeIncomingShare(roomId: String, text: String, files: [[String: Any]]) {
+    guard let suite = UserDefaults(suiteName: appGroup) else { return }
+    var record: [String: Any] = ["roomId": roomId]
+    if !text.isEmpty { record["text"] = text }
+    if !files.isEmpty { record["files"] = files }
+    guard let data = try? JSONSerialization.data(withJSONObject: record),
+          let raw = String(data: data, encoding: .utf8) else { return }
+    suite.set(raw, forKey: "incomingShare")
+    NSLog("[Kohera] Share staged for room \(roomId)")
   }
 
-  private func enqueue(
-    staged: [[String: Any]],
-    targetRoom: RoomPick,
-    completion: @escaping () -> Void
-  ) {
-    let createdAt = Int(Date().timeIntervalSince1970 * 1000)
-    let group = DispatchGroup()
-    for entry in staged {
-      group.enter()
-      var full: [String: Any] = [
-        "id": UUID().uuidString,
-        "targetRoomId": targetRoom.roomId,
-        "accountId": accountId ?? "",
-        "createdAt": createdAt,
-      ]
-      for (k, v) in entry { full[k] = v }
-      appendPending(entry: full) { group.leave() }
+  /// Brings the main app to the foreground so it can read + send the share.
+  /// On iOS 18+ the legacy `openURL:` selector is swallowed, so use
+  /// `UIApplication.open(_:options:completionHandler:)`; keep the legacy
+  /// selector for older iOS (the receive_sharing_intent technique).
+  private func redirectToHostApp() {
+    guard let url = URL(string: "koherashare://share") else { return }
+    var responder: UIResponder? = self
+    if #available(iOS 18.0, *) {
+      while responder != nil {
+        if let application = responder as? UIApplication {
+          application.open(url, options: [:], completionHandler: nil)
+        }
+        responder = responder?.next
+      }
+    } else {
+      let selectorOpenURL = sel_registerName("openURL:")
+      while responder != nil {
+        if responder?.responds(to: selectorOpenURL) == true {
+          _ = responder?.perform(selectorOpenURL, with: url)
+        }
+        responder = responder?.next
+      }
     }
-    group.notify(queue: .main) { completion() }
-  }
-
-  private func appendPending(entry: [String: Any], completion: @escaping () -> Void) {
-    guard let suite = UserDefaults(suiteName: appGroup) else { completion(); return }
-    var arr: [[String: Any]] = []
-    if let raw = suite.string(forKey: pendingKey),
-       let data = raw.data(using: .utf8),
-       let existing = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-      arr = existing
-    }
-    arr.append(entry)
-    if let back = try? JSONSerialization.data(withJSONObject: arr),
-       let s = String(data: back, encoding: .utf8) {
-      suite.set(s, forKey: pendingKey)
-      NSLog("[Kohera] Share enqueued for room \(entry["targetRoomId"] ?? "?")")
-    }
-    completion()
   }
 }
 
@@ -289,7 +212,7 @@ final class RoomPickerController: UITableViewController, UISearchResultsUpdating
 
   override func viewDidLoad() {
     super.viewDidLoad()
-    title = "Choose room"
+    title = "Send to"
     navigationItem.leftBarButtonItem = UIBarButtonItem(
       barButtonSystemItem: .cancel,
       target: self,
@@ -382,7 +305,6 @@ final class RoomPickerController: UITableViewController, UISearchResultsUpdating
     content.imageProperties.maximumSize = CGSize(width: 40, height: 40)
     content.imageProperties.cornerRadius = 8
     cell.contentConfiguration = content
-    cell.accessoryType = .disclosureIndicator
     return cell
   }
 
@@ -431,199 +353,5 @@ final class RoomPickerController: UITableViewController, UISearchResultsUpdating
       .systemPink, .systemPurple, .systemIndigo, .systemBrown,
     ]
     return palette[abs(hash) % palette.count]
-  }
-}
-
-// ── Compose / approval ─────────────────────────────────────────
-
-final class ComposeViewController: UIViewController, UITextViewDelegate {
-  private let targetRoom: ShareViewController.RoomPick
-  private let textView = UITextView()
-  private let placeholderLabel = UILabel()
-  private let previewStack = UIStackView()
-  private let previewScroll = UIScrollView()
-
-  var onSend: ((String) -> Void)?
-  var onCancel: (() -> Void)?
-
-  init(targetRoom: ShareViewController.RoomPick) {
-    self.targetRoom = targetRoom
-    super.init(nibName: nil, bundle: nil)
-  }
-
-  @available(*, unavailable)
-  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-  override func viewDidLoad() {
-    super.viewDidLoad()
-    title = targetRoom.displayname
-    view.backgroundColor = .systemBackground
-
-    navigationItem.leftBarButtonItem = UIBarButtonItem(
-      barButtonSystemItem: .cancel,
-      target: self,
-      action: #selector(cancel)
-    )
-    navigationItem.rightBarButtonItem = UIBarButtonItem(
-      title: "Send",
-      style: .done,
-      target: self,
-      action: #selector(send)
-    )
-
-    setupPreview()
-    setupTextView()
-    loadAttachments()
-  }
-
-  @objc private func cancel() { onCancel?() }
-
-  @objc private func send() {
-    let text = textView.text ?? ""
-    onSend?(text)
-  }
-
-  // ── Layout ──────────────────────────────────────────────────
-
-  private func setupPreview() {
-    previewScroll.translatesAutoresizingMaskIntoConstraints = false
-    previewStack.translatesAutoresizingMaskIntoConstraints = false
-    previewStack.axis = .horizontal
-    previewStack.spacing = 8
-    previewStack.alignment = .center
-    previewScroll.addSubview(previewStack)
-    previewScroll.showsHorizontalScrollIndicator = true
-    view.addSubview(previewScroll)
-
-    NSLayoutConstraint.activate([
-      previewScroll.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-      previewScroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-      previewScroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-      previewScroll.heightAnchor.constraint(lessThanOrEqualToConstant: 120),
-      previewStack.topAnchor.constraint(equalTo: previewScroll.topAnchor, constant: 8),
-      previewStack.bottomAnchor.constraint(equalTo: previewScroll.bottomAnchor, constant: -8),
-      previewStack.leadingAnchor.constraint(equalTo: previewScroll.leadingAnchor, constant: 12),
-      previewStack.trailingAnchor.constraint(equalTo: previewScroll.trailingAnchor, constant: -12),
-      previewStack.heightAnchor.constraint(equalTo: previewScroll.heightAnchor, constant: -16),
-    ])
-  }
-
-  private func setupTextView() {
-    textView.translatesAutoresizingMaskIntoConstraints = false
-    textView.font = .preferredFont(forTextStyle: .body)
-    textView.delegate = self
-    textView.layer.cornerRadius = 10
-    textView.backgroundColor = .secondarySystemBackground
-    textView.textContainerInset = UIEdgeInsets(top: 12, left: 10, bottom: 12, right: 10)
-    view.addSubview(textView)
-
-    placeholderLabel.translatesAutoresizingMaskIntoConstraints = false
-    placeholderLabel.text = "Add a message (optional)…"
-    placeholderLabel.textColor = .placeholderText
-    placeholderLabel.font = .preferredFont(forTextStyle: .body)
-    placeholderLabel.isHidden = true
-    view.addSubview(placeholderLabel)
-
-    NSLayoutConstraint.activate([
-      textView.topAnchor.constraint(equalTo: previewScroll.bottomAnchor, constant: 8),
-      textView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
-      textView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
-      textView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
-      placeholderLabel.topAnchor.constraint(equalTo: textView.topAnchor, constant: 12),
-      placeholderLabel.leadingAnchor.constraint(equalTo: textView.leadingAnchor, constant: 14),
-    ])
-  }
-
-  // ── Attachments ─────────────────────────────────────────────
-
-  private struct Preview {
-    let image: UIImage?
-    let name: String
-  }
-
-  private func loadAttachments() {
-    let items = (extensionContext?.inputItems as? [NSExtensionItem]) ?? []
-    var foundAny = false
-    for item in items {
-      guard let attachments = item.attachments else { continue }
-      for provider in attachments {
-        if provider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
-          foundAny = true
-          loadImagePreview(provider: provider)
-        } else if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-          foundAny = true
-          loadTextPreview(provider: provider, type: UTType.url.identifier)
-        } else if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
-          foundAny = true
-          loadTextPreview(provider: provider, type: UTType.plainText.identifier)
-        } else {
-          foundAny = true
-          addFileChip(name: provider.suggestedName ?? "Attachment")
-        }
-      }
-    }
-    if !foundAny {
-      previewScroll.isHidden = true
-    }
-  }
-
-  private func loadImagePreview(provider: NSItemProvider) {
-    provider.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { [weak self] item, _ in
-      let image = (item as? UIImage)
-        ?? (item as? URL).flatMap { try? Data(contentsOf: $0) }.flatMap(UIImage.init)
-      DispatchQueue.main.async {
-        guard let self, let image = image else { return }
-        self.addImageChip(image: image)
-      }
-    }
-  }
-
-  private func loadTextPreview(provider: NSItemProvider, type: String) {
-    provider.loadItem(forTypeIdentifier: type, options: nil) { [weak self] item, _ in
-      let s = (item as? String) ?? (item as? URL)?.absoluteString
-      DispatchQueue.main.async {
-        guard let self, let s = s, !s.isEmpty else { return }
-        if (self.textView.text ?? "").isEmpty {
-          self.textView.text = s
-          self.placeholderLabel.isHidden = true
-        }
-        self.addLinkChip(text: s)
-      }
-    }
-  }
-
-  private func addImageChip(image: UIImage) {
-    let iv = UIImageView(image: image)
-    iv.contentMode = .scaleAspectFill
-    iv.clipsToBounds = true
-    iv.layer.cornerRadius = 8
-    iv.widthAnchor.constraint(equalToConstant: 80).isActive = true
-    iv.heightAnchor.constraint(equalToConstant: 80).isActive = true
-    previewStack.addArrangedSubview(iv)
-  }
-
-  private func addLinkChip(text: String) {
-    let label = UILabel()
-    label.text = text.count > 40 ? String(text.prefix(40)) + "…" : text
-    label.font = .preferredFont(forTextStyle: .footnote)
-    label.textColor = .link
-    label.numberOfLines = 2
-    label.widthAnchor.constraint(lessThanOrEqualToConstant: 200).isActive = true
-    previewStack.addArrangedSubview(label)
-  }
-
-  private func addFileChip(name: String) {
-    let label = UILabel()
-    label.text = "📎 \(name)"
-    label.font = .preferredFont(forTextStyle: .footnote)
-    label.numberOfLines = 2
-    label.widthAnchor.constraint(lessThanOrEqualToConstant: 200).isActive = true
-    previewStack.addArrangedSubview(label)
-  }
-
-  // ── Text view delegate ──────────────────────────────────────
-
-  func textViewDidChange(_ textView: UITextView) {
-    placeholderLabel.isHidden = !textView.text.isEmpty
   }
 }

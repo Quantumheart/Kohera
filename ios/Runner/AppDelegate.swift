@@ -243,9 +243,10 @@ import UserNotifications
     }
 
     // ── Share-in (App-Group staged shares) ───────────────────────
-    // The iOS Share Extension writes `pendingShares` and reads
-    // `roomSnapshot` from the App-Group `UserDefaults` suite. The main
-    // app does the reverse. The Matrix SDK stays out of the extension.
+    // The iOS Share Extension reads `roomSnapshot` (to render its room
+    // picker) and writes a single `incomingShare` record. The main app
+    // writes `roomSnapshot` on sync and reads + clears `incomingShare` on
+    // wake. The Matrix SDK stays out of the extension.
     let shareChannel = FlutterMethodChannel(name: "kohera/share", binaryMessenger: messenger)
     shareChannel.setMethodCallHandler { (call, result) in
       let suite = UserDefaults(suiteName: "group.io.github.quantumheart.kohera")
@@ -257,22 +258,10 @@ import UserNotifications
           suite?.set(raw, forKey: "roomSnapshot")
         }
         result(nil)
-      case "readPendingShares":
-        result(suite?.string(forKey: "pendingShares"))
-      case "clearPendingShare":
-        if let id = call.arguments as? String,
-           let raw = suite?.string(forKey: "pendingShares"),
-           let data = raw.data(using: .utf8),
-           let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-          let filtered = arr.filter { ($0["id"] as? String) != id }
-          if let back = try? JSONSerialization.data(withJSONObject: filtered),
-             let s = String(data: back, encoding: .utf8) {
-            suite?.set(s, forKey: "pendingShares")
-          }
-        }
-        result(nil)
-      case "clearAllPendingShares":
-        suite?.removeObject(forKey: "pendingShares")
+      case "readIncomingShare":
+        result(suite?.string(forKey: "incomingShare"))
+      case "clearIncomingShare":
+        suite?.removeObject(forKey: "incomingShare")
         result(nil)
       case "readActiveAccountId":
         result(suite?.string(forKey: "activeAccountId"))

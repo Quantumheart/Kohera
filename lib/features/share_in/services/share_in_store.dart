@@ -2,18 +2,15 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:kohera/features/share_in/models/pending_share.dart';
+import 'package:kohera/features/share_in/models/incoming_share.dart';
 import 'package:kohera/features/share_in/models/room_snapshot.dart';
 
 /// App-Group shared-defaults key holding the JSON array of [RoomSnapshot].
 const String kRoomSnapshotKey = 'roomSnapshot';
 
-/// App-Group shared-defaults key holding the JSON array of [PendingShare].
-const String kPendingSharesKey = 'pendingShares';
-
 /// App-Group shared-defaults key holding the active account's clientName
-/// (the `MatrixService.clientName` the Share Extension should attribute
-/// staged shares to).
+/// (the `MatrixService.clientName` the Share Extension attributes staged
+/// shares to).
 const String kActiveAccountIdKey = 'activeAccountId';
 
 /// Write-only target for [RoomSnapshotService] so it can be tested without a
@@ -24,9 +21,9 @@ abstract class RoomSnapshotSink {
 
 /// Dart-side bridge over the `kohera/share` platform channel.
 ///
-/// The iOS Share Extension writes [PendingShare] entries and the main app
-/// reads them; the main app writes [RoomSnapshot] snapshots and the extension
-/// reads them. Both flows live in the App-Group `UserDefaults` suite
+/// The iOS Share Extension reads the [RoomSnapshot] list the main app writes
+/// (to render its room picker) and writes a single [IncomingShare] the main
+/// app drains on wake. Both live in the App-Group `UserDefaults` suite
 /// `group.io.github.quantumheart.kohera`, which only iOS exposes via this
 /// channel. On platforms without a native handler (Android/desktop/web) every
 /// call degrades to a no-op so callers never need to branch on platform.
@@ -48,19 +45,19 @@ class ShareInStore implements RoomSnapshotSink {
     await _invokeVoid('writeRoomSnapshot', raw);
   }
 
-  Future<List<PendingShare>> readPendingShares() async {
-    final raw = await _invokeJson<String>('readPendingShares');
-    if (raw == null || raw.isEmpty) return const [];
-    return _decodeList(raw, PendingShare.fromJson);
+  Future<IncomingShare?> readIncomingShare() async {
+    final raw = await _invokeJson<String>('readIncomingShare');
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      return IncomingShare.decode(raw);
+    } catch (e) {
+      debugPrint('[Kohera] ShareInStore decode incomingShare failed: $e');
+      return null;
+    }
   }
 
-  Future<void> clearPendingShare(String id) async {
-    await _invokeVoid('clearPendingShare', id);
-  }
-
-  Future<void> clearAllPendingShares() async {
-    await _invokeVoid('clearAllPendingShares', null);
-  }
+  Future<void> clearIncomingShare() async =>
+      _invokeVoid('clearIncomingShare', null);
 
   Future<String?> readActiveAccountId() async {
     try {
