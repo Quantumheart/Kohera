@@ -79,6 +79,23 @@ final class ShareViewController: UINavigationController {
     extensionContext?.completeRequest(returningItems: nil)
   }
 
+  /// Brings the main app to the foreground so its `ShareDrainService` wakes
+  /// and drains the just-enqueued `pendingShares`. Walks the responder chain
+  /// to reach the system `openURL:` handler (the `receive_sharing_intent`
+  /// technique) using our `koherashare` URL scheme; the payload is empty
+  /// because the data already lives in the App-Group store.
+  private func redirectToHostApp() {
+    guard let url = URL(string: "koherashare://share") else { return }
+    var responder: UIResponder? = self
+    let selectorOpenURL = sel_registerName("openURL:")
+    while responder != nil {
+      if responder?.responds(to: selectorOpenURL) == true {
+        _ = responder?.perform(selectorOpenURL, with: url)
+      }
+      responder = responder?.next
+    }
+  }
+
   // ── Staging + enqueue ───────────────────────────────────────
 
   private func stageAndEnqueue(typedText: String) {
@@ -145,7 +162,9 @@ final class ShareViewController: UINavigationController {
         self.enqueue(staged: staged, targetRoom: room) { sendGroup.leave() }
       }
       sendGroup.notify(queue: .main) { [weak self] in
-        self?.extensionContext?.completeRequest(returningItems: nil)
+        guard let self else { return }
+        self.redirectToHostApp()
+        self.extensionContext?.completeRequest(returningItems: nil)
       }
     }
   }
