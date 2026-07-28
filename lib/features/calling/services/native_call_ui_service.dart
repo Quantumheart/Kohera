@@ -71,10 +71,10 @@ class NativeCallUiService {
 
   Future<void> _checkPendingAccept() async {
     final activeCalls = await FlutterCallkitIncoming.activeCalls();
-    if (activeCalls is List && activeCalls.isNotEmpty) {
+    if (activeCalls.isNotEmpty) {
       final call = activeCalls.last;
-      if (call is Map && call['isAccepted'] == true) {
-        final extra = (call['extra'] as Map?)?.cast<String, dynamic>();
+      if (call.isAccepted) {
+        final extra = call.extra;
         final roomId = extra?['roomId'] as String?;
         final withVideo = extra?['withVideo'] == 'true';
         if (roomId != null) {
@@ -95,9 +95,10 @@ class NativeCallUiService {
     required bool isVideo,
   }) {
     if (!_isMobile) return;
-    _nativeCallId = _generateUuid();
+    final callId = _generateUuid();
+    _nativeCallId = callId;
     final params = CallKitParams(
-      id: _nativeCallId,
+      id: callId,
       nameCaller: callerName,
       avatar: callerAvatarUrl?.toString(),
       type: isVideo ? 1 : 0,
@@ -111,9 +112,10 @@ class NativeCallUiService {
 
   void showNativeOutgoingCall(String roomId, String callerName, bool isVideo) {
     if (!_isMobile) return;
-    _nativeCallId = _generateUuid();
+    final callId = _generateUuid();
+    _nativeCallId = callId;
     final params = CallKitParams(
-      id: _nativeCallId,
+      id: callId,
       nameCaller: callerName,
       type: isVideo ? 1 : 0,
       extra: {'roomId': roomId, 'withVideo': isVideo.toString()},
@@ -158,28 +160,26 @@ class NativeCallUiService {
 
   void _onNativeEvent(CallEvent? event) {
     if (event == null) return;
-    final body = event.body as Map<String, dynamic>?;
-    switch (event.event) {
-      case Event.actionCallAccept:
-        _onNativeAccept(body);
-      case Event.actionCallDecline:
+    switch (event) {
+      case CallEventActionCallAccept(:final callKitParams):
+        _onNativeAccept(callKitParams.extra);
+      case CallEventActionCallDecline():
         _actionController.add(NativeCallDeclined());
-      case Event.actionCallEnded:
+      case CallEventActionCallEnded():
         if (!_endingFromFlutter) {
           final callState = _getCallState();
           if (callState == 'connected' || callState == 'reconnecting') {
             _actionController.add(NativeCallEnded());
           }
         }
-      case Event.actionCallTimeout:
+      case CallEventActionCallTimeout():
         _actionController.add(NativeCallTimedOut());
       default:
         break;
     }
   }
 
-  void _onNativeAccept(Map<String, dynamic>? body) {
-    final extra = (body?['extra'] as Map?)?.cast<String, dynamic>();
+  void _onNativeAccept(Map<String, dynamic>? extra) {
     final roomId = extra?['roomId'] as String?;
     final withVideo = extra?['withVideo'] == 'true';
     _actionController.add(
