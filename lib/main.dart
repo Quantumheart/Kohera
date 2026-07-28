@@ -7,6 +7,7 @@ import 'package:kohera/core/brand/brand_constants.dart';
 import 'package:kohera/core/routing/app_router.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/client_manager.dart';
+import 'package:kohera/core/services/deep_link_service.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
@@ -64,6 +65,7 @@ class _KoheraAppState extends State<KoheraApp> {
   final _ringtoneService = RingtoneService();
   RoomSnapshotService? _roomSnapshotService;
   AvatarCacheService? _avatarCacheService;
+  DeepLinkService? _deepLinkService;
 
   @override
   void initState() {
@@ -130,6 +132,9 @@ class _KoheraAppState extends State<KoheraApp> {
         _router = buildRouter(clientManager);
       });
       _bindShareIn(clientManager.activeService);
+      // Start deep-link listener now that the router exists.
+      _deepLinkService = DeepLinkService(_router!)..init();
+      unawaited(_deepLinkService!.processInitialLink());
     } catch (e) {
       debugPrint('[Kohera] Initialization failed: $e');
       if (!mounted) return;
@@ -174,6 +179,7 @@ class _KoheraAppState extends State<KoheraApp> {
   void dispose() {
     _clientManager?.removeListener(_onActiveServiceChanged);
     _router?.dispose();
+    _deepLinkService?.dispose();
     _roomSnapshotService?.dispose();
     unawaited(_avatarCacheService?.dispose());
     unawaited(_ringtoneService.dispose());

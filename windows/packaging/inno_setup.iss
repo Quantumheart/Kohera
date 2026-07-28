@@ -29,5 +29,17 @@ Source: "..\..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ign
 Name: "{group}\Kohera"; Filename: "{app}\kohera.exe"; AppUserModelID: "io.github.quantumheart.kohera"
 Name: "{autodesktop}\Kohera"; Filename: "{app}\kohera.exe"; Tasks: desktopicon; AppUserModelID: "io.github.quantumheart.kohera"
 
+[Registry]
+; Register matrix: URI scheme handler
+Root: HKCU; Subkey: "Software\Classes\matrix"; ValueType: string; ValueName: ""; ValueData: "URL:Matrix Protocol"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\matrix"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\matrix\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\kohera.exe,0"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\matrix\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\kohera.exe"" ""%1"""; Flags: uninsdeletekey
+; Register io.github.quantumheart.kohera: URI scheme handler
+Root: HKCU; Subkey: "Software\Classes\io.github.quantumheart.kohera"; ValueType: string; ValueName: ""; ValueData: "URL:Kohera Protocol"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\io.github.quantumheart.kohera"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\io.github.quantumheart.kohera\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\kohera.exe,0"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\io.github.quantumheart.kohera\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\kohera.exe"" ""%1"""; Flags: uninsdeletekey
+
 [Run]
 Filename: "{app}\kohera.exe"; Description: "{cm:LaunchProgram,Kohera}"; Flags: nowait postinstall skipifsilent
