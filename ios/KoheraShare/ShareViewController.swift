@@ -155,16 +155,25 @@ final class ShareViewController: SLComposeServiceViewController {
     guard let url = URL(string: "koherashare://share") else { return }
     var responder: UIResponder? = self
     if #available(iOS 18.0, *) {
+      NSLog("[Kohera] Share: redirect iOS 18+ branch")
+      var foundApp = false
       while responder != nil {
         if let application = responder as? UIApplication {
-          application.open(url, options: [:], completionHandler: nil)
+          foundApp = true
+          NSLog("[Kohera] Share: calling UIApplication.open")
+          application.open(url, options: [:]) { success in
+            NSLog("[Kohera] Share: UIApplication.open completion success=\(success)")
+          }
         }
         responder = responder?.next
       }
+      NSLog("[Kohera] Share: found UIApplication=\(foundApp)")
     } else {
+      NSLog("[Kohera] Share: redirect legacy openURL branch")
       let selectorOpenURL = sel_registerName("openURL:")
       while responder != nil {
         if responder?.responds(to: selectorOpenURL) == true {
+          NSLog("[Kohera] Share: legacy openURL responder=\(String(describing: responder))")
           _ = responder?.perform(selectorOpenURL, with: url)
         }
         responder = responder?.next
