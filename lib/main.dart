@@ -31,6 +31,7 @@ import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/features/notifications/widgets/notification_lifecycle_observer.dart';
 import 'package:kohera/features/share_in/services/avatar_cache_service.dart';
 import 'package:kohera/features/share_in/services/room_snapshot_service.dart';
+import 'package:kohera/features/share_in/services/share_drain_service.dart';
 import 'package:kohera/features/share_in/services/share_in_store.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
@@ -64,6 +65,7 @@ class _KoheraAppState extends State<KoheraApp> {
   final _ringtoneService = RingtoneService();
   RoomSnapshotService? _roomSnapshotService;
   AvatarCacheService? _avatarCacheService;
+  ShareDrainService? _shareDrainService;
 
   @override
   void initState() {
@@ -130,6 +132,18 @@ class _KoheraAppState extends State<KoheraApp> {
         _router = buildRouter(clientManager);
       });
       _bindShareIn(clientManager.activeService);
+      _shareDrainService = ShareDrainService(
+        resolveClient: (accountId) => clientManager.services
+            .cast<MatrixService?>()
+            .firstWhere(
+              (s) => s?.clientName == accountId,
+              orElse: () => null,
+            )
+            ?.client,
+        waitForClientsLoaded: () async {
+          await clientManager.activeService.client.roomsLoading;
+        },
+      )..start();
     } catch (e) {
       debugPrint('[Kohera] Initialization failed: $e');
       if (!mounted) return;
@@ -175,6 +189,7 @@ class _KoheraAppState extends State<KoheraApp> {
     _clientManager?.removeListener(_onActiveServiceChanged);
     _router?.dispose();
     _roomSnapshotService?.dispose();
+    _shareDrainService?.dispose();
     unawaited(_avatarCacheService?.dispose());
     unawaited(_ringtoneService.dispose());
     super.dispose();
