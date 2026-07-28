@@ -6,6 +6,18 @@
 	<array>
 		<string>INSendMessageIntent</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.github.quantumheart.kohera</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>matrix</string>
+				<string>io.github.quantumheart.kohera</string>
+			</array>
+		</dict>
+	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
