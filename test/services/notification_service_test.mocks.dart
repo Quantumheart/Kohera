@@ -17,7 +17,6 @@ import 'package:flutter_local_notifications/src/notification_details.dart'
     as _i33;
 import 'package:flutter_local_notifications/src/platform_specifics/android/schedule_mode.dart'
     as _i35;
-import 'package:flutter_local_notifications/src/types.dart' as _i36;
 import 'package:flutter_local_notifications_platform_interface/flutter_local_notifications_platform_interface.dart'
     as _i32;
 import 'package:http/http.dart' as _i18;
@@ -8865,7 +8864,7 @@ class MockFlutterLocalNotificationsPlugin extends _i1.Mock
     String? title,
     String? body,
     String? payload,
-    _i36.DateTimeComponents? matchDateTimeComponents,
+    _i32.DateTimeComponents? matchDateTimeComponents,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#zonedSchedule, [], {
