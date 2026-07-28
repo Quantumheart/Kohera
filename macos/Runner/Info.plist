@@ -36,5 +36,16 @@
 	<string>NSApplication</string>
 	<key>NSScreenCaptureUsageDescription</key>
 	<string>Kohera needs screen capture access for screen sharing in calls.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>io.github.quantumheart.kohera</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>matrix</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

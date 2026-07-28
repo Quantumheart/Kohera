@@ -44,6 +44,27 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Deep link: custom URI scheme -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="io.github.quantumheart.kohera"/>
+            </intent-filter>
+            <!-- Deep link: standard matrix: URI scheme -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="matrix"/>
+            </intent-filter>
+            <!-- Deep link: intercept matrix.to HTTPS links -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="matrix.to"/>
+            </intent-filter>
         </activity>
         <service
             android:name="de.julianassmann.flutter_background.IsolateHolderService"
