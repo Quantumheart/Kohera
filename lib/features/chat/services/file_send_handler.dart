@@ -18,7 +18,7 @@ Future<void> pickAndSendFile(
   final scaffold = ScaffoldMessenger.of(context);
   final matrix = context.read<MatrixService>();
 
-  final result = await FilePicker.platform.pickFiles(
+  final result = await FilePicker.pickFiles(
     dialogTitle: 'Kohera',
     withData: true,
   );
@@ -42,7 +42,7 @@ Future<void> pickAndSendFile(
 }
 
 Future<PendingAttachment?> pickFileAsAttachment() async {
-  final result = await FilePicker.platform.pickFiles(
+  final result = await FilePicker.pickFiles(
     dialogTitle: 'Kohera',
     withData: true,
   );

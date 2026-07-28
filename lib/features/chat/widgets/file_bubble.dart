@@ -35,7 +35,7 @@ class _FileBubbleState extends State<FileBubble> {
 
     try {
       final bytes = await widget.controller.downloadAndDecrypt();
-      final path = await FilePicker.platform.saveFile(
+      final path = await FilePicker.saveFile(
         dialogTitle: 'Kohera',
         fileName: widget.media.fileName,
         bytes: bytes,
