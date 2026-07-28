@@ -16,7 +16,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
   permission_handler_windows
   record_windows
   screen_retriever_windows
-  sqlite3_flutter_libs
   url_launcher_windows
   webcrypto
   window_manager
