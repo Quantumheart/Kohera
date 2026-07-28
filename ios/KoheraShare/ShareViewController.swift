@@ -88,12 +88,16 @@ final class ShareViewController: UINavigationController {
     guard let url = URL(string: "koherashare://share") else { return }
     var responder: UIResponder? = self
     let selectorOpenURL = sel_registerName("openURL:")
+    var found = false
     while responder != nil {
       if responder?.responds(to: selectorOpenURL) == true {
+        found = true
+        NSLog("[Kohera] Share: openURL responder = \(String(describing: responder))")
         _ = responder?.perform(selectorOpenURL, with: url)
       }
       responder = responder?.next
     }
+    NSLog("[Kohera] Share: redirectToHostApp done, found=\(found)")
   }
 
   // ── Staging + enqueue ───────────────────────────────────────
@@ -163,6 +167,7 @@ final class ShareViewController: UINavigationController {
       }
       sendGroup.notify(queue: .main) { [weak self] in
         guard let self else { return }
+        NSLog("[Kohera] Share: staging complete, redirecting to host app")
         self.redirectToHostApp()
         self.extensionContext?.completeRequest(returningItems: nil)
       }
