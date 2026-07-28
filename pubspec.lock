@@ -969,10 +969,10 @@ packages:
     dependency: "direct main"
     description:
       name: matrix
-      sha256: d1d739b18ae6e3dfe1856fb93c85df45c6fef0d66cb8eb07319853ab29d481f4
+      sha256: d33d8ab4d4389e3cdd6a84a23d610bbc6b1d7ff449a1132411945ed564207a68
       url: "https://pub.dev"
     source: hosted
-    version: "7.5.0"
+    version: "9.0.0"
   media_kit:
     dependency: "direct main"
     description:
@@ -1646,10 +1646,10 @@ packages:
     dependency: "direct main"
     description:
       name: sqflite_common_ffi
-      sha256: "8d7b8749a516cbf6e9057f9b480b716ad14fc4f3d3873ca6938919cc626d9025"
+      sha256: cd0c7f7de39a08f2d54ef144d9058c46eca8461879aaa648025643455c1e5a20
       url: "https://pub.dev"
     source: hosted
-    version: "2.3.7+1"
+    version: "2.4.0+3"
   sqflite_darwin:
     dependency: transitive
     description:
@@ -1670,10 +1670,10 @@ packages:
     dependency: transitive
     description:
       name: sqlite3
-      sha256: "3145bd74dcdb4fd6f5c6dda4d4e4490a8087d7f286a14dee5d37087290f0f8a2"
+      sha256: c73fd75df1332d76a6257f4823ae4df9c791f522b97e4a60cbcad214de1becf4
       url: "https://pub.dev"
     source: hosted
-    version: "2.9.4"
+    version: "3.5.0"
   sqlite3_flutter_libs:
     dependency: "direct main"
     description:
