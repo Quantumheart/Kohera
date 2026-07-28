@@ -87,17 +87,27 @@ final class ShareViewController: UINavigationController {
   private func redirectToHostApp() {
     guard let url = URL(string: "koherashare://share") else { return }
     var responder: UIResponder? = self
-    let selectorOpenURL = sel_registerName("openURL:")
-    var found = false
-    while responder != nil {
-      if responder?.responds(to: selectorOpenURL) == true {
-        found = true
-        NSLog("[Kohera] Share: openURL responder = \(String(describing: responder))")
-        _ = responder?.perform(selectorOpenURL, with: url)
+    if #available(iOS 18.0, *) {
+      // On iOS 18+ the legacy `openURL:` selector is swallowed; use the
+      // modern UIApplication.open(_:options:completionHandler:) instead.
+      while responder != nil {
+        if let application = responder as? UIApplication {
+          NSLog("[Kohera] Share: openURL via UIApplication.open (iOS 18+)")
+          application.open(url, options: [:], completionHandler: nil)
+        }
+        responder = responder?.next
       }
-      responder = responder?.next
+    } else {
+      let selectorOpenURL = sel_registerName("openURL:")
+      while responder != nil {
+        if responder?.responds(to: selectorOpenURL) == true {
+          NSLog("[Kohera] Share: openURL responder = \(String(describing: responder))")
+          _ = responder?.perform(selectorOpenURL, with: url)
+        }
+        responder = responder?.next
+      }
     }
-    NSLog("[Kohera] Share: redirectToHostApp done, found=\(found)")
+    NSLog("[Kohera] Share: redirectToHostApp done")
   }
 
   // ── Staging + enqueue ───────────────────────────────────────
