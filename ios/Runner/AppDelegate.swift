@@ -243,43 +243,19 @@ import UserNotifications
     }
 
     // ── Share-in (App-Group staged shares) ───────────────────────
-    // The iOS Share Extension writes `pendingShares` and reads
-    // `roomSnapshot` from the App-Group `UserDefaults` suite. The main
-    // app does the reverse. The Matrix SDK stays out of the extension.
+    // The iOS Share Extension stages a single incoming share (text and/or
+    // staged file paths) into the App-Group `UserDefaults` suite, then
+    // redirects to the host app via the `koherashare://` URL scheme. The
+    // main app reads it on wake, sends via the Matrix SDK, and clears it.
+    // The Matrix SDK stays out of the extension.
     let shareChannel = FlutterMethodChannel(name: "kohera/share", binaryMessenger: messenger)
     shareChannel.setMethodCallHandler { (call, result) in
       let suite = UserDefaults(suiteName: "group.io.github.quantumheart.kohera")
       switch call.method {
-      case "readRoomSnapshot":
-        result(suite?.string(forKey: "roomSnapshot"))
-      case "writeRoomSnapshot":
-        if let raw = call.arguments as? String {
-          suite?.set(raw, forKey: "roomSnapshot")
-        }
-        result(nil)
-      case "readPendingShares":
-        result(suite?.string(forKey: "pendingShares"))
-      case "clearPendingShare":
-        if let id = call.arguments as? String,
-           let raw = suite?.string(forKey: "pendingShares"),
-           let data = raw.data(using: .utf8),
-           let arr = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] {
-          let filtered = arr.filter { ($0["id"] as? String) != id }
-          if let back = try? JSONSerialization.data(withJSONObject: filtered),
-             let s = String(data: back, encoding: .utf8) {
-            suite?.set(s, forKey: "pendingShares")
-          }
-        }
-        result(nil)
-      case "clearAllPendingShares":
-        suite?.removeObject(forKey: "pendingShares")
-        result(nil)
-      case "readActiveAccountId":
-        result(suite?.string(forKey: "activeAccountId"))
-      case "writeActiveAccountId":
-        if let id = call.arguments as? String {
-          suite?.set(id, forKey: "activeAccountId")
-        }
+      case "readIncomingShare":
+        result(suite?.string(forKey: "incomingShare"))
+      case "clearIncomingShare":
+        suite?.removeObject(forKey: "incomingShare")
         result(nil)
       default:
         result(FlutterMethodNotImplemented)

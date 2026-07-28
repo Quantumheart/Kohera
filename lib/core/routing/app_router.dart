@@ -40,10 +40,14 @@ import 'package:provider/provider.dart';
 /// The router resolves the active [MatrixService] dynamically from
 /// [manager] so that account switches don't require recreating the router
 /// (which would reset the navigation stack and cause a visible flash).
-GoRouter buildRouter(ClientManager manager) {
+GoRouter buildRouter(
+  ClientManager manager, {
+  GlobalKey<NavigatorState>? navigatorKey,
+}) {
   final refreshListenable = ActiveMatrixListenable(manager);
   final switchRedirector = AccountSwitchRedirector(manager.activeService);
   return GoRouter(
+    navigatorKey: navigatorKey,
     refreshListenable: refreshListenable,
     initialLocation: RoutePaths.home,
     redirect: (context, state) {
