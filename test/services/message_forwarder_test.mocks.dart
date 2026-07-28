@@ -1333,12 +1333,14 @@ class MockRoom extends _i1.Mock implements _i2.Room {
     ],
     bool? suppressWarning = false,
     bool? cache,
+    bool? enforceFetchFromServer = false,
   ]) =>
       (super.noSuchMethod(
             Invocation.method(#requestParticipants, [
               membershipFilter,
               suppressWarning,
               cache,
+              enforceFetchFromServer,
             ]),
             returnValue: _i6.Future<List<_i2.User>>.value(<_i2.User>[]),
             returnValueForMissingStub: _i6.Future<List<_i2.User>>.value(
@@ -1511,12 +1513,13 @@ class MockRoom extends _i1.Mock implements _i2.Room {
     String? eventId, {
     String? reason,
     String? txid,
+    bool? redactAllEdits = false,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
               #redactEvent,
               [eventId],
-              {#reason: reason, #txid: txid},
+              {#reason: reason, #txid: txid, #redactAllEdits: redactAllEdits},
             ),
             returnValue: _i6.Future<String?>.value(),
             returnValueForMissingStub: _i6.Future<String?>.value(),
@@ -2174,9 +2177,17 @@ class MockEvent extends _i1.Mock implements _i2.Event {
           as _i6.Future<String?>);
 
   @override
-  _i6.Future<String?> redactEvent({String? reason, String? txid}) =>
+  _i6.Future<String?> redactEvent({
+    String? reason,
+    String? txid,
+    bool? redactAllEdits = false,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#redactEvent, [], {#reason: reason, #txid: txid}),
+            Invocation.method(#redactEvent, [], {
+              #reason: reason,
+              #txid: txid,
+              #redactAllEdits: redactAllEdits,
+            }),
             returnValue: _i6.Future<String?>.value(),
             returnValueForMissingStub: _i6.Future<String?>.value(),
           )

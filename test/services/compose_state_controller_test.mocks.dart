@@ -535,9 +535,17 @@ class MockEvent extends _i1.Mock implements _i2.Event {
           as _i5.Future<String?>);
 
   @override
-  _i5.Future<String?> redactEvent({String? reason, String? txid}) =>
+  _i5.Future<String?> redactEvent({
+    String? reason,
+    String? txid,
+    bool? redactAllEdits = false,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#redactEvent, [], {#reason: reason, #txid: txid}),
+            Invocation.method(#redactEvent, [], {
+              #reason: reason,
+              #txid: txid,
+              #redactAllEdits: redactAllEdits,
+            }),
             returnValue: _i5.Future<String?>.value(),
             returnValueForMissingStub: _i5.Future<String?>.value(),
           )
