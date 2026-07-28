@@ -1,0 +1,41 @@
+version: 2
+
+updates:
+  # Dart/Flutter dependencies (pubspec.yaml)
+  - package-ecosystem: "pub"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    labels:
+      - "dependencies"
+    groups:
+      # Group all minor + patch updates into a single PR
+      # to reduce noise. Major version bumps get individual PRs.
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    open-pull-requests-limit: 10
+
+  # GitHub Actions workflow versions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "ci"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    open-pull-requests-limit: 5
