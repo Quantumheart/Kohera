@@ -32,6 +32,7 @@ import 'package:kohera/features/notifications/widgets/notification_lifecycle_obs
 import 'package:kohera/features/share_in/services/avatar_cache_service.dart';
 import 'package:kohera/features/share_in/services/room_snapshot_service.dart';
 import 'package:kohera/features/share_in/services/share_in_store.dart';
+import 'package:kohera/features/share_in/services/share_intake_controller.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
@@ -64,6 +65,7 @@ class _KoheraAppState extends State<KoheraApp> {
   final _ringtoneService = RingtoneService();
   RoomSnapshotService? _roomSnapshotService;
   AvatarCacheService? _avatarCacheService;
+  ShareIntakeController? _shareIntake;
 
   @override
   void initState() {
@@ -83,6 +85,7 @@ class _KoheraAppState extends State<KoheraApp> {
 
   void _bindShareIn(MatrixService service) {
     _roomSnapshotService?.dispose();
+    _shareIntake?.dispose();
     unawaited(_avatarCacheService?.dispose());
     _avatarCacheService = AvatarCacheService(
       mediaResolver: service.mediaResolver,
@@ -130,6 +133,10 @@ class _KoheraAppState extends State<KoheraApp> {
         _router = buildRouter(clientManager);
       });
       _bindShareIn(clientManager.activeService);
+      _shareIntake = ShareIntakeController(
+        clientManager: clientManager,
+        router: _router!,
+      )..start();
     } catch (e) {
       debugPrint('[Kohera] Initialization failed: $e');
       if (!mounted) return;
