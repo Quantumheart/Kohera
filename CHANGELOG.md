@@ -1,5 +1,38 @@
 # Changelog
 
+## [1.14.0](https://github.com/Quantumheart/Kohera/compare/v1.13.0...v1.14.0) (2026-07-30)
+
+
+### Features
+
+* **#863:** pre-render room avatars into App Group for the share picker ([af0cc55](https://github.com/Quantumheart/Kohera/commit/af0cc55e5310580408e0e8616695640aa144bb88)), closes [#861](https://github.com/Quantumheart/Kohera/issues/861) [#863](https://github.com/Quantumheart/Kohera/issues/863)
+* **#863:** scaffold iOS Share Extension + active-account-id persistence ([94ce198](https://github.com/Quantumheart/Kohera/commit/94ce1984bf54816cec5a004ed6210b592b12a52b)), closes [#861](https://github.com/Quantumheart/Kohera/issues/861) [#862](https://github.com/Quantumheart/Kohera/issues/862)
+* **#863:** wire KoheraShare entitlements, fix staging, add target ([31f8d72](https://github.com/Quantumheart/Kohera/commit/31f8d72c34470343f3046538b8ecb3ec8ff0d85d)), closes [#861](https://github.com/Quantumheart/Kohera/issues/861) [#863](https://github.com/Quantumheart/Kohera/issues/863)
+* **#864:** tap-to-send share flow with deep link to room ([ef1775d](https://github.com/Quantumheart/Kohera/commit/ef1775dbad304f7b6f55b1a0f8c048229ed8e6c6)), closes [#864](https://github.com/Quantumheart/Kohera/issues/864) [#861](https://github.com/Quantumheart/Kohera/issues/861)
+* **#891:** donate INSendMessageIntent on share-in send ([bae43a8](https://github.com/Quantumheart/Kohera/commit/bae43a8f9d3b73c76492ade139372a57cdd7ae23)), closes [#869](https://github.com/Quantumheart/Kohera/issues/869) [#890](https://github.com/Quantumheart/Kohera/issues/890) [#891](https://github.com/Quantumheart/Kohera/issues/891)
+* add account deactivation from settings ([fb3ae30](https://github.com/Quantumheart/Kohera/commit/fb3ae30ee67d181f6d4720db18fb13df58e759ca)), closes [#170](https://github.com/Quantumheart/Kohera/issues/170)
+* add share-in App-Group contract, models, and room snapshot store ([217b168](https://github.com/Quantumheart/Kohera/commit/217b168bb7177c66f7aa57d7868e5b6463c92943)), closes [#862](https://github.com/Quantumheart/Kohera/issues/862) [#861](https://github.com/Quantumheart/Kohera/issues/861)
+* apply two-tier More… menu to mobile action sheet ([2292d51](https://github.com/Quantumheart/Kohera/commit/2292d516aa6e4d2e562cb7a58157c80f13425a5b)), closes [#830](https://github.com/Quantumheart/Kohera/issues/830)
+* split message context menu into two-tier More… menu ([b02ebcc](https://github.com/Quantumheart/Kohera/commit/b02ebccb6c2a53832a932b26194550d78a50ca3a)), closes [#830](https://github.com/Quantumheart/Kohera/issues/830)
+
+
+### Bug Fixes
+
+* **#862:** instantiate RoomSnapshotService directly, not via ProxyProvider ([d095950](https://github.com/Quantumheart/Kohera/commit/d095950973f12e800251ab2f59fa64f1ccc446e6)), closes [#862](https://github.com/Quantumheart/Kohera/issues/862)
+* **#862:** throttle room snapshot flush instead of debouncing ([9d4b9ad](https://github.com/Quantumheart/Kohera/commit/9d4b9ad9b705dc062024546bffac92f63be8a468)), closes [#862](https://github.com/Quantumheart/Kohera/issues/862)
+* **#862:** write room snapshot at launch, not only on sync events ([6cbef7f](https://github.com/Quantumheart/Kohera/commit/6cbef7f587bc1b4c1045ffbb51b1901adcb2c556)), closes [#862](https://github.com/Quantumheart/Kohera/issues/862)
+* **#863:** auto-push room picker + taller compose sheet ([9924248](https://github.com/Quantumheart/Kohera/commit/992424841daaf7729b25e84d2d5cc32f4b775083)), closes [#863](https://github.com/Quantumheart/Kohera/issues/863)
+* **#863:** unwrap SLComposeSheetConfigurationItem optional ([6cc42bd](https://github.com/Quantumheart/Kohera/commit/6cc42bdeea3777c5e929d255a8392c2df692dfa3)), closes [#863](https://github.com/Quantumheart/Kohera/issues/863)
+* handle UIA cancel, clear cached password, validate id server in deactivation ([1cbdc72](https://github.com/Quantumheart/Kohera/commit/1cbdc728ffc5bc0716fe56e0b72e67e9ce93911a)), closes [#170](https://github.com/Quantumheart/Kohera/issues/170)
+* **ios:** implement CallkitIncomingAppDelegate.providerDidReset ([bbe2a95](https://github.com/Quantumheart/Kohera/commit/bbe2a95a7611229dc0a35ec7fe3cf33bf1c78968))
+* **ios:** lower KoheraShare deployment target to 14.0 ([4fba71f](https://github.com/Quantumheart/Kohera/commit/4fba71fea8072653d33f79590e59dd55d061e2e2))
+* **ios:** use Automatic/Apple Development signing for Runner Debug ([b484929](https://github.com/Quantumheart/Kohera/commit/b4849292ba10e3475dcd533a0f88af9d930e16b1))
+* migrate FilePicker.platform to static methods for file_picker 11.0.0 ([81ab5a2](https://github.com/Quantumheart/Kohera/commit/81ab5a2a695c3aa27aabaddc7d58fa46030e09ad))
+* regenerate mocks for flutter_local_notifications 22.2.0 ([0255efa](https://github.com/Quantumheart/Kohera/commit/0255efa35f6e9e1241ad1e175f730b7095f2194b))
+* regenerate mocks for matrix 9.0.0 API changes ([92d2671](https://github.com/Quantumheart/Kohera/commit/92d26712f7dd433d7ea749b25506af4bbb08c4ba))
+* replace deprecated livekit speaker API ([8caa55b](https://github.com/Quantumheart/Kohera/commit/8caa55b8df3938fe7d0a352b086a86acb9c2015c))
+* **test:** regenerate stale share_in test mocks ([1bb9afe](https://github.com/Quantumheart/Kohera/commit/1bb9afeb26891fa25e631ddde975b5a67df9edb8))
+
 ## [1.13.0](https://github.com/Quantumheart/Kohera/compare/v1.12.0...v1.13.0) (2026-07-25)
 
 
