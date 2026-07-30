@@ -59,6 +59,22 @@ class ShareInStore implements RoomSnapshotSink {
   Future<void> clearIncomingShare() async =>
       _invokeVoid('clearIncomingShare', null);
 
+  /// Donates an `INSendMessageIntent` for [roomId] so iOS learns Kohera room
+  /// recency and surfaces Kohera rooms in the share sheet's suggestions row
+  /// (epic #869). Carries only room metadata; no token/credential.
+  Future<void> donateSendMessage({
+    required String roomId,
+    required String displayname,
+    String? avatarPath,
+  }) async {
+    final map = <String, Object?>{
+      'roomId': roomId,
+      'displayname': displayname,
+    };
+    if (avatarPath != null) map['avatarPath'] = avatarPath;
+    await _invokeVoid('donateSendMessage', jsonEncode(map));
+  }
+
   Future<String?> readActiveAccountId() async {
     try {
       return await _channel.invokeMethod<String>('readActiveAccountId');

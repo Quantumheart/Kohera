@@ -126,6 +126,41 @@ void main() {
     });
   });
 
+  group('ShareInStore.donateSendMessage', () {
+    test('invokes donateSendMessage with JSON roomId/displayname/avatarPath', () async {
+      setHandler((call) async {
+        calls.add(MapEntry(call.method, call.arguments));
+        return null;
+      });
+
+      await store.donateSendMessage(
+        roomId: '!r:s',
+        displayname: 'Devs',
+        avatarPath: '/avatars/!r:s.png',
+      );
+
+      expect(calls.single.key, 'donateSendMessage');
+      final decoded = jsonDecode(calls.single.value! as String) as Map<String, dynamic>;
+      expect(decoded, {
+        'roomId': '!r:s',
+        'displayname': 'Devs',
+        'avatarPath': '/avatars/!r:s.png',
+      });
+    });
+
+    test('omits avatarPath when null', () async {
+      setHandler((call) async {
+        calls.add(MapEntry(call.method, call.arguments));
+        return null;
+      });
+
+      await store.donateSendMessage(roomId: '!r:s', displayname: 'Devs');
+
+      final decoded = jsonDecode(calls.single.value! as String) as Map<String, dynamic>;
+      expect(decoded.containsKey('avatarPath'), isFalse);
+    });
+  });
+
   group('ShareInStore.activeAccountId', () {
     test('reads the id returned by native', () async {
       setHandler((call) async {

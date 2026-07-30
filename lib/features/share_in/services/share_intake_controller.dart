@@ -65,6 +65,9 @@ class ShareIntakeController with WidgetsBindingObserver {
 
       final client = _clientManager.activeService.client;
       await sendIncomingShareToRoom(client, share.roomId, share);
+      final displayname =
+          client.getRoomById(share.roomId)?.getLocalizedDisplayname() ?? share.roomId;
+      await _store.donateSendMessage(roomId: share.roomId, displayname: displayname);
       _router.go('${RoutePaths.roomPrefix}${share.roomId}');
     } catch (e) {
       debugPrint('[Kohera] Share intake failed: $e');

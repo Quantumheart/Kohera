@@ -5,6 +5,7 @@ import AVFAudio
 import CallKit
 import PushKit
 import UserNotifications
+import Intents
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, CallkitIncomingAppDelegate, PKPushRegistryDelegate {
@@ -263,6 +264,13 @@ import UserNotifications
       case "clearIncomingShare":
         suite?.removeObject(forKey: "incomingShare")
         result(nil)
+      case "donateSendMessage":
+        if let raw = call.arguments as? String,
+           let data = raw.data(using: .utf8),
+           let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+          IntentDonation.donateSendMessage(dict: dict)
+        }
+        result(nil)
       case "readActiveAccountId":
         result(suite?.string(forKey: "activeAccountId"))
       case "writeActiveAccountId":
@@ -477,4 +485,60 @@ import UserNotifications
   func didDeactivateAudioSession(_ audioSession: AVAudioSession) {}
 
   func providerDidReset() {}
+}
+
+// ── Intent donation (share-sheet suggestions, #869) ───────────
+
+/// Donates `INSendMessageIntent` interactions so iOS learns Kohera room
+/// recency and surfaces Kohera rooms in the share sheet's suggestions row.
+/// Carries only room metadata (roomId + displayname + optional avatar path);
+/// no token/credential and no Matrix SDK involvement.
+enum IntentDonation {
+  static func donateSendMessage(dict: [String: Any]) {
+    guard let roomId = dict["roomId"] as? String else {
+      NSLog("[Kohera] Donate: missing roomId")
+      return
+    }
+    let displayname = (dict["displayname"] as? String) ?? roomId
+    let avatarPath = dict["avatarPath"] as? String
+
+    let handle = INPersonHandle(value: roomId, type: .unknown)
+    var image: INImage? = nil
+    if let avatarPath = avatarPath,
+       let uiImage = UIImage(contentsOfFile: avatarPath) {
+      image = INImage(imageData: uiImage.pngData()!)
+    }
+    let person = INPerson(
+      personHandle: handle,
+      nameComponents: nil,
+      displayName: displayname,
+      image: image,
+      contactIdentifier: nil,
+      customIdentifier: roomId
+    )
+
+    if #available(iOS 14.0, *) {
+      let intent = INSendMessageIntent(
+        recipients: [person],
+        outgoingMessageType: .outgoingMessageText,
+        content: nil,
+        speakableGroupName: nil,
+        conversationIdentifier: roomId,
+        serviceName: "Kohera",
+        sender: nil,
+        attachments: nil
+      )
+      let response = INSendMessageIntentResponse(code: .success, userActivity: nil)
+      let interaction = INInteraction(intent: intent, response: response)
+      interaction.donate { error in
+        if let error = error {
+          NSLog("[Kohera] Donate INSendMessageIntent failed: \(error)")
+        } else {
+          NSLog("[Kohera] Donate INSendMessageIntent ok for room \(roomId)")
+        }
+      }
+    } else {
+      NSLog("[Kohera] Donate skipped: INSendMessageIntent requires iOS 14+")
+    }
+  }
 }
