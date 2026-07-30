@@ -638,11 +638,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "7c16ccc"
-      resolved-ref: "7c16ccc4b46be434ab79f8629c19576988845f2b"
+      ref: ef1ff97
+      resolved-ref: ef1ff9703e3755f199100b43c455f9c6818037b2
       url: "https://github.com/Quantumheart/flutter-webrtc.git"
     source: git
-    version: "1.4.0"
+    version: "1.5.2"
   frontend_server_client:
     dependency: transitive
     description:
