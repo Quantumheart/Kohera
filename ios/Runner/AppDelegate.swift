@@ -475,4 +475,6 @@ import UserNotifications
   func didActivateAudioSession(_ audioSession: AVAudioSession) {}
 
   func didDeactivateAudioSession(_ audioSession: AVAudioSession) {}
+
+  func providerDidReset() {}
 }
