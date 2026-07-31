@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.14.1](https://github.com/Quantumheart/Kohera/compare/v1.14.0...v1.14.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* pin livekit_client to SPM fork to resolve flutter_webrtc SPM conflict ([54e6d6e](https://github.com/Quantumheart/Kohera/commit/54e6d6ec5a8e99608936c067d00cbd21108c1723))
+* **tests:** generate goldens ([2924ecc](https://github.com/Quantumheart/Kohera/commit/2924eccca63456260d38c33185ab3a74fc83fd5b))
+
 ## [1.14.0](https://github.com/Quantumheart/Kohera/compare/v1.13.0...v1.14.0) (2026-07-30)
 
 
