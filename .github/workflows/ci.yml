@@ -92,4 +92,4 @@ jobs:
         run: |
           flutter precache --ios
           pod install --repo-update
-      - run: flutter build ios --release --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
+      - run: flutter build ios --no-codesign --release --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
