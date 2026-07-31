@@ -1,0 +1,18 @@
+# fastlane match — encrypted store for the iOS distribution cert +
+# App Store provisioning profiles. CI pulls read-only via `fastlane
+# sync_signing`; local rotation regenerates via `fastlane provision`.
+#
+# Secrets consumed (do NOT commit values):
+#   MATCH_GIT_URL     private git repo holding the encrypted cert store
+#   MATCH_PASSWORD    passphrase encrypting that store
+#   APPSTORE_CONNECT_KEY_ID / ISSUER_ID / API_KEY  reused from release.yml
+#                     (api_key is built in the Fastfile so match needs no
+#                     Apple ID interactive login).
+
+git_url(ENV["MATCH_GIT_URL"])
+type("appstore")
+
+app_identifier([
+  "io.github.quantumheart.kohera",
+  "io.github.quantumheart.kohera.KoheraNotificationService"
+])

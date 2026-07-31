@@ -155,28 +155,23 @@ jobs:
             ~/Library/Caches/org.swift.swiftpm
           key: pods-ios-${{ hashFiles('ios/Podfile.lock') }}
           restore-keys: pods-ios-
-      - name: Install distribution certificate
+      - name: Setup fastlane
         env:
-          IOS_CERTIFICATE_P12: ${{ secrets.IOS_CERTIFICATE_P12 }}
-          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          APPSTORE_CONNECT_API_KEY: ${{ secrets.APPSTORE_CONNECT_API_KEY }}
+          APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
         run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          CERT_PATH=$RUNNER_TEMP/certificate.p12
-          echo -n "$IOS_CERTIFICATE_P12" | base64 --decode -o "$CERT_PATH"
-          security create-keychain -p "" "$KEYCHAIN_PATH"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
-          security unlock-keychain -p "" "$KEYCHAIN_PATH"
-          security import "$CERT_PATH" -P "$IOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
-          security set-key-partition-list -S apple-tool:,apple: -k "" "$KEYCHAIN_PATH"
-          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
-      - name: Install provisioning profiles
+          gem install fastlane --no-document
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo -n "$APPSTORE_CONNECT_API_KEY" | base64 --decode \
+            -o ~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_CONNECT_KEY_ID}.p8
+      - name: Sync signing (cert + profiles via match)
         env:
-          IOS_RUNNER_PROVISION_PROFILE: ${{ secrets.IOS_RUNNER_PROVISION_PROFILE }}
-          IOS_NSE_PROVISION_PROFILE: ${{ secrets.IOS_NSE_PROVISION_PROFILE }}
-        run: |
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo -n "$IOS_RUNNER_PROVISION_PROFILE" | base64 --decode -o ~/Library/MobileDevice/Provisioning\ Profiles/runner.mobileprovision
-          echo -n "$IOS_NSE_PROVISION_PROFILE" | base64 --decode -o ~/Library/MobileDevice/Provisioning\ Profiles/nse.mobileprovision
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+          APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
+          APPSTORE_CONNECT_KEY_FILEPATH: ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPSTORE_CONNECT_KEY_ID }}.p8
+        run: fastlane sync_signing
       - run: flutter pub get
       - run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist --build-number=${{ github.run_number }} --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
       - name: Upload to TestFlight
@@ -202,9 +197,6 @@ jobs:
           path: |
             kohera-ios-arm64.ipa
             kohera-ios-arm64.ipa.sha256
-      - name: Clean up keychain
-        if: always()
-        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
 
   build-android:
     needs: verify-tag
