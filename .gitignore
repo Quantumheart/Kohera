@@ -62,3 +62,9 @@ flatpak/.flatpak-builder-build/
 .pi/
 .plans/
 piolium/*
+# fastlane generated artifacts (Matchfile/Fastfile/SETUP.md are tracked)
+fastlane/README.md
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/

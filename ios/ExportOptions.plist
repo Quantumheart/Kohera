@@ -13,9 +13,9 @@
 	<key>provisioningProfiles</key>
 	<dict>
 		<key>io.github.quantumheart.kohera</key>
-		<string>Kohera App Store</string>
+		<string>match AppStore io.github.quantumheart.kohera</string>
 		<key>io.github.quantumheart.kohera.KoheraNotificationService</key>
-		<string>Kohera NSE App Store</string>
+		<string>match AppStore io.github.quantumheart.kohera.KoheraNotificationService</string>
 	</dict>
 </dict>
 </plist>
