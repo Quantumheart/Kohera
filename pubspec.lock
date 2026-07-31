@@ -928,10 +928,11 @@ packages:
   livekit_client:
     dependency: "direct main"
     description:
-      name: livekit_client
-      sha256: "8f8dd46fb9e58acedbc37efa890422f9e62d38a75d5937855126f81fc314b35b"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: b982404
+      resolved-ref: b98240405964518870ec984cd3f72e6e02e41630
+      url: "https://github.com/Quantumheart/client-sdk-flutter.git"
+    source: git
     version: "2.9.0"
   logger:
     dependency: transitive
