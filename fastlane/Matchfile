@@ -14,5 +14,6 @@ type("appstore")
 
 app_identifier([
   "io.github.quantumheart.kohera",
-  "io.github.quantumheart.kohera.KoheraNotificationService"
+  "io.github.quantumheart.kohera.KoheraNotificationService",
+  "io.github.quantumheart.kohera.KoheraShare"
 ])
