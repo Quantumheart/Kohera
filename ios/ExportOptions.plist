@@ -16,6 +16,8 @@
 		<string>match AppStore io.github.quantumheart.kohera</string>
 		<key>io.github.quantumheart.kohera.KoheraNotificationService</key>
 		<string>match AppStore io.github.quantumheart.kohera.KoheraNotificationService</string>
+		<key>io.github.quantumheart.kohera.KoheraShare</key>
+    	<string>match AppStore io.github.quantumheart.kohera.KoheraShare</string>
 	</dict>
 </dict>
 </plist>
