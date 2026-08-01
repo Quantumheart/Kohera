@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.14.2](https://github.com/Quantumheart/Kohera/compare/v1.14.1...v1.14.2) (2026-08-01)
+
+
+### Bug Fixes
+
+* add KoheraShare to app_identifer array ([a3014c9](https://github.com/Quantumheart/Kohera/commit/a3014c9f4be6e17e6386a9a440b26c460e8c020b))
+* add ssh private key ([8b0ba78](https://github.com/Quantumheart/Kohera/commit/8b0ba786aea21b37f7551a9385ea94ffb5889c07))
+* ios build issues ([f322546](https://github.com/Quantumheart/Kohera/commit/f3225462f163f5555c74bee8987bfc7db070c67b))
+* set release profile for KoheraShare to match ([3b737c6](https://github.com/Quantumheart/Kohera/commit/3b737c62c3812f65541b9c1aaed573745cca45a6))
+
 ## [1.14.1](https://github.com/Quantumheart/Kohera/compare/v1.14.0...v1.14.1) (2026-07-31)
 
 
