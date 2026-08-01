@@ -155,6 +155,10 @@ jobs:
             ~/Library/Caches/org.swift.swiftpm
           key: pods-ios-${{ hashFiles('ios/Podfile.lock') }}
           restore-keys: pods-ios-
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
       - name: Setup fastlane
         env:
           APPSTORE_CONNECT_API_KEY: ${{ secrets.APPSTORE_CONNECT_API_KEY }}
