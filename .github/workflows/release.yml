@@ -155,10 +155,14 @@ jobs:
             ~/Library/Caches/org.swift.swiftpm
           key: pods-ios-${{ hashFiles('ios/Podfile.lock') }}
           restore-keys: pods-ios-
-      - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
         with:
-          ssh-private-key: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
+          app-id: ${{ secrets.MATCH_GH_APP_ID }}
+          private-key: ${{ secrets.MATCH_GH_APP_PRIVATE_KEY }}
+          owner: quantumheart
+          repositories: kohera-certificates
       - name: Setup fastlane
         env:
           APPSTORE_CONNECT_API_KEY: ${{ secrets.APPSTORE_CONNECT_API_KEY }}
