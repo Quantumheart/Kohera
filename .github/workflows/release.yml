@@ -153,7 +153,7 @@ jobs:
             ios/Pods
             ~/Library/Caches/CocoaPods
             ~/Library/Caches/org.swift.swiftpm
-          key: pods-ios-${{ hashFiles('ios/Podfile.lock') }}
+          key: pods-ios-v2-${{ hashFiles('ios/Podfile.lock') }}
           restore-keys: pods-ios-
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.9.0
