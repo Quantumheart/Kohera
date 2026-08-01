@@ -7157,6 +7157,15 @@ class MockPreferencesService extends _i1.Mock
           as _i29.TimelineStyle);
 
   @override
+  double get bubbleVibe =>
+      (super.noSuchMethod(
+            Invocation.getter(#bubbleVibe),
+            returnValue: 0.0,
+            returnValueForMissingStub: 0.0,
+          )
+          as double);
+
+  @override
   _i29.MobileTab get lastMobileTab =>
       (super.noSuchMethod(
             Invocation.getter(#lastMobileTab),
@@ -7565,6 +7574,15 @@ class MockPreferencesService extends _i1.Mock
   _i5.Future<void> setTimelineStyle(_i29.TimelineStyle? style) =>
       (super.noSuchMethod(
             Invocation.method(#setTimelineStyle, [style]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> setBubbleVibe(double? value) =>
+      (super.noSuchMethod(
+            Invocation.method(#setBubbleVibe, [value]),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )

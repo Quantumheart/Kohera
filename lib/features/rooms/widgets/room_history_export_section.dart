@@ -65,7 +65,7 @@ class _RoomHistoryExportSectionState extends State<RoomHistoryExportSection> {
   Future<String?> _save(Uint8List bytes, String fileName) {
     final override = widget.onSaveFile;
     if (override != null) return override(bytes, fileName);
-    return FilePicker.platform.saveFile(
+    return FilePicker.saveFile(
       dialogTitle: 'Export chat history',
       fileName: fileName,
       bytes: bytes,
