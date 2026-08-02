@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.15.0](https://github.com/Quantumheart/Kohera/compare/v1.14.2...v1.15.0) (2026-08-02)
+
+
+### Features
+
+* **#169:** chat history export from room details ([6dca433](https://github.com/Quantumheart/Kohera/commit/6dca4337035b23955a2e231ec9f10f43bf5c20f9)), closes [#169](https://github.com/Quantumheart/Kohera/issues/169)
+* **#815:** bubble vibe resolver + persisted vibe pref (foundation) ([a29234f](https://github.com/Quantumheart/Kohera/commit/a29234fe88f8e906a3767eea4cd4dbcfef1d3aaa))
+
+
+### Bug Fixes
+
+* **ios:** disable Swift Package Manager to resolve duplicate flutter_vodozemac framework ([f4a7d8e](https://github.com/Quantumheart/Kohera/commit/f4a7d8e984b2cc4cf705f95f0d68f20745ea8c63))
+* **macos:** update pod.lock ([d687e55](https://github.com/Quantumheart/Kohera/commit/d687e55cfda50140d738efb37e56b5eea7f48329))
+
 ## [1.14.2](https://github.com/Quantumheart/Kohera/compare/v1.14.1...v1.14.2) (2026-08-01)
 
 
