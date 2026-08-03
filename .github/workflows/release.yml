@@ -168,6 +168,11 @@ jobs:
           mkdir -p ~/.appstoreconnect/private_keys
           echo -n "$APPSTORE_CONNECT_API_KEY" | base64 --decode \
             -o ~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_CONNECT_KEY_ID}.p8
+      - id: kc_pass
+        run: |
+          pw="$(openssl rand -hex 32)"
+          echo "::add-mask::$pw"
+          echo "password=$pw" >> "$GITHUB_OUTPUT"
       - name: Sync signing (cert + profiles via match)
         env:
           MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
@@ -175,6 +180,10 @@ jobs:
           APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
           APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
           APPSTORE_CONNECT_KEY_FILEPATH: ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPSTORE_CONNECT_KEY_ID }}.p8
+          # Dedicated keychain password generated per-run so match can set the
+          # key partition list and let codesign access the private key without
+          # a UI prompt (the runner is headless). The keychain is ephemeral.
+          MATCH_KEYCHAIN_PASSWORD: ${{ steps.kc_pass.outputs.password }}
         run: fastlane sync_signing
       - run: flutter pub get
       - run: flutter build ipa --release --export-options-plist=ios/ExportOptions.plist --build-number=${{ github.run_number }} --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
