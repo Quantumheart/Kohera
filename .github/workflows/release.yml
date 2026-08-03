@@ -129,12 +129,83 @@ jobs:
             ~/Library/Caches/org.swift.swiftpm
           key: pods-macos-${{ hashFiles('macos/Podfile.lock') }}
           restore-keys: pods-macos-
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
+      - name: Setup fastlane
+        env:
+          APPSTORE_CONNECT_API_KEY: ${{ secrets.APPSTORE_CONNECT_API_KEY }}
+          APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+        run: |
+          gem install fastlane --no-document
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo -n "$APPSTORE_CONNECT_API_KEY" | base64 --decode \
+            -o ~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_CONNECT_KEY_ID}.p8
+      - id: kc_pass
+        run: |
+          pw="$(openssl rand -hex 32)"
+          echo "::add-mask::$pw"
+          echo "password=$pw" >> "$GITHUB_OUTPUT"
+      - name: Sync signing (Developer ID via match)
+        env:
+          MATCH_GIT_URL: ${{ secrets.MATCH_GIT_URL }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+          APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
+          APPSTORE_CONNECT_KEY_FILEPATH: ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPSTORE_CONNECT_KEY_ID }}.p8
+          MATCH_KEYCHAIN_PASSWORD: ${{ steps.kc_pass.outputs.password }}
+        run: fastlane sync_signing_macos
       - run: flutter pub get
-      - run: flutter build macos --release --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
-      - name: Archive build
+      - name: Repair vodozemac framework layout
+        run: |
+          FW="macos/Flutter/ephemeral/Packages/.packages/flutter_vodozemac-0.6.0/flutter_vodozemac.xcframework/macos-arm64_x86_64/flutter_vodozemac.framework"
+          if [ -d "$FW/Versions/A" ]; then
+            echo "Rebuilding canonical versioned framework layout in $FW"
+            rm -rf "$FW/Versions/Current"
+            ln -s A "$FW/Versions/Current"
+            for e in flutter_vodozemac Headers Modules Resources; do
+              rm -rf "$FW/$e"
+              ln -s "Versions/Current/$e" "$FW/$e"
+            done
+            echo "=== $FW ==="
+            ls -la "$FW"
+            echo "=== Versions ==="
+            ls -la "$FW/Versions"
+          else
+            echo "Versions/A not found in $FW, skipping"
+          fi
+      - name: Build macOS
+        run: flutter build macos --release --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
+      - name: Notarize and staple
+        env:
+          APPSTORE_CONNECT_KEY_ID: ${{ secrets.APPSTORE_CONNECT_KEY_ID }}
+          APPSTORE_CONNECT_ISSUER_ID: ${{ secrets.APPSTORE_CONNECT_ISSUER_ID }}
+        run: |
+          APP="build/macos/Build/Products/Release/kohera.app"
+          KEY_FILE="$HOME/.appstoreconnect/private_keys/AuthKey_${APPSTORE_CONNECT_KEY_ID}.p8"
+          ditto -c -k --keepParent "$APP" kohera-macos-universal.zip
+          SUBMIT_OUT=$(xcrun notarytool submit kohera-macos-universal.zip \
+            --key "$KEY_FILE" \
+            --key-id "$APPSTORE_CONNECT_KEY_ID" \
+            --issuer "$APPSTORE_CONNECT_ISSUER_ID" \
+            --wait 2>&1 | tee /dev/stderr)
+          SUBMIT_ID=$(echo "$SUBMIT_OUT" | awk '/^[[:space:]]+id:/{print $2; exit}')
+          STATUS=$(echo "$SUBMIT_OUT" | awk '/^[[:space:]]+status:/{s=$2} END{print s}')
+          if [ "$STATUS" != "Accepted" ]; then
+            echo "::error::Notarization status: $STATUS (id: $SUBMIT_ID). Fetching log:"
+            xcrun notarytool log "$SUBMIT_ID" \
+              --key "$KEY_FILE" \
+              --key-id "$APPSTORE_CONNECT_KEY_ID" \
+              --issuer "$APPSTORE_CONNECT_ISSUER_ID"
+            exit 1
+          fi
+          xcrun stapler staple "$APP"
+          codesign --verify --verbose=4 "$APP"
+      - name: Archive stapled build
         run: |
           cd build/macos/Build/Products/Release
-          zip -r ../../../../../kohera-macos-universal.zip kohera.app
+          ditto -c -k --keepParent kohera.app ../../../../../kohera-macos-universal.zip
       - name: Generate checksum
         run: shasum -a 256 kohera-macos-universal.zip > kohera-macos-universal.zip.sha256
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
