@@ -12,11 +12,29 @@ def connect_api_key
 end
 
 # ── CI: pull cert + profiles, never mutate ──────────────────────
+# Create a dedicated, unlocked keychain match controls, then import the
+# cert + key into it. match sets the key partition list (codesign is granted
+# non-interactive access) using keychain_password, so code signing never
+# blocks on a UI permission popup on the headless CI runner. Without this,
+# match imports into the runner's login.keychain but cannot set the ACL
+# (no keychain password), and every codesign invocation hangs.
 lane :sync_signing do
+  keychain = ENV["MATCH_KEYCHAIN_NAME"] || "fastlane_match_keychain"
+  create_keychain(
+    name: keychain,
+    password: ENV.fetch("MATCH_KEYCHAIN_PASSWORD"),
+    default_keychain: false,
+    unlock: true,
+    timeout: 3600,
+    lock_when_sleeps: false,
+    add_to_search_list: true
+  )
   match(
     type: "appstore",
     readonly: true,
-    api_key: connect_api_key
+    api_key: connect_api_key,
+    keychain_name: keychain,
+    keychain_password: ENV.fetch("MATCH_KEYCHAIN_PASSWORD")
   )
 end
 
