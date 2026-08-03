@@ -45,3 +45,38 @@ lane :provision do
     api_key: connect_api_key
   )
 end
+
+# ── macOS: Developer ID Application cert for notarized release ──
+# CI pulls read-only via sync_signing_macos; local rotation regenerates
+# via provision_macos. Developer ID certs need no provisioning profile,
+# so match only stores the certificate itself.
+lane :sync_signing_macos do
+  keychain = ENV["MATCH_KEYCHAIN_NAME"] || "fastlane_match_keychain"
+  create_keychain(
+    name: keychain,
+    password: ENV.fetch("MATCH_KEYCHAIN_PASSWORD"),
+    default_keychain: false,
+    unlock: true,
+    timeout: 3600,
+    lock_when_sleeps: false,
+    add_to_search_list: true
+  )
+  match(
+    type: "developer_id",
+    platform: "macos",
+    readonly: true,
+    api_key: connect_api_key,
+    keychain_name: keychain,
+    keychain_password: ENV.fetch("MATCH_KEYCHAIN_PASSWORD"),
+    app_identifier: ["io.github.quantumheart.kohera"]
+  )
+end
+
+lane :provision_macos do
+  match(
+    type: "developer_id",
+    platform: "macos",
+    api_key: connect_api_key,
+    app_identifier: ["io.github.quantumheart.kohera"]
+  )
+end
