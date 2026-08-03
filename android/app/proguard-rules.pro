@@ -4,6 +4,17 @@
 -keep class io.flutter.app.** { *; }
 -keep class io.flutter.embedding.** { *; }
 
+# ── Play Core deferred components (not used) ─────────────────
+# Flutter's embedding engine references Google Play Core split-install
+# classes (FlutterPlayStoreSplitApplication, PlayStoreDeferredComponentManager)
+# for deferred component / dynamic feature module support. This app does not
+# ship deferred components, so the Play Core dependency is absent. R8 full mode
+# (default since AGP 8.0) treats missing classes as errors, so suppress them.
+-dontwarn com.google.android.play.core.splitcompat.**
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
+-dontwarn com.google.android.play.core.**
+
 # ── Dart-JNI bridge (reflection-heavy) ──────────────────────
 -keep class com.github.dart_lang.jni.** { *; }
 -keep class com.github.dart_lang.jni_flutter.** { *; }
