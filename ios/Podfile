@@ -36,9 +36,13 @@ target 'Runner' do
   end
 end
 
+# flutter_vodozemac is consumed via Swift Package Manager (see
+# Runner.xcodeproj local package ref to
+# Flutter/ephemeral/Packages/.packages/flutter_vodozemac-0.6.0). Keeping
+# this target declared (with no pods) preserves the CocoaPods target support
+# files that the Xcode project still references.
 target 'KoheraNotificationService' do
   use_frameworks!
-  pod 'flutter_vodozemac', :path => '.symlinks/plugins/flutter_vodozemac/ios'
 end
 
 post_install do |installer|
