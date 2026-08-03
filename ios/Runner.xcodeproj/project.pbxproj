@@ -22,6 +22,8 @@
 		F87561FA3ED10693135CF75C /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F2A03829119E35886A76B58C /* Pods_RunnerTests.framework */; };
 		FF11F2823016FDDF00902941 /* KoheraShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FF11F2783016FDDE00902941 /* KoheraShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		FFFB94132F8EDEBE000C21EC /* KoheraNotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FFFB940C2F8EDEBE000C21EC /* KoheraNotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
+		FFVZ00012F8EDEBE000C21EC /* flutter-vodozemac in Frameworks */ = {isa = PBXBuildFile; productRef = FFVZ00022F8EDEBE000C21EC /* flutter-vodozemac */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -97,6 +99,7 @@
 		F2A03829119E35886A76B58C /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		FF11F2783016FDDE00902941 /* KoheraShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KoheraShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		FFFB940C2F8EDEBE000C21EC /* KoheraNotificationService.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KoheraNotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = FlutterGeneratedPluginSwiftPackage; path = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -148,6 +151,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */,
 				C5B51D3AA71032EAF806A8CD /* Pods_Runner.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -173,6 +177,7 @@
 			files = (
 				AAAA00012F900000000C0000 /* Intents.framework in Frameworks */,
 				7583BAB31CD19EBC60610A2D /* Pods_KoheraNotificationService.framework in Frameworks */,
+				FFVZ00012F8EDEBE000C21EC /* flutter-vodozemac in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -217,6 +222,7 @@
 		9740EEB11CF90186004384FC /* Flutter */ = {
 			isa = PBXGroup;
 			children = (
+				78E0A7A72DC9AD7400C4905E /* FlutterGeneratedPluginSwiftPackage */,
 				3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */,
 				9740EEB21CF90195004384FC /* Debug.xcconfig */,
 				7AFA3C8E1D35360C0083082E /* Release.xcconfig */,
@@ -291,6 +297,9 @@
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		97C146ED1CF9000F007C117D /* Runner */ = {
+			packageProductDependencies = (
+				78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */,
+			);
 			isa = PBXNativeTarget;
 			buildConfigurationList = 97C147051CF9000F007C117D /* Build configuration list for PBXNativeTarget "Runner" */;
 			buildPhases = (
@@ -353,6 +362,9 @@
 				FFFB940D2F8EDEBE000C21EC /* KoheraNotificationService */,
 			);
 			name = KoheraNotificationService;
+			packageProductDependencies = (
+				FFVZ00022F8EDEBE000C21EC /* flutter-vodozemac */,
+			);
 			productName = KoheraNotificationService;
 			productReference = FFFB940C2F8EDEBE000C21EC /* KoheraNotificationService.appex */;
 			productType = "com.apple.product-type.app-extension";
@@ -361,6 +373,10 @@
 
 /* Begin PBXProject section */
 		97C146E61CF9000F007C117D /* Project object */ = {
+			packageReferences = (
+				781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage" */,
+				FFVZ00032F8EDEBE000C21EC /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/.packages/flutter_vodozemac-0.6.0" */,
+			);
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
@@ -1283,6 +1299,26 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+/* Begin XCLocalSwiftPackageReference section */
+		781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage;
+		};
+		FFVZ00032F8EDEBE000C21EC /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/.packages/flutter_vodozemac-0.6.0" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Flutter/ephemeral/Packages/.packages/flutter_vodozemac-0.6.0;
+		};
+/* End XCLocalSwiftPackageReference section */
+/* Begin XCSwiftPackageProductDependency section */
+		78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FlutterGeneratedPluginSwiftPackage;
+		};
+		FFVZ00022F8EDEBE000C21EC /* flutter-vodozemac */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = flutter-vodozemac;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 97C146E61CF9000F007C117D /* Project object */;
 }
