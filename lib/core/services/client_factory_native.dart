@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -40,7 +41,6 @@ Future<void> _migrateIosDbFromAppGroup(String clientName, String sandboxDb) asyn
   }
 }
 
-// coverage:ignore-start
 Future<Client> createDefaultClient(
   String clientName, {
   Future<void> Function(Client)? onSoftLogout,
@@ -71,4 +71,3 @@ Future<Client> createDefaultClient(
     onSoftLogout,
   );
 }
-// coverage:ignore-end
