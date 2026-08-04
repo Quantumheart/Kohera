@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kohera/features/chat/services/chat_search_controller.dart';
 import 'package:kohera/features/chat/widgets/search_result_tile.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 
-class SearchResultsBody extends StatelessWidget {
+class SearchResultsBody extends StatefulWidget {
   const SearchResultsBody({
     required this.search,
     required this.avatarResolver,
@@ -17,7 +18,38 @@ class SearchResultsBody extends StatelessWidget {
   final ValueChanged<String> onTapResult;
 
   @override
+  State<SearchResultsBody> createState() => _SearchResultsBodyState();
+}
+
+class _SearchResultsBodyState extends State<SearchResultsBody> {
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 200 &&
+        widget.search.nextBatch != null &&
+        !widget.search.isLoading) {
+      unawaited(widget.search.performSearch(loadMore: true));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final search = widget.search;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final query = search.query;
@@ -155,9 +187,9 @@ class SearchResultsBody extends StatelessWidget {
           ),
         Expanded(
           child: ListView.builder(
+            controller: _scrollController,
             padding: const EdgeInsets.symmetric(vertical: 4),
-            itemCount:
-                search.results.length + (search.nextBatch != null ? 1 : 0),
+            itemCount: search.results.length + (search.nextBatch != null ? 1 : 0),
             itemBuilder: (context, i) {
               if (i == search.results.length) {
                 return Padding(
@@ -169,7 +201,7 @@ class SearchResultsBody extends StatelessWidget {
                             height: 24,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Load more results'),
+                        : const SizedBox.shrink(),
                   ),
                 );
               }
@@ -177,10 +209,10 @@ class SearchResultsBody extends StatelessWidget {
               final result = search.results[i];
               return SearchResultTile(
                 result: result,
-                avatarResolver: avatarResolver,
+                avatarResolver: widget.avatarResolver,
                 highlights: search.highlights,
                 query: query,
-                onTap: () => onTapResult(result.message.eventId),
+                onTap: () => widget.onTapResult(result.message.eventId),
               );
             },
           ),

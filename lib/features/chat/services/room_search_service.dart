@@ -87,7 +87,9 @@ class RoomSearchService {
         if (matchedEvent == null) continue;
 
         final event = Event.fromMatrixEvent(matchedEvent, room);
-        final message = resolver(event);
+        final message = resolver(event).copyWith(
+          isEdited: _isEditEvent(event),
+        );
 
         final contextBefore = <KoheraMessageDisplay>[];
         final contextAfter = <KoheraMessageDisplay>[];
@@ -122,5 +124,11 @@ class RoomSearchService {
       debugPrint('[Kohera] Server search failed: $e');
       rethrow;
     }
+  }
+
+  bool _isEditEvent(Event event) {
+    final relatesTo =
+        event.content.tryGet<Map<String, Object?>>('m.relates_to');
+    return relatesTo?.tryGet<String>('rel_type') == 'm.replace';
   }
 }
