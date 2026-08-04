@@ -35,6 +35,7 @@ import 'package:kohera/features/chat/services/message_timeline_controller.dart';
 import 'package:kohera/features/chat/services/paste_image_handler.dart';
 import 'package:kohera/features/chat/services/photo_send_handler.dart';
 import 'package:kohera/features/chat/services/reply_preview_resolver.dart';
+import 'package:kohera/features/chat/services/room_search_service.dart';
 import 'package:kohera/features/chat/services/thread_roots_service.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
@@ -265,8 +266,9 @@ class _ChatScreenState extends State<ChatScreen>
   ChatSearchController _createSearchController() {
     return ChatSearchController(
       roomId: widget.roomId,
-      getRoom: () =>
-          context.read<MatrixService>().client.getRoomById(widget.roomId),
+      searchService: RoomSearchService(
+        client: context.read<MatrixService>().client,
+      ),
     )..addListener(_onSearchChanged);
   }
 
