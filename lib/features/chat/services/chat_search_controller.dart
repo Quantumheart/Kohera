@@ -47,6 +47,23 @@ class ChatSearchController extends ChangeNotifier {
   bool _isEncryptedRoom = false;
   bool get isEncryptedRoom => _isEncryptedRoom;
 
+  String? _senderFilter;
+  String? get senderFilter => _senderFilter;
+
+  void setSenderFilter(String? senderId) {
+    _senderFilter = senderId;
+    notifyListeners();
+    if (_query.length >= minQueryLength) performSearch();
+  }
+
+  Set<String> get resultSenders {
+    final senders = <String>{};
+    for (final r in _results) {
+      senders.add(r.message.senderId);
+    }
+    return senders;
+  }
+
   List<String> _recentQueries = [];
   List<String> get recentQueries => _recentQueries;
 
@@ -67,6 +84,7 @@ class ChatSearchController extends ChangeNotifier {
     _count = null;
     _highlights = null;
     _isEncryptedRoom = false;
+    _senderFilter = null;
     notifyListeners();
   }
 
@@ -83,6 +101,7 @@ class ChatSearchController extends ChangeNotifier {
     _count = null;
     _highlights = null;
     _isEncryptedRoom = false;
+    _senderFilter = null;
     notifyListeners();
   }
 
@@ -97,6 +116,7 @@ class ChatSearchController extends ChangeNotifier {
       _count = null;
       _highlights = null;
       _isEncryptedRoom = false;
+      _senderFilter = null;
       notifyListeners();
       return;
     }
@@ -125,6 +145,7 @@ class ChatSearchController extends ChangeNotifier {
         roomId: roomId,
         query: _query,
         nextBatch: loadMore ? _nextBatch : null,
+        senderFilter: _senderFilter,
       );
 
       if (_disposed) return;

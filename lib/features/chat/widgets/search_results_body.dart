@@ -255,6 +255,38 @@ class _SearchResultsBodyState extends State<SearchResultsBody> {
                 ),
               ),
             ),
+          if (search.resultSenders.length > 1)
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  FilterChip(
+                    label: const Text('All senders'),
+                    selected: search.senderFilter == null,
+                    onSelected: (_) => search.setSenderFilter(null),
+                  ),
+                  const SizedBox(width: 8),
+                  for (final senderId in search.resultSenders)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        label: Text(
+                          search.results
+                              .firstWhere((r) => r.message.senderId == senderId)
+                              .message
+                              .senderName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        selected: search.senderFilter == senderId,
+                        onSelected: (_) => search.setSenderFilter(senderId),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           Expanded(
             child: ListView.builder(
               controller: _scrollController,

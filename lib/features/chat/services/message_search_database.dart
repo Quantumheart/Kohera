@@ -128,6 +128,7 @@ class MessageSearchDatabase {
     required String query,
     int limit = 50,
     int offset = 0,
+    String? senderFilter,
   }) async {
     final db = await _open();
     final sanitized = _sanitizeFtsQuery(query);
@@ -135,8 +136,10 @@ class MessageSearchDatabase {
 
     final rows = await db.query(
       'message_search',
-      where: 'message_search MATCH ? AND room_id = ?',
-      whereArgs: [sanitized, roomId],
+      where: senderFilter != null
+        ? 'message_search MATCH ? AND room_id = ? AND sender_id = ?'
+        : 'message_search MATCH ? AND room_id = ?',
+      whereArgs: senderFilter != null ? [sanitized, roomId, senderFilter] : [sanitized, roomId],
       orderBy: 'rank',
       limit: limit,
       offset: offset,
@@ -144,14 +147,16 @@ class MessageSearchDatabase {
     return rows.map(IndexedMessage.fromRow).toList(growable: false);
   }
 
-  Future<int> count({required String roomId, required String query}) async {
+  Future<int> count({required String roomId, required String query, String? senderFilter}) async {
     final db = await _open();
     final sanitized = _sanitizeFtsQuery(query);
     if (sanitized.isEmpty) return 0;
 
     final rows = await db.rawQuery(
-      'SELECT COUNT(*) as cnt FROM message_search WHERE message_search MATCH ? AND room_id = ?',
-      [sanitized, roomId],
+      senderFilter != null
+        ? 'SELECT COUNT(*) as cnt FROM message_search WHERE message_search MATCH ? AND room_id = ? AND sender_id = ?'
+        : 'SELECT COUNT(*) as cnt FROM message_search WHERE message_search MATCH ? AND room_id = ?',
+      senderFilter != null ? [sanitized, roomId, senderFilter] : [sanitized, roomId],
     );
     return (rows.isNotEmpty ? rows.first['cnt'] as int? : null) ?? 0;
   }

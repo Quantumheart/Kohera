@@ -17,6 +17,7 @@ class LocalSearchService {
     required String query,
     String? nextBatch,
     int limit = 50,
+    String? senderFilter,
   }) async {
     final offset = nextBatch != null ? int.tryParse(nextBatch) ?? 0 : 0;
 
@@ -25,8 +26,9 @@ class LocalSearchService {
       query: query,
       limit: limit,
       offset: offset,
+      senderFilter: senderFilter,
     );
-    final count = await database.count(roomId: roomId, query: query);
+    final count = await database.count(roomId: roomId, query: query, senderFilter: senderFilter);
 
     final room = client.getRoomById(roomId);
     const resolver = MessageDisplayResolver();

@@ -21,6 +21,7 @@ class RoomSearchService {
     required String query,
     String? nextBatch,
     int limit = searchBatchLimit,
+    String? senderFilter,
   }) async {
     final room = client.getRoomById(roomId);
     if (room == null) throw Exception('Room not found');
@@ -31,6 +32,7 @@ class RoomSearchService {
         return local.search(
           roomId: roomId,
           query: query,
+          senderFilter: senderFilter,
           nextBatch: nextBatch,
           limit: limit,
         );
@@ -46,6 +48,7 @@ class RoomSearchService {
       query: query,
       nextBatch: nextBatch,
       limit: limit,
+      senderFilter: senderFilter,
     );
   }
 
@@ -54,6 +57,7 @@ class RoomSearchService {
     required String query,
     required String? nextBatch,
     required int limit,
+    required String? senderFilter,
   }) async {
     try {
       final result = await client.search(
@@ -66,6 +70,7 @@ class RoomSearchService {
               rooms: [room.id],
               limit: limit,
               types: const ['m.room.message'],
+              senders: senderFilter != null ? [senderFilter] : null,
             ),
             eventContext: IncludeEventContext(
               beforeLimit: 3,
