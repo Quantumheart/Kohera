@@ -7,6 +7,7 @@ import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
+import 'package:kohera/features/chat/services/message_indexer_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -22,6 +23,7 @@ import 'package:provider/provider.dart';
   MockSpec<Timeline>(),
   MockSpec<Event>(),
   MockSpec<User>(),
+  MockSpec<MessageIndexerService>(),
 ])
 import 'message_reply_test.mocks.dart';
 
@@ -120,6 +122,7 @@ void main() {
     setUp(() {
       mockClient = MockClient();
       mockMatrix = MockMatrixService();
+    final mockIndexer = MockMessageIndexerService();
       mockRoom = MockRoom();
       mockTimeline = MockTimeline();
       prefsService = PreferencesService();
@@ -129,6 +132,8 @@ void main() {
       selectionService = SelectionService(client: mockClient);
 
       when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.messageIndexer).thenReturn(mockIndexer);
+    when(mockIndexer.isAvailable).thenReturn(false);
       when(mockMatrix.selection).thenReturn(selectionService);
       when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
       when(mockClient.userID).thenReturn('@me:example.com');

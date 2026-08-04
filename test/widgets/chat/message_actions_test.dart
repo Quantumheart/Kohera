@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/features/chat/services/message_indexer_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
@@ -36,6 +37,7 @@ import 'package:provider/provider.dart';
   MockSpec<Timeline>(),
   MockSpec<Event>(),
   MockSpec<User>(),
+  MockSpec<MessageIndexerService>(),
 ])
 import 'message_actions_test.mocks.dart';
 
@@ -279,6 +281,7 @@ void main() {
   setUp(() {
     mockClient = MockClient();
     mockMatrix = MockMatrixService();
+    final mockIndexer = MockMessageIndexerService();
     mockRoom = MockRoom();
     mockTimeline = MockTimeline();
     prefsService = PreferencesService();
@@ -290,6 +293,8 @@ void main() {
     selectionService = SelectionService(client: mockClient);
 
     when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.messageIndexer).thenReturn(mockIndexer);
+    when(mockIndexer.isAvailable).thenReturn(false);
     when(mockMatrix.selection).thenReturn(selectionService);
     when(mockMatrix.presence).thenReturn(PresenceService(client: mockClient));
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);

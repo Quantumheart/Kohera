@@ -1145,11 +1145,11 @@ class _ChatScreenState extends State<ChatScreen>
                   Container(
                     width: 380,
                     decoration: BoxDecoration(
+                      color: cs.surface,
                       border: Border(
                         left: BorderSide(color: cs.outlineVariant),
                       ),
                     ),
-                    color: cs.surface,
                     child: SearchResultsBody(
                       search: _search,
                       avatarResolver: matrix.avatarResolver,

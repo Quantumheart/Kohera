@@ -7,8 +7,11 @@ import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
+import 'package:kohera/features/chat/services/message_indexer_service.dart';
+import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/matrix_api_lite/generated/model.dart' show ResultCategories;
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -20,6 +23,8 @@ import 'package:provider/provider.dart';
   MockSpec<MatrixService>(),
   MockSpec<Room>(),
   MockSpec<Timeline>(),
+  MockSpec<MessageIndexerService>(),
+  MockSpec<AvatarResolver>(),
 ])
 import 'chat_search_test.mocks.dart';
 
@@ -28,6 +33,8 @@ void main() {
   late MockMatrixService mockMatrix;
   late MockRoom mockRoom;
   late MockTimeline mockTimeline;
+  late MockMessageIndexerService mockIndexer;
+  late MockAvatarResolver mockAvatarResolver;
   late PreferencesService prefsService;
   late SelectionService selectionService;
 
@@ -36,6 +43,8 @@ void main() {
     mockMatrix = MockMatrixService();
     mockRoom = MockRoom();
     mockTimeline = MockTimeline();
+    mockIndexer = MockMessageIndexerService();
+    mockAvatarResolver = MockAvatarResolver();
     prefsService = PreferencesService();
 
     when(mockClient.onSync).thenReturn(CachedStreamController());
@@ -57,6 +66,10 @@ void main() {
     when(mockRoom.client).thenReturn(mockClient);
     when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
         .thenAnswer((_) async => mockTimeline);
+    when(mockMatrix.messageIndexer).thenReturn(mockIndexer);
+    when(mockMatrix.avatarResolver).thenReturn(mockAvatarResolver);
+    when(mockIndexer.isAvailable).thenReturn(false);
+    when(mockRoom.encrypted).thenReturn(false);
   });
 
   Widget buildTestWidget() {
@@ -109,11 +122,11 @@ void main() {
       await tester.pumpAndSettle();
 
       // Type less than 3 characters.
-      await tester.enterText(find.byType(TextField).last, 'ab');
+      await tester.enterText(find.byType(TextField).last, 'a');
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Type at least 3 characters to search'),
+        find.text('Type at least 2 characters to search'),
         findsOneWidget,
       );
     });
@@ -138,15 +151,8 @@ void main() {
     });
 
     testWidgets('shows empty state when no results found', (tester) async {
-      when(mockRoom.searchEvents(
-        searchTerm: anyNamed('searchTerm'),
-        limit: anyNamed('limit'),
-        nextBatch: anyNamed('nextBatch'),
-      ),).thenAnswer((_) async => (
-            events: <Event>[],
-            nextBatch: null,
-            searchedUntil: null,
-          ),);
+      when(mockClient.search(any, nextBatch: anyNamed('nextBatch')))
+          .thenAnswer((_) async => SearchResults(searchCategories: ResultCategories()));
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
@@ -167,11 +173,8 @@ void main() {
     });
 
     testWidgets('shows error state when search fails', (tester) async {
-      when(mockRoom.searchEvents(
-        searchTerm: anyNamed('searchTerm'),
-        limit: anyNamed('limit'),
-        nextBatch: anyNamed('nextBatch'),
-      ),).thenThrow(Exception('Server error'));
+      when(mockClient.search(any, nextBatch: anyNamed('nextBatch')))
+          .thenThrow(Exception('Server error'));
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
@@ -190,13 +193,9 @@ void main() {
     });
 
     testWidgets('shows loading indicator while searching', (tester) async {
-      final completer = Completer<
-          ({List<Event> events, String? nextBatch, DateTime? searchedUntil})>();
-      when(mockRoom.searchEvents(
-        searchTerm: anyNamed('searchTerm'),
-        limit: anyNamed('limit'),
-        nextBatch: anyNamed('nextBatch'),
-      ),).thenAnswer((_) => completer.future);
+      final completer = Completer<SearchResults>();
+      when(mockClient.search(any, nextBatch: anyNamed('nextBatch')))
+          .thenAnswer((_) => completer.future);
 
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
@@ -213,11 +212,7 @@ void main() {
       expect(find.byType(KoheraLoader), findsOneWidget);
 
       // Complete the future to avoid pending timers.
-      completer.complete((
-        events: <Event>[],
-        nextBatch: null,
-        searchedUntil: null,
-      ),);
+      completer.complete(SearchResults(searchCategories: ResultCategories()));
       await tester.pumpAndSettle();
     });
   });
