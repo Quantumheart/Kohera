@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/features/chat/services/message_search_database.dart';
@@ -27,6 +28,21 @@ class MessageIndexerService extends ChangeNotifier {
   final Map<String, StreamSubscription<String>> _keySubs = {};
   final List<SyncUpdate> _syncQueue = [];
   bool _processingSync = false;
+  @visibleForTesting
+  bool get isProcessingSync => _processingSync;
+
+  @visibleForTesting
+  Future<void> waitForIdle() async {
+    for (var i = 0; i < 5; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    await _drainFuture?.catchError((_) {});
+    while (_isBackfilling) {
+      await Future<void>.delayed(Duration.zero);
+    }
+  }
+
+  Future<void>? _drainFuture;
 
   final Map<String, Set<String>> _pendingDecryptions = {};
 
@@ -43,7 +59,9 @@ class MessageIndexerService extends ChangeNotifier {
   void _onSync(SyncUpdate update) {
     if (_disposed) return;
     _syncQueue.add(update);
-    unawaited(_drainSyncQueue());
+    _drainFuture ??= _drainSyncQueue().whenComplete(() {
+      _drainFuture = null;
+    });
   }
 
   Future<void> _drainSyncQueue() async {
@@ -74,13 +92,15 @@ class MessageIndexerService extends ChangeNotifier {
   }
 
   Future<void> _indexEventBatch(Room room, List<MatrixEvent> rawEvents) async {
-    final toIndex = <IndexedMessage>[];
-    final toRemove = <String>[];
     for (final raw in rawEvents) {
       final event = Event.fromMatrixEvent(raw, room);
       if (event.type == EventTypes.Redaction) {
         final redacts = event.redacts;
-        if (redacts != null) toRemove.add(redacts);
+        if (redacts != null) {
+          await _db.remove(redacts);
+          _indexedCount = math.max(0, _indexedCount - 1);
+          _safeNotify();
+        }
         continue;
       }
       if (event.type != EventTypes.Message &&
@@ -95,22 +115,11 @@ class MessageIndexerService extends ChangeNotifier {
       final indexed = _toIndexedMessage(decrypted);
       if (indexed == null) continue;
       if (event.relationshipType == RelationshipTypes.edit) {
-        toRemove.add(indexed.eventId);
+        await _db.remove(indexed.eventId);
+        _indexedCount = math.max(0, _indexedCount - 1);
       }
-      toIndex.add(indexed);
-    }
-    if (toRemove.isNotEmpty) {
-      for (final eventId in toRemove) {
-        await _db.remove(eventId);
-      }
-      _indexedCount -= toRemove.length;
-      if (_indexedCount < 0) _indexedCount = 0;
-    }
-    if (toIndex.isNotEmpty) {
-      await _db.upsertBatch(toIndex);
-      _indexedCount += toIndex.length;
-    }
-    if (toRemove.isNotEmpty || toIndex.isNotEmpty) {
+      await _db.upsert(indexed);
+      _indexedCount++;
       _safeNotify();
     }
   }
@@ -301,7 +310,9 @@ class MessageIndexerService extends ChangeNotifier {
       unawaited(sub.cancel());
     }
     _keySubs.clear();
-    unawaited(_db.close());
+    unawaited(
+      _drainFuture?.catchError((_) {}).then((_) async => _db.close()),
+    );
     super.dispose();
   }
 }

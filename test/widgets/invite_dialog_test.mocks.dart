@@ -3,11 +3,11 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i19;
-import 'dart:ui' as _i20;
+import 'dart:async' as _i20;
+import 'dart:ui' as _i21;
 
-import 'package:flutter/services.dart' as _i21;
-import 'package:flutter/widgets.dart' as _i22;
+import 'package:flutter/services.dart' as _i22;
+import 'package:flutter/widgets.dart' as _i23;
 import 'package:kohera/core/services/matrix_service.dart' as _i17;
 import 'package:kohera/core/services/sticker_pack_service.dart' as _i16;
 import 'package:kohera/core/services/sub_services/auth_service.dart' as _i12;
@@ -27,6 +27,8 @@ import 'package:kohera/core/services/sub_services/space_access_service.dart'
     as _i10;
 import 'package:kohera/core/services/sub_services/sync_service.dart' as _i11;
 import 'package:kohera/core/services/sub_services/uia_service.dart' as _i6;
+import 'package:kohera/features/chat/services/message_indexer_service.dart'
+    as _i19;
 import 'package:kohera/shared/services/avatar_resolver.dart' as _i14;
 import 'package:kohera/shared/services/media_resolver.dart' as _i15;
 import 'package:matrix/matrix.dart' as _i5;
@@ -467,6 +469,12 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
   );
 
   @override
+  set messageIndexer(_i19.MessageIndexerService? value) => super.noSuchMethod(
+    Invocation.setter(#messageIndexer, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   set avatarResolver(_i14.AvatarResolver? value) => super.noSuchMethod(
     Invocation.setter(#avatarResolver, value),
     returnValueForMissingStub: null,
@@ -494,13 +502,13 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
           as bool);
 
   @override
-  _i19.Future<void> activateSessionForTest() =>
+  _i20.Future<void> activateSessionForTest() =>
       (super.noSuchMethod(
             Invocation.method(#activateSessionForTest, []),
-            returnValue: _i19.Future<void>.value(),
-            returnValueForMissingStub: _i19.Future<void>.value(),
+            returnValue: _i20.Future<void>.value(),
+            returnValueForMissingStub: _i20.Future<void>.value(),
           )
-          as _i19.Future<void>);
+          as _i20.Future<void>);
 
   @override
   void notifyListeners() => super.noSuchMethod(
@@ -521,23 +529,23 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
   );
 
   @override
-  void didChangeAppLifecycleState(_i20.AppLifecycleState? state) =>
+  void didChangeAppLifecycleState(_i21.AppLifecycleState? state) =>
       super.noSuchMethod(
         Invocation.method(#didChangeAppLifecycleState, [state]),
         returnValueForMissingStub: null,
       );
 
   @override
-  _i19.Future<void> init({bool? restoreSession = true}) =>
+  _i20.Future<void> init({bool? restoreSession = true}) =>
       (super.noSuchMethod(
             Invocation.method(#init, [], {#restoreSession: restoreSession}),
-            returnValue: _i19.Future<void>.value(),
-            returnValueForMissingStub: _i19.Future<void>.value(),
+            returnValue: _i20.Future<void>.value(),
+            returnValueForMissingStub: _i20.Future<void>.value(),
           )
-          as _i19.Future<void>);
+          as _i20.Future<void>);
 
   @override
-  _i19.Future<bool> login({
+  _i20.Future<bool> login({
     required String? homeserver,
     required String? username,
     required String? password,
@@ -550,13 +558,13 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
               #password: password,
               #rememberCredentials: rememberCredentials,
             }),
-            returnValue: _i19.Future<bool>.value(false),
-            returnValueForMissingStub: _i19.Future<bool>.value(false),
+            returnValue: _i20.Future<bool>.value(false),
+            returnValueForMissingStub: _i20.Future<bool>.value(false),
           )
-          as _i19.Future<bool>);
+          as _i20.Future<bool>);
 
   @override
-  _i19.Future<bool> completeSsoLogin({
+  _i20.Future<bool> completeSsoLogin({
     required String? homeserver,
     required String? loginToken,
   }) =>
@@ -565,13 +573,13 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
               #homeserver: homeserver,
               #loginToken: loginToken,
             }),
-            returnValue: _i19.Future<bool>.value(false),
-            returnValueForMissingStub: _i19.Future<bool>.value(false),
+            returnValue: _i20.Future<bool>.value(false),
+            returnValueForMissingStub: _i20.Future<bool>.value(false),
           )
-          as _i19.Future<bool>);
+          as _i20.Future<bool>);
 
   @override
-  _i19.Future<void> completeRegistration(
+  _i20.Future<void> completeRegistration(
     _i5.RegisterResponse? response, {
     String? password,
   }) =>
@@ -581,52 +589,52 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
               [response],
               {#password: password},
             ),
-            returnValue: _i19.Future<void>.value(),
-            returnValueForMissingStub: _i19.Future<void>.value(),
+            returnValue: _i20.Future<void>.value(),
+            returnValueForMissingStub: _i20.Future<void>.value(),
           )
-          as _i19.Future<void>);
+          as _i20.Future<void>);
 
   @override
-  _i19.Future<void> logout() =>
+  _i20.Future<void> logout() =>
       (super.noSuchMethod(
             Invocation.method(#logout, []),
-            returnValue: _i19.Future<void>.value(),
-            returnValueForMissingStub: _i19.Future<void>.value(),
+            returnValue: _i20.Future<void>.value(),
+            returnValueForMissingStub: _i20.Future<void>.value(),
           )
-          as _i19.Future<void>);
+          as _i20.Future<void>);
 
   @override
-  _i19.Future<void> handleSoftLogout() =>
+  _i20.Future<void> handleSoftLogout() =>
       (super.noSuchMethod(
             Invocation.method(#handleSoftLogout, []),
-            returnValue: _i19.Future<void>.value(),
-            returnValueForMissingStub: _i19.Future<void>.value(),
+            returnValue: _i20.Future<void>.value(),
+            returnValueForMissingStub: _i20.Future<void>.value(),
           )
-          as _i19.Future<void>);
+          as _i20.Future<void>);
 
   @override
-  void addListener(_i20.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i21.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i20.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i21.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i19.Future<bool> didPopRoute() =>
+  _i20.Future<bool> didPopRoute() =>
       (super.noSuchMethod(
             Invocation.method(#didPopRoute, []),
-            returnValue: _i19.Future<bool>.value(false),
-            returnValueForMissingStub: _i19.Future<bool>.value(false),
+            returnValue: _i20.Future<bool>.value(false),
+            returnValueForMissingStub: _i20.Future<bool>.value(false),
           )
-          as _i19.Future<bool>);
+          as _i20.Future<bool>);
 
   @override
-  bool handleStartBackGesture(_i21.PredictiveBackEvent? backEvent) =>
+  bool handleStartBackGesture(_i22.PredictiveBackEvent? backEvent) =>
       (super.noSuchMethod(
             Invocation.method(#handleStartBackGesture, [backEvent]),
             returnValue: false,
@@ -635,7 +643,7 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
           as bool);
 
   @override
-  void handleUpdateBackGestureProgress(_i21.PredictiveBackEvent? backEvent) =>
+  void handleUpdateBackGestureProgress(_i22.PredictiveBackEvent? backEvent) =>
       super.noSuchMethod(
         Invocation.method(#handleUpdateBackGestureProgress, [backEvent]),
         returnValueForMissingStub: null,
@@ -660,24 +668,24 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
   );
 
   @override
-  _i19.Future<bool> didPushRoute(String? route) =>
+  _i20.Future<bool> didPushRoute(String? route) =>
       (super.noSuchMethod(
             Invocation.method(#didPushRoute, [route]),
-            returnValue: _i19.Future<bool>.value(false),
-            returnValueForMissingStub: _i19.Future<bool>.value(false),
+            returnValue: _i20.Future<bool>.value(false),
+            returnValueForMissingStub: _i20.Future<bool>.value(false),
           )
-          as _i19.Future<bool>);
+          as _i20.Future<bool>);
 
   @override
-  _i19.Future<bool> didPushRouteInformation(
-    _i22.RouteInformation? routeInformation,
+  _i20.Future<bool> didPushRouteInformation(
+    _i23.RouteInformation? routeInformation,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#didPushRouteInformation, [routeInformation]),
-            returnValue: _i19.Future<bool>.value(false),
-            returnValueForMissingStub: _i19.Future<bool>.value(false),
+            returnValue: _i20.Future<bool>.value(false),
+            returnValueForMissingStub: _i20.Future<bool>.value(false),
           )
-          as _i19.Future<bool>);
+          as _i20.Future<bool>);
 
   @override
   void didChangeMetrics() => super.noSuchMethod(
@@ -698,29 +706,29 @@ class MockMatrixService extends _i1.Mock implements _i17.MatrixService {
   );
 
   @override
-  void didChangeLocales(List<_i20.Locale>? locales) => super.noSuchMethod(
+  void didChangeLocales(List<_i21.Locale>? locales) => super.noSuchMethod(
     Invocation.method(#didChangeLocales, [locales]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void didChangeViewFocus(_i20.ViewFocusEvent? event) => super.noSuchMethod(
+  void didChangeViewFocus(_i21.ViewFocusEvent? event) => super.noSuchMethod(
     Invocation.method(#didChangeViewFocus, [event]),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i19.Future<_i20.AppExitResponse> didRequestAppExit() =>
+  _i20.Future<_i21.AppExitResponse> didRequestAppExit() =>
       (super.noSuchMethod(
             Invocation.method(#didRequestAppExit, []),
-            returnValue: _i19.Future<_i20.AppExitResponse>.value(
-              _i20.AppExitResponse.exit,
+            returnValue: _i20.Future<_i21.AppExitResponse>.value(
+              _i21.AppExitResponse.exit,
             ),
-            returnValueForMissingStub: _i19.Future<_i20.AppExitResponse>.value(
-              _i20.AppExitResponse.exit,
+            returnValueForMissingStub: _i20.Future<_i21.AppExitResponse>.value(
+              _i21.AppExitResponse.exit,
             ),
           )
-          as _i19.Future<_i20.AppExitResponse>);
+          as _i20.Future<_i21.AppExitResponse>);
 
   @override
   void didHaveMemoryPressure() => super.noSuchMethod(
