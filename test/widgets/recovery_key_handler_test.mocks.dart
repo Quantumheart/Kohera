@@ -4,12 +4,12 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i20;
-import 'dart:typed_data' as _i31;
-import 'dart:ui' as _i27;
+import 'dart:typed_data' as _i32;
+import 'dart:ui' as _i28;
 
-import 'package:async/async.dart' as _i30;
-import 'package:flutter/services.dart' as _i28;
-import 'package:flutter/widgets.dart' as _i29;
+import 'package:async/async.dart' as _i31;
+import 'package:flutter/services.dart' as _i29;
+import 'package:flutter/widgets.dart' as _i30;
 import 'package:http/http.dart' as _i19;
 import 'package:kohera/core/services/matrix_service.dart' as _i25;
 import 'package:kohera/core/services/sticker_pack_service.dart' as _i16;
@@ -30,6 +30,8 @@ import 'package:kohera/core/services/sub_services/space_access_service.dart'
     as _i10;
 import 'package:kohera/core/services/sub_services/sync_service.dart' as _i11;
 import 'package:kohera/core/services/sub_services/uia_service.dart' as _i6;
+import 'package:kohera/features/chat/services/message_indexer_service.dart'
+    as _i27;
 import 'package:kohera/shared/services/avatar_resolver.dart' as _i14;
 import 'package:kohera/shared/services/media_resolver.dart' as _i15;
 import 'package:matrix/encryption.dart' as _i17;
@@ -920,6 +922,12 @@ class MockMatrixService extends _i1.Mock implements _i25.MatrixService {
   );
 
   @override
+  set messageIndexer(_i27.MessageIndexerService? value) => super.noSuchMethod(
+    Invocation.setter(#messageIndexer, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   set avatarResolver(_i14.AvatarResolver? value) => super.noSuchMethod(
     Invocation.setter(#avatarResolver, value),
     returnValueForMissingStub: null,
@@ -974,7 +982,7 @@ class MockMatrixService extends _i1.Mock implements _i25.MatrixService {
   );
 
   @override
-  void didChangeAppLifecycleState(_i27.AppLifecycleState? state) =>
+  void didChangeAppLifecycleState(_i28.AppLifecycleState? state) =>
       super.noSuchMethod(
         Invocation.method(#didChangeAppLifecycleState, [state]),
         returnValueForMissingStub: null,
@@ -1058,13 +1066,13 @@ class MockMatrixService extends _i1.Mock implements _i25.MatrixService {
           as _i20.Future<void>);
 
   @override
-  void addListener(_i27.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i28.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i27.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i28.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -1079,7 +1087,7 @@ class MockMatrixService extends _i1.Mock implements _i25.MatrixService {
           as _i20.Future<bool>);
 
   @override
-  bool handleStartBackGesture(_i28.PredictiveBackEvent? backEvent) =>
+  bool handleStartBackGesture(_i29.PredictiveBackEvent? backEvent) =>
       (super.noSuchMethod(
             Invocation.method(#handleStartBackGesture, [backEvent]),
             returnValue: false,
@@ -1088,7 +1096,7 @@ class MockMatrixService extends _i1.Mock implements _i25.MatrixService {
           as bool);
 
   @override
-  void handleUpdateBackGestureProgress(_i28.PredictiveBackEvent? backEvent) =>
+  void handleUpdateBackGestureProgress(_i29.PredictiveBackEvent? backEvent) =>
       super.noSuchMethod(
         Invocation.method(#handleUpdateBackGestureProgress, [backEvent]),
         returnValueForMissingStub: null,
@@ -1123,7 +1131,7 @@ class MockMatrixService extends _i1.Mock implements _i25.MatrixService {
 
   @override
   _i20.Future<bool> didPushRouteInformation(
-    _i29.RouteInformation? routeInformation,
+    _i30.RouteInformation? routeInformation,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#didPushRouteInformation, [routeInformation]),
@@ -1151,29 +1159,29 @@ class MockMatrixService extends _i1.Mock implements _i25.MatrixService {
   );
 
   @override
-  void didChangeLocales(List<_i27.Locale>? locales) => super.noSuchMethod(
+  void didChangeLocales(List<_i28.Locale>? locales) => super.noSuchMethod(
     Invocation.method(#didChangeLocales, [locales]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void didChangeViewFocus(_i27.ViewFocusEvent? event) => super.noSuchMethod(
+  void didChangeViewFocus(_i28.ViewFocusEvent? event) => super.noSuchMethod(
     Invocation.method(#didChangeViewFocus, [event]),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i20.Future<_i27.AppExitResponse> didRequestAppExit() =>
+  _i20.Future<_i28.AppExitResponse> didRequestAppExit() =>
       (super.noSuchMethod(
             Invocation.method(#didRequestAppExit, []),
-            returnValue: _i20.Future<_i27.AppExitResponse>.value(
-              _i27.AppExitResponse.exit,
+            returnValue: _i20.Future<_i28.AppExitResponse>.value(
+              _i28.AppExitResponse.exit,
             ),
-            returnValueForMissingStub: _i20.Future<_i27.AppExitResponse>.value(
-              _i27.AppExitResponse.exit,
+            returnValueForMissingStub: _i20.Future<_i28.AppExitResponse>.value(
+              _i28.AppExitResponse.exit,
             ),
           )
-          as _i20.Future<_i27.AppExitResponse>);
+          as _i20.Future<_i28.AppExitResponse>);
 
   @override
   void didHaveMemoryPressure() => super.noSuchMethod(
@@ -1352,13 +1360,13 @@ class MockChatBackupService extends _i1.Mock implements _i7.ChatBackupService {
           as _i20.Future<void>);
 
   @override
-  void addListener(_i27.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i28.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i27.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i28.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -1435,7 +1443,7 @@ class MockBootstrap extends _i1.Mock implements _i17.Bootstrap {
   );
 
   @override
-  set errorResult(_i30.ErrorResult? value) => super.noSuchMethod(
+  set errorResult(_i31.ErrorResult? value) => super.noSuchMethod(
     Invocation.setter(#errorResult, value),
     returnValueForMissingStub: null,
   );
@@ -1660,7 +1668,7 @@ class MockOpenSSSS extends _i1.Mock implements _i17.OpenSSSS {
           as bool);
 
   @override
-  set privateKey(_i31.Uint8List? value) => super.noSuchMethod(
+  set privateKey(_i32.Uint8List? value) => super.noSuchMethod(
     Invocation.setter(#privateKey, value),
     returnValueForMissingStub: null,
   );
@@ -1685,7 +1693,7 @@ class MockOpenSSSS extends _i1.Mock implements _i17.OpenSSSS {
           as _i20.Future<void>);
 
   @override
-  _i20.Future<void> setPrivateKey(_i31.Uint8List? key) =>
+  _i20.Future<void> setPrivateKey(_i32.Uint8List? key) =>
       (super.noSuchMethod(
             Invocation.method(#setPrivateKey, [key]),
             returnValue: _i20.Future<void>.value(),
@@ -3846,7 +3854,7 @@ class MockClient extends _i1.Mock implements _i5.Client {
 
   @override
   _i20.Future<Uri> uploadContent(
-    _i31.Uint8List? file, {
+    _i32.Uint8List? file, {
     String? filename,
     String? contentType,
   }) =>
@@ -4261,7 +4269,7 @@ class MockClient extends _i1.Mock implements _i5.Client {
           as _i20.Future<String?>);
 
   @override
-  Never unexpectedResponse(_i19.BaseResponse? response, _i31.Uint8List? body) =>
+  Never unexpectedResponse(_i19.BaseResponse? response, _i32.Uint8List? body) =>
       (super.noSuchMethod(
             Invocation.method(#unexpectedResponse, [response, body]),
             returnValue: null,
@@ -7719,7 +7727,7 @@ class MockClient extends _i1.Mock implements _i5.Client {
   _i20.Future<Map<String, Object?>> uploadContentToMXC(
     String? serverName,
     String? mediaId,
-    _i31.Uint8List? body, {
+    _i32.Uint8List? body, {
     String? filename,
     String? contentType,
   }) =>

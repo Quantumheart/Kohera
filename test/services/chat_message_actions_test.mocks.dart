@@ -5,15 +5,15 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i6;
 import 'dart:typed_data' as _i28;
-import 'dart:ui' as _i31;
+import 'dart:ui' as _i32;
 
 import 'package:flutter/scheduler.dart' as _i25;
-import 'package:flutter/services.dart' as _i32;
-import 'package:flutter/src/foundation/assertions.dart' as _i35;
+import 'package:flutter/services.dart' as _i33;
+import 'package:flutter/src/foundation/assertions.dart' as _i36;
 import 'package:flutter/src/foundation/diagnostics.dart' as _i24;
-import 'package:flutter/src/material/banner.dart' as _i34;
+import 'package:flutter/src/material/banner.dart' as _i35;
 import 'package:flutter/src/material/scaffold.dart' as _i22;
-import 'package:flutter/src/material/snack_bar.dart' as _i33;
+import 'package:flutter/src/material/snack_bar.dart' as _i34;
 import 'package:flutter/widgets.dart' as _i23;
 import 'package:http/http.dart' as _i5;
 import 'package:kohera/core/services/matrix_service.dart' as _i30;
@@ -36,6 +36,8 @@ import 'package:kohera/core/services/sub_services/space_access_service.dart'
     as _i15;
 import 'package:kohera/core/services/sub_services/sync_service.dart' as _i16;
 import 'package:kohera/core/services/sub_services/uia_service.dart' as _i11;
+import 'package:kohera/features/chat/services/message_indexer_service.dart'
+    as _i31;
 import 'package:kohera/shared/services/avatar_resolver.dart' as _i19;
 import 'package:kohera/shared/services/media_resolver.dart' as _i20;
 import 'package:matrix/encryption.dart' as _i29;
@@ -9759,6 +9761,12 @@ class MockMatrixService extends _i1.Mock implements _i30.MatrixService {
   );
 
   @override
+  set messageIndexer(_i31.MessageIndexerService? value) => super.noSuchMethod(
+    Invocation.setter(#messageIndexer, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   set avatarResolver(_i19.AvatarResolver? value) => super.noSuchMethod(
     Invocation.setter(#avatarResolver, value),
     returnValueForMissingStub: null,
@@ -9813,7 +9821,7 @@ class MockMatrixService extends _i1.Mock implements _i30.MatrixService {
   );
 
   @override
-  void didChangeAppLifecycleState(_i31.AppLifecycleState? state) =>
+  void didChangeAppLifecycleState(_i32.AppLifecycleState? state) =>
       super.noSuchMethod(
         Invocation.method(#didChangeAppLifecycleState, [state]),
         returnValueForMissingStub: null,
@@ -9897,13 +9905,13 @@ class MockMatrixService extends _i1.Mock implements _i30.MatrixService {
           as _i6.Future<void>);
 
   @override
-  void addListener(_i31.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i32.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i31.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i32.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -9918,7 +9926,7 @@ class MockMatrixService extends _i1.Mock implements _i30.MatrixService {
           as _i6.Future<bool>);
 
   @override
-  bool handleStartBackGesture(_i32.PredictiveBackEvent? backEvent) =>
+  bool handleStartBackGesture(_i33.PredictiveBackEvent? backEvent) =>
       (super.noSuchMethod(
             Invocation.method(#handleStartBackGesture, [backEvent]),
             returnValue: false,
@@ -9927,7 +9935,7 @@ class MockMatrixService extends _i1.Mock implements _i30.MatrixService {
           as bool);
 
   @override
-  void handleUpdateBackGestureProgress(_i32.PredictiveBackEvent? backEvent) =>
+  void handleUpdateBackGestureProgress(_i33.PredictiveBackEvent? backEvent) =>
       super.noSuchMethod(
         Invocation.method(#handleUpdateBackGestureProgress, [backEvent]),
         returnValueForMissingStub: null,
@@ -9990,29 +9998,29 @@ class MockMatrixService extends _i1.Mock implements _i30.MatrixService {
   );
 
   @override
-  void didChangeLocales(List<_i31.Locale>? locales) => super.noSuchMethod(
+  void didChangeLocales(List<_i32.Locale>? locales) => super.noSuchMethod(
     Invocation.method(#didChangeLocales, [locales]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void didChangeViewFocus(_i31.ViewFocusEvent? event) => super.noSuchMethod(
+  void didChangeViewFocus(_i32.ViewFocusEvent? event) => super.noSuchMethod(
     Invocation.method(#didChangeViewFocus, [event]),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i6.Future<_i31.AppExitResponse> didRequestAppExit() =>
+  _i6.Future<_i32.AppExitResponse> didRequestAppExit() =>
       (super.noSuchMethod(
             Invocation.method(#didRequestAppExit, []),
-            returnValue: _i6.Future<_i31.AppExitResponse>.value(
-              _i31.AppExitResponse.exit,
+            returnValue: _i6.Future<_i32.AppExitResponse>.value(
+              _i32.AppExitResponse.exit,
             ),
-            returnValueForMissingStub: _i6.Future<_i31.AppExitResponse>.value(
-              _i31.AppExitResponse.exit,
+            returnValueForMissingStub: _i6.Future<_i32.AppExitResponse>.value(
+              _i32.AppExitResponse.exit,
             ),
           )
-          as _i6.Future<_i31.AppExitResponse>);
+          as _i6.Future<_i32.AppExitResponse>);
 
   @override
   void didHaveMemoryPressure() => super.noSuchMethod(
@@ -10078,9 +10086,9 @@ class MockScaffoldMessengerState extends _i1.Mock
   );
 
   @override
-  _i22.ScaffoldFeatureController<_i33.SnackBar, _i33.SnackBarClosedReason>
+  _i22.ScaffoldFeatureController<_i34.SnackBar, _i34.SnackBarClosedReason>
   showSnackBar(
-    _i33.SnackBar? snackBar, {
+    _i34.SnackBar? snackBar, {
     _i23.AnimationStyle? snackBarAnimationStyle,
   }) =>
       (super.noSuchMethod(
@@ -10091,8 +10099,8 @@ class MockScaffoldMessengerState extends _i1.Mock
             ),
             returnValue:
                 _FakeScaffoldFeatureController_92<
-                  _i33.SnackBar,
-                  _i33.SnackBarClosedReason
+                  _i34.SnackBar,
+                  _i34.SnackBarClosedReason
                 >(
                   this,
                   Invocation.method(
@@ -10103,8 +10111,8 @@ class MockScaffoldMessengerState extends _i1.Mock
                 ),
             returnValueForMissingStub:
                 _FakeScaffoldFeatureController_92<
-                  _i33.SnackBar,
-                  _i33.SnackBarClosedReason
+                  _i34.SnackBar,
+                  _i34.SnackBarClosedReason
                 >(
                   this,
                   Invocation.method(
@@ -10115,13 +10123,13 @@ class MockScaffoldMessengerState extends _i1.Mock
                 ),
           )
           as _i22.ScaffoldFeatureController<
-            _i33.SnackBar,
-            _i33.SnackBarClosedReason
+            _i34.SnackBar,
+            _i34.SnackBarClosedReason
           >);
 
   @override
   void removeCurrentSnackBar({
-    _i33.SnackBarClosedReason? reason = _i33.SnackBarClosedReason.remove,
+    _i34.SnackBarClosedReason? reason = _i34.SnackBarClosedReason.remove,
   }) => super.noSuchMethod(
     Invocation.method(#removeCurrentSnackBar, [], {#reason: reason}),
     returnValueForMissingStub: null,
@@ -10129,7 +10137,7 @@ class MockScaffoldMessengerState extends _i1.Mock
 
   @override
   void hideCurrentSnackBar({
-    _i33.SnackBarClosedReason? reason = _i33.SnackBarClosedReason.hide,
+    _i34.SnackBarClosedReason? reason = _i34.SnackBarClosedReason.hide,
   }) => super.noSuchMethod(
     Invocation.method(#hideCurrentSnackBar, [], {#reason: reason}),
     returnValueForMissingStub: null,
@@ -10143,38 +10151,38 @@ class MockScaffoldMessengerState extends _i1.Mock
 
   @override
   _i22.ScaffoldFeatureController<
-    _i34.MaterialBanner,
-    _i34.MaterialBannerClosedReason
+    _i35.MaterialBanner,
+    _i35.MaterialBannerClosedReason
   >
-  showMaterialBanner(_i34.MaterialBanner? materialBanner) =>
+  showMaterialBanner(_i35.MaterialBanner? materialBanner) =>
       (super.noSuchMethod(
             Invocation.method(#showMaterialBanner, [materialBanner]),
             returnValue:
                 _FakeScaffoldFeatureController_92<
-                  _i34.MaterialBanner,
-                  _i34.MaterialBannerClosedReason
+                  _i35.MaterialBanner,
+                  _i35.MaterialBannerClosedReason
                 >(
                   this,
                   Invocation.method(#showMaterialBanner, [materialBanner]),
                 ),
             returnValueForMissingStub:
                 _FakeScaffoldFeatureController_92<
-                  _i34.MaterialBanner,
-                  _i34.MaterialBannerClosedReason
+                  _i35.MaterialBanner,
+                  _i35.MaterialBannerClosedReason
                 >(
                   this,
                   Invocation.method(#showMaterialBanner, [materialBanner]),
                 ),
           )
           as _i22.ScaffoldFeatureController<
-            _i34.MaterialBanner,
-            _i34.MaterialBannerClosedReason
+            _i35.MaterialBanner,
+            _i35.MaterialBannerClosedReason
           >);
 
   @override
   void removeCurrentMaterialBanner({
-    _i34.MaterialBannerClosedReason? reason =
-        _i34.MaterialBannerClosedReason.remove,
+    _i35.MaterialBannerClosedReason? reason =
+        _i35.MaterialBannerClosedReason.remove,
   }) => super.noSuchMethod(
     Invocation.method(#removeCurrentMaterialBanner, [], {#reason: reason}),
     returnValueForMissingStub: null,
@@ -10182,8 +10190,8 @@ class MockScaffoldMessengerState extends _i1.Mock
 
   @override
   void hideCurrentMaterialBanner({
-    _i34.MaterialBannerClosedReason? reason =
-        _i34.MaterialBannerClosedReason.hide,
+    _i35.MaterialBannerClosedReason? reason =
+        _i35.MaterialBannerClosedReason.hide,
   }) => super.noSuchMethod(
     Invocation.method(#hideCurrentMaterialBanner, [], {#reason: reason}),
     returnValueForMissingStub: null,
@@ -10235,7 +10243,7 @@ class MockScaffoldMessengerState extends _i1.Mock
   );
 
   @override
-  void setState(_i31.VoidCallback? fn) => super.noSuchMethod(
+  void setState(_i32.VoidCallback? fn) => super.noSuchMethod(
     Invocation.method(#setState, [fn]),
     returnValueForMissingStub: null,
   );
@@ -10253,7 +10261,7 @@ class MockScaffoldMessengerState extends _i1.Mock
   );
 
   @override
-  void debugFillProperties(_i35.DiagnosticPropertiesBuilder? properties) =>
+  void debugFillProperties(_i36.DiagnosticPropertiesBuilder? properties) =>
       super.noSuchMethod(
         Invocation.method(#debugFillProperties, [properties]),
         returnValueForMissingStub: null,
@@ -10282,7 +10290,7 @@ class MockScaffoldMessengerState extends _i1.Mock
   @override
   _i23.DiagnosticsNode toDiagnosticsNode({
     String? name,
-    _i35.DiagnosticsTreeStyle? style,
+    _i36.DiagnosticsTreeStyle? style,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#toDiagnosticsNode, [], {

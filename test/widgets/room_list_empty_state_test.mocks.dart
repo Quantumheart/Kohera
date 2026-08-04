@@ -5,10 +5,10 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i5;
 import 'dart:typed_data' as _i23;
-import 'dart:ui' as _i25;
+import 'dart:ui' as _i26;
 
-import 'package:flutter/services.dart' as _i26;
-import 'package:flutter/widgets.dart' as _i27;
+import 'package:flutter/services.dart' as _i27;
+import 'package:flutter/widgets.dart' as _i28;
 import 'package:http/http.dart' as _i4;
 import 'package:kohera/core/services/matrix_service.dart' as _i24;
 import 'package:kohera/core/services/sticker_pack_service.dart' as _i20;
@@ -30,14 +30,16 @@ import 'package:kohera/core/services/sub_services/space_access_service.dart'
     as _i14;
 import 'package:kohera/core/services/sub_services/sync_service.dart' as _i15;
 import 'package:kohera/core/services/sub_services/uia_service.dart' as _i10;
+import 'package:kohera/features/chat/services/message_indexer_service.dart'
+    as _i25;
 import 'package:kohera/shared/services/avatar_resolver.dart' as _i18;
 import 'package:kohera/shared/services/media_resolver.dart' as _i19;
 import 'package:matrix/encryption.dart' as _i21;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;
-import 'package:matrix/src/models/timeline_chunk.dart' as _i29;
+import 'package:matrix/src/models/timeline_chunk.dart' as _i30;
 import 'package:matrix/src/utils/cached_stream_controller.dart' as _i3;
-import 'package:matrix/src/utils/space_child.dart' as _i28;
+import 'package:matrix/src/utils/space_child.dart' as _i29;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i22;
 
@@ -6856,6 +6858,12 @@ class MockMatrixService extends _i1.Mock implements _i24.MatrixService {
   );
 
   @override
+  set messageIndexer(_i25.MessageIndexerService? value) => super.noSuchMethod(
+    Invocation.setter(#messageIndexer, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   set avatarResolver(_i18.AvatarResolver? value) => super.noSuchMethod(
     Invocation.setter(#avatarResolver, value),
     returnValueForMissingStub: null,
@@ -6910,7 +6918,7 @@ class MockMatrixService extends _i1.Mock implements _i24.MatrixService {
   );
 
   @override
-  void didChangeAppLifecycleState(_i25.AppLifecycleState? state) =>
+  void didChangeAppLifecycleState(_i26.AppLifecycleState? state) =>
       super.noSuchMethod(
         Invocation.method(#didChangeAppLifecycleState, [state]),
         returnValueForMissingStub: null,
@@ -6994,13 +7002,13 @@ class MockMatrixService extends _i1.Mock implements _i24.MatrixService {
           as _i5.Future<void>);
 
   @override
-  void addListener(_i25.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i26.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i25.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i26.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -7015,7 +7023,7 @@ class MockMatrixService extends _i1.Mock implements _i24.MatrixService {
           as _i5.Future<bool>);
 
   @override
-  bool handleStartBackGesture(_i26.PredictiveBackEvent? backEvent) =>
+  bool handleStartBackGesture(_i27.PredictiveBackEvent? backEvent) =>
       (super.noSuchMethod(
             Invocation.method(#handleStartBackGesture, [backEvent]),
             returnValue: false,
@@ -7024,7 +7032,7 @@ class MockMatrixService extends _i1.Mock implements _i24.MatrixService {
           as bool);
 
   @override
-  void handleUpdateBackGestureProgress(_i26.PredictiveBackEvent? backEvent) =>
+  void handleUpdateBackGestureProgress(_i27.PredictiveBackEvent? backEvent) =>
       super.noSuchMethod(
         Invocation.method(#handleUpdateBackGestureProgress, [backEvent]),
         returnValueForMissingStub: null,
@@ -7059,7 +7067,7 @@ class MockMatrixService extends _i1.Mock implements _i24.MatrixService {
 
   @override
   _i5.Future<bool> didPushRouteInformation(
-    _i27.RouteInformation? routeInformation,
+    _i28.RouteInformation? routeInformation,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#didPushRouteInformation, [routeInformation]),
@@ -7087,29 +7095,29 @@ class MockMatrixService extends _i1.Mock implements _i24.MatrixService {
   );
 
   @override
-  void didChangeLocales(List<_i25.Locale>? locales) => super.noSuchMethod(
+  void didChangeLocales(List<_i26.Locale>? locales) => super.noSuchMethod(
     Invocation.method(#didChangeLocales, [locales]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void didChangeViewFocus(_i25.ViewFocusEvent? event) => super.noSuchMethod(
+  void didChangeViewFocus(_i26.ViewFocusEvent? event) => super.noSuchMethod(
     Invocation.method(#didChangeViewFocus, [event]),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i5.Future<_i25.AppExitResponse> didRequestAppExit() =>
+  _i5.Future<_i26.AppExitResponse> didRequestAppExit() =>
       (super.noSuchMethod(
             Invocation.method(#didRequestAppExit, []),
-            returnValue: _i5.Future<_i25.AppExitResponse>.value(
-              _i25.AppExitResponse.exit,
+            returnValue: _i5.Future<_i26.AppExitResponse>.value(
+              _i26.AppExitResponse.exit,
             ),
-            returnValueForMissingStub: _i5.Future<_i25.AppExitResponse>.value(
-              _i25.AppExitResponse.exit,
+            returnValueForMissingStub: _i5.Future<_i26.AppExitResponse>.value(
+              _i26.AppExitResponse.exit,
             ),
           )
-          as _i5.Future<_i25.AppExitResponse>);
+          as _i5.Future<_i26.AppExitResponse>);
 
   @override
   void didHaveMemoryPressure() => super.noSuchMethod(
@@ -7692,22 +7700,22 @@ class MockRoom extends _i1.Mock implements _i2.Room {
           as bool);
 
   @override
-  List<_i28.SpaceParent> get spaceParents =>
+  List<_i29.SpaceParent> get spaceParents =>
       (super.noSuchMethod(
             Invocation.getter(#spaceParents),
-            returnValue: <_i28.SpaceParent>[],
-            returnValueForMissingStub: <_i28.SpaceParent>[],
+            returnValue: <_i29.SpaceParent>[],
+            returnValueForMissingStub: <_i29.SpaceParent>[],
           )
-          as List<_i28.SpaceParent>);
+          as List<_i29.SpaceParent>);
 
   @override
-  List<_i28.SpaceChild> get spaceChildren =>
+  List<_i29.SpaceChild> get spaceChildren =>
       (super.noSuchMethod(
             Invocation.getter(#spaceChildren),
-            returnValue: <_i28.SpaceChild>[],
-            returnValueForMissingStub: <_i28.SpaceChild>[],
+            returnValue: <_i29.SpaceChild>[],
+            returnValueForMissingStub: <_i29.SpaceChild>[],
           )
-          as List<_i28.SpaceChild>);
+          as List<_i29.SpaceChild>);
 
   @override
   set membership(_i2.Membership? value) => super.noSuchMethod(
@@ -8270,13 +8278,13 @@ class MockRoom extends _i1.Mock implements _i2.Room {
           as _i5.Future<void>);
 
   @override
-  _i5.Future<_i29.TimelineChunk?> getEventContext(String? eventId) =>
+  _i5.Future<_i30.TimelineChunk?> getEventContext(String? eventId) =>
       (super.noSuchMethod(
             Invocation.method(#getEventContext, [eventId]),
-            returnValue: _i5.Future<_i29.TimelineChunk?>.value(),
-            returnValueForMissingStub: _i5.Future<_i29.TimelineChunk?>.value(),
+            returnValue: _i5.Future<_i30.TimelineChunk?>.value(),
+            returnValueForMissingStub: _i5.Future<_i30.TimelineChunk?>.value(),
           )
-          as _i5.Future<_i29.TimelineChunk?>);
+          as _i5.Future<_i30.TimelineChunk?>);
 
   @override
   _i5.Future<void> postReceipt(
