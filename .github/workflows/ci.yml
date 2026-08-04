@@ -67,6 +67,10 @@ jobs:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
       - run: flutter pub get
+      - name: Disable signing for smoke build
+        working-directory: macos
+        run: |
+          sed -i '' 's/CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;/CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO; CODE_SIGNING_ALLOWED = NO;/' Runner.xcodeproj/project.pbxproj
       - name: Pre-build macOS Pods (force repo update)
         working-directory: macos
         run: |
