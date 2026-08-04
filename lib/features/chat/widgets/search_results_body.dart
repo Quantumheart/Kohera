@@ -37,7 +37,10 @@ class SearchResultsBody extends StatelessWidget {
       );
     }
 
-    if (search.isEncryptedRoom && search.results.isEmpty && !search.isLoading) {
+    if (search.isEncryptedRoom &&
+        search.results.isEmpty &&
+        !search.isLoading &&
+        search.count == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -48,7 +51,7 @@ class SearchResultsBody extends StatelessWidget {
                   size: 48, color: cs.onSurfaceVariant.withValues(alpha: 0.4)),
               const SizedBox(height: 12),
               Text(
-                'Search not available for encrypted rooms',
+                'Search not available for encrypted rooms on this platform',
                 style: tt.bodyMedium?.copyWith(
                   color: cs.onSurfaceVariant.withValues(alpha: 0.6),
                 ),
@@ -102,6 +105,16 @@ class SearchResultsBody extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
+              if (search.isEncryptedRoom) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Only messages received on this device are searchable in encrypted rooms',
+                  style: tt.bodySmall?.copyWith(
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.4),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ],
           ),
         ),
@@ -110,6 +123,24 @@ class SearchResultsBody extends StatelessWidget {
 
     return Column(
       children: [
+        if (search.isEncryptedRoom)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.lock_outline_rounded,
+                    size: 14, color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
+                const SizedBox(width: 6),
+                Text(
+                  'Searching indexed history (encrypted room)',
+                  style: tt.bodySmall?.copyWith(
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
         if (search.count != null || search.results.isNotEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
@@ -125,7 +156,8 @@ class SearchResultsBody extends StatelessWidget {
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 4),
-            itemCount: search.results.length + (search.nextBatch != null ? 1 : 0),
+            itemCount:
+                search.results.length + (search.nextBatch != null ? 1 : 0),
             itemBuilder: (context, i) {
               if (i == search.results.length) {
                 return Padding(

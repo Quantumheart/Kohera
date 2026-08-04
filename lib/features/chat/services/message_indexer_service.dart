@@ -21,6 +21,7 @@ class MessageIndexerService extends ChangeNotifier {
   bool get isBackfilling => _isBackfilling;
   int get indexedCount => _indexedCount;
   MessageSearchDatabase get database => _db!;
+  bool get isAvailable => _db != null;
 
   Future<void> init() async {
     try {

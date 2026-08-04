@@ -1,13 +1,18 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/models/room_search_result.dart';
+import 'package:kohera/features/chat/services/local_search_service.dart';
 import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:matrix/matrix.dart';
 
 class RoomSearchService {
-  RoomSearchService({required this.client});
+  RoomSearchService({
+    required this.client,
+    this.localSearchService,
+  });
 
   final Client client;
+  final LocalSearchService? localSearchService;
 
   static const searchBatchLimit = 50;
 
@@ -21,6 +26,15 @@ class RoomSearchService {
     if (room == null) throw Exception('Room not found');
 
     if (room.encrypted) {
+      final local = localSearchService;
+      if (local != null) {
+        return local.search(
+          roomId: roomId,
+          query: query,
+          nextBatch: nextBatch,
+          limit: limit,
+        );
+      }
       return const RoomSearchResponse(
         results: [],
         isEncryptedRoom: true,
