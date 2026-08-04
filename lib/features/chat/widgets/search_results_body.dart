@@ -4,10 +4,6 @@ import 'package:kohera/features/chat/widgets/search_result_tile.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 
-/// Displays search results for in-room message search.
-///
-/// Shows contextual states: minimum query prompt, loading spinner,
-/// error, empty results, or a scrollable results list.
 class SearchResultsBody extends StatelessWidget {
   const SearchResultsBody({
     required this.search,
@@ -26,7 +22,6 @@ class SearchResultsBody extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     final query = search.query;
 
-    // Not enough characters yet.
     if (query.length < ChatSearchController.minQueryLength) {
       return Center(
         child: Padding(
@@ -42,7 +37,29 @@ class SearchResultsBody extends StatelessWidget {
       );
     }
 
-    // Error state.
+    if (search.isEncryptedRoom && search.results.isEmpty && !search.isLoading) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.lock_outline_rounded,
+                  size: 48, color: cs.onSurfaceVariant.withValues(alpha: 0.4)),
+              const SizedBox(height: 12),
+              Text(
+                'Search not available for encrypted rooms',
+                style: tt.bodyMedium?.copyWith(
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (search.error != null) {
       return Center(
         child: Padding(
@@ -51,7 +68,7 @@ class SearchResultsBody extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.error_outline_rounded,
-                  size: 48, color: cs.error.withValues(alpha: 0.6),),
+                  size: 48, color: cs.error.withValues(alpha: 0.6)),
               const SizedBox(height: 12),
               Text(
                 search.error!,
@@ -64,12 +81,10 @@ class SearchResultsBody extends StatelessWidget {
       );
     }
 
-    // Loading first batch.
     if (search.isLoading && search.results.isEmpty) {
       return const Center(child: KoheraLoader());
     }
 
-    // Empty results.
     if (search.results.isEmpty && !search.isLoading) {
       return Center(
         child: Padding(
@@ -78,7 +93,7 @@ class SearchResultsBody extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.search_off_rounded,
-                  size: 48, color: cs.onSurfaceVariant.withValues(alpha: 0.4),),
+                  size: 48, color: cs.onSurfaceVariant.withValues(alpha: 0.4)),
               const SizedBox(height: 12),
               Text(
                 'No messages found for "$query"',
@@ -93,38 +108,52 @@ class SearchResultsBody extends StatelessWidget {
       );
     }
 
-    // Results list.
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      itemCount: search.results.length + (search.nextBatch != null ? 1 : 0),
-      itemBuilder: (context, i) {
-        // "Load more" button at the end.
-        if (i == search.results.length) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Center(
-              child: search.isLoading
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : TextButton(
-                      onPressed: () => search.performSearch(loadMore: true),
-                      child: const Text('Load more results'),
-                    ),
+    return Column(
+      children: [
+        if (search.count != null || search.results.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Text(
+              search.count != null
+                  ? 'Found ${search.count} result${search.count == 1 ? '' : 's'}'
+                  : 'Showing ${search.results.length} result${search.results.length == 1 ? '' : 's'}',
+              style: tt.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
             ),
-          );
-        }
+          ),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            itemCount: search.results.length + (search.nextBatch != null ? 1 : 0),
+            itemBuilder: (context, i) {
+              if (i == search.results.length) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Center(
+                    child: search.isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Load more results'),
+                  ),
+                );
+              }
 
-        final message = search.results[i];
-        return SearchResultTile(
-          message: message,
-          avatarResolver: avatarResolver,
-          query: query,
-          onTap: () => onTapResult(message.eventId),
-        );
-      },
+              final result = search.results[i];
+              return SearchResultTile(
+                result: result,
+                avatarResolver: avatarResolver,
+                highlights: search.highlights,
+                query: query,
+                onTap: () => onTapResult(result.message.eventId),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }

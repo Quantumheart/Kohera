@@ -19,6 +19,7 @@ import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/core/utils/network_error.dart';
+import 'package:kohera/features/chat/services/message_indexer_service.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:matrix/matrix.dart';
@@ -80,6 +81,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       clientName: clientName,
       connectivity: RealOutboxConnectivity(),
     );
+    messageIndexer = MessageIndexerService(client: _client);
     stickerPacks = StickerPackService(client: _client);
     avatarResolver = ClientAvatarResolver(_client);
     mediaResolver = ClientMediaResolver(_client);
@@ -128,6 +130,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   late final SyncService sync;
   late final AuthService auth;
   late final OutboxService outbox;
+  late final MessageIndexerService messageIndexer;
   late final AvatarResolver avatarResolver;
   late final MediaResolver mediaResolver;
   late final StickerPackService stickerPacks;
@@ -156,6 +159,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     sync.cancelSyncSub();
     unawaited(keyMirror.dispose());
     outbox.dispose();
+    messageIndexer.dispose();
     uia.dispose();
     selection.dispose();
     presence.dispose();
@@ -314,6 +318,11 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       unawaited(
         outbox.start().catchError((Object e) {
           debugPrint('[Kohera] Outbox start failed: $e');
+        }),
+      );
+      unawaited(
+        messageIndexer.init().catchError((Object e) {
+          debugPrint('[Kohera] Message indexer init failed: $e');
         }),
       );
     } else {

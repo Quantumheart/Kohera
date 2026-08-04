@@ -73,7 +73,7 @@ class MessageSearchResultTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final spans = highlightSpans(result.body, query.trim());
+    final spans = highlightSpans(result.body, [query.trim()]);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),

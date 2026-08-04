@@ -1,26 +1,24 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:kohera/features/chat/models/kohera_message_display.dart';
-import 'package:kohera/features/chat/services/message_display_resolver.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/features/chat/models/room_search_result.dart';
+import 'package:kohera/features/chat/services/room_search_service.dart';
 
 class ChatSearchController extends ChangeNotifier {
-  ChatSearchController({required this.roomId, required this.getRoom});
+  ChatSearchController({required this.roomId, required this.searchService});
 
   final String roomId;
-  final Room? Function() getRoom;
+  final RoomSearchService searchService;
 
   // ── Constants ──────────────────────────────────────────────
-  static const searchBatchLimit = 50;
-  static const minQueryLength = 3;
+  static const minQueryLength = 2;
   static const _debounceDuration = Duration(milliseconds: 500);
 
   // ── State ─────────────────────────────────────────────────
   bool _isSearching = false;
   bool get isSearching => _isSearching;
 
-  List<KoheraMessageDisplay> _results = [];
-  List<KoheraMessageDisplay> get results => _results;
+  List<RoomSearchResult> _results = [];
+  List<RoomSearchResult> get results => _results;
 
   String? _nextBatch;
   String? get nextBatch => _nextBatch;
@@ -37,6 +35,15 @@ class ChatSearchController extends ChangeNotifier {
   String _query = '';
   String get query => _query;
 
+  int? _count;
+  int? get count => _count;
+
+  List<String>? _highlights;
+  List<String>? get highlights => _highlights;
+
+  bool _isEncryptedRoom = false;
+  bool get isEncryptedRoom => _isEncryptedRoom;
+
   bool _disposed = false;
 
   Timer? _debounceTimer;
@@ -50,6 +57,9 @@ class ChatSearchController extends ChangeNotifier {
     _nextBatch = null;
     _error = null;
     _query = '';
+    _count = null;
+    _highlights = null;
+    _isEncryptedRoom = false;
     notifyListeners();
   }
 
@@ -63,6 +73,9 @@ class ChatSearchController extends ChangeNotifier {
     _isLoading = false;
     _error = null;
     _query = '';
+    _count = null;
+    _highlights = null;
+    _isEncryptedRoom = false;
     notifyListeners();
   }
 
@@ -74,6 +87,9 @@ class ChatSearchController extends ChangeNotifier {
       _results = [];
       _nextBatch = null;
       _error = null;
+      _count = null;
+      _highlights = null;
+      _isEncryptedRoom = false;
       notifyListeners();
       return;
     }
@@ -85,33 +101,36 @@ class ChatSearchController extends ChangeNotifier {
   Future<void> performSearch({bool loadMore = false}) async {
     if (_query.length < minQueryLength) return;
 
-    final room = getRoom();
-    if (room == null) return;
-
     _isLoading = true;
     _error = null;
     if (!loadMore) {
       _results = [];
       _nextBatch = null;
+      _count = null;
+      _highlights = null;
+      _isEncryptedRoom = false;
     }
     notifyListeners();
 
     try {
       debugPrint('[Kohera] Searching room for: $_query');
-      final result = await room.searchEvents(
-        searchTerm: _query,
-        limit: searchBatchLimit,
+      final response = await searchService.search(
+        roomId: roomId,
+        query: _query,
         nextBatch: loadMore ? _nextBatch : null,
       );
 
       if (_disposed) return;
 
       if (loadMore) {
-        _results.addAll(result.events.map((e) => const MessageDisplayResolver()(e)));
+        _results.addAll(response.results);
       } else {
-        _results = result.events.map((e) => const MessageDisplayResolver()(e)).toList();
+        _results = response.results;
       }
-      _nextBatch = result.nextBatch;
+      _nextBatch = response.nextBatch;
+      _count = response.count;
+      _highlights = response.highlights;
+      _isEncryptedRoom = response.isEncryptedRoom;
       _isLoading = false;
       notifyListeners();
     } catch (e) {
