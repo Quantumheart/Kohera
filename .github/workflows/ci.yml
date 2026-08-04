@@ -8,6 +8,7 @@ on:
 
 env:
   FLUTTER_CHANNEL: stable
+  COVERAGE_THRESHOLD: 80
 
 jobs:
   analyze:
@@ -38,6 +39,8 @@ jobs:
       - run: flutter pub get
       - run: dart run build_runner build --delete-conflicting-outputs
       - run: flutter test --coverage
+      - name: Coverage gate
+        run: dart run flutter_ci_guard --skip-format --skip-analyze --skip-tests --min-coverage ${{ env.COVERAGE_THRESHOLD }}
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
