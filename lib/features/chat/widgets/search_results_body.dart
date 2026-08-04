@@ -117,12 +117,12 @@ class SearchResultsBody extends StatelessWidget {
           );
         }
 
-        final message = search.results[i];
+        final result = search.results[i];
         return SearchResultTile(
-          message: message,
+          message: result.message,
           avatarResolver: avatarResolver,
           query: query,
-          onTap: () => onTapResult(message.eventId),
+          onTap: () => onTapResult(result.message.eventId),
         );
       },
     );

@@ -55,6 +55,7 @@ void main() {
     when(mockTimeline.events).thenReturn([]);
     when(mockTimeline.canRequestHistory).thenReturn(false);
     when(mockRoom.client).thenReturn(mockClient);
+    when(mockRoom.encrypted).thenReturn(false);
     when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
         .thenAnswer((_) async => mockTimeline);
   });
@@ -108,12 +109,12 @@ void main() {
       await tester.tap(find.byIcon(Icons.search_rounded));
       await tester.pumpAndSettle();
 
-      // Type less than 3 characters.
-      await tester.enterText(find.byType(TextField).last, 'ab');
+      // Type less than 2 characters.
+      await tester.enterText(find.byType(TextField).last, 'a');
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Type at least 3 characters to search'),
+        find.text('Type at least 2 characters to search'),
         findsOneWidget,
       );
     });
@@ -138,14 +139,11 @@ void main() {
     });
 
     testWidgets('shows empty state when no results found', (tester) async {
-      when(mockRoom.searchEvents(
-        searchTerm: anyNamed('searchTerm'),
-        limit: anyNamed('limit'),
+      when(mockClient.search(
+        any,
         nextBatch: anyNamed('nextBatch'),
-      ),).thenAnswer((_) async => (
-            events: <Event>[],
-            nextBatch: null,
-            searchedUntil: null,
+      ),).thenAnswer((_) async => SearchResults(
+            searchCategories: ResultCategories(),
           ),);
 
       await tester.pumpWidget(buildTestWidget());
@@ -167,9 +165,8 @@ void main() {
     });
 
     testWidgets('shows error state when search fails', (tester) async {
-      when(mockRoom.searchEvents(
-        searchTerm: anyNamed('searchTerm'),
-        limit: anyNamed('limit'),
+      when(mockClient.search(
+        any,
         nextBatch: anyNamed('nextBatch'),
       ),).thenThrow(Exception('Server error'));
 
@@ -190,11 +187,9 @@ void main() {
     });
 
     testWidgets('shows loading indicator while searching', (tester) async {
-      final completer = Completer<
-          ({List<Event> events, String? nextBatch, DateTime? searchedUntil})>();
-      when(mockRoom.searchEvents(
-        searchTerm: anyNamed('searchTerm'),
-        limit: anyNamed('limit'),
+      final completer = Completer<SearchResults>();
+      when(mockClient.search(
+        any,
         nextBatch: anyNamed('nextBatch'),
       ),).thenAnswer((_) => completer.future);
 
@@ -213,11 +208,9 @@ void main() {
       expect(find.byType(KoheraLoader), findsOneWidget);
 
       // Complete the future to avoid pending timers.
-      completer.complete((
-        events: <Event>[],
-        nextBatch: null,
-        searchedUntil: null,
-      ),);
+      completer.complete(
+        SearchResults(searchCategories: ResultCategories()),
+      );
       await tester.pumpAndSettle();
     });
   });
