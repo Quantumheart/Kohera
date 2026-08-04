@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:kohera/features/chat/models/room_search_result.dart';
 import 'package:kohera/features/chat/services/room_search_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatSearchController extends ChangeNotifier {
   ChatSearchController({required this.roomId, required this.searchService});
@@ -12,6 +14,7 @@ class ChatSearchController extends ChangeNotifier {
   // ── Constants ──────────────────────────────────────────────
   static const minQueryLength = 2;
   static const _debounceDuration = Duration(milliseconds: 500);
+  static const _maxRecentQueries = 10;
 
   // ── State ─────────────────────────────────────────────────
   bool _isSearching = false;
@@ -44,6 +47,9 @@ class ChatSearchController extends ChangeNotifier {
   bool _isEncryptedRoom = false;
   bool get isEncryptedRoom => _isEncryptedRoom;
 
+  List<String> _recentQueries = [];
+  List<String> get recentQueries => _recentQueries;
+
   bool _disposed = false;
 
   Timer? _debounceTimer;
@@ -52,6 +58,7 @@ class ChatSearchController extends ChangeNotifier {
   // ── Actions ───────────────────────────────────────────────
 
   void open() {
+    _loadRecentQueries();
     _isSearching = true;
     _results = [];
     _nextBatch = null;
@@ -132,6 +139,7 @@ class ChatSearchController extends ChangeNotifier {
       _highlights = response.highlights;
       _isEncryptedRoom = response.isEncryptedRoom;
       _isLoading = false;
+      if (!loadMore) _saveRecentQuery();
       notifyListeners();
     } catch (e) {
       debugPrint('[Kohera] Search error: $e');
@@ -152,6 +160,49 @@ class ChatSearchController extends ChangeNotifier {
       _highlightedEventId = null;
       notifyListeners();
     });
+  }
+
+
+  Future<void> _loadRecentQueries() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final json = prefs.getString('search_history_$roomId');
+      if (json != null) {
+        final list = jsonDecode(json) as List<dynamic>;
+        _recentQueries = list.cast<String>();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('[Kohera] Failed to load recent search queries: $e');
+    }
+  }
+
+  void _saveRecentQuery() {
+    if (_query.isEmpty) return;
+    _recentQueries.remove(_query);
+    _recentQueries.insert(0, _query);
+    if (_recentQueries.length > _maxRecentQueries) {
+      _recentQueries = _recentQueries.sublist(0, _maxRecentQueries);
+    }
+    unawaited(_persistRecentQueries());
+  }
+
+  Future<void> _persistRecentQueries() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        'search_history_$roomId',
+        jsonEncode(_recentQueries),
+      );
+    } catch (e) {
+      debugPrint('[Kohera] Failed to persist recent search queries: $e');
+    }
+  }
+
+  Future<void> removeRecentQuery(String query) async {
+    _recentQueries.remove(query);
+    notifyListeners();
+    await _persistRecentQueries();
   }
 
   @override

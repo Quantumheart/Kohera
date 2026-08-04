@@ -22,6 +22,27 @@ String formatMessageTime(DateTime ts) {
   return '${months[ts.month - 1]} ${ts.day}, ${ts.year}, $time';
 }
 
+String formatDateLabel(DateTime ts) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final msgDate = DateTime(ts.year, ts.month, ts.day);
+  final diff = today.difference(msgDate).inDays;
+
+  if (diff == 0) return 'Today';
+  if (diff == 1) return 'Yesterday';
+
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+
+  if (ts.year == now.year) return '${months[ts.month - 1]} ${ts.day}';
+  return '${months[ts.month - 1]} ${ts.day}, ${ts.year}';
+}
+
+bool isSameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
 String formatRelativeTimestamp(DateTime ts) {
   final now = DateTime.now();
   final diff = now.difference(ts);

@@ -895,6 +895,11 @@ class _ChatScreenState extends State<ChatScreen>
     _searchCtrl.clear();
   }
 
+  void _selectRecentQuery(String query) {
+    _searchCtrl.text = query;
+    _search.onQueryChanged(query);
+  }
+
   void _scrollToEventById(String eventId, {bool closeSearch = true}) {
     if (closeSearch) _closeSearch();
     _messageListKey.currentState?.navigateToEventById(eventId);
@@ -1109,23 +1114,52 @@ class _ChatScreenState extends State<ChatScreen>
       );
     }
 
+    final isNarrow =
+        MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: appBar,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          _buildChatBody(matrix, room.id),
-          if (_search.isSearching)
-            ColoredBox(
-              color: Theme.of(context).colorScheme.surface,
-              child: SearchResultsBody(
-                search: _search,
-                avatarResolver: matrix.avatarResolver,
-                onTapResult: _scrollToEventById,
-              ),
+      body: isNarrow
+          ? Stack(
+              fit: StackFit.expand,
+              children: [
+                _buildChatBody(matrix, room.id),
+                if (_search.isSearching)
+                  ColoredBox(
+                    color: cs.surface,
+                    child: SearchResultsBody(
+                      search: _search,
+                      avatarResolver: matrix.avatarResolver,
+                      onTapResult: _scrollToEventById,
+                      onClose: _closeSearch,
+                      onRecentQuerySelected: _selectRecentQuery,
+                    ),
+                  ),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(child: _buildChatBody(matrix, room.id)),
+                if (_search.isSearching)
+                  Container(
+                    width: 380,
+                    decoration: BoxDecoration(
+                      border: Border(
+                        left: BorderSide(color: cs.outlineVariant),
+                      ),
+                    ),
+                    color: cs.surface,
+                    child: SearchResultsBody(
+                      search: _search,
+                      avatarResolver: matrix.avatarResolver,
+                      onTapResult: _scrollToEventById,
+                      onClose: _closeSearch,
+                      onRecentQuerySelected: _selectRecentQuery,
+                    ),
+                  ),
+              ],
             ),
-        ],
-      ),
     );
   }
 
