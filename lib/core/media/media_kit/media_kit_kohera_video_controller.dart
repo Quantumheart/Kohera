@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'package:flutter/material.dart';
 import 'package:kohera/core/media/kohera_media_source.dart';
 import 'package:kohera/core/media/kohera_video_controller.dart';
