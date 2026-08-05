@@ -4,7 +4,6 @@ import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/setup/setup_verify_section.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/encryption.dart';
-import 'package:matrix/matrix.dart';
 
 import '../helpers/fake_key_verification.dart';
 

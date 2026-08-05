@@ -1,7 +1,6 @@
 import 'dart:typed_data';
 
 import 'package:matrix/encryption.dart';
-import 'package:matrix/matrix.dart';
 import 'package:mockito/mockito.dart';
 
 /// A fake [KeyVerification] for testing. We cannot use Mockito because

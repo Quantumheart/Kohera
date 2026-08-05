@@ -1,11 +1,10 @@
+// Test file uses redundant args for clarity and non-const dynamic values.
 // ignore_for_file: avoid_redundant_argument_values
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_inline.dart';
-import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/encryption.dart';
-import 'package:matrix/matrix.dart';
 
 import '../helpers/fake_key_verification.dart';
 

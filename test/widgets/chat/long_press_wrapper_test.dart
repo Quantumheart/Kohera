@@ -42,7 +42,8 @@ void main() {
         },
       );
 
-      var fired = false;
+
+      var fired = false; // ignore: unused_local_variable
       await tester.pumpWidget(wrap(
         Center(
           child: LongPressWrapper(
@@ -63,6 +64,7 @@ void main() {
     }, skip: true);
 
     testWidgets('does not fire onLongPress if released early', (tester) async {
+
       var fired = false;
       await tester.pumpWidget(wrap(
         LongPressWrapper(
@@ -83,6 +85,7 @@ void main() {
 
     testWidgets('does not fire if pointer moves beyond touch slop',
         (tester) async {
+
       var fired = false;
       await tester.pumpWidget(wrap(
         SizedBox(
@@ -107,6 +110,7 @@ void main() {
     });
 
     testWidgets('claimOf prevents long press from firing', (tester) async {
+
       var fired = false;
       await tester.pumpWidget(wrap(
         LongPressWrapper(

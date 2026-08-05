@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:kohera/core/models/emoji_gg_pack.dart';
 import 'package:kohera/core/services/emoji_gg_service.dart';
 import 'package:path/path.dart' as p;
 
@@ -20,7 +19,7 @@ const _samplePacksBody = '''
 void main() {
   late Directory tempDir;
   late int callCount;
-  late MockClient client;
+// (client removed — unused)
 
   setUp(() {
     TestWidgetsFlutterBinding.ensureInitialized();

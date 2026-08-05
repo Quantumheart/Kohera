@@ -89,7 +89,7 @@ void main() {
       final texts = tester
           .widgetList<Text>(find.byType(Text))
           .map((t) => t.data)
-          .where((s) => s != null && s!.contains('Room'))
+          .where((s) => s != null && s.contains("Room"))
           .toList();
       expect(texts.length, 3);
       expect(texts[0], 'Apple Room');
