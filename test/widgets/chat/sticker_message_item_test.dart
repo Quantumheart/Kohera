@@ -1,3 +1,4 @@
+// Callbacks use redundant args for test clarity.
 // ignore_for_file: unnecessary_underscores
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,7 +7,7 @@ import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/models/kohera_message_status.dart';
 import 'package:kohera/features/chat/widgets/sticker_message_item.dart';
 
-KoheraMessageDisplay _msg({String eventId = '\$sticker:example.com'}) {
+KoheraMessageDisplay _msg({String eventId = r'$sticker:example.com'}) {
   return KoheraMessageDisplay(
     eventId: eventId,
     senderId: '@alice:example.com',
@@ -16,7 +17,7 @@ KoheraMessageDisplay _msg({String eventId = '\$sticker:example.com'}) {
     eventType: 'm.sticker',
     timestamp: DateTime.fromMillisecondsSinceEpoch(1000),
     status: KoheraMessageStatus.sent,
-    content: {},
+    content: const {},
   );
 }
 

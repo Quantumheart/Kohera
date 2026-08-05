@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_redundant_argument_values
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

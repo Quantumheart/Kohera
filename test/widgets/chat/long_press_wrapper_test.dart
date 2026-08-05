@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_redundant_argument_values
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -43,7 +42,9 @@ void main() {
       );
 
 
-      var fired = false; // ignore: unused_local_variable
+      // Skipped test body — fired is unused here.
+      // ignore: unused_local_variable
+      var fired = false;
       await tester.pumpWidget(wrap(
         Center(
           child: LongPressWrapper(

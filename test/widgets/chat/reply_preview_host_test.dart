@@ -8,10 +8,10 @@ import 'package:kohera/features/chat/widgets/reply_preview_host.dart';
 void main() {
   Widget wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
-  final samplePreview = KoheraReplyPreview(
+  const samplePreview = KoheraReplyPreview(
     parentSenderName: 'Alice',
     parentBody: 'Hello world',
-    parentMessageId: '\$parent:example.com',
+    parentMessageId: r'$parent:example.com',
   );
 
   group('ReplyPreviewHost', () {
@@ -20,7 +20,7 @@ void main() {
 
       await tester.pumpWidget(wrap(
         ReplyPreviewHost(
-          replyEventId: '\$reply:example.com',
+          replyEventId: r'$reply:example.com',
           resolvePreview: (_) => completer.future,
           isMe: false,
         ),
@@ -40,7 +40,7 @@ void main() {
     testWidgets('shows preview after resolution', (tester) async {
       await tester.pumpWidget(wrap(
         ReplyPreviewHost(
-          replyEventId: '\$reply:example.com',
+          replyEventId: r'$reply:example.com',
           resolvePreview: (_) async => samplePreview,
           isMe: false,
         ),
@@ -56,7 +56,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(wrap(
         ReplyPreviewHost(
-          replyEventId: '\$reply:example.com',
+          replyEventId: r'$reply:example.com',
           resolvePreview: (_) async => null,
           isMe: false,
         ),
@@ -73,7 +73,7 @@ void main() {
       String? tappedId;
       await tester.pumpWidget(wrap(
         ReplyPreviewHost(
-          replyEventId: '\$reply:example.com',
+          replyEventId: r'$reply:example.com',
           resolvePreview: (_) async => samplePreview,
           isMe: false,
           onParentTap: (id) => tappedId = id,
@@ -86,7 +86,7 @@ void main() {
       await tester.tap(find.text('Alice'));
       await tester.pumpAndSettle();
 
-      expect(tappedId, '\$parent:example.com');
+      expect(tappedId, r'$parent:example.com');
     });
 
     testWidgets('re-resolves when replyEventId changes', (tester) async {
@@ -98,28 +98,28 @@ void main() {
           builder: (context, setState) {
             return ReplyPreviewHost(
               key: ValueKey(result?.parentMessageId ?? 'init'),
-              replyEventId: result?.parentMessageId ?? '\$first:example.com',
+              replyEventId: result?.parentMessageId ?? r'$first:example.com',
               resolvePreview: (id) async {
                 callCount++;
-                if (id == '\$first:example.com') {
-                  return KoheraReplyPreview(
+                if (id == r'$first:example.com') {
+                  return const KoheraReplyPreview(
                     parentSenderName: 'Bob',
                     parentBody: 'First reply',
-                    parentMessageId: '\$second:example.com',
+                    parentMessageId: r'$second:example.com',
                   );
                 }
-                return KoheraReplyPreview(
+                return const KoheraReplyPreview(
                   parentSenderName: 'Carol',
                   parentBody: 'Second reply',
-                  parentMessageId: '\$third:example.com',
+                  parentMessageId: r'$third:example.com',
                 );
               },
               isMe: false,
               onParentTap: (id) {
                 setState(() {
                   result = KoheraReplyPreview(
-                    parentSenderName: id == '\$second:example.com' ? 'Carol' : 'Bob',
-                    parentBody: id == '\$second:example.com' ? 'Second' : 'First',
+                    parentSenderName: id == r'$second:example.com' ? 'Carol' : 'Bob',
+                    parentBody: id == r'$second:example.com' ? 'Second' : 'First',
                     parentMessageId: id,
                   );
                 });
@@ -143,7 +143,7 @@ void main() {
     testWidgets('handles resolver error gracefully', (tester) async {
       await tester.pumpWidget(wrap(
         ReplyPreviewHost(
-          replyEventId: '\$reply:example.com',
+          replyEventId: r'$reply:example.com',
           resolvePreview: (_) async => throw Exception('Failed'),
           isMe: false,
         ),

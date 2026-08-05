@@ -29,7 +29,7 @@ void main() {
   late MockRoom mockRoom;
 
   const roomId = '!room:example.com';
-  const rootId = '\$root:example.com';
+  const rootId = r'$root:example.com';
 
   setUp(() {
     mockMatrix = MockMatrixService();
@@ -54,7 +54,7 @@ void main() {
         limit: anyNamed('limit'),
         from: argThat(isNull, named: 'from'),
       )).thenAnswer((_) async => GetRelatingEventsWithRelTypeResponse(
-        chunk: [_msgEvent('\$r1:example.com', ts: 200)],
+        chunk: [_msgEvent(r'$r1:example.com', ts: 200)],
         nextBatch: 'batch1',
       ));
 
@@ -64,7 +64,7 @@ void main() {
       expect(found, isTrue);
       expect(loader.rootEvent, isNotNull);
       expect(loader.rootEvent!.eventId, rootId);
-      expect(loader.replyIds, ['\$r1:example.com']);
+      expect(loader.replyIds, [r'$r1:example.com']);
       expect(loader.hasMore, isTrue);
       // seedEvents = root + replies
       expect(loader.seedEvents.length, 2);
@@ -83,7 +83,6 @@ void main() {
         from: argThat(isNull, named: 'from'),
       )).thenAnswer((_) async => GetRelatingEventsWithRelTypeResponse(
         chunk: [],
-        nextBatch: null,
       ));
 
       final loader = ThreadReplyLoader();
@@ -122,13 +121,13 @@ void main() {
         limit: anyNamed('limit'),
         from: argThat(isNull, named: 'from'),
       )).thenAnswer((_) async => GetRelatingEventsWithRelTypeResponse(
-        chunk: [_msgEvent('\$r1:example.com', ts: 200)],
+        chunk: [_msgEvent(r'$r1:example.com', ts: 200)],
         nextBatch: 'batch1',
       ));
 
       final loader = ThreadReplyLoader();
       await loader.loadRoot(mockMatrix, roomId, rootId);
-      expect(loader.replyIds, ['\$r1:example.com']);
+      expect(loader.replyIds, [r'$r1:example.com']);
 
       // Second page: includes a duplicate + a new reply.
       when(mockClient.getRelatingEventsWithRelType(
@@ -139,17 +138,16 @@ void main() {
         from: argThat(equals('batch1'), named: 'from'),
       )).thenAnswer((_) async => GetRelatingEventsWithRelTypeResponse(
         chunk: [
-          _msgEvent('\$r1:example.com', ts: 200), // duplicate
-          _msgEvent('\$r2:example.com', ts: 300), // new
+          _msgEvent(r'$r1:example.com', ts: 200), // duplicate
+          _msgEvent(r'$r2:example.com', ts: 300), // new
         ],
-        nextBatch: null,
       ));
 
       final loaded = await loader.loadMoreReplies(mockMatrix, roomId, rootId);
 
       expect(loaded, isTrue);
       // Deduped: r1 not duplicated
-      expect(loader.replyIds, ['\$r1:example.com', '\$r2:example.com']);
+      expect(loader.replyIds, [r'$r1:example.com', r'$r2:example.com']);
       expect(loader.hasMore, isFalse);
       loader.dispose();
     });
@@ -165,9 +163,8 @@ void main() {
         limit: anyNamed('limit'),
         from: argThat(isNull, named: 'from'),
       )).thenAnswer((_) async => GetRelatingEventsWithRelTypeResponse(
-        chunk: [_msgEvent('\$r1:example.com', ts: 200)],
-        nextBatch: null, // no more pages
-      ));
+        chunk: [_msgEvent(r'$r1:example.com', ts: 200)],
+      )); // no more pages
 
       final loader = ThreadReplyLoader();
       await loader.loadRoot(mockMatrix, roomId, rootId);
@@ -200,7 +197,7 @@ void main() {
         limit: anyNamed('limit'),
         from: argThat(isNull, named: 'from'),
       )).thenAnswer((_) async => GetRelatingEventsWithRelTypeResponse(
-        chunk: [_msgEvent('\$r1:example.com', ts: 200)],
+        chunk: [_msgEvent(r'$r1:example.com', ts: 200)],
         nextBatch: 'batch1',
       ));
 

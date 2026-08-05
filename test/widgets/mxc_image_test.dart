@@ -1,3 +1,4 @@
+// Dynamic values prevent const; test clarity over micro-optimization.
 // Test file uses redundant args for clarity and non-const dynamic values.
 // ignore_for_file: prefer_const_constructors
 import 'dart:async';

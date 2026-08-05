@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_redundant_argument_values
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/utils/media_cache.dart';
@@ -39,7 +38,7 @@ void main() {
     });
 
     test('clearAll does not throw when empty', () {
-      expect(() => MediaCache.clearAll(), returnsNormally);
+      expect(MediaCache.clearAll, returnsNormally);
     });
   });
 }
