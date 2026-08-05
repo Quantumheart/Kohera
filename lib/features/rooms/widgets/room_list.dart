@@ -1,4 +1,3 @@
-// coverage:ignore-file
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -8,7 +7,7 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/home/widgets/mobile_space_drawer.dart';
 import 'package:kohera/features/rooms/services/room_list_builder.dart';
-import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
+import 'package:kohera/features/rooms/services/room_list_controller.dart';
 import 'package:kohera/features/rooms/widgets/invite_tile.dart';
 import 'package:kohera/features/rooms/widgets/message_search_tiles.dart';
 import 'package:kohera/features/rooms/widgets/new_dm_dialog.dart';
@@ -22,35 +21,44 @@ import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
 import 'package:kohera/features/whats_new/widgets/whats_new_banner.dart';
 import 'package:kohera/shared/widgets/speed_dial_item.dart';
-
 import 'package:provider/provider.dart';
 
-class RoomList extends StatefulWidget {
+class RoomList extends StatelessWidget {
   const RoomList({super.key});
 
   @override
-  State<RoomList> createState() => _RoomListState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (context) => RoomListController(
+        matrixService: context.read<MatrixService>(),
+        selectionService: context.read<SelectionService>(),
+        preferencesService: context.read<PreferencesService>(),
+        spaceRoomsController: context.read<SpaceRoomsController>(),
+      ),
+      child: const _RoomListView(),
+    );
+  }
 }
 
-class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
+class _RoomListView extends StatefulWidget {
+  const _RoomListView();
+
+  @override
+  State<_RoomListView> createState() => _RoomListViewState();
+}
+
+class _RoomListViewState extends State<_RoomListView>
+    with TickerProviderStateMixin {
   final _searchCtrl = TextEditingController();
   final _searchFocus = FocusNode(debugLabel: 'roomlist-search');
-  String _query = '';
-  bool _searchOpen = false;
   late final AnimationController _searchAnimCtrl;
   late final Animation<double> _searchAnimation;
   late final AnimationController _fabAnimCtrl;
   late final Animation<double> _fabAnimation;
-  bool _fabOpen = false;
-  late final RoomListSearchController _messageSearch;
 
   @override
   void initState() {
     super.initState();
-    _messageSearch = RoomListSearchController(
-      getClient: () => context.read<MatrixService>().client,
-    );
-    _messageSearch.addListener(_onMessageSearchChanged);
     _searchAnimCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),
@@ -69,14 +77,8 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
     );
   }
 
-  void _onMessageSearchChanged() {
-    setState(() {});
-  }
-
   @override
   void dispose() {
-    _messageSearch.removeListener(_onMessageSearchChanged);
-    _messageSearch.dispose();
     _searchCtrl.dispose();
     _searchFocus.dispose();
     _searchAnimCtrl.dispose();
@@ -84,166 +86,59 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  void _toggleSearch() {
-    setState(() => _searchOpen = !_searchOpen);
-    if (_searchOpen) {
+  void _syncAnimations(RoomListController controller) {
+    if (controller.isSearchOpen &&
+        _searchAnimCtrl.status != AnimationStatus.completed) {
       unawaited(_searchAnimCtrl.forward());
       _searchFocus.requestFocus();
-    } else {
+    } else if (!controller.isSearchOpen &&
+        _searchAnimCtrl.status != AnimationStatus.dismissed) {
       unawaited(_searchAnimCtrl.reverse());
-      _searchCtrl.clear();
-      _query = '';
-      _messageSearch.clear();
-    }
-  }
-
-  void _closeSearch() {
-    if (_searchOpen) {
-      setState(() {
-        _searchOpen = false;
-        _searchCtrl.clear();
-        _query = '';
-      });
       _searchFocus.unfocus();
-      unawaited(_searchAnimCtrl.reverse());
-      _messageSearch.clear();
     }
-  }
 
-  void _toggleFab() {
-    setState(() => _fabOpen = !_fabOpen);
-    if (_fabOpen) {
+    if (controller.isFabOpen &&
+        _fabAnimCtrl.status != AnimationStatus.completed) {
       unawaited(_fabAnimCtrl.forward());
-    } else {
+    } else if (!controller.isFabOpen &&
+        _fabAnimCtrl.status != AnimationStatus.dismissed) {
       unawaited(_fabAnimCtrl.reverse());
     }
-  }
-
-  void _closeFab() {
-    if (_fabOpen) {
-      setState(() => _fabOpen = false);
-      unawaited(_fabAnimCtrl.reverse());
-    }
-  }
-
-  String _appBarTitle(SelectionService selection, MatrixService matrix) {
-    final ids = selection.selectedSpaceIds;
-    if (ids.isEmpty) return 'Chats';
-    if (ids.length == 1) {
-      return matrix.client.getRoomById(ids.first)?.getLocalizedDisplayname() ??
-          'Space';
-    }
-    return '${ids.length} spaces';
-  }
-
-  /// Returns the selected space ID if it is a space with zero joined rooms
-  /// and the hierarchy has (or is fetching) unjoined children.
-  /// Returns `null` otherwise, falling back to the default empty state.
-  String? _spaceWithNoJoinedRooms(
-    SelectionService selection,
-    MatrixService matrix,
-    SpaceRoomsController spaceRoomsController,
-  ) {
-    if (selection.selectedSpaceIds.length != 1) return null;
-    if (_query.isNotEmpty) return null;
-
-    final spaceId = selection.selectedSpaceIds.first;
-    final space = matrix.client.getRoomById(spaceId);
-    if (space == null || !space.isSpace) return null;
-
-    final joinedRooms = selection.roomsForSpace(spaceId);
-    if (joinedRooms.isNotEmpty) return null;
-
-    final state = spaceRoomsController.getRoomState(spaceId);
-    if (!spaceRoomsController.isCached(spaceId)) return spaceId;
-    if (state.loading || state.error != null || state.previewForbidden) {
-      return spaceId;
-    }
-    if (state.unjoinedRooms.isEmpty && state.subspaces.isEmpty) return null;
-    return spaceId;
   }
 
   @override
   Widget build(BuildContext context) {
-    final selection = context.watch<SelectionService>();
     final matrix = context.read<MatrixService>();
+    final selection = context.watch<SelectionService>();
     final prefs = context.watch<PreferencesService>();
     final spaceRoomsController = context.watch<SpaceRoomsController>();
+    final controller = context.watch<RoomListController>();
     final cs = Theme.of(context).colorScheme;
 
-    final items = buildSectionItems(
-      selection,
-      prefs,
-      _query,
-      spaceRoomsController: spaceRoomsController,
-    );
+    _syncAnimations(controller);
+    controller.maybeFetchSpaceHierarchy();
 
-    // Trigger hierarchy fetch for selected spaces not yet cached.
-    for (final spaceId in selection.selectedSpaceIds) {
-      if (!spaceRoomsController.isCached(spaceId)) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            unawaited(spaceRoomsController.fetchSpaceRooms(spaceId));
-          }
-        });
-      }
-    }
-
-    // Pre-compute context menu eligibility data once for all tiles.
-    final selectedSpaceCanManage = selection.selectedSpaceIds.any((id) {
-      final space = matrix.client.getRoomById(id);
-      return space != null && space.canChangeStateEvent('m.space.child');
-    });
-    final manageableSpaceIds = <String>{
-      for (final s in selection.spaces)
-        if (s.canChangeStateEvent('m.space.child')) s.id,
-    };
-
-    // Append message search items when query is long enough
-    if (_query.trim().length >= RoomListSearchController.minQueryLength) {
-      items.add(
-        MessageSearchHeaderItem(
-          resultCount: _messageSearch.totalCount,
-          isLoading: _messageSearch.isLoading,
-          error: _messageSearch.error,
-        ),
-      );
-      for (final result in _messageSearch.results) {
-        items.add(MessageSearchResultItem(result: result));
-      }
-      if (_messageSearch.nextBatch != null && !_messageSearch.isLoading) {
-        items.add(LoadMoreMessagesItem(isLoading: false));
-      }
-    }
-
-    // Determine if the list is truly empty (no rooms AND no message results)
-    final hasRoomItems = items.any(
-      (i) => i is RoomItem || i is InviteItem || i is HeaderItem,
-    );
-    final hasMessageResults = _messageSearch.results.isNotEmpty;
-    final isMessageSearchActive = _messageSearch.isLoading;
-    final isEmpty =
-        !hasRoomItems && !hasMessageResults && !isMessageSearchActive;
+    final items = controller.items;
+    final spaceEmpty = controller.spaceWithNoJoinedRooms();
     final isNarrow =
         MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
-
-    final spaceEmpty = _spaceWithNoJoinedRooms(
-      selection,
-      matrix,
-      spaceRoomsController,
-    );
+    final manageableSpaceIds = controller.manageableSpaceIds;
+    final selectedSpaceCanManage = controller.selectedSpaceCanManage;
 
     return PopScope(
-      canPop: !_searchOpen,
+      canPop: !controller.isSearchOpen,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _closeSearch();
+        if (!didPop) {
+          _searchCtrl.clear();
+          controller.closeSearch();
+        }
       },
       child: Scaffold(
         drawer: isNarrow ? const MobileSpaceDrawer() : null,
         appBar: AppBar(
           title: AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
-            child: _searchOpen
+            child: controller.isSearchOpen
                 ? SizeTransition(
                     sizeFactor: _searchAnimation,
                     axis: Axis.horizontal,
@@ -252,24 +147,20 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                       key: const ValueKey('search'),
                       controller: _searchCtrl,
                       focusNode: _searchFocus,
-                      onChanged: (v) {
-                        setState(() => _query = v);
-                        _messageSearch.onQueryChanged(
-                          v,
-                          scopeRoomIds: spaceRoomIds(selection),
-                        );
-                      },
+                      onChanged: (v) => controller.setQuery(
+                        v,
+                        scopeRoomIds: spaceRoomIds(selection),
+                      ),
                       decoration: InputDecoration(
-                        hintText: 'Search\u2026',
+                        hintText: 'Search…',
                         border: InputBorder.none,
                         isDense: true,
-                        suffixIcon: _query.isNotEmpty
+                        suffixIcon: controller.query.isNotEmpty
                             ? IconButton(
                                 icon: const Icon(Icons.close, size: 20),
                                 onPressed: () {
                                   _searchCtrl.clear();
-                                  setState(() => _query = '');
-                                  _messageSearch.clear();
+                                  controller.clearQuery();
                                 },
                               )
                             : null,
@@ -277,31 +168,34 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                     ),
                   )
                 : Text(
-                    _appBarTitle(selection, matrix),
+                    controller.appBarTitle(),
                     key: const ValueKey('title'),
                   ),
           ),
-          leading: _searchOpen
+          leading: controller.isSearchOpen
               ? IconButton(
                   icon: const Icon(Icons.arrow_back),
-                  onPressed: _closeSearch,
+                  onPressed: () {
+                    _searchCtrl.clear();
+                    controller.closeSearch();
+                  },
                 )
               : (isNarrow
-                  ? Builder(
-                      builder: (ctx) => IconButton(
-                        icon: const Icon(Icons.menu),
-                        tooltip: 'Spaces',
-                        onPressed: () => Scaffold.of(ctx).openDrawer(),
-                      ),
-                    )
-                  : null),
-          actions: _searchOpen
+                    ? Builder(
+                        builder: (ctx) => IconButton(
+                          icon: const Icon(Icons.menu),
+                          tooltip: 'Spaces',
+                          onPressed: () => Scaffold.of(ctx).openDrawer(),
+                        ),
+                      )
+                    : null),
+          actions: controller.isSearchOpen
               ? null
               : [
                   IconButton(
                     icon: const Icon(Icons.search),
                     tooltip: 'Search',
-                    onPressed: _toggleSearch,
+                    onPressed: controller.toggleSearch,
                   ),
                 ],
         ),
@@ -310,7 +204,6 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
             Column(
               children: [
                 const WhatsNewBanner(),
-                // ── Sectioned room list ──
                 Expanded(
                   child: spaceEmpty != null
                       ? _SpaceEmptyState(
@@ -318,175 +211,53 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                           controller: spaceRoomsController,
                           matrixService: matrix,
                         )
-                      : isEmpty && items.isEmpty
-                          ? Center(
-                              child: Text(
-                                _query.isNotEmpty
-                                    ? 'No results for "$_query"'
-                                    : 'No rooms yet',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: cs.onSurfaceVariant
-                                          .withValues(alpha: 0.6),
-                                    ),
-                              ),
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              itemCount: items.length,
-                              itemBuilder: (context, i) {
-                                final item = items[i];
-                                return switch (item) {
-                                  InviteItem() => InviteTile(
-                                      summary: item.summary,
-                                      inviterName: () {
-                                        final room = matrix.client
-                                            .getRoomById(item.summary.roomId);
-                                        return room != null
-                                            ? selection.inviterDisplayName(room)
-                                            : null;
-                                      }(),
-                                    ),
-                                  HeaderItem() => RoomSectionHeader(
-                                      item: item,
-                                      prefs: prefs,
-                                      selection: selection,
-                                      matrixService: matrix,
-                                    ),
-                                  RoomItem() => Padding(
-                                      padding: EdgeInsets.only(
-                                        left: item.depth * 16.0,
-                                      ),
-                                      child: Builder(
-                                        builder: (_) {
-                                          final memberships =
-                                              selection.spaceMemberships(
-                                            item.summary.roomId,
-                                          );
-                                          return RoomTile(
-                                            summary: item.summary,
-                                            isSelected:
-                                                selection.selectedRoomId ==
-                                                    item.summary.roomId,
-                                            memberships: memberships,
-                                            hasContextMenu:
-                                                selectedSpaceCanManage ||
-                                                    manageableSpaceIds
-                                                        .isNotEmpty,
-                                            parentSpaceId: item.parentSpaceId,
-                                            sectionRoomIds: item.sectionRoomIds,
-                                            onContextMenu: (position) {
-                                              unawaited(
-                                                showRoomContextMenu(
-                                                  context,
-                                                  position,
-                                                  item.summary.roomId,
-                                                  parentSpaceId:
-                                                      item.parentSpaceId,
-                                                  sectionRoomIds:
-                                                      item.sectionRoomIds,
-                                                ),
-                                              );
-                                            },
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  MessageSearchHeaderItem() =>
-                                    MessageSearchHeader(item: item),
-                                  MessageSearchResultItem() =>
-                                    MessageSearchResultTile(
-                                      result: item.result,
-                                      query: _query,
-                                    ),
-                                  LoadMoreMessagesItem() => LoadMoreButton(
-                                      isLoading: item.isLoading,
-                                      onPressed: () =>
-                                          _messageSearch.performSearch(
-                                        loadMore: true,
-                                      ),
-                                    ),
-                                  UnjoinedRoomGroupHeaderItem() =>
-                                    _UnjoinedGroupHeader(
-                                      item: item,
-                                      matrixService: matrix,
-                                    ),
-                                  UnjoinedRoomItem() => Padding(
-                                      padding: EdgeInsets.only(
-                                        left: item.depth * 16.0,
-                                      ),
-                                      child: _UnjoinedRoomTile(
-                                        metadata: item.metadata,
-                                        parentSpaceId: item.parentSpaceId,
-                                        controller: spaceRoomsController,
-                                      ),
-                                    ),
-                                  SubspaceOpenItem() => Padding(
-                                      padding: EdgeInsets.only(
-                                        left: item.depth * 16.0,
-                                      ),
-                                      child: _SubspaceOpenTile(
-                                        metadata: item.metadata,
-                                        parentSpaceId: item.parentSpaceId,
-                                        matrixService: matrix,
-                                      ),
-                                    ),
-                                  UnjoinedRoomLoadingItem() => Padding(
-                                      padding: EdgeInsets.only(
-                                        left: item.depth * 16.0 + 10,
-                                      ),
-                                      child: const SizedBox(
-                                        height: 32,
-                                        child: Center(
-                                          child: SizedBox(
-                                            width: 16,
-                                            height: 16,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  UnjoinedRoomErrorItem() => Padding(
-                                      padding: EdgeInsets.only(
-                                        left: item.depth * 16.0,
-                                      ),
-                                      child: _UnjoinedErrorTile(
-                                        item: item,
-                                        controller: spaceRoomsController,
-                                      ),
-                                    ),
-                                  UnjoinedRoomForbiddenItem() => Padding(
-                                      padding: EdgeInsets.only(
-                                        left: item.depth * 16.0 + 10,
-                                      ),
-                                      child: const _UnjoinedForbiddenTile(),
-                                    ),
-                                };
-                              },
-                            ),
+                      : controller.isEmpty && items.isEmpty
+                      ? Center(
+                          child: Text(
+                            controller.query.isNotEmpty
+                                ? 'No results for "${controller.query}"'
+                                : 'No rooms yet',
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(
+                                  color: cs.onSurfaceVariant.withValues(
+                                    alpha: 0.6,
+                                  ),
+                                ),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          itemCount: items.length,
+                          itemBuilder: (context, i) {
+                            final item = items[i];
+                            return _buildItem(
+                              context,
+                              item,
+                              matrix,
+                              selection,
+                              prefs,
+                              selectedSpaceCanManage,
+                              manageableSpaceIds,
+                              spaceRoomsController,
+                              controller,
+                            );
+                          },
+                        ),
                 ),
               ],
             ),
-
-            // ── Scrim overlay to dismiss speed dial ──
-            if (_fabOpen)
+            if (controller.isFabOpen)
               Positioned.fill(
                 child: GestureDetector(
-                  onTap: _closeFab,
+                  onTap: controller.closeFab,
                   child: const ColoredBox(
                     color: Colors.black26,
                   ),
                 ),
               ),
-
-            // ── FAB + speed dial ──
             Positioned(
               right: 16,
               bottom: MediaQuery.paddingOf(context).bottom + 16,
@@ -494,7 +265,6 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  // ── Mini-FABs (speed dial) ──
                   SizeTransition(
                     sizeFactor: _fabAnimation,
                     alignment: Alignment.topCenter,
@@ -508,7 +278,7 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                             label: 'New Room',
                             icon: Icons.group_add_rounded,
                             onTap: () {
-                              _closeFab();
+                              controller.closeFab();
                               unawaited(
                                 NewRoomDialog.show(
                                   context,
@@ -522,7 +292,7 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                             label: 'New Direct Message',
                             icon: Icons.chat_bubble_outline_rounded,
                             onTap: () {
-                              _closeFab();
+                              controller.closeFab();
                               unawaited(
                                 NewDirectMessageDialog.show(
                                   context,
@@ -536,7 +306,7 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                             label: 'Join with address',
                             icon: Icons.tag_rounded,
                             onTap: () {
-                              _closeFab();
+                              controller.closeFab();
                               unawaited(
                                 JoinWithAddressDialog.show(
                                   context,
@@ -549,12 +319,11 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
                       ),
                     ),
                   ),
-                  // ── Main FAB ──
                   FloatingActionButton(
                     heroTag: 'compose',
-                    onPressed: _toggleFab,
+                    onPressed: controller.toggleFab,
                     child: AnimatedRotation(
-                      turns: _fabOpen ? 0.125 : 0,
+                      turns: controller.isFabOpen ? 0.125 : 0,
                       duration: const Duration(milliseconds: 200),
                       child: const Icon(Icons.edit_rounded),
                     ),
@@ -566,6 +335,116 @@ class _RoomListState extends State<RoomList> with TickerProviderStateMixin {
         ),
       ),
     );
+  }
+
+  Widget _buildItem(
+    BuildContext context,
+    ListItem item,
+    MatrixService matrix,
+    SelectionService selection,
+    PreferencesService prefs,
+    bool selectedSpaceCanManage,
+    Set<String> manageableSpaceIds,
+    SpaceRoomsController spaceRoomsController,
+    RoomListController roomListController,
+  ) {
+    return switch (item) {
+      InviteItem() => InviteTile(
+        summary: item.summary,
+        inviterName: () {
+          final room = matrix.client.getRoomById(item.summary.roomId);
+          return room != null ? selection.inviterDisplayName(room) : null;
+        }(),
+      ),
+      HeaderItem() => RoomSectionHeader(
+        item: item,
+        prefs: prefs,
+        selection: selection,
+        matrixService: matrix,
+      ),
+      RoomItem() => Padding(
+        padding: EdgeInsets.only(left: item.depth * 16.0),
+        child: RoomTile(
+          summary: item.summary,
+          isSelected: selection.selectedRoomId == item.summary.roomId,
+          memberships: selection.spaceMemberships(item.summary.roomId),
+          hasContextMenu:
+              selectedSpaceCanManage || manageableSpaceIds.isNotEmpty,
+          parentSpaceId: item.parentSpaceId,
+          sectionRoomIds: item.sectionRoomIds,
+          onContextMenu: (position) => unawaited(
+            showRoomContextMenu(
+              context,
+              position,
+              item.summary.roomId,
+              parentSpaceId: item.parentSpaceId,
+              sectionRoomIds: item.sectionRoomIds,
+            ),
+          ),
+        ),
+      ),
+      MessageSearchHeaderItem() => MessageSearchHeader(item: item),
+      MessageSearchResultItem() => MessageSearchResultTile(
+        result: item.result,
+        query: roomListController.query,
+      ),
+      LoadMoreMessagesItem() => LoadMoreButton(
+        isLoading: item.isLoading,
+        onPressed: () => roomListController.messageSearch.performSearch(
+          loadMore: true,
+        ),
+      ),
+      UnjoinedRoomGroupHeaderItem() => _UnjoinedGroupHeader(
+        item: item,
+        matrixService: matrix,
+      ),
+      UnjoinedRoomItem() => Padding(
+        padding: EdgeInsets.only(left: item.depth * 16.0),
+        child: _UnjoinedRoomTile(
+          metadata: item.metadata,
+          parentSpaceId: item.parentSpaceId,
+          controller: spaceRoomsController,
+        ),
+      ),
+      SubspaceOpenItem() => Padding(
+        padding: EdgeInsets.only(left: item.depth * 16.0),
+        child: _SubspaceOpenTile(
+          metadata: item.metadata,
+          parentSpaceId: item.parentSpaceId,
+          matrixService: matrix,
+        ),
+      ),
+      UnjoinedRoomLoadingItem() => Padding(
+        padding: EdgeInsets.only(
+          left: item.depth * 16.0 + 10,
+        ),
+        child: const SizedBox(
+          height: 32,
+          child: Center(
+            child: SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+              ),
+            ),
+          ),
+        ),
+      ),
+      UnjoinedRoomErrorItem() => Padding(
+        padding: EdgeInsets.only(left: item.depth * 16.0),
+        child: _UnjoinedErrorTile(
+          item: item,
+          controller: spaceRoomsController,
+        ),
+      ),
+      UnjoinedRoomForbiddenItem() => Padding(
+        padding: EdgeInsets.only(
+          left: item.depth * 16.0 + 10,
+        ),
+        child: const _UnjoinedForbiddenTile(),
+      ),
+    };
   }
 }
 
@@ -701,18 +580,18 @@ class _UnjoinedRoomTileState extends State<_UnjoinedRoomTile> {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           : _joinError
-              ? TextButton(
-                  onPressed: _join,
-                  child: const Text('Retry'),
-                )
-              : FilledButton.tonal(
-                  onPressed: _join,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(64, 32),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: const Text('Join'),
-                ),
+          ? TextButton(
+              onPressed: _join,
+              child: const Text('Retry'),
+            )
+          : FilledButton.tonal(
+              onPressed: _join,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(64, 32),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text('Join'),
+            ),
     );
   }
 }
@@ -795,8 +674,8 @@ class _UnjoinedErrorTile extends StatelessWidget {
             child: Text(
               'Could not load rooms',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
+                color: cs.onSurfaceVariant,
+              ),
             ),
           ),
           TextButton(
@@ -875,7 +754,6 @@ class _SpaceEmptyState extends StatelessWidget {
       );
     }
 
-    // ── Loading ──
     if (!controller.isCached(spaceId) || state.loading) {
       return Center(
         child: Column(
@@ -898,7 +776,6 @@ class _SpaceEmptyState extends StatelessWidget {
       );
     }
 
-    // ── Error ──
     if (state.error != null) {
       return Center(
         child: Padding(
@@ -922,7 +799,6 @@ class _SpaceEmptyState extends StatelessWidget {
       );
     }
 
-    // ── Forbidden ──
     if (state.previewForbidden) {
       return Center(
         child: Padding(
@@ -955,7 +831,6 @@ class _SpaceEmptyState extends StatelessWidget {
       );
     }
 
-    // ── Success: unjoined children available ──
     final totalRooms = state.unjoinedRooms.length + state.subspaces.length;
 
     return Center(
