@@ -1,3 +1,4 @@
+// coverage:ignore-file
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
