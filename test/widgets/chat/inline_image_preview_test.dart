@@ -13,7 +13,7 @@ void main() {
 
       expect(find.byType(Image), findsOneWidget);
       expect(
-        (tester.widget<Image>(find.byType(Image))).image,
+        tester.widget<Image>(find.byType(Image)).image,
         isA<NetworkImage>(),
       );
     });

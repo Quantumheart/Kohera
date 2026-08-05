@@ -209,7 +209,7 @@ void main() {
   group('EmojiGgService disk cache', () {
     // The service fires _writeDiskCache via unawaited(), so we must wait
     // for the cache file to materialise before disposing / asserting.
-    Future<void> _waitForCacheFile() async {
+    Future<void> waitForCacheFile() async {
       final file = File(p.join(tempDir.path, 'emojigg_packs_cache.json'));
       for (var i = 0; i < 50; i++) {
         if (file.existsSync()) return;
@@ -227,7 +227,7 @@ void main() {
         },
       );
       await svc1.fetchPacks();
-      await _waitForCacheFile();
+      await waitForCacheFile();
       svc1.dispose();
 
       // Second instance: should read from disk cache without network.
@@ -256,7 +256,7 @@ void main() {
         cacheTtl: const Duration(milliseconds: 1),
       );
       await svc1.fetchPacks();
-      await _waitForCacheFile();
+      await waitForCacheFile();
       svc1.dispose();
 
       // Wait for cache to become stale.

@@ -1,13 +1,6 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/shared/models/kohera_room_summary.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
-import 'package:kohera/features/chat/widgets/forward_message_dialog.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
+import 'package:flutter/material.dart';import 'package:flutter_test/flutter_test.dart';import 'package:kohera/features/chat/widgets/forward_message_dialog.dart';import 'package:kohera/shared/models/kohera_room_summary.dart';import 'package:kohera/shared/services/avatar_resolver.dart';import 'package:mockito/annotations.dart';import 'package:mockito/mockito.dart';import 'forward_message_dialog_test.mocks.dart';
 
 @GenerateNiceMocks([MockSpec<AvatarResolver>()])
-import 'forward_message_dialog_test.mocks.dart';
 
 KoheraRoomSummary _room({
   required String id,
@@ -89,7 +82,7 @@ void main() {
       final texts = tester
           .widgetList<Text>(find.byType(Text))
           .map((t) => t.data)
-          .where((s) => s != null && s.contains("Room"))
+          .where((s) => s != null && s.contains('Room'))
           .toList();
       expect(texts.length, 3);
       expect(texts[0], 'Apple Room');

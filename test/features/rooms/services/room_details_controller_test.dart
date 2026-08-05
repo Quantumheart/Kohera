@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_redundant_argument_values
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/kohera_push_rule_state.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -20,7 +19,7 @@ import 'package:mockito/mockito.dart';
 ])
 import 'room_details_controller_test.mocks.dart';
 
-KoheraRoomSummary _summary() => KoheraRoomSummary(
+KoheraRoomSummary _summary() => const KoheraRoomSummary(
       roomId: '!room:example.com',
       displayname: 'Test Room',
       isDirectChat: false,
@@ -28,8 +27,8 @@ KoheraRoomSummary _summary() => KoheraRoomSummary(
       isSpace: false,
       notificationCount: 0,
       highlightCount: 0,
-      typingDisplayNames: const [],
-      pinnedEventIds: const [],
+      typingDisplayNames: [],
+      pinnedEventIds: [],
       spaceChildCount: 0,
       isFavourite: false,
       lastEventPreview: '',

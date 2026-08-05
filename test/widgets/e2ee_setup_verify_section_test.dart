@@ -34,7 +34,7 @@ void main() {
 
     testWidgets('shows title and KeyVerificationInline when verification set',
         (tester) async {
-      final fake = FakeKeyVerification(state: KeyVerificationState.waitingAccept);
+      final fake = FakeKeyVerification();
       final kv = KoheraKeyVerification(fake);
       addTearDown(kv.dispose);
 
@@ -57,7 +57,7 @@ void main() {
 
     testWidgets('onCancel is propagated through KeyVerificationInline',
         (tester) async {
-      final fake = FakeKeyVerification(state: KeyVerificationState.waitingAccept);
+      final fake = FakeKeyVerification();
       final kv = KoheraKeyVerification(fake);
       addTearDown(kv.dispose);
 
