@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/services/client_factory.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/services/secure_storage.dart';
 import 'package:matrix/matrix.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -26,19 +27,20 @@ class ClientManager extends ChangeNotifier {
     FlutterSecureStorage? storage,
     SharedPreferences? prefs,
     MatrixServiceFactory? serviceFactory,
-  })  : _storage = storage ??
-              const FlutterSecureStorage(
-                iOptions: IOSOptions(
-                  groupId: 'group.io.github.quantumheart.kohera',
-                  accessibility: KeychainAccessibility.first_unlock,
-                ),
-                webOptions: WebOptions(
-                  dbName: 'KoheraEncryptedStorage',
-                  publicKey: 'KoheraSecureStorage',
-                ),
-              ),
-        _prefs = prefs,
-        _serviceFactory = serviceFactory;
+  }) : _storage =
+           storage ??
+           KoheraSecureStorage(
+             iOptions: const IOSOptions(
+               groupId: 'group.io.github.quantumheart.kohera',
+               accessibility: KeychainAccessibility.first_unlock,
+             ),
+             webOptions: const WebOptions(
+               dbName: 'KoheraEncryptedStorage',
+               publicKey: 'KoheraSecureStorage',
+             ),
+           ),
+       _prefs = prefs,
+       _serviceFactory = serviceFactory;
 
   static const _clientNamesKey = 'kohera_client_names';
 
@@ -78,16 +80,16 @@ class ClientManager extends ChangeNotifier {
     // Remove services that failed to restore (not logged in), unless it's
     // the only one left (so we still show the login screen).
     if (_services.length > 1) {
-      final toRemove =
-          _services.where((s) => !s.isLoggedIn).toList();
+      final toRemove = _services.where((s) => !s.isLoggedIn).toList();
       for (final s in toRemove) {
         _services.remove(s);
         _clientMap.remove(s);
       }
       if (_services.isEmpty) {
         // All failed — create a fresh default.
-        final (client, service) =
-            await _createServicePair(clientName: 'default');
+        final (client, service) = await _createServicePair(
+          clientName: 'default',
+        );
         await service.init(restoreSession: false);
         _services.add(service);
         _clientMap[service] = client;
@@ -128,8 +130,7 @@ class ClientManager extends ChangeNotifier {
   Future<MatrixService> createLoginService() async {
     cancelPendingService();
     final name = _generateClientName();
-    final (client, service) =
-        await _createServicePair(clientName: name);
+    final (client, service) = await _createServicePair(clientName: name);
     _clientMap[service] = client;
     await service.init(restoreSession: false);
     _pendingService = service;
@@ -199,8 +200,9 @@ class ClientManager extends ChangeNotifier {
 
     if (_services.isEmpty) {
       // Last account removed — create a fresh default for login screen.
-      final (newClient, fresh) =
-          await _createServicePair(clientName: 'default');
+      final (newClient, fresh) = await _createServicePair(
+        clientName: 'default',
+      );
       await fresh.init(restoreSession: false);
       _services.add(fresh);
       _clientMap[fresh] = newClient;
@@ -212,7 +214,9 @@ class ClientManager extends ChangeNotifier {
     }
 
     // Resume sync for the new active account if the old active was removed.
-    if (wasActive && _services.isNotEmpty && _services[_activeIndex].isLoggedIn) {
+    if (wasActive &&
+        _services.isNotEmpty &&
+        _services[_activeIndex].isLoggedIn) {
       _services[_activeIndex].sync.resume();
     }
 
