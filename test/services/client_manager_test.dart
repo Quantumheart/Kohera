@@ -2,6 +2,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/services/secure_storage.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
@@ -36,11 +37,12 @@ class _TestServiceFactory extends MatrixServiceFactory {
     when(mockClient.userID).thenReturn('@$clientName:example.com');
     when(mockClient.dispose()).thenAnswer((_) async {});
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-    when(mockClient.onPresenceChanged)
-        .thenReturn(CachedStreamController<CachedPresence>());
+    when(
+      mockClient.onPresenceChanged,
+    ).thenReturn(CachedStreamController<CachedPresence>());
     final s = MatrixService(
       client: mockClient,
-      storage: storage ?? const FlutterSecureStorage(),
+      storage: storage ?? KoheraSecureStorage(),
       clientName: clientName,
     );
     s.isLoggedInForTest = true;
@@ -78,8 +80,9 @@ void main() {
     });
 
     test('creates services for each stored name', () async {
-      when(mockPrefs.getStringList('kohera_client_names'))
-          .thenReturn(['default', 'work']);
+      when(
+        mockPrefs.getStringList('kohera_client_names'),
+      ).thenReturn(['default', 'work']);
       when(mockPrefs.setStringList(any, any)).thenAnswer((_) async => true);
 
       final createdNames = <String>[];
@@ -96,8 +99,9 @@ void main() {
     });
 
     test('removes non-logged-in services in multi-account init', () async {
-      when(mockPrefs.getStringList('kohera_client_names'))
-          .thenReturn(['default', 'expired']);
+      when(
+        mockPrefs.getStringList('kohera_client_names'),
+      ).thenReturn(['default', 'expired']);
       when(mockPrefs.setStringList(any, any)).thenAnswer((_) async => true);
 
       final manager = ClientManager(
@@ -116,8 +120,9 @@ void main() {
 
   group('setActiveAccount', () {
     test('switches active service and notifies listeners', () async {
-      when(mockPrefs.getStringList('kohera_client_names'))
-          .thenReturn(['default', 'work']);
+      when(
+        mockPrefs.getStringList('kohera_client_names'),
+      ).thenReturn(['default', 'work']);
       when(mockPrefs.setStringList(any, any)).thenAnswer((_) async => true);
 
       final manager = ClientManager(
@@ -168,9 +173,12 @@ void main() {
 
       final newMockClient = MockClient();
       when(newMockClient.rooms).thenReturn([]);
-      when(newMockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-      when(newMockClient.onPresenceChanged)
-          .thenReturn(CachedStreamController<CachedPresence>());
+      when(
+        newMockClient.onSync,
+      ).thenReturn(CachedStreamController<SyncUpdate>());
+      when(
+        newMockClient.onPresenceChanged,
+      ).thenReturn(CachedStreamController<CachedPresence>());
       final newService = MatrixService(
         client: newMockClient,
         storage: mockStorage,
@@ -182,17 +190,20 @@ void main() {
       expect(manager.services, hasLength(2));
       expect(manager.activeIndex, 1);
       expect(manager.activeService.clientName, 'account_1');
-      verify(mockPrefs.setStringList(
-        'kohera_client_names',
-        ['default', 'account_1'],
-      ),).called(1);
+      verify(
+        mockPrefs.setStringList(
+          'kohera_client_names',
+          ['default', 'account_1'],
+        ),
+      ).called(1);
     });
   });
 
   group('removeService', () {
     test('removes service and adjusts active index', () async {
-      when(mockPrefs.getStringList('kohera_client_names'))
-          .thenReturn(['default', 'work']);
+      when(
+        mockPrefs.getStringList('kohera_client_names'),
+      ).thenReturn(['default', 'work']);
       when(mockPrefs.setStringList(any, any)).thenAnswer((_) async => true);
 
       final services = <MatrixService>[];
@@ -243,11 +254,11 @@ void main() {
     test(
       'switches active before logging out when other accounts exist',
       () async {
-        when(mockPrefs.getStringList('kohera_client_names'))
-            .thenReturn(['default', 'work']);
+        when(
+          mockPrefs.getStringList('kohera_client_names'),
+        ).thenReturn(['default', 'work']);
         when(mockPrefs.setStringList(any, any)).thenAnswer((_) async => true);
-        when(mockStorage.delete(key: anyNamed('key')))
-            .thenAnswer((_) async {});
+        when(mockStorage.delete(key: anyNamed('key'))).thenAnswer((_) async {});
 
         final services = <MatrixService>[];
         final manager = ClientManager(
@@ -264,8 +275,7 @@ void main() {
         // capture the currently active service's logged-in state.
         final activeLoggedSnapshots = <bool>[];
         manager.addListener(() {
-          activeLoggedSnapshots
-              .add(manager.activeService.isLoggedIn);
+          activeLoggedSnapshots.add(manager.activeService.isLoggedIn);
         });
 
         await manager.signOut(target);
@@ -280,12 +290,10 @@ void main() {
       },
     );
 
-    test('falls through to login flow when last account signs out',
-        () async {
+    test('falls through to login flow when last account signs out', () async {
       when(mockPrefs.getStringList('kohera_client_names')).thenReturn(null);
       when(mockPrefs.setStringList(any, any)).thenAnswer((_) async => true);
-      when(mockStorage.delete(key: anyNamed('key')))
-          .thenAnswer((_) async {});
+      when(mockStorage.delete(key: anyNamed('key'))).thenAnswer((_) async {});
 
       final services = <MatrixService>[];
       final manager = ClientManager(
@@ -318,8 +326,9 @@ void main() {
     });
 
     test('returns true with multiple accounts', () async {
-      when(mockPrefs.getStringList('kohera_client_names'))
-          .thenReturn(['default', 'work']);
+      when(
+        mockPrefs.getStringList('kohera_client_names'),
+      ).thenReturn(['default', 'work']);
       when(mockPrefs.setStringList(any, any)).thenAnswer((_) async => true);
 
       final manager = ClientManager(
@@ -348,8 +357,9 @@ class _MixedLoginFactory extends MatrixServiceFactory {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.userID).thenReturn('@$clientName:example.com');
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-    when(mockClient.onPresenceChanged)
-        .thenReturn(CachedStreamController<CachedPresence>());
+    when(
+      mockClient.onPresenceChanged,
+    ).thenReturn(CachedStreamController<CachedPresence>());
     final s = MatrixService(
       client: mockClient,
       storage: storage ?? _storage,
@@ -383,8 +393,9 @@ class _CountingFactory extends MatrixServiceFactory {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.dispose()).thenAnswer((_) async {});
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-    when(mockClient.onPresenceChanged)
-        .thenReturn(CachedStreamController<CachedPresence>());
+    when(
+      mockClient.onPresenceChanged,
+    ).thenReturn(CachedStreamController<CachedPresence>());
     final s = MatrixService(
       client: mockClient,
       storage: storage ?? _storage,

@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/client_media_resolver.dart';
+import 'package:kohera/core/services/secure_storage.dart';
 import 'package:kohera/core/services/session_backup.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
@@ -40,18 +41,19 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     required Client client,
     FlutterSecureStorage? storage,
     this.clientName = 'default',
-  })  : _client = client,
-        _storage = storage ??
-            const FlutterSecureStorage(
-              iOptions: IOSOptions(
-                groupId: 'group.io.github.quantumheart.kohera',
-                accessibility: KeychainAccessibility.first_unlock,
-              ),
-              webOptions: WebOptions(
-                dbName: 'KoheraEncryptedStorage',
-                publicKey: 'KoheraSecureStorage',
-              ),
-            ) {
+  }) : _client = client,
+       _storage =
+           storage ??
+           KoheraSecureStorage(
+             iOptions: const IOSOptions(
+               groupId: 'group.io.github.quantumheart.kohera',
+               accessibility: KeychainAccessibility.first_unlock,
+             ),
+             webOptions: const WebOptions(
+               dbName: 'KoheraEncryptedStorage',
+               publicKey: 'KoheraSecureStorage',
+             ),
+           ) {
     uia = UiaService(client: _client);
     chatBackup = ChatBackupService(
       client: _client,
@@ -292,8 +294,10 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         await chatBackup.deleteStoredRecoveryKey();
         await chatBackup.deleteDismissalState();
       } else {
-        debugPrint('[Kohera] Transient refresh failure, keeping session '
-            'for next sync/refresh retry');
+        debugPrint(
+          '[Kohera] Transient refresh failure, keeping session '
+          'for next sync/refresh retry',
+        );
       }
     }
   }
@@ -391,13 +395,15 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<
-      ({
-        String? token,
-        String? refreshToken,
-        String? userId,
-        String? homeserver,
-        String? deviceId
-      })> _readSessionKeys() async {
+    ({
+      String? token,
+      String? refreshToken,
+      String? userId,
+      String? homeserver,
+      String? deviceId,
+    })
+  >
+  _readSessionKeys() async {
     final results = await Future.wait([
       _storage.read(key: koheraKey(clientName, 'access_token')),
       _storage.read(key: koheraKey(clientName, 'refresh_token')),
@@ -450,9 +456,11 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         auth.isLoggedIn = false;
         return;
       }
-      debugPrint('[Kohera] Session restored from database – '
-          'encryption=${_client.encryption != null ? "available" : "null"}, '
-          'encryptionEnabled=${_client.encryptionEnabled}');
+      debugPrint(
+        '[Kohera] Session restored from database – '
+        'encryption=${_client.encryption != null ? "available" : "null"}, '
+        'encryptionEnabled=${_client.encryptionEnabled}',
+      );
       await _activateSession();
       try {
         if (_client.accessToken != null) {
@@ -460,8 +468,10 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         }
         await auth.saveSessionBackup();
       } catch (e) {
-        debugPrint('[Kohera] Persisting restored session failed '
-            '(non-fatal): $e');
+        debugPrint(
+          '[Kohera] Persisting restored session failed '
+          '(non-fatal): $e',
+        );
       }
     } catch (e, s) {
       debugPrint('[Kohera] Database session restore failed: $e');
@@ -480,8 +490,9 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       String? refreshToken,
       String? userId,
       String? homeserver,
-      String? deviceId
-    }) keys;
+      String? deviceId,
+    })
+    keys;
     try {
       keys = await _readSessionKeys();
     } catch (e) {
@@ -499,9 +510,10 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     );
 
     debugPrint(
-        '[Kohera] Database restore unavailable; seeding session from keychain '
-        'for ${keys.userId} on ${keys.homeserver} '
-        '(deviceId=${keys.deviceId}, clientName=$clientName)');
+      '[Kohera] Database restore unavailable; seeding session from keychain '
+      'for ${keys.userId} on ${keys.homeserver} '
+      '(deviceId=${keys.deviceId}, clientName=$clientName)',
+    );
 
     try {
       final homeserverUri = Uri.parse(keys.homeserver!);
@@ -515,9 +527,11 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         newDeviceName: 'Kohera Flutter',
         newOlmAccount: backup?.olmAccount,
       );
-      debugPrint('[Kohera] Session restored from keychain – '
-          'encryption=${_client.encryption != null ? "available" : "null"}, '
-          'encryptionEnabled=${_client.encryptionEnabled}');
+      debugPrint(
+        '[Kohera] Session restored from keychain – '
+        'encryption=${_client.encryption != null ? "available" : "null"}, '
+        'encryptionEnabled=${_client.encryptionEnabled}',
+      );
       await _activateSession();
       try {
         if (_client.accessToken != null) {
@@ -525,8 +539,10 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         }
         await auth.saveSessionBackup();
       } catch (e) {
-        debugPrint('[Kohera] Persisting restored session failed '
-            '(non-fatal): $e');
+        debugPrint(
+          '[Kohera] Persisting restored session failed '
+          '(non-fatal): $e',
+        );
       }
     } catch (e, s) {
       debugPrint('[Kohera] Keychain session restore failed: $e');
