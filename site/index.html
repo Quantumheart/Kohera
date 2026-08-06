@@ -9,6 +9,7 @@
 <meta property="og:title" content="Kohera — Coherent threads, encrypted.">
 <meta property="og:description" content="A retro-pixel Matrix chat client. Encrypted messaging, voice/video calls, and spaces. Built with Flutter.">
 <meta property="og:type" content="website">
+<meta property="og:image" content="https://kohera.quantum-matrix.xyz/kohera_desktop.png">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='%2362d0ff' shape-rendering='crispEdges'%3E%3Crect x='12' y='1' width='5' height='1'/%3E%3Crect x='9' y='2' width='13' height='1'/%3E%3Crect x='7' y='3' width='17' height='1'/%3E%3Crect x='6' y='4' width='19' height='1'/%3E%3Crect x='6' y='5' width='20' height='1'/%3E%3Crect x='5' y='6' width='21' height='1'/%3E%3Crect x='5' y='7' width='21' height='1'/%3E%3Crect x='5' y='8' width='21' height='1'/%3E%3Crect x='14' y='9' width='4' height='1'/%3E%3Crect x='14' y='10' width='5' height='1'/%3E%3Crect x='14' y='11' width='5' height='1'/%3E%3Crect x='14' y='12' width='5' height='1'/%3E%3Crect x='15' y='13' width='4' height='1'/%3E%3Crect x='15' y='14' width='3' height='1'/%3E%3Crect x='15' y='15' width='3' height='1'/%3E%3Crect x='14' y='16' width='4' height='1'/%3E%3Crect x='14' y='17' width='4' height='1'/%3E%3Crect x='14' y='18' width='5' height='1'/%3E%3Crect x='13' y='19' width='7' height='1'/%3E%3Crect x='12' y='20' width='8' height='1'/%3E%3Crect x='11' y='21' width='4' height='1'/%3E%3Crect x='16' y='21' width='1' height='1'/%3E%3Crect x='18' y='21' width='4' height='1'/%3E%3Crect x='10' y='22' width='2' height='1'/%3E%3Crect x='13' y='22' width='1' height='1'/%3E%3Crect x='15' y='22' width='2' height='1'/%3E%3Crect x='18' y='22' width='5' height='1'/%3E%3Crect x='9' y='23' width='2' height='1'/%3E%3Crect x='12' y='23' width='2' height='1'/%3E%3Crect x='15' y='23' width='2' height='1'/%3E%3Crect x='19' y='23' width='1' height='1'/%3E%3Crect x='22' y='23' width='2' height='1'/%3E%3Crect x='8' y='24' width='2' height='1'/%3E%3Crect x='12' y='24' width='1' height='1'/%3E%3Crect x='16' y='24' width='1' height='1'/%3E%3Crect x='19' y='24' width='2' height='1'/%3E%3Crect x='23' y='24' width='2' height='1'/%3E%3Crect x='6' y='25' width='3' height='1'/%3E%3Crect x='11' y='25' width='2' height='1'/%3E%3Crect x='15' y='25' width='2' height='1'/%3E%3Crect x='20' y='25' width='2' height='1'/%3E%3Crect x='24' y='25' width='2' height='1'/%3E%3Crect x='5' y='26' width='2' height='1'/%3E%3Crect x='10' y='26' width='2' height='1'/%3E%3Crect x='15' y='26' width='2' height='1'/%3E%3Crect x='20' y='26' width='2' height='1'/%3E%3Crect x='25' y='26' width='3' height='1'/%3E%3Crect x='2' y='27' width='4' height='1'/%3E%3Crect x='9' y='27' width='2' height='1'/%3E%3Crect x='15' y='27' width='2' height='1'/%3E%3Crect x='21' y='27' width='3' height='1'/%3E%3Crect x='26' y='27' width='4' height='1'/%3E%3Crect x='2' y='28' width='3' height='1'/%3E%3Crect x='8' y='28' width='3' height='1'/%3E%3Crect x='15' y='28' width='2' height='1'/%3E%3Crect x='21' y='28' width='3' height='1'/%3E%3Crect x='27' y='28' width='3' height='1'/%3E%3Crect x='2' y='29' width='3' height='1'/%3E%3Crect x='8' y='29' width='3' height='1'/%3E%3Crect x='15' y='29' width='2' height='1'/%3E%3Crect x='21' y='29' width='3' height='1'/%3E%3Crect x='28' y='29' width='2' height='1'/%3E%3Crect x='14' y='30' width='4' height='1'/%3E%3Crect x='15' y='31' width='2' height='1'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -85,6 +86,31 @@
   .hero .ver{margin-top:26px; font-size:18px; color:var(--fade)}
   .hero .ver b{color:var(--accent3)}
 
+  .hero-badges{display:flex; gap:10px; justify-content:center; margin-top:18px; margin-bottom:0; flex-wrap:wrap}
+  .carousel{max-width:900px; margin:42px auto 0; position:relative}
+  .car-window{overflow:hidden; border:2px solid var(--line); background:var(--panel); padding:8px;
+    box-shadow:0 24px 60px rgba(0,0,0,.45)}
+  .car-track{display:flex; transition:transform .3s ease; will-change:transform}
+  .car-track img{flex:0 0 100%; width:100%; height:auto; display:block}
+  .car-btn{position:absolute; top:50%; transform:translateY(-50%); z-index:5;
+    background:var(--panel); color:var(--accent); border:2px solid var(--line);
+    font-family:var(--pixel); font-size:14px; width:40px; height:40px; cursor:pointer}
+  .car-btn:hover{background:var(--panel2); border-color:var(--accent)}
+  .car-btn.prev{left:-22px}
+  .car-btn.next{right:-22px}
+  .car-dots{display:flex; justify-content:center; gap:8px; margin-top:14px}
+  .car-dot{width:10px; height:10px; background:var(--line); border:none; cursor:pointer}
+  .car-dot.active{background:var(--accent)}
+  @media (max-width:980px){
+    .car-btn.prev{left:8px}
+    .car-btn.next{right:8px}
+  }
+
+
+  .badge{font-family:var(--pixel); font-size:9px; color:var(--fade); border:2px solid var(--line);
+    padding:6px 10px; letter-spacing:.5px; text-transform:uppercase}
+  .badge:hover{color:var(--accent); border-color:var(--accent); text-decoration:none}
+
   /* Sections */
   section{padding:64px 0; border-bottom:2px solid var(--line)}
   .eyebrow{font-family:var(--pixel); font-size:11px; color:var(--accent); letter-spacing:2px;
@@ -108,12 +134,6 @@
   .chip{font-family:var(--pixel); font-size:11px; padding:11px 15px; border:2px solid var(--line);
     background:var(--panel); color:var(--dim); letter-spacing:.5px}
   .chip:hover{border-color:var(--accent); color:var(--accent)}
-
-  /* Layout table */
-  .layout-table{width:100%; border-collapse:collapse; font-size:20px}
-  .layout-table th,.layout-table td{border:2px solid var(--line); padding:12px 14px; text-align:left}
-  .layout-table th{background:var(--panel); font-family:var(--pixel); font-size:11px; color:var(--accent); letter-spacing:.5px}
-  .layout-table td:first-child{color:var(--accent2); font-family:var(--mono); white-space:nowrap}
 
   /* Install */
   .tabs{display:flex; gap:0; flex-wrap:wrap; margin-bottom:0}
@@ -149,6 +169,11 @@
   .pixline{height:6px; background:repeating-linear-gradient(90deg, var(--accent) 0 6px, transparent 6px 12px);
     opacity:.35}
 
+  /* Codebox */
+  .codebox{background:var(--panel); border:2px solid var(--line); padding:18px 20px; overflow-x:auto}
+  pre{margin:0; font-family:var(--mono); font-size:20px; color:var(--ink); white-space:pre}
+  pre .c{color:var(--fade)} pre .k{color:var(--accent3)} pre .s{color:var(--accent2)}
+
   @media (max-width:860px){
     .grid{grid-template-columns:repeat(2,1fr)}
     nav.top-links{display:none}
@@ -179,16 +204,16 @@
   <div class="wrap">
     <a class="brand" href="#top" style="text-decoration:none">
       <svg><use href="#kohera-mark"/></svg>
-      <span>KOHERA <small>v1.12.0</small></span>
+      <span>KOHERA <small id="site-version"></small></span>
     </a>
     <button class="nav-toggle" id="navToggle" aria-label="Menu">MENU</button>
     <nav class="top-links" id="topNav">
       <a href="#features">Features</a>
       <a href="#platforms">Platforms</a>
-      <a href="#layout">Layout</a>
-      <a href="#install">Install</a>
-      <a href="#privacy">Privacy</a>
+      <a href="#matrix">Why Matrix?</a>
+      <a href="#faq">FAQ</a>
       <a href="https://github.com/Quantumheart/Kohera" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://kohera.quantum-matrix.xyz" target="_blank" rel="noopener">Login</a>
     </nav>
   </div>
 </header>
@@ -198,11 +223,15 @@
 <section class="hero">
   <div class="wrap">
     <svg class="logo"><use href="#kohera-mark"/></svg>
-    <h1>KOHERA</h1>
-    <p class="tag">&gt; Coherent threads, encrypted.</p>
-    <p class="lead">A retro-pixel Matrix chat client. Encrypted messaging, voice/video calls, and spaces — built with Flutter and running on desktop, mobile, and web.</p>
+    <h1>Kohera</h1>
+    <p class="tag">Chat freely. No tracking. No phone number required.</p>
+    <p class="lead">Kohera is a free, open-source chat app for individuals and teams. Send messages, make voice and video calls, and organize conversations in spaces — with real end-to-end encryption and no tracking.</p>
     <div class="cta">
-      <a class="btn primary" href="https://github.com/Quantumheart/Kohera/releases" target="_blank" rel="noopener">
+      <a class="btn primary" href="https://kohera.quantum-matrix.xyz" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"><path d="M10 17l5-5-5-5M13 12H3m18-7v14"/></svg>
+        Login
+      </a>
+      <a class="btn" href="https://github.com/Quantumheart/Kohera/releases/latest" target="_blank" rel="noopener" id="hero-download">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
         Download
       </a>
@@ -211,7 +240,25 @@
         View Source
       </a>
     </div>
-    <p class="ver">Version <b>1.12.0</b> &middot; GPL-3.0 &middot; Open source</p>
+    <div class="hero-badges">
+      <span class="badge">Built with Flutter</span>
+      <a class="badge" href="https://matrix.org" target="_blank" rel="noopener">Powered by Matrix</a>
+    </div>
+    <div class="carousel" id="carousel">
+      <button class="car-btn prev" id="carPrev" aria-label="Previous screenshot">&lt;</button>
+      <div class="car-window">
+        <div class="car-track">
+          <img src="kohera_desktop_default_theme.png" alt="Kohera default light theme" loading="eager">
+          <img src="kohera_desktop_default_dark_theme.png" alt="Kohera default dark theme" loading="lazy">
+          <img src="kohera_desktop_ocean_light_theme.png" alt="Kohera ocean light theme" loading="lazy">
+          <img src="kohera_desktop_paper_light_theme.png" alt="Kohera paper light theme" loading="lazy">
+          <img src="kohera_desktop_pico8_dark_theme.png" alt="Kohera pico8 dark theme" loading="lazy">
+        </div>
+      </div>
+      <button class="car-btn next" id="carNext" aria-label="Next screenshot">&gt;</button>
+      <div class="car-dots" id="carDots"></div>
+    </div>
+    <p class="ver">Latest release <b id="footer-version"></b> &middot; GPL-3.0 &middot; Open source</p>
   </div>
 </section>
 
@@ -219,33 +266,30 @@
 <section id="features">
   <div class="wrap">
     <p class="eyebrow">// Features</p>
-    <h2>Everything a thread needs</h2>
-    <p class="sec-sub">A complete Matrix client experience — rich messaging, real end-to-end encryption, and organized spaces, all wrapped in a pixel-perfect retro shell.</p>
+    <h2>Everything you need to chat</h2>
+    <p class="sec-sub">Kohera gives you the messaging features you expect — groups, calls, file sharing, and strong encryption — without ads, tracking, or a locked-in account.</p>
     <div class="grid">
 
       <div class="card">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-6.4A8.4 8.4 0 1 1 21 11.5z"/></svg>
         <h3>Messaging</h3>
         <ul>
-          <li>Rich text: HTML, Markdown, syntax-highlighted code</li>
-          <li>Reactions, replies, edit &amp; delete</li>
-          <li>File &amp; image uploads with progress</li>
-          <li>OpenGraph link previews</li>
-          <li>@mention autocomplete with styled pills</li>
-          <li>Typing indicators &amp; read receipts</li>
-          <li>Pinned messages &amp; in-room search</li>
+          <li>Group chats and direct messages</li>
+          <li>Reactions, replies, and edits</li>
+          <li>Share files, photos, and links</li>
+          <li>@mentions and read receipts</li>
+          <li>Search conversations</li>
         </ul>
       </div>
 
       <div class="card">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><rect x="4" y="10" width="16" height="11" rx="1"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-        <h3>End-to-End Encryption</h3>
+        <h3>Private by default</h3>
         <ul>
-          <li>Cross-signing &amp; device verification (SAS emoji)</li>
-          <li>Key backup with recovery key</li>
-          <li>Auto-unlock from secure storage on startup</li>
-          <li>Backup status indicators &amp; management</li>
-          <li>Olm &amp; Megolm by default</li>
+          <li>End-to-end encryption for messages and calls</li>
+          <li>No ads or tracking</li>
+          <li>No phone number required</li>
+          <li>Open-source and independently auditable</li>
         </ul>
       </div>
 
@@ -253,34 +297,30 @@
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 9h18M9 3v18"/></svg>
         <h3>Spaces &amp; Rooms</h3>
         <ul>
-          <li>Discord/Slack-style vertical space rail</li>
-          <li>Create, edit &amp; manage spaces</li>
-          <li>Room &amp; DM creation, invite flows</li>
-          <li>Join by alias, room ID, or matrix.to link</li>
-          <li>Room details, member list, shared media</li>
-          <li>Room admin controls</li>
+          <li>Organize chats into spaces or communities</li>
+          <li>Create rooms and invite people</li>
+          <li>Join public rooms by name or link</li>
+          <li>Member lists, shared media, and admin tools</li>
         </ul>
       </div>
 
       <div class="card">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><rect x="2" y="4" width="20" height="14" rx="1"/><path d="M8 21h8M12 18v3"/></svg>
-        <h3>Adaptive Layouts</h3>
+        <h3>Works everywhere</h3>
         <ul>
-          <li>1-column on phones, full-screen chat</li>
-          <li>2-column on tablets &amp; small desktops</li>
-          <li>3-column with resizable panes on desktop</li>
-          <li>Responsive device helpers throughout</li>
+          <li>Phone, tablet, and desktop layouts</li>
+          <li>Use it in a browser or install the app</li>
+          <li>Linux, Windows, Android, iOS, macOS, and web</li>
         </ul>
       </div>
 
       <div class="card">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18M3 12h18"/></svg>
-        <h3>Material You Theming</h3>
+        <h3>Make it yours</h3>
         <ul>
-          <li>Dynamic color palette extraction</li>
-          <li>Light &amp; dark modes</li>
-          <li>Theme &amp; layout density picker</li>
-          <li>Retro-pixel type (Press Start 2P)</li>
+          <li>Light and dark themes</li>
+          <li>Color accents that match your wallpaper</li>
+          <li>Adjustable layout density</li>
         </ul>
       </div>
 
@@ -288,11 +328,10 @@
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>
         <h3>Calls &amp; Notifications</h3>
         <ul>
-          <li>Voice &amp; video calls via LiveKit</li>
-          <li>Local &amp; desktop push notifications</li>
-          <li>UnifiedPush support</li>
-          <li>SSO &amp; reCAPTCHA login</li>
-          <li>Device management</li>
+          <li>Voice and video calls</li>
+          <li>Desktop and mobile notifications</li>
+          <li>SSO login support</li>
+          <li>Manage your connected devices</li>
         </ul>
       </div>
 
@@ -302,12 +341,27 @@
 
 <div class="pixline"></div>
 
+
+<!-- ===== FREE ===== -->
+<section id="free" style="text-align:center;background:var(--bg2)">
+  <div class="wrap">
+    <p class="eyebrow">// Cost</p>
+    <h2>100% free and open source</h2>
+    <p class="sec-sub" style="margin:0 auto 26px">No subscriptions, no premium tiers, no hidden fees. Kohera is licensed under GPL-3.0 and maintained by contributors. You can inspect the source, self-host the web build, or help improve it.</p>
+    <div class="hero-badges" style="margin-top:0;justify-content:center">
+      <span class="badge">GPL-3.0 licensed</span>
+      <span class="badge">No ads</span>
+      <span class="badge">No tracking</span>
+    </div>
+  </div>
+</section>
+
 <!-- ===== PLATFORMS ===== -->
 <section id="platforms">
   <div class="wrap">
     <p class="eyebrow">// Platforms</p>
-    <h2>Run it anywhere</h2>
-    <p class="sec-sub">One codebase, six targets. Kohera runs natively on every major platform.</p>
+    <h2>Use Kohera on the web, desktop, or your phone</h2>
+    <p class="sec-sub">One app that works across all your devices. Native builds for desktop and mobile, plus an instant web client when you just need to log in quickly.</p>
     <div class="platforms">
       <span class="chip">Linux</span>
       <span class="chip">Windows</span>
@@ -319,69 +373,29 @@
   </div>
 </section>
 
-<!-- ===== LAYOUT ===== -->
-<section id="layout">
+
+<!-- ===== WHY MATRIX ===== -->
+<section id="matrix">
   <div class="wrap">
-    <p class="eyebrow">// Adaptive</p>
-    <h2>One app, three layouts</h2>
-    <p class="sec-sub">The shell reshapes itself to the viewport — from a single column on your phone to a full three-pane workspace on desktop.</p>
-    <table class="layout-table">
-      <thead><tr><th>Viewport width</th><th>Layout</th></tr></thead>
-      <tbody>
-        <tr><td>&lt; 720 px</td><td>Space rail + room list; chat pushes full-screen</td></tr>
-        <tr><td>720 – 1100 px</td><td>Space rail + room list + content pane (2-column)</td></tr>
-        <tr><td>&ge; 1100 px</td><td>Space rail + resizable room list + chat pane (3-column)</td></tr>
-      </tbody>
-    </table>
-  </div>
-</section>
-
-<!-- ===== INSTALL ===== -->
-<section id="install">
-  <div class="wrap">
-    <p class="eyebrow">// Install</p>
-    <h2>Get Kohera</h2>
-    <p class="sec-sub">Grab a release build, run the containerized web app, or build from source.</p>
-
-    <div class="tabs" id="tabs">
-      <button class="tab active" data-tab="docker">Docker (Web)</button>
-      <button class="tab" data-tab="source">Build from source</button>
-      <button class="tab" data-tab="release">Releases</button>
-    </div>
-
-    <div class="codebox active-tab active" data-tab="docker">
-<pre><span class="c"># Pull the latest web image from GHCR</span>
-docker pull <span class="s">ghcr.io/quantumheart/kohera:latest</span>
-
-<span class="c"># Run it locally on port 8080</span>
-docker run -p <span class="k">8080:80</span> ghcr.io/quantumheart/kohera:latest
-
-<span class="c"># Then open http://localhost:8080</span></pre>
-    </div>
-
-    <div class="codebox" data-tab="source">
-<pre><span class="c"># Requires Flutter 3.16+ (stable) and Dart 3.1+</span>
-git clone https://github.com/Quantumheart/Kohera.git
-cd Kohera
-flutter pub get
-
-<span class="c"># Run on a device</span>
-flutter run -d linux      <span class="c"># Linux desktop</span>
-flutter run -d chrome     <span class="c"># Web</span>
-
-<span class="c"># Release builds</span>
-flutter build linux --release
-flutter build windows --release</pre>
-    </div>
-
-    <div class="codebox" data-tab="release">
-<pre><span class="c"># Tagged releases publish GitHub Release artifacts:</span>
-<span class="c">#   - Linux tar.gz</span>
-<span class="c">#   - Windows Inno Setup installer</span>
-<span class="c">#   - Web Docker image to ghcr.io</span>
-
-<span class="c"># Browse and download from:</span>
-https://github.com/Quantumheart/Kohera/releases</pre>
+    <p class="eyebrow">// Open network</p>
+    <h2>Built on Matrix</h2>
+    <p class="sec-sub">Matrix is an open standard for secure, decentralized communication. That means you are not locked into Kohera — or any single company.</p>
+    <div class="grid">
+      <div class="card">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.2 16.2l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.2 7.7l2.8-2.8"/></svg>
+        <h3>Choose your server</h3>
+        <p style="color:var(--dim)">Sign in with any Matrix homeserver, or run your own. Your account and contacts stay on the server you trust.</p>
+      </div>
+      <div class="card">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <h3>Talk to anyone</h3>
+        <p style="color:var(--dim)">Message people using other Matrix apps. No walled gardens. No forced app downloads for your contacts.</p>
+      </div>
+      <div class="card">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M14 9V5a3 3 0 0 0-6 0v4"/><rect x="5" y="11" width="14" height="10" rx="2"/></svg>
+        <h3>Leave anytime</h3>
+        <p style="color:var(--dim)">Your data is portable. Switch to another Matrix client without losing your account, rooms, or message history.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -390,25 +404,72 @@ https://github.com/Quantumheart/Kohera/releases</pre>
 <section id="privacy">
   <div class="wrap">
     <p class="eyebrow">// Privacy</p>
-    <h2>No servers. No tracking.</h2>
+    <h2>Your conversations belong to you</h2>
     <div class="callout">
       <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4z"/><path d="M9 12l2 2 4-4"/></svg>
       <div>
         <h3 style="font-family:var(--pixel);font-size:13px;margin:0 0 8px;letter-spacing:.5px">Encrypted by default</h3>
-        <p>The developer of Kohera operates <b>no servers that store your messages, contacts, or account data</b>. Your data lives on the Matrix homeserver <i>you choose</i>. Conversations are protected with end-to-end encryption using the Olm and Megolm protocols. Kohera contains no advertising, analytics, tracking, or telemetry SDKs.</p>
+        <p>Kohera does not run servers that store your messages or contacts. Your account lives on the Matrix homeserver you choose. Messages and calls are protected with end-to-end encryption. There are no ads, analytics, tracking, or telemetry SDKs.</p>
         <p style="margin-top:10px"><a href="https://github.com/Quantumheart/Kohera/blob/master/PRIVACY.md" target="_blank" rel="noopener">Read the full privacy policy &rarr;</a></p>
       </div>
     </div>
   </div>
 </section>
 
+
+
+<!-- ===== FAQ ===== -->
+<section id="faq" style="background:var(--bg2)">
+  <div class="wrap">
+    <p class="eyebrow">// FAQ</p>
+    <h2>Common questions</h2>
+    <div class="grid" style="grid-template-columns:1fr 1fr">
+      <div class="card">
+        <h3 style="font-family:var(--pixel);font-size:13px;margin:0 0 10px;letter-spacing:.5px">Do I need a phone number?</h3>
+        <p style="color:var(--dim)">No. You can sign up with just a username and password on a Matrix homeserver of your choice.</p>
+      </div>
+      <div class="card">
+        <h3 style="font-family:var(--pixel);font-size:13px;margin:0 0 10px;letter-spacing:.5px">Is Kohera really free?</h3>
+        <p style="color:var(--dim)">Yes. Kohera is open-source software released under the GPL-3.0 license. There are no subscriptions, ads, or premium tiers.</p>
+      </div>
+      <div class="card">
+        <h3 style="font-family:var(--pixel);font-size:13px;margin:0 0 10px;letter-spacing:.5px">Can I use my existing Matrix account?</h3>
+        <p style="color:var(--dim)">Yes. Just enter your existing homeserver and credentials. Your rooms, contacts, and history will be there.</p>
+      </div>
+      <div class="card">
+        <h3 style="font-family:var(--pixel);font-size:13px;margin:0 0 10px;letter-spacing:.5px">Who can see my messages?</h3>
+        <p style="color:var(--dim)">In encrypted rooms, only the participants can read them — not Kohera, not the homeserver operator, and not any third party.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TRY KOHERA ===== -->
+<section id="try" style="text-align:center">
+  <div class="wrap">
+    <svg class="logo" style="width:64px;height:64px;color:var(--accent);margin:0 auto 22px"><use href="#kohera-mark"/></svg>
+    <p class="eyebrow">// Ready to chat?</p>
+    <h2>Start using Kohera today</h2>
+    <p class="sec-sub" style="margin:0 auto 32px">Start chatting in seconds. No account required to explore the web app.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://kohera.quantum-matrix.xyz" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"><path d="M10 17l5-5-5-5M13 12H3m18-7v14"/></svg>
+        Login
+      </a>
+      <a class="btn" href="https://github.com/Quantumheart/Kohera/releases/latest" target="_blank" rel="noopener" id="cta-download">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="square"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+        Download
+      </a>
+    </div>
+  </div>
+</section>
 <!-- ===== FOOTER ===== -->
 <footer>
   <div class="wrap">
     <div class="cols">
       <div class="col">
         <div class="brand-foot"><svg><use href="#kohera-mark"/></svg> KOHERA</div>
-        <p style="color:var(--dim);font-size:20px;margin:14px 0 0;max-width:280px">Coherent threads, encrypted. A retro-pixel Matrix chat client.</p>
+        <p style="color:var(--dim);font-size:20px;margin:14px 0 0;max-width:280px">A free, open-source chat app with end-to-end encryption. No tracking.</p>
       </div>
       <div class="col">
         <h4>Project</h4>
@@ -445,18 +506,42 @@ https://github.com/Quantumheart/Kohera/releases</pre>
     t.addEventListener('click',function(){n.classList.toggle('open')});
     n.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){n.classList.remove('open')})});
   })();
-
-  // Install tabs
+  // Fetch latest release version
   (function(){
-    var tabs=document.querySelectorAll('#tabs .tab'),boxes=document.querySelectorAll('.codebox');
-    tabs.forEach(function(tab){
-      tab.addEventListener('click',function(){
-        var name=tab.getAttribute('data-tab');
-        tabs.forEach(function(t){t.classList.toggle('active',t===tab)});
-        boxes.forEach(function(b){var on=b.getAttribute('data-tab')===name;
-          b.classList.toggle('active',on);b.classList.toggle('active-tab',on)});
-      });
+    fetch('https://api.github.com/repos/Quantumheart/Kohera/releases/latest')
+      .then(function(r){return r.json()})
+      .then(function(data){
+        if(!data.tag_name) return;
+        var version=data.tag_name;
+        document.querySelectorAll('#site-version,#footer-version').forEach(function(el){el.textContent=version});
+        var releaseUrl=data.html_url || 'https://github.com/Quantumheart/Kohera/releases/latest';
+        document.querySelectorAll('#hero-download,#desktop-download,#cta-download').forEach(function(el){el.href=releaseUrl});
+      })
+      .catch(function(){});
+  })();
+
+  // Screenshot carousel
+  (function(){
+    var track=document.querySelector('#carousel .car-track');
+    var dots=document.getElementById('carDots');
+    if(!track) return;
+    var slides=track.querySelectorAll('img');
+    var current=0;
+    slides.forEach(function(_,i){
+      var b=document.createElement('button');
+      b.className='car-dot'+(i===0?' active':'');
+      b.setAttribute('aria-label','Go to slide '+(i+1));
+      b.addEventListener('click',function(){go(i);});
+      dots.appendChild(b);
     });
+    function go(n){
+      current=(n+slides.length)%slides.length;
+      track.style.transform='translateX('+(-current*100)+'%)';
+      dots.querySelectorAll('.car-dot').forEach(function(d,i){d.classList.toggle('active',i===current)});
+    }
+    document.getElementById('carPrev').addEventListener('click',function(){go(current-1)});
+    document.getElementById('carNext').addEventListener('click',function(){go(current+1)});
+    setInterval(function(){go(current+1)}, 6000);
   })();
 </script>
 </body>
