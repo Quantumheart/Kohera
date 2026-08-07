@@ -72,6 +72,7 @@ class MessageSearchDatabase {
         dbPath,
         version: 1,
         onCreate: (d, _) => _createSchema(d),
+        onUpgrade: _onUpgrade,
       );
     } else {
       sqfliteFfiInit();
@@ -80,10 +81,17 @@ class MessageSearchDatabase {
         options: OpenDatabaseOptions(
           version: 1,
           onCreate: (d, _) => _createSchema(d),
+          onUpgrade: _onUpgrade,
         ),
       );
     }
     return _db!;
+  }
+
+  static Future<void> _onUpgrade(Database d, int oldVersion, int newVersion) async {
+    if (oldVersion < 1) {
+      await _createSchema(d);
+    }
   }
 
   static Future<void> _createSchema(Database d) async {
