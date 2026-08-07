@@ -462,7 +462,12 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> _restoreFromDatabase() async {
     debugPrint('[Kohera] Restoring session from database for $clientName');
     try {
-      await _client.init();
+      // Defer database loading and first sync to background so the UI renders
+      // immediately instead of blocking on device-key verification.
+      await _client.init(
+        waitForFirstSync: false,
+        waitUntilLoadCompletedLoaded: false,
+      );
       if (!_client.isLogged()) {
         debugPrint('[Kohera] Database restore produced no logged-in session');
         auth.isLoggedIn = false;
