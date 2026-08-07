@@ -112,12 +112,14 @@ class MessageSearchDatabase {
   Future<void> upsert(IndexedMessage message) async {
     if (!_isAvailable) return;
     final db = await _open();
-    await db.delete(
-      'message_search',
-      where: 'event_id = ?',
-      whereArgs: [message.eventId],
-    );
-    await db.insert('message_search', message.toRow());
+    await db.transaction((txn) async {
+      await txn.delete(
+        'message_search',
+        where: 'event_id = ?',
+        whereArgs: [message.eventId],
+      );
+      await txn.insert('message_search', message.toRow());
+    });
   }
 
   Future<void> upsertBatch(List<IndexedMessage> messages) async {
