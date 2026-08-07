@@ -82,15 +82,23 @@ class MessageIndexerService extends ChangeNotifier {
 
   Future<void> _processSyncUpdate(SyncUpdate update) async {
     final join = update.rooms?.join;
-    if (join == null || join.isEmpty) return;
-    for (final entry in join.entries) {
-      final roomId = entry.key;
-      final room = _client.getRoomById(roomId);
-      if (room == null) continue;
-      _subscribeToRoomKeys(room);
-      final events = entry.value.timeline?.events;
-      if (events == null || events.isEmpty) continue;
-      await _indexEventBatch(room, events);
+    if (join != null && join.isNotEmpty) {
+      for (final entry in join.entries) {
+        final roomId = entry.key;
+        final room = _client.getRoomById(roomId);
+        if (room == null) continue;
+        _subscribeToRoomKeys(room);
+        final events = entry.value.timeline?.events;
+        if (events == null || events.isEmpty) continue;
+        await _indexEventBatch(room, events);
+      }
+    }
+
+    final leave = update.rooms?.leave;
+    if (leave != null && leave.isNotEmpty) {
+      for (final roomId in leave.keys) {
+        _cleanupRoom(roomId);
+      }
     }
   }
 
@@ -222,6 +230,14 @@ class MessageIndexerService extends ChangeNotifier {
 
   void _unmarkPending(String roomId, String eventId) {
     _pendingDecryptions[roomId]?.remove(eventId);
+  }
+
+  void _cleanupRoom(String roomId) {
+    final sub = _keySubs.remove(roomId);
+    if (sub != null) {
+      unawaited(sub.cancel());
+    }
+    _pendingDecryptions.remove(roomId);
   }
 
   void _hookRoomKeyStreams() {
