@@ -4,11 +4,11 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i19;
-import 'dart:typed_data' as _i29;
-import 'dart:ui' as _i25;
+import 'dart:typed_data' as _i30;
+import 'dart:ui' as _i26;
 
-import 'package:flutter/services.dart' as _i26;
-import 'package:flutter/widgets.dart' as _i27;
+import 'package:flutter/services.dart' as _i27;
+import 'package:flutter/widgets.dart' as _i28;
 import 'package:http/http.dart' as _i18;
 import 'package:kohera/core/services/matrix_service.dart' as _i21;
 import 'package:kohera/core/services/preferences_service.dart' as _i22;
@@ -30,23 +30,25 @@ import 'package:kohera/core/services/sub_services/space_access_service.dart'
     as _i10;
 import 'package:kohera/core/services/sub_services/sync_service.dart' as _i11;
 import 'package:kohera/core/services/sub_services/uia_service.dart' as _i6;
-import 'package:kohera/features/calling/models/call_participant.dart' as _i33;
-import 'package:kohera/features/calling/models/call_state.dart' as _i35;
-import 'package:kohera/features/calling/models/incoming_call_info.dart' as _i34;
-import 'package:kohera/features/calling/services/call_service.dart' as _i30;
-import 'package:kohera/features/calling/services/livekit_service.dart' as _i31;
-import 'package:kohera/features/calling/services/ringtone_service.dart' as _i36;
+import 'package:kohera/features/calling/models/call_participant.dart' as _i34;
+import 'package:kohera/features/calling/models/call_state.dart' as _i36;
+import 'package:kohera/features/calling/models/incoming_call_info.dart' as _i35;
+import 'package:kohera/features/calling/services/call_service.dart' as _i31;
+import 'package:kohera/features/calling/services/livekit_service.dart' as _i32;
+import 'package:kohera/features/calling/services/ringtone_service.dart' as _i37;
+import 'package:kohera/features/chat/services/message_indexer_service.dart'
+    as _i25;
 import 'package:kohera/features/notifications/services/notification_service.dart'
-    as _i37;
+    as _i38;
 import 'package:kohera/shared/services/avatar_resolver.dart' as _i14;
 import 'package:kohera/shared/services/media_resolver.dart' as _i15;
-import 'package:livekit_client/livekit_client.dart' as _i32;
-import 'package:matrix/encryption.dart' as _i28;
+import 'package:livekit_client/livekit_client.dart' as _i33;
+import 'package:matrix/encryption.dart' as _i29;
 import 'package:matrix/matrix.dart' as _i5;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i20;
 import 'package:matrix/src/models/timeline_chunk.dart' as _i23;
 import 'package:matrix/src/utils/cached_stream_controller.dart' as _i17;
-import 'package:matrix/src/utils/space_child.dart' as _i38;
+import 'package:matrix/src/utils/space_child.dart' as _i39;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i24;
 
@@ -925,6 +927,12 @@ class MockMatrixService extends _i1.Mock implements _i21.MatrixService {
   );
 
   @override
+  set messageIndexer(_i25.MessageIndexerService? value) => super.noSuchMethod(
+    Invocation.setter(#messageIndexer, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   set avatarResolver(_i14.AvatarResolver? value) => super.noSuchMethod(
     Invocation.setter(#avatarResolver, value),
     returnValueForMissingStub: null,
@@ -979,7 +987,7 @@ class MockMatrixService extends _i1.Mock implements _i21.MatrixService {
   );
 
   @override
-  void didChangeAppLifecycleState(_i25.AppLifecycleState? state) =>
+  void didChangeAppLifecycleState(_i26.AppLifecycleState? state) =>
       super.noSuchMethod(
         Invocation.method(#didChangeAppLifecycleState, [state]),
         returnValueForMissingStub: null,
@@ -1063,13 +1071,13 @@ class MockMatrixService extends _i1.Mock implements _i21.MatrixService {
           as _i19.Future<void>);
 
   @override
-  void addListener(_i25.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i26.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i25.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i26.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -1084,7 +1092,7 @@ class MockMatrixService extends _i1.Mock implements _i21.MatrixService {
           as _i19.Future<bool>);
 
   @override
-  bool handleStartBackGesture(_i26.PredictiveBackEvent? backEvent) =>
+  bool handleStartBackGesture(_i27.PredictiveBackEvent? backEvent) =>
       (super.noSuchMethod(
             Invocation.method(#handleStartBackGesture, [backEvent]),
             returnValue: false,
@@ -1093,7 +1101,7 @@ class MockMatrixService extends _i1.Mock implements _i21.MatrixService {
           as bool);
 
   @override
-  void handleUpdateBackGestureProgress(_i26.PredictiveBackEvent? backEvent) =>
+  void handleUpdateBackGestureProgress(_i27.PredictiveBackEvent? backEvent) =>
       super.noSuchMethod(
         Invocation.method(#handleUpdateBackGestureProgress, [backEvent]),
         returnValueForMissingStub: null,
@@ -1128,7 +1136,7 @@ class MockMatrixService extends _i1.Mock implements _i21.MatrixService {
 
   @override
   _i19.Future<bool> didPushRouteInformation(
-    _i27.RouteInformation? routeInformation,
+    _i28.RouteInformation? routeInformation,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#didPushRouteInformation, [routeInformation]),
@@ -1156,29 +1164,29 @@ class MockMatrixService extends _i1.Mock implements _i21.MatrixService {
   );
 
   @override
-  void didChangeLocales(List<_i25.Locale>? locales) => super.noSuchMethod(
+  void didChangeLocales(List<_i26.Locale>? locales) => super.noSuchMethod(
     Invocation.method(#didChangeLocales, [locales]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void didChangeViewFocus(_i25.ViewFocusEvent? event) => super.noSuchMethod(
+  void didChangeViewFocus(_i26.ViewFocusEvent? event) => super.noSuchMethod(
     Invocation.method(#didChangeViewFocus, [event]),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i19.Future<_i25.AppExitResponse> didRequestAppExit() =>
+  _i19.Future<_i26.AppExitResponse> didRequestAppExit() =>
       (super.noSuchMethod(
             Invocation.method(#didRequestAppExit, []),
-            returnValue: _i19.Future<_i25.AppExitResponse>.value(
-              _i25.AppExitResponse.exit,
+            returnValue: _i19.Future<_i26.AppExitResponse>.value(
+              _i26.AppExitResponse.exit,
             ),
-            returnValueForMissingStub: _i19.Future<_i25.AppExitResponse>.value(
-              _i25.AppExitResponse.exit,
+            returnValueForMissingStub: _i19.Future<_i26.AppExitResponse>.value(
+              _i26.AppExitResponse.exit,
             ),
           )
-          as _i19.Future<_i25.AppExitResponse>);
+          as _i19.Future<_i26.AppExitResponse>);
 
   @override
   void didHaveMemoryPressure() => super.noSuchMethod(
@@ -1213,13 +1221,13 @@ class MockClient extends _i1.Mock implements _i5.Client {
           as _i5.DatabaseApi);
 
   @override
-  Set<_i28.KeyVerificationMethod> get verificationMethods =>
+  Set<_i29.KeyVerificationMethod> get verificationMethods =>
       (super.noSuchMethod(
             Invocation.getter(#verificationMethods),
-            returnValue: <_i28.KeyVerificationMethod>{},
-            returnValueForMissingStub: <_i28.KeyVerificationMethod>{},
+            returnValue: <_i29.KeyVerificationMethod>{},
+            returnValueForMissingStub: <_i29.KeyVerificationMethod>{},
           )
-          as Set<_i28.KeyVerificationMethod>);
+          as Set<_i29.KeyVerificationMethod>);
 
   @override
   Set<String> get importantStateEvents =>
@@ -1807,37 +1815,37 @@ class MockClient extends _i1.Mock implements _i5.Client {
           as _i17.CachedStreamController<_i5.BasicEvent>);
 
   @override
-  _i17.CachedStreamController<_i28.RoomKeyRequest> get onRoomKeyRequest =>
+  _i17.CachedStreamController<_i29.RoomKeyRequest> get onRoomKeyRequest =>
       (super.noSuchMethod(
             Invocation.getter(#onRoomKeyRequest),
-            returnValue: _FakeCachedStreamController_21<_i28.RoomKeyRequest>(
+            returnValue: _FakeCachedStreamController_21<_i29.RoomKeyRequest>(
               this,
               Invocation.getter(#onRoomKeyRequest),
             ),
             returnValueForMissingStub:
-                _FakeCachedStreamController_21<_i28.RoomKeyRequest>(
+                _FakeCachedStreamController_21<_i29.RoomKeyRequest>(
                   this,
                   Invocation.getter(#onRoomKeyRequest),
                 ),
           )
-          as _i17.CachedStreamController<_i28.RoomKeyRequest>);
+          as _i17.CachedStreamController<_i29.RoomKeyRequest>);
 
   @override
-  _i17.CachedStreamController<_i28.KeyVerification>
+  _i17.CachedStreamController<_i29.KeyVerification>
   get onKeyVerificationRequest =>
       (super.noSuchMethod(
             Invocation.getter(#onKeyVerificationRequest),
-            returnValue: _FakeCachedStreamController_21<_i28.KeyVerification>(
+            returnValue: _FakeCachedStreamController_21<_i29.KeyVerification>(
               this,
               Invocation.getter(#onKeyVerificationRequest),
             ),
             returnValueForMissingStub:
-                _FakeCachedStreamController_21<_i28.KeyVerification>(
+                _FakeCachedStreamController_21<_i29.KeyVerification>(
                   this,
                   Invocation.getter(#onKeyVerificationRequest),
                 ),
           )
-          as _i17.CachedStreamController<_i28.KeyVerification>);
+          as _i17.CachedStreamController<_i29.KeyVerification>);
 
   @override
   _i17.CachedStreamController<_i5.UiaRequest<dynamic>> get onUiaRequest =>
@@ -2008,7 +2016,7 @@ class MockClient extends _i1.Mock implements _i5.Client {
   );
 
   @override
-  set verificationMethods(Set<_i28.KeyVerificationMethod>? value) =>
+  set verificationMethods(Set<_i29.KeyVerificationMethod>? value) =>
       super.noSuchMethod(
         Invocation.setter(#verificationMethods, value),
         returnValueForMissingStub: null,
@@ -3291,7 +3299,7 @@ class MockClient extends _i1.Mock implements _i5.Client {
 
   @override
   _i19.Future<Uri> uploadContent(
-    _i29.Uint8List? file, {
+    _i30.Uint8List? file, {
     String? filename,
     String? contentType,
   }) =>
@@ -3706,7 +3714,7 @@ class MockClient extends _i1.Mock implements _i5.Client {
           as _i19.Future<String?>);
 
   @override
-  Never unexpectedResponse(_i18.BaseResponse? response, _i29.Uint8List? body) =>
+  Never unexpectedResponse(_i18.BaseResponse? response, _i30.Uint8List? body) =>
       (super.noSuchMethod(
             Invocation.method(#unexpectedResponse, [response, body]),
             returnValue: null,
@@ -7164,7 +7172,7 @@ class MockClient extends _i1.Mock implements _i5.Client {
   _i19.Future<Map<String, Object?>> uploadContentToMXC(
     String? serverName,
     String? mediaId,
-    _i29.Uint8List? body, {
+    _i30.Uint8List? body, {
     String? filename,
     String? contentType,
   }) =>
@@ -7187,7 +7195,7 @@ class MockClient extends _i1.Mock implements _i5.Client {
 /// A class which mocks [CallService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockCallService extends _i1.Mock implements _i30.CallService {
+class MockCallService extends _i1.Mock implements _i31.CallService {
   @override
   _i5.Client get client =>
       (super.noSuchMethod(
@@ -7210,7 +7218,7 @@ class MockCallService extends _i1.Mock implements _i30.CallService {
           as bool);
 
   @override
-  _i31.HttpPostFunction get httpPostForTest =>
+  _i32.HttpPostFunction get httpPostForTest =>
       (super.noSuchMethod(
             Invocation.getter(#httpPostForTest),
             returnValue:
@@ -7232,16 +7240,16 @@ class MockCallService extends _i1.Mock implements _i30.CallService {
                   _FakeResponse_82(this, Invocation.getter(#httpPostForTest)),
                 ),
           )
-          as _i31.HttpPostFunction);
+          as _i32.HttpPostFunction);
 
   @override
-  List<_i32.RemoteParticipant> get participants =>
+  List<_i33.RemoteParticipant> get participants =>
       (super.noSuchMethod(
             Invocation.getter(#participants),
-            returnValue: <_i32.RemoteParticipant>[],
-            returnValueForMissingStub: <_i32.RemoteParticipant>[],
+            returnValue: <_i33.RemoteParticipant>[],
+            returnValueForMissingStub: <_i33.RemoteParticipant>[],
           )
-          as List<_i32.RemoteParticipant>);
+          as List<_i33.RemoteParticipant>);
 
   @override
   bool get isMicEnabled =>
@@ -7280,16 +7288,16 @@ class MockCallService extends _i1.Mock implements _i30.CallService {
           as bool);
 
   @override
-  List<_i32.Participant<_i32.TrackPublication<_i32.Track>>>
+  List<_i33.Participant<_i33.TrackPublication<_i33.Track>>>
   get activeSpeakers =>
       (super.noSuchMethod(
             Invocation.getter(#activeSpeakers),
             returnValue:
-                <_i32.Participant<_i32.TrackPublication<_i32.Track>>>[],
+                <_i33.Participant<_i33.TrackPublication<_i33.Track>>>[],
             returnValueForMissingStub:
-                <_i32.Participant<_i32.TrackPublication<_i32.Track>>>[],
+                <_i33.Participant<_i33.TrackPublication<_i33.Track>>>[],
           )
-          as List<_i32.Participant<_i32.TrackPublication<_i32.Track>>>);
+          as List<_i33.Participant<_i33.TrackPublication<_i33.Track>>>);
 
   @override
   bool get isCallingAvailable =>
@@ -7301,13 +7309,13 @@ class MockCallService extends _i1.Mock implements _i30.CallService {
           as bool);
 
   @override
-  List<_i33.CallParticipant> get allParticipants =>
+  List<_i34.CallParticipant> get allParticipants =>
       (super.noSuchMethod(
             Invocation.getter(#allParticipants),
-            returnValue: <_i33.CallParticipant>[],
-            returnValueForMissingStub: <_i33.CallParticipant>[],
+            returnValue: <_i34.CallParticipant>[],
+            returnValueForMissingStub: <_i34.CallParticipant>[],
           )
-          as List<_i33.CallParticipant>);
+          as List<_i34.CallParticipant>);
 
   @override
   bool get isSpeakerOn =>
@@ -7319,14 +7327,14 @@ class MockCallService extends _i1.Mock implements _i30.CallService {
           as bool);
 
   @override
-  _i19.Stream<_i34.IncomingCallInfo> get incomingCallStream =>
+  _i19.Stream<_i35.IncomingCallInfo> get incomingCallStream =>
       (super.noSuchMethod(
             Invocation.getter(#incomingCallStream),
-            returnValue: _i19.Stream<_i34.IncomingCallInfo>.empty(),
+            returnValue: _i19.Stream<_i35.IncomingCallInfo>.empty(),
             returnValueForMissingStub:
-                _i19.Stream<_i34.IncomingCallInfo>.empty(),
+                _i19.Stream<_i35.IncomingCallInfo>.empty(),
           )
-          as _i19.Stream<_i34.IncomingCallInfo>);
+          as _i19.Stream<_i35.IncomingCallInfo>);
 
   @override
   _i19.Stream<String> get nativeAcceptedCallStream =>
@@ -7338,13 +7346,13 @@ class MockCallService extends _i1.Mock implements _i30.CallService {
           as _i19.Stream<String>);
 
   @override
-  _i35.KoheraCallState get callState =>
+  _i36.KoheraCallState get callState =>
       (super.noSuchMethod(
             Invocation.getter(#callState),
-            returnValue: _i35.KoheraCallState.idle,
-            returnValueForMissingStub: _i35.KoheraCallState.idle,
+            returnValue: _i36.KoheraCallState.idle,
+            returnValueForMissingStub: _i36.KoheraCallState.idle,
           )
-          as _i35.KoheraCallState);
+          as _i36.KoheraCallState);
 
   @override
   set preferencesService(_i22.PreferencesService? prefs) => super.noSuchMethod(
@@ -7353,20 +7361,20 @@ class MockCallService extends _i1.Mock implements _i30.CallService {
   );
 
   @override
-  set ringtoneService(_i36.RingtoneService? service) => super.noSuchMethod(
+  set ringtoneService(_i37.RingtoneService? service) => super.noSuchMethod(
     Invocation.setter(#ringtoneService, service),
     returnValueForMissingStub: null,
   );
 
   @override
-  set roomFactoryForTest(_i31.LiveKitRoomFactory? factory) =>
+  set roomFactoryForTest(_i32.LiveKitRoomFactory? factory) =>
       super.noSuchMethod(
         Invocation.setter(#roomFactoryForTest, factory),
         returnValueForMissingStub: null,
       );
 
   @override
-  set httpPostForTest(_i31.HttpPostFunction? fn) => super.noSuchMethod(
+  set httpPostForTest(_i32.HttpPostFunction? fn) => super.noSuchMethod(
     Invocation.setter(#httpPostForTest, fn),
     returnValueForMissingStub: null,
   );
@@ -7471,7 +7479,7 @@ class MockCallService extends _i1.Mock implements _i30.CallService {
   );
 
   @override
-  void didChangeAppLifecycleState(_i25.AppLifecycleState? state) =>
+  void didChangeAppLifecycleState(_i26.AppLifecycleState? state) =>
       super.noSuchMethod(
         Invocation.method(#didChangeAppLifecycleState, [state]),
         returnValueForMissingStub: null,
@@ -7531,7 +7539,7 @@ class MockCallService extends _i1.Mock implements _i30.CallService {
   @override
   _i19.Future<void> initiateCall(
     String? roomId, {
-    _i34.CallType? type = _i34.CallType.voice,
+    _i35.CallType? type = _i35.CallType.voice,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#initiateCall, [roomId], {#type: type}),
@@ -7610,13 +7618,13 @@ class MockCallService extends _i1.Mock implements _i30.CallService {
   );
 
   @override
-  void addListener(_i25.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i26.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i25.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i26.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -7631,7 +7639,7 @@ class MockCallService extends _i1.Mock implements _i30.CallService {
           as _i19.Future<bool>);
 
   @override
-  bool handleStartBackGesture(_i26.PredictiveBackEvent? backEvent) =>
+  bool handleStartBackGesture(_i27.PredictiveBackEvent? backEvent) =>
       (super.noSuchMethod(
             Invocation.method(#handleStartBackGesture, [backEvent]),
             returnValue: false,
@@ -7640,7 +7648,7 @@ class MockCallService extends _i1.Mock implements _i30.CallService {
           as bool);
 
   @override
-  void handleUpdateBackGestureProgress(_i26.PredictiveBackEvent? backEvent) =>
+  void handleUpdateBackGestureProgress(_i27.PredictiveBackEvent? backEvent) =>
       super.noSuchMethod(
         Invocation.method(#handleUpdateBackGestureProgress, [backEvent]),
         returnValueForMissingStub: null,
@@ -7675,7 +7683,7 @@ class MockCallService extends _i1.Mock implements _i30.CallService {
 
   @override
   _i19.Future<bool> didPushRouteInformation(
-    _i27.RouteInformation? routeInformation,
+    _i28.RouteInformation? routeInformation,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#didPushRouteInformation, [routeInformation]),
@@ -7703,29 +7711,29 @@ class MockCallService extends _i1.Mock implements _i30.CallService {
   );
 
   @override
-  void didChangeLocales(List<_i25.Locale>? locales) => super.noSuchMethod(
+  void didChangeLocales(List<_i26.Locale>? locales) => super.noSuchMethod(
     Invocation.method(#didChangeLocales, [locales]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void didChangeViewFocus(_i25.ViewFocusEvent? event) => super.noSuchMethod(
+  void didChangeViewFocus(_i26.ViewFocusEvent? event) => super.noSuchMethod(
     Invocation.method(#didChangeViewFocus, [event]),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i19.Future<_i25.AppExitResponse> didRequestAppExit() =>
+  _i19.Future<_i26.AppExitResponse> didRequestAppExit() =>
       (super.noSuchMethod(
             Invocation.method(#didRequestAppExit, []),
-            returnValue: _i19.Future<_i25.AppExitResponse>.value(
-              _i25.AppExitResponse.exit,
+            returnValue: _i19.Future<_i26.AppExitResponse>.value(
+              _i26.AppExitResponse.exit,
             ),
-            returnValueForMissingStub: _i19.Future<_i25.AppExitResponse>.value(
-              _i25.AppExitResponse.exit,
+            returnValueForMissingStub: _i19.Future<_i26.AppExitResponse>.value(
+              _i26.AppExitResponse.exit,
             ),
           )
-          as _i19.Future<_i25.AppExitResponse>);
+          as _i19.Future<_i26.AppExitResponse>);
 
   @override
   void didHaveMemoryPressure() => super.noSuchMethod(
@@ -7744,7 +7752,7 @@ class MockCallService extends _i1.Mock implements _i30.CallService {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockNotificationService extends _i1.Mock
-    implements _i37.NotificationService {
+    implements _i38.NotificationService {
   @override
   _i21.MatrixService get matrixService =>
       (super.noSuchMethod(
@@ -8446,22 +8454,22 @@ class MockRoom extends _i1.Mock implements _i5.Room {
           as bool);
 
   @override
-  List<_i38.SpaceParent> get spaceParents =>
+  List<_i39.SpaceParent> get spaceParents =>
       (super.noSuchMethod(
             Invocation.getter(#spaceParents),
-            returnValue: <_i38.SpaceParent>[],
-            returnValueForMissingStub: <_i38.SpaceParent>[],
+            returnValue: <_i39.SpaceParent>[],
+            returnValueForMissingStub: <_i39.SpaceParent>[],
           )
-          as List<_i38.SpaceParent>);
+          as List<_i39.SpaceParent>);
 
   @override
-  List<_i38.SpaceChild> get spaceChildren =>
+  List<_i39.SpaceChild> get spaceChildren =>
       (super.noSuchMethod(
             Invocation.getter(#spaceChildren),
-            returnValue: <_i38.SpaceChild>[],
-            returnValueForMissingStub: <_i38.SpaceChild>[],
+            returnValue: <_i39.SpaceChild>[],
+            returnValueForMissingStub: <_i39.SpaceChild>[],
           )
-          as List<_i38.SpaceChild>);
+          as List<_i39.SpaceChild>);
 
   @override
   set membership(_i5.Membership? value) => super.noSuchMethod(
