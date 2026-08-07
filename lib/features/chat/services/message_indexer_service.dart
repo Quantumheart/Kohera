@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -43,6 +44,8 @@ class MessageIndexerService extends ChangeNotifier {
   }
 
   Future<void>? _drainFuture;
+
+  static const maxPendingDecryptionsPerRoom = 1000;
 
   final Map<String, Set<String>> _pendingDecryptions = {};
 
@@ -207,7 +210,14 @@ class MessageIndexerService extends ChangeNotifier {
   }
 
   void _markPending(String roomId, String eventId) {
-    _pendingDecryptions.putIfAbsent(roomId, () => <String>{}).add(eventId);
+    final set = _pendingDecryptions.putIfAbsent(
+      roomId,
+      LinkedHashSet<String>.new,
+    );
+    if (set.length >= maxPendingDecryptionsPerRoom && !set.contains(eventId)) {
+      set.remove(set.first);
+    }
+    set.add(eventId);
   }
 
   void _unmarkPending(String roomId, String eventId) {
