@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/models/room_search_result.dart';
+import 'package:kohera/features/chat/services/local_search_service.dart';
 import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:matrix/matrix.dart';
 
@@ -13,13 +14,19 @@ import 'package:matrix/matrix.dart';
 /// [RoomSearchResult] via [Event.fromMatrixEvent] + [MessageDisplayResolver].
 ///
 /// For **encrypted** rooms the server cannot index message bodies, so this
-/// returns an empty [RoomSearchResponse] flagged `isEncryptedRoom: true`.
-/// Encrypted search is handled separately (#897) — this placeholder keeps the
-/// controller's contract uniform.
+/// delegates to an optional [LocalSearchService] when a local FTS5 index is
+/// available. If no local index exists it returns an empty
+/// [RoomSearchResponse] flagged `isEncryptedRoom: true`.
 class RoomSearchService {
-  RoomSearchService({required this.client});
+  RoomSearchService({
+    required this.client,
+    this.localSearchService,
+  });
 
   final Client client;
+  final LocalSearchService? localSearchService;
+
+  bool get hasLocalSearch => localSearchService != null;
 
   /// Number of context events to request before and after each match.
   static const contextBeforeLimit = 3;
@@ -40,8 +47,16 @@ class RoomSearchService {
       return const RoomSearchResponse();
     }
 
-    // Encrypted rooms cannot be searched server-side yet (#897).
     if (room.encrypted) {
+      final local = localSearchService;
+      if (local != null) {
+        return local.search(
+          roomId: roomId,
+          query: searchTerm,
+          limit: limit,
+          nextBatch: nextBatch,
+        );
+      }
       return const RoomSearchResponse(isEncryptedRoom: true);
     }
 

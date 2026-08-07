@@ -29,6 +29,7 @@ import 'package:kohera/features/chat/services/emoji_autocomplete_controller.dart
 import 'package:kohera/features/chat/services/file_send_handler.dart';
 import 'package:kohera/features/chat/services/gif_send_handler.dart';
 import 'package:kohera/features/chat/services/linkable_span_builder.dart';
+import 'package:kohera/features/chat/services/local_search_service.dart';
 import 'package:kohera/features/chat/services/mention_autocomplete_controller.dart';
 import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:kohera/features/chat/services/message_forwarder.dart';
@@ -265,10 +266,20 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   ChatSearchController _createSearchController() {
+    final matrix = context.read<MatrixService>();
+    final indexDatabase = matrix.messageIndexer?.database;
+    final localSearchService = indexDatabase != null && indexDatabase.isAvailable
+        ? LocalSearchService(
+            client: matrix.client,
+            database: indexDatabase,
+          )
+        : null;
+
     return ChatSearchController(
       roomId: widget.roomId,
       searchService: RoomSearchService(
-        client: context.read<MatrixService>().client,
+        client: matrix.client,
+        localSearchService: localSearchService,
       ),
     )..addListener(_onSearchChanged);
   }

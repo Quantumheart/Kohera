@@ -7,7 +7,8 @@ import 'package:kohera/shared/widgets/kohera_loader.dart';
 /// Displays search results for in-room message search.
 ///
 /// Shows contextual states: minimum query prompt, loading spinner,
-/// error, empty results, or a scrollable results list.
+/// error, empty results, encrypted-room local-only search notes, or a
+/// scrollable results list.
 class SearchResultsBody extends StatelessWidget {
   const SearchResultsBody({
     required this.search,
@@ -71,6 +72,7 @@ class SearchResultsBody extends StatelessWidget {
 
     // Empty results.
     if (search.results.isEmpty && !search.isLoading) {
+      final (title, subtitle) = _emptyMessage(context, search, query);
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -81,12 +83,22 @@ class SearchResultsBody extends StatelessWidget {
                   size: 48, color: cs.onSurfaceVariant.withValues(alpha: 0.4),),
               const SizedBox(height: 12),
               Text(
-                'No messages found for "$query"',
+                title,
                 style: tt.bodyMedium?.copyWith(
                   color: cs.onSurfaceVariant.withValues(alpha: 0.6),
                 ),
                 textAlign: TextAlign.center,
               ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  subtitle,
+                  style: tt.bodySmall?.copyWith(
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ],
           ),
         ),
@@ -126,5 +138,27 @@ class SearchResultsBody extends StatelessWidget {
         );
       },
     );
+  }
+
+  (String, String?) _emptyMessage(
+    BuildContext context,
+    ChatSearchController search,
+    String query,
+  ) {
+    if (search.isEncryptedRoom && !search.hasLocalIndex) {
+      return (
+        'Search not available for encrypted rooms on this platform',
+        null,
+      );
+    }
+
+    if (search.isEncryptedRoom && search.hasLocalIndex) {
+      return (
+        'No messages found for "$query"',
+        'Searches are limited to messages stored locally on this device.',
+      );
+    }
+
+    return ('No messages found for "$query"', null);
   }
 }

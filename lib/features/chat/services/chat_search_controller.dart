@@ -36,6 +36,9 @@ class ChatSearchController extends ChangeNotifier {
   bool _isEncryptedRoom = false;
   bool get isEncryptedRoom => _isEncryptedRoom;
 
+  bool _hasLocalIndex = false;
+  bool get hasLocalIndex => _hasLocalIndex;
+
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -62,6 +65,7 @@ class ChatSearchController extends ChangeNotifier {
     _count = null;
     _highlights = null;
     _isEncryptedRoom = false;
+    _hasLocalIndex = false;
     _error = null;
     _query = '';
     notifyListeners();
@@ -77,6 +81,7 @@ class ChatSearchController extends ChangeNotifier {
     _count = null;
     _highlights = null;
     _isEncryptedRoom = false;
+    _hasLocalIndex = false;
     _isLoading = false;
     _error = null;
     _query = '';
@@ -93,6 +98,7 @@ class ChatSearchController extends ChangeNotifier {
       _count = null;
       _highlights = null;
       _isEncryptedRoom = false;
+      _hasLocalIndex = false;
       _error = null;
       notifyListeners();
       return;
@@ -113,6 +119,7 @@ class ChatSearchController extends ChangeNotifier {
       _count = null;
       _highlights = null;
       _isEncryptedRoom = false;
+      _hasLocalIndex = false;
     }
     notifyListeners();
 
@@ -129,6 +136,7 @@ class ChatSearchController extends ChangeNotifier {
       if (_disposed) return;
 
       _isEncryptedRoom = response.isEncryptedRoom;
+      _hasLocalIndex = response.isEncryptedRoom && searchService.hasLocalSearch;
       _count = response.count;
       _highlights = response.highlights;
 
