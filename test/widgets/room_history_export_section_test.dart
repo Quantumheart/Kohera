@@ -15,8 +15,8 @@ import 'package:provider/provider.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<MatrixService>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'room_history_export_section_test.mocks.dart';
 
 KoheraRoomExport _sample() => KoheraRoomExport(

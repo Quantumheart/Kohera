@@ -10,6 +10,7 @@ import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'room_tile_test.mocks.dart';
 
 

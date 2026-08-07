@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/features/e2ee/services/recovery_key_handler.dart';
 import 'package:matrix/encryption.dart';
@@ -9,7 +8,6 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
-  MockSpec<MatrixService>(),
   MockSpec<ChatBackupService>(),
   MockSpec<Bootstrap>(),
   MockSpec<OpenSSSS>(),
@@ -17,6 +15,7 @@ import 'package:mockito/mockito.dart';
   MockSpec<Encryption>(),
   MockSpec<CrossSigning>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'recovery_key_handler_test.mocks.dart';
 
 void main() {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
 import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
@@ -13,9 +12,9 @@ import 'package:mockito/mockito.dart';
   MockSpec<Event>(),
   MockSpec<Timeline>(),
   MockSpec<Client>(),
-  MockSpec<MatrixService>(),
   MockSpec<ScaffoldMessengerState>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'chat_message_actions_test.mocks.dart';
 
 void main() {

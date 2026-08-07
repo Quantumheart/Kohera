@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/app_config.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
@@ -13,13 +12,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 
 @GenerateNiceMocks([
-  MockSpec<MatrixService>(),
   MockSpec<Client>(),
   MockSpec<CallService>(),
   MockSpec<NotificationService>(),
   MockSpec<Room>(),
   MockSpec<Timeline>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'ios_voip_push_service_test.mocks.dart';
 
 void main() {

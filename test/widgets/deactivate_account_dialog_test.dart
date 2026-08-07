@@ -14,11 +14,11 @@ import 'package:provider/provider.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<MatrixService>(),
   MockSpec<ChatBackupService>(),
   MockSpec<ClientManager>(),
   MockSpec<UiaService>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'deactivate_account_dialog_test.mocks.dart';
 
 void main() {

@@ -15,8 +15,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<MatrixService>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'space_discovery_servers_edit_test.mocks.dart';
 
 class _SpyFakeDataSource extends FakeSpaceDiscoveryDataSource {

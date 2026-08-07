@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_controller.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_driver.dart';
 import 'package:matrix/encryption.dart';
@@ -9,10 +8,10 @@ import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<MatrixService>(),
   MockSpec<Encryption>(),
   MockSpec<Bootstrap>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'bootstrap_driver_test.mocks.dart';
 
 void main() {

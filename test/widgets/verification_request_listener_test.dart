@@ -11,11 +11,11 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'key_verification_dialog_test.dart' show FakeKeyVerification;
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<MatrixService>(),
   MockSpec<ChatBackupService>(),
 ])
 import 'verification_request_listener_test.mocks.dart';

@@ -1,7 +1,6 @@
 // Redundant default args are kept in verify() to assert exact forwarding.
 // ignore_for_file: avoid_redundant_argument_values
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/settings/services/account_deactivation_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
@@ -9,8 +8,8 @@ import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<MatrixService>(),
 ])
+import '../../../mocks/matrix_service_mock.mocks.dart';
 import 'account_deactivation_service_test.mocks.dart';
 
 void main() {
