@@ -14,11 +14,11 @@ import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
 @GenerateNiceMocks([
-  MockSpec<MatrixService>(),
   MockSpec<SpaceAccessService>(),
   MockSpec<Client>(),
   MockSpec<Room>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'join_access_controller_test.mocks.dart';
 
 void main() {

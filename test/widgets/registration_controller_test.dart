@@ -13,9 +13,9 @@ import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<MatrixService>(),
   MockSpec<AuthService>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'registration_controller_test.mocks.dart';
 
 /// Minimal [ClientManager] double. Hand-written rather than a generated mock

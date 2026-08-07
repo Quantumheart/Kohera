@@ -31,12 +31,12 @@ import 'package:provider/provider.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<MatrixService>(),
   MockSpec<Room>(),
   MockSpec<Timeline>(),
   MockSpec<Event>(),
   MockSpec<User>(),
 ])
+import '../../mocks/matrix_service_mock.mocks.dart';
 import 'message_actions_test.mocks.dart';
 
 class _FakeAvatarResolver implements AvatarResolver {

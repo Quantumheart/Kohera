@@ -1,6 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/notifications/services/notification_service.dart';
@@ -11,11 +10,11 @@ import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 @GenerateNiceMocks([
-  MockSpec<MatrixService>(),
   MockSpec<Client>(),
   MockSpec<Room>(),
   MockSpec<FlutterLocalNotificationsPlugin>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'notification_service_test.mocks.dart';
 
 void main() {

@@ -2,7 +2,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/rooms/widgets/new_dm_dialog.dart';
 import 'package:matrix/matrix.dart';
@@ -12,9 +11,9 @@ import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<MatrixService>(),
   MockSpec<Room>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'new_dm_dialog_test.mocks.dart';
 
 void main() {

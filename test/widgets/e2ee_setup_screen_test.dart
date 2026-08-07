@@ -6,6 +6,7 @@ import 'package:kohera/features/e2ee/screens/e2ee_setup_screen.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'bootstrap_controller_test.mocks.dart';
 
 void main() {

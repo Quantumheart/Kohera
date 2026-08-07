@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/join_mode.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_action.dart';
@@ -14,10 +13,10 @@ import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<MatrixService>(),
   MockSpec<Room>(),
   MockSpec<SpaceAccessService>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'create_subspace_dialog_test.mocks.dart';
 
 const _defaultCaps = SubspaceCapabilities(

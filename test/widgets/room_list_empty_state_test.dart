@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/features/rooms/services/room_list_builder.dart';
@@ -17,9 +16,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<MatrixService>(),
   MockSpec<Room>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'room_list_empty_state_test.mocks.dart';
 
 void main() {

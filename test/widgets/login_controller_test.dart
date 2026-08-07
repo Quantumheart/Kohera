@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
 import 'package:kohera/core/services/client_manager.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/features/auth/widgets/login_controller.dart';
 import 'package:matrix/matrix.dart' hide LoginState;
@@ -11,11 +10,11 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
-  MockSpec<MatrixService>(),
   MockSpec<ClientManager>(),
   MockSpec<Client>(),
   MockSpec<AuthService>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'login_controller_test.mocks.dart';
 
 void main() {

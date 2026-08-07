@@ -10,7 +10,6 @@ import 'package:kohera/features/rooms/widgets/room_tile.dart';
 import 'package:kohera/shared/models/kohera_room_summary.dart';
 import 'package:kohera/shared/models/kohera_user_summary.dart';
 @GenerateNiceMocks([
-  MockSpec<MatrixService>(),
   MockSpec<Room>(),
   MockSpec<Client>(),
   MockSpec<Event>(),
@@ -25,6 +24,7 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'room_tile_test.mocks.dart';
 
 

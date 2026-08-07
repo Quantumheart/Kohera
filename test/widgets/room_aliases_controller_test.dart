@@ -12,9 +12,9 @@ import 'package:provider/provider.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<MatrixService>(),
   MockSpec<Room>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'room_aliases_controller_test.mocks.dart';
 
 void main() {

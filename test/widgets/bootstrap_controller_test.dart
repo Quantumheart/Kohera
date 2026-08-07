@@ -1,6 +1,5 @@
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_controller.dart';
@@ -11,13 +10,13 @@ import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<MatrixService>(),
   MockSpec<ChatBackupService>(),
   MockSpec<Encryption>(),
   MockSpec<Bootstrap>(),
   MockSpec<OpenSSSS>(),
   MockSpec<UiaService>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'bootstrap_controller_test.mocks.dart';
 
 void main() {

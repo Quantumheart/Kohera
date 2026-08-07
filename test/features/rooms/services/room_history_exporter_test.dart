@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/rooms/models/kohera_export_format.dart';
 import 'package:kohera/features/rooms/services/room_history_exporter.dart';
 import 'package:matrix/matrix.dart';
@@ -8,12 +7,12 @@ import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<MatrixService>(),
   MockSpec<Room>(),
   MockSpec<Timeline>(),
   MockSpec<Event>(),
   MockSpec<User>(),
 ])
+import '../../../mocks/matrix_service_mock.mocks.dart';
 import 'room_history_exporter_test.mocks.dart';
 
 MockEvent _msgEvent({

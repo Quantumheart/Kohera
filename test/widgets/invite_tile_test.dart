@@ -20,10 +20,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 
 @GenerateNiceMocks([
-  MockSpec<MatrixService>(),
   MockSpec<Room>(),
   MockSpec<Client>(),
 ])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'invite_tile_test.mocks.dart';
 
 void main() {
