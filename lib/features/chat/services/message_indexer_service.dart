@@ -261,7 +261,7 @@ class MessageIndexerService extends ChangeNotifier {
     for (final eventId in eventIds) {
       Event? event;
       try {
-        event = await room.getEventById(eventId);
+        event = await _client.database.getEventById(eventId, room);
       } catch (e) {
         debugPrint('[Kohera] search index: retry fetch $eventId failed: $e');
       }

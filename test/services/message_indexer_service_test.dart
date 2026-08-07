@@ -18,6 +18,16 @@ import 'message_indexer_service_test.mocks.dart';
   MockSpec<DatabaseApi>(),
 ])
 class _FakeDatabaseApi extends Fake implements DatabaseApi {
+  final Map<String, Event> _eventsById = {};
+
+  void storeEvent(Event event) {
+    _eventsById[event.eventId] = event;
+  }
+
+  @override
+  Future<Event?> getEventById(String eventId, Room room) async =>
+      _eventsById[eventId];
+
   @override
   Future<List<Event>> getEventList(
     Room room, {
@@ -401,7 +411,8 @@ void main() {
       expect(await searchDb.countAll(), 0);
 
       when(encryption.decryptRoomEvent(any)).thenAnswer((_) async => decrypted);
-      when(room.getEventById(r'$late1')).thenAnswer((_) async => encrypted);
+      final fakeDb = client.database as _FakeDatabaseApi;
+      fakeDb.storeEvent(encrypted);
 
       keyController.add('session-id');
       await pumpEventQueue();
