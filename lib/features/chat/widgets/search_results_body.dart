@@ -119,7 +119,7 @@ class SearchResultsBody extends StatelessWidget {
 
         final result = search.results[i];
         return SearchResultTile(
-          message: result.message,
+          result: result,
           avatarResolver: avatarResolver,
           query: query,
           onTap: () => onTapResult(result.message.eventId),
