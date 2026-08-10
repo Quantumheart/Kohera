@@ -71,6 +71,30 @@ class SearchResultsBody extends StatelessWidget {
 
     // Empty results.
     if (search.results.isEmpty && !search.isLoading) {
+      // Encrypted room on a platform without the local FTS5 index (e.g. web).
+      if (search.isEncryptedRoom && !search.hasLocalIndex) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.lock_outline_rounded,
+                    size: 48, color: cs.onSurfaceVariant.withValues(alpha: 0.4),),
+                const SizedBox(height: 12),
+                Text(
+                  'Search not available for encrypted rooms on this platform',
+                  style: tt.bodyMedium?.copyWith(
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -87,6 +111,16 @@ class SearchResultsBody extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
+              if (search.isEncryptedRoom) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Encrypted rooms are searched on this device only.',
+                  style: tt.bodySmall?.copyWith(
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ],
           ),
         ),
