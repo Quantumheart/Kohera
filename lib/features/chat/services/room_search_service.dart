@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/models/room_search_result.dart';
+import 'package:kohera/features/chat/services/local_search_service.dart';
 import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:matrix/matrix.dart';
 
@@ -13,13 +14,18 @@ import 'package:matrix/matrix.dart';
 /// [RoomSearchResult] via [Event.fromMatrixEvent] + [MessageDisplayResolver].
 ///
 /// For **encrypted** rooms the server cannot index message bodies, so this
-/// returns an empty [RoomSearchResponse] flagged `isEncryptedRoom: true`.
-/// Encrypted search is handled separately (#897) — this placeholder keeps the
-/// controller's contract uniform.
+/// delegates to [LocalSearchService] when one is available (i.e. the on-device
+/// FTS5 index is present). When no local index is available (e.g. on web), an
+/// empty [RoomSearchResponse] flagged `isEncryptedRoom: true` is returned so
+/// the UI can show the platform-specific "not available" message.
 class RoomSearchService {
-  RoomSearchService({required this.client});
+  RoomSearchService({required this.client, this.localSearchService});
 
   final Client client;
+
+  /// Optional local (FTS5) search backend for encrypted rooms. `null` when the
+  /// platform does not support the local search index.
+  final LocalSearchService? localSearchService;
 
   /// Number of context events to request before and after each match.
   static const contextBeforeLimit = 3;
@@ -40,9 +46,20 @@ class RoomSearchService {
       return const RoomSearchResponse();
     }
 
-    // Encrypted rooms cannot be searched server-side yet (#897).
+    // Encrypted rooms cannot be searched server-side; route to the local FTS5
+    // index when available, otherwise return an empty encrypted-room response
+    // so the UI can show the platform-specific message.
     if (room.encrypted) {
-      return const RoomSearchResponse(isEncryptedRoom: true);
+      final local = localSearchService;
+      if (local == null) {
+        return const RoomSearchResponse(isEncryptedRoom: true);
+      }
+      return local.search(
+        roomId: roomId,
+        query: searchTerm,
+        nextBatch: nextBatch,
+        limit: limit,
+      );
     }
 
     try {

@@ -57,6 +57,7 @@ class RoomSearchResponse {
     this.count,
     this.highlights,
     this.isEncryptedRoom = false,
+    this.hasLocalIndex = false,
   });
 
   /// Search hits for this page, ordered as the server returned them.
@@ -72,8 +73,15 @@ class RoomSearchResponse {
   final List<String>? highlights;
 
   /// `true` when the room is encrypted and the server search was skipped
-  /// (temporary placeholder until encrypted search lands in #897).
+  /// in favour of the local FTS5 index (see `LocalSearchService`).
   final bool isEncryptedRoom;
+
+  /// `true` when a local search index was available and used for this
+  /// response. `false` for unencrypted (server-side) searches and for
+  /// encrypted searches on platforms without FTS5 support (e.g. web). The
+  /// UI uses this to distinguish "no results" from "search not available
+  /// on this platform".
+  final bool hasLocalIndex;
 
   @override
   String toString() =>
