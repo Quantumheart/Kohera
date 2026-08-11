@@ -277,6 +277,7 @@ class _ChatScreenState extends State<ChatScreen>
             : LocalSearchService(
                 client: matrix.client,
                 database: indexerDb,
+                getTimeline: () => _timelineController.timeline,
               ),
       ),
     )..addListener(_onSearchChanged);

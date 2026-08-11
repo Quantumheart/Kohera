@@ -30,10 +30,20 @@ import 'package:matrix/matrix.dart';
 /// Pagination is offset-based: the next page offset is encoded into
 /// [RoomSearchResponse.nextBatch] as a decimal string.
 class LocalSearchService {
-  LocalSearchService({required this.client, required this.database});
+  LocalSearchService({
+    required this.client,
+    required this.database,
+    this.getTimeline,
+  });
 
   final Client client;
   final MessageSearchDatabase database;
+
+  /// Optional accessor for the room's live [Timeline], used to aggregate edits
+  /// (and reply/thread relations) when resolving matched messages and their
+  /// context. `null` when no timeline is available (e.g. before the room has
+  /// loaded); resolution then falls back to the indexed (already-edited) body.
+  final Timeline? Function()? getTimeline;
 
   /// Number of context events to retrieve before and after each match.
   static const contextBeforeLimit = 3;
@@ -72,6 +82,10 @@ class LocalSearchService {
     final count = await database.count(roomId: roomId, query: query);
 
     final room = client.getRoomById(roomId);
+    // The room's live timeline (if loaded) drives edit/reply aggregation via
+    // `Event.getDisplayEvent`. May be null early in the room lifecycle; the
+    // indexed (already-edited) body is used as a fallback then.
+    final timeline = getTimeline?.call();
     const resolver = MessageDisplayResolver();
     final results = <RoomSearchResult>[];
 
@@ -94,14 +108,17 @@ class LocalSearchService {
       );
 
       for (final match in matches) {
-        final message = await _resolveMatchedMessage(room, match, resolver);
+        final message =
+            await _resolveMatchedMessage(room, match, resolver, timeline);
         final before = await _resolveContextList(
           beforeByMatch[match] ?? const [],
           resolver,
+          timeline,
         );
         final after = await _resolveContextList(
           afterByMatch[match] ?? const [],
           resolver,
+          timeline,
         );
         results.add(RoomSearchResult(
           message: message,
@@ -218,37 +235,69 @@ class LocalSearchService {
     }
   }
 
-  /// Resolves a hit's matched message from the full local [Event], decrypting
-  /// it first for encrypted rooms. Falls back to a display built from the
-  /// indexed fields when the event is missing or decryption fails.
+  /// Resolves a hit's matched message from the full local [Event],
+  /// decrypting it first for encrypted rooms and applying edit aggregation
+  /// via [timeline] (`Event.getDisplayEvent`) when the timeline has loaded
+  /// the relevant edit.
+  ///
+  /// The FTS index already stores the edited body (under the original event
+  /// id), so when the timeline hasn't aggregated an edit for this hit (e.g.
+  /// an old message whose edit is also old and no longer in the loaded
+  /// timeline) the indexed body is preferred over the stored event's
+  /// pre-edit body. Falls back to the indexed fields entirely when the event
+  /// is missing or undecryptable.
   Future<KoheraMessageDisplay> _resolveMatchedMessage(
     Room room,
     IndexedMessage match,
     MessageDisplayResolver resolver,
+    Timeline? timeline,
   ) async {
+    Event? event;
     try {
-      final event = await client.database.getEventById(match.eventId, room);
-      if (event != null) {
-        return resolver(await _decryptIfNeeded(event));
-      }
+      event = await client.database.getEventById(match.eventId, room);
     } catch (e) {
       debugPrint('[Kohera] Local search: resolve match ${match.eventId}: $e');
     }
-    return _displayFromIndex(match, room: room);
+    if (event == null) {
+      return _displayFromIndex(match, room: room);
+    }
+
+    final decrypted = await _decryptIfNeeded(event);
+
+    // Edit aggregated in the loaded timeline → resolve with the timeline so
+    // getDisplayEvent applies the latest edit (body, formatted text, …).
+    if (timeline != null &&
+        decrypted.hasAggregatedEvents(timeline, RelationshipTypes.edit)) {
+      return resolver(decrypted, timeline: timeline);
+    }
+
+    // No aggregated edit. If the indexed body differs from the stored event
+    // body the message was edited but the edit isn't in the loaded timeline —
+    // prefer the (already-edited) indexed body over the pre-edit one.
+    if (decrypted.body != match.body) {
+      return _displayFromIndex(match, room: room);
+    }
+
+    // Not edited (or edit already matches): rich display via the resolver,
+    // using the timeline for reply stripping / relations when available.
+    return resolver(decrypted, timeline: timeline);
   }
 
   /// Decrypts and converts a list of context events to display models,
   /// ordered oldest-first to match the server-side `event_context` contract.
+  /// Passes [timeline] to the resolver so edits on context events are
+  /// aggregated when the timeline has them loaded.
   Future<List<KoheraMessageDisplay>> _resolveContextList(
     List<Event> events,
     MessageDisplayResolver resolver,
+    Timeline? timeline,
   ) async {
     if (events.isEmpty) return const [];
     final sorted = List<Event>.from(events)
       ..sort((a, b) => a.originServerTs.compareTo(b.originServerTs));
     final out = <KoheraMessageDisplay>[];
     for (final event in sorted) {
-      out.add(resolver(await _decryptIfNeeded(event)));
+      out.add(resolver(await _decryptIfNeeded(event), timeline: timeline));
     }
     return out;
   }
