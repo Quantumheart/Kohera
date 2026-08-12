@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/brand/brand_constants.dart';
+import 'package:kohera/core/routing/active_matrix_listenable.dart';
 import 'package:kohera/core/routing/app_router.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/client_manager.dart';
@@ -128,19 +129,29 @@ ShareIntakeController? _shareIntake;
       await minSplash;
       if (!mounted) return;
       clientManager.addListener(_onActiveServiceChanged);
+      final refreshListenable = ActiveMatrixListenable(clientManager);
       setState(() {
         _clientManager = clientManager;
         _preferencesService = prefs;
         _displayedService = clientManager.activeService;
-        _router = buildRouter(clientManager);
+        _router = buildRouter(
+          clientManager,
+          refreshListenable: refreshListenable,
+        );
       });
       _bindShareIn(clientManager.activeService);
       _shareIntake = ShareIntakeController(
         clientManager: clientManager,
         router: _router!,
       )..start();
-      // Start deep-link listener now that the router exists.
-      _deepLinkService = DeepLinkService(_router!)..init();
+      // Start deep-link listener now that the router exists. The shared
+      // refreshListenable lets queued links replay once login / E2EE setup
+      // completes instead of being dropped by the router redirect.
+      _deepLinkService = DeepLinkService(
+        router: _router!,
+        clientManager: clientManager,
+        refreshListenable: refreshListenable,
+      )..init();
       unawaited(_deepLinkService!.processInitialLink());
     } catch (e) {
       debugPrint('[Kohera] Initialization failed: $e');
