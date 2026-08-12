@@ -19,7 +19,7 @@ void showMediaViewer(
   required AvatarResolver avatarResolver,
   required Widget child,
 }) {
-  unawaited(showGeneralDialog(
+  showGeneralDialog(
     context: context,
     barrierColor: Colors.black,
     barrierDismissible: true,
@@ -40,7 +40,7 @@ void showMediaViewer(
         ),
       ),
     ),
-  ),);
+  );
 }
 
 class MediaViewerShell extends StatefulWidget {
@@ -118,7 +118,7 @@ class _MediaViewerShellState extends State<MediaViewerShell>
       end: Offset.zero,
     ).animate(_snapBack);
     _snapBack.reset();
-    unawaited(_snapBack.forward());
+    _snapBack.forward();
   }
 
   void _startAutoHideTimer() {

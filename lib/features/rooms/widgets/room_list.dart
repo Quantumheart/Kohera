@@ -89,20 +89,20 @@ class _RoomListViewState extends State<_RoomListView>
   void _syncAnimations(RoomListController controller) {
     if (controller.isSearchOpen &&
         _searchAnimCtrl.status != AnimationStatus.completed) {
-      unawaited(_searchAnimCtrl.forward());
+      _searchAnimCtrl.forward();
       _searchFocus.requestFocus();
     } else if (!controller.isSearchOpen &&
         _searchAnimCtrl.status != AnimationStatus.dismissed) {
-      unawaited(_searchAnimCtrl.reverse());
+      _searchAnimCtrl.reverse();
       _searchFocus.unfocus();
     }
 
     if (controller.isFabOpen &&
         _fabAnimCtrl.status != AnimationStatus.completed) {
-      unawaited(_fabAnimCtrl.forward());
+      _fabAnimCtrl.forward();
     } else if (!controller.isFabOpen &&
         _fabAnimCtrl.status != AnimationStatus.dismissed) {
-      unawaited(_fabAnimCtrl.reverse());
+      _fabAnimCtrl.reverse();
     }
   }
 
@@ -680,7 +680,7 @@ class _UnjoinedErrorTile extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              unawaited(controller.fetchSpaceRooms(item.spaceId));
+              controller.fetchSpaceRooms(item.spaceId);
             },
             child: const Text('Retry'),
           ),
@@ -789,7 +789,7 @@ class _SpaceEmptyState extends StatelessWidget {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () {
-                  unawaited(controller.fetchSpaceRooms(spaceId));
+                  controller.fetchSpaceRooms(spaceId);
                 },
                 child: const Text('Retry'),
               ),

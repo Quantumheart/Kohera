@@ -33,7 +33,7 @@ class _PulsingAvatarState extends State<PulsingAvatar>
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     );
-    unawaited(_controller.repeat(reverse: true));
+    _controller.repeat(reverse: true);
     _curved = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
     _animation = Tween<double>(begin: 1, end: widget.endScale).animate(_curved);
   }

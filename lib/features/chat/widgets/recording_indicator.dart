@@ -1,4 +1,3 @@
-import 'dart:async';
 
 import 'package:flutter/material.dart';
 
@@ -85,7 +84,7 @@ class _PulsingDotState extends State<_PulsingDot>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    unawaited(_anim.repeat(reverse: true));
+    _anim.repeat(reverse: true);
   }
 
   @override

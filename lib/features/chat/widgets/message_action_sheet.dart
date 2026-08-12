@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -43,20 +42,18 @@ void showMessageActionSheet({
   List<MessageAction> secondaryActions = const [],
   void Function(String emoji)? onQuickReact,
 }) {
-  unawaited(
-    Navigator.of(context).push(
-      _MessageActionSheetRoute(
-        message: message,
-        isMe: isMe,
-        bubbleRect: bubbleRect,
-        actions: actions,
-        secondaryActions: secondaryActions,
-        avatarResolver: avatarResolver,
-        mentionResolver: mentionResolver,
-        mediaResolver: mediaResolver,
-        capturedTheme: Theme.of(context),
-        onQuickReact: onQuickReact,
-      ),
+  Navigator.of(context).push(
+    _MessageActionSheetRoute(
+      message: message,
+      isMe: isMe,
+      bubbleRect: bubbleRect,
+      actions: actions,
+      secondaryActions: secondaryActions,
+      avatarResolver: avatarResolver,
+      mentionResolver: mentionResolver,
+      mediaResolver: mediaResolver,
+      capturedTheme: Theme.of(context),
+      onQuickReact: onQuickReact,
     ),
   );
 }

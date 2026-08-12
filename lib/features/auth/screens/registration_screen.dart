@@ -50,7 +50,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
       duration: const Duration(milliseconds: 800),
     );
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
-    unawaited(_fadeCtrl.forward());
+    _fadeCtrl.forward();
 
     _controller = RegistrationController(
       matrixService: context.read<MatrixService>(),
@@ -58,7 +58,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
       homeserver: _homeserverCtrl.text,
     );
     _controller.addListener(_onControllerChanged);
-    unawaited(_controller.checkServer());
+    _controller.checkServer();
 
     _homeserverCtrl.addListener(_onHomeserverChanged);
     _confirmPasswordCtrl.addListener(_onConfirmPasswordChanged);
@@ -102,7 +102,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
   void _onHomeserverChanged() {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 800), () {
-      unawaited(_controller.updateHomeserver(_homeserverCtrl.text));
+      _controller.updateHomeserver(_homeserverCtrl.text);
     });
   }
 
