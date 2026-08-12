@@ -103,7 +103,3 @@ dependency_overrides:
     git:
       url: https://github.com/Quantumheart/flutter-webrtc.git
       ref: "ef1ff97"
-  livekit_client:
-    git:
-      url: https://github.com/Quantumheart/client-sdk-flutter.git
-      ref: "d3c53f2"
