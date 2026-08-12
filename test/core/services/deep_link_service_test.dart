@@ -115,6 +115,23 @@ void main() {
       ),
       // empty matrix.to fragment is ignored.
       ('https://matrix.to/#/', '', null, [], null),
+      // ── real-world shapes (raw `#` sigil, unencoded colon) ─────────
+      // The exact link from the issue: matrix.to with a raw `#` alias.
+      (
+        'https://matrix.to/#/#freenet-locutus:matrix.org',
+        '#freenet-locutus:matrix.org',
+        null,
+        [],
+        null,
+      ),
+      // matrix: alias join link for the same room.
+      (
+        'matrix:r/freenet-locutus:matrix.org?action=join',
+        '#freenet-locutus:matrix.org',
+        'join',
+        [],
+        null,
+      ),
     ];
 
     for (final (uri, identifier, action, via, eventId) in cases) {
