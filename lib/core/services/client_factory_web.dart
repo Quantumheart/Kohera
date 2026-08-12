@@ -6,7 +6,14 @@ Future<Client> createDefaultClient(
   String clientName, {
   Future<void> Function(Client)? onSoftLogout,
 }) async {
-  final database = await MatrixSdkDatabase.init('kohera_$clientName');
+  MatrixSdkDatabase database;
+  try {
+    database = await MatrixSdkDatabase.init('kohera_$clientName');
+  } catch (e, s) {
+    debugPrint('[Kohera] MatrixSdkDatabase.init failed for $clientName: $e');
+    debugPrint('[Kohera] Stack trace: $s');
+    rethrow;
+  }
   return buildClient(
     clientName,
     database,
