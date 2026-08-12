@@ -132,6 +132,30 @@ void main() {
         [],
         null,
       ),
+      // ── exact shapes the Kohera matrix.to fork emits ───────────────
+      // Desktop matrix: URIs strip the sigil (and the `$` from event ids);
+      // the parser must re-add them.
+      (
+        'matrix:roomid/room123%3Amatrix.org?action=join&via=matrix.org',
+        '!room123:matrix.org',
+        'join',
+        ['matrix.org'],
+        null,
+      ),
+      (
+        'matrix:roomid/room123%3Amatrix.org/e/event456%3Amatrix.org?action=join',
+        '!room123:matrix.org',
+        'join',
+        [],
+        r'$event456:matrix.org',
+      ),
+      (
+        'matrix:r/freenet-locutus%3Amatrix.org/e/event456%3Amatrix.org?action=join&via=matrix.org',
+        '#freenet-locutus:matrix.org',
+        'join',
+        ['matrix.org'],
+        r'$event456:matrix.org',
+      ),
     ];
 
     for (final (uri, identifier, action, via, eventId) in cases) {
