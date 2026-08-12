@@ -285,7 +285,7 @@ DeepLinkIntent? parseDeepLinkUri(Uri uri) {
     if (segments.isEmpty || segments.first.isEmpty) return null;
     final identifier = Uri.decodeComponent(segments.first);
     final eventId = segments.length >= 2 && segments[1].isNotEmpty
-        ? Uri.decodeComponent(segments[1])
+        ? _ensureEventSigil(Uri.decodeComponent(segments[1]))
         : null;
     final via = fragmentQuery.isEmpty
         ? const <String>[]
@@ -299,6 +299,12 @@ DeepLinkIntent? parseDeepLinkUri(Uri uri) {
 
   return null;
 }
+
+/// Re-adds the leading `$` on an event id if the source omitted it. The Kohera
+/// matrix.to fork strips the `$` from event ids when emitting `matrix:` URIs
+/// (parallel to stripping room/user sigils); matrix.to HTTPS links keep it.
+String _ensureEventSigil(String id) =>
+    id.startsWith(r'$') ? id : r'$' + id;
 
 /// Parse a `matrix:` URI into an intent.
 ///
@@ -316,7 +322,7 @@ DeepLinkIntent? _parseMatrixScheme(Uri uri) {
   // Event segment: matrix:<type>/<id>/e/<event>
   String? eventId;
   if (parts.length >= 4 && parts[2] == 'e') {
-    eventId = Uri.decodeComponent(parts[3]);
+    eventId = _ensureEventSigil(Uri.decodeComponent(parts[3]));
   }
 
   final action = uri.queryParameters['action'];
