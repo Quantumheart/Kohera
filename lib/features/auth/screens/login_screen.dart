@@ -57,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen>
       capabilities: widget.capabilities,
     );
     _controller.addListener(_onControllerChanged);
-    _loadSavedCredentials();
+    unawaited(_loadSavedCredentials());
   }
 
   @override

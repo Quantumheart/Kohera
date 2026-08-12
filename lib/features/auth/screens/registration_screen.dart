@@ -58,7 +58,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
       homeserver: _homeserverCtrl.text,
     );
     _controller.addListener(_onControllerChanged);
-    _controller.checkServer();
+    unawaited(_controller.checkServer());
 
     _homeserverCtrl.addListener(_onHomeserverChanged);
     _confirmPasswordCtrl.addListener(_onConfirmPasswordChanged);
@@ -102,7 +102,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
   void _onHomeserverChanged() {
     _debounce?.cancel();
     _debounce = Timer(const Duration(milliseconds: 800), () {
-      _controller.updateHomeserver(_homeserverCtrl.text);
+      unawaited(_controller.updateHomeserver(_homeserverCtrl.text));
     });
   }
 

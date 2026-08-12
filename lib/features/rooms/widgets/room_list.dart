@@ -680,7 +680,7 @@ class _UnjoinedErrorTile extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              controller.fetchSpaceRooms(item.spaceId);
+              unawaited(controller.fetchSpaceRooms(item.spaceId));
             },
             child: const Text('Retry'),
           ),
@@ -789,7 +789,7 @@ class _SpaceEmptyState extends StatelessWidget {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () {
-                  controller.fetchSpaceRooms(spaceId);
+                  unawaited(controller.fetchSpaceRooms(spaceId));
                 },
                 child: const Text('Retry'),
               ),
