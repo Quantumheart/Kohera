@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
 import 'package:kohera/core/routing/account_switch_redirector.dart';
-import 'package:kohera/core/routing/active_matrix_listenable.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/routing/widgets/add_account_shell.dart';
 import 'package:kohera/core/services/app_config.dart';
@@ -40,8 +39,10 @@ import 'package:provider/provider.dart';
 /// The router resolves the active [MatrixService] dynamically from
 /// [manager] so that account switches don't require recreating the router
 /// (which would reset the navigation stack and cause a visible flash).
-GoRouter buildRouter(ClientManager manager) {
-  final refreshListenable = ActiveMatrixListenable(manager);
+GoRouter buildRouter(
+  ClientManager manager, {
+  required Listenable refreshListenable,
+}) {
   final switchRedirector = AccountSwitchRedirector(manager.activeService);
   return GoRouter(
     refreshListenable: refreshListenable,
