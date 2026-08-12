@@ -30,14 +30,12 @@ void showPinnedMessagesPopup(
     button.size.height,
   );
 
-  unawaited(
-    Navigator.of(context).push(
-      _PinnedMessagesPopupRoute(
-        anchor: anchor,
-        overlaySize: overlay.size,
-        roomId: roomId,
-        onTap: onTap,
-      ),
+  Navigator.of(context).push(
+    _PinnedMessagesPopupRoute(
+      anchor: anchor,
+      overlaySize: overlay.size,
+      roomId: roomId,
+      onTap: onTap,
     ),
   );
 }

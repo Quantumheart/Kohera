@@ -48,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen>
       duration: const Duration(milliseconds: 800),
     );
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
-    unawaited(_fadeCtrl.forward());
+    _fadeCtrl.forward();
 
     _controller = LoginController(
       matrixService: context.read<MatrixService>(),
@@ -57,7 +57,7 @@ class _LoginScreenState extends State<LoginScreen>
       capabilities: widget.capabilities,
     );
     _controller.addListener(_onControllerChanged);
-    unawaited(_loadSavedCredentials());
+    _loadSavedCredentials();
   }
 
   @override

@@ -47,7 +47,7 @@ class _HomeserverScreenState extends State<HomeserverScreen>
     );
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
     _fadeCtrl.addStatusListener(_onFadeStatus);
-    unawaited(_fadeCtrl.forward());
+    _fadeCtrl.forward();
 
     _controller = HomeserverController(
       matrixService: context.read<MatrixService>(),
