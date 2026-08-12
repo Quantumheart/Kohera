@@ -98,30 +98,72 @@ class SearchResultTile extends StatelessWidget {
   }
 
   Widget _buildHighlightedBody(TextTheme tt, ColorScheme cs) {
-    final body = result.message.body;
+    final message = result.message;
+    final body = message.body;
     final spans = highlightSpans(body, query);
+    final icon = iconForMessageType(message.messageType);
 
-    return RichText(
-      maxLines: 2,
-      overflow: TextOverflow.ellipsis,
-      text: TextSpan(
-        style: tt.bodyMedium?.copyWith(
-          color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+    if (icon == null) {
+      return RichText(
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        text: TextSpan(
+          style: tt.bodyMedium?.copyWith(
+            color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+          ),
+          children: spans.map((span) {
+            if (span.isMatch) {
+              return TextSpan(
+                text: span.text,
+                style: TextStyle(
+                  backgroundColor: cs.primaryContainer,
+                  color: cs.onPrimaryContainer,
+                  fontWeight: FontWeight.w600,
+                ),
+              );
+            }
+            return TextSpan(text: span.text);
+          }).toList(),
         ),
-        children: spans.map((span) {
-          if (span.isMatch) {
-            return TextSpan(
-              text: span.text,
-              style: TextStyle(
-                backgroundColor: cs.primaryContainer,
-                color: cs.onPrimaryContainer,
-                fontWeight: FontWeight.w600,
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2, right: 6),
+          child: Icon(
+            icon,
+            size: 16,
+            color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+        ),
+        Expanded(
+          child: RichText(
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            text: TextSpan(
+              style: tt.bodyMedium?.copyWith(
+                color: cs.onSurfaceVariant.withValues(alpha: 0.7),
               ),
-            );
-          }
-          return TextSpan(text: span.text);
-        }).toList(),
-      ),
+              children: spans.map((span) {
+                if (span.isMatch) {
+                  return TextSpan(
+                    text: span.text,
+                    style: TextStyle(
+                      backgroundColor: cs.primaryContainer,
+                      color: cs.onPrimaryContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  );
+                }
+                return TextSpan(text: span.text);
+              }).toList(),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -139,6 +181,7 @@ class _ContextLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+    final icon = iconForMessageType(message.messageType);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
@@ -154,27 +197,61 @@ class _ContextLine extends StatelessWidget {
         padding: const EdgeInsets.only(left: 8),
         child: Opacity(
           opacity: 0.4,
-          child: RichText(
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            text: TextSpan(
-              style: tt.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-              children: [
-                TextSpan(
-                  text: '${message.senderName}: ',
-                  style: tt.bodySmall?.copyWith(
-                    fontWeight: FontWeight.w500,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (icon != null) ...[
+                Padding(
+                  padding: const EdgeInsets.only(top: 1, right: 4),
+                  child: Icon(
+                    icon,
+                    size: 12,
+                    color: cs.onSurfaceVariant,
                   ),
                 ),
-                TextSpan(text: message.body),
               ],
-            ),
+              Expanded(
+                child: RichText(
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  text: TextSpan(
+                    style: tt.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                    children: [
+                      TextSpan(
+                        text: '${message.senderName}: ',
+                        style: tt.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      TextSpan(text: message.body),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 }
+/// Returns the icon for a non-text Matrix message type, or `null` for
+/// text/default messages.
+IconData? iconForMessageType(String messageType) {
+  switch (messageType) {
+    case 'm.image':
+      return Icons.image_rounded;
+    case 'm.file':
+      return Icons.insert_drive_file_rounded;
+    case 'm.audio':
+      return Icons.audio_file_rounded;
+    case 'm.video':
+      return Icons.video_file_rounded;
+    default:
+      return null;
+  }
+}
+
 // coverage:ignore-end
