@@ -977,8 +977,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: b982404
-      resolved-ref: b98240405964518870ec984cd3f72e6e02e41630
+      ref: d3c53f2
+      resolved-ref: d3c53f20f1c0330449ef88cf8b3ec6114c5346bb
       url: "https://github.com/Quantumheart/client-sdk-flutter.git"
     source: git
     version: "2.9.0"

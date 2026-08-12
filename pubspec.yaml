@@ -106,4 +106,4 @@ dependency_overrides:
   livekit_client:
     git:
       url: https://github.com/Quantumheart/client-sdk-flutter.git
-      ref: "b982404"
+      ref: "d3c53f2"
