@@ -236,6 +236,24 @@ ShareIntakeController? _shareIntake;
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 8),
+                      Text(
+                        _initError.toString(),
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                      ),
+                      if (_initError.toString().toLowerCase().contains('indexeddb') ||
+                          _initError.toString().toLowerCase().contains('database'))
+                        const Padding(
+                          padding: EdgeInsets.only(top: 16),
+                          child: Text(
+                            'This may be caused by your browser blocking\nIndexedDB (e.g. Private Browsing).',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+                          ),
+                        ),
+                      const SizedBox(height: 16),
                       FilledButton.tonalIcon(
                         onPressed: () {
                           setState(() => _initError = null);
