@@ -1,3 +1,4 @@
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -73,7 +74,7 @@ class _SwipeableMessageState extends State<SwipeableMessage>
     });
     if (!_triggered && _dragExtent >= _triggerThreshold) {
       _triggered = true;
-      HapticFeedback.mediumImpact();
+      unawaited(HapticFeedback.mediumImpact());
     }
   }
 

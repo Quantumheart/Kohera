@@ -64,7 +64,7 @@ class _VideoBubbleState extends State<VideoBubble>
       duration: const Duration(milliseconds: 900),
     );
     _shimmer!.repeat(reverse: true);
-    _loadThumbnail();
+    unawaited(_loadThumbnail());
   }
 
   @override
@@ -77,11 +77,11 @@ class _VideoBubbleState extends State<VideoBubble>
   void dispose() {
     _shimmer?.dispose();
     for (final sub in _subs) {
-      sub.cancel();
+      unawaited(sub.cancel());
     }
     if (_videoController != null) {
       _playbackService.unregisterPlayer(widget.controller.eventId);
-      _videoController!.dispose();
+      unawaited(_videoController!.dispose());
     }
     super.dispose();
   }
@@ -175,8 +175,8 @@ class _VideoBubbleState extends State<VideoBubble>
       }),);
       _subs.add(_videoController!.completed.listen((completed) {
         if (completed && mounted) {
-          _videoController!.seek(Duration.zero);
-          _videoController!.pause();
+          unawaited(_videoController!.seek(Duration.zero));
+          unawaited(_videoController!.pause());
           setState(() {
             _isPlaying = false;
             _position = Duration.zero;
@@ -198,12 +198,12 @@ class _VideoBubbleState extends State<VideoBubble>
   void _retry() {
     if (_state == _VideoState.loadingVideo) return;
     for (final sub in _subs) {
-      sub.cancel();
+      unawaited(sub.cancel());
     }
     _subs.clear();
-    if (_videoController != null) _videoController!.dispose();
+    if (_videoController != null) unawaited(_videoController!.dispose());
     _videoController = null;
-    _initPlayer();
+    unawaited(_initPlayer());
   }
 
   void _openFullscreen() {

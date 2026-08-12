@@ -56,7 +56,7 @@ class _TypingIndicatorState extends State<TypingIndicator> {
   void didUpdateWidget(TypingIndicator old) {
     super.didUpdateWidget(old);
     if (old.syncStream != widget.syncStream) {
-      _sub?.cancel();
+      unawaited(_sub?.cancel());
       _sub = widget.syncStream.listen((_) => _check());
     }
     _check();
@@ -71,7 +71,7 @@ class _TypingIndicatorState extends State<TypingIndicator> {
 
   @override
   void dispose() {
-    _sub?.cancel();
+    unawaited(_sub?.cancel());
     super.dispose();
   }
 
