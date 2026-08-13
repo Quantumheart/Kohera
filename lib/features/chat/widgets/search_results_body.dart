@@ -156,6 +156,7 @@ class SearchResultsBody extends StatelessWidget {
           result: result,
           avatarResolver: avatarResolver,
           query: query,
+          highlights: search.highlights,
           onTap: () => onTapResult(result.message.eventId),
         );
       },

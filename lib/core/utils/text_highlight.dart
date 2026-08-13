@@ -4,25 +4,64 @@ class HighlightSpan {
   final bool isMatch;
 }
 
-List<HighlightSpan> highlightSpans(String text, String query) {
-  if (query.isEmpty) return [HighlightSpan(text, false)];
+class _Match {
+  final int start;
+  final int end;
+  _Match(this.start, this.end);
+}
+
+List<HighlightSpan> highlightSpans(String text, List<String> terms) {
+  if (terms.isEmpty) return [HighlightSpan(text, false)];
 
   final lower = text.toLowerCase();
-  final queryLower = query.toLowerCase();
-  final spans = <HighlightSpan>[];
-  var start = 0;
+  final matches = <_Match>[];
 
-  while (start < text.length) {
-    final index = lower.indexOf(queryLower, start);
-    if (index == -1) {
-      spans.add(HighlightSpan(text.substring(start), false));
-      break;
+  for (final term in terms) {
+    if (term.isEmpty) continue;
+    final termLower = term.toLowerCase();
+    var start = 0;
+    while (start < text.length) {
+      final index = lower.indexOf(termLower, start);
+      if (index == -1) break;
+      matches.add(_Match(index, index + term.length));
+      start = index + 1; // Allow overlapping matches for different terms
     }
-    if (index > start) {
-      spans.add(HighlightSpan(text.substring(start, index), false));
+  }
+
+  if (matches.isEmpty) {
+    if (text.isEmpty) return [];
+    return [HighlightSpan(text, false)];
+  }
+
+  matches.sort((a, b) => a.start.compareTo(b.start));
+
+  final merged = <_Match>[];
+  var current = matches[0];
+
+  for (var i = 1; i < matches.length; i++) {
+    final next = matches[i];
+    if (next.start <= current.end) {
+      current = _Match(current.start, current.end > next.end ? current.end : next.end);
+    } else {
+      merged.add(current);
+      current = next;
     }
-    spans.add(HighlightSpan(text.substring(index, index + query.length), true));
-    start = index + query.length;
+  }
+  merged.add(current);
+
+  final spans = <HighlightSpan>[];
+  var lastEnd = 0;
+
+  for (final match in merged) {
+    if (match.start > lastEnd) {
+      spans.add(HighlightSpan(text.substring(lastEnd, match.start), false));
+    }
+    spans.add(HighlightSpan(text.substring(match.start, match.end), true));
+    lastEnd = match.end;
+  }
+
+  if (lastEnd < text.length) {
+    spans.add(HighlightSpan(text.substring(lastEnd), false));
   }
 
   return spans;
