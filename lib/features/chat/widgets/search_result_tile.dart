@@ -17,12 +17,14 @@ class SearchResultTile extends StatelessWidget {
     required this.avatarResolver,
     required this.query,
     required this.onTap,
+    this.highlights,
     super.key,
   });
 
   final RoomSearchResult result;
   final AvatarResolver avatarResolver;
   final String query;
+  final List<String>? highlights;
   final VoidCallback onTap;
 
   @override
@@ -100,7 +102,10 @@ class SearchResultTile extends StatelessWidget {
   Widget _buildHighlightedBody(TextTheme tt, ColorScheme cs) {
     final message = result.message;
     final body = message.body;
-    final spans = highlightSpans(body, query);
+    final terms = (highlights != null && highlights!.isNotEmpty)
+        ? highlights!
+        : query.trim().split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
+    final spans = highlightSpans(body, terms);
     final icon = iconForMessageType(message.messageType);
 
     if (icon == null) {
