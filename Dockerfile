@@ -21,7 +21,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
   && rustup toolchain install nightly \
   && rustup component add rust-src --toolchain nightly \
   && rustup target add wasm32-unknown-unknown --toolchain nightly \
-  && cargo install wasm-pack --version 0.13.3 \
+  && cargo install wasm-pack --version 0.12.1 \
   && cargo install flutter_rust_bridge_codegen --version 2.11.1
 
 ENV PATH="/root/.cargo/bin:${PATH}"
