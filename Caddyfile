@@ -11,3 +11,5 @@ header {
 	Cross-Origin-Embedder-Policy "require-corp"
 }
 header /assets/* Cache-Control "public, max-age=31536000, immutable"
+@vodozemac path /assets/assets/vodozemac/*
+header @vodozemac Cache-Control "no-cache, must-revalidate"
