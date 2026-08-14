@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.1](https://github.com/Quantumheart/Kohera/compare/v1.16.0...v1.16.1) (2026-08-14)
+
+
+### Bug Fixes
+
+* pin wasm build tools and bypass cache for vodozemac assets ([a9d3d17](https://github.com/Quantumheart/Kohera/commit/a9d3d1700811462c41a26954945dc7ca60c1e1a6))
+
 ## [1.16.0](https://github.com/Quantumheart/Kohera/compare/v1.15.0...v1.16.0) (2026-08-14)
 
 
