@@ -55,6 +55,9 @@ void main() {
     when(mockTimeline.events).thenReturn([]);
     when(mockTimeline.canRequestHistory).thenReturn(false);
     when(mockRoom.client).thenReturn(mockClient);
+    final mockUser = User('@alice:example.com', room: mockRoom);
+    when(mockRoom.unsafeGetUserFromMemoryOrFallback(any))
+        .thenReturn(mockUser);
     when(mockRoom.encrypted).thenReturn(false);
     when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
         .thenAnswer((_) async => mockTimeline);
@@ -212,6 +215,88 @@ void main() {
         SearchResults(searchCategories: ResultCategories()),
       );
       await tester.pumpAndSettle();
+    });
+
+    testWidgets('shows result count header when results are present',
+        (tester) async {
+      when(mockClient.search(
+        any,
+        nextBatch: anyNamed('nextBatch'),
+      )).thenAnswer((_) async => SearchResults(
+            searchCategories: ResultCategories(
+              roomEvents: ResultRoomEvents(
+                results: [
+                  Result(
+                    result: MatrixEvent(
+                      type: 'm.room.message',
+                      content: {'body': 'hello world', 'msgtype': 'm.text'},
+                      eventId: r'$1:example.com',
+                      senderId: '@alice:example.com',
+                      originServerTs: DateTime(2024, 1, 1, 12),
+                      roomId: '!room:example.com',
+                    ),
+                    rank: 0.1,
+                    context: SearchResultsEventContext(),
+                  ),
+                ],
+                count: 1,
+              ),
+            ),
+          ));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.search_rounded));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).last, 'hello');
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Found 1 results'), findsOneWidget);
+    });
+
+    testWidgets('does not show Load more results button (infinite scroll)',
+        (tester) async {
+      when(mockClient.search(
+        any,
+        nextBatch: anyNamed('nextBatch'),
+      )).thenAnswer((_) async => SearchResults(
+            searchCategories: ResultCategories(
+              roomEvents: ResultRoomEvents(
+                results: [
+                  Result(
+                    result: MatrixEvent(
+                      type: 'm.room.message',
+                      content: {'body': 'hello world', 'msgtype': 'm.text'},
+                      eventId: r'$1:example.com',
+                      senderId: '@alice:example.com',
+                      originServerTs: DateTime(2024, 1, 1, 12),
+                      roomId: '!room:example.com',
+                    ),
+                    rank: 0.1,
+                    context: SearchResultsEventContext(),
+                  ),
+                ],
+                count: 1,
+                nextBatch: 'next_batch_token',
+              ),
+            ),
+          ));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.search_rounded));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).last, 'hello');
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      // The manual "Load more results" button should NOT exist.
+      expect(find.text('Load more results'), findsNothing);
     });
   });
 }
