@@ -64,7 +64,7 @@ class SearchResultTile extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Expanded(
+                          Flexible(
                             child: Text(
                               message.senderName,
                               maxLines: 1,
@@ -74,6 +74,27 @@ class SearchResultTile extends StatelessWidget {
                               ),
                             ),
                           ),
+                          if (message.threadRootId != null) ...[
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.forum_rounded,
+                              size: 12,
+                              color: cs.onSurfaceVariant
+                                  .withValues(alpha: 0.5),
+                            ),
+                          ],
+                          if (message.isEdited) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              '(edited)',
+                              style: tt.bodySmall?.copyWith(
+                                color: cs.onSurfaceVariant
+                                    .withValues(alpha: 0.5),
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(width: 8),
                           Text(
                             formatRelativeTimestamp(message.timestamp),
                             style: tt.bodySmall?.copyWith(

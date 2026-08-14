@@ -374,5 +374,79 @@ void main() {
       expect(ctxRichText.maxLines, 1);
       expect(ctxRichText.overflow, TextOverflow.ellipsis);
     });
+
+    testWidgets('shows (edited) indicator for edited messages', (tester) async {
+      final result = RoomSearchResult(
+        message: makeMessage(body: 'edited body').copyWith(isEdited: true),
+      );
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          child: SearchResultTile(
+            result: result,
+            avatarResolver: avatarResolver,
+            query: 'edited',
+            onTap: () {},
+          ),
+        ),
+      );
+
+      expect(find.text('(edited)'), findsOneWidget);
+    });
+
+    testWidgets('does not show (edited) for non-edited messages',
+        (tester) async {
+      final result = RoomSearchResult(message: makeMessage());
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          child: SearchResultTile(
+            result: result,
+            avatarResolver: avatarResolver,
+            query: 'hello',
+            onTap: () {},
+          ),
+        ),
+      );
+
+      expect(find.text('(edited)'), findsNothing);
+    });
+
+    testWidgets('shows thread icon for thread root messages', (tester) async {
+      final result = RoomSearchResult(
+        message: makeMessage().copyWith(threadRootId: r'$threadRoot'),
+      );
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          child: SearchResultTile(
+            result: result,
+            avatarResolver: avatarResolver,
+            query: 'hello',
+            onTap: () {},
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.forum_rounded), findsOneWidget);
+    });
+
+    testWidgets('does not show thread icon for non-thread messages',
+        (tester) async {
+      final result = RoomSearchResult(message: makeMessage());
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          child: SearchResultTile(
+            result: result,
+            avatarResolver: avatarResolver,
+            query: 'hello',
+            onTap: () {},
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.forum_rounded), findsNothing);
+    });
   });
 }

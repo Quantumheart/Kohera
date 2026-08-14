@@ -19,13 +19,24 @@ import 'package:matrix/matrix.dart';
 /// empty [RoomSearchResponse] flagged `isEncryptedRoom: true` is returned so
 /// the UI can show the platform-specific "not available" message.
 class RoomSearchService {
-  RoomSearchService({required this.client, this.localSearchService});
+  RoomSearchService({
+    required this.client,
+    this.localSearchService,
+    this.getTimeline,
+  });
 
   final Client client;
 
   /// Optional local (FTS5) search backend for encrypted rooms. `null` when the
   /// platform does not support the local search index.
   final LocalSearchService? localSearchService;
+
+  /// Optional accessor for the room's live [Timeline], used to aggregate
+  /// edits and thread relations when resolving matched messages and their
+  /// context. `null` when no timeline is available (e.g. before the room has
+  /// loaded); resolution then falls back to the raw event without edit/thread
+  /// aggregation.
+  final Timeline? Function()? getTimeline;
 
   /// Number of context events to request before and after each match.
   static const contextBeforeLimit = 3;
@@ -89,6 +100,11 @@ class RoomSearchService {
         return const RoomSearchResponse();
       }
 
+      // Reuse the room's live timeline (if loaded) so that edited and
+      // threaded messages display correctly via `MessageDisplayResolver`.
+      // The timeline is not owned by this service and must not be disposed
+      // here.
+      final timeline = getTimeline?.call();
       const resolver = MessageDisplayResolver();
       final results = <RoomSearchResult>[];
       for (final result in roomEvents.results ?? <Result>[]) {
@@ -96,18 +112,20 @@ class RoomSearchService {
         if (matrixEvent == null) continue;
 
         final event = Event.fromMatrixEvent(matrixEvent, room);
-        final message = resolver(event);
+        final message = resolver(event, timeline: timeline);
 
         final context = result.context;
         final before = _resolveContext(
           context?.eventsBefore,
           room,
           resolver,
+          timeline,
         );
         final after = _resolveContext(
           context?.eventsAfter,
           room,
           resolver,
+          timeline,
         );
 
         results.add(RoomSearchResult(
@@ -134,10 +152,11 @@ class RoomSearchService {
     List<MatrixEvent>? events,
     Room room,
     MessageDisplayResolver resolver,
+    Timeline? timeline,
   ) {
     if (events == null || events.isEmpty) return const [];
     return events
-        .map((me) => resolver(Event.fromMatrixEvent(me, room)))
+        .map((me) => resolver(Event.fromMatrixEvent(me, room), timeline: timeline))
         .toList(growable: false);
   }
 }
