@@ -272,6 +272,7 @@ class _ChatScreenState extends State<ChatScreen>
       roomId: widget.roomId,
       searchService: RoomSearchService(
         client: matrix.client,
+        getTimeline: () => _timelineController.timeline,
         localSearchService: indexerDb == null
             ? null
             : LocalSearchService(
