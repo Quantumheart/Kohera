@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.16.2](https://github.com/Quantumheart/Kohera/compare/v1.16.1...v1.16.2) (2026-08-14)
+
+
+### Bug Fixes
+
+* use valid wasm-pack version pin (0.12.1) ([0d8b3f0](https://github.com/Quantumheart/Kohera/commit/0d8b3f007c68edc8bea46a2fe466c4641323344d))
+
 ## [1.16.1](https://github.com/Quantumheart/Kohera/compare/v1.16.0...v1.16.1) (2026-08-14)
 
 
