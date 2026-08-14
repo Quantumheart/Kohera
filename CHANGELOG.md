@@ -1,5 +1,48 @@
 # Changelog
 
+## [1.16.0](https://github.com/Quantumheart/Kohera/compare/v1.15.0...v1.16.0) (2026-08-14)
+
+
+### Features
+
+* add deep linking support for desktop and mobile ([a8aa1e5](https://github.com/Quantumheart/Kohera/commit/a8aa1e5dd7c75f6afd7421eb8e0d601739fbb076))
+* add login link and improve marketing site ([b994f37](https://github.com/Quantumheart/Kohera/commit/b994f3715a28eadcf9f10990ab08a739fb33b82e))
+* **ci:** auto-deploy web client and landing page on release ([af57242](https://github.com/Quantumheart/Kohera/commit/af57242675ae299437611ddc1d68f1ba257b8afa))
+* local FTS5 index for encrypted room message search ([5e5cf4d](https://github.com/Quantumheart/Kohera/commit/5e5cf4d0d2154e6e1be910088675ef5ec604339f)), closes [#897](https://github.com/Quantumheart/Kohera/issues/897) [#895](https://github.com/Quantumheart/Kohera/issues/895)
+* **search:** encrypted room search via local FTS5 index ([#898](https://github.com/Quantumheart/Kohera/issues/898)) ([c80caf7](https://github.com/Quantumheart/Kohera/commit/c80caf75d03dd7cee8e270dffdae224e7a87be01))
+* **search:** show message context in SearchResultTile ([#899](https://github.com/Quantumheart/Kohera/issues/899)) ([d44ec83](https://github.com/Quantumheart/Kohera/commit/d44ec832756c32da67b452f5595f98545cd9ca64)), closes [#895](https://github.com/Quantumheart/Kohera/issues/895)
+* **search:** use v3/search API for unencrypted rooms ([1f50ea9](https://github.com/Quantumheart/Kohera/commit/1f50ea9514161c3e8f6a4b16cefb36864b05b84f)), closes [#896](https://github.com/Quantumheart/Kohera/issues/896)
+* support server-provided highlights and multi-term matching ([b78738b](https://github.com/Quantumheart/Kohera/commit/b78738bb42203064cd5cab8d688a99ce52032652))
+
+
+### Bug Fixes
+
+* add missing import for debugPrint ([c66fee6](https://github.com/Quantumheart/Kohera/commit/c66fee687dbcacb1d379aecf69f0504b551095ee))
+* **android:** suppress R8 missing Play Core classes + add Android to CI ([028b09d](https://github.com/Quantumheart/Kohera/commit/028b09d2cf59bf8c4e0746c14a58ab31e41e3a16))
+* **deep-links:** address review comments on [#875](https://github.com/Quantumheart/Kohera/issues/875) ([90fd189](https://github.com/Quantumheart/Kohera/commit/90fd1898aad8dc3fd0376cfe0cb2e3b5f1e3cc0b))
+* **deep-links:** re-add $ to event ids (matrix.to fork strips it) ([d5f23b5](https://github.com/Quantumheart/Kohera/commit/d5f23b50812c8bc145fc8b1e44da86e159d5aeaf))
+* fall back to in-memory secure storage when Linux keyring is locked ([#963](https://github.com/Quantumheart/Kohera/issues/963)) ([52b2a8a](https://github.com/Quantumheart/Kohera/commit/52b2a8ac9bd40d219174cbe94258aa0ea042fcfd))
+* improve web initialization error reporting ([f440310](https://github.com/Quantumheart/Kohera/commit/f440310a2eaf069442c554dbeb1f091fd606044c))
+* **ios:** consume flutter_vodozemac via SPM to fix release build ([fba7840](https://github.com/Quantumheart/Kohera/commit/fba784075aae1f1cde7d8c2d8703f32a5cd56c6b))
+* **ios:** create dedicated keychain so CI codesign doesn't hang ([c2acdbf](https://github.com/Quantumheart/Kohera/commit/c2acdbf07412e9eafb368a88841dd4ffe98c6a5c))
+* **macos:** add Developer ID fastlane match lanes ([04957f7](https://github.com/Quantumheart/Kohera/commit/04957f78822933d02bec07c9b4dbed4a2f62a04d))
+* **macos:** sign macOS Release with Developer ID ([03e32f5](https://github.com/Quantumheart/Kohera/commit/03e32f5ac7b51d049025ef8c79f28de312f6849b))
+* remove only unnecessary unawaited calls ([9ba0548](https://github.com/Quantumheart/Kohera/commit/9ba0548b3edc2539eb14caac1ab171994ff60353))
+* remove unnecessary unawaited calls for Flutter 3.47 ([61c6bdf](https://github.com/Quantumheart/Kohera/commit/61c6bdf2bbab823017b46fa4ee7b28c4c41c692f))
+* **search:** add database schema upgrade callback ([a416504](https://github.com/Quantumheart/Kohera/commit/a416504828f24511f061709c2b93d00e4479736b)), closes [#967](https://github.com/Quantumheart/Kohera/issues/967)
+* **search:** aggregate edits for local encrypted-room search results ([4f8193f](https://github.com/Quantumheart/Kohera/commit/4f8193f6c4584a893f9e46641d2808894ef6be3d))
+* **search:** cap pending decryption set size ([9ea459d](https://github.com/Quantumheart/Kohera/commit/9ea459dc23601d7502c5770f0b5476ab4bbb809e)), closes [#967](https://github.com/Quantumheart/Kohera/issues/967)
+* **search:** clean up room key subscriptions on leave ([b56a773](https://github.com/Quantumheart/Kohera/commit/b56a77378fd0e651ba8fadbfa143cbe69ccf6787)), closes [#967](https://github.com/Quantumheart/Kohera/issues/967)
+* **search:** differentiate non-text message types in search tiles ([3e92613](https://github.com/Quantumheart/Kohera/commit/3e926137c1ca760569ef11f03b9e7a7053b6ac2e)), closes [#900](https://github.com/Quantumheart/Kohera/issues/900)
+* **search:** use local-only event lookup for late decryption retry ([f4d3f76](https://github.com/Quantumheart/Kohera/commit/f4d3f767368e5b88d65e6b257f2c4cee5d4a5dbd)), closes [#967](https://github.com/Quantumheart/Kohera/issues/967)
+* **search:** wrap upsert in transaction ([1eb0247](https://github.com/Quantumheart/Kohera/commit/1eb0247144819e8186132d052e3420dbdd3db802)), closes [#967](https://github.com/Quantumheart/Kohera/issues/967)
+* sort app_links after animations in pubspec.yaml ([c668487](https://github.com/Quantumheart/Kohera/commit/c66848742d7a608b8907eeb611ce3a086da87e25))
+
+
+### Performance Improvements
+
+* **linux:** defer database loading and first sync to unblock UI startup ([b7f8b50](https://github.com/Quantumheart/Kohera/commit/b7f8b50c0063607e5acec2be3752653d1fb74cfe)), closes [#899](https://github.com/Quantumheart/Kohera/issues/899)
+
 ## [1.15.0](https://github.com/Quantumheart/Kohera/compare/v1.14.2...v1.15.0) (2026-08-02)
 
 
