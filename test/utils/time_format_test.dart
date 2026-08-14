@@ -36,4 +36,27 @@ void main() {
       expect(formatRelativeTimestamp(ts), '6d ago');
     });
   });
+
+  group('formatDateLabel', () {
+    test('returns "Today" for today', () {
+      final now = DateTime.now();
+      expect(formatDateLabel(now), 'Today');
+    });
+
+    test('returns "Yesterday" for yesterday', () {
+      final yesterday = DateTime.now().subtract(const Duration(days: 1));
+      expect(formatDateLabel(yesterday), 'Yesterday');
+    });
+
+    test('returns formatted date for same year', () {
+      final ts = DateTime(DateTime.now().year, 3, 15);
+      final result = formatDateLabel(ts);
+      expect(result, 'Mar 15');
+    });
+
+    test('returns formatted date with year for different year', () {
+      final ts = DateTime(2020, 7, 4);
+      expect(formatDateLabel(ts), 'Jul 4, 2020');
+    });
+  });
 }

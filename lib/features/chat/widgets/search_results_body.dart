@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:kohera/core/utils/time_format.dart';
+import 'package:kohera/features/chat/models/room_search_result.dart';
 import 'package:kohera/features/chat/services/chat_search_controller.dart';
 import 'package:kohera/features/chat/widgets/search_result_tile.dart';
 import 'package:kohera/shared/services/avatar_resolver.dart';
@@ -9,7 +11,7 @@ import 'package:kohera/shared/widgets/kohera_loader.dart';
 ///
 /// Shows contextual states: minimum query prompt, loading spinner,
 /// error, empty results, or a scrollable results list with a result count
-/// header and infinite-scroll pagination.
+/// header, date separators, and infinite-scroll pagination.
 class SearchResultsBody extends StatefulWidget {
   const SearchResultsBody({
     required this.search,
@@ -65,6 +67,24 @@ class _SearchResultsBodyState extends State<SearchResultsBody> {
       return 'Found $count results';
     }
     return 'Showing ${search.results.length} results';
+  }
+
+  /// Pre-processes results into a flat list of list items, inserting a date
+  /// separator before any result whose timestamp falls on a different day
+  /// than the previous result.
+  List<_ListItem> _buildItems(List<RoomSearchResult> results) {
+    final items = <_ListItem>[];
+    DateTime? prevDay;
+    for (final result in results) {
+      final ts = result.message.timestamp;
+      final day = DateTime(ts.year, ts.month, ts.day);
+      if (prevDay == null || day != prevDay) {
+        items.add(_ListItem.separator(formatDateLabel(ts)));
+      }
+      items.add(_ListItem.result(result));
+      prevDay = day;
+    }
+    return items;
   }
 
   @override
@@ -174,9 +194,11 @@ class _SearchResultsBodyState extends State<SearchResultsBody> {
       );
     }
 
-    // Results list with count header and infinite scroll.
+    // Results list with count header, date separators, and infinite scroll.
     final showLoadingMore =
         widget.search.isLoading && widget.search.nextBatch != null;
+    final items = _buildItems(widget.search.results);
+    final itemCount = items.length + (showLoadingMore ? 1 : 0);
 
     return Column(
       children: [
@@ -196,10 +218,10 @@ class _SearchResultsBodyState extends State<SearchResultsBody> {
           child: ListView.builder(
             controller: _scrollController,
             padding: const EdgeInsets.symmetric(vertical: 4),
-            itemCount: widget.search.results.length + (showLoadingMore ? 1 : 0),
+            itemCount: itemCount,
             itemBuilder: (context, i) {
               // Loading indicator at the bottom while fetching more.
-              if (i == widget.search.results.length) {
+              if (i == items.length) {
                 return const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),
                   child: Center(
@@ -212,7 +234,12 @@ class _SearchResultsBodyState extends State<SearchResultsBody> {
                 );
               }
 
-              final result = widget.search.results[i];
+              final item = items[i];
+              if (item.isSeparator) {
+                return _DateSeparator(label: item.label!);
+              }
+
+              final result = item.result!;
               return SearchResultTile(
                 result: result,
                 avatarResolver: widget.avatarResolver,
@@ -226,5 +253,49 @@ class _SearchResultsBodyState extends State<SearchResultsBody> {
       ],
     );
   }
+}
 
+/// A single item in the flattened search results list — either a date
+/// separator header or a search result tile.
+class _ListItem {
+  _ListItem.separator(this.label) : result = null;
+  _ListItem.result(this.result) : label = null;
+
+  final String? label;
+  final RoomSearchResult? result;
+
+  bool get isSeparator => label != null;
+}
+
+/// A date separator header rendered between results on different days.
+class _DateSeparator extends StatelessWidget {
+  const _DateSeparator({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: cs.outlineVariant, thickness: 0.5)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              label,
+              style: tt.labelSmall?.copyWith(
+                color: cs.onSurfaceVariant,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          Expanded(child: Divider(color: cs.outlineVariant, thickness: 0.5)),
+        ],
+      ),
+    );
+  }
 }
