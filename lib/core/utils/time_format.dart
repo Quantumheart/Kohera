@@ -22,6 +22,26 @@ String formatMessageTime(DateTime ts) {
   return '${months[ts.month - 1]} ${ts.day}, ${ts.year}, $time';
 }
 
+/// Formats a [DateTime] as a human-readable day label for grouping.
+///
+/// Returns 'Today', 'Yesterday', or a formatted date like 'Jan 15, 2026'.
+String formatDateLabel(DateTime ts) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final msgDate = DateTime(ts.year, ts.month, ts.day);
+  final diff = today.difference(msgDate).inDays;
+
+  if (diff == 0) return 'Today';
+  if (diff == 1) return 'Yesterday';
+
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  ];
+  if (ts.year == now.year) return '${months[ts.month - 1]} ${ts.day}';
+  return '${months[ts.month - 1]} ${ts.day}, ${ts.year}';
+}
+
 String formatRelativeTimestamp(DateTime ts) {
   final now = DateTime.now();
   final diff = now.difference(ts);

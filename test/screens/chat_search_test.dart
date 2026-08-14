@@ -298,5 +298,63 @@ void main() {
       // The manual "Load more results" button should NOT exist.
       expect(find.text('Load more results'), findsNothing);
     });
+
+    testWidgets('shows date separators between results on different days',
+        (tester) async {
+      when(mockClient.search(
+        any,
+        nextBatch: anyNamed('nextBatch'),
+      )).thenAnswer((_) async => SearchResults(
+            searchCategories: ResultCategories(
+              roomEvents: ResultRoomEvents(
+                results: [
+                  Result(
+                    result: MatrixEvent(
+                      type: 'm.room.message',
+                      content: {'body': 'recent msg', 'msgtype': 'm.text'},
+                      eventId: r'$2:example.com',
+                      senderId: '@alice:example.com',
+                      originServerTs: DateTime(2024, 6, 15, 14),
+                      roomId: '!room:example.com',
+                    ),
+                    rank: 0.5,
+                    context: SearchResultsEventContext(),
+                  ),
+                  Result(
+                    result: MatrixEvent(
+                      type: 'm.room.message',
+                      content: {'body': 'old msg', 'msgtype': 'm.text'},
+                      eventId: r'$1:example.com',
+                      senderId: '@bob:example.com',
+                      originServerTs: DateTime(2024, 6, 10, 9),
+                      roomId: '!room:example.com',
+                    ),
+                    rank: 0.3,
+                    context: SearchResultsEventContext(),
+                  ),
+                ],
+                count: 2,
+              ),
+            ),
+          ));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.search_rounded));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).last, 'msg');
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      // Result count header should be present.
+      expect(find.textContaining('Found 2 results'), findsOneWidget);
+
+      // Date separators are rendered as Dividers with a label.
+      // Two results on different days produce two separators.
+      final dividers = find.byType(Divider);
+      expect(dividers, findsWidgets);
+    });
   });
 }
