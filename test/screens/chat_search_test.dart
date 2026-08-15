@@ -33,6 +33,17 @@ void main() {
   late SelectionService selectionService;
 
   setUp(() {
+    // Use a narrow screen so the search overlay (Stack) layout is used,
+    // matching the test expectations. The default 800px width would
+    // trigger the side panel layout on wide screens.
+    final binding = TestWidgetsFlutterBinding.ensureInitialized();
+    binding.platformDispatcher.views.first.physicalSize =
+        const Size(600, 1200);
+    binding.platformDispatcher.views.first.devicePixelRatio = 1.0;
+    addTearDown(() {
+      binding.platformDispatcher.views.first.resetPhysicalSize();
+    });
+
     mockClient = MockClient();
     mockMatrix = MockMatrixService();
     mockRoom = MockRoom();
@@ -423,6 +434,65 @@ void main() {
         find.byType(ColoredBox),
       );
       expect(coloredBoxes, isNotEmpty);
+    });
+
+    testWidgets('wide screen shows side panel instead of full overlay',
+        (tester) async {
+      // Override the narrow screen set in setUp with a wide screen.
+      final binding = TestWidgetsFlutterBinding.ensureInitialized();
+      binding.platformDispatcher.views.first.physicalSize =
+          const Size(1200, 1000);
+      binding.platformDispatcher.views.first.devicePixelRatio = 1.0;
+
+      when(mockClient.search(
+        any,
+        nextBatch: anyNamed('nextBatch'),
+      )).thenAnswer((_) async => SearchResults(
+            searchCategories: ResultCategories(
+              roomEvents: ResultRoomEvents(
+                results: [
+                  Result(
+                    result: MatrixEvent(
+                      type: 'm.room.message',
+                      content: {'body': 'hello world', 'msgtype': 'm.text'},
+                      eventId: r'$1:example.com',
+                      senderId: '@alice:example.com',
+                      originServerTs: DateTime(2024, 1, 1, 12),
+                      roomId: '!room:example.com',
+                    ),
+                    rank: 0.1,
+                    context: SearchResultsEventContext(),
+                  ),
+                ],
+                count: 1,
+              ),
+            ),
+          ));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      // Open search.
+      await tester.tap(find.byIcon(Icons.search_rounded));
+      await tester.pumpAndSettle();
+
+      // On wide screens, the search body should appear in a side panel
+      // (not a full-screen overlay). Verify a Row layout is present.
+      expect(find.byType(Row), findsWidgets);
+
+      // The search field should be present in the app bar.
+      expect(find.byType(TextField), findsWidgets);
+
+      // Type and search.
+      await tester.enterText(find.byType(TextField).last, 'hello');
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      // Result count should be visible in the side panel.
+      expect(find.textContaining('Found 1 results'), findsOneWidget);
+
+      // Reset screen size for subsequent tests.
+      binding.platformDispatcher.views.first.resetPhysicalSize();
     });
   });
 }

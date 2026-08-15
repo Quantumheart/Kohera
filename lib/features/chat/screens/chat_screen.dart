@@ -1114,21 +1114,58 @@ class _ChatScreenState extends State<ChatScreen>
       );
     }
 
+    final isNarrow =
+        MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
+
+    if (isNarrow) {
+      // Narrow screens: full-screen overlay (existing behavior).
+      return Scaffold(
+        appBar: appBar,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildChatBody(matrix, room.id),
+            if (_search.isSearching)
+              ColoredBox(
+                color: Theme.of(context).colorScheme.surface,
+                child: SearchResultsBody(
+                  search: _search,
+                  avatarResolver: matrix.avatarResolver,
+                  onTapResult: _scrollToEventById,
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
+    // Wide screens: side panel preserves chat context.
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: appBar,
-      body: Stack(
-        fit: StackFit.expand,
+      body: Row(
         children: [
-          _buildChatBody(matrix, room.id),
-          if (_search.isSearching)
-            ColoredBox(
-              color: Theme.of(context).colorScheme.surface,
-              child: SearchResultsBody(
-                search: _search,
-                avatarResolver: matrix.avatarResolver,
-                onTapResult: _scrollToEventById,
-              ),
-            ),
+          Expanded(child: _buildChatBody(matrix, room.id)),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            child: _search.isSearching
+                ? Container(
+                    width: 380,
+                    decoration: BoxDecoration(
+                      color: cs.surface,
+                      border: Border(
+                        left: BorderSide(color: cs.outlineVariant),
+                      ),
+                    ),
+                    child: SearchResultsBody(
+                      search: _search,
+                      avatarResolver: matrix.avatarResolver,
+                      onTapResult: _scrollToEventById,
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
         ],
       ),
     );
