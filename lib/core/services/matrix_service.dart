@@ -490,7 +490,6 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       final initStart = DateTime.now();
       await _client.init(
         waitForFirstSync: false,
-        waitUntilLoadCompletedLoaded: false,
       );
       debugPrint(
         '[Kohera] _client.init took '
