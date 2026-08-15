@@ -90,6 +90,33 @@ class ClientManager extends ChangeNotifier {
       '${DateTime.now().difference(svcInitStart).inMilliseconds}ms',
     );
 
+    // Heartbeat timer — logs every 200ms so we can see when the main
+    // isolate stalls. Gaps in the log = blocked event loop.
+    // Temporary — remove after diagnosis.
+    var beat = 0;
+    final heartbeat = Timer.periodic(const Duration(milliseconds: 200), (_) {
+      debugPrint('[Kohera] heartbeat ${beat++}');
+    });
+
+    // Log when the SDK's background room loading completes.
+    for (final s in _services) {
+      final client = _clientMap[s]!;
+      unawaited(client.roomsLoading?.then((_) {
+        debugPrint('[Kohera] roomsLoading completed for ${s.clientName}');
+      }));
+      unawaited(client.userDeviceKeysLoading?.then((_) {
+        debugPrint('[Kohera] userDeviceKeysLoading completed for ${s.clientName}');
+      }));
+      // Log first sync arrival.
+      var firstSync = true;
+      client.onSync.stream.listen((_) {
+        if (firstSync) {
+          firstSync = false;
+          debugPrint('[Kohera] first sync received for ${s.clientName}');
+        }
+      }).onError((e) {});
+    }
+
     // Remove services that failed to restore (not logged in), unless it's
     // the only one left (so we still show the login screen).
     if (_services.length > 1) {
@@ -124,6 +151,8 @@ class ClientManager extends ChangeNotifier {
       '[Kohera] ClientManager.init total: '
       '${DateTime.now().difference(totalStart).inMilliseconds}ms',
     );
+    // Stop heartbeat after 10s.
+    Timer(const Duration(seconds: 10), heartbeat.cancel);
   }
 
   // ── Account Switching ─────────────────────────────────────────
