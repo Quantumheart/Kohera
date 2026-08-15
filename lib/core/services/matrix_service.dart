@@ -401,6 +401,16 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── Private: Session Keys ──────────────────────────────────────
 
+  /// Persists credentials to the keychain and saves a session backup.
+  /// Called non-blocking during session restore — the SDK database already
+  /// holds the credentials, so this is a best-effort backup.
+  Future<void> _persistSessionBackup() async {
+    if (_client.accessToken != null) {
+      await auth.persistCredentials();
+    }
+    await auth.saveSessionBackup();
+  }
+
   Future<void> _clearSessionAndBackup() async {
     await auth.clearSessionKeys();
     await SessionBackup.delete(clientName: clientName, storage: _storage);
@@ -479,17 +489,14 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         'encryptionEnabled=${_client.encryptionEnabled}',
       );
       await _activateSession();
-      try {
-        if (_client.accessToken != null) {
-          await auth.persistCredentials();
-        }
-        await auth.saveSessionBackup();
-      } catch (e) {
-        debugPrint(
-          '[Kohera] Persisting restored session failed '
-          '(non-fatal): $e',
-        );
-      }
+      // Credentials are already in the SDK database (that's how the session
+      // was restored). The keychain writes are a backup — don't block
+      // startup waiting on the Linux keyring (D-Bus/libsecret can be slow).
+      unawaited(
+        _persistSessionBackup().catchError((Object e) {
+          debugPrint('[Kohera] Persisting restored session failed (non-fatal): $e');
+        }),
+      );
     } catch (e, s) {
       debugPrint('[Kohera] Database session restore failed: $e');
       debugPrint('[Kohera] Stack trace:\n$s');
@@ -550,17 +557,14 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         'encryptionEnabled=${_client.encryptionEnabled}',
       );
       await _activateSession();
-      try {
-        if (_client.accessToken != null) {
-          await auth.persistCredentials();
-        }
-        await auth.saveSessionBackup();
-      } catch (e) {
-        debugPrint(
-          '[Kohera] Persisting restored session failed '
-          '(non-fatal): $e',
-        );
-      }
+      // Credentials are already in the SDK database (that's how the session
+      // was restored). The keychain writes are a backup — don't block
+      // startup waiting on the Linux keyring (D-Bus/libsecret can be slow).
+      unawaited(
+        _persistSessionBackup().catchError((Object e) {
+          debugPrint('[Kohera] Persisting restored session failed (non-fatal): $e');
+        }),
+      );
     } catch (e, s) {
       debugPrint('[Kohera] Keychain session restore failed: $e');
       debugPrint('[Kohera] Stack trace:\n$s');
