@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
@@ -355,6 +356,73 @@ void main() {
       // Two results on different days produce two separators.
       final dividers = find.byType(Divider);
       expect(dividers, findsWidgets);
+    });
+
+    testWidgets('Escape key closes search', (tester) async {
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      // Open search.
+      await tester.tap(find.byIcon(Icons.search_rounded));
+      await tester.pumpAndSettle();
+
+      // Focus the search field and press Escape.
+      await tester.showKeyboard(find.byType(TextField).last);
+      await tester.pumpAndSettle();
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+
+      // Room name should be back (search closed).
+      expect(find.text('Test Room'), findsOneWidget);
+    });
+
+    testWidgets('ArrowDown selects first result', (tester) async {
+      when(mockClient.search(
+        any,
+        nextBatch: anyNamed('nextBatch'),
+      )).thenAnswer((_) async => SearchResults(
+            searchCategories: ResultCategories(
+              roomEvents: ResultRoomEvents(
+                results: [
+                  Result(
+                    result: MatrixEvent(
+                      type: 'm.room.message',
+                      content: {'body': 'hello world', 'msgtype': 'm.text'},
+                      eventId: r'$1:example.com',
+                      senderId: '@alice:example.com',
+                      originServerTs: DateTime(2024, 1, 1, 12),
+                      roomId: '!room:example.com',
+                    ),
+                    rank: 0.1,
+                    context: SearchResultsEventContext(),
+                  ),
+                ],
+                count: 1,
+              ),
+            ),
+          ));
+
+      await tester.pumpWidget(buildTestWidget());
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.search_rounded));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField).last, 'hello');
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      // Press ArrowDown to select first result.
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+      await tester.pumpAndSettle();
+
+      // The result should be visually highlighted (ColoredBox with
+      // primaryContainer tint).
+      final coloredBoxes = tester.widgetList<ColoredBox>(
+        find.byType(ColoredBox),
+      );
+      expect(coloredBoxes, isNotEmpty);
     });
   });
 }

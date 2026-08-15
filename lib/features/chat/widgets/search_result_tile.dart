@@ -18,6 +18,7 @@ class SearchResultTile extends StatelessWidget {
     required this.query,
     required this.onTap,
     this.highlights,
+    this.isSelected = false,
     super.key,
   });
 
@@ -26,6 +27,7 @@ class SearchResultTile extends StatelessWidget {
   final String query;
   final List<String>? highlights;
   final VoidCallback onTap;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -36,9 +38,13 @@ class SearchResultTile extends StatelessWidget {
     final before = result.contextBefore.take(_maxContextLines).toList();
     final after = result.contextAfter.take(_maxContextLines).toList();
 
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
+    return ColoredBox(
+      color: isSelected
+          ? cs.primaryContainer.withValues(alpha: 0.3)
+          : cs.surface,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,6 +122,7 @@ class SearchResultTile extends StatelessWidget {
             for (final ctx in after) _ContextLine(message: ctx),
           ],
         ),
+      ),
       ),
     );
   }

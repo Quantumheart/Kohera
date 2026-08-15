@@ -51,6 +51,11 @@ class ChatSearchController extends ChangeNotifier {
   String _query = '';
   String get query => _query;
 
+  /// Index of the keyboard-selected result in [_results], or -1 when no
+  /// result is selected. Reset to 0 whenever new results arrive.
+  int _selectedIndex = -1;
+  int get selectedIndex => _selectedIndex;
+
   bool _disposed = false;
 
   Timer? _debounceTimer;
@@ -68,6 +73,7 @@ class ChatSearchController extends ChangeNotifier {
     _hasLocalIndex = false;
     _error = null;
     _query = '';
+    _selectedIndex = -1;
     notifyListeners();
   }
 
@@ -85,6 +91,7 @@ class ChatSearchController extends ChangeNotifier {
     _isLoading = false;
     _error = null;
     _query = '';
+    _selectedIndex = -1;
     notifyListeners();
   }
 
@@ -100,6 +107,7 @@ class ChatSearchController extends ChangeNotifier {
       _isEncryptedRoom = false;
       _hasLocalIndex = false;
       _error = null;
+      _selectedIndex = -1;
       notifyListeners();
       return;
     }
@@ -120,6 +128,7 @@ class ChatSearchController extends ChangeNotifier {
       _highlights = null;
       _isEncryptedRoom = false;
       _hasLocalIndex = false;
+      _selectedIndex = -1;
     }
     notifyListeners();
 
@@ -155,6 +164,20 @@ class ChatSearchController extends ChangeNotifier {
       _error = 'Search failed. Please try again.';
       notifyListeners();
     }
+  }
+
+  /// Moves the keyboard selection down by one result (clamped to last).
+  void navigateDown() {
+    if (_results.isEmpty) return;
+    _selectedIndex = (_selectedIndex + 1).clamp(0, _results.length - 1);
+    notifyListeners();
+  }
+
+  /// Moves the keyboard selection up by one result (clamped to 0).
+  void navigateUp() {
+    if (_results.isEmpty) return;
+    _selectedIndex = (_selectedIndex - 1).clamp(0, _results.length - 1);
+    notifyListeners();
   }
 
   void setHighlight(String eventId) {
