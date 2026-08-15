@@ -38,13 +38,40 @@ class _SearchResultsBodyState extends State<SearchResultsBody> {
   void initState() {
     super.initState();
     _scrollController = ScrollController()..addListener(_onScroll);
+    widget.search.addListener(_onSearchChanged);
   }
 
   @override
   void dispose() {
+    widget.search.removeListener(_onSearchChanged);
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    if (!mounted) return;
+    // Auto-scroll to keep the selected result visible.
+    final idx = widget.search.selectedIndex;
+    if (idx >= 0 && idx < widget.search.results.length && _scrollController.hasClients) {
+      final items = _buildItems(widget.search.results);
+      // Find the flat-list index for this result.
+      var flatIndex = 0;
+      var resultIdx = 0;
+      for (final item in items) {
+        if (!item.isSeparator) {
+          if (resultIdx == idx) break;
+          resultIdx++;
+        }
+        flatIndex++;
+      }
+      unawaited(_scrollController.animateTo(
+        flatIndex * 72.0, // approximate tile height
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.easeInOut,
+      ));
+    }
+    setState(() {});
   }
 
   void _onScroll() {
@@ -240,11 +267,17 @@ class _SearchResultsBodyState extends State<SearchResultsBody> {
               }
 
               final result = item.result!;
+              // Compute the result-only index for selection matching.
+              var resultIndex = 0;
+              for (var j = 0; j < i; j++) {
+                if (!items[j].isSeparator) resultIndex++;
+              }
               return SearchResultTile(
                 result: result,
                 avatarResolver: widget.avatarResolver,
                 query: query,
                 highlights: widget.search.highlights,
+                isSelected: resultIndex == widget.search.selectedIndex,
                 onTap: () => widget.onTapResult(result.message.eventId),
               );
             },

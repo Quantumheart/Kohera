@@ -1,6 +1,7 @@
 // coverage:ignore-file
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
@@ -10,6 +11,7 @@ import 'package:kohera/features/calling/models/incoming_call_info.dart'
     as model;
 import 'package:kohera/features/calling/services/call_navigator.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
+import 'package:kohera/features/chat/services/chat_search_controller.dart';
 import 'package:kohera/features/chat/widgets/pinned_messages_popup.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/shared/models/kohera_room_summary.dart';
@@ -379,6 +381,8 @@ class ChatSearchAppBar extends StatelessWidget implements PreferredSizeWidget {
     required this.focusNode,
     required this.onChanged,
     required this.onClose,
+    required this.search,
+    required this.onSelectResult,
     super.key,
   });
 
@@ -386,6 +390,8 @@ class ChatSearchAppBar extends StatelessWidget implements PreferredSizeWidget {
   final FocusNode focusNode;
   final ValueChanged<String> onChanged;
   final VoidCallback onClose;
+  final ChatSearchController search;
+  final ValueChanged<String> onSelectResult;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -395,36 +401,61 @@ class ChatSearchAppBar extends StatelessWidget implements PreferredSizeWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
-    return AppBar(
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back_rounded),
-        onPressed: onClose,
-      ),
-      titleSpacing: 0,
-      title: TextField(
-        controller: controller,
-        focusNode: focusNode,
-        onChanged: onChanged,
-        style: tt.bodyLarge,
-        decoration: InputDecoration(
-          hintText: 'Search messages…',
-          border: InputBorder.none,
-          hintStyle: tt.bodyLarge?.copyWith(
-            color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+    return Focus(
+      onKeyEvent: (node, event) {
+        if (event is! KeyDownEvent) return KeyEventResult.ignored;
+        if (event.logicalKey == LogicalKeyboardKey.escape) {
+          onClose();
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+          search.navigateDown();
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+          search.navigateUp();
+          return KeyEventResult.handled;
+        }
+        if (event.logicalKey == LogicalKeyboardKey.enter) {
+          final idx = search.selectedIndex;
+          if (idx >= 0 && idx < search.results.length) {
+            onSelectResult(search.results[idx].message.eventId);
+          }
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: onClose,
+        ),
+        titleSpacing: 0,
+        title: TextField(
+          controller: controller,
+          focusNode: focusNode,
+          onChanged: onChanged,
+          style: tt.bodyLarge,
+          decoration: InputDecoration(
+            hintText: 'Search messages…',
+            border: InputBorder.none,
+            hintStyle: tt.bodyLarge?.copyWith(
+              color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
           ),
         ),
+        actions: [
+          if (controller.text.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.close_rounded),
+              onPressed: () {
+                controller.clear();
+                onChanged('');
+                focusNode.requestFocus();
+              },
+            ),
+        ],
       ),
-      actions: [
-        if (controller.text.isNotEmpty)
-          IconButton(
-            icon: const Icon(Icons.close_rounded),
-            onPressed: () {
-              controller.clear();
-              onChanged('');
-              focusNode.requestFocus();
-            },
-          ),
-      ],
     );
   }
 }

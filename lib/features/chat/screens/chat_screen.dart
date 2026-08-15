@@ -1095,6 +1095,8 @@ class _ChatScreenState extends State<ChatScreen>
         focusNode: _searchFocusNode,
         onChanged: _search.onQueryChanged,
         onClose: _closeSearch,
+        search: _search,
+        onSelectResult: _scrollToEventById,
       );
     } else {
       appBar = ChatAppBar(
