@@ -1,11 +1,28 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/features/chat/services/message_search_database.dart';
 import 'package:matrix/matrix.dart';
 
+/// Indexes decrypted message content into a local FTS5 database so
+/// encrypted rooms can be searched.
+///
+/// **Architecture (lazy per-room indexing):**
+///
+/// On `init()` the service subscribes to `client.onSync` but does **no**
+/// database work and **no** backfill.  Startup cost is near-zero.
+///
+/// When a user opens or searches an encrypted room, `ensureRoomIndexed(room)`
+/// is called.  If the room hasn't been indexed yet, a background backfill
+/// runs for **that room only** — fetching local events, decrypting them,
+/// and inserting into the FTS5 index.  The caller does not wait; search
+/// returns whatever is already indexed and shows "indexing…" while the
+/// backfill continues.
+///
+/// Sync events are only processed for rooms that have already been
+/// indexed, keeping the steady-state cost proportional to the number of
+/// rooms the user actively uses.
 class MessageIndexerService extends ChangeNotifier {
   MessageIndexerService({
     required Client client,
@@ -19,45 +36,148 @@ class MessageIndexerService extends ChangeNotifier {
 
   bool _started = false;
   bool _disposed = false;
-  bool _isBackfilling = false;
-  bool get isBackfilling => _isBackfilling;
+
+  StreamSubscription<SyncUpdate>? _syncSub;
+  final Map<String, StreamSubscription<String>> _keySubs = {};
+
+  /// Rooms that have completed backfill (in-memory cache of the
+  /// `indexed_rooms` table). Populated lazily on first access.
+  Set<String>? _indexedRoomsCache;
+
+  /// Rooms currently being backfilled.
+  final Set<String> _indexingRooms = {};
+
+  /// `true` while any room backfill is in progress.  The search UI uses
+  /// this to show an "indexing…" indicator.
+  bool get isIndexing => _indexingRooms.isNotEmpty;
+
+  /// Per-room indexing progress: room_id → number of events indexed so far.
+  final Map<String, int> _roomIndexProgress = {};
+
+  /// Returns progress for [roomId], or `null` if not currently indexing.
+  int? indexingProgressFor(String roomId) =>
+      _indexingRooms.contains(roomId) ? _roomIndexProgress[roomId] : null;
 
   int _indexedCount = 0;
   int get indexedCount => _indexedCount;
 
-  StreamSubscription<SyncUpdate>? _syncSub;
-  final Map<String, StreamSubscription<String>> _keySubs = {};
   final List<SyncUpdate> _syncQueue = [];
   bool _processingSync = false;
   @visibleForTesting
   bool get isProcessingSync => _processingSync;
 
-  @visibleForTesting
-  Future<void> waitForIdle() async {
-    for (var i = 0; i < 5; i++) {
-      await Future<void>.delayed(Duration.zero);
-    }
-    await _drainFuture?.catchError((_) {});
-    while (_isBackfilling) {
-      await Future<void>.delayed(Duration.zero);
-    }
-  }
-
   Future<void>? _drainFuture;
 
   static const maxPendingDecryptionsPerRoom = 1000;
-
   final Map<String, Set<String>> _pendingDecryptions = {};
 
   MessageSearchDatabase get database => _db;
+
+  // ── Lifecycle ─────────────────────────────────────────────
 
   Future<void> init() async {
     if (_started || _disposed || !_db.isAvailable) return;
     _started = true;
     _syncSub = _client.onSync.stream.listen(_onSync);
-    _hookRoomKeyStreams();
-    unawaited(_maybeBackfill());
   }
+
+  // ── Lazy per-room indexing ────────────────────────────────
+
+  /// Ensures [room]'s historical events are indexed.  If the room has
+  /// already been indexed, this is a no-op.  If indexing is already in
+  /// progress, this returns immediately without starting a duplicate.
+  ///
+  /// The backfill runs in the background — callers should **not** await
+  /// this for search.  Instead, search the FTS5 index directly and use
+  /// [isIndexing] / [indexingProgressFor] to show an "indexing…" state.
+  Future<void> ensureRoomIndexed(Room room) async {
+    if (_disposed || !_db.isAvailable) return;
+
+    // Fast path: check the in-memory cache.
+    final cache = _indexedRoomsCache;
+    if (cache != null && cache.contains(room.id)) return;
+
+    // Check the metadata table (and warm the cache on first call).
+    if (await _db.isRoomIndexed(room.id)) {
+      _indexedRoomsCache ??= {};
+      _indexedRoomsCache!.add(room.id);
+      return;
+    }
+
+    // Already indexing this room?
+    if (_indexingRooms.contains(room.id)) return;
+
+    // Start background backfill for this room only.
+    unawaited(_backfillRoomInBackground(room));
+  }
+
+  Future<void> _backfillRoomInBackground(Room room) async {
+    if (_disposed) return;
+    _indexingRooms.add(room.id);
+    _roomIndexProgress[room.id] = 0;
+    _safeNotify();
+
+    try {
+      _subscribeToRoomKeys(room);
+      var eventCount = 0;
+      const chunkSize = 500;
+      var offset = 0;
+
+      while (!_disposed) {
+        List<Event> events;
+        try {
+          events = await _client.database.getEventList(
+            room,
+            limit: chunkSize,
+            start: offset,
+          );
+        } catch (e) {
+          debugPrint(
+            '[Kohera] search index: getEventList failed for ${room.id}: $e',
+          );
+          break;
+        }
+        if (events.isEmpty) break;
+
+        final batch = <IndexedMessage>[];
+        for (final event in events) {
+          if (event.redacted) continue;
+          final decrypted = await _decryptIfNeeded(event);
+          if (decrypted.type == EventTypes.Encrypted) {
+            _markPending(room.id, decrypted.eventId);
+            continue;
+          }
+          final indexed = _toIndexedMessage(decrypted);
+          if (indexed != null) batch.add(indexed);
+        }
+        if (batch.isNotEmpty) {
+          await _db.upsertBatch(batch);
+          eventCount += batch.length;
+          _indexedCount += batch.length;
+          _roomIndexProgress[room.id] = eventCount;
+          _safeNotify();
+        }
+
+        // Yield to the event loop between chunks to keep the UI responsive.
+        await Future<void>.delayed(Duration.zero);
+
+        if (events.length < chunkSize) break;
+        offset += chunkSize;
+      }
+
+      await _db.markRoomIndexed(room.id, eventCount);
+      _indexedRoomsCache ??= {};
+      _indexedRoomsCache!.add(room.id);
+    } catch (e) {
+      debugPrint('[Kohera] search index: backfill failed for ${room.id}: $e');
+    } finally {
+      _indexingRooms.remove(room.id);
+      _roomIndexProgress.remove(room.id);
+      _safeNotify();
+    }
+  }
+
+  // ── Sync processing (gated by indexed rooms) ──────────────
 
   void _onSync(SyncUpdate update) {
     if (_disposed) return;
@@ -82,16 +202,25 @@ class MessageIndexerService extends ChangeNotifier {
 
   Future<void> _processSyncUpdate(SyncUpdate update) async {
     final join = update.rooms?.join;
-    if (join != null && join.isNotEmpty) {
-      for (final entry in join.entries) {
-        final roomId = entry.key;
-        final room = _client.getRoomById(roomId);
-        if (room == null) continue;
-        _subscribeToRoomKeys(room);
-        final events = entry.value.timeline?.events;
-        if (events == null || events.isEmpty) continue;
-        await _indexEventBatch(room, events);
-      }
+    if (join == null || join.isEmpty) return;
+
+    // Determine which rooms are indexed (lazy load cache on first use).
+    final indexed = await _getIndexedRooms();
+
+    for (final entry in join.entries) {
+      final roomId = entry.key;
+
+      // Only process events for rooms that have been explicitly indexed.
+      // Rooms the user hasn't opened yet are skipped — their history will
+      // be indexed on demand via ensureRoomIndexed.
+      if (!indexed.contains(roomId)) continue;
+
+      final room = _client.getRoomById(roomId);
+      if (room == null) continue;
+
+      final events = entry.value.timeline?.events;
+      if (events == null || events.isEmpty) continue;
+      await _indexEventBatch(room, events);
     }
 
     final leave = update.rooms?.leave;
@@ -102,6 +231,13 @@ class MessageIndexerService extends ChangeNotifier {
     }
   }
 
+  Future<Set<String>> _getIndexedRooms() async {
+    final cache = _indexedRoomsCache;
+    if (cache != null) return cache;
+    _indexedRoomsCache = await _db.indexedRoomIds();
+    return _indexedRoomsCache!;
+  }
+
   Future<void> _indexEventBatch(Room room, List<MatrixEvent> rawEvents) async {
     for (final raw in rawEvents) {
       final event = Event.fromMatrixEvent(raw, room);
@@ -109,8 +245,6 @@ class MessageIndexerService extends ChangeNotifier {
         final redacts = event.redacts;
         if (redacts != null) {
           await _db.remove(redacts);
-          _indexedCount = math.max(0, _indexedCount - 1);
-          _safeNotify();
         }
         continue;
       }
@@ -127,82 +261,13 @@ class MessageIndexerService extends ChangeNotifier {
       if (indexed == null) continue;
       if (event.relationshipType == RelationshipTypes.edit) {
         await _db.remove(indexed.eventId);
-        _indexedCount = math.max(0, _indexedCount - 1);
       }
       await _db.upsert(indexed);
-      _indexedCount++;
       _safeNotify();
     }
   }
 
-  Future<void> _maybeBackfill() async {
-    if (_isBackfilling || _disposed || !_db.isAvailable) return;
-    try {
-      final existing = await _db.countAll();
-      if (existing > 0) return;
-    } catch (e) {
-      debugPrint('[Kohera] search index: countAll failed: $e');
-      return;
-    }
-    await _backfill();
-  }
-
-  Future<void> _backfill() async {
-    if (_isBackfilling || _disposed) return;
-    _isBackfilling = true;
-    _safeNotify();
-    try {
-      for (final room in _client.rooms) {
-        if (_disposed) break;
-        _subscribeToRoomKeys(room);
-        await _backfillRoom(room);
-      }
-    } catch (e) {
-      debugPrint('[Kohera] search index: backfill failed: $e');
-    } finally {
-      _isBackfilling = false;
-      _safeNotify();
-    }
-  }
-
-  Future<void> _backfillRoom(Room room) async {
-    const chunkSize = 500;
-    var offset = 0;
-    while (!_disposed) {
-      List<Event> events;
-      try {
-        events = await _client.database.getEventList(
-          room,
-          limit: chunkSize,
-          start: offset,
-        );
-      } catch (e) {
-        debugPrint(
-          '[Kohera] search index: getEventList failed for ${room.id}: $e',
-        );
-        break;
-      }
-      if (events.isEmpty) break;
-      final batch = <IndexedMessage>[];
-      for (final event in events) {
-        if (event.redacted) continue;
-        final decrypted = await _decryptIfNeeded(event);
-        if (decrypted.type == EventTypes.Encrypted) {
-          _markPending(room.id, decrypted.eventId);
-          continue;
-        }
-        final indexed = _toIndexedMessage(decrypted);
-        if (indexed != null) batch.add(indexed);
-      }
-      if (batch.isNotEmpty) {
-        await _db.upsertBatch(batch);
-        _indexedCount += batch.length;
-        _safeNotify();
-      }
-      if (events.length < chunkSize) break;
-      offset += chunkSize;
-    }
-  }
+  // ── Decryption helpers ────────────────────────────────────
 
   Future<Event> _decryptIfNeeded(Event event) async {
     if (event.type != EventTypes.Encrypted) return event;
@@ -211,7 +276,7 @@ class MessageIndexerService extends ChangeNotifier {
     try {
       return await encryption
           .decryptRoomEvent(event)
-          .timeout(const Duration(seconds: 3));
+          .timeout(const Duration(milliseconds: 500));
     } catch (_) {
       return event;
     }
@@ -238,12 +303,8 @@ class MessageIndexerService extends ChangeNotifier {
       unawaited(sub.cancel());
     }
     _pendingDecryptions.remove(roomId);
-  }
-
-  void _hookRoomKeyStreams() {
-    for (final room in _client.rooms) {
-      _subscribeToRoomKeys(room);
-    }
+    unawaited(_db.removeRoom(roomId));
+    _indexedRoomsCache?.remove(roomId);
   }
 
   void _subscribeToRoomKeys(Room room) {
@@ -279,7 +340,6 @@ class MessageIndexerService extends ChangeNotifier {
     }
     if (indexed.isNotEmpty) {
       await _db.upsertBatch(indexed);
-      _indexedCount += indexed.length;
       _safeNotify();
     }
   }
@@ -322,11 +382,25 @@ class MessageIndexerService extends ChangeNotifier {
     notifyListeners();
   }
 
-  @visibleForTesting
-  Future<void> runBackfillForTest() => _backfill();
+  // ── Test helpers ─────────────────────────────────────────
 
   @visibleForTesting
-  Future<void> processSyncForTest(SyncUpdate update) => _processSyncUpdate(update);
+  Future<void> waitForIdle() async {
+    for (var i = 0; i < 10; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    await _drainFuture?.catchError((_) {});
+    while (_indexingRooms.isNotEmpty) {
+      await Future<void>.delayed(Duration.zero);
+    }
+  }
+
+  @visibleForTesting
+  Future<void> processSyncForTest(SyncUpdate update) =>
+      _processSyncUpdate(update);
+
+  @visibleForTesting
+  Future<void> backfillRoomForTest(Room room) => _backfillRoomInBackground(room);
 
   @override
   void dispose() {

@@ -44,6 +44,36 @@ class IndexedMessage {
       );
 }
 
+/// Per-room metadata tracking which rooms have been indexed and when.
+///
+/// Replaces the expensive FTS5 COUNT scan that was run on every startup.
+/// A quick primary-key lookup is O(1).
+class IndexedRoom {
+  const IndexedRoom({
+    required this.roomId,
+    required this.indexedAt,
+    required this.eventCount,
+  });
+
+  final String roomId;
+  final DateTime indexedAt;
+  final int eventCount;
+
+  Map<String, Object?> toRow() => {
+        'room_id': roomId,
+        'indexed_at': indexedAt.millisecondsSinceEpoch,
+        'event_count': eventCount,
+      };
+
+  factory IndexedRoom.fromRow(Map<String, Object?> row) => IndexedRoom(
+        roomId: row['room_id']! as String,
+        indexedAt: DateTime.fromMillisecondsSinceEpoch(
+          row['indexed_at']! as int,
+        ),
+        eventCount: row['event_count']! as int,
+      );
+}
+
 class MessageSearchDatabase {
   MessageSearchDatabase({required this.clientName, Database? overrideDb})
       : _override = overrideDb,
@@ -70,8 +100,8 @@ class MessageSearchDatabase {
     if (Platform.isIOS || Platform.isAndroid) {
       _db = await sqflite_native.openDatabase(
         dbPath,
-        version: 1,
-        onCreate: (d, _) => _createSchema(d),
+        version: 2,
+        onCreate: _createSchema,
         onUpgrade: _onUpgrade,
       );
     } else {
@@ -79,8 +109,8 @@ class MessageSearchDatabase {
       _db = await databaseFactoryFfi.openDatabase(
         dbPath,
         options: OpenDatabaseOptions(
-          version: 1,
-          onCreate: (d, _) => _createSchema(d),
+          version: 2,
+          onCreate: _createSchema,
           onUpgrade: _onUpgrade,
         ),
       );
@@ -90,11 +120,22 @@ class MessageSearchDatabase {
 
   static Future<void> _onUpgrade(Database d, int oldVersion, int newVersion) async {
     if (oldVersion < 1) {
-      await _createSchema(d);
+      await _createFts5Table(d);
+    }
+    if (oldVersion < 2) {
+      await _createIndexedRoomsTable(d);
+      // Migrate: if the FTS5 table already has data (from v1), mark all
+      // existing rooms as indexed so we don't re-backfill.
+      await _migrateExistingRooms(d);
     }
   }
 
-  static Future<void> _createSchema(Database d) async {
+  static Future<void> _createSchema(Database d, [int? _]) async {
+    await _createFts5Table(d);
+    await _createIndexedRoomsTable(d);
+  }
+
+  static Future<void> _createFts5Table(Database d) async {
     await d.execute(
       'CREATE VIRTUAL TABLE IF NOT EXISTS message_search USING fts5( '
       'event_id UNINDEXED, '
@@ -104,6 +145,43 @@ class MessageSearchDatabase {
       'msgtype UNINDEXED, '
       'origin_server_ts UNINDEXED)',
     );
+  }
+
+  static Future<void> _createIndexedRoomsTable(Database d) async {
+    await d.execute(
+      'CREATE TABLE IF NOT EXISTS indexed_rooms ( '
+      'room_id TEXT PRIMARY KEY, '
+      'indexed_at INTEGER NOT NULL, '
+      'event_count INTEGER NOT NULL DEFAULT 0)',
+    );
+  }
+
+  /// Migrates from v1: if the FTS5 table already has data, find all
+  /// distinct room_ids and insert them into indexed_rooms so they don't
+  /// get re-backfilled.
+  static Future<void> _migrateExistingRooms(Database d) async {
+    final rows = await d.rawQuery(
+      'SELECT DISTINCT room_id FROM message_search',
+    );
+    if (rows.isEmpty) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    for (final row in rows) {
+      final roomId = row['room_id']! as String;
+      final countRow = await d.rawQuery(
+        'SELECT COUNT(*) AS c FROM message_search WHERE room_id = ?',
+        [roomId],
+      );
+      final count = (countRow.first['c'] as int?) ?? 0;
+      await d.insert(
+        'indexed_rooms',
+        {
+          'room_id': roomId,
+          'indexed_at': now,
+          'event_count': count,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
   }
 
   static String? _sanitizeFts5Query(String query) {
@@ -116,6 +194,8 @@ class MessageSearchDatabase {
     }).join(' ');
     return escaped.isEmpty ? null : escaped;
   }
+
+  // ── FTS5 message operations ───────────────────────────────
 
   Future<void> upsert(IndexedMessage message) async {
     if (!_isAvailable) return;
@@ -158,11 +238,18 @@ class MessageSearchDatabase {
   Future<void> removeRoom(String roomId) async {
     if (!_isAvailable) return;
     final db = await _open();
-    await db.delete(
-      'message_search',
-      where: 'room_id = ?',
-      whereArgs: [roomId],
-    );
+    await db.transaction((txn) async {
+      await txn.delete(
+        'message_search',
+        where: 'room_id = ?',
+        whereArgs: [roomId],
+      );
+      await txn.delete(
+        'indexed_rooms',
+        where: 'room_id = ?',
+        whereArgs: [roomId],
+      );
+    });
   }
 
   Future<List<IndexedMessage>> search({
@@ -222,10 +309,55 @@ class MessageSearchDatabase {
     return (rows.first['c'] as int?) ?? 0;
   }
 
+  // ── Per-room metadata operations ──────────────────────────
+
+  /// Returns `true` if [roomId] has been fully indexed (backfill completed).
+  /// This is a quick O(1) primary-key lookup — far cheaper than
+  /// `SELECT COUNT(*) FROM message_search`.
+  Future<bool> isRoomIndexed(String roomId) async {
+    if (!_isAvailable) return false;
+    final db = await _open();
+    final rows = await db.query(
+      'indexed_rooms',
+      where: 'room_id = ?',
+      whereArgs: [roomId],
+      limit: 1,
+    );
+    return rows.isNotEmpty;
+  }
+
+  /// Returns the set of room_ids that have been indexed.
+  Future<Set<String>> indexedRoomIds() async {
+    if (!_isAvailable) return {};
+    final db = await _open();
+    final rows = await db.query('indexed_rooms', columns: ['room_id']);
+    return rows.map((r) => r['room_id']! as String).toSet();
+  }
+
+  /// Marks [roomId] as fully indexed with [eventCount] events.
+  Future<void> markRoomIndexed(String roomId, int eventCount) async {
+    if (!_isAvailable) return;
+    final db = await _open();
+    await db.insert(
+      'indexed_rooms',
+      {
+        'room_id': roomId,
+        'indexed_at': DateTime.now().millisecondsSinceEpoch,
+        'event_count': eventCount,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  // ── Legacy / maintenance operations ──────────────────────
+
   Future<void> clear() async {
     if (!_isAvailable) return;
     final db = await _open();
-    await db.delete('message_search');
+    await db.transaction((txn) async {
+      await txn.delete('message_search');
+      await txn.delete('indexed_rooms');
+    });
   }
 
   @visibleForTesting
