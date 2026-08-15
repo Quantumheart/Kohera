@@ -204,7 +204,14 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   // ── Public API ──────────────────────────────────────────────────
 
   Future<void> init({bool restoreSession = true}) async {
-    if (restoreSession) await auth.migrateStorageKeys();
+    if (restoreSession) {
+      final migrateStart = DateTime.now();
+      await auth.migrateStorageKeys();
+      debugPrint(
+        '[Kohera] migrateStorageKeys took '
+        '${DateTime.now().difference(migrateStart).inMilliseconds}ms',
+      );
+    }
     if (restoreSession) {
       await _restoreSession();
       notifyListeners();
@@ -458,6 +465,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<bool> _hasDatabaseSession() async {
+    final probeStart = DateTime.now();
     try {
       final stored = await _client.database.getClient(clientName);
       if (stored == null) return false;
@@ -466,6 +474,11 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     } catch (e) {
       debugPrint('[Kohera] Database session probe failed: $e');
       return false;
+    } finally {
+      debugPrint(
+        '[Kohera] _hasDatabaseSession took '
+        '${DateTime.now().difference(probeStart).inMilliseconds}ms',
+      );
     }
   }
 
@@ -474,9 +487,14 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     try {
       // Defer database loading and first sync to background so the UI renders
       // immediately instead of blocking on device-key verification.
+      final initStart = DateTime.now();
       await _client.init(
         waitForFirstSync: false,
         waitUntilLoadCompletedLoaded: false,
+      );
+      debugPrint(
+        '[Kohera] _client.init took '
+        '${DateTime.now().difference(initStart).inMilliseconds}ms',
       );
       if (!_client.isLogged()) {
         debugPrint('[Kohera] Database restore produced no logged-in session');
@@ -488,7 +506,12 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         'encryption=${_client.encryption != null ? "available" : "null"}, '
         'encryptionEnabled=${_client.encryptionEnabled}',
       );
+      final activateStart = DateTime.now();
       await _activateSession();
+      debugPrint(
+        '[Kohera] _activateSession took '
+        '${DateTime.now().difference(activateStart).inMilliseconds}ms',
+      );
       // Credentials are already in the SDK database (that's how the session
       // was restored). The keychain writes are a backup — don't block
       // startup waiting on the Linux keyring (D-Bus/libsecret can be slow).

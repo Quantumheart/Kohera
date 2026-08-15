@@ -65,17 +65,30 @@ class ClientManager extends ChangeNotifier {
   // ── Initialization ───────────────────────────────────────────
 
   Future<void> init() async {
+    final totalStart = DateTime.now();
     _prefs ??= await SharedPreferences.getInstance();
     final names = _prefs!.getStringList(_clientNamesKey) ?? ['default'];
 
+    debugPrint('[Kohera] ClientManager.init: ${names.length} account(s)');
+
+    final createStart = DateTime.now();
     final pairs = await Future.wait(
       names.map((name) => _createServicePair(clientName: name)),
+    );
+    debugPrint(
+      '[Kohera] createServicePairs took '
+      '${DateTime.now().difference(createStart).inMilliseconds}ms',
     );
     for (final (client, service) in pairs) {
       _services.add(service);
       _clientMap[service] = client;
     }
+    final svcInitStart = DateTime.now();
     await Future.wait(_services.map((s) => s.init()));
+    debugPrint(
+      '[Kohera] service.init took '
+      '${DateTime.now().difference(svcInitStart).inMilliseconds}ms',
+    );
 
     // Remove services that failed to restore (not logged in), unless it's
     // the only one left (so we still show the login screen).
@@ -107,6 +120,10 @@ class ClientManager extends ChangeNotifier {
 
     await _persistClientNames();
     notifyListeners();
+    debugPrint(
+      '[Kohera] ClientManager.init total: '
+      '${DateTime.now().difference(totalStart).inMilliseconds}ms',
+    );
   }
 
   // ── Account Switching ─────────────────────────────────────────
