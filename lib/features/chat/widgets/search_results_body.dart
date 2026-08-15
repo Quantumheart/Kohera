@@ -65,11 +65,11 @@ class _SearchResultsBodyState extends State<SearchResultsBody> {
         }
         flatIndex++;
       }
-      unawaited(_scrollController.animateTo(
+      _scrollController.animateTo(
         flatIndex * 72.0, // approximate tile height
         duration: const Duration(milliseconds: 100),
         curve: Curves.easeInOut,
-      ));
+      );
     }
     setState(() {});
   }
