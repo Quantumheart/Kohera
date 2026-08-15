@@ -3,6 +3,12 @@ include: package:very_good_analysis/analysis_options.yaml
 analyzer:
   exclude:
     - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
   errors:
     public_member_api_docs: ignore
     conditional_uri_does_not_exist: ignore
