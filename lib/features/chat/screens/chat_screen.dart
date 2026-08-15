@@ -154,6 +154,12 @@ class _ChatScreenState extends State<ChatScreen>
     _initControllers();
     _composeFocusNode.addListener(_onComposeFocusChanged);
     unawaited(_timelineController.init());
+    // Lazily index this room's history for encrypted-room search.
+    // This runs in the background and does not block the UI.
+    final room = matrix.client.getRoomById(widget.roomId);
+    if (room != null && room.encrypted) {
+      unawaited(matrix.messageIndexer?.ensureRoomIndexed(room));
+    }
     if (kIsWeb) {
       initWebPasteListener();
       _webPasteSub = webPasteImageStream.listen(_onWebPasteImage);
@@ -270,6 +276,7 @@ class _ChatScreenState extends State<ChatScreen>
     final indexerDb = matrix.messageIndexer?.database;
     return ChatSearchController(
       roomId: widget.roomId,
+      messageIndexer: matrix.messageIndexer,
       searchService: RoomSearchService(
         client: matrix.client,
         getTimeline: () => _timelineController.timeline,
@@ -888,6 +895,12 @@ class _ChatScreenState extends State<ChatScreen>
   void _openSearch() {
     _search.open();
     _searchCtrl.clear();
+    // Ensure the room's encrypted history is indexed for search.
+    final matrix = context.read<MatrixService>();
+    final room = matrix.client.getRoomById(widget.roomId);
+    if (room != null && room.encrypted) {
+      unawaited(matrix.messageIndexer?.ensureRoomIndexed(room));
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _searchFocusNode.requestFocus();
     });

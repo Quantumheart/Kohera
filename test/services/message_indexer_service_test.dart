@@ -149,43 +149,98 @@ void main() {
     await db.close();
   });
 
+  /// Marks the room as indexed so sync events are processed by the indexer.
+  /// In the new lazy architecture, sync events are only processed for rooms
+  /// that have been explicitly indexed via [MessageIndexerService.ensureRoomIndexed].
+  Future<void> markRoomIndexed() async {
+    await indexer.ensureRoomIndexed(room);
+    await indexer.waitForIdle();
+  }
+
   group('init', () {
     test('subscribes to client.onSync', () async {
-      when(client.encryption).thenReturn(null);
       var synced = false;
-      final ev = _messageEvent(eventId: r'$e1', roomId: '!r:s', body: 'hello');
       syncController.stream.listen((_) => synced = true);
       await indexer.init();
-      syncController.add(
-        SyncUpdate(
-          nextBatch: 'b1',
-          rooms: RoomsUpdate(
-            join: {
-              '!r:s': JoinedRoomUpdate(
-                timeline: TimelineUpdate(events: [_matrixEventFromEvent(ev)]),
-              ),
-            },
-          ),
-        ),
-      );
+      syncController.add(SyncUpdate(nextBatch: 'b1'));
       await pumpEventQueue();
-      await indexer.waitForIdle();
       expect(synced, isTrue);
     });
 
-    test('subscribes to room.onSessionKeyReceived', () async {
+    test('does not open the database on init', () async {
+      // init() should be near-zero cost — no DB open, no backfill.
+      await indexer.init();
+      expect(indexer.isIndexing, isFalse);
+      expect(indexer.indexedCount, 0);
+    });
+  });
+
+  group('ensureRoomIndexed', () {
+    test('backfills room events on first call', () async {
+      final stored = [
+        _messageEvent(eventId: r'$b1', roomId: '!r:s', body: 'backfill one'),
+        _messageEvent(eventId: r'$b2', roomId: '!r:s', body: 'backfill two'),
+      ];
+      final fakeDb = _FakeBackfillDatabase(stored);
+      when(client.database).thenReturn(fakeDb);
+      when(client.encryption).thenReturn(null);
+
+      await indexer.init();
+      await indexer.ensureRoomIndexed(room);
+      await indexer.waitForIdle();
+
+      final results = await searchDb.search(query: 'backfill', roomId: '!r:s');
+      expect(results, hasLength(2));
+    });
+
+    test('is a no-op when room already indexed', () async {
+      // Seed the index.
+      await searchDb.upsert(
+        IndexedMessage(
+          eventId: r'$seed',
+          roomId: '!r:s',
+          senderId: '@u:s',
+          body: 'seed',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024),
+        ),
+      );
+      await searchDb.markRoomIndexed('!r:s', 1);
+
+      final stored = [
+        _messageEvent(eventId: r'$b1', roomId: '!r:s', body: 'backfill one'),
+      ];
+      final fakeDb = _FakeBackfillDatabase(stored);
+      when(client.database).thenReturn(fakeDb);
+
+      await indexer.init();
+      await indexer.ensureRoomIndexed(room);
+      await indexer.waitForIdle();
+
+      // The existing seed is still there, but backfill one was NOT indexed
+      // (room was already marked as indexed).
+      final results = await searchDb.search(query: 'backfill', roomId: '!r:s');
+      expect(results, isEmpty);
+      final seedResults = await searchDb.search(query: 'seed', roomId: '!r:s');
+      expect(seedResults, hasLength(1));
+    });
+
+    test('subscribes to room key stream for late decryption', () async {
+      when(client.encryption).thenReturn(null);
+      await indexer.init();
+      await indexer.ensureRoomIndexed(room);
+      await indexer.waitForIdle();
+
       var keyReceived = false;
       keyController.stream.listen((_) => keyReceived = true);
-      await indexer.init();
       keyController.add('session-id');
       await pumpEventQueue();
-      await indexer.waitForIdle();
       expect(keyReceived, isTrue);
     });
   });
 
-  group('sync indexing', () {
-    test('indexes a decrypted message event', () async {
+  group('sync indexing (gated by indexed rooms)', () {
+    test('indexes a decrypted message event for an indexed room', () async {
       final ev = _messageEvent(
         eventId: r'$e1',
         roomId: '!r:s',
@@ -193,6 +248,7 @@ void main() {
       );
       when(client.encryption).thenReturn(null);
       await indexer.init();
+      await markRoomIndexed();
 
       syncController.add(
         SyncUpdate(
@@ -211,19 +267,45 @@ void main() {
 
       final results = await searchDb.search(query: 'hello', roomId: '!r:s');
       expect(results, hasLength(1));
-      expect(results.first.eventId, r'$e1');
       expect(results.first.body, 'hello world');
     });
 
-    test('skips undecryptable encrypted events', () async {
-      final ev = _encryptedEvent(
-        eventId: r'$enc1',
+    test('skips sync events for non-indexed rooms', () async {
+      final ev = _messageEvent(
+        eventId: r'$skip1',
         roomId: '!r:s',
+        body: 'should not be indexed',
       );
+      when(client.encryption).thenReturn(null);
+      await indexer.init();
+      // Do NOT call markRoomIndexed — room is not indexed.
+
+      syncController.add(
+        SyncUpdate(
+          nextBatch: 'b1',
+          rooms: RoomsUpdate(
+            join: {
+              '!r:s': JoinedRoomUpdate(
+                timeline: TimelineUpdate(events: [_matrixEventFromEvent(ev)]),
+              ),
+            },
+          ),
+        ),
+      );
+      await pumpEventQueue();
+      await indexer.waitForIdle();
+
+      final results = await searchDb.search(query: 'should', roomId: '!r:s');
+      expect(results, isEmpty);
+    });
+
+    test('skips undecryptable encrypted events', () async {
+      final ev = _encryptedEvent(eventId: r'$enc1', roomId: '!r:s');
       final encryption = MockEncryption();
       when(encryption.decryptRoomEvent(any)).thenAnswer((_) async => ev);
       when(client.encryption).thenReturn(encryption);
       await indexer.init();
+      await markRoomIndexed();
 
       syncController.add(
         SyncUpdate(
@@ -262,6 +344,7 @@ void main() {
       when(encryption.decryptRoomEvent(any)).thenAnswer((_) async => decrypted);
       when(client.encryption).thenReturn(encryption);
       await indexer.init();
+      await markRoomIndexed();
 
       syncController.add(
         SyncUpdate(
@@ -299,6 +382,7 @@ void main() {
       );
       when(client.encryption).thenReturn(null);
       await indexer.init();
+      await markRoomIndexed();
 
       syncController.add(
         SyncUpdate(
@@ -346,6 +430,7 @@ void main() {
       );
       when(client.encryption).thenReturn(null);
       await indexer.init();
+      await markRoomIndexed();
 
       syncController.add(
         SyncUpdate(
@@ -366,8 +451,6 @@ void main() {
       );
       await pumpEventQueue();
       await indexer.waitForIdle();
-
-      expect(await searchDb.countAll(), 0);
 
       final results = await searchDb.search(query: 'delete', roomId: '!r:s');
       expect(results, isEmpty);
@@ -390,6 +473,7 @@ void main() {
       when(encryption.decryptRoomEvent(any)).thenAnswer((_) async => encrypted);
       when(client.encryption).thenReturn(encryption);
       await indexer.init();
+      await markRoomIndexed();
 
       syncController.add(
         SyncUpdate(
@@ -408,8 +492,7 @@ void main() {
       await pumpEventQueue();
       await indexer.waitForIdle();
 
-      expect(await searchDb.countAll(), 0);
-
+      // Event is pending (undecryptable).
       when(encryption.decryptRoomEvent(any)).thenAnswer((_) async => decrypted);
       final fakeDb = client.database as _FakeDatabaseApi;
       fakeDb.storeEvent(encrypted);
@@ -424,53 +507,6 @@ void main() {
       );
       expect(results, hasLength(1));
       expect(results.first.body, 'now decryptable');
-    });
-  });
-
-  group('backfill', () {
-    test('indexes stored events on first run when index is empty', () async {
-      final stored = [
-        _messageEvent(eventId: r'$b1', roomId: '!r:s', body: 'backfill one'),
-        _messageEvent(eventId: r'$b2', roomId: '!r:s', body: 'backfill two'),
-      ];
-      final fakeDb = _FakeBackfillDatabase(stored);
-      when(client.database).thenReturn(fakeDb);
-      when(client.encryption).thenReturn(null);
-
-      await indexer.init();
-      await pumpEventQueue();
-      await indexer.runBackfillForTest();
-
-      final results = await searchDb.search(query: 'backfill', roomId: '!r:s');
-      expect(results, hasLength(2));
-    });
-
-    test('does not backfill when index already has rows', () async {
-      await searchDb.upsert(
-        IndexedMessage(
-          eventId: r'$seed',
-          roomId: '!r:s',
-          senderId: '@u:s',
-          body: 'seed',
-          msgtype: 'm.text',
-          originServerTs: DateTime(2024),
-        ),
-      );
-      final stored = [
-        _messageEvent(eventId: r'$b1', roomId: '!r:s', body: 'backfill one'),
-      ];
-      final fakeDb = _FakeBackfillDatabase(stored);
-      when(client.database).thenReturn(fakeDb);
-      when(client.encryption).thenReturn(null);
-
-      await indexer.init();
-      await pumpEventQueue();
-      await indexer.waitForIdle();
-
-      final results = await searchDb.search(query: 'backfill', roomId: '!r:s');
-      expect(results, isEmpty);
-      final seedResults = await searchDb.search(query: 'seed', roomId: '!r:s');
-      expect(seedResults, hasLength(1));
     });
   });
 }

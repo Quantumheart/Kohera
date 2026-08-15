@@ -1,16 +1,19 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:kohera/features/chat/models/room_search_result.dart';
+import 'package:kohera/features/chat/services/message_indexer_service.dart';
 import 'package:kohera/features/chat/services/room_search_service.dart';
 
 class ChatSearchController extends ChangeNotifier {
   ChatSearchController({
     required this.roomId,
     required this.searchService,
+    this.messageIndexer,
   });
 
   final String roomId;
   final RoomSearchService searchService;
+  final MessageIndexerService? messageIndexer;
 
   // ── Constants ──────────────────────────────────────────────
   static const searchBatchLimit = 50;
@@ -39,6 +42,11 @@ class ChatSearchController extends ChangeNotifier {
   bool _hasLocalIndex = false;
   bool get hasLocalIndex => _hasLocalIndex;
 
+  /// `true` when the local FTS5 index for this room is still being built
+  /// (background backfill in progress). The UI shows an "indexing…" hint.
+  bool _isIndexingRoom = false;
+  bool get isIndexingRoom => _isIndexingRoom;
+
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
@@ -65,6 +73,8 @@ class ChatSearchController extends ChangeNotifier {
 
   void open() {
     _isSearching = true;
+    messageIndexer?.addListener(_onIndexerChanged);
+    _updateIndexingState();
     _results = [];
     _nextBatch = null;
     _count = null;
@@ -78,6 +88,7 @@ class ChatSearchController extends ChangeNotifier {
   }
 
   void close() {
+    messageIndexer?.removeListener(_onIndexerChanged);
     _debounceTimer?.cancel();
     _highlightTimer?.cancel();
     _highlightedEventId = null;
@@ -92,6 +103,7 @@ class ChatSearchController extends ChangeNotifier {
     _error = null;
     _query = '';
     _selectedIndex = -1;
+    _isIndexingRoom = false;
     notifyListeners();
   }
 
@@ -162,6 +174,22 @@ class ChatSearchController extends ChangeNotifier {
       if (_disposed) return;
       _isLoading = false;
       _error = 'Search failed. Please try again.';
+      notifyListeners();
+    }
+  }
+
+  void _onIndexerChanged() {
+    if (_disposed) return;
+    _updateIndexingState();
+  }
+
+  void _updateIndexingState() {
+    final indexer = messageIndexer;
+    if (indexer == null) return;
+    final wasIndexing = _isIndexingRoom;
+    _isIndexingRoom = indexer.isIndexing &&
+        indexer.indexingProgressFor(roomId) != null;
+    if (wasIndexing != _isIndexingRoom) {
       notifyListeners();
     }
   }
