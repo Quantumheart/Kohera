@@ -2,10 +2,8 @@
 
 import 'dart:async';
 
-import 'package:kohera/core/backend/dto/dto.dart';
 import 'package:kohera/core/backend/dto/account_dto.dart';
 import 'package:kohera/core/backend/dto/event_dto.dart';
-import 'package:kohera/core/backend/dto/room_dto.dart';
 import 'package:kohera/core/backend/dto/room_dto.dart';
 import 'package:kohera/core/backend/transport/protocol.dart';
 

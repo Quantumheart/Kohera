@@ -1,6 +1,5 @@
 // coverage:ignore-file
 
-import 'package:matrix/matrix.dart';
 
 // ── DTO base ──────────────────────────────────────────────────────
 //
