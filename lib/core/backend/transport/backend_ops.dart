@@ -70,3 +70,13 @@ abstract final class BackendOp {
   // ── Sync status ───────────────────────────────────────────────
   static const syncStatus = 'sync.status';
 }
+
+/// Centralized event-name constants for [BackendEvent]s pushed from the
+/// worker to the UI.
+abstract final class BackendEventName {
+  static const roomsListUpdates = 'rooms.listUpdates';
+  static const timelineNewEvents = 'timeline.newEvents';
+  static const accountsLoginStateChanged = 'accounts.loginStateChanged';
+  static const e2eeKeyVerificationRequest = 'e2ee.keyVerificationRequest';
+  static const error = 'error';
+}

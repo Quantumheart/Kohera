@@ -5,19 +5,22 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_vodozemac/flutter_vodozemac.dart' as vod;
 import 'package:kohera/core/backend/dto/account_dto.dart';
+import 'package:kohera/core/backend/dto/device_key_dto.dart';
 import 'package:kohera/core/backend/dto/event_dto.dart';
 import 'package:kohera/core/backend/dto/member_dto.dart';
 import 'package:kohera/core/backend/dto/room_dto.dart';
 import 'package:kohera/core/backend/dto/user_dto.dart';
+import 'package:kohera/core/backend/dto/verification_dto.dart';
 import 'package:kohera/core/backend/ports/worker_handler.dart';
+import 'package:kohera/core/backend/transport/backend_ops.dart';
 import 'package:kohera/core/backend/transport/protocol.dart';
+import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 // ── MatrixSdkWorkerHandler ────────────────────────────────────────
 //
 // Runs the real matrix SDK on the worker isolate.  Mirrors the lifecycle
-// proven in the spike (docs/spike-worker-isolate.md):
 //   vod.init → databaseFactoryFfi → MatrixSdkDatabase.init → Client →
 //   init(waitForFirstSync: false) → backgroundSync = true.
 //
@@ -40,6 +43,8 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
   final Map<String, StreamSubscription<SyncUpdate>> _timelineSyncSubs = {};
   final Map<String, Timeline> _timelines = {};
   bool _initialized = false;
+  bool _syncing = false;
+  StreamSubscription<KeyVerification>? _keyVerificationSub;
 
   // ── Lifecycle ──────────────────────────────────────────────────
 
@@ -74,6 +79,7 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
 
     debugPrint('[Kohera] Worker: starting background sync');
     _client!.backgroundSync = true;
+    _syncing = true;
   }
 
   // ── WorkerHandler ─────────────────────────────────────────────
@@ -83,107 +89,145 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
     await init();
 
     switch (call.op) {
-      case 'accounts.list':
+      case BackendOp.accountsList:
         return BackendResult.ok({
           'accounts': [serializeAccount()],
         });
 
-      case 'rooms.list':
+      case BackendOp.roomsList:
         return BackendResult.ok({
           'rooms': serializeRooms(),
         });
 
-      case 'subscribe.rooms.listUpdates':
+      case BackendOp.subscribeRoomsListUpdates:
         _subscribeRoomListUpdates(call, emit);
         return const BackendResult.ok({});
 
-      case 'timeline.fetch':
+      case BackendOp.timelineFetch:
         return _handleTimelineFetch(call);
 
-      case 'timeline.paginate':
+      case BackendOp.timelinePaginate:
         return _handleTimelinePaginate(call);
 
-      case 'subscribe.timeline.newEvents':
+      case BackendOp.subscribeTimelineNewEvents:
         _subscribeTimelineUpdates(call, emit);
         return const BackendResult.ok({});
 
-      case 'roomMgmt.leave':
+      case BackendOp.roomMgmtLeave:
         return _handleRoomMgmtLeave(call);
 
-      case 'roomMgmt.join':
+      case BackendOp.roomMgmtJoin:
         return _handleRoomMgmtJoin(call);
 
-      case 'roomMgmt.invite':
+      case BackendOp.roomMgmtInvite:
         return _handleRoomMgmtInvite(call);
 
-      case 'roomMgmt.kick':
+      case BackendOp.roomMgmtKick:
         return _handleRoomMgmtKick(call);
 
-      case 'roomMgmt.ban':
+      case BackendOp.roomMgmtBan:
         return _handleRoomMgmtBan(call);
 
-      case 'roomMgmt.unban':
+      case BackendOp.roomMgmtUnban:
         return _handleRoomMgmtUnban(call);
 
-      case 'roomMgmt.setName':
+      case BackendOp.roomMgmtSetName:
         return _handleRoomMgmtSetName(call);
 
-      case 'roomMgmt.setTopic':
+      case BackendOp.roomMgmtSetTopic:
         return _handleRoomMgmtSetTopic(call);
 
-      case 'roomMgmt.setAvatar':
+      case BackendOp.roomMgmtSetAvatar:
         return _handleRoomMgmtSetAvatar(call);
 
-      case 'rooms.create':
+      case BackendOp.roomsCreate:
         return _handleRoomsCreate(call);
 
-      case 'roomState.get':
+      case BackendOp.roomStateGet:
         return _handleRoomStateGet(call);
 
-      case 'roomState.set':
+      case BackendOp.roomStateSet:
         return _handleRoomStateSet(call);
 
-      case 'roomState.canChange':
+      case BackendOp.roomStateCanChange:
         return _handleRoomStateCanChange(call);
 
-      case 'roomState.getPowerLevel':
+      case BackendOp.roomStateGetPowerLevel:
         return _handleRoomStateGetPowerLevel(call);
 
-      case 'members.get':
+      case BackendOp.membersGet:
         return _handleMembersGet(call);
 
-      case 'members.getUser':
+      case BackendOp.membersGetUser:
         return _handleMembersGetUser(call);
 
-      case 'members.search':
+      case BackendOp.membersSearch:
         return _handleMembersSearch(call);
 
-      case 'message.send':
+      case BackendOp.messageSend:
         return _handleMessageSend(call);
 
-      case 'message.sendText':
+      case BackendOp.messageSendText:
         return _handleMessageSendText(call);
 
-      case 'message.react':
+      case BackendOp.messageReact:
         return _handleMessageReact(call);
 
-      case 'message.redact':
+      case BackendOp.messageRedact:
         return _handleMessageRedact(call);
 
-      case 'message.report':
+      case BackendOp.messageReport:
         return _handleMessageReport(call);
 
-      case 'message.sendFile':
+      case BackendOp.messageSendFile:
         return _handleMessageSendFile(call);
 
-      case 'read.setMarker':
+      case BackendOp.readSetMarker:
         return _handleReadSetMarker(call);
 
-      case 'read.setReceipt':
+      case BackendOp.readSetReceipt:
         return _handleReadSetReceipt(call);
 
-      case 'read.getReceipts':
+      case BackendOp.readGetReceipts:
         return _handleReadGetReceipts(call);
+
+      case BackendOp.e2eeEncryptionEnabled:
+        final roomId = call.args['roomId'] as String?;
+        final room = roomId == null ? null : _client?.getRoomById(roomId);
+        return BackendResult.ok({'enabled': room?.encrypted ?? false});
+
+      case BackendOp.e2eeDeviceKeys:
+        return _handleDeviceKeys(call);
+
+      case BackendOp.e2eeVerifyDevice:
+        return _handleVerifyDevice(call);
+
+      case BackendOp.e2eeStartVerification:
+        return _handleStartVerification(call);
+
+      case BackendOp.e2eeCrossSigningEnabled:
+        return BackendResult.ok({
+          'enabled': _client?.encryption?.crossSigning.enabled ?? false,
+        });
+
+      case BackendOp.e2eeCrossSigningIsCached:
+        return _handleCrossSigningIsCached(call);
+
+      case BackendOp.e2eeCrossSigningSelfSign:
+        return _handleCrossSigningSelfSign(call);
+
+      case BackendOp.e2eeBootstrap:
+        return _handleBootstrap(call);
+
+      case BackendOp.e2eeKeyBackupUnlock:
+        return _handleKeyBackupUnlock(call);
+
+      case BackendOp.subscribeE2eeKeyVerificationRequest:
+        _subscribeKeyVerificationRequests(call, emit);
+        return const BackendResult.ok({});
+
+      case BackendOp.syncStatus:
+        return BackendResult.ok({'syncing': _syncing});
 
       default:
         return BackendResult.error(
@@ -197,6 +241,8 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
     debugPrint('[Kohera] Worker: disposing');
     await _syncSub?.cancel();
     _syncSub = null;
+    await _keyVerificationSub?.cancel();
+    _keyVerificationSub = null;
     for (final sub in _timelineSyncSubs.values) {
       await sub.cancel();
     }
@@ -234,7 +280,7 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
     unawaited(_syncSub?.cancel());
     _syncSub = _client!.onSync.stream.listen((_) {
       emit(BackendEvent(
-        name: 'rooms.listUpdates',
+        name: BackendEventName.roomsListUpdates,
         payload: {
           'accountId': accountId,
           'rooms': serializeRooms(),
@@ -302,7 +348,7 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
       final timeline = _timelines[roomId];
       if (room == null || timeline == null) return;
       emit(BackendEvent(
-        name: 'timeline.newEvents',
+        name: BackendEventName.timelineNewEvents,
         payload: {
           'accountId': accountId,
           'roomId': roomId,
@@ -641,5 +687,110 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
     final room = _roomOf(call);
     if (room == null) return _roomNotFound(roomId);
     return BackendResult.ok({'receipts': room.receiptState.toJson()});
+  }
+
+  // ── E2EE ─────────────────────────────────────────────────────
+
+  Future<BackendResult> _handleDeviceKeys(BackendCall call) async {
+    final userId = call.args['userId'] as String;
+    final client = _client;
+    if (client == null) return _notConnected();
+    await client.updateUserDeviceKeys();
+    final devices = client.userDeviceKeys[userId]?.deviceKeys.values.toList() ??
+        const <DeviceKeys>[];
+    return BackendResult.ok({
+      'devices': devices.map((dk) => DeviceKeyDto.fromSdk(dk).toMap()).toList(),
+    });
+  }
+
+  Future<BackendResult> _handleVerifyDevice(BackendCall call) async {
+    final userId = call.args['userId'] as String;
+    final deviceId = call.args['deviceId'] as String;
+    final client = _client;
+    if (client == null) return _notConnected();
+    final deviceKeys = client.userDeviceKeys[userId]?.deviceKeys[deviceId];
+    if (deviceKeys == null) {
+      return const BackendResult.error(
+        BackendError(code: 'device_not_found', message: 'Device not found'),
+      );
+    }
+    await deviceKeys.setVerified(true);
+    return const BackendResult.ok({});
+  }
+
+  Future<BackendResult> _handleStartVerification(BackendCall call) async {
+    final userId = call.args['userId'] as String;
+    final deviceId = call.args['deviceId'] as String?;
+    final client = _client;
+    final encryption = client?.encryption;
+    if (client == null || encryption == null) return _notConnected();
+
+    final verification = KeyVerification(
+      encryption: encryption,
+      userId: userId,
+      deviceId: deviceId ?? '*',
+    );
+    await verification.start();
+    encryption.keyVerificationManager.addRequest(verification);
+    return BackendResult.ok({
+      'verification': VerificationDto.fromSdk(verification).toMap(),
+    });
+  }
+
+  Future<BackendResult> _handleCrossSigningIsCached(BackendCall call) async {
+    final encryption = _client?.encryption;
+    if (encryption == null) return _notConnected();
+    return BackendResult.ok({
+      'isCached': await encryption.crossSigning.isCached(),
+    });
+  }
+
+  Future<BackendResult> _handleCrossSigningSelfSign(BackendCall call) async {
+    final recoveryKey = call.args['recoveryKey'] as String?;
+    final encryption = _client?.encryption;
+    if (encryption == null) return _notConnected();
+    await encryption.crossSigning.selfSign(recoveryKey: recoveryKey);
+    return const BackendResult.ok({});
+  }
+
+  Future<BackendResult> _handleBootstrap(BackendCall call) async {
+    final encryption = _client?.encryption;
+    if (encryption == null) return _notConnected();
+    // Coarse trigger: kicks off the SDK's interactive bootstrap state
+    // machine (askNewSsss/askSetupCrossSigning/etc.). Driving the individual
+    // states remains a client-side UI concern (Phase 2 widget migration).
+    encryption.bootstrap();
+    return const BackendResult.ok({});
+  }
+
+  Future<BackendResult> _handleKeyBackupUnlock(BackendCall call) async {
+    final recoveryKey = call.args['recoveryKey'] as String;
+    final client = _client;
+    if (client == null) return _notConnected();
+    try {
+      await client.restoreCryptoIdentity(recoveryKey);
+      return const BackendResult.ok({'unlocked': true});
+    } catch (e) {
+      debugPrint('[Kohera] Worker: keyBackup.unlock failed: $e');
+      return const BackendResult.ok({'unlocked': false});
+    }
+  }
+
+  void _subscribeKeyVerificationRequests(BackendCall call, EmitEvent emit) {
+    final client = _client;
+    if (client == null) return;
+    final accountId = call.args['accountId'] as String? ?? clientName;
+
+    unawaited(_keyVerificationSub?.cancel());
+    _keyVerificationSub =
+        client.onKeyVerificationRequest.stream.listen((verification) {
+      emit(BackendEvent(
+        name: BackendEventName.e2eeKeyVerificationRequest,
+        payload: {
+          'accountId': accountId,
+          'verification': VerificationDto.fromSdk(verification).toMap(),
+        },
+      ));
+    });
   }
 }

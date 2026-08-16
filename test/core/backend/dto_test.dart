@@ -97,4 +97,69 @@ void main() {
       expect(restored.isLoggedIn, false);
     });
   });
+
+  group('DeviceKeyDto', () {
+    test('toMap / fromMap round-trip', () {
+      const dto = DeviceKeyDto(
+        userId: '@alice:server',
+        deviceId: 'DEV1',
+        deviceDisplayName: 'Alice Laptop',
+        keys: {'ed25519:DEV1': 'abc123'},
+        verified: true,
+        blocked: false,
+        ed25519Key: 'ed25519-abc',
+        curve25519Key: 'curve25519-def',
+      );
+
+      final restored = DeviceKeyDto.fromMap(dto.toMap());
+
+      expect(restored.userId, '@alice:server');
+      expect(restored.deviceId, 'DEV1');
+      expect(restored.verified, true);
+      expect(restored.blocked, false);
+      expect(restored.ed25519Key, 'ed25519-abc');
+      expect(restored.curve25519Key, 'curve25519-def');
+      expect(restored.keys['ed25519:DEV1'], 'abc123');
+    });
+
+    test('handles null keys', () {
+      const dto = DeviceKeyDto(
+        userId: '@bob:server',
+        deviceId: 'DEV2',
+        verified: false,
+        blocked: true,
+      );
+
+      final restored = DeviceKeyDto.fromMap(dto.toMap());
+      expect(restored.ed25519Key, isNull);
+      expect(restored.curve25519Key, isNull);
+      expect(restored.deviceDisplayName, isNull);
+    });
+  });
+
+  group('VerificationDto', () {
+    test('toMap / fromMap round-trip', () {
+      const dto = VerificationDto(
+        state: 'verifying',
+        method: 'emoji',
+        deviceId: 'DEV1',
+      );
+
+      final restored = VerificationDto.fromMap(dto.toMap());
+
+      expect(restored.state, 'verifying');
+      expect(restored.method, 'emoji');
+      expect(restored.deviceId, 'DEV1');
+    });
+
+    test('handles null method and deviceId', () {
+      const dto = VerificationDto(
+        state: 'error',
+      );
+
+      final restored = VerificationDto.fromMap(dto.toMap());
+      expect(restored.method, isNull);
+      expect(restored.deviceId, isNull);
+    });
+  });
 }
