@@ -34,7 +34,7 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
   Client? _client;
   Database? _db;
   StreamSubscription<SyncUpdate>? _syncSub;
-  StreamSubscription<SyncUpdate>? _timelineSyncSub;
+  final Map<String, StreamSubscription<SyncUpdate>> _timelineSyncSubs = {};
   final Map<String, Timeline> _timelines = {};
   bool _initialized = false;
 
@@ -116,8 +116,10 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
     debugPrint('[Kohera] Worker: disposing');
     await _syncSub?.cancel();
     _syncSub = null;
-    await _timelineSyncSub?.cancel();
-    _timelineSyncSub = null;
+    for (final sub in _timelineSyncSubs.values) {
+      await sub.cancel();
+    }
+    _timelineSyncSubs.clear();
     _timelines.clear();
     if (_client != null) {
       _client!.backgroundSync = false;
@@ -212,8 +214,9 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
     final roomId = call.args['roomId'] as String;
     final accountId = call.args['accountId'] as String? ?? clientName;
 
-    unawaited(_timelineSyncSub?.cancel());
-    _timelineSyncSub = _client!.onSync.stream.listen((_) {
+    final existing = _timelineSyncSubs.remove(roomId);
+    unawaited(existing?.cancel());
+    _timelineSyncSubs[roomId] = _client!.onSync.stream.listen((_) {
       final room = _client?.getRoomById(roomId);
       final timeline = _timelines[roomId];
       if (room == null || timeline == null) return;
