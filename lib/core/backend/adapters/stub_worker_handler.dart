@@ -23,6 +23,18 @@ class StubWorkerHandler implements WorkerHandler {
         return const BackendResult.ok({'events': <Map<String, dynamic>>[]});
       case 'subscribe.timeline.newEvents':
         return const BackendResult.ok({});
+      case 'message.send':
+      case 'message.sendText':
+      case 'message.react':
+      case 'message.redact':
+      case 'message.sendFile':
+        return const BackendResult.ok({'eventId': null});
+      case 'message.report':
+      case 'read.setMarker':
+      case 'read.setReceipt':
+        return const BackendResult.ok({});
+      case 'read.getReceipts':
+        return const BackendResult.ok({'receipts': <String, dynamic>{}});
       default:
         return BackendResult.error(
           BackendError(code: 'unknown_op', message: 'Unknown op: ${call.op}'),

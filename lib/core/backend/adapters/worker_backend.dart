@@ -251,6 +251,139 @@ class WorkerBackend implements MatrixBackend {
           .toList() ??
       const <EventDto>[];
 
+  // ── Messaging ─────────────────────────────────────────────────
+
+  @override
+  Future<String?> sendMessage(
+    String accountId,
+    String roomId,
+    Map<String, dynamic> content,
+  ) async {
+    final result = await _call('message.send', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'content': content,
+    });
+    return result['eventId'] as String?;
+  }
+
+  @override
+  Future<String?> sendText(String accountId, String roomId, String text) async {
+    final result = await _call('message.sendText', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'text': text,
+    });
+    return result['eventId'] as String?;
+  }
+
+  @override
+  Future<String?> sendReaction(
+    String accountId,
+    String roomId,
+    String eventId,
+    String key,
+  ) async {
+    final result = await _call('message.react', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'eventId': eventId,
+      'key': key,
+    });
+    return result['eventId'] as String?;
+  }
+
+  @override
+  Future<String?> redactEvent(
+    String accountId,
+    String roomId,
+    String eventId, {
+    String? reason,
+  }) async {
+    final result = await _call('message.redact', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'eventId': eventId,
+      'reason': ?reason,
+    });
+    return result['eventId'] as String?;
+  }
+
+  @override
+  Future<void> reportEvent(
+    String accountId,
+    String roomId,
+    String eventId, {
+    String? reason,
+    int? score,
+  }) async {
+    await _call('message.report', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'eventId': eventId,
+      'reason': ?reason,
+      'score': ?score,
+    });
+  }
+
+  @override
+  Future<String?> sendFile(
+    String accountId,
+    String roomId,
+    Uint8List bytes,
+    String name, {
+    String? mimeType,
+  }) async {
+    final result = await _call('message.sendFile', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'bytes': bytes,
+      'name': name,
+      'mimeType': ?mimeType,
+    });
+    return result['eventId'] as String?;
+  }
+
+  // ── Read state ────────────────────────────────────────────────
+
+  @override
+  Future<void> setReadMarker(
+    String accountId,
+    String roomId,
+    String eventId,
+  ) async {
+    await _call('read.setMarker', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'eventId': eventId,
+    });
+  }
+
+  @override
+  Future<void> setReadReceipt(
+    String accountId,
+    String roomId,
+    String eventId,
+  ) async {
+    await _call('read.setReceipt', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'eventId': eventId,
+    });
+  }
+
+  @override
+  Future<Map<String, dynamic>> getReceipts(
+    String accountId,
+    String roomId,
+  ) async {
+    final result = await _call('read.getReceipts', {
+      'accountId': accountId,
+      'roomId': roomId,
+    });
+    return (result['receipts'] as Map<String, dynamic>?) ?? const {};
+  }
+
   @override
   Stream<String> get onLoginStateChanged => _loginStateController.stream;
 

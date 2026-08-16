@@ -1,6 +1,7 @@
 // coverage:ignore-file
 
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:kohera/core/backend/dto/account_dto.dart';
 import 'package:kohera/core/backend/dto/event_dto.dart';
@@ -62,6 +63,75 @@ class InProcessBackend implements MatrixBackend {
   @override
   Stream<List<EventDto>> timelineUpdates(String accountId, String roomId) =>
       const Stream<List<EventDto>>.empty();
+
+  // ── Messaging (no-op) ─────────────────────────────────────────
+
+  @override
+  Future<String?> sendMessage(
+    String accountId,
+    String roomId,
+    Map<String, dynamic> content,
+  ) async => null;
+
+  @override
+  Future<String?> sendText(String accountId, String roomId, String text) async =>
+      null;
+
+  @override
+  Future<String?> sendReaction(
+    String accountId,
+    String roomId,
+    String eventId,
+    String key,
+  ) async => null;
+
+  @override
+  Future<String?> redactEvent(
+    String accountId,
+    String roomId,
+    String eventId, {
+    String? reason,
+  }) async => null;
+
+  @override
+  Future<void> reportEvent(
+    String accountId,
+    String roomId,
+    String eventId, {
+    String? reason,
+    int? score,
+  }) async {}
+
+  @override
+  Future<String?> sendFile(
+    String accountId,
+    String roomId,
+    Uint8List bytes,
+    String name, {
+    String? mimeType,
+  }) async => null;
+
+  // ── Read state (no-op) ────────────────────────────────────────
+
+  @override
+  Future<void> setReadMarker(
+    String accountId,
+    String roomId,
+    String eventId,
+  ) async {}
+
+  @override
+  Future<void> setReadReceipt(
+    String accountId,
+    String roomId,
+    String eventId,
+  ) async {}
+
+  @override
+  Future<Map<String, dynamic>> getReceipts(
+    String accountId,
+    String roomId,
+  ) async => const <String, dynamic>{};
 
   @override
   Stream<String> get onLoginStateChanged => _loginStateController.stream;

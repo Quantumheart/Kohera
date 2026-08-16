@@ -1,6 +1,7 @@
 // coverage:ignore-file
 
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:kohera/core/backend/dto/account_dto.dart';
 import 'package:kohera/core/backend/dto/event_dto.dart';
@@ -13,8 +14,9 @@ import 'package:kohera/core/backend/transport/protocol.dart';
 //   - the real worker-backed adapter (issue #3, runs the SDK on an isolate)
 //   - an in-memory fake (for tests)
 //
-// Ops are added incrementally per child issue.  This first cut exposes only
-// the rooms-list capability (issue #4 `backend-rooms-capability`).
+// Ops are added incrementally per child issue. This cut exposes the
+// rooms-list, timeline, messaging, and read-state capabilities
+// (issues #992 foundation + #993).
 
 abstract class MatrixBackend {
   // ── Lifecycle ──────────────────────────────────────────────────
@@ -57,6 +59,72 @@ abstract class MatrixBackend {
   });
 
   Stream<List<EventDto>> timelineUpdates(String accountId, String roomId);
+
+  // ── Messaging (third capability) ──────────────────────────────
+
+  /// Sends a raw event with [content] into [roomId]. Returns the server
+  /// event id (null if the local echo could not be sent).
+  Future<String?> sendMessage(
+    String accountId,
+    String roomId,
+    Map<String, dynamic> content,
+  );
+
+  /// Sends a plain-text [text] message into [roomId]. Returns the server
+  /// event id (null if the local echo could not be sent).
+  Future<String?> sendText(String accountId, String roomId, String text);
+
+  /// Sends a reaction ([key], typically an emoji) to [eventId] in [roomId].
+  /// Returns the server event id of the reaction (null on failure).
+  Future<String?> sendReaction(
+    String accountId,
+    String roomId,
+    String eventId,
+    String key,
+  );
+
+  /// Redacts [eventId] in [roomId] with an optional [reason]. Returns the
+  /// server event id of the redaction (null on failure).
+  Future<String?> redactEvent(
+    String accountId,
+    String roomId,
+    String eventId, {
+    String? reason,
+  });
+
+  /// Reports [eventId] in [roomId] to the homeserver with an optional
+  /// [reason] and [score] (score is accepted for contract parity but ignored
+  /// by SDK 9.0.0).
+  Future<void> reportEvent(
+    String accountId,
+    String roomId,
+    String eventId, {
+    String? reason,
+    int? score,
+  });
+
+  /// Uploads [bytes] as a file named [name] (optional [mimeType]) and sends
+  /// the resulting m.file message event into [roomId]. Returns the server
+  /// event id (null on failure).
+  Future<String?> sendFile(
+    String accountId,
+    String roomId,
+    Uint8List bytes,
+    String name, {
+    String? mimeType,
+  });
+
+  // ── Read state (fourth capability) ─────────────────────────────
+
+  /// Sets the fully-read marker for [roomId] to [eventId].
+  Future<void> setReadMarker(String accountId, String roomId, String eventId);
+
+  /// Sets a public read receipt for [roomId] at [eventId].
+  Future<void> setReadReceipt(String accountId, String roomId, String eventId);
+
+  /// Returns the serialized receipt state for [roomId] (a Map suitable for
+  /// the wire — `room.receiptState.toJson()` on the worker).
+  Future<Map<String, dynamic>> getReceipts(String accountId, String roomId);
 
   // ── Streams ───────────────────────────────────────────────────
 
