@@ -4,14 +4,14 @@ import 'dart:async';
 import 'dart:isolate';
 
 import 'package:flutter/services.dart';
+import 'package:kohera/core/backend/adapters/matrix_sdk_worker_handler.dart';
 import 'package:kohera/core/backend/dto/account_dto.dart';
 import 'package:kohera/core/backend/dto/event_dto.dart';
 import 'package:kohera/core/backend/dto/room_dto.dart';
 import 'package:kohera/core/backend/ports/matrix_backend.dart';
-import 'package:kohera/core/backend/adapters/matrix_sdk_worker_handler.dart';
+import 'package:kohera/core/backend/ports/worker_handler.dart';
 import 'package:kohera/core/backend/transport/protocol.dart';
 import 'package:kohera/core/backend/transport/worker_entry.dart';
-import 'package:kohera/core/backend/ports/worker_handler.dart';
 
 // ── WorkerBackend ─────────────────────────────────────────────────
 //
