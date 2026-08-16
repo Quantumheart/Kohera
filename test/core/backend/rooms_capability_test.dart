@@ -1,9 +1,7 @@
 // coverage:ignore-file
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/backend/dto.dart';
-import 'package:kohera/core/backend/in_process_backend.dart';
-import 'package:kohera/core/backend/matrix_service_proxy.dart';
+import 'package:kohera/core/backend/backend.dart';
 import 'package:kohera/core/config/backend_config.dart';
 import 'package:kohera/shared/models/kohera_room_summary.dart';
 

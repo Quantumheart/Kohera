@@ -3,9 +3,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/backend/dto.dart';
-import 'package:kohera/core/backend/matrix_sdk_worker_handler.dart';
-import 'package:kohera/core/backend/worker_backend.dart';
+import 'package:kohera/core/backend/adapters/matrix_sdk_worker_handler.dart';
+import 'package:kohera/core/backend/backend.dart';
 
 /// Path to a copy of a real session DB for integration testing.
 /// Create it by copying the production DB:
