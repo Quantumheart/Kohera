@@ -1,8 +1,8 @@
 // coverage:ignore-file
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/backend/in_process_backend.dart';
-import 'package:kohera/core/backend/protocol.dart';
+import 'package:kohera/core/backend/adapters/in_process_backend.dart';
+import 'package:kohera/core/backend/transport/protocol.dart';
 
 void main() {
   late InProcessBackend backend;

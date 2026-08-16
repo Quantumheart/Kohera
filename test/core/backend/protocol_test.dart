@@ -3,7 +3,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/backend/protocol.dart';
+import 'package:kohera/core/backend/transport/protocol.dart';
 
 void main() {
   group('BackendCall codec', () {

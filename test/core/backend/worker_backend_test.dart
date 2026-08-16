@@ -1,10 +1,9 @@
 // coverage:ignore-file
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/backend/dto.dart';
-import 'package:kohera/core/backend/protocol.dart';
-import 'package:kohera/core/backend/stub_worker_handler.dart';
-import 'package:kohera/core/backend/worker_backend.dart';
+import 'package:kohera/core/backend/adapters/stub_worker_handler.dart';
+import 'package:kohera/core/backend/backend.dart';
+import 'package:kohera/core/backend/transport/protocol.dart';
 
 void main() {
   late WorkerBackend backend;
