@@ -17,8 +17,8 @@ import 'package:kohera/core/backend/transport/protocol.dart';
 //   - an in-memory fake (for tests)
 //
 // Ops are added incrementally per child issue. This cut exposes the
-// rooms-list, timeline, messaging, and read-state capabilities
-// (issues #992 foundation + #993).
+// rooms-list, timeline, room-management, room-state, members/users,
+// messaging, and read-state ops (issues #992 foundation + #993 + #994).
 
 abstract class MatrixBackend {
   // ── Lifecycle ──────────────────────────────────────────────────
@@ -37,7 +37,7 @@ abstract class MatrixBackend {
   /// Returns the list of known accounts.
   Future<List<AccountDto>> accountsList();
 
-  // ── Rooms list (first capability) ─────────────────────────────
+  // ── Rooms list ────────────────────────────────────────────────
 
   /// Returns a snapshot of all rooms for [accountId].
   Future<List<RoomDto>> roomsList(String accountId);
@@ -45,7 +45,7 @@ abstract class MatrixBackend {
   /// A stream that emits the updated room list whenever it changes.
   Stream<List<RoomDto>> roomListUpdates(String accountId);
 
-  // ── Timeline (second capability) ─────────────────────────────
+  // ── Timeline ──────────────────────────────────────────────────
 
   Future<List<EventDto>> fetchTimeline(
     String accountId,
@@ -62,7 +62,7 @@ abstract class MatrixBackend {
 
   Stream<List<EventDto>> timelineUpdates(String accountId, String roomId);
 
-  // ── Room management (third capability) ────────────────────────
+  // ── Room management ───────────────────────────────────────────
 
   Future<void> leaveRoom(String accountId, String roomId);
 
@@ -70,7 +70,7 @@ abstract class MatrixBackend {
 
   Future<void> inviteUser(String accountId, String roomId, String userId, {String? reason});
 
-  Future<void> kickUser(String accountId, String roomId, String userId, {String? reason});
+  Future<void> kickUser(String accountId, String roomId, String userId);
 
   Future<void> banUser(String accountId, String roomId, String userId);
 
@@ -84,7 +84,7 @@ abstract class MatrixBackend {
 
   Future<String> createRoom(String accountId, Map<String, dynamic> options);
 
-  // ── Room state (fourth capability) ────────────────────────────
+  // ── Room state ────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> getRoomState(String accountId, String roomId, String eventType, String key);
 
@@ -94,7 +94,7 @@ abstract class MatrixBackend {
 
   Future<int> getPowerLevel(String accountId, String roomId, String userId);
 
-  // ── Members & users (fifth capability) ─────────────────────────
+  // ── Members & users ───────────────────────────────────────────
 
   Future<List<MemberDto>> getJoinedMembers(String accountId, String roomId);
 
@@ -102,7 +102,7 @@ abstract class MatrixBackend {
 
   Future<List<UserDto>> searchUsers(String accountId, String term);
 
-  // ── Messaging (third capability) ──────────────────────────────
+  // ── Messaging ─────────────────────────────────────────────────
 
   /// Sends a raw event with [content] into [roomId]. Returns the server
   /// event id (null if the local echo could not be sent).
@@ -156,7 +156,7 @@ abstract class MatrixBackend {
     String? mimeType,
   });
 
-  // ── Read state (fourth capability) ─────────────────────────────
+  // ── Read state ────────────────────────────────────────────────
 
   /// Sets the fully-read marker for [roomId] to [eventId].
   Future<void> setReadMarker(String accountId, String roomId, String eventId);

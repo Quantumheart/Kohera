@@ -83,7 +83,7 @@ class InProcessBackend implements MatrixBackend {
   }) async {}
 
   @override
-  Future<void> kickUser(String accountId, String roomId, String userId, {String? reason}) async {}
+  Future<void> kickUser(String accountId, String roomId, String userId) async {}
 
   @override
   Future<void> banUser(String accountId, String roomId, String userId) async {}
