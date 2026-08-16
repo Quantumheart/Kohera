@@ -176,8 +176,6 @@ class MatrixServiceProxy extends ChangeNotifier {
 
   // ── Messaging (async send) ─────────────────────────────────────
 
-  String _accountId() => _account?.clientName ?? 'default';
-
   /// Sends a raw event with [content] into [roomId]. Returns the server
   /// event id (may be null for a local-only echo).
   Future<String?> sendMessage(String roomId, Map<String, dynamic> content) =>
