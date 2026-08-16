@@ -23,6 +23,30 @@ class StubWorkerHandler implements WorkerHandler {
         return const BackendResult.ok({'events': <Map<String, dynamic>>[]});
       case 'subscribe.timeline.newEvents':
         return const BackendResult.ok({});
+      case 'roomMgmt.leave':
+      case 'roomMgmt.join':
+      case 'roomMgmt.invite':
+      case 'roomMgmt.kick':
+      case 'roomMgmt.ban':
+      case 'roomMgmt.unban':
+      case 'roomMgmt.setName':
+      case 'roomMgmt.setTopic':
+      case 'roomMgmt.setAvatar':
+      case 'rooms.create':
+      case 'roomState.set':
+        return const BackendResult.ok({});
+      case 'roomState.get':
+        return const BackendResult.ok({'content': <String, dynamic>{}});
+      case 'roomState.canChange':
+        return const BackendResult.ok({'canChange': false});
+      case 'roomState.getPowerLevel':
+        return const BackendResult.ok({'powerLevel': 0});
+      case 'members.get':
+        return const BackendResult.ok({'members': <Map<String, dynamic>>[]});
+      case 'members.getUser':
+        return const BackendResult.ok({'user': <String, dynamic>{}});
+      case 'members.search':
+        return const BackendResult.ok({'users': <Map<String, dynamic>>[]});
       case 'message.send':
       case 'message.sendText':
       case 'message.react':

@@ -5,7 +5,9 @@ import 'dart:typed_data';
 
 import 'package:kohera/core/backend/dto/account_dto.dart';
 import 'package:kohera/core/backend/dto/event_dto.dart';
+import 'package:kohera/core/backend/dto/member_dto.dart';
 import 'package:kohera/core/backend/dto/room_dto.dart';
+import 'package:kohera/core/backend/dto/user_dto.dart';
 import 'package:kohera/core/backend/transport/protocol.dart';
 
 // ── MatrixBackend (the port) ──────────────────────────────────────
@@ -59,6 +61,46 @@ abstract class MatrixBackend {
   });
 
   Stream<List<EventDto>> timelineUpdates(String accountId, String roomId);
+
+  // ── Room management (third capability) ────────────────────────
+
+  Future<void> leaveRoom(String accountId, String roomId);
+
+  Future<void> joinRoom(String accountId, String roomId);
+
+  Future<void> inviteUser(String accountId, String roomId, String userId, {String? reason});
+
+  Future<void> kickUser(String accountId, String roomId, String userId, {String? reason});
+
+  Future<void> banUser(String accountId, String roomId, String userId);
+
+  Future<void> unbanUser(String accountId, String roomId, String userId);
+
+  Future<String> setRoomName(String accountId, String roomId, String name);
+
+  Future<String> setRoomTopic(String accountId, String roomId, String topic);
+
+  Future<String> setRoomAvatar(String accountId, String roomId, Uint8List bytes, String name, {String? mimeType});
+
+  Future<String> createRoom(String accountId, Map<String, dynamic> options);
+
+  // ── Room state (fourth capability) ────────────────────────────
+
+  Future<Map<String, dynamic>> getRoomState(String accountId, String roomId, String eventType, String key);
+
+  Future<String> setRoomState(String accountId, String roomId, String eventType, String key, Map<String, dynamic> content);
+
+  Future<bool> canChangeState(String accountId, String roomId, String eventType);
+
+  Future<int> getPowerLevel(String accountId, String roomId, String userId);
+
+  // ── Members & users (fifth capability) ─────────────────────────
+
+  Future<List<MemberDto>> getJoinedMembers(String accountId, String roomId);
+
+  Future<UserDto> getUser(String accountId, String roomId, String userId);
+
+  Future<List<UserDto>> searchUsers(String accountId, String term);
 
   // ── Messaging (third capability) ──────────────────────────────
 

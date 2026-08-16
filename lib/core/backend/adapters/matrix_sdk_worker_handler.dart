@@ -6,7 +6,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_vodozemac/flutter_vodozemac.dart' as vod;
 import 'package:kohera/core/backend/dto/account_dto.dart';
 import 'package:kohera/core/backend/dto/event_dto.dart';
+import 'package:kohera/core/backend/dto/member_dto.dart';
 import 'package:kohera/core/backend/dto/room_dto.dart';
+import 'package:kohera/core/backend/dto/user_dto.dart';
 import 'package:kohera/core/backend/ports/worker_handler.dart';
 import 'package:kohera/core/backend/transport/protocol.dart';
 import 'package:matrix/matrix.dart';
@@ -104,6 +106,57 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
       case 'subscribe.timeline.newEvents':
         _subscribeTimelineUpdates(call, emit);
         return const BackendResult.ok({});
+
+      case 'roomMgmt.leave':
+        return _handleRoomMgmtLeave(call);
+
+      case 'roomMgmt.join':
+        return _handleRoomMgmtJoin(call);
+
+      case 'roomMgmt.invite':
+        return _handleRoomMgmtInvite(call);
+
+      case 'roomMgmt.kick':
+        return _handleRoomMgmtKick(call);
+
+      case 'roomMgmt.ban':
+        return _handleRoomMgmtBan(call);
+
+      case 'roomMgmt.unban':
+        return _handleRoomMgmtUnban(call);
+
+      case 'roomMgmt.setName':
+        return _handleRoomMgmtSetName(call);
+
+      case 'roomMgmt.setTopic':
+        return _handleRoomMgmtSetTopic(call);
+
+      case 'roomMgmt.setAvatar':
+        return _handleRoomMgmtSetAvatar(call);
+
+      case 'rooms.create':
+        return _handleRoomsCreate(call);
+
+      case 'roomState.get':
+        return _handleRoomStateGet(call);
+
+      case 'roomState.set':
+        return _handleRoomStateSet(call);
+
+      case 'roomState.canChange':
+        return _handleRoomStateCanChange(call);
+
+      case 'roomState.getPowerLevel':
+        return _handleRoomStateGetPowerLevel(call);
+
+      case 'members.get':
+        return _handleMembersGet(call);
+
+      case 'members.getUser':
+        return _handleMembersGetUser(call);
+
+      case 'members.search':
+        return _handleMembersSearch(call);
 
       case 'message.send':
         return _handleMessageSend(call);
@@ -257,6 +310,235 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
         },
       ));
     });
+  }
+
+  // ── Room helpers ──────────────────────────────────────────────
+
+  Room? _roomOf(BackendCall call) {
+    final roomId = call.args['roomId'] as String?;
+    if (roomId == null) return null;
+    return _client?.getRoomById(roomId);
+  }
+
+  BackendResult _roomNotFound(String roomId) => BackendResult.error(
+        BackendError(code: 'room_not_found', message: 'No room $roomId'),
+      );
+
+  // ── Room management ───────────────────────────────────────────
+
+  Future<BackendResult> _handleRoomMgmtLeave(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    await room.leave();
+    return const BackendResult.ok({});
+  }
+
+  Future<BackendResult> _handleRoomMgmtJoin(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final room = _client?.getRoomById(roomId);
+    if (room == null) {
+      return BackendResult.error(
+        BackendError(code: 'room_not_found', message: 'No room $roomId'),
+      );
+    }
+    await room.join();
+    return const BackendResult.ok({});
+  }
+
+  Future<BackendResult> _handleRoomMgmtInvite(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final userId = call.args['userId'] as String;
+    final reason = call.args['reason'] as String?;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    await room.invite(userId, reason: reason);
+    return const BackendResult.ok({});
+  }
+
+  Future<BackendResult> _handleRoomMgmtKick(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final userId = call.args['userId'] as String;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    await room.kick(userId);
+    return const BackendResult.ok({});
+  }
+
+  Future<BackendResult> _handleRoomMgmtBan(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final userId = call.args['userId'] as String;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    await room.ban(userId);
+    return const BackendResult.ok({});
+  }
+
+  Future<BackendResult> _handleRoomMgmtUnban(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final userId = call.args['userId'] as String;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    await room.unban(userId);
+    return const BackendResult.ok({});
+  }
+
+  Future<BackendResult> _handleRoomMgmtSetName(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final name = call.args['name'] as String;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    final eventId = await room.setName(name);
+    return BackendResult.ok({'eventId': eventId});
+  }
+
+  Future<BackendResult> _handleRoomMgmtSetTopic(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final topic = call.args['topic'] as String;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    final eventId = await room.setDescription(topic);
+    return BackendResult.ok({'eventId': eventId});
+  }
+
+  Future<BackendResult> _handleRoomMgmtSetAvatar(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final bytes = call.args['bytes'] as Uint8List?;
+    final name = call.args['name'] as String?;
+    final mimeType = call.args['mimeType'] as String?;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    final file = bytes == null
+        ? null
+        : MatrixFile(bytes: bytes, name: name ?? 'avatar', mimeType: mimeType);
+    final eventId = await room.setAvatar(file);
+    return BackendResult.ok({'eventId': eventId});
+  }
+
+  Future<BackendResult> _handleRoomsCreate(BackendCall call) async {
+    final options = call.args['options'] as Map<String, dynamic>;
+    final roomId = await _client!.createRoom(
+      name: options['name'] as String?,
+      topic: options['topic'] as String?,
+      roomAliasName: options['roomAliasName'] as String?,
+      roomVersion: options['roomVersion'] as String?,
+      isDirect: options['isDirect'] as bool?,
+      invite: (options['invite'] as List?)?.cast<String>(),
+      creationContent: options['creationContent'] as Map<String, Object?>?,
+      powerLevelContentOverride:
+          options['powerLevelContentOverride'] as Map<String, Object?>?,
+      preset: _presetFromName(options['preset'] as String?),
+      visibility: _visibilityFromName(options['visibility'] as String?),
+    );
+    return BackendResult.ok({'roomId': roomId});
+  }
+
+  CreateRoomPreset? _presetFromName(String? name) {
+    switch (name) {
+      case 'privateChat':
+        return CreateRoomPreset.privateChat;
+      case 'trustedPrivateChat':
+        return CreateRoomPreset.trustedPrivateChat;
+      case 'publicChat':
+        return CreateRoomPreset.publicChat;
+      default:
+        return null;
+    }
+  }
+
+  Visibility? _visibilityFromName(String? name) {
+    switch (name) {
+      case 'public':
+        return Visibility.public;
+      case 'private':
+        return Visibility.private;
+      default:
+        return null;
+    }
+  }
+
+  // ── Room state ────────────────────────────────────────────────
+
+  Future<BackendResult> _handleRoomStateGet(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final eventType = call.args['eventType'] as String;
+    final key = call.args['key'] as String;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    final state = room.getState(eventType, key);
+    return BackendResult.ok({'content': state?.content});
+  }
+
+  Future<BackendResult> _handleRoomStateSet(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final eventType = call.args['eventType'] as String;
+    final key = call.args['key'] as String;
+    final content = call.args['content'] as Map<String, dynamic>;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    final eventId = await room.client.setRoomStateWithKey(
+      roomId,
+      eventType,
+      key,
+      content,
+    );
+    return BackendResult.ok({'eventId': eventId});
+  }
+
+  Future<BackendResult> _handleRoomStateCanChange(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final eventType = call.args['eventType'] as String;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    return BackendResult.ok({'canChange': room.canChangeStateEvent(eventType)});
+  }
+
+  Future<BackendResult> _handleRoomStateGetPowerLevel(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final userId = call.args['userId'] as String;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    final level = room.getPowerLevelByUserId(userId);
+    return BackendResult.ok({'powerLevel': level.level});
+  }
+
+  // ── Members & users ──────────────────────────────────────────
+
+  Future<BackendResult> _handleMembersGet(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    final memberEvents = await _client!.getMembersByRoom(roomId);
+    final memberDtos = (memberEvents ?? <MatrixEvent>[])
+        .map((m) => Event.fromMatrixEvent(m, room).asUser)
+        .map((user) => MemberDto.fromSdk(
+              user,
+              room.getPowerLevelByUserId(user.id).level,
+            ).toMap())
+        .toList();
+    return BackendResult.ok({'members': memberDtos});
+  }
+
+  Future<BackendResult> _handleMembersGetUser(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final userId = call.args['userId'] as String;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    final user = await room.requestUser(userId);
+    if (user == null) {
+      return BackendResult.error(
+        BackendError(code: 'user_not_found', message: 'No user $userId'),
+      );
+    }
+    return BackendResult.ok({'user': UserDto.fromSdk(user).toMap()});
+  }
+
+  Future<BackendResult> _handleMembersSearch(BackendCall call) async {
+    final term = call.args['term'] as String;
+    final response = await _client!.searchUserDirectory(term);
+    final userDtos =
+        response.results.map((p) => UserDto.fromProfile(p).toMap()).toList();
+    return BackendResult.ok({'users': userDtos});
   }
 
   // ── Messaging ─────────────────────────────────────────────────

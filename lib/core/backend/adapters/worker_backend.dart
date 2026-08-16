@@ -7,7 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:kohera/core/backend/adapters/matrix_sdk_worker_handler.dart';
 import 'package:kohera/core/backend/dto/account_dto.dart';
 import 'package:kohera/core/backend/dto/event_dto.dart';
+import 'package:kohera/core/backend/dto/member_dto.dart';
 import 'package:kohera/core/backend/dto/room_dto.dart';
+import 'package:kohera/core/backend/dto/user_dto.dart';
 import 'package:kohera/core/backend/ports/matrix_backend.dart';
 import 'package:kohera/core/backend/ports/worker_handler.dart';
 import 'package:kohera/core/backend/transport/protocol.dart';
@@ -250,6 +252,235 @@ class WorkerBackend implements MatrixBackend {
           ?.map((e) => EventDto.fromMap(e as Map<String, dynamic>))
           .toList() ??
       const <EventDto>[];
+
+  // ── Room management ───────────────────────────────────────────
+
+  @override
+  Future<void> leaveRoom(String accountId, String roomId) async {
+    await _call('roomMgmt.leave', {'accountId': accountId, 'roomId': roomId});
+  }
+
+  @override
+  Future<void> joinRoom(String accountId, String roomId) async {
+    await _call('roomMgmt.join', {'accountId': accountId, 'roomId': roomId});
+  }
+
+  @override
+  Future<void> inviteUser(
+    String accountId,
+    String roomId,
+    String userId, {
+    String? reason,
+  }) async {
+    await _call('roomMgmt.invite', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'userId': userId,
+      'reason': ?reason,
+    });
+  }
+
+  @override
+  Future<void> kickUser(
+    String accountId,
+    String roomId,
+    String userId, {
+    String? reason,
+  }) async {
+    await _call('roomMgmt.kick', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'userId': userId,
+      'reason': ?reason,
+    });
+  }
+
+  @override
+  Future<void> banUser(String accountId, String roomId, String userId) async {
+    await _call('roomMgmt.ban', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'userId': userId,
+    });
+  }
+
+  @override
+  Future<void> unbanUser(String accountId, String roomId, String userId) async {
+    await _call('roomMgmt.unban', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'userId': userId,
+    });
+  }
+
+  @override
+  Future<String> setRoomName(
+    String accountId,
+    String roomId,
+    String name,
+  ) async {
+    final result = await _call('roomMgmt.setName', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'name': name,
+    });
+    return result['eventId'] as String? ?? '';
+  }
+
+  @override
+  Future<String> setRoomTopic(
+    String accountId,
+    String roomId,
+    String topic,
+  ) async {
+    final result = await _call('roomMgmt.setTopic', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'topic': topic,
+    });
+    return result['eventId'] as String? ?? '';
+  }
+
+  @override
+  Future<String> setRoomAvatar(
+    String accountId,
+    String roomId,
+    Uint8List bytes,
+    String name, {
+    String? mimeType,
+  }) async {
+    final result = await _call('roomMgmt.setAvatar', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'bytes': bytes,
+      'name': name,
+      'mimeType': ?mimeType,
+    });
+    return result['eventId'] as String? ?? '';
+  }
+
+  @override
+  Future<String> createRoom(
+    String accountId,
+    Map<String, dynamic> options,
+  ) async {
+    final result = await _call('rooms.create', {
+      'accountId': accountId,
+      'options': options,
+    });
+    return result['roomId'] as String? ?? '';
+  }
+
+  // ── Room state ────────────────────────────────────────────────
+
+  @override
+  Future<Map<String, dynamic>> getRoomState(
+    String accountId,
+    String roomId,
+    String eventType,
+    String key,
+  ) async {
+    final result = await _call('roomState.get', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'eventType': eventType,
+      'key': key,
+    });
+    return (result['content'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  @override
+  Future<String> setRoomState(
+    String accountId,
+    String roomId,
+    String eventType,
+    String key,
+    Map<String, dynamic> content,
+  ) async {
+    final result = await _call('roomState.set', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'eventType': eventType,
+      'key': key,
+      'content': content,
+    });
+    return result['eventId'] as String? ?? '';
+  }
+
+  @override
+  Future<bool> canChangeState(
+    String accountId,
+    String roomId,
+    String eventType,
+  ) async {
+    final result = await _call('roomState.canChange', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'eventType': eventType,
+    });
+    return result['canChange'] as bool? ?? false;
+  }
+
+  @override
+  Future<int> getPowerLevel(
+    String accountId,
+    String roomId,
+    String userId,
+  ) async {
+    final result = await _call('roomState.getPowerLevel', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'userId': userId,
+    });
+    return result['powerLevel'] as int? ?? 0;
+  }
+
+  // ── Members & users ──────────────────────────────────────────
+
+  @override
+  Future<List<MemberDto>> getJoinedMembers(
+    String accountId,
+    String roomId,
+  ) async {
+    final result = await _call('members.get', {
+      'accountId': accountId,
+      'roomId': roomId,
+    });
+    return (result['members'] as List?)
+            ?.map((m) => MemberDto.fromMap(m as Map<String, dynamic>))
+            .toList() ??
+        const <MemberDto>[];
+  }
+
+  @override
+  Future<UserDto> getUser(
+    String accountId,
+    String roomId,
+    String userId,
+  ) async {
+    final result = await _call('members.getUser', {
+      'accountId': accountId,
+      'roomId': roomId,
+      'userId': userId,
+    });
+    final user = result['user'] as Map<String, dynamic>?;
+    if (user == null || user.isEmpty) {
+      return UserDto(userId: userId, displayName: userId);
+    }
+    return UserDto.fromMap(user);
+  }
+
+  @override
+  Future<List<UserDto>> searchUsers(String accountId, String term) async {
+    final result = await _call('members.search', {
+      'accountId': accountId,
+      'term': term,
+    });
+    return (result['users'] as List?)
+            ?.map((u) => UserDto.fromMap(u as Map<String, dynamic>))
+            .toList() ??
+        const <UserDto>[];
+  }
 
   // ── Messaging ─────────────────────────────────────────────────
 
