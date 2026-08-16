@@ -1,6 +1,6 @@
 // coverage:ignore-file
 
-import 'package:kohera/core/backend/dto.dart';
+import 'package:kohera/core/backend/dto/dto.dart';
 import 'package:matrix/matrix.dart';
 
 class EventDto implements Dto {
