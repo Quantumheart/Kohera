@@ -1,6 +1,7 @@
 // coverage:ignore-file
 
 import 'package:kohera/core/backend/dto/dto.dart';
+import 'package:matrix/encryption.dart';
 
 class VerificationDto implements Dto {
   final String state;
@@ -12,6 +13,11 @@ class VerificationDto implements Dto {
     this.method,
     this.deviceId,
   });
+
+  factory VerificationDto.fromSdk(KeyVerification v) => VerificationDto(
+        state: v.state.name,
+        deviceId: v.deviceId,
+      );
 
   @override
   Map<String, dynamic> toMap() => {
