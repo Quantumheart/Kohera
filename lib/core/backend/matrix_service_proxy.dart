@@ -80,6 +80,78 @@ class MatrixServiceProxy extends ChangeNotifier {
     return stream;
   }
 
+  // ── Messaging (async send) ─────────────────────────────────────
+
+  String _accountId() => _account?.clientName ?? 'default';
+
+  /// Sends a raw event with [content] into [roomId]. Returns the server
+  /// event id (may be null for a local-only echo).
+  Future<String?> sendMessage(String roomId, Map<String, dynamic> content) =>
+      _backend.sendMessage(_accountId(), roomId, content);
+
+  /// Sends a plain-text [text] message into [roomId].
+  Future<String?> sendText(String roomId, String text) =>
+      _backend.sendText(_accountId(), roomId, text);
+
+  /// Sends a reaction ([key], typically an emoji) to [eventId] in [roomId].
+  Future<String?> sendReaction(
+    String roomId,
+    String eventId,
+    String key,
+  ) =>
+      _backend.sendReaction(_accountId(), roomId, eventId, key);
+
+  /// Redacts [eventId] in [roomId] with an optional [reason].
+  Future<String?> redactEvent(
+    String roomId,
+    String eventId, {
+    String? reason,
+  }) =>
+      _backend.redactEvent(_accountId(), roomId, eventId, reason: reason);
+
+  /// Reports [eventId] in [roomId] to the homeserver.
+  Future<void> reportEvent(
+    String roomId,
+    String eventId, {
+    String? reason,
+    int? score,
+  }) =>
+      _backend.reportEvent(_accountId(), roomId, eventId, reason: reason, score: score);
+
+  /// Uploads [bytes] as a file named [name] and sends it into [roomId].
+  Future<String?> sendFile(
+    String roomId,
+    Uint8List bytes,
+    String name, {
+    String? mimeType,
+  }) =>
+      _backend.sendFile(_accountId(), roomId, bytes, name, mimeType: mimeType);
+
+  // ── Read state (sync cache + async send) ────────────────────────
+
+  final Map<String, Map<String, dynamic>> _receipts = {};
+
+  /// Returns the cached receipt state for [roomId], or null if not yet
+  /// fetched. Synchronous — widgets read from this without awaiting.
+  Map<String, dynamic>? getReceipts(String roomId) => _receipts[roomId];
+
+  /// Fetches the receipt state for [roomId] from the backend, populates the
+  /// cache, and notifies listeners. Returns the fetched state.
+  Future<Map<String, dynamic>> fetchReceipts(String roomId) async {
+    final receipts = await _backend.getReceipts(_accountId(), roomId);
+    _receipts[roomId] = receipts;
+    notifyListeners();
+    return receipts;
+  }
+
+  /// Sets the fully-read marker for [roomId] to [eventId].
+  Future<void> setReadMarker(String roomId, String eventId) =>
+      _backend.setReadMarker(_accountId(), roomId, eventId);
+
+  /// Sets a public read receipt for [roomId] at [eventId].
+  Future<void> setReadReceipt(String roomId, String eventId) =>
+      _backend.setReadReceipt(_accountId(), roomId, eventId);
+
   // ── Init ──────────────────────────────────────────────────────
 
   void _init() {
@@ -126,6 +198,7 @@ class MatrixServiceProxy extends ChangeNotifier {
     }
     _timelineSubs.clear();
     _timelines.clear();
+    _receipts.clear();
     unawaited(_backend.disconnect());
     super.dispose();
   }

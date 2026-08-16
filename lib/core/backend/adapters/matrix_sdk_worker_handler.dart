@@ -19,8 +19,9 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 //   vod.init → databaseFactoryFfi → MatrixSdkDatabase.init → Client →
 //   init(waitForFirstSync: false) → backgroundSync = true.
 //
-// Serves the rooms-list capability: accounts.list, rooms.list,
-// rooms.listUpdates (pushed on client.onSync).
+// Serves the rooms-list, timeline, messaging, and read-state capabilities:
+// accounts.list, rooms.list, rooms.listUpdates, timeline.fetch,
+// timeline.paginate, timeline.newEvents, message.*, read.*.
 
 class MatrixSdkWorkerHandler implements WorkerHandler {
   MatrixSdkWorkerHandler({
@@ -103,6 +104,33 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
       case 'subscribe.timeline.newEvents':
         _subscribeTimelineUpdates(call, emit);
         return const BackendResult.ok({});
+
+      case 'message.send':
+        return _handleMessageSend(call);
+
+      case 'message.sendText':
+        return _handleMessageSendText(call);
+
+      case 'message.react':
+        return _handleMessageReact(call);
+
+      case 'message.redact':
+        return _handleMessageRedact(call);
+
+      case 'message.report':
+        return _handleMessageReport(call);
+
+      case 'message.sendFile':
+        return _handleMessageSendFile(call);
+
+      case 'read.setMarker':
+        return _handleReadSetMarker(call);
+
+      case 'read.setReceipt':
+        return _handleReadSetReceipt(call);
+
+      case 'read.getReceipts':
+        return _handleReadGetReceipts(call);
 
       default:
         return BackendResult.error(
@@ -229,5 +257,112 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
         },
       ));
     });
+  }
+
+  // ── Messaging ─────────────────────────────────────────────────
+
+  Room? _roomOf(BackendCall call) {
+    final roomId = call.args['roomId'] as String?;
+    if (roomId == null) return null;
+    return _client?.getRoomById(roomId);
+  }
+
+  BackendResult _roomNotFound(String roomId) => BackendResult.error(
+        BackendError(code: 'room_not_found', message: 'No room $roomId'),
+      );
+
+  Future<BackendResult> _handleMessageSend(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final content = call.args['content'] as Map<String, dynamic>;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    final eventId = await room.sendEvent(content);
+    return BackendResult.ok({'eventId': eventId});
+  }
+
+  Future<BackendResult> _handleMessageSendText(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final text = call.args['text'] as String;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    final eventId = await room.sendTextEvent(text);
+    return BackendResult.ok({'eventId': eventId});
+  }
+
+  Future<BackendResult> _handleMessageReact(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final targetEventId = call.args['eventId'] as String;
+    final key = call.args['key'] as String? ?? call.args['emoji'] as String?;
+    if (key == null) {
+      return const BackendResult.error(
+        BackendError(code: 'missing_key', message: 'reaction key required'),
+      );
+    }
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    final eventId = await room.sendReaction(targetEventId, key);
+    return BackendResult.ok({'eventId': eventId});
+  }
+
+  Future<BackendResult> _handleMessageRedact(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final targetEventId = call.args['eventId'] as String;
+    final reason = call.args['reason'] as String?;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    final eventId = await room.redactEvent(targetEventId, reason: reason);
+    return BackendResult.ok({'eventId': eventId});
+  }
+
+  Future<BackendResult> _handleMessageReport(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final targetEventId = call.args['eventId'] as String;
+    final reason = call.args['reason'] as String?;
+    // score is accepted for contract parity; SDK 9.0.0 has no score param.
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    await room.client.reportEvent(roomId, targetEventId, reason: reason);
+    return const BackendResult.ok({});
+  }
+
+  Future<BackendResult> _handleMessageSendFile(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final bytes = call.args['bytes'] as Uint8List;
+    final name = call.args['name'] as String;
+    final mimeType = call.args['mimeType'] as String?;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    final file = MatrixFile(bytes: bytes, name: name, mimeType: mimeType);
+    final eventId = await room.sendFileEvent(file);
+    return BackendResult.ok({'eventId': eventId});
+  }
+
+  // ── Read state ─────────────────────────────────────────────────
+
+  Future<BackendResult> _handleReadSetMarker(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final eventId = call.args['eventId'] as String;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    await room.setReadMarker(eventId);
+    return const BackendResult.ok({});
+  }
+
+  Future<BackendResult> _handleReadSetReceipt(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final eventId = call.args['eventId'] as String;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    // Set a public read receipt at [eventId] without moving the fully-read
+    // marker (mFullyRead: null). setReadMarker is the non-deprecated path.
+    await room.setReadMarker(null, mRead: eventId, public: true);
+    return const BackendResult.ok({});
+  }
+
+  Future<BackendResult> _handleReadGetReceipts(BackendCall call) async {
+    final roomId = call.args['roomId'] as String;
+    final room = _roomOf(call);
+    if (room == null) return _roomNotFound(roomId);
+    return BackendResult.ok({'receipts': room.receiptState.toJson()});
   }
 }
