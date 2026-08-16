@@ -2,7 +2,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/backend/backend.dart';
-import 'package:kohera/core/backend/dto/dto.dart';
 
 void main() {
   group('RoomDto', () {
