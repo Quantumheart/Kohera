@@ -4,10 +4,12 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:kohera/core/backend/dto/account_dto.dart';
+import 'package:kohera/core/backend/dto/device_key_dto.dart';
 import 'package:kohera/core/backend/dto/event_dto.dart';
 import 'package:kohera/core/backend/dto/member_dto.dart';
 import 'package:kohera/core/backend/dto/room_dto.dart';
 import 'package:kohera/core/backend/dto/user_dto.dart';
+import 'package:kohera/core/backend/dto/verification_dto.dart';
 import 'package:kohera/core/backend/transport/protocol.dart';
 
 // ── MatrixBackend (the port) ──────────────────────────────────────
@@ -167,6 +169,51 @@ abstract class MatrixBackend {
   /// Returns the serialized receipt state for [roomId] (a Map suitable for
   /// the wire — `room.receiptState.toJson()` on the worker).
   Future<Map<String, dynamic>> getReceipts(String accountId, String roomId);
+
+  // ── E2EE ──────────────────────────────────────────────────────
+
+  /// Whether end-to-end encryption is enabled for a specific room.
+  Future<bool> encryptionEnabled(String accountId, String roomId);
+
+  /// Returns the known device keys for [userId].
+  Future<List<DeviceKeyDto>> deviceKeys(String accountId, String userId);
+
+  /// Marks [deviceId] of [userId] as manually verified.
+  Future<void> verifyDevice(String accountId, String userId, String deviceId);
+
+  /// Starts an interactive key-verification with [userId] (and optionally a
+  /// specific [deviceId]). Returns a snapshot of the initial state.
+  Future<VerificationDto> startVerification(
+    String accountId,
+    String userId, {
+    String? deviceId,
+  });
+
+  /// Whether cross-signing is enabled on the client.
+  Future<bool> crossSigningEnabled(String accountId);
+
+  /// Whether the cross-signing keys are cached locally.
+  Future<bool> crossSigningIsCached(String accountId);
+
+  /// Self-signs the current device using cross-signing, optionally unlocking
+  /// SSSS with [recoveryKey].
+  Future<void> crossSigningSelfSign(String accountId, {String? recoveryKey});
+
+  /// Starts the SSSS/cross-signing bootstrap flow.
+  Future<void> bootstrap(String accountId);
+
+  /// Attempts to unlock the key backup using [recoveryKey]. Returns whether
+  /// the unlock succeeded.
+  Future<bool> unlockKeyBackup(String accountId, String recoveryKey);
+
+  /// A stream that emits an event name whenever an incoming key-verification
+  /// request arrives for [accountId].
+  Stream<VerificationDto> keyVerificationRequests(String accountId);
+
+  // ── Sync ──────────────────────────────────────────────────────
+
+  /// Whether the backend is currently syncing with the homeserver.
+  Future<bool> syncStatus(String accountId);
 
   // ── Streams ───────────────────────────────────────────────────
 

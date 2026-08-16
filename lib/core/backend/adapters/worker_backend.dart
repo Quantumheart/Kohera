@@ -6,12 +6,15 @@ import 'dart:isolate';
 import 'package:flutter/services.dart';
 import 'package:kohera/core/backend/adapters/matrix_sdk_worker_handler.dart';
 import 'package:kohera/core/backend/dto/account_dto.dart';
+import 'package:kohera/core/backend/dto/device_key_dto.dart';
 import 'package:kohera/core/backend/dto/event_dto.dart';
 import 'package:kohera/core/backend/dto/member_dto.dart';
 import 'package:kohera/core/backend/dto/room_dto.dart';
 import 'package:kohera/core/backend/dto/user_dto.dart';
+import 'package:kohera/core/backend/dto/verification_dto.dart';
 import 'package:kohera/core/backend/ports/matrix_backend.dart';
 import 'package:kohera/core/backend/ports/worker_handler.dart';
+import 'package:kohera/core/backend/transport/backend_ops.dart';
 import 'package:kohera/core/backend/transport/protocol.dart';
 import 'package:kohera/core/backend/transport/worker_entry.dart';
 
@@ -54,6 +57,8 @@ class WorkerBackend implements MatrixBackend {
   final _timelineControllers = <String, StreamController<List<EventDto>>>{};
   final _loginStateController = StreamController<String>.broadcast();
   final _errorController = StreamController<BackendError>.broadcast();
+  final _keyVerificationControllers =
+      <String, StreamController<VerificationDto>>{};
 
   // ── Lifecycle ──────────────────────────────────────────────────
 
@@ -111,6 +116,10 @@ class WorkerBackend implements MatrixBackend {
       await controller.close();
     }
     _timelineControllers.clear();
+    for (final controller in _keyVerificationControllers.values) {
+      await controller.close();
+    }
+    _keyVerificationControllers.clear();
     await _loginStateController.close();
     await _errorController.close();
   }
@@ -129,7 +138,7 @@ class WorkerBackend implements MatrixBackend {
 
   void _handleEvent(BackendEvent event) {
     switch (event.name) {
-      case 'rooms.listUpdates':
+      case BackendEventName.roomsListUpdates:
         final accountId = event.payload['accountId'] as String?;
         if (accountId == null) return;
         final rooms = (event.payload['rooms'] as List?)
@@ -137,15 +146,21 @@ class WorkerBackend implements MatrixBackend {
                 .toList() ??
             const <RoomDto>[];
         _roomListControllers[accountId]?.add(rooms);
-      case 'timeline.newEvents':
+      case BackendEventName.timelineNewEvents:
         final accountId = event.payload['accountId'] as String?;
         final roomId = event.payload['roomId'] as String?;
         if (accountId == null || roomId == null) return;
         _timelineControllers[_timelineKey(accountId, roomId)]
             ?.add(_decodeEvents(event.payload));
-      case 'accounts.loginStateChanged':
+      case BackendEventName.accountsLoginStateChanged:
         _loginStateController.add(event.payload['accountId'] as String);
-      case 'error':
+      case BackendEventName.e2eeKeyVerificationRequest:
+        final accountId = event.payload['accountId'] as String?;
+        final verification = event.payload['verification'] as Map<String, dynamic>?;
+        if (accountId == null || verification == null) return;
+        _keyVerificationControllers[accountId]
+            ?.add(VerificationDto.fromMap(verification));
+      case BackendEventName.error:
         _errorController.add(BackendError.fromMap(event.payload));
       default:
         break;
@@ -172,7 +187,7 @@ class WorkerBackend implements MatrixBackend {
 
   @override
   Future<List<AccountDto>> accountsList() async {
-    final result = await _call('accounts.list', {});
+    final result = await _call(BackendOp.accountsList, {});
     final accounts = (result['accounts'] as List?)
             ?.map((a) => AccountDto.fromMap(a as Map<String, dynamic>))
             .toList() ??
@@ -182,7 +197,7 @@ class WorkerBackend implements MatrixBackend {
 
   @override
   Future<List<RoomDto>> roomsList(String accountId) async {
-    final result = await _call('rooms.list', {'accountId': accountId});
+    final result = await _call(BackendOp.roomsList, {'accountId': accountId});
     final rooms = (result['rooms'] as List?)
             ?.map((r) => RoomDto.fromMap(r as Map<String, dynamic>))
             .toList() ??
@@ -205,7 +220,7 @@ class WorkerBackend implements MatrixBackend {
     String roomId, {
     int limit = 50,
   }) async {
-    final result = await _call('timeline.fetch', {
+    final result = await _call(BackendOp.timelineFetch, {
       'accountId': accountId,
       'roomId': roomId,
       'limit': limit,
@@ -220,7 +235,7 @@ class WorkerBackend implements MatrixBackend {
     String direction, {
     int limit = 50,
   }) async {
-    final result = await _call('timeline.paginate', {
+    final result = await _call(BackendOp.timelinePaginate, {
       'accountId': accountId,
       'roomId': roomId,
       'direction': direction,
@@ -236,7 +251,7 @@ class WorkerBackend implements MatrixBackend {
             StreamController<List<EventDto>>.broadcast())
         .stream;
     unawaited(
-      _call('subscribe.timeline.newEvents', {
+      _call(BackendOp.subscribeTimelineNewEvents, {
         'accountId': accountId,
         'roomId': roomId,
       }).catchError((Object e) => <String, dynamic>{}),
@@ -257,12 +272,12 @@ class WorkerBackend implements MatrixBackend {
 
   @override
   Future<void> leaveRoom(String accountId, String roomId) async {
-    await _call('roomMgmt.leave', {'accountId': accountId, 'roomId': roomId});
+    await _call(BackendOp.roomMgmtLeave, {'accountId': accountId, 'roomId': roomId});
   }
 
   @override
   Future<void> joinRoom(String accountId, String roomId) async {
-    await _call('roomMgmt.join', {'accountId': accountId, 'roomId': roomId});
+    await _call(BackendOp.roomMgmtJoin, {'accountId': accountId, 'roomId': roomId});
   }
 
   @override
@@ -272,7 +287,7 @@ class WorkerBackend implements MatrixBackend {
     String userId, {
     String? reason,
   }) async {
-    await _call('roomMgmt.invite', {
+    await _call(BackendOp.roomMgmtInvite, {
       'accountId': accountId,
       'roomId': roomId,
       'userId': userId,
@@ -282,7 +297,7 @@ class WorkerBackend implements MatrixBackend {
 
   @override
   Future<void> kickUser(String accountId, String roomId, String userId) async {
-    await _call('roomMgmt.kick', {
+    await _call(BackendOp.roomMgmtKick, {
       'accountId': accountId,
       'roomId': roomId,
       'userId': userId,
@@ -291,7 +306,7 @@ class WorkerBackend implements MatrixBackend {
 
   @override
   Future<void> banUser(String accountId, String roomId, String userId) async {
-    await _call('roomMgmt.ban', {
+    await _call(BackendOp.roomMgmtBan, {
       'accountId': accountId,
       'roomId': roomId,
       'userId': userId,
@@ -300,7 +315,7 @@ class WorkerBackend implements MatrixBackend {
 
   @override
   Future<void> unbanUser(String accountId, String roomId, String userId) async {
-    await _call('roomMgmt.unban', {
+    await _call(BackendOp.roomMgmtUnban, {
       'accountId': accountId,
       'roomId': roomId,
       'userId': userId,
@@ -313,7 +328,7 @@ class WorkerBackend implements MatrixBackend {
     String roomId,
     String name,
   ) async {
-    final result = await _call('roomMgmt.setName', {
+    final result = await _call(BackendOp.roomMgmtSetName, {
       'accountId': accountId,
       'roomId': roomId,
       'name': name,
@@ -327,7 +342,7 @@ class WorkerBackend implements MatrixBackend {
     String roomId,
     String topic,
   ) async {
-    final result = await _call('roomMgmt.setTopic', {
+    final result = await _call(BackendOp.roomMgmtSetTopic, {
       'accountId': accountId,
       'roomId': roomId,
       'topic': topic,
@@ -343,7 +358,7 @@ class WorkerBackend implements MatrixBackend {
     String name, {
     String? mimeType,
   }) async {
-    final result = await _call('roomMgmt.setAvatar', {
+    final result = await _call(BackendOp.roomMgmtSetAvatar, {
       'accountId': accountId,
       'roomId': roomId,
       'bytes': bytes,
@@ -358,7 +373,7 @@ class WorkerBackend implements MatrixBackend {
     String accountId,
     Map<String, dynamic> options,
   ) async {
-    final result = await _call('rooms.create', {
+    final result = await _call(BackendOp.roomsCreate, {
       'accountId': accountId,
       'options': options,
     });
@@ -374,7 +389,7 @@ class WorkerBackend implements MatrixBackend {
     String eventType,
     String key,
   ) async {
-    final result = await _call('roomState.get', {
+    final result = await _call(BackendOp.roomStateGet, {
       'accountId': accountId,
       'roomId': roomId,
       'eventType': eventType,
@@ -391,7 +406,7 @@ class WorkerBackend implements MatrixBackend {
     String key,
     Map<String, dynamic> content,
   ) async {
-    final result = await _call('roomState.set', {
+    final result = await _call(BackendOp.roomStateSet, {
       'accountId': accountId,
       'roomId': roomId,
       'eventType': eventType,
@@ -407,7 +422,7 @@ class WorkerBackend implements MatrixBackend {
     String roomId,
     String eventType,
   ) async {
-    final result = await _call('roomState.canChange', {
+    final result = await _call(BackendOp.roomStateCanChange, {
       'accountId': accountId,
       'roomId': roomId,
       'eventType': eventType,
@@ -421,7 +436,7 @@ class WorkerBackend implements MatrixBackend {
     String roomId,
     String userId,
   ) async {
-    final result = await _call('roomState.getPowerLevel', {
+    final result = await _call(BackendOp.roomStateGetPowerLevel, {
       'accountId': accountId,
       'roomId': roomId,
       'userId': userId,
@@ -436,7 +451,7 @@ class WorkerBackend implements MatrixBackend {
     String accountId,
     String roomId,
   ) async {
-    final result = await _call('members.get', {
+    final result = await _call(BackendOp.membersGet, {
       'accountId': accountId,
       'roomId': roomId,
     });
@@ -452,7 +467,7 @@ class WorkerBackend implements MatrixBackend {
     String roomId,
     String userId,
   ) async {
-    final result = await _call('members.getUser', {
+    final result = await _call(BackendOp.membersGetUser, {
       'accountId': accountId,
       'roomId': roomId,
       'userId': userId,
@@ -466,7 +481,7 @@ class WorkerBackend implements MatrixBackend {
 
   @override
   Future<List<UserDto>> searchUsers(String accountId, String term) async {
-    final result = await _call('members.search', {
+    final result = await _call(BackendOp.membersSearch, {
       'accountId': accountId,
       'term': term,
     });
@@ -484,7 +499,7 @@ class WorkerBackend implements MatrixBackend {
     String roomId,
     Map<String, dynamic> content,
   ) async {
-    final result = await _call('message.send', {
+    final result = await _call(BackendOp.messageSend, {
       'accountId': accountId,
       'roomId': roomId,
       'content': content,
@@ -494,7 +509,7 @@ class WorkerBackend implements MatrixBackend {
 
   @override
   Future<String?> sendText(String accountId, String roomId, String text) async {
-    final result = await _call('message.sendText', {
+    final result = await _call(BackendOp.messageSendText, {
       'accountId': accountId,
       'roomId': roomId,
       'text': text,
@@ -509,7 +524,7 @@ class WorkerBackend implements MatrixBackend {
     String eventId,
     String key,
   ) async {
-    final result = await _call('message.react', {
+    final result = await _call(BackendOp.messageReact, {
       'accountId': accountId,
       'roomId': roomId,
       'eventId': eventId,
@@ -525,7 +540,7 @@ class WorkerBackend implements MatrixBackend {
     String eventId, {
     String? reason,
   }) async {
-    final result = await _call('message.redact', {
+    final result = await _call(BackendOp.messageRedact, {
       'accountId': accountId,
       'roomId': roomId,
       'eventId': eventId,
@@ -542,7 +557,7 @@ class WorkerBackend implements MatrixBackend {
     String? reason,
     int? score,
   }) async {
-    await _call('message.report', {
+    await _call(BackendOp.messageReport, {
       'accountId': accountId,
       'roomId': roomId,
       'eventId': eventId,
@@ -559,7 +574,7 @@ class WorkerBackend implements MatrixBackend {
     String name, {
     String? mimeType,
   }) async {
-    final result = await _call('message.sendFile', {
+    final result = await _call(BackendOp.messageSendFile, {
       'accountId': accountId,
       'roomId': roomId,
       'bytes': bytes,
@@ -577,7 +592,7 @@ class WorkerBackend implements MatrixBackend {
     String roomId,
     String eventId,
   ) async {
-    await _call('read.setMarker', {
+    await _call(BackendOp.readSetMarker, {
       'accountId': accountId,
       'roomId': roomId,
       'eventId': eventId,
@@ -590,7 +605,7 @@ class WorkerBackend implements MatrixBackend {
     String roomId,
     String eventId,
   ) async {
-    await _call('read.setReceipt', {
+    await _call(BackendOp.readSetReceipt, {
       'accountId': accountId,
       'roomId': roomId,
       'eventId': eventId,
@@ -602,11 +617,114 @@ class WorkerBackend implements MatrixBackend {
     String accountId,
     String roomId,
   ) async {
-    final result = await _call('read.getReceipts', {
+    final result = await _call(BackendOp.readGetReceipts, {
       'accountId': accountId,
       'roomId': roomId,
     });
     return (result['receipts'] as Map<String, dynamic>?) ?? const {};
+  }
+
+  // ── E2EE ──────────────────────────────────────────────────────
+
+  @override
+  Future<bool> encryptionEnabled(String accountId, String roomId) async {
+    final result = await _call(BackendOp.e2eeEncryptionEnabled, {
+      'accountId': accountId,
+      'roomId': roomId,
+    });
+    return result['enabled'] as bool? ?? false;
+  }
+
+  @override
+  Future<List<DeviceKeyDto>> deviceKeys(String accountId, String userId) async {
+    final result = await _call(BackendOp.e2eeDeviceKeys, {
+      'accountId': accountId,
+      'userId': userId,
+    });
+    return (result['devices'] as List?)
+            ?.map((d) => DeviceKeyDto.fromMap(d as Map<String, dynamic>))
+            .toList() ??
+        const <DeviceKeyDto>[];
+  }
+
+  @override
+  Future<void> verifyDevice(String accountId, String userId, String deviceId) async {
+    await _call(BackendOp.e2eeVerifyDevice, {
+      'accountId': accountId,
+      'userId': userId,
+      'deviceId': deviceId,
+    });
+  }
+
+  @override
+  Future<VerificationDto> startVerification(
+    String accountId,
+    String userId, {
+    String? deviceId,
+  }) async {
+    final result = await _call(BackendOp.e2eeStartVerification, {
+      'accountId': accountId,
+      'userId': userId,
+      'deviceId': ?deviceId,
+    });
+    final verification = result['verification'] as Map<String, dynamic>?;
+    return verification == null
+        ? const VerificationDto(state: 'error')
+        : VerificationDto.fromMap(verification);
+  }
+
+  @override
+  Future<bool> crossSigningEnabled(String accountId) async {
+    final result = await _call(BackendOp.e2eeCrossSigningEnabled, {'accountId': accountId});
+    return result['enabled'] as bool? ?? false;
+  }
+
+  @override
+  Future<bool> crossSigningIsCached(String accountId) async {
+    final result = await _call(BackendOp.e2eeCrossSigningIsCached, {'accountId': accountId});
+    return result['isCached'] as bool? ?? false;
+  }
+
+  @override
+  Future<void> crossSigningSelfSign(String accountId, {String? recoveryKey}) async {
+    await _call(BackendOp.e2eeCrossSigningSelfSign, {
+      'accountId': accountId,
+      'recoveryKey': ?recoveryKey,
+    });
+  }
+
+  @override
+  Future<void> bootstrap(String accountId) async {
+    await _call(BackendOp.e2eeBootstrap, {'accountId': accountId});
+  }
+
+  @override
+  Future<bool> unlockKeyBackup(String accountId, String recoveryKey) async {
+    final result = await _call(BackendOp.e2eeKeyBackupUnlock, {
+      'accountId': accountId,
+      'recoveryKey': recoveryKey,
+    });
+    return result['unlocked'] as bool? ?? false;
+  }
+
+  @override
+  Stream<VerificationDto> keyVerificationRequests(String accountId) {
+    final stream = (_keyVerificationControllers[accountId] ??=
+            StreamController<VerificationDto>.broadcast())
+        .stream;
+    unawaited(
+      _call(BackendOp.subscribeE2eeKeyVerificationRequest, {'accountId': accountId})
+          .catchError((Object e) => <String, dynamic>{}),
+    );
+    return stream;
+  }
+
+  // ── Sync ──────────────────────────────────────────────────────
+
+  @override
+  Future<bool> syncStatus(String accountId) async {
+    final result = await _call(BackendOp.syncStatus, {'accountId': accountId});
+    return result['syncing'] as bool? ?? false;
   }
 
   @override

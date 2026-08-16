@@ -4,10 +4,12 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:kohera/core/backend/dto/account_dto.dart';
+import 'package:kohera/core/backend/dto/device_key_dto.dart';
 import 'package:kohera/core/backend/dto/event_dto.dart';
 import 'package:kohera/core/backend/dto/member_dto.dart';
 import 'package:kohera/core/backend/dto/room_dto.dart';
 import 'package:kohera/core/backend/dto/user_dto.dart';
+import 'package:kohera/core/backend/dto/verification_dto.dart';
 import 'package:kohera/core/backend/ports/matrix_backend.dart';
 import 'package:kohera/core/backend/transport/protocol.dart';
 
@@ -215,6 +217,50 @@ class InProcessBackend implements MatrixBackend {
     String accountId,
     String roomId,
   ) async => const <String, dynamic>{};
+
+  // ── E2EE (no-op) ──────────────────────────────────────────────
+
+  @override
+  Future<bool> encryptionEnabled(String accountId, String roomId) async =>
+      false;
+
+  @override
+  Future<List<DeviceKeyDto>> deviceKeys(String accountId, String userId) async =>
+      const [];
+
+  @override
+  Future<void> verifyDevice(String accountId, String userId, String deviceId) async {}
+
+  @override
+  Future<VerificationDto> startVerification(
+    String accountId,
+    String userId, {
+    String? deviceId,
+  }) async => const VerificationDto(state: 'error');
+
+  @override
+  Future<bool> crossSigningEnabled(String accountId) async => false;
+
+  @override
+  Future<bool> crossSigningIsCached(String accountId) async => false;
+
+  @override
+  Future<void> crossSigningSelfSign(String accountId, {String? recoveryKey}) async {}
+
+  @override
+  Future<void> bootstrap(String accountId) async {}
+
+  @override
+  Future<bool> unlockKeyBackup(String accountId, String recoveryKey) async => false;
+
+  @override
+  Stream<VerificationDto> keyVerificationRequests(String accountId) =>
+      const Stream<VerificationDto>.empty();
+
+  // ── Sync (no-op) ──────────────────────────────────────────────
+
+  @override
+  Future<bool> syncStatus(String accountId) async => false;
 
   @override
   Stream<String> get onLoginStateChanged => _loginStateController.stream;

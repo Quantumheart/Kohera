@@ -4,10 +4,12 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/backend/dto/account_dto.dart';
+import 'package:kohera/core/backend/dto/device_key_dto.dart';
 import 'package:kohera/core/backend/dto/event_dto.dart';
 import 'package:kohera/core/backend/dto/member_dto.dart';
 import 'package:kohera/core/backend/dto/room_dto.dart';
 import 'package:kohera/core/backend/dto/user_dto.dart';
+import 'package:kohera/core/backend/dto/verification_dto.dart';
 import 'package:kohera/core/backend/ports/matrix_backend.dart';
 
 // ── MatrixServiceProxy ────────────────────────────────────────────
@@ -254,6 +256,61 @@ class MatrixServiceProxy extends ChangeNotifier {
   /// Sets a public read receipt for [roomId] at [eventId].
   Future<void> setReadReceipt(String roomId, String eventId) =>
       _backend.setReadReceipt(_accountId(), roomId, eventId);
+
+  // ── E2EE ──────────────────────────────────────────────────────
+
+  Future<bool> encryptionEnabled(String roomId) =>
+      _backend.encryptionEnabled(_accountId(), roomId);
+
+  Future<List<DeviceKeyDto>> deviceKeys(String userId) =>
+      _backend.deviceKeys(_accountId(), userId);
+
+  Future<void> verifyDevice(String userId, String deviceId) =>
+      _backend.verifyDevice(_accountId(), userId, deviceId);
+
+  Future<VerificationDto> startVerification(
+    String userId, {
+    String? deviceId,
+  }) =>
+      _backend.startVerification(_accountId(), userId, deviceId: deviceId);
+
+  bool _crossSigningEnabled = false;
+  bool get crossSigningEnabled => _crossSigningEnabled;
+
+  bool _crossSigningIsCached = false;
+  bool get crossSigningIsCached => _crossSigningIsCached;
+
+  Future<bool> fetchCrossSigningEnabled() async {
+    _crossSigningEnabled = await _backend.crossSigningEnabled(_accountId());
+    notifyListeners();
+    return _crossSigningEnabled;
+  }
+
+  Future<bool> fetchCrossSigningIsCached() async {
+    _crossSigningIsCached = await _backend.crossSigningIsCached(_accountId());
+    notifyListeners();
+    return _crossSigningIsCached;
+  }
+
+  Future<void> crossSigningSelfSign({String? recoveryKey}) =>
+      _backend.crossSigningSelfSign(_accountId(), recoveryKey: recoveryKey);
+
+  Future<void> bootstrap() =>
+      _backend.bootstrap(_accountId());
+
+  Future<bool> unlockKeyBackup(String recoveryKey) =>
+      _backend.unlockKeyBackup(_accountId(), recoveryKey);
+
+  // ── Sync ──────────────────────────────────────────────────────
+
+  Future<bool> syncStatus() =>
+      _backend.syncStatus(_accountId());
+
+  // ── Streams ───────────────────────────────────────────────────
+
+  Stream<VerificationDto> keyVerificationRequests() {
+    return _backend.keyVerificationRequests(_accountId());
+  }
 
   // ── Init ──────────────────────────────────────────────────────
 
