@@ -1,5 +1,3 @@
-// coverage:ignore-file
-
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -196,7 +194,7 @@ void main() {
         completes,
       );
       await expectLater(
-        backend.kickUser('acct', '!r:s', '@u:s', reason: 'x'),
+        backend.kickUser('acct', '!r:s', '@u:s'),
         completes,
       );
       await expectLater(backend.banUser('acct', '!r:s', '@u:s'), completes);
