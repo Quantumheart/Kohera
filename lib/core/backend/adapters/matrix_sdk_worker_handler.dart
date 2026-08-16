@@ -543,16 +543,6 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
 
   // ── Messaging ─────────────────────────────────────────────────
 
-  Room? _roomOf(BackendCall call) {
-    final roomId = call.args['roomId'] as String?;
-    if (roomId == null) return null;
-    return _client?.getRoomById(roomId);
-  }
-
-  BackendResult _roomNotFound(String roomId) => BackendResult.error(
-        BackendError(code: 'room_not_found', message: 'No room $roomId'),
-      );
-
   Future<BackendResult> _handleMessageSend(BackendCall call) async {
     final roomId = call.args['roomId'] as String;
     final content = call.args['content'] as Map<String, dynamic>;
