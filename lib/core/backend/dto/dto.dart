@@ -11,6 +11,3 @@
 abstract class Dto {
   Map<String, dynamic> toMap();
 }
-
-
-

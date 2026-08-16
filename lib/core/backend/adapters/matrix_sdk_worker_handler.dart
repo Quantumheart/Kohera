@@ -7,8 +7,8 @@ import 'package:flutter_vodozemac/flutter_vodozemac.dart' as vod;
 import 'package:kohera/core/backend/dto/account_dto.dart';
 import 'package:kohera/core/backend/dto/event_dto.dart';
 import 'package:kohera/core/backend/dto/room_dto.dart';
-import 'package:kohera/core/backend/transport/protocol.dart';
 import 'package:kohera/core/backend/ports/worker_handler.dart';
+import 'package:kohera/core/backend/transport/protocol.dart';
 import 'package:matrix/matrix.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 

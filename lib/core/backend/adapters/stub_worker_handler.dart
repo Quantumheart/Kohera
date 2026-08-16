@@ -1,7 +1,7 @@
 // coverage:ignore-file
 
-import 'package:kohera/core/backend/transport/protocol.dart';
 import 'package:kohera/core/backend/ports/worker_handler.dart';
+import 'package:kohera/core/backend/transport/protocol.dart';
 
 // ── StubWorkerHandler ─────────────────────────────────────────────
 //
