@@ -5,7 +5,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/backend/dto/account_dto.dart';
 import 'package:kohera/core/backend/dto/event_dto.dart';
+import 'package:kohera/core/backend/dto/member_dto.dart';
 import 'package:kohera/core/backend/dto/room_dto.dart';
+import 'package:kohera/core/backend/dto/user_dto.dart';
 import 'package:kohera/core/backend/ports/matrix_backend.dart';
 
 // ── MatrixServiceProxy ────────────────────────────────────────────
@@ -79,6 +81,98 @@ class MatrixServiceProxy extends ChangeNotifier {
     });
     return stream;
   }
+
+  // ── Members cache ─────────────────────────────────────────────
+
+  final Map<String, List<MemberDto>> _members = {};
+
+  /// Returns the cached member list for [roomId], or null if not yet fetched.
+  /// Synchronous — widgets read from this without awaiting.
+  List<MemberDto>? getMembers(String roomId) => _members[roomId];
+
+  /// Fetches the joined members for [roomId] from the backend, populates the
+  /// cache, and notifies listeners. Returns the fetched list.
+  Future<List<MemberDto>> fetchMembers(String roomId) async {
+    final accountId = _account?.clientName ?? 'default';
+    final members = await _backend.getJoinedMembers(accountId, roomId);
+    _members[roomId] = members;
+    notifyListeners();
+    return members;
+  }
+
+  /// Looks up a single user profile in [roomId].
+  Future<UserDto> fetchUser(String roomId, String userId) async {
+    final accountId = _account?.clientName ?? 'default';
+    return _backend.getUser(accountId, roomId, userId);
+  }
+
+  /// Searches the user directory for [term].
+  Future<List<UserDto>> searchUsers(String term) async {
+    final accountId = _account?.clientName ?? 'default';
+    return _backend.searchUsers(accountId, term);
+  }
+
+  // ── Room management (async) ────────────────────────────────────
+
+  String _accountId() => _account?.clientName ?? 'default';
+
+  Future<void> leaveRoom(String roomId) =>
+      _backend.leaveRoom(_accountId(), roomId);
+
+  Future<void> joinRoom(String roomId) =>
+      _backend.joinRoom(_accountId(), roomId);
+
+  Future<void> inviteUser(String roomId, String userId, {String? reason}) =>
+      _backend.inviteUser(_accountId(), roomId, userId, reason: reason);
+
+  Future<void> kickUser(String roomId, String userId, {String? reason}) =>
+      _backend.kickUser(_accountId(), roomId, userId, reason: reason);
+
+  Future<void> banUser(String roomId, String userId) =>
+      _backend.banUser(_accountId(), roomId, userId);
+
+  Future<void> unbanUser(String roomId, String userId) =>
+      _backend.unbanUser(_accountId(), roomId, userId);
+
+  Future<String> setRoomName(String roomId, String name) =>
+      _backend.setRoomName(_accountId(), roomId, name);
+
+  Future<String> setRoomTopic(String roomId, String topic) =>
+      _backend.setRoomTopic(_accountId(), roomId, topic);
+
+  Future<String> setRoomAvatar(
+    String roomId,
+    Uint8List bytes,
+    String name, {
+    String? mimeType,
+  }) =>
+      _backend.setRoomAvatar(_accountId(), roomId, bytes, name, mimeType: mimeType);
+
+  Future<String> createRoom(Map<String, dynamic> options) =>
+      _backend.createRoom(_accountId(), options);
+
+  // ── Room state (async) ─────────────────────────────────────────
+
+  Future<Map<String, dynamic>> getRoomState(
+    String roomId,
+    String eventType,
+    String key,
+  ) =>
+      _backend.getRoomState(_accountId(), roomId, eventType, key);
+
+  Future<String> setRoomState(
+    String roomId,
+    String eventType,
+    String key,
+    Map<String, dynamic> content,
+  ) =>
+      _backend.setRoomState(_accountId(), roomId, eventType, key, content);
+
+  Future<bool> canChangeState(String roomId, String eventType) =>
+      _backend.canChangeState(_accountId(), roomId, eventType);
+
+  Future<int> getPowerLevel(String roomId, String userId) =>
+      _backend.getPowerLevel(_accountId(), roomId, userId);
 
   // ── Messaging (async send) ─────────────────────────────────────
 
@@ -198,6 +292,7 @@ class MatrixServiceProxy extends ChangeNotifier {
     }
     _timelineSubs.clear();
     _timelines.clear();
+    _members.clear();
     _receipts.clear();
     unawaited(_backend.disconnect());
     super.dispose();

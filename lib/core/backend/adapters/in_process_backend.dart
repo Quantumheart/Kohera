@@ -5,7 +5,9 @@ import 'dart:typed_data';
 
 import 'package:kohera/core/backend/dto/account_dto.dart';
 import 'package:kohera/core/backend/dto/event_dto.dart';
+import 'package:kohera/core/backend/dto/member_dto.dart';
 import 'package:kohera/core/backend/dto/room_dto.dart';
+import 'package:kohera/core/backend/dto/user_dto.dart';
 import 'package:kohera/core/backend/ports/matrix_backend.dart';
 import 'package:kohera/core/backend/transport/protocol.dart';
 
@@ -63,6 +65,87 @@ class InProcessBackend implements MatrixBackend {
   @override
   Stream<List<EventDto>> timelineUpdates(String accountId, String roomId) =>
       const Stream<List<EventDto>>.empty();
+
+  // ── Room management (no-op) ─────────────────────────────────
+
+  @override
+  Future<void> leaveRoom(String accountId, String roomId) async {}
+
+  @override
+  Future<void> joinRoom(String accountId, String roomId) async {}
+
+  @override
+  Future<void> inviteUser(
+    String accountId,
+    String roomId,
+    String userId, {
+    String? reason,
+  }) async {}
+
+  @override
+  Future<void> kickUser(String accountId, String roomId, String userId, {String? reason}) async {}
+
+  @override
+  Future<void> banUser(String accountId, String roomId, String userId) async {}
+
+  @override
+  Future<void> unbanUser(String accountId, String roomId, String userId) async {}
+
+  @override
+  Future<String> setRoomName(String accountId, String roomId, String name) async => '';
+
+  @override
+  Future<String> setRoomTopic(String accountId, String roomId, String topic) async => '';
+
+  @override
+  Future<String> setRoomAvatar(
+    String accountId,
+    String roomId,
+    Uint8List bytes,
+    String name, {
+    String? mimeType,
+  }) async => '';
+
+  @override
+  Future<String> createRoom(String accountId, Map<String, dynamic> options) async => '';
+
+  // ── Room state (no-op) ────────────────────────────────────────
+
+  @override
+  Future<Map<String, dynamic>> getRoomState(
+    String accountId,
+    String roomId,
+    String eventType,
+    String key,
+  ) async => const <String, dynamic>{};
+
+  @override
+  Future<String> setRoomState(
+    String accountId,
+    String roomId,
+    String eventType,
+    String key,
+    Map<String, dynamic> content,
+  ) async => '';
+
+  @override
+  Future<bool> canChangeState(String accountId, String roomId, String eventType) async => false;
+
+  @override
+  Future<int> getPowerLevel(String accountId, String roomId, String userId) async => 0;
+
+  // ── Members & users (no-op) ──────────────────────────────────
+
+  @override
+  Future<List<MemberDto>> getJoinedMembers(String accountId, String roomId) async => const [];
+
+  @override
+  Future<UserDto> getUser(String accountId, String roomId, String userId) async {
+    return UserDto(userId: userId, displayName: userId);
+  }
+
+  @override
+  Future<List<UserDto>> searchUsers(String accountId, String term) async => const [];
 
   // ── Messaging (no-op) ─────────────────────────────────────────
 
