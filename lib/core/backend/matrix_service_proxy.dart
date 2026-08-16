@@ -93,46 +93,57 @@ class MatrixServiceProxy extends ChangeNotifier {
   /// Fetches the joined members for [roomId] from the backend, populates the
   /// cache, and notifies listeners. Returns the fetched list.
   Future<List<MemberDto>> fetchMembers(String roomId) async {
-    final accountId = _account?.clientName ?? 'default';
-    final members = await _backend.getJoinedMembers(accountId, roomId);
+    final members = await _backend.getJoinedMembers(_accountId(), roomId);
     _members[roomId] = members;
     notifyListeners();
     return members;
   }
 
   /// Looks up a single user profile in [roomId].
-  Future<UserDto> fetchUser(String roomId, String userId) async {
-    final accountId = _account?.clientName ?? 'default';
-    return _backend.getUser(accountId, roomId, userId);
-  }
+  Future<UserDto> fetchUser(String roomId, String userId) =>
+      _backend.getUser(_accountId(), roomId, userId);
 
   /// Searches the user directory for [term].
-  Future<List<UserDto>> searchUsers(String term) async {
-    final accountId = _account?.clientName ?? 'default';
-    return _backend.searchUsers(accountId, term);
+  Future<List<UserDto>> searchUsers(String term) =>
+      _backend.searchUsers(_accountId(), term);
+
+  /// Drops the cached member list for [roomId] (if any) after a membership
+  /// change, so the next [getMembers] read triggers a fresh [fetchMembers].
+  void _invalidateMembers(String roomId) {
+    if (_members.remove(roomId) != null) notifyListeners();
   }
 
   // ── Room management (async) ────────────────────────────────────
 
   String _accountId() => _account?.clientName ?? 'default';
 
-  Future<void> leaveRoom(String roomId) =>
-      _backend.leaveRoom(_accountId(), roomId);
+  Future<void> leaveRoom(String roomId) async {
+    await _backend.leaveRoom(_accountId(), roomId);
+    _invalidateMembers(roomId);
+  }
 
   Future<void> joinRoom(String roomId) =>
       _backend.joinRoom(_accountId(), roomId);
 
-  Future<void> inviteUser(String roomId, String userId, {String? reason}) =>
-      _backend.inviteUser(_accountId(), roomId, userId, reason: reason);
+  Future<void> inviteUser(String roomId, String userId, {String? reason}) async {
+    await _backend.inviteUser(_accountId(), roomId, userId, reason: reason);
+    _invalidateMembers(roomId);
+  }
 
-  Future<void> kickUser(String roomId, String userId, {String? reason}) =>
-      _backend.kickUser(_accountId(), roomId, userId, reason: reason);
+  Future<void> kickUser(String roomId, String userId) async {
+    await _backend.kickUser(_accountId(), roomId, userId);
+    _invalidateMembers(roomId);
+  }
 
-  Future<void> banUser(String roomId, String userId) =>
-      _backend.banUser(_accountId(), roomId, userId);
+  Future<void> banUser(String roomId, String userId) async {
+    await _backend.banUser(_accountId(), roomId, userId);
+    _invalidateMembers(roomId);
+  }
 
-  Future<void> unbanUser(String roomId, String userId) =>
-      _backend.unbanUser(_accountId(), roomId, userId);
+  Future<void> unbanUser(String roomId, String userId) async {
+    await _backend.unbanUser(_accountId(), roomId, userId);
+    _invalidateMembers(roomId);
+  }
 
   Future<String> setRoomName(String roomId, String name) =>
       _backend.setRoomName(_accountId(), roomId, name);

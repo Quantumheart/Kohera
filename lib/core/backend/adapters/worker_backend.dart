@@ -281,17 +281,11 @@ class WorkerBackend implements MatrixBackend {
   }
 
   @override
-  Future<void> kickUser(
-    String accountId,
-    String roomId,
-    String userId, {
-    String? reason,
-  }) async {
+  Future<void> kickUser(String accountId, String roomId, String userId) async {
     await _call('roomMgmt.kick', {
       'accountId': accountId,
       'roomId': roomId,
       'userId': userId,
-      'reason': ?reason,
     });
   }
 

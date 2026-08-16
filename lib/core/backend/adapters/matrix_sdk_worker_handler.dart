@@ -324,6 +324,10 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
         BackendError(code: 'room_not_found', message: 'No room $roomId'),
       );
 
+  BackendResult _notConnected() => const BackendResult.error(
+        BackendError(code: 'not_connected', message: 'Client not initialized'),
+      );
+
   // ── Room management ───────────────────────────────────────────
 
   Future<BackendResult> _handleRoomMgmtLeave(BackendCall call) async {
@@ -336,13 +340,9 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
 
   Future<BackendResult> _handleRoomMgmtJoin(BackendCall call) async {
     final roomId = call.args['roomId'] as String;
-    final room = _client?.getRoomById(roomId);
-    if (room == null) {
-      return BackendResult.error(
-        BackendError(code: 'room_not_found', message: 'No room $roomId'),
-      );
-    }
-    await room.join();
+    final client = _client;
+    if (client == null) return _notConnected();
+    await client.joinRoomById(roomId);
     return const BackendResult.ok({});
   }
 
@@ -417,7 +417,9 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
 
   Future<BackendResult> _handleRoomsCreate(BackendCall call) async {
     final options = call.args['options'] as Map<String, dynamic>;
-    final roomId = await _client!.createRoom(
+    final client = _client;
+    if (client == null) return _notConnected();
+    final roomId = await client.createRoom(
       name: options['name'] as String?,
       topic: options['topic'] as String?,
       roomAliasName: options['roomAliasName'] as String?,
@@ -506,10 +508,13 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
 
   Future<BackendResult> _handleMembersGet(BackendCall call) async {
     final roomId = call.args['roomId'] as String;
+    final client = _client;
+    if (client == null) return _notConnected();
     final room = _roomOf(call);
     if (room == null) return _roomNotFound(roomId);
-    final memberEvents = await _client!.getMembersByRoom(roomId);
+    final memberEvents = await client.getMembersByRoom(roomId);
     final memberDtos = (memberEvents ?? <MatrixEvent>[])
+        .where((m) => m.content['membership'] == 'join')
         .map((m) => Event.fromMatrixEvent(m, room).asUser)
         .map((user) => MemberDto.fromSdk(
               user,
@@ -525,17 +530,17 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
     final room = _roomOf(call);
     if (room == null) return _roomNotFound(roomId);
     final user = await room.requestUser(userId);
-    if (user == null) {
-      return BackendResult.error(
-        BackendError(code: 'user_not_found', message: 'No user $userId'),
-      );
-    }
-    return BackendResult.ok({'user': UserDto.fromSdk(user).toMap()});
+    final dto = user != null
+        ? UserDto.fromSdk(user)
+        : UserDto(userId: userId, displayName: userId);
+    return BackendResult.ok({'user': dto.toMap()});
   }
 
   Future<BackendResult> _handleMembersSearch(BackendCall call) async {
     final term = call.args['term'] as String;
-    final response = await _client!.searchUserDirectory(term);
+    final client = _client;
+    if (client == null) return _notConnected();
+    final response = await client.searchUserDirectory(term);
     final userDtos =
         response.results.map((p) => UserDto.fromProfile(p).toMap()).toList();
     return BackendResult.ok({'users': userDtos});
