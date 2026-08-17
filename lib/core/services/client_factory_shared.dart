@@ -26,6 +26,23 @@ final Filter koheraSyncFilter = Filter(
   ),
 );
 
+/// Whether to enable verbose Matrix SDK logging. Off by default because the
+/// SDK's log path is a synchronous `print()` on the main isolate
+/// (`Logs.printOut`). At `Level.verbose` the SDK logs per room/event during a
+/// sync, and that unthrottled synchronous stdout flood starves the platform
+/// event loop long enough to trip the OS "not responding" watchdog in debug
+/// builds (see issue #991 — the app runs fine in profile, where
+/// `kReleaseMode` is true and the level collapses to `warning`). Opt in with:
+///   flutter run --dart-define=KOHERA_VERBOSE_SDK_LOGS=true
+const bool _verboseSdkLogs = bool.fromEnvironment('KOHERA_VERBOSE_SDK_LOGS');
+
+/// The SDK log level. Verbose only when explicitly opted in; otherwise
+/// `Level.info` in debug (lifecycle logs, no per-event flood) and
+/// `Level.warning` in profile/release (as before).
+const Level koheraSdkLogLevel = _verboseSdkLogs
+    ? Level.verbose
+    : (kReleaseMode ? Level.warning : Level.info);
+
 Client buildClient(
   String clientName,
   MatrixSdkDatabase database,
@@ -35,7 +52,7 @@ Client buildClient(
   final client = Client(
     'Kohera ($clientName)',
     database: database,
-    logLevel: kReleaseMode ? Level.warning : Level.verbose,
+    logLevel: koheraSdkLogLevel,
     defaultNetworkRequestTimeout: const Duration(minutes: 2),
     onSoftLogout: onSoftLogout,
     verificationMethods: {
