@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.17.0](https://github.com/Quantumheart/Kohera/compare/v1.16.2...v1.17.0) (2026-08-17)
+
+
+### Features
+
+* **search:** date separators + chronological grouping ([#904](https://github.com/Quantumheart/Kohera/issues/904)) ([1dec5a7](https://github.com/Quantumheart/Kohera/commit/1dec5a7449cd3f13f9bf43d0f090569f565a281e)), closes [#895](https://github.com/Quantumheart/Kohera/issues/895)
+* **search:** desktop keyboard navigation for search ([#905](https://github.com/Quantumheart/Kohera/issues/905)) ([e19243a](https://github.com/Quantumheart/Kohera/commit/e19243ac48e5496c31f3479428a80b243edb29bc)), closes [#895](https://github.com/Quantumheart/Kohera/issues/895)
+* **search:** result count header + infinite scroll pagination ([#903](https://github.com/Quantumheart/Kohera/issues/903)) ([d745f54](https://github.com/Quantumheart/Kohera/commit/d745f540214bf96ccd024521c7de7aceb49453d6)), closes [#895](https://github.com/Quantumheart/Kohera/issues/895)
+* **search:** side panel on wide screens for search results ([#906](https://github.com/Quantumheart/Kohera/issues/906)) ([35e6db9](https://github.com/Quantumheart/Kohera/commit/35e6db979d8e8314e3bdec2d3ae05b63bc8fa95c)), closes [#895](https://github.com/Quantumheart/Kohera/issues/895)
+* **search:** timeline-aware display resolution for edits/threads ([#902](https://github.com/Quantumheart/Kohera/issues/902)) ([c8c23f2](https://github.com/Quantumheart/Kohera/commit/c8c23f2832c1a62f952c8044d4125953ef0855fe)), closes [#895](https://github.com/Quantumheart/Kohera/issues/895)
+
+
+### Bug Fixes
+
+* remove unnecessary unawaited on animateTo (CI Flutter 3.47) ([79aa178](https://github.com/Quantumheart/Kohera/commit/79aa17872d5ecb214946f13b54e9d823f34d9ead))
+
 ## [1.16.2](https://github.com/Quantumheart/Kohera/compare/v1.16.1...v1.16.2) (2026-08-14)
 
 
