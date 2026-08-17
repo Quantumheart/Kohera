@@ -8,6 +8,13 @@
 abstract final class BackendOp {
   // ── Accounts ──────────────────────────────────────────────────
   static const accountsList = 'accounts.list';
+  static const accountsLogin = 'accounts.login';
+  static const accountsSso = 'accounts.sso';
+  static const accountsRegister = 'accounts.register';
+  static const accountsLogout = 'accounts.logout';
+  static const accountsRestore = 'accounts.restore';
+  static const subscribeAccountsLoginStateChanged =
+      'subscribe.accounts.loginStateChanged';
 
   // ── Rooms list ────────────────────────────────────────────────
   static const roomsList = 'rooms.list';
@@ -69,6 +76,11 @@ abstract final class BackendOp {
 
   // ── Sync status ───────────────────────────────────────────────
   static const syncStatus = 'sync.status';
+
+  // ── Media ──────────────────────────────────────────────────────
+  static const mediaUpload = 'media.upload';
+  static const mediaDownload = 'media.download';
+  static const mediaMxcToHttp = 'media.mxcToHttp';
 }
 
 /// Centralized event-name constants for [BackendEvent]s pushed from the

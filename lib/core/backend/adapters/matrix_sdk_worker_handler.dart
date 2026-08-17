@@ -94,6 +94,9 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
           'accounts': [serializeAccount()],
         });
 
+      case 'accounts.login':
+        return _handleAccountsLogin(call);
+
       case BackendOp.roomsList:
         return BackendResult.ok({
           'rooms': serializeRooms(),
@@ -255,6 +258,35 @@ class MatrixSdkWorkerHandler implements WorkerHandler {
     }
     await _db?.close();
     _db = null;
+  }
+
+  // ── Account management ────────────────────────────────────────
+
+  Future<BackendResult> _handleAccountsLogin(BackendCall call) async {
+    final client = _client;
+    if (client == null) return _notConnected();
+
+    final homeserver = call.args['homeserver'] as String;
+    final username = call.args['username'] as String;
+    final password = call.args['password'] as String;
+
+    try {
+      var hs = homeserver.trim();
+      if (!hs.startsWith('http')) hs = 'https://$hs';
+
+      await client.checkHomeserver(Uri.parse(hs));
+      await client.login(
+        LoginType.mLoginPassword,
+        identifier: AuthenticationUserIdentifier(user: username.trim()),
+        password: password,
+        initialDeviceDisplayName: 'Kohera Flutter',
+        refreshToken: true,
+      );
+      return const BackendResult.ok({'ok': true});
+    } catch (e) {
+      debugPrint('[Kohera] Worker: login failed: $e');
+      return const BackendResult.ok({'ok': false});
+    }
   }
 
   // ── Serialization ──────────────────────────────────────────────

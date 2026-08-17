@@ -39,6 +39,67 @@ abstract class MatrixBackend {
   /// Returns the list of known accounts.
   Future<List<AccountDto>> accountsList();
 
+  /// Logs in with [homeserver], [username], and [password]. Returns true on
+  /// success. [rememberCredentials] is a UI concern handled by the caller;
+  /// the worker only performs the SDK login.
+  Future<bool> login({
+    required String homeserver,
+    required String username,
+    required String password,
+  });
+
+  /// Completes an SSO login flow with [loginToken] from the callback.
+  Future<bool> completeSsoLogin({
+    required String homeserver,
+    required String loginToken,
+  });
+
+  /// Registers a new account on [homeserver] with [username] and
+  /// [password]. Returns true on success.
+  Future<bool> register({
+    required String homeserver,
+    required String username,
+    required String password,
+  });
+
+  /// Logs out the current account and clears the session.
+  Future<void> logout();
+
+  /// Restores a previously-saved session. Returns true on success.
+  Future<bool> restore({
+    required String homeserver,
+    required String accessToken,
+    required String userId,
+    required String deviceId,
+    String? refreshToken,
+  });
+
+  // ── Media ─────────────────────────────────────────────────────
+
+  /// Uploads [bytes] as [filename] (optional [mimeType]) to the content
+  /// repository. Returns the mxc:// URI.
+  Future<String> uploadMedia(
+    String accountId,
+    Uint8List bytes,
+    String filename, {
+    String? mimeType,
+  });
+
+  /// Downloads content at [mxcUri]. If [roomId] is provided and the room
+  /// is encrypted, the content is decrypted. Returns the raw bytes.
+  Future<Uint8List> downloadMedia(
+    String accountId,
+    String mxcUri, {
+    String? roomId,
+    bool getThumbnail = false,
+  });
+
+  /// Converts an mxc:// URI to an https:// URL suitable for direct download.
+  Future<String> mxcToHttp(
+    String accountId,
+    String mxcUri,
+  );
+
   // ── Rooms list ────────────────────────────────────────────────
 
   /// Returns a snapshot of all rooms for [accountId].

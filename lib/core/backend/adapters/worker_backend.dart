@@ -196,6 +196,69 @@ class WorkerBackend implements MatrixBackend {
   }
 
   @override
+  Future<bool> login({
+    required String homeserver,
+    required String username,
+    required String password,
+  }) async {
+    final result = await _call(BackendOp.accountsLogin, {
+      'homeserver': homeserver,
+      'username': username,
+      'password': password,
+    });
+    return result['ok'] as bool? ?? false;
+  }
+
+  @override
+  Future<bool> completeSsoLogin({
+    required String homeserver,
+    required String loginToken,
+  }) async {
+    final result = await _call(BackendOp.accountsSso, {
+      'homeserver': homeserver,
+      'loginToken': loginToken,
+    });
+    return result['ok'] as bool? ?? false;
+  }
+
+  @override
+  Future<bool> register({
+    required String homeserver,
+    required String username,
+    required String password,
+  }) async {
+    final result = await _call(BackendOp.accountsRegister, {
+      'homeserver': homeserver,
+      'username': username,
+      'password': password,
+    });
+    return result['ok'] as bool? ?? false;
+  }
+
+  @override
+  Future<void> logout() async {
+    await _call(BackendOp.accountsLogout, {});
+  }
+
+  @override
+  Future<bool> restore({
+    required String homeserver,
+    required String accessToken,
+    required String userId,
+    required String deviceId,
+    String? refreshToken,
+  }) async {
+    final result = await _call(BackendOp.accountsRestore, {
+      'homeserver': homeserver,
+      'accessToken': accessToken,
+      'userId': userId,
+      'deviceId': deviceId,
+      'refreshToken': ?refreshToken,
+    });
+    return result['ok'] as bool? ?? false;
+  }
+
+  @override
   Future<List<RoomDto>> roomsList(String accountId) async {
     final result = await _call(BackendOp.roomsList, {'accountId': accountId});
     final rooms = (result['rooms'] as List?)
@@ -723,8 +786,52 @@ class WorkerBackend implements MatrixBackend {
 
   @override
   Future<bool> syncStatus(String accountId) async {
+
     final result = await _call(BackendOp.syncStatus, {'accountId': accountId});
     return result['syncing'] as bool? ?? false;
+  }
+
+  // ── Media ─────────────────────────────────────────────────────
+
+  @override
+  Future<String> uploadMedia(
+    String accountId,
+    Uint8List bytes,
+    String filename, {
+    String? mimeType,
+  }) async {
+    final result = await _call(BackendOp.mediaUpload, {
+      'accountId': accountId,
+      'bytes': bytes,
+      'filename': filename,
+      'mimeType': ?mimeType,
+    });
+    return result['mxc'] as String? ?? '';
+  }
+
+  @override
+  Future<Uint8List> downloadMedia(
+    String accountId,
+    String mxcUri, {
+    String? roomId,
+    bool getThumbnail = false,
+  }) async {
+    final result = await _call(BackendOp.mediaDownload, {
+      'accountId': accountId,
+      'mxcUri': mxcUri,
+      'roomId': ?roomId,
+      'getThumbnail': getThumbnail,
+    });
+    return result['bytes'] as Uint8List? ?? Uint8List(0);
+  }
+
+  @override
+  Future<String> mxcToHttp(String accountId, String mxcUri) async {
+    final result = await _call(BackendOp.mediaMxcToHttp, {
+      'accountId': accountId,
+      'mxcUri': mxcUri,
+    });
+    return result['http'] as String? ?? '';
   }
 
   @override

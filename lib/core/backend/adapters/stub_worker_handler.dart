@@ -17,6 +17,8 @@ class StubWorkerHandler implements WorkerHandler {
     switch (call.op) {
       case BackendOp.accountsList:
         return const BackendResult.ok({'accounts': <Map<String, dynamic>>[]});
+      case BackendOp.accountsLogin:
+        return const BackendResult.ok({'ok': false});
       case BackendOp.roomsList:
         return const BackendResult.ok({'rooms': <Map<String, dynamic>>[]});
       case BackendOp.timelineFetch:

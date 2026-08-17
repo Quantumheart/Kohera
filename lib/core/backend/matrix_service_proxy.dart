@@ -339,6 +339,95 @@ class MatrixServiceProxy extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> login({
+    required String homeserver,
+    required String username,
+    required String password,
+  }) async {
+    final ok = await _backend.login(
+      homeserver: homeserver,
+      username: username,
+      password: password,
+    );
+    if (ok) await _refreshLoginState();
+    return ok;
+  }
+
+  Future<bool> completeSsoLogin({
+    required String homeserver,
+    required String loginToken,
+  }) async {
+    final ok = await _backend.completeSsoLogin(
+      homeserver: homeserver,
+      loginToken: loginToken,
+    );
+    if (ok) await _refreshLoginState();
+    return ok;
+  }
+
+  Future<bool> register({
+    required String homeserver,
+    required String username,
+    required String password,
+  }) async {
+    final ok = await _backend.register(
+      homeserver: homeserver,
+      username: username,
+      password: password,
+    );
+    if (ok) await _refreshLoginState();
+    return ok;
+  }
+
+  Future<void> logout() async {
+    await _backend.logout();
+    _isLoggedIn = false;
+    _account = null;
+    notifyListeners();
+  }
+
+  Future<bool> restore({
+    required String homeserver,
+    required String accessToken,
+    required String userId,
+    required String deviceId,
+    String? refreshToken,
+  }) async {
+    final ok = await _backend.restore(
+      homeserver: homeserver,
+      accessToken: accessToken,
+      userId: userId,
+      deviceId: deviceId,
+      refreshToken: refreshToken,
+    );
+    if (ok) await _refreshLoginState();
+    return ok;
+  }
+
+  // ── Media ─────────────────────────────────────────────────────
+
+  Future<String> uploadMedia(
+    Uint8List bytes,
+    String filename, {
+    String? mimeType,
+  }) =>
+      _backend.uploadMedia(_accountId(), bytes, filename, mimeType: mimeType);
+
+  Future<Uint8List> downloadMedia(
+    String mxcUri, {
+    String? roomId,
+    bool getThumbnail = false,
+  }) =>
+      _backend.downloadMedia(
+        _accountId(),
+        mxcUri,
+        roomId: roomId,
+        getThumbnail: getThumbnail,
+      );
+
+  Future<String> mxcToHttp(String mxcUri) =>
+      _backend.mxcToHttp(_accountId(), mxcUri);
+
   Future<void> _refreshLoginState() async {
     final accounts = await _backend.accountsList();
     _account = accounts.isNotEmpty ? accounts.first : null;

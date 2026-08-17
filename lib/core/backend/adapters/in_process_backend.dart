@@ -43,6 +43,38 @@ class InProcessBackend implements MatrixBackend {
   Future<List<AccountDto>> accountsList() async => const [];
 
   @override
+  Future<bool> login({
+    required String homeserver,
+    required String username,
+    required String password,
+  }) async =>
+      false;
+
+  @override
+  Future<bool> completeSsoLogin({required String homeserver, required String loginToken}) async => false;
+
+  @override
+  Future<bool> register({
+    required String homeserver,
+    required String username,
+    required String password,
+  }) async =>
+      false;
+
+  @override
+  Future<void> logout() async {}
+
+  @override
+  Future<bool> restore({
+    required String homeserver,
+    required String accessToken,
+    required String userId,
+    required String deviceId,
+    String? refreshToken,
+  }) async =>
+      false;
+
+  @override
   Future<List<RoomDto>> roomsList(String accountId) async => const [];
 
   @override
@@ -262,9 +294,34 @@ class InProcessBackend implements MatrixBackend {
   @override
   Future<bool> syncStatus(String accountId) async => false;
 
+  // ── Media (no-op) ─────────────────────────────────────────────
+
+  @override
+  Future<String> uploadMedia(
+    String accountId,
+    Uint8List bytes,
+    String filename, {
+    String? mimeType,
+  }) async =>
+      'mxc://stub/placeholder';
+
+  @override
+  Future<Uint8List> downloadMedia(
+    String accountId,
+    String mxcUri, {
+    String? roomId,
+    bool getThumbnail = false,
+  }) async =>
+      Uint8List(0);
+
+  @override
+  Future<String> mxcToHttp(String accountId, String mxcUri) async =>
+      'https://stub/placeholder';
+
   @override
   Stream<String> get onLoginStateChanged => _loginStateController.stream;
 
   @override
   Stream<BackendError> get onError => _errorController.stream;
+
 }
