@@ -26,6 +26,19 @@ class SyncService extends ChangeNotifier {
   String? _autoUnlockError;
   String? get autoUnlockError => _autoUnlockError;
 
+  /// True between [startSync] and the first successful sync update.
+  /// The UI can observe this to show a non-blocking "still catching up"
+  /// state instead of a frozen loader. Unlike the old 30s timeout this
+  /// never aborts the sync — it just reports progress.
+  bool _initialSyncPending = false;
+  bool get isInitialSyncPending => _initialSyncPending;
+
+  /// Populated when the initial sync is aborted by an explicit [startSync]
+  /// timeout. Null while waiting or after a successful first sync. Use
+  /// [retrySync] to attempt again.
+  String? _initialSyncError;
+  String? get initialSyncError => _initialSyncError;
+
   StreamSubscription<SyncUpdate>? _syncSub;
   Timer? _retryDebounce;
   bool _disposed = false;
@@ -37,15 +50,31 @@ class SyncService extends ChangeNotifier {
     super.dispose();
   }
 
-  Future<void> startSync({Duration? timeout = const Duration(seconds: 30)}) async {
+  /// Starts syncing and (by default) waits for the first sync update.
+  ///
+  /// [timeout] is *not* a sync deadline — when it elapses the sync is
+  /// aborted cleanly (subscription cancelled, state reset) and
+  /// [initialSyncError] is populated so the UI can offer a retry. Passing
+  /// `null` (the default) waits indefinitely; the SDK's own network request
+  /// timeout (`Client.defaultNetworkRequestTimeout`) still governs the
+  /// underlying HTTP requests and the SDK retries transient failures on
+  /// its own. The background-sync path uses `null` so a slow homeserver
+  /// never produces a misleading "First sync timed out" state.
+  Future<void> startSync({Duration? timeout}) async {
     if (_syncing) return;
     _syncing = true;
+    _initialSyncPending = true;
+    _initialSyncError = null;
     notifyListeners();
 
     final firstSync = Completer<void>();
     unawaited(_syncSub?.cancel());
     _syncSub = _client.onSync.stream.listen((_) {
-      if (!firstSync.isCompleted) firstSync.complete();
+      if (!firstSync.isCompleted) {
+        firstSync.complete();
+        _initialSyncPending = false;
+        notifyListeners();
+      }
       _maybeRetryBackup();
     });
 
@@ -64,12 +93,30 @@ class SyncService extends ChangeNotifier {
         timeout,
         onTimeout: () {
           debugPrint('[Kohera] First sync timed out after ${timeout.inSeconds}s');
+          _initialSyncError =
+              'Initial sync timed out after ${timeout.inSeconds}s. '
+              'Check your connection.';
+          _cancelAndReset();
+          notifyListeners();
           throw TimeoutException('Initial sync timed out. Check your connection.');
         },
       );
     } else {
       await firstSync.future;
     }
+  }
+
+  /// Retries the initial sync after a [startSync] timeout aborted it.
+  /// No-op if a sync is already running.
+  Future<void> retrySync({Duration? timeout}) {
+    if (_syncing) return Future<void>.value();
+    return startSync(timeout: timeout);
+  }
+
+  void _cancelAndReset() {
+    unawaited(_syncSub?.cancel());
+    _syncSub = null;
+    _syncing = false;
   }
 
   /// Retry auto-unlock backup on subsequent syncs, debounced, when the
@@ -105,8 +152,8 @@ class SyncService extends ChangeNotifier {
   }
 
   void cancelSyncSub() {
-    unawaited(_syncSub?.cancel());
-    _syncSub = null;
-    _syncing = false;
+    _cancelAndReset();
+    _initialSyncPending = false;
+    _initialSyncError = null;
   }
 }

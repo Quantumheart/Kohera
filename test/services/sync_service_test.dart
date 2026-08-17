@@ -95,6 +95,50 @@ void main() {
     });
   });
 
+  group('initial sync observability', () {
+    test('reports isInitialSyncPending until the first sync arrives', () async {
+      final future = service.startSync();
+      expect(service.isInitialSyncPending, isTrue);
+
+      syncController.add(SyncUpdate(nextBatch: 'b1'));
+      await future;
+
+      expect(service.isInitialSyncPending, isFalse);
+      expect(service.initialSyncError, isNull);
+    });
+
+    test('timeout aborts cleanly and exposes initialSyncError', () async {
+      expect(
+        () => service.startSync(timeout: const Duration(milliseconds: 1)),
+        throwsA(isA<TimeoutException>()),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(service.syncing, isFalse);
+      expect(service.isInitialSyncPending, isTrue);
+      expect(service.initialSyncError, isNotNull);
+    });
+
+    test('retrySync restarts after a timeout', () async {
+      expect(
+        () => service.startSync(timeout: const Duration(milliseconds: 1)),
+        throwsA(isA<TimeoutException>()),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(service.syncing, isFalse);
+
+      Future<void>.delayed(
+        Duration.zero,
+        () => syncController.add(SyncUpdate(nextBatch: 'r1')),
+      );
+      await service.retrySync();
+
+      expect(service.isInitialSyncPending, isFalse);
+      expect(service.initialSyncError, isNull);
+      expect(service.syncing, isTrue);
+    });
+  });
+
   group('retry auto-unlock backup', () {
     late int retryCount;
     late SyncService retryService;

@@ -107,6 +107,18 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
 
   bool get isLoggedIn => auth.isLoggedIn;
 
+  /// True while the initial sync has not yet produced its first update.
+  /// Observe this (via Provider) to show a non-blocking "catching up"
+  /// indicator instead of gating the UI on sync completion.
+  bool get isInitialSyncPending => sync.isInitialSyncPending;
+
+  /// Error message when the initial sync was aborted by a timeout, else
+  /// null. Drive a retry affordance from this.
+  String? get initialSyncError => sync.initialSyncError;
+
+  /// Re-attempt the initial sync after a timeout abort.
+  Future<void> retryInitialSync() => sync.retrySync();
+
   @visibleForTesting
   set isLoggedInForTest(bool value) {
     auth.isLoggedIn = value;

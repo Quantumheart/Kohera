@@ -189,6 +189,12 @@ class ChatBackupService extends ChangeNotifier {
 
   static const int _keyRequestScanLimit = 200;
   static const Duration _keyRequestScanCooldown = Duration(minutes: 1);
+  /// Number of rooms scanned before yielding back to the event loop. The
+  /// scan reads the DB (already off-main-isolate) but constructs [Event]
+  /// objects and runs [maybeAutoRequest] on the main isolate; without
+  /// periodic yields a large account stalls the UI long enough to trip the
+  /// OS "not responding" watchdog during the post-first-sync burst.
+  static const int _keyScanBatchSize = 20;
   DateTime? _lastKeyRequestScan;
 
   Future<void> requestMissingRoomKeys({bool force = false}) async {
@@ -204,7 +210,9 @@ class ChatBackupService extends ChangeNotifier {
     _lastKeyRequestScan = now;
 
     final seen = <String>{};
-    for (final room in _client.rooms) {
+    final rooms = _client.rooms;
+    for (var i = 0; i < rooms.length; i++) {
+      final room = rooms[i];
       List<Event> events;
       try {
         events = await _client.database
@@ -236,6 +244,13 @@ class ChatBackupService extends ChangeNotifier {
         } catch (e) {
           debugPrint('[Kohera] Key request failed for ${room.id}: $e');
         }
+      }
+
+      // Yield between batches so the platform event loop (e.g. GTK on
+      // Linux desktop) can pump while a large account is being scanned.
+      // All rooms are still scanned — only the scheduling is cooperative.
+      if ((i + 1) % _keyScanBatchSize == 0) {
+        await Future<void>.delayed(Duration.zero);
       }
     }
   }
