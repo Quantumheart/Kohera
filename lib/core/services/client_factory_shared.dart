@@ -10,6 +10,22 @@ const Set<String> callPreviewTypes = {
   EventTypes.GroupCallMember,
 };
 
+/// Sync filter used by every Kohera [Client].
+///
+/// The SDK default only lazy-loads member state and places **no limit** on the
+/// room timeline, so an initial (or large incremental) `/sync` response can be
+/// huge. The response body is `jsonDecode`d and then processed by `_handleSync`
+/// on the **main isolate**, which blocks the UI thread long enough to trip the
+/// OS "not responding" watchdog on desktop (see issue #991). Capping the
+/// timeline to a small window keeps the sync payload small; the chat screen
+/// paginates the rest on demand via `Timeline.requestHistory`.
+final Filter koheraSyncFilter = Filter(
+  room: RoomFilter(
+    state: StateFilter(lazyLoadMembers: true),
+    timeline: StateFilter(limit: 20),
+  ),
+);
+
 Client buildClient(
   String clientName,
   MatrixSdkDatabase database,
@@ -31,6 +47,7 @@ Client buildClient(
     enableDehydratedDevices: true,
     enableLatexMarkdown: false,
     nativeImplementations: nativeImplementations,
+    syncFilter: koheraSyncFilter,
   );
   client.roomPreviewLastEvents.removeAll(callPreviewTypes);
   return client;

@@ -78,9 +78,15 @@ class SyncService extends ChangeNotifier {
       _maybeRetryBackup();
     });
 
-    unawaited(firstSync.future.then((_) {
+    unawaited(firstSync.future.then((_) async {
       _autoUnlockError = null;
-      return _onPostSyncBackup();
+      // Defer the post-sync E2EE burst one event-loop turn so the sync-update
+      // handler stack unwinds and the UI pumps before the (main-isolate) key
+      // recovery runs. Otherwise the sync-processing block and the recovery
+      // block compound into a single main-isolate stall that trips the OS
+      // "not responding" watchdog. See issue #991.
+      await Future<void>.delayed(Duration.zero);
+      await _onPostSyncBackup();
     }).catchError((Object e) {
       debugPrint('[Kohera] Background E2EE auto-unlock error: $e');
       if (_disposed) return;

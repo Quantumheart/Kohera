@@ -26,6 +26,7 @@ import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:matrix/matrix.dart';
 // ignore: implementation_imports, no public API for ClientInitException
 import 'package:matrix/src/utils/client_init_exception.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 String koheraKey(String clientName, String suffix) =>
     'kohera_${clientName}_$suffix';
@@ -471,6 +472,32 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// One-time migration to the timeline-capped [koheraSyncFilter].
+  ///
+  /// The SDK persists `sync_filter_id` and only (re)defines the filter when
+  /// that id is null (`Client._checkSyncFilter`), so accounts that first
+  /// logged in before this change keep using the old SDK-default filter (no
+  /// timeline cap). Force a redefine here so the capped filter takes effect
+  /// on the next launch. Best-effort: never blocks or fails startup.
+  Future<void> _migrateSyncFilterIfNeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    final flag = 'kohera_sync_filter_timeline_v1_$clientName';
+    if (prefs.getBool(flag) == true) return;
+    try {
+      final userId = _client.userID;
+      if (userId == null) return;
+      final newId = await _client.defineFilter(userId, _client.syncFilter);
+      await _client.database.storeSyncFilterId(newId);
+      await prefs.setBool(flag, true);
+      debugPrint(
+        '[Kohera] Sync filter migrated to timeline-capped filter '
+        '(id=$newId); applies on next launch',
+      );
+    } catch (e) {
+      debugPrint('[Kohera] Sync filter migration failed (non-fatal): $e');
+    }
+  }
+
   Future<void> _restoreFromDatabase() async {
     debugPrint('[Kohera] Restoring session from database for $clientName');
     try {
@@ -491,6 +518,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         'encryptionEnabled=${_client.encryptionEnabled}',
       );
       await _activateSession();
+      unawaited(_migrateSyncFilterIfNeeded());
       try {
         if (_client.accessToken != null) {
           await auth.persistCredentials();
@@ -562,6 +590,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         'encryptionEnabled=${_client.encryptionEnabled}',
       );
       await _activateSession();
+      unawaited(_migrateSyncFilterIfNeeded());
       try {
         if (_client.accessToken != null) {
           await auth.persistCredentials();
