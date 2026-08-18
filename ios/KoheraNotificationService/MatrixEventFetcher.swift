@@ -71,6 +71,128 @@ struct MatrixEventFetcher {
         }
     }
 
+    // ── Room name resolution ───────────────────────────────────────
+
+    /// Resolves a display name for the room, suitable for `content.title`.
+    /// Tries `m.room.name`; returns nil if absent or empty so the caller can
+    /// fall back to the DM counterpart / room_id localpart.
+    static func fetchRoomName(
+        homeserver: String,
+        roomId: String,
+        accessToken: String
+    ) async -> String? {
+        guard let encodedRoomId = roomId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let url = URL(string: "\(homeserver)/_matrix/client/v3/rooms/\(encodedRoomId)/state/m.room.name")
+        else {
+            NSLog("[KoheraNSE] Invalid URL for room name fetch")
+            return nil
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 5
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+                NSLog("[KoheraNSE] Room name fetch status %d", code)
+                return nil
+            }
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                return nil
+            }
+            return nonEmpty(json["name"] as? String)
+        } catch {
+            NSLog("[KoheraNSE] Room name fetch error: %@", error.localizedDescription)
+            return nil
+        }
+    }
+
+    /// Resolves a member's displayname from `m.room.member` state.
+    /// Used for the DM counterpart fallback when no room name is set.
+    static func fetchMemberDisplayname(
+        homeserver: String,
+        roomId: String,
+        userId: String,
+        accessToken: String
+    ) async -> String? {
+        guard let encodedRoomId = roomId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let encodedUserId = userId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let url = URL(string: "\(homeserver)/_matrix/client/v3/rooms/\(encodedRoomId)/state/m.room.member/\(encodedUserId)")
+        else {
+            NSLog("[KoheraNSE] Invalid URL for member fetch")
+            return nil
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 5
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+                NSLog("[KoheraNSE] Member fetch status %d", code)
+                return nil
+            }
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                return nil
+            }
+            return nonEmpty(json["displayname"] as? String)
+        } catch {
+            NSLog("[KoheraNSE] Member fetch error: %@", error.localizedDescription)
+            return nil
+        }
+    }
+
+    /// Returns the set of room ids flagged as direct via `m.direct` account
+    /// data. Used to decide whether the sender's displayname is an acceptable
+    /// room title fallback (DM) vs. an unnamed group room (room_id localpart).
+    static func fetchDirectRoomIds(
+        homeserver: String,
+        userId: String,
+        accessToken: String
+    ) async -> Set<String>? {
+        guard let encodedUserId = userId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let url = URL(string: "\(homeserver)/_matrix/client/v3/user/\(encodedUserId)/account_data/m.direct")
+        else {
+            NSLog("[KoheraNSE] Invalid URL for m.direct fetch")
+            return nil
+        }
+
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 5
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                let code = (response as? HTTPURLResponse)?.statusCode ?? -1
+                NSLog("[KoheraNSE] m.direct fetch status %d", code)
+                return nil
+            }
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: [Any]] else {
+                return nil
+            }
+            var ids = Set<String>()
+            for roomIds in json.values {
+                for case let roomId as String in roomIds {
+                    ids.insert(roomId)
+                }
+            }
+            return ids
+        } catch {
+            NSLog("[KoheraNSE] m.direct fetch error: %@", error.localizedDescription)
+            return nil
+        }
+    }
+
+    private static func nonEmpty(_ string: String?) -> String? {
+        guard let string = string, !string.isEmpty else { return nil }
+        return string
+    }
+
     // ── Thumbnail download ─────────────────────────────────────────
 
     static func downloadThumbnail(
