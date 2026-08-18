@@ -375,7 +375,7 @@
 		97C146E61CF9000F007C117D /* Project object */ = {
 			packageReferences = (
 				781AD8BC2B33823900A9FFBB /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage" */,
-				FFVZ00032F8EDEBE000C21EC /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/.packages/flutter_vodozemac-0.6.0" */,
+				FFVZ00032F8EDEBE000C21EC /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/.packages/flutter_vodozemac-0.7.1" */,
 			);
 			isa = PBXProject;
 			attributes = {
@@ -1304,9 +1304,9 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Flutter/ephemeral/Packages/FlutterGeneratedPluginSwiftPackage;
 		};
-		FFVZ00032F8EDEBE000C21EC /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/.packages/flutter_vodozemac-0.6.0" */ = {
+		FFVZ00032F8EDEBE000C21EC /* XCLocalSwiftPackageReference "Flutter/ephemeral/Packages/.packages/flutter_vodozemac-0.7.1" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = Flutter/ephemeral/Packages/.packages/flutter_vodozemac-0.6.0;
+			relativePath = Flutter/ephemeral/Packages/.packages/flutter_vodozemac-0.7.1;
 		};
 /* End XCLocalSwiftPackageReference section */
 /* Begin XCSwiftPackageProductDependency section */
