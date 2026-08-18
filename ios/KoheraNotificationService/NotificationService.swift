@@ -4,6 +4,7 @@ import UserNotifications
 class NotificationService: UNNotificationServiceExtension {
     var contentHandler: ((UNNotificationContent) -> Void)?
     var bestAttemptContent: UNMutableNotificationContent?
+    private var currentRoomId: String?
 
     override func didReceive(
         _ request: UNNotificationRequest,
@@ -26,6 +27,7 @@ class NotificationService: UNNotificationServiceExtension {
             return
         }
 
+        self.currentRoomId = roomId
         content.threadIdentifier = roomId
         content.categoryIdentifier = "MESSAGE"
 
@@ -41,6 +43,7 @@ class NotificationService: UNNotificationServiceExtension {
 
     override func serviceExtensionTimeWillExpire() {
         if let contentHandler = contentHandler, let content = bestAttemptContent {
+            applyFallbackTitleIfNeeded(content: content, roomId: currentRoomId)
             contentHandler(content)
         }
     }
@@ -74,22 +77,51 @@ class NotificationService: UNNotificationServiceExtension {
             return
         }
 
-        guard let event = await MatrixEventFetcher.fetchEvent(
+        // Room-name and DM-flag fetches need only roomId + credentials, so
+        // they start at t=0 in parallel with fetchEvent. Serializing them
+        // after fetchEvent would push the NSE past its 30s budget.
+        async let eventAsync = MatrixEventFetcher.fetchEvent(
             homeserver: homeserver,
             roomId: roomId,
             eventId: eventId,
             accessToken: accessToken
-        ) else {
+        )
+        async let roomNameAsync = MatrixEventFetcher.fetchRoomName(
+            homeserver: homeserver,
+            roomId: roomId,
+            accessToken: accessToken
+        )
+        async let directRoomIdsAsync = MatrixEventFetcher.fetchDirectRoomIds(
+            homeserver: homeserver,
+            userId: userId,
+            accessToken: accessToken
+        )
+
+        guard let event = await eventAsync else {
             NSLog("[KoheraNSE] Failed to fetch event %@", eventId)
+            _ = await roomNameAsync
+            _ = await directRoomIdsAsync
             return
         }
 
         let senderId = event["sender"] as? String
 
+        let directRoomIds = await directRoomIdsAsync
+        let isDirect = directRoomIds?.contains(roomId) ?? false
+
         let profileTask = Task { () -> (avatarUrl: String?, displayname: String?)? in
             guard let senderId = senderId else { return nil }
             return await MatrixEventFetcher.fetchProfile(
                 homeserver: homeserver, userId: senderId, accessToken: accessToken
+            )
+        }
+
+        // DM counterpart (only when the room is a direct chat) runs in
+        // parallel with profile + body so it never adds serial wall-clock.
+        let counterpartTask = Task { () -> String? in
+            guard isDirect, let senderId = senderId else { return nil }
+            return await MatrixEventFetcher.fetchMemberDisplayname(
+                homeserver: homeserver, roomId: roomId, userId: senderId, accessToken: accessToken
             )
         }
 
@@ -99,13 +131,20 @@ class NotificationService: UNNotificationServiceExtension {
         let senderName = nonEmpty(profile?.displayname) ?? extractSenderName(from: event)
         updateContent(content: content, senderName: senderName, body: body)
 
+        let roomName = await roomNameAsync
+        let counterpart = await counterpartTask.value
+        let title = resolveTitle(roomId: roomId, roomName: roomName, counterpart: counterpart)
+        content.title = title
+
         await applySenderIntent(
             content: content,
             senderId: senderId,
             senderName: senderName,
             avatarMxc: profile?.avatarUrl,
             homeserver: homeserver,
-            accessToken: accessToken
+            accessToken: accessToken,
+            speakableGroupName: title,
+            includeSenderAsRecipient: isDirect
         )
     }
 
@@ -140,7 +179,9 @@ class NotificationService: UNNotificationServiceExtension {
         senderName: String?,
         avatarMxc: String?,
         homeserver: String,
-        accessToken: String
+        accessToken: String,
+        speakableGroupName: String,
+        includeSenderAsRecipient: Bool
     ) async {
         guard #available(iOS 15.0, *) else { return }
         guard let senderId = senderId else { return }
@@ -164,11 +205,15 @@ class NotificationService: UNNotificationServiceExtension {
             customIdentifier: senderId
         )
 
+        let groupName: INSpeakableString? = speakableGroupName.isEmpty
+            ? nil
+            : INSpeakableString(spokenPhrase: speakableGroupName)
+
         let intent = INSendMessageIntent(
-            recipients: nil,
+            recipients: includeSenderAsRecipient ? [sender] : nil,
             outgoingMessageType: .outgoingMessageText,
             content: content.body,
-            speakableGroupName: nil,
+            speakableGroupName: groupName,
             conversationIdentifier: content.threadIdentifier,
             serviceName: nil,
             sender: sender,
@@ -206,5 +251,35 @@ class NotificationService: UNNotificationServiceExtension {
     private func nonEmpty(_ string: String?) -> String? {
         guard let string = string, !string.isEmpty else { return nil }
         return string
+    }
+
+    private func resolveTitle(roomId: String, roomName: String?, counterpart: String?) -> String {
+        if let roomName = nonEmpty(roomName) {
+            return roomName
+        }
+        if let counterpart = nonEmpty(counterpart) {
+            return counterpart
+        }
+        if let localpart = roomIdLocalpart(roomId) {
+            return localpart
+        }
+        return "New message"
+    }
+
+    private func roomIdLocalpart(_ roomId: String) -> String? {
+        guard roomId.hasPrefix("!") else { return nil }
+        let withoutSigil = roomId.dropFirst()
+        let localpart = withoutSigil.prefix(while: { $0 != ":" })
+        let result = String(localpart)
+        return result.isEmpty ? nil : result
+    }
+
+    private func applyFallbackTitleIfNeeded(content: UNMutableNotificationContent, roomId: String?) {
+        guard content.title.isEmpty else { return }
+        if let roomId = roomId, let localpart = roomIdLocalpart(roomId) {
+            content.title = localpart
+        } else {
+            content.title = "New message"
+        }
     }
 }
