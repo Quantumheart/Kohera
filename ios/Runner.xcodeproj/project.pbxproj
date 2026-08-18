@@ -11,7 +11,6 @@
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
-		7583BAB31CD19EBC60610A2D /* Pods_KoheraNotificationService.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AD094B658038B423197E2D17 /* Pods_KoheraNotificationService.framework */; };
 		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
@@ -72,7 +71,6 @@
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
-		4BA458CB87B34E30E6BCB180 /* Pods-KoheraNotificationService.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-KoheraNotificationService.release.xcconfig"; path = "Target Support Files/Pods-KoheraNotificationService/Pods-KoheraNotificationService.release.xcconfig"; sourceTree = "<group>"; };
 		4BD88AAC73A1FBECB5882DE5 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		4CA4C854003837B1EEDE2270 /* Pods-RunnerTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release.xcconfig"; sourceTree = "<group>"; };
 		539676C88BA66506DC1C783D /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
@@ -93,9 +91,6 @@
 		9E3C4CC73B19295009F37DE1 /* Pods_Runner.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_Runner.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B2C3D31234567800AABBCC /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		AAAA00002F900000000C0000 /* Intents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Intents.framework; path = System/Library/Frameworks/Intents.framework; sourceTree = SDKROOT; };
-		AD094B658038B423197E2D17 /* Pods_KoheraNotificationService.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_KoheraNotificationService.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		B86D4C02E402F455B4503B32 /* Pods-KoheraNotificationService.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-KoheraNotificationService.debug.xcconfig"; path = "Target Support Files/Pods-KoheraNotificationService/Pods-KoheraNotificationService.debug.xcconfig"; sourceTree = "<group>"; };
-		C126422D284A0C64F3ABA7AB /* Pods-KoheraNotificationService.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-KoheraNotificationService.profile.xcconfig"; path = "Target Support Files/Pods-KoheraNotificationService/Pods-KoheraNotificationService.profile.xcconfig"; sourceTree = "<group>"; };
 		F2A03829119E35886A76B58C /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		FF11F2783016FDDE00902941 /* KoheraShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KoheraShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		FFFB940C2F8EDEBE000C21EC /* KoheraNotificationService.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = KoheraNotificationService.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -176,7 +171,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				AAAA00012F900000000C0000 /* Intents.framework in Frameworks */,
-				7583BAB31CD19EBC60610A2D /* Pods_KoheraNotificationService.framework in Frameworks */,
 				FFVZ00012F8EDEBE000C21EC /* flutter-vodozemac in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -201,9 +195,6 @@
 				16A87867DB839DF28755C479 /* Pods-RunnerTests.debug.xcconfig */,
 				4CA4C854003837B1EEDE2270 /* Pods-RunnerTests.release.xcconfig */,
 				539676C88BA66506DC1C783D /* Pods-RunnerTests.profile.xcconfig */,
-				B86D4C02E402F455B4503B32 /* Pods-KoheraNotificationService.debug.xcconfig */,
-				4BA458CB87B34E30E6BCB180 /* Pods-KoheraNotificationService.release.xcconfig */,
-				C126422D284A0C64F3ABA7AB /* Pods-KoheraNotificationService.profile.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -214,7 +205,6 @@
 				AAAA00002F900000000C0000 /* Intents.framework */,
 				9E3C4CC73B19295009F37DE1 /* Pods_Runner.framework */,
 				F2A03829119E35886A76B58C /* Pods_RunnerTests.framework */,
-				AD094B658038B423197E2D17 /* Pods_KoheraNotificationService.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -349,7 +339,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = FFFB94192F8EDEBE000C21EC /* Build configuration list for PBXNativeTarget "KoheraNotificationService" */;
 			buildPhases = (
-				CBFDD4472042B6265C733892 /* [CP] Check Pods Manifest.lock */,
 				FFFB94082F8EDEBE000C21EC /* Sources */,
 				FFFB94092F8EDEBE000C21EC /* Frameworks */,
 				FFFB940A2F8EDEBE000C21EC /* Resources */,
@@ -1113,7 +1102,6 @@
 		};
 		FFFB94152F8EDEBE000C21EC /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = B86D4C02E402F455B4503B32 /* Pods-KoheraNotificationService.debug.xcconfig */;
 			buildSettings = {
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -1158,7 +1146,6 @@
 		};
 		FFFB94162F8EDEBE000C21EC /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 4BA458CB87B34E30E6BCB180 /* Pods-KoheraNotificationService.release.xcconfig */;
 			buildSettings = {
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -1205,7 +1192,6 @@
 		};
 		FFFB94172F8EDEBE000C21EC /* Profile */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = C126422D284A0C64F3ABA7AB /* Pods-KoheraNotificationService.profile.xcconfig */;
 			buildSettings = {
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
