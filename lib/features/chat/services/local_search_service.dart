@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/models/kohera_message_status.dart';
 import 'package:kohera/features/chat/models/room_search_result.dart';
@@ -63,6 +64,8 @@ class LocalSearchService {
     required String query,
     String? nextBatch,
     int limit = 50,
+    String? senderId,
+    DateTimeRange? dateRange,
   }) async {
     if (!database.isAvailable) {
       // Platform without FTS5 (web): signal "not available" via an empty
@@ -73,13 +76,38 @@ class LocalSearchService {
 
     final offset = _parseOffset(nextBatch);
 
+    // Convert the optional date range to millisecond bounds for the FTS5
+    // query. The start is clamped to the beginning of the day, the end to
+    // the last millisecond of the day, so the range is inclusive.
+    final int? startTs;
+    final int? endTs;
+    final range = dateRange;
+    if (range != null) {
+      startTs = DateTime(range.start.year, range.start.month, range.start.day)
+          .millisecondsSinceEpoch;
+      endTs = DateTime(range.end.year, range.end.month, range.end.day, 23, 59, 59, 999)
+          .millisecondsSinceEpoch;
+    } else {
+      startTs = null;
+      endTs = null;
+    }
+
     final matches = await database.search(
       roomId: roomId,
       query: query,
+      senderId: senderId,
+      startTs: startTs,
+      endTs: endTs,
       limit: limit,
       offset: offset,
     );
-    final count = await database.count(roomId: roomId, query: query);
+    final count = await database.count(
+      roomId: roomId,
+      query: query,
+      senderId: senderId,
+      startTs: startTs,
+      endTs: endTs,
+    );
 
     final room = client.getRoomById(roomId);
     // The room's live timeline (if loaded) drives edit/reply aggregation via

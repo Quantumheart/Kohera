@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:kohera/features/chat/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/models/room_search_result.dart';
 import 'package:kohera/features/chat/services/local_search_service.dart';
@@ -51,6 +52,8 @@ class RoomSearchService {
     required String searchTerm,
     required int limit,
     String? nextBatch,
+    String? senderId,
+    DateTimeRange? dateRange,
   }) async {
     final room = client.getRoomById(roomId);
     if (room == null) {
@@ -70,6 +73,8 @@ class RoomSearchService {
         query: searchTerm,
         nextBatch: nextBatch,
         limit: limit,
+        senderId: senderId,
+        dateRange: dateRange,
       );
     }
 
@@ -84,6 +89,7 @@ class RoomSearchService {
               rooms: [roomId],
               limit: limit,
               types: ['m.room.message'],
+              senders: senderId != null ? [senderId] : null,
             ),
             eventContext: IncludeEventContext(
               beforeLimit: contextBeforeLimit,
@@ -136,10 +142,19 @@ class RoomSearchService {
         ));
       }
 
+      // Post-filter by date range when active — the v3/search filter API
+      // does not support date-range filtering, so this is done client-side.
+      // The server's `count` reflects the pre-date-filter total, so it is
+      // dropped (set to null) to avoid a misleading header.
+      final filteredResults = dateRange != null
+          ? _filterByDateRange(results, dateRange)
+          : results;
+      final effectiveCount = dateRange != null ? null : roomEvents.count;
+
       return RoomSearchResponse(
-        results: results,
+        results: filteredResults,
         nextBatch: roomEvents.nextBatch,
-        count: roomEvents.count,
+        count: effectiveCount,
         highlights: roomEvents.highlights,
       );
     } catch (e) {
@@ -157,6 +172,22 @@ class RoomSearchService {
     if (events == null || events.isEmpty) return const [];
     return events
         .map((me) => resolver(Event.fromMatrixEvent(me, room), timeline: timeline))
+        .toList(growable: false);
+  }
+
+  /// Filters [results] to those whose message timestamp falls within
+  /// [range] (inclusive, day-granularity).
+  static List<RoomSearchResult> _filterByDateRange(
+    List<RoomSearchResult> results,
+    DateTimeRange range,
+  ) {
+    final start = DateTime(range.start.year, range.start.month, range.start.day);
+    final end = DateTime(range.end.year, range.end.month, range.end.day, 23, 59, 59, 999);
+    return results
+        .where((r) {
+          final ts = r.message.timestamp;
+          return !ts.isBefore(start) && !ts.isAfter(end);
+        })
         .toList(growable: false);
   }
 }

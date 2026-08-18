@@ -114,6 +114,179 @@ class _SearchResultsBodyState extends State<SearchResultsBody> {
     return items;
   }
 
+  // ── Filter chips ────────────────────────────────────────────
+
+  /// Extracts unique senders from the current results as a map of
+  /// sender ID → display name.
+  Map<String, String> _extractSenders() {
+    final senders = <String, String>{};
+    for (final result in widget.search.results) {
+      senders[result.message.senderId] = result.message.senderName;
+    }
+    return senders;
+  }
+
+  /// Formats a [DateTimeRange] as a compact label for the filter chip.
+  String _formatDateRangeLabel(DateTimeRange range) {
+    final start = formatDateLabel(range.start);
+    final end = formatDateLabel(range.end);
+    if (start == end) return start;
+    return '$start – $end';
+  }
+
+  /// Builds the horizontally scrollable row of filter chips shown below
+  /// the result count header.
+  Widget _buildFilterChips(
+    BuildContext context,
+    ColorScheme cs,
+    TextTheme tt,
+  ) {
+    final search = widget.search;
+    final senders = _extractSenders();
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          // Sender filter chip.
+          FilterChip(
+            label: Text(
+              search.senderFilter != null
+                  ? senders[search.senderFilter] ?? 'Sender'
+                  : 'All senders',
+            ),
+            selected: search.senderFilter != null,
+            avatar: Icon(
+              Icons.person_outline_rounded,
+              size: 18,
+              color: cs.onSurfaceVariant,
+            ),
+            onSelected: (_) => _showSenderPicker(context, senders),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+          ),
+          const SizedBox(width: 8),
+          // Date range filter chip.
+          FilterChip(
+            label: Text(
+              search.dateRange != null
+                  ? _formatDateRangeLabel(search.dateRange!)
+                  : 'All dates',
+            ),
+            selected: search.dateRange != null,
+            avatar: Icon(
+              Icons.calendar_month_outlined,
+              size: 18,
+              color: cs.onSurfaceVariant,
+            ),
+            onSelected: (_) => _showDateRangePicker(context),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+          ),
+          // Clear filters chip.
+          if (search.hasActiveFilters) ...[
+            const SizedBox(width: 8),
+            ActionChip(
+              label: const Text('Clear filters'),
+              avatar: Icon(
+                Icons.filter_alt_off_outlined,
+                size: 18,
+                color: cs.onSurfaceVariant,
+              ),
+              onPressed: search.clearFilters,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Shows a dialog listing all senders found in the current results,
+  /// allowing the user to narrow results to a specific sender.
+  Future<void> _showSenderPicker(
+    BuildContext context,
+    Map<String, String> senders,
+  ) async {
+    final search = widget.search;
+    final currentFilter = search.senderFilter;
+
+    final selectedId = await showDialog<String?>(
+      context: context,
+      builder: (dialogContext) {
+        return SimpleDialog(
+          title: const Text('Filter by sender'),
+          children: [
+            // "All senders" option.
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Row(
+                children: [
+                  Icon(
+                    currentFilter == null
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    size: 20,
+                    color: Theme.of(dialogContext).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  const Text('All senders'),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // Individual senders.
+            for (final entry in senders.entries)
+              SimpleDialogOption(
+                onPressed: () =>
+                    Navigator.of(dialogContext).pop(entry.key),
+                child: Row(
+                  children: [
+                    Icon(
+                      currentFilter == entry.key
+                          ? Icons.radio_button_checked
+                          : Icons.radio_button_unchecked,
+                      size: 20,
+                      color: Theme.of(dialogContext).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(entry.value)),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+
+    if (selectedId != null || currentFilter != null) {
+      search.senderFilter = selectedId;
+    }
+  }
+
+  /// Shows the Material date-range picker and applies the selected range
+  /// as a date filter.
+  Future<void> _showDateRangePicker(BuildContext context) async {
+    final search = widget.search;
+    final now = DateTime.now();
+    final firstDate = DateTime(now.year - 5);
+    final lastDate = DateTime(now.year, now.month, now.day);
+
+    final range = await showDateRangePicker(
+      context: context,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      initialDateRange: search.dateRange,
+      helpText: 'Filter by date range',
+    );
+
+    if (range != null) {
+      search.dateRange = range;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -266,6 +439,9 @@ class _SearchResultsBodyState extends State<SearchResultsBody> {
             ],
           ),
         ),
+        // Filter chips (only visible when results are present).
+        if (widget.search.results.isNotEmpty)
+          _buildFilterChips(context, cs, tt),
         // Results list.
         Expanded(
           child: ListView.builder(
