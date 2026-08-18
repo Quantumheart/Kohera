@@ -130,7 +130,7 @@ jobs:
           key: pods-macos-${{ hashFiles('macos/Podfile.lock') }}
           restore-keys: pods-macos-
       - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@v0.10.0
         with:
           ssh-private-key: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
       - name: Setup fastlane
@@ -241,7 +241,7 @@ jobs:
           key: pods-ios-v2-${{ hashFiles('ios/Podfile.lock') }}
           restore-keys: pods-ios-
       - name: Set up SSH
-        uses: webfactory/ssh-agent@v0.9.0
+        uses: webfactory/ssh-agent@v0.10.0
         with:
           ssh-private-key: ${{ secrets.MATCH_SSH_PRIVATE_KEY }}
       - name: Setup fastlane
