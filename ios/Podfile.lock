@@ -2,8 +2,6 @@ PODS:
   - Flutter (1.0.0)
   - media_kit_video (0.0.1):
     - Flutter
-  - permission_handler_apple (9.3.0):
-    - Flutter
   - webcrypto (0.1.1):
     - Flutter
     - FlutterMacOS
@@ -11,7 +9,6 @@ PODS:
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - media_kit_video (from `.symlinks/plugins/media_kit_video/ios`)
-  - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
   - webcrypto (from `.symlinks/plugins/webcrypto/darwin`)
 
 EXTERNAL SOURCES:
@@ -19,17 +16,14 @@ EXTERNAL SOURCES:
     :path: Flutter
   media_kit_video:
     :path: ".symlinks/plugins/media_kit_video/ios"
-  permission_handler_apple:
-    :path: ".symlinks/plugins/permission_handler_apple/ios"
   webcrypto:
     :path: ".symlinks/plugins/webcrypto/darwin"
 
 SPEC CHECKSUMS:
-  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   media_kit_video: f3b0d035d89def15cfbbcf7dc2ae278f201e2f83
-  permission_handler_apple: 4ed2196e43d0651e8ff7ca3483a069d469701f2d
   webcrypto: a5f5eb3e375cf0a99993e207e97cdcab5c94ce2e
 
-PODFILE CHECKSUM: 0e0f89df09241f7e146727f3fcf4f56f6346b938
+PODFILE CHECKSUM: cb4c43f0ab93ac952d26c6dbae3846c3135e7e73
 
 COCOAPODS: 1.17.0
