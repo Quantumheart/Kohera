@@ -17,12 +17,17 @@ class SearchResultsBody extends StatefulWidget {
     required this.search,
     required this.avatarResolver,
     required this.onTapResult,
+    this.onQuerySelected,
     super.key,
   });
 
   final ChatSearchController search;
   final AvatarResolver avatarResolver;
   final ValueChanged<String> onTapResult;
+
+  /// Called when the user taps a recent-search suggestion. The callback
+  /// should fill the search text field and trigger the search.
+  final ValueChanged<String>? onQuerySelected;
 
   @override
   State<SearchResultsBody> createState() => _SearchResultsBodyState();
@@ -293,19 +298,30 @@ class _SearchResultsBodyState extends State<SearchResultsBody> {
     final tt = Theme.of(context).textTheme;
     final query = widget.search.query;
 
-    // Not enough characters yet.
+    // Query below minimum length — show recent search suggestions or
+    // a hint to start typing.
     if (query.length < ChatSearchController.minQueryLength) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Text(
-            'Type at least ${ChatSearchController.minQueryLength} characters to search',
-            style: tt.bodyMedium?.copyWith(
-              color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+      final recent = widget.search.recentQueries;
+      if (recent.isEmpty) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Text(
+              'Start typing to search messages',
+              style: tt.bodyMedium?.copyWith(
+                color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
           ),
-        ),
+        );
+      }
+      return _RecentSearches(
+        queries: recent,
+        onTap: (q) => widget.onQuerySelected?.call(q),
+        onRemove: (q) => widget.search.removeRecentQuery(q),
+        cs: cs,
+        tt: tt,
       );
     }
 
@@ -531,6 +547,57 @@ class _DateSeparator extends StatelessWidget {
           Expanded(child: Divider(color: cs.outlineVariant, thickness: 0.5)),
         ],
       ),
+    );
+  }
+}
+
+/// A scrollable list of recent search query suggestions shown when the search
+/// is opened with an empty query.
+class _RecentSearches extends StatelessWidget {
+  const _RecentSearches({
+    required this.queries,
+    required this.onTap,
+    required this.onRemove,
+    required this.cs,
+    required this.tt,
+  });
+
+  final List<String> queries;
+  final ValueChanged<String> onTap;
+  final ValueChanged<String> onRemove;
+  final ColorScheme cs;
+  final TextTheme tt;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: queries.length,
+      itemBuilder: (context, i) {
+        final query = queries[i];
+        return ListTile(
+          leading: Icon(
+            Icons.history_rounded,
+            color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+          ),
+          title: Text(
+            query,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: tt.bodyMedium,
+          ),
+          trailing: IconButton(
+            icon: Icon(
+              Icons.close_rounded,
+              size: 20,
+              color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+            ),
+            tooltip: 'Remove from history',
+            onPressed: () => onRemove(query),
+          ),
+          onTap: () => onTap(query),
+        );
+      },
     );
   }
 }
