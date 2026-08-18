@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:kohera/features/chat/models/room_search_result.dart';
 import 'package:kohera/features/chat/services/message_indexer_service.dart';
 import 'package:kohera/features/chat/services/room_search_service.dart';
@@ -59,6 +60,17 @@ class ChatSearchController extends ChangeNotifier {
   String _query = '';
   String get query => _query;
 
+  /// Sender ID filter, or `null` for "all senders".
+  String? _senderFilter;
+  String? get senderFilter => _senderFilter;
+
+  /// Date range filter, or `null` for "all dates".
+  DateTimeRange? _dateRange;
+  DateTimeRange? get dateRange => _dateRange;
+
+  /// `true` when either the sender or date range filter is active.
+  bool get hasActiveFilters => _senderFilter != null || _dateRange != null;
+
   /// Index of the keyboard-selected result in [_results], or -1 when no
   /// result is selected. Reset to 0 whenever new results arrive.
   int _selectedIndex = -1;
@@ -84,6 +96,8 @@ class ChatSearchController extends ChangeNotifier {
     _error = null;
     _query = '';
     _selectedIndex = -1;
+    _senderFilter = null;
+    _dateRange = null;
     notifyListeners();
   }
 
@@ -104,6 +118,8 @@ class ChatSearchController extends ChangeNotifier {
     _query = '';
     _selectedIndex = -1;
     _isIndexingRoom = false;
+    _senderFilter = null;
+    _dateRange = null;
     notifyListeners();
   }
 
@@ -126,6 +142,40 @@ class ChatSearchController extends ChangeNotifier {
 
     notifyListeners();
     _debounceTimer = Timer(_debounceDuration, performSearch);
+  }
+
+  /// Sets the sender filter and re-triggers the search.
+  /// Pass `null` to clear the sender filter.
+  set senderFilter(String? value) {
+    if (_senderFilter == value) return;
+    _senderFilter = value;
+    notifyListeners();
+    if (_query.length >= minQueryLength) {
+      unawaited(performSearch());
+    }
+  }
+
+  /// Sets the date range filter and re-triggers the search.
+  /// Pass `null` to clear the date range filter.
+  set dateRange(DateTimeRange? value) {
+    if (_dateRange == value) return;
+    _dateRange = value;
+    notifyListeners();
+    if (_query.length >= minQueryLength) {
+      unawaited(performSearch());
+    }
+  }
+
+  /// Clears both the sender and date range filters, then re-triggers the
+  /// search.
+  void clearFilters() {
+    if (_senderFilter == null && _dateRange == null) return;
+    _senderFilter = null;
+    _dateRange = null;
+    notifyListeners();
+    if (_query.length >= minQueryLength) {
+      unawaited(performSearch());
+    }
   }
 
   Future<void> performSearch({bool loadMore = false}) async {
@@ -152,6 +202,8 @@ class ChatSearchController extends ChangeNotifier {
         searchTerm: _query,
         limit: searchBatchLimit,
         nextBatch: nextBatch,
+        senderId: _senderFilter,
+        dateRange: _dateRange,
       );
 
       if (_disposed) return;

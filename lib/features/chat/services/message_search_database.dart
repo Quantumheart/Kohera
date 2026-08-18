@@ -252,9 +252,15 @@ class MessageSearchDatabase {
     });
   }
 
+  /// Searches the FTS5 index for [query], optionally narrowed by [roomId],
+  /// [senderId], and/or a date range ([startTs]/[endTs] in milliseconds
+  /// since epoch, inclusive).
   Future<List<IndexedMessage>> search({
     required String query,
     String? roomId,
+    String? senderId,
+    int? startTs,
+    int? endTs,
     int limit = 50,
     int offset = 0,
   }) async {
@@ -268,6 +274,15 @@ class MessageSearchDatabase {
       whereParts.add('room_id = ?');
       whereArgs.add(roomId);
     }
+    if (senderId != null) {
+      whereParts.add('sender_id = ?');
+      whereArgs.add(senderId);
+    }
+    if (startTs != null && endTs != null) {
+      whereParts.add('origin_server_ts BETWEEN ? AND ?');
+      whereArgs.add(startTs);
+      whereArgs.add(endTs);
+    }
     final rows = await db.query(
       'message_search',
       where: whereParts.join(' AND '),
@@ -279,7 +294,16 @@ class MessageSearchDatabase {
     return rows.map(IndexedMessage.fromRow).toList(growable: false);
   }
 
-  Future<int> count({String? roomId, String? query}) async {
+  /// Counts matches for [query], optionally narrowed by [roomId],
+  /// [senderId], and/or a date range ([startTs]/[endTs] in milliseconds
+  /// since epoch, inclusive).
+  Future<int> count({
+    String? roomId,
+    String? query,
+    String? senderId,
+    int? startTs,
+    int? endTs,
+  }) async {
     if (!_isAvailable) return 0;
     final db = await _open();
     final whereParts = <String>[];
@@ -293,6 +317,15 @@ class MessageSearchDatabase {
     if (roomId != null) {
       whereParts.add('room_id = ?');
       whereArgs.add(roomId);
+    }
+    if (senderId != null) {
+      whereParts.add('sender_id = ?');
+      whereArgs.add(senderId);
+    }
+    if (startTs != null && endTs != null) {
+      whereParts.add('origin_server_ts BETWEEN ? AND ?');
+      whereArgs.add(startTs);
+      whereArgs.add(endTs);
     }
     final rows = await db.rawQuery(
       'SELECT COUNT(*) AS c FROM message_search'
