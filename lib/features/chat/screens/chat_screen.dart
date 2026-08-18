@@ -911,6 +911,13 @@ class _ChatScreenState extends State<ChatScreen>
     _searchCtrl.clear();
   }
 
+  /// Fills the search field with [query] and triggers the search — used when
+  /// the user taps a recent-search suggestion.
+  void _selectRecentQuery(String query) {
+    _searchCtrl.text = query;
+    _search.onQueryChanged(query);
+  }
+
   void _scrollToEventById(String eventId, {bool closeSearch = true}) {
     if (closeSearch) _closeSearch();
     _messageListKey.currentState?.navigateToEventById(eventId);
@@ -1145,6 +1152,7 @@ class _ChatScreenState extends State<ChatScreen>
                   search: _search,
                   avatarResolver: matrix.avatarResolver,
                   onTapResult: _scrollToEventById,
+                  onQuerySelected: _selectRecentQuery,
                 ),
               ),
           ],
@@ -1175,6 +1183,7 @@ class _ChatScreenState extends State<ChatScreen>
                       search: _search,
                       avatarResolver: matrix.avatarResolver,
                       onTapResult: _scrollToEventById,
+                      onQuerySelected: _selectRecentQuery,
                     ),
                   )
                 : const SizedBox.shrink(),

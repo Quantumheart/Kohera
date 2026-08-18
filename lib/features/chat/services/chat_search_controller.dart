@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show DateTimeRange;
 import 'package:kohera/features/chat/models/room_search_result.dart';
 import 'package:kohera/features/chat/services/message_indexer_service.dart';
 import 'package:kohera/features/chat/services/room_search_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatSearchController extends ChangeNotifier {
   ChatSearchController({
@@ -20,6 +22,8 @@ class ChatSearchController extends ChangeNotifier {
   static const searchBatchLimit = 50;
   static const minQueryLength = 2;
   static const _debounceDuration = Duration(milliseconds: 500);
+  static const _maxRecentQueries = 10;
+  static const _historyKeyPrefix = 'search_history_';
 
   // ── State ─────────────────────────────────────────────────
   bool _isSearching = false;
@@ -71,6 +75,10 @@ class ChatSearchController extends ChangeNotifier {
   /// `true` when either the sender or date range filter is active.
   bool get hasActiveFilters => _senderFilter != null || _dateRange != null;
 
+  /// Recent search queries for this room, most-recent first.
+  List<String> _recentQueries = [];
+  List<String> get recentQueries => List.unmodifiable(_recentQueries);
+
   /// Index of the keyboard-selected result in [_results], or -1 when no
   /// result is selected. Reset to 0 whenever new results arrive.
   int _selectedIndex = -1;
@@ -98,6 +106,8 @@ class ChatSearchController extends ChangeNotifier {
     _selectedIndex = -1;
     _senderFilter = null;
     _dateRange = null;
+    _recentQueries = [];
+    unawaited(_loadRecentQueries());
     notifyListeners();
   }
 
@@ -217,6 +227,8 @@ class ChatSearchController extends ChangeNotifier {
         _results.addAll(response.results);
       } else {
         _results = response.results;
+        // Persist the query to recent history on a successful fresh search.
+        _addToRecentQueries(_query);
       }
       _nextBatch = response.nextBatch;
       _isLoading = false;
@@ -270,6 +282,59 @@ class ChatSearchController extends ChangeNotifier {
       _highlightedEventId = null;
       notifyListeners();
     });
+  }
+
+  // ── Recent query persistence ──────────────────────────────
+
+  /// Adds [query] to the front of [_recentQueries], deduplicating and
+  /// trimming to [_maxRecentQueries]. Persists asynchronously.
+  void _addToRecentQueries(String query) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+    _recentQueries.remove(trimmed);
+    _recentQueries.insert(0, trimmed);
+    if (_recentQueries.length > _maxRecentQueries) {
+      _recentQueries = _recentQueries.sublist(0, _maxRecentQueries);
+    }
+    unawaited(_saveRecentQueries());
+  }
+
+  /// Removes [query] from [_recentQueries] and persists the change.
+  void removeRecentQuery(String query) {
+    if (_recentQueries.remove(query)) {
+      unawaited(_saveRecentQueries());
+      notifyListeners();
+    }
+  }
+
+  /// Loads recent queries from [SharedPreferences] for this room.
+  Future<void> _loadRecentQueries() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final json = prefs.getString('$_historyKeyPrefix$roomId');
+      if (json != null) {
+        final list = jsonDecode(json);
+        if (list is List) {
+          _recentQueries = list.cast<String>();
+          if (!_disposed) notifyListeners();
+        }
+      }
+    } catch (e) {
+      debugPrint('[Kohera] Failed to load recent search queries: $e');
+    }
+  }
+
+  /// Persists [_recentQueries] to [SharedPreferences] for this room.
+  Future<void> _saveRecentQueries() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        '$_historyKeyPrefix$roomId',
+        jsonEncode(_recentQueries),
+      );
+    } catch (e) {
+      debugPrint('[Kohera] Failed to save recent search queries: $e');
+    }
   }
 
   @override

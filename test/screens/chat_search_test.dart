@@ -116,7 +116,7 @@ void main() {
       expect(find.text('Search messages…'), findsOneWidget);
     });
 
-    testWidgets('shows minimum character hint when query too short',
+    testWidgets('shows start typing hint when query too short',
         (tester) async {
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
@@ -129,7 +129,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Type at least 2 characters to search'),
+        find.text('Start typing to search messages'),
         findsOneWidget,
       );
     });
