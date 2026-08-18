@@ -66,7 +66,7 @@ jobs:
         run: tar -czf kohera-linux-x64.tar.gz -C build/linux/x64/release/bundle .
       - name: Generate checksum
         run: sha256sum kohera-linux-x64.tar.gz > kohera-linux-x64.tar.gz.sha256
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: linux-release
           path: |
@@ -97,7 +97,7 @@ jobs:
           iscc /DAppVersion=$version windows\packaging\inno_setup.iss
       - name: Generate checksum
         run: Get-FileHash build\windows\installer\kohera-windows-x64-setup.exe -Algorithm SHA256 | Format-List > build\windows\installer\kohera-windows-x64-setup.exe.sha256
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: windows-release
           path: |
@@ -208,7 +208,7 @@ jobs:
           ditto -c -k --keepParent kohera.app ../../../../../kohera-macos-universal.zip
       - name: Generate checksum
         run: shasum -a 256 kohera-macos-universal.zip > kohera-macos-universal.zip.sha256
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: macos-release
           path: |
@@ -289,7 +289,7 @@ jobs:
         run: |
           cp build/ios/ipa/kohera.ipa kohera-ios-arm64.ipa
           shasum -a 256 kohera-ios-arm64.ipa > kohera-ios-arm64.ipa.sha256
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ios-release
           path: |
@@ -358,13 +358,13 @@ jobs:
           fi
       - name: Generate checksum
         run: sha256sum kohera-android-arm64.apk > kohera-android-arm64.apk.sha256
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: android-release
           path: |
             kohera-android-arm64.apk
             kohera-android-arm64.apk.sha256
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: android-debug-info
           path: build/android/debug-info
