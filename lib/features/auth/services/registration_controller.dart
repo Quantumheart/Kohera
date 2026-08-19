@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/network_error.dart';
+import 'package:kohera/data/repositories/auth_repository.dart';
 import 'package:kohera/features/auth/services/recaptcha_server.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_controller.dart' show BootstrapController;
 import 'package:matrix/matrix.dart';
@@ -29,11 +30,13 @@ enum RegistrationState {
 class RegistrationController extends ChangeNotifier {
   RegistrationController({
     required this.matrixService,
+    required this.authRepository,
     required this.clientManager,
     required String homeserver,
   }) : _homeserver = homeserver;
 
   final MatrixService matrixService;
+  final AuthRepository authRepository;
   final ClientManager clientManager;
 
   String _homeserver;
@@ -138,7 +141,7 @@ class RegistrationController extends ChangeNotifier {
 
     try {
       final caps =
-          await matrixService.auth.getServerAuthCapabilities(_homeserver, isLoggedIn: matrixService.isLoggedIn);
+          await authRepository.auth.getServerAuthCapabilities(_homeserver, isLoggedIn: authRepository.isLoggedIn);
       if (_isDisposed || generation != _checkGeneration) return;
 
       if (!caps.supportsRegistration) {
@@ -203,7 +206,7 @@ class RegistrationController extends ChangeNotifier {
     var hs = _homeserver.trim();
     if (!hs.startsWith('http')) hs = 'https://$hs';
     try {
-      await matrixService.client.checkHomeserver(Uri.parse(hs));
+      await authRepository.checkHomeserver(Uri.parse(hs));
     } catch (e) {
       _state = RegistrationState.error;
       _error = e.toString();
@@ -220,7 +223,7 @@ class RegistrationController extends ChangeNotifier {
     _notify();
 
     try {
-      final response = await matrixService.client.register(
+      final response = await authRepository.register(
         username: _username,
         password: _password,
         initialDeviceDisplayName: 'Kohera Flutter',
@@ -229,7 +232,7 @@ class RegistrationController extends ChangeNotifier {
 
       if (_isDisposed) return;
 
-      await matrixService.completeRegistration(response, password: _password);
+      await authRepository.completeRegistration(response, password: _password);
       if (!clientManager.services.contains(matrixService)) {
         await clientManager.commitPendingService();
       }

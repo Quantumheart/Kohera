@@ -57,6 +57,22 @@ class AuthRepository extends ChangeNotifier {
     );
   }
 
+  Future<void> checkHomeserver(Uri homeserver) =>
+      _matrix.client.checkHomeserver(homeserver);
+
+  Future<RegisterResponse> register({
+    String? username,
+    String? password,
+    String? initialDeviceDisplayName,
+    AuthenticationData? auth,
+  }) =>
+      _matrix.client.register(
+        username: username,
+        password: password,
+        initialDeviceDisplayName: initialDeviceDisplayName,
+        auth: auth,
+      );
+
   Future<void> completeRegistration(
     RegisterResponse response, {
     String? password,
