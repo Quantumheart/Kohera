@@ -243,11 +243,14 @@ class PushService {
 
     final sender =
         room.unsafeGetUserFromMemoryOrFallback(matrixEvent.senderId);
+    final senderDisplayName = sender.calcDisplayname();
+    final isDirect = room.isDirectChat;
 
     await notificationService.showPushNotification(
       roomId: room.id,
       title: room.getLocalizedDisplayname(),
-      senderName: sender.calcDisplayname(),
+      subtitle: isDirect ? null : senderDisplayName,
+      senderName: isDirect ? '' : senderDisplayName,
       body: body,
     );
   }
