@@ -1,4 +1,4 @@
-import 'package:kohera/features/calling/models/call_participant.dart';
+import 'package:kohera/data/models/call_participant.dart';
 import 'package:livekit_client/livekit_client.dart' as livekit;
 
 /// Converts a LiveKit [Participant] into a Kohera-owned, SDK-free

@@ -11,7 +11,7 @@ import 'package:flutter/services.dart' as _i21;
 import 'package:flutter/widgets.dart' as _i22;
 import 'package:http/http.dart' as _i4;
 import 'package:kohera/core/services/preferences_service.dart' as _i18;
-import 'package:kohera/features/calling/models/call_participant.dart' as _i15;
+import 'package:kohera/data/models/call_participant.dart' as _i15;
 import 'package:kohera/features/calling/models/call_state.dart' as _i17;
 import 'package:kohera/features/calling/models/incoming_call_info.dart' as _i16;
 import 'package:kohera/features/calling/services/call_service.dart' as _i12;

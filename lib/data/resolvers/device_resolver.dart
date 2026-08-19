@@ -1,4 +1,4 @@
-import 'package:kohera/core/extensions/device_extension.dart';
+import 'package:kohera/data/extensions/device_extension.dart';
 import 'package:kohera/data/models/kohera_device.dart';
 import 'package:matrix/matrix.dart';
 

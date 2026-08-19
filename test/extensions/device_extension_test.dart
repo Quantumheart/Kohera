@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/extensions/device_extension.dart';
+import 'package:kohera/data/extensions/device_extension.dart';
 import 'package:matrix/matrix.dart';
 
 void main() {
