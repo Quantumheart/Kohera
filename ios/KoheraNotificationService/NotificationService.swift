@@ -5,6 +5,8 @@ class NotificationService: UNNotificationServiceExtension {
     var contentHandler: ((UNNotificationContent) -> Void)?
     var bestAttemptContent: UNMutableNotificationContent?
     private var currentRoomId: String?
+    private var hasDelivered = false
+    private var expired = false
 
     override func didReceive(
         _ request: UNNotificationRequest,
@@ -14,7 +16,7 @@ class NotificationService: UNNotificationServiceExtension {
         bestAttemptContent = request.content.mutableCopy() as? UNMutableNotificationContent
 
         guard let content = bestAttemptContent else {
-            contentHandler(request.content)
+            deliver(request.content)
             return
         }
 
@@ -23,7 +25,7 @@ class NotificationService: UNNotificationServiceExtension {
         let roomId = notification?["room_id"] as? String
 
         guard let eventId = eventId, let roomId = roomId else {
-            contentHandler(content)
+            deliver(content)
             return
         }
 
@@ -37,15 +39,25 @@ class NotificationService: UNNotificationServiceExtension {
             await self.processNotification(
                 content: content, eventId: eventId, roomId: roomId, clientName: clientName
             )
-            contentHandler(self.bestAttemptContent ?? content)
+            self.deliver(self.bestAttemptContent ?? content)
         }
     }
 
     override func serviceExtensionTimeWillExpire() {
-        if let contentHandler = contentHandler, let content = bestAttemptContent {
+        expired = true
+        if let content = bestAttemptContent {
             applyFallbackTitleIfNeeded(content: content, roomId: currentRoomId)
-            contentHandler(content)
+            if content.body.isEmpty {
+                content.body = "Encrypted message"
+            }
+            deliver(content)
         }
+    }
+
+    private func deliver(_ content: UNNotificationContent) {
+        guard !hasDelivered else { return }
+        hasDelivered = true
+        contentHandler?(content)
     }
 
     // ── Client resolution ────────────────────────────────────────
@@ -77,37 +89,41 @@ class NotificationService: UNNotificationServiceExtension {
             return
         }
 
-        // Room-name and DM-flag fetches need only roomId + credentials, so
-        // they start at t=0 in parallel with fetchEvent. Serializing them
-        // after fetchEvent would push the NSE past its 30s budget.
-        async let eventAsync = MatrixEventFetcher.fetchEvent(
-            homeserver: homeserver,
-            roomId: roomId,
-            eventId: eventId,
-            accessToken: accessToken
-        )
-        async let roomNameAsync = MatrixEventFetcher.fetchRoomName(
-            homeserver: homeserver,
-            roomId: roomId,
-            accessToken: accessToken
-        )
-        async let directRoomIdsAsync = MatrixEventFetcher.fetchDirectRoomIds(
-            homeserver: homeserver,
-            userId: userId,
-            accessToken: accessToken
-        )
+        let eventTask = Task { await MatrixEventFetcher.fetchEvent(
+            homeserver: homeserver, roomId: roomId, eventId: eventId, accessToken: accessToken
+        ) }
+        let roomNameTask = Task { await MatrixEventFetcher.fetchRoomName(
+            homeserver: homeserver, roomId: roomId, accessToken: accessToken
+        ) }
+        let directRoomIdsTask = Task { await MatrixEventFetcher.fetchDirectRoomIds(
+            homeserver: homeserver, userId: userId, accessToken: accessToken
+        ) }
 
-        guard let event = await eventAsync else {
+        guard let event = await eventTask.value else {
             NSLog("[KoheraNSE] Failed to fetch event %@", eventId)
-            _ = await roomNameAsync
-            _ = await directRoomIdsAsync
+            roomNameTask.cancel()
+            directRoomIdsTask.cancel()
+            return
+        }
+        if expired {
+            roomNameTask.cancel()
+            directRoomIdsTask.cancel()
             return
         }
 
         let senderId = event["sender"] as? String
-
-        let directRoomIds = await directRoomIdsAsync
+        let directRoomIds = await directRoomIdsTask.value
         let isDirect = directRoomIds?.contains(roomId) ?? false
+
+        let body = await resolveBody(event: event, userId: userId, clientName: clientName)
+
+        if expired {
+            roomNameTask.cancel()
+            return
+        }
+
+        let fallbackSender = extractSenderName(from: event)
+        updateContent(content: content, senderName: fallbackSender, body: body)
 
         let profileTask = Task { () -> (avatarUrl: String?, displayname: String?)? in
             guard let senderId = senderId else { return nil }
@@ -115,9 +131,6 @@ class NotificationService: UNNotificationServiceExtension {
                 homeserver: homeserver, userId: senderId, accessToken: accessToken
             )
         }
-
-        // DM counterpart (only when the room is a direct chat) runs in
-        // parallel with profile + body so it never adds serial wall-clock.
         let counterpartTask = Task { () -> String? in
             guard isDirect, let senderId = senderId else { return nil }
             return await MatrixEventFetcher.fetchMemberDisplayname(
@@ -125,21 +138,26 @@ class NotificationService: UNNotificationServiceExtension {
             )
         }
 
-        let body = resolveBody(event: event, userId: userId, clientName: clientName)
-
+        if expired { roomNameTask.cancel(); counterpartTask.cancel(); return }
         let profile = await profileTask.value
-        let senderName = nonEmpty(profile?.displayname) ?? extractSenderName(from: event)
-        updateContent(content: content, senderName: senderName, body: body)
+        if expired { roomNameTask.cancel(); counterpartTask.cancel(); return }
+        if let better = nonEmpty(profile?.displayname) {
+            updateContent(content: content, senderName: better, body: body)
+        }
 
-        let roomName = await roomNameAsync
+        if expired { roomNameTask.cancel(); counterpartTask.cancel(); return }
+        let roomName = await roomNameTask.value
+        if expired { counterpartTask.cancel(); return }
         let counterpart = await counterpartTask.value
         let title = resolveTitle(roomId: roomId, roomName: roomName, counterpart: counterpart)
         content.title = title
 
+        if expired { return }
+
         await applySenderIntent(
             content: content,
             senderId: senderId,
-            senderName: senderName,
+            senderName: nonEmpty(profile?.displayname) ?? fallbackSender,
             avatarMxc: profile?.avatarUrl,
             homeserver: homeserver,
             accessToken: accessToken,
@@ -150,25 +168,44 @@ class NotificationService: UNNotificationServiceExtension {
 
     // ── Body resolution ────────────────────────────────────────────
 
-    private func resolveBody(event: [String: Any], userId: String, clientName: String) -> String {
+    private func resolveBody(event: [String: Any], userId: String, clientName: String) async -> String {
         let eventType = event["type"] as? String ?? ""
         if eventType == "m.room.encrypted" {
-            return decryptBody(event: event, userId: userId, clientName: clientName)
+            return await decryptBody(event: event, userId: userId, clientName: clientName)
         }
         let msgContent = event["content"] as? [String: Any]
         return msgContent?["body"] as? String ?? "New message"
     }
 
-    private func decryptBody(event: [String: Any], userId: String, clientName: String) -> String {
+    private func decryptBody(event: [String: Any], userId: String, clientName: String) async -> String {
         guard let encContent = event["content"] as? [String: Any],
               let sessionId = encContent["session_id"] as? String,
               let ciphertext = encContent["ciphertext"] as? String else {
             return "Encrypted message"
         }
-        return MegolmDecryptor.decrypt(
+
+        if let body = MegolmDecryptor.decrypt(
             sessionId: sessionId, ciphertext: ciphertext,
             userId: userId, clientName: clientName
-        ) ?? "Encrypted message"
+        ) {
+            return body
+        }
+
+        let pollIntervalNanos: UInt64 = 800_000_000
+        let maxRetries = 6
+        for _ in 0..<maxRetries {
+            if expired { break }
+            try? await Task.sleep(nanoseconds: pollIntervalNanos)
+            if expired { break }
+            if let body = MegolmDecryptor.decrypt(
+                sessionId: sessionId, ciphertext: ciphertext,
+                userId: userId, clientName: clientName
+            ) {
+                return body
+            }
+            NSLog("[KoheraNSE] Session not yet mirrored, retrying: %@", sessionId)
+        }
+        return "Encrypted message"
     }
 
     // ── Communication notification (sender avatar as icon) ────────
@@ -224,6 +261,7 @@ class NotificationService: UNNotificationServiceExtension {
         interaction.direction = .incoming
         try? await interaction.donate()
 
+        guard !expired else { return }
         if let updated = try? content.updating(from: intent) as? UNMutableNotificationContent {
             self.bestAttemptContent = updated
         }
