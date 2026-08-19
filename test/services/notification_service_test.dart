@@ -430,8 +430,57 @@ void main() {
       mockClient.onSync.add(update);
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      verify(mockPlugin.show(id: anyNamed('id'), title: 'General', body: 'Alice: hey', notificationDetails: anyNamed('notificationDetails'), payload: roomId))
+      verify(mockPlugin.show(id: anyNamed('id'), title: 'General', body: 'hey', notificationDetails: anyNamed('notificationDetails'), payload: roomId))
           .called(1);
+    });
+
+    test('group room places sender in subtitle, raw body', () async {
+      service.startListening();
+      mockClient.onSync.add(SyncUpdate(nextBatch: 'batch_0'));
+      await Future<void>.delayed(Duration.zero);
+
+      final update = makeSyncUpdate(
+        roomId: roomId,
+        events: [makeMessageEvent(body: 'hey')],
+      );
+      mockClient.onSync.add(update);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final verification = verify(mockPlugin.show(
+        id: anyNamed('id'),
+        title: 'General',
+        body: 'hey',
+        notificationDetails:
+            captureThat(isA<NotificationDetails>(), named: 'notificationDetails'),
+        payload: roomId,
+      ))..called(1);
+      final details = verification.captured.single as NotificationDetails;
+      expect(details.iOS?.subtitle, 'Alice');
+    });
+
+    test('DM omits subtitle and sender body prefix', () async {
+      when(mockRoom.isDirectChat).thenReturn(true);
+      service.startListening();
+      mockClient.onSync.add(SyncUpdate(nextBatch: 'batch_0'));
+      await Future<void>.delayed(Duration.zero);
+
+      final update = makeSyncUpdate(
+        roomId: roomId,
+        events: [makeMessageEvent(body: 'hey')],
+      );
+      mockClient.onSync.add(update);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      final verification = verify(mockPlugin.show(
+        id: anyNamed('id'),
+        title: 'General',
+        body: 'hey',
+        notificationDetails:
+            captureThat(isA<NotificationDetails>(), named: 'notificationDetails'),
+        payload: roomId,
+      ))..called(1);
+      final details = verification.captured.single as NotificationDetails;
+      expect(details.iOS?.subtitle, isNull);
     });
   });
 
@@ -449,7 +498,7 @@ void main() {
           .thenReturn(User(secondUserId, room: mockRoom, displayName: 'Bob'));
     });
 
-    test('single message shows sender: body format', () async {
+    test('single message shows raw body with sender in subtitle', () async {
       await skipFirstSync();
 
       final update = makeSyncUpdate(
@@ -459,8 +508,16 @@ void main() {
       mockClient.onSync.add(update);
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      verify(mockPlugin.show(id: anyNamed('id'), title: 'General', body: 'Alice: hello', notificationDetails: anyNamed('notificationDetails'), payload: roomId))
-          .called(1);
+      final verification = verify(mockPlugin.show(
+        id: anyNamed('id'),
+        title: 'General',
+        body: 'hello',
+        notificationDetails:
+            captureThat(isA<NotificationDetails>(), named: 'notificationDetails'),
+        payload: roomId,
+      ))..called(1);
+      final details = verification.captured.single as NotificationDetails;
+      expect(details.iOS?.subtitle, 'Alice');
     });
 
     test('reply fallback is stripped from notification body', () async {
@@ -474,7 +531,7 @@ void main() {
       mockClient.onSync.add(update);
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      verify(mockPlugin.show(id: anyNamed('id'), title: 'General', body: 'Alice: my reply', notificationDetails: anyNamed('notificationDetails'), payload: roomId))
+      verify(mockPlugin.show(id: anyNamed('id'), title: 'General', body: 'my reply', notificationDetails: anyNamed('notificationDetails'), payload: roomId))
           .called(1);
     });
 
@@ -488,7 +545,7 @@ void main() {
       mockClient.onSync.add(update);
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      verify(mockPlugin.show(id: anyNamed('id'), title: 'General', body: 'Alice: 📊 Poll: Lunch?', notificationDetails: anyNamed('notificationDetails'), payload: roomId))
+      verify(mockPlugin.show(id: anyNamed('id'), title: 'General', body: '📊 Poll: Lunch?', notificationDetails: anyNamed('notificationDetails'), payload: roomId))
           .called(1);
     });
 
@@ -502,7 +559,7 @@ void main() {
       mockClient.onSync.add(update);
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      verify(mockPlugin.show(id: anyNamed('id'), title: 'General', body: 'Alice: 📊 Poll', notificationDetails: anyNamed('notificationDetails'), payload: roomId))
+      verify(mockPlugin.show(id: anyNamed('id'), title: 'General', body: '📊 Poll', notificationDetails: anyNamed('notificationDetails'), payload: roomId))
           .called(1);
     });
 
