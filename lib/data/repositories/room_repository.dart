@@ -129,9 +129,125 @@ class RoomRepository extends ChangeNotifier {
     }
   }
 
+  Future<void> invite(String roomId, String mxid) async {
+    final room = _matrix.client.getRoomById(roomId);
+    if (room != null) await room.invite(mxid);
+  }
+
+  Future<void> setName(String roomId, String name) async {
+    final room = _matrix.client.getRoomById(roomId);
+    if (room != null) await room.setName(name);
+  }
+
+  Future<void> setDescription(String roomId, String topic) async {
+    final room = _matrix.client.getRoomById(roomId);
+    if (room != null) await room.setDescription(topic);
+  }
+
+  Future<void> enableEncryption(String roomId) async {
+    final room = _matrix.client.getRoomById(roomId);
+    if (room != null) await room.enableEncryption();
+  }
+
+  Future<void> setAvatar(
+    String roomId,
+    Uint8List? bytes,
+    String? filename,
+  ) async {
+    final room = _matrix.client.getRoomById(roomId);
+    if (room != null) {
+      await room.setAvatar(
+        bytes == null ? null : MatrixFile(bytes: bytes, name: filename ?? ''),
+      );
+    }
+  }
+
+  Future<int?> resolveMemberCount(String roomId) async {
+    if (_matrix.client.getRoomById(roomId) == null) return null;
+    final members = await _matrix.client.getJoinedMembersByRoom(roomId);
+    return members?.length;
+  }
+
+  Set<String> existingMemberIds(String roomId) {
+    final room = _matrix.client.getRoomById(roomId);
+    if (room == null) return const <String>{};
+    try {
+      return room.getParticipants().map((u) => u.id).toSet();
+    } catch (_) {
+      return const <String>{};
+    }
+  }
+
+  String? canonicalAlias(String roomId) {
+    final room = _matrix.client.getRoomById(roomId);
+    return room?.canonicalAlias.isNotEmpty == true
+        ? room!.canonicalAlias
+        : null;
+  }
+
+  bool getRoomEncrypted(String roomId) {
+    final room = _matrix.client.getRoomById(roomId);
+    return room?.encrypted ?? false;
+  }
+
+  bool getRoomIsFavourite(String roomId) {
+    final room = _matrix.client.getRoomById(roomId);
+    return room?.isFavourite ?? false;
+  }
+
+  bool getRoomCanBan(String roomId) {
+    final room = _matrix.client.getRoomById(roomId);
+    return room?.canBan ?? false;
+  }
+
+  bool getRoomIsDirectChat(String roomId) {
+    final room = _matrix.client.getRoomById(roomId);
+    return room?.isDirectChat ?? false;
+  }
+
+  String? getRoomPartnerId(String roomId) {
+    final room = _matrix.client.getRoomById(roomId);
+    return room?.directChatMatrixID;
+  }
+
+  int? getRoomSummaryMemberCount(String roomId) {
+    final room = _matrix.client.getRoomById(roomId);
+    return room?.summary.mJoinedMemberCount;
+  }
+
+  bool getRoomParticipantListComplete(String roomId) {
+    final room = _matrix.client.getRoomById(roomId);
+    return room?.participantListComplete ?? false;
+  }
+
+  KoheraPushRuleState getRoomPushRuleState(String roomId) {
+    final room = _matrix.client.getRoomById(roomId);
+    return _toKohera(room?.pushRuleState ?? PushRuleState.notify);
+  }
+
   // ── Sync stream ──────────────────────────────────────────────
 
   Stream<SyncUpdate> get onSync => _matrix.client.onSync.stream;
+
+  /// Emits when power-level events change for [roomId].
+  Stream<void> powerLevelChangesFor(String roomId) {
+    return onSync.where((update) {
+      final stateEvents = update.rooms?.join?[roomId]?.state ?? [];
+      return stateEvents.any((e) => e.type == EventTypes.RoomPowerLevels);
+    });
+  }
+
+  /// Waits for the room's favourite state to match [target], or times out
+  /// after 5 seconds.
+  Future<void> waitForFavourite(String roomId, bool target) async {
+    try {
+      await onSync
+          .firstWhere((_) => getRoomIsFavourite(roomId) == target)
+          .timeout(const Duration(seconds: 5));
+    } on TimeoutException {
+      // Best-effort wait — timeout is fine
+    }
+  }
 
   // ── Transitional raw room access ──────────────────────────────
 
@@ -147,6 +263,12 @@ class RoomRepository extends ChangeNotifier {
       KoheraPushRuleState.dontNotify => PushRuleState.dontNotify,
     };
   }
+
+  KoheraPushRuleState _toKohera(PushRuleState state) => switch (state) {
+        PushRuleState.notify => KoheraPushRuleState.notify,
+        PushRuleState.mentionsOnly => KoheraPushRuleState.mentionsOnly,
+        PushRuleState.dontNotify => KoheraPushRuleState.dontNotify,
+      };
 
   @override
   void notifyListeners() {

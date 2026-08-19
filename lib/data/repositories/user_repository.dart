@@ -8,6 +8,7 @@ import 'package:kohera/data/models/kohera_device_key.dart';
 import 'package:kohera/data/models/kohera_user_summary.dart';
 import 'package:kohera/data/resolvers/device_resolver.dart';
 import 'package:kohera/data/resolvers/user_summary_resolver.dart';
+import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/msc_extensions/msc_3814_dehydrated_devices/api.dart';
 
@@ -89,6 +90,60 @@ class UserRepository extends ChangeNotifier {
         .toList();
   }
 
+  // ── Contacts ───────────────────────────────────────────────
+
+  /// Returns user summaries for users the client has DM rooms with.
+  List<KoheraUserSummary> knownContacts() {
+    final seen = <String>{};
+    final contacts = <KoheraUserSummary>[];
+    for (final room in _matrix.client.rooms) {
+      if (!room.isDirectChat) continue;
+      final mxid = room.directChatMatrixID;
+      if (mxid == null || !seen.add(mxid)) continue;
+      contacts.add(
+        KoheraUserSummary(
+          userId: mxid,
+          displayname: room.getLocalizedDisplayname(),
+          avatarUrl: room.avatar?.toString(),
+        ),
+      );
+    }
+    return contacts;
+  }
+
+  /// Returns user summaries from joined group rooms, excluding
+  /// [excludeMxids] and the client's own user ID.
+  List<KoheraUserSummary> roomContacts({
+    Set<String> excludeMxids = const {},
+    int limit = 50,
+  }) {
+    final myId = _matrix.client.userID;
+    final seen = <String>{...excludeMxids, ?myId};
+    final contacts = <KoheraUserSummary>[];
+
+    final groupRooms = _matrix.client.rooms
+        .where((r) => !r.isDirectChat)
+        .toList()
+      ..sort((a, b) => (b.lastEvent?.originServerTs ?? DateTime(0))
+          .compareTo(a.lastEvent?.originServerTs ?? DateTime(0)));
+
+    for (final room in groupRooms) {
+      if (contacts.length >= limit) break;
+      for (final user in room.getParticipants()) {
+        if (contacts.length >= limit) break;
+        if (!seen.add(user.id)) continue;
+        contacts.add(
+          KoheraUserSummary(
+            userId: user.id,
+            displayname: user.displayName ?? user.id,
+            avatarUrl: user.avatarUrl?.toString(),
+          ),
+        );
+      }
+    }
+    return contacts;
+  }
+
   // ── User operations (write path) ──────────────────────────────
 
   Future<void> ignoreUser(String userId, {bool leaveRooms = false}) =>
@@ -111,6 +166,21 @@ class UserRepository extends ChangeNotifier {
 
   Future<void> updateUserDeviceKeys() =>
       _matrix.client.updateUserDeviceKeys();
+
+  /// Starts interactive verification for a specific device.
+  ///
+  /// Returns the SDK [KeyVerification] object that the caller uses to drive
+  /// the verification dialog. This is the only method that returns an SDK
+  /// type — it's an escape hatch for the E2EE verification UI flow.
+  Future<KeyVerification?> startDeviceVerification(
+    String userId,
+    String deviceId,
+  ) async {
+    final dkList = _matrix.client.userDeviceKeys[userId];
+    final dk = dkList?.deviceKeys[deviceId];
+    if (dk == null) return null;
+    return dk.startVerification();
+  }
 
   Future<List<KoheraUserSummary>> searchUserDirectory(String term) async {
     final response = await _matrix.client.searchUserDirectory(term, limit: 20);
