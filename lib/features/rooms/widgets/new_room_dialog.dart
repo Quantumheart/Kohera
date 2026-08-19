@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/models/kohera_user_summary.dart';
 import 'package:kohera/features/rooms/services/room_creation_service.dart';
-import 'package:kohera/shared/models/kohera_user_summary.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
 

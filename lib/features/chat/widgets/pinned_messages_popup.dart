@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
-import 'package:kohera/features/chat/models/kohera_message_display.dart';
+import 'package:kohera/data/models/kohera_message_display.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/chat/services/linkable_span_builder.dart';
 import 'package:kohera/features/chat/services/pinned_messages_loader.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
-import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:provider/provider.dart';
 

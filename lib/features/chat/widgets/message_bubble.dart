@@ -2,13 +2,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
-import 'package:kohera/features/chat/models/kohera_message_display.dart';
+import 'package:kohera/data/models/kohera_message_display.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_body.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_content.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_hover_bar_slot.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_skin.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:provider/provider.dart';
 

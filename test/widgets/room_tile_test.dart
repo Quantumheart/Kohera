@@ -5,10 +5,8 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
-import 'package:kohera/features/calling/services/call_service.dart';
-import 'package:kohera/features/rooms/widgets/room_tile.dart';
-import 'package:kohera/shared/models/kohera_room_summary.dart';
-import 'package:kohera/shared/models/kohera_user_summary.dart';
+import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/models/kohera_user_summary.dart';
 @GenerateNiceMocks([
   MockSpec<Room>(),
   MockSpec<Client>(),
@@ -16,7 +14,9 @@ import 'package:kohera/shared/models/kohera_user_summary.dart';
   MockSpec<User>(),
   MockSpec<CallService>(),
 ])
-import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/features/calling/services/call_service.dart';
+import 'package:kohera/features/rooms/widgets/room_tile.dart';
 import 'package:kohera/shared/widgets/presence_dot.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -24,6 +24,7 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../mocks/matrix_service_mock.mocks.dart';
 import 'room_tile_test.mocks.dart';
 

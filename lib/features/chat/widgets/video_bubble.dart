@@ -1,16 +1,17 @@
 import 'dart:async';
 import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:kohera/core/media/kohera_player_factory.dart';
 import 'package:kohera/core/media/kohera_video_controller.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/core/utils/media_cache.dart';
-import 'package:kohera/features/chat/models/kohera_media_content.dart';
+import 'package:kohera/data/models/kohera_media_content.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
 import 'package:kohera/features/chat/widgets/full_video_view.dart';
 import 'package:kohera/features/chat/widgets/inline_video_controls.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/services/media_controller.dart';
 import 'package:provider/provider.dart';
 

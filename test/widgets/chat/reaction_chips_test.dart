@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/chat/models/kohera_reaction.dart';
+import 'package:kohera/data/models/kohera_reaction.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/chat/widgets/reaction_chips.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
 import 'package:mockito/annotations.dart';
 

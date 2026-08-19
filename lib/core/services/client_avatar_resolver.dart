@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/media_auth.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:matrix/matrix.dart';
 
 /// [AvatarResolver] backed by a Matrix SDK [Client].

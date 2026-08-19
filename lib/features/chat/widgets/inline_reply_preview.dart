@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/core/utils/sender_color.dart';
-import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
+import 'package:kohera/data/models/kohera_reply_preview.dart';
 
 // coverage:ignore-start
 

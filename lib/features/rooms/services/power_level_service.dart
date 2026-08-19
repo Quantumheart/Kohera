@@ -1,4 +1,4 @@
-import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
+import 'package:kohera/data/models/kohera_room_permissions.dart';
 import 'package:matrix/matrix.dart';
 
 /// A partial update to a room's `m.room.power_levels` state event.

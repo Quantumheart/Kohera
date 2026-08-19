@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/features/chat/models/kohera_message_display.dart';
+import 'package:kohera/data/models/kohera_message_display.dart';
 
 class VerificationRequestTile extends StatelessWidget {
   const VerificationRequestTile({required this.message, super.key});

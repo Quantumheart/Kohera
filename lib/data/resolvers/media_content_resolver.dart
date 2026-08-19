@@ -1,5 +1,5 @@
-import 'package:kohera/features/chat/models/kohera_media_content.dart';
-import 'package:kohera/features/chat/models/kohera_media_type.dart';
+import 'package:kohera/data/models/kohera_media_content.dart';
+import 'package:kohera/data/models/kohera_media_type.dart';
 import 'package:matrix/matrix.dart';
 
 /// Converts an SDK [Event] into a pre-computed [KoheraMediaContent] for the

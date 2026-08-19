@@ -4,8 +4,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/share_in/models/room_snapshot.dart';
-import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:path/path.dart' as p;
 
 /// Pre-renders room avatar thumbnails into the App-Group container so the

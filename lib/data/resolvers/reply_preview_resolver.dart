@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import 'package:kohera/core/utils/reply_fallback.dart';
-import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
+import 'package:kohera/data/models/kohera_reply_preview.dart';
 import 'package:matrix/matrix.dart';
 
 /// Converts an SDK [Event] into a pre-computed [KoheraReplyPreview] for the

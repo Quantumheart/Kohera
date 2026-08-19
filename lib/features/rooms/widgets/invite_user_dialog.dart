@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
-import 'package:kohera/shared/models/kohera_user_summary.dart';
+import 'package:kohera/data/models/kohera_user_summary.dart';
 
 /// SDK-free inputs for [InviteUserDialog].
 ///

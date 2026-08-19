@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/features/chat/models/kohera_state_event_text.dart';
+import 'package:kohera/data/models/kohera_state_event_text.dart';
 import 'package:matrix/matrix.dart';
 
 class StateEventResolver {

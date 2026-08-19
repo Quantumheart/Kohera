@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/features/chat/services/message_search_database.dart';
+import 'package:kohera/data/services/message_search_database.dart';
 import 'package:matrix/matrix.dart';
 
 /// Indexes decrypted message content into a local FTS5 database so

@@ -1,9 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:html/parser.dart' as html_parser;
+import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/chat/services/linkable_span_builder.dart';
 import 'package:kohera/features/chat/widgets/html_span_builder.dart';
-import 'package:kohera/shared/services/media_resolver.dart';
 
 class HtmlMessageText extends StatefulWidget {
   const HtmlMessageText({

@@ -1,5 +1,5 @@
-import 'package:kohera/features/rooms/models/kohera_room_member.dart';
-import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
+import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/models/kohera_room_permissions.dart';
 import 'package:matrix/matrix.dart';
 
 // ── RoomPermissionsResolver ─────────────────────────────────
