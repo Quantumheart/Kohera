@@ -6,6 +6,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/auth_repository.dart';
 import 'package:kohera/features/auth/services/registration_controller.dart';
 import 'package:kohera/features/auth/widgets/app_logo_header.dart';
 import 'package:kohera/features/auth/widgets/registration_views.dart';
@@ -54,6 +55,7 @@ class _RegistrationScreenState extends State<RegistrationScreen>
 
     _controller = RegistrationController(
       matrixService: context.read<MatrixService>(),
+      authRepository: context.read<AuthRepository>(),
       clientManager: context.read<ClientManager>(),
       homeserver: _homeserverCtrl.text,
     );

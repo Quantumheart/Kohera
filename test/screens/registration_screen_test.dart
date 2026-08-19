@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/auth_repository.dart';
 import 'package:kohera/features/auth/screens/registration_screen.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/shared/widgets/kohera_wordmark.dart';
@@ -101,6 +102,9 @@ void main() {
             create: (ctx) =>
                 CallService(client: ctx.read<MatrixService>().client),),
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
+        ChangeNotifierProvider<AuthRepository>(
+          create: (_) => AuthRepository(matrix: matrixService),
+        ),
       ],
       child: MaterialApp(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),

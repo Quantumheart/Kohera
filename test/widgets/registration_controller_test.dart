@@ -6,6 +6,7 @@ import 'package:kohera/core/models/server_auth_capabilities.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
+import 'package:kohera/data/repositories/auth_repository.dart';
 import 'package:kohera/features/auth/services/registration_controller.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
@@ -38,6 +39,7 @@ void main() {
   late MockMatrixService mockMatrixService;
   late MockAuthService mockAuthService;
   late _FakeClientManager fakeClientManager;
+  late AuthRepository authRepository;
 
   setUp(() {
     mockClient = MockClient();
@@ -47,11 +49,13 @@ void main() {
     when(mockMatrixService.client).thenReturn(mockClient);
     when(mockMatrixService.auth).thenReturn(mockAuthService);
     when(mockMatrixService.isLoggedIn).thenReturn(false);
+    authRepository = AuthRepository(matrix: mockMatrixService);
   });
 
   RegistrationController createController({String homeserver = 'example.com'}) {
     return RegistrationController(
       matrixService: mockMatrixService,
+      authRepository: authRepository,
       clientManager: fakeClientManager,
       homeserver: homeserver,
     );
