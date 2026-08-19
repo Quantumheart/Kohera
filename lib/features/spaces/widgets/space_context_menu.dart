@@ -5,14 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/rooms/services/invite_user_dialog_params.dart';
 import 'package:kohera/features/rooms/widgets/add_existing_rooms_dialog.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
-import 'package:kohera/features/spaces/models/kohera_push_rule_state.dart';
-import 'package:kohera/features/spaces/services/space_menu_actions.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_action.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_dialog.dart';
 import 'package:kohera/features/spaces/widgets/notification_radio_group.dart';
@@ -43,12 +43,14 @@ Future<void> showSpaceContextMenu(
 ) async {
   final cs = Theme.of(context).colorScheme;
   final matrix = context.read<MatrixService>();
-  final actions = SpaceMenuActions(matrix);
+  final spaceRepo = context.read<SpaceRepository>();
+  final roomRepo = context.read<RoomRepository>();
+  final userRepo = context.read<UserRepository>();
 
-  final canInvite = actions.canInvite(spaceId);
-  final canManageChildren = actions.canManageChildren(spaceId);
-  final canEditName = actions.canEditName(spaceId);
-  final canReport = matrix.client.getRoomById(spaceId)?.lastEvent != null;
+  final canInvite = spaceRepo.canInvite(spaceId);
+  final canManageChildren = spaceRepo.canManageChildren(spaceId);
+  final canEditName = spaceRepo.canEditName(spaceId);
+  final canReport = roomRepo.lastEventId(spaceId) != null;
 
   final action = await showMenu<SpaceContextAction>(
     context: context,
@@ -110,29 +112,29 @@ Future<void> showSpaceContextMenu(
 
   switch (action) {
     case SpaceContextAction.markAsRead:
-      await actions.markAsRead(spaceId);
+      await spaceRepo.markAsRead(spaceId);
     case SpaceContextAction.invitePeople:
-      if (context.mounted) await _handleInvite(context, matrix, spaceId);
+      if (context.mounted) await _handleInvite(context, spaceRepo, spaceId);
     case SpaceContextAction.leaveSpace:
-      if (context.mounted) await _handleLeave(context, matrix, spaceId);
+      if (context.mounted) await _handleLeave(context, spaceRepo, spaceId);
     case SpaceContextAction.addExistingRoom:
       if (context.mounted) {
         await AddExistingRoomsDialog.show(
           context,
-          candidateRooms: actions.joinedRoomSummaries(),
-          existingChildIds: actions.existingChildIds(spaceId),
+          candidateRooms: spaceRepo.joinedRoomSummaries(),
+          existingChildIds: spaceRepo.existingChildIds(spaceId),
           avatarResolver: matrix.avatarResolver,
           onAddRooms: (roomIds) async {
             var failures = 0;
             for (final id in roomIds) {
               try {
-                await actions.setSpaceChild(spaceId, id);
+                await spaceRepo.setSpaceChild(spaceId, id);
               } catch (e) {
                 debugPrint('[Kohera] Failed to add room to space: $e');
                 failures++;
               }
             }
-            actions.invalidateSpaceTree();
+            spaceRepo.invalidateSpaceTree();
             return failures;
           },
         );
@@ -158,20 +160,26 @@ Future<void> showSpaceContextMenu(
           context,
           parentSpaceRef: (
             id: spaceId,
-            displayname: matrix.selection
-                .summaryFor(matrix.client.getRoomById(spaceId)!)
-                .displayname,
+            displayname: spaceRepo.spaceDisplayname(spaceId),
           ),
           loadCapabilities: () => loadSubspaceCapabilities(matrix),
-          onCreateSubspace: (request) =>
-              actions.createSubspace(parentSpaceId: spaceId, request: request),
+          onCreateSubspace: (request) => spaceRepo.createSubspace(
+            parentSpaceId: spaceId,
+            name: request.name,
+            topic: request.topic,
+            joinMode: request.joinMode,
+            allowedSpaceIds: request.allowedSpaceIds,
+            restrictedRoomVersion: request.restrictedRoomVersion,
+          ),
         );
       }
     case SpaceContextAction.notifications:
-      if (context.mounted) await _handleNotifications(context, actions, spaceId);
+      if (context.mounted) {
+        await _handleNotifications(context, spaceRepo, spaceId);
+      }
     case SpaceContextAction.reportRoom:
       if (context.mounted) {
-        await reportRoomContent(context, matrix.client, spaceId);
+        await reportRoomContent(context, roomRepo, userRepo, spaceId);
       }
   }
 }
@@ -181,16 +189,15 @@ Future<void> showSpaceContextMenu(
 /// Shows a leave-space confirmation dialog with an option to also leave
 /// all child rooms. Reused by [SpaceDetailsPanel].
 Future<void> handleLeaveSpace(BuildContext context, String spaceId) async {
-  final matrix = context.read<MatrixService>();
-  await _handleLeave(context, matrix, spaceId);
+  await _handleLeave(context, context.read<SpaceRepository>(), spaceId);
 }
 
 Future<void> _handleNotifications(
   BuildContext context,
-  SpaceMenuActions actions,
+  SpaceRepository spaceRepo,
   String spaceId,
 ) async {
-  final current = actions.pushRuleState(spaceId);
+  final current = spaceRepo.pushRuleState(spaceId);
   final result = await showDialog<KoheraPushRuleState>(
     context: context,
     builder: (ctx) {
@@ -220,7 +227,7 @@ Future<void> _handleNotifications(
   if (result == null || result == current || !context.mounted) return;
 
   try {
-    await actions.setPushRuleState(spaceId, result);
+    await spaceRepo.setPushRuleState(spaceId, result);
     if (context.mounted) context.showSnack('Notifications updated');
   } catch (e) {
     if (context.mounted) {
@@ -231,11 +238,10 @@ Future<void> _handleNotifications(
 
 Future<void> _handleInvite(
   BuildContext context,
-  MatrixService matrix,
+  SpaceRepository spaceRepo,
   String spaceId,
 ) async {
-  final space = matrix.client.getRoomById(spaceId);
-  if (space == null) return;
+  if (!spaceRepo.spaceExists(spaceId)) return;
 
   final mxid = await InviteUserDialog.show(
     context,
@@ -249,7 +255,7 @@ Future<void> _handleInvite(
   if (mxid == null || !context.mounted) return;
 
   try {
-    await space.invite(mxid);
+    await spaceRepo.invite(spaceId, mxid);
     if (context.mounted) context.showSnack('Invited $mxid');
   } catch (e) {
     if (context.mounted) context.showSnack('Failed to invite: $e');
@@ -258,13 +264,12 @@ Future<void> _handleInvite(
 
 Future<void> _handleLeave(
   BuildContext context,
-  MatrixService matrix,
+  SpaceRepository spaceRepo,
   String spaceId,
 ) async {
   final cs = Theme.of(context).colorScheme;
-  final actions = SpaceMenuActions(matrix);
-  final space = matrix.client.getRoomById(spaceId);
-  if (space == null) return;
+  if (!spaceRepo.spaceExists(spaceId)) return;
+  final displayname = spaceRepo.spaceDisplayname(spaceId);
 
   final result = await showDialog<({bool confirmed, bool leaveChildren})>(
     context: context,
@@ -277,7 +282,7 @@ Future<void> _handleLeave(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('You will leave "${space.getLocalizedDisplayname()}".'),
+              Text('You will leave "$displayname".'),
               const SizedBox(height: 12),
               CheckboxListTile(
                 value: leaveChildren,
@@ -318,7 +323,7 @@ Future<void> _handleLeave(
 
   try {
     final failCount =
-        await actions.leave(spaceId, leaveChildren: result.leaveChildren);
+        await spaceRepo.leave(spaceId, leaveChildren: result.leaveChildren);
     if (failCount > 0 && context.mounted) {
       context.showSnack('Failed to leave $failCount room(s)');
     }

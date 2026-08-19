@@ -1,6 +1,6 @@
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/features/spaces/services/space_menu_actions.dart';
+import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_dialog.dart';
 
 /// Loads restricted/knock join-rule capabilities for the subspace dialog.
@@ -25,15 +25,19 @@ Future<SubspaceCapabilities> loadSubspaceCapabilities(
 
 /// Creates a subspace room and registers it as a child of [parentSpaceId].
 ///
-/// Delegates all SDK operations to [SpaceMenuActions.createSubspace].
+/// Delegates all SDK operations to [SpaceRepository.createSubspace].
 /// Throws on failure (the dialog catches and displays the error).
 Future<void> createSubspace(
-  MatrixService matrix,
+  SpaceRepository spaceRepo,
   String parentSpaceId,
   CreateSubspaceRequest request,
 ) async {
-  await SpaceMenuActions(matrix).createSubspace(
+  await spaceRepo.createSubspace(
     parentSpaceId: parentSpaceId,
-    request: request,
+    name: request.name,
+    joinMode: request.joinMode,
+    allowedSpaceIds: request.allowedSpaceIds,
+    topic: request.topic,
+    restrictedRoomVersion: request.restrictedRoomVersion,
   );
 }

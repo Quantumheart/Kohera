@@ -37,6 +37,10 @@ class UserRepository extends ChangeNotifier {
   String? get userId => _matrix.client.userID;
   String? get deviceId => _matrix.client.deviceID;
 
+  /// Fetches the avatar URL from the logged-in user's own profile.
+  Future<Uri?> fetchOwnAvatarUrl() async =>
+      (await _matrix.client.fetchOwnProfile()).avatarUrl;
+
   KoheraUserSummary? userSummary(String userId) {
     for (final room in _matrix.client.rooms) {
       final user = room.unsafeGetUserFromMemoryOrFallback(userId);

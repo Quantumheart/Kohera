@@ -5,6 +5,7 @@ import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_action.dart';
@@ -179,6 +180,7 @@ class RoomSectionHeader extends StatelessWidget {
     final box = context.findRenderObject()! as RenderBox;
     final pos = box.localToGlobal(Offset.zero);
     final cs = Theme.of(context).colorScheme;
+    final spaceRepo = context.read<SpaceRepository>();
 
     unawaited(showMenu<_HeaderAddAction>(
       context: context,
@@ -231,7 +233,7 @@ class RoomSectionHeader extends StatelessWidget {
               ),
               loadCapabilities: () => loadSubspaceCapabilities(matrixService),
               onCreateSubspace: (request) =>
-                  createSubspace(matrixService, spaceRoom.id, request),
+                  createSubspace(spaceRepo, spaceRoom.id, request),
             ),);
           }
       }

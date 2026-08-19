@@ -9,9 +9,9 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/core/utils/matrix_address_parser.dart';
+import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
-import 'package:kohera/features/spaces/services/space_menu_actions.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:provider/provider.dart';
@@ -144,9 +144,9 @@ class _CreateSpaceDialogState extends State<CreateSpaceDialog> {
     });
 
     try {
-      final actions = SpaceMenuActions(widget.matrixService);
+      final spaceRepo = context.read<SpaceRepository>();
       final topic = _topicController.text.trim();
-      final roomId = await actions.createSpace(
+      final roomId = await spaceRepo.createSpace(
         name: name,
         topic: topic.isNotEmpty ? topic : null,
         isPublic: _isPublic,
@@ -324,8 +324,8 @@ class _JoinWithAddressDialogState extends State<JoinWithAddressDialog> {
     });
 
     try {
-      final actions = SpaceMenuActions(widget.matrixService);
-      final result = await actions.joinByAddress(
+      final spaceRepo = context.read<SpaceRepository>();
+      final result = await spaceRepo.joinByAddress(
         parsed.address,
         via: parsed.via,
       );
@@ -435,7 +435,7 @@ class SpaceDiscoveryDialog extends StatefulWidget {
     required MatrixService matrixService,
     SpaceDiscoveryDataSource? dataSource,
   }) {
-    final ds = dataSource ?? defaultSpaceDiscoveryDataSource(matrixService.client);
+    final ds = dataSource ?? context.read<SpaceDiscoveryDataSource>();
     return showDialog(
       context: context,
       builder: (_) => SpaceDiscoveryDialog._(
@@ -456,7 +456,7 @@ class SpaceDiscoveryDialog extends StatefulWidget {
     String? canonicalAlias,
     SpaceDiscoveryDataSource? dataSource,
   }) {
-    final ds = dataSource ?? defaultSpaceDiscoveryDataSource(matrixService.client);
+    final ds = dataSource ?? context.read<SpaceDiscoveryDataSource>();
     return showDialog(
       context: context,
       builder: (_) => SpaceDiscoveryDialog._(
@@ -518,7 +518,8 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
 
   String? _selectedServer;
 
-  String? get _ownHomeserverHost => widget.matrixService.client.homeserver?.host;
+  String? get _ownHomeserverHost =>
+      context.read<SpaceRepository>().ownHomeserverHost;
 
   static final RegExp _hostRegex = RegExp(
     r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+(:\d{1,5})?$',
@@ -853,7 +854,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
     } catch (e) {
       debugPrint('[Kohera] Space hierarchy fetch failed: $e');
       if (!mounted) return;
-      final forbidden = SpaceMenuActions(widget.matrixService).isForbiddenException(e);
+      final forbidden = context.read<SpaceRepository>().isForbiddenException(e);
       setState(() {
         frame.previewForbidden = forbidden;
         frame.error = MatrixService.friendlyAuthError(e);

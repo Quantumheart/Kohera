@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
+import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_action.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_dialog.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
@@ -190,6 +191,7 @@ void main() {
     late MockRoom mockParentSpace;
     late MockSpaceAccessService mockAccess;
     late SelectionService selectionService;
+    late SpaceRepository spaceRepo;
 
     setUp(() {
       mockClient = MockClient();
@@ -219,11 +221,12 @@ void main() {
       ).thenAnswer((_) async => '!subspace:example.com');
       when(mockClient.waitForRoomInSync(any, join: anyNamed('join')))
           .thenAnswer((_) async => SyncUpdate(nextBatch: ''));
+      spaceRepo = SpaceRepository(matrix: mockMatrixService);
     });
 
     test('calls createRoom and setSpaceChild', () async {
       await createSubspace(
-        mockMatrixService,
+        spaceRepo,
         mockParentSpace.id,
         const CreateSubspaceRequest(
           name: 'My Subspace',
@@ -264,7 +267,7 @@ void main() {
       );
 
       await createSubspace(
-        mockMatrixService,
+        spaceRepo,
         mockParentSpace.id,
         const CreateSubspaceRequest(
           name: 'Gated',

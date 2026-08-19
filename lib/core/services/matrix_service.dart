@@ -146,6 +146,9 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   bool _lifecycleObserverRegistered = false;
   Timer? _pauseDebounce;
 
+  /// The Matrix user ID of this account, or null before login.
+  String? get userID => _client.userID;
+
   bool get hasSkippedSetup => chatBackup.setupSkipped;
   void skipSetup() {
     unawaited(chatBackup.markSetupSkipped());

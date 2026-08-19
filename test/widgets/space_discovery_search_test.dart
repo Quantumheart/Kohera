@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
 import 'package:matrix/matrix.dart';
@@ -69,6 +70,9 @@ void main() {
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
+        ChangeNotifierProvider<SpaceRepository>(
+          create: (_) => SpaceRepository(matrix: mockMatrixService),
+        ),
       ],
       child: MaterialApp(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),

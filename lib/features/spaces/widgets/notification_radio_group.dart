@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/features/spaces/models/kohera_push_rule_state.dart';
+import 'package:kohera/data/models/kohera_push_rule_state.dart';
 
 /// Reusable radio-button group for selecting a [KoheraPushRuleState].
 ///
