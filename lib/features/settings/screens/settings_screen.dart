@@ -9,6 +9,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/settings/widgets/account_switcher.dart';
 import 'package:kohera/features/settings/widgets/deactivate_account_dialog.dart';
@@ -35,11 +36,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    final client = context.read<MatrixService>().client;
-    _ignoredCount = client.ignoredUsers.length;
-    _syncSub = client.onSync.stream.listen((_) {
+    final userRepo = context.read<UserRepository>();
+    _ignoredCount = userRepo.ignoredUsers.length;
+    _syncSub = userRepo.onSync.listen((_) {
       if (!mounted) return;
-      final count = client.ignoredUsers.length;
+      final count = userRepo.ignoredUsers.length;
       if (count != _ignoredCount) {
         setState(() => _ignoredCount = count);
       }

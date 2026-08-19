@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/features/settings/services/profile_avatar_service.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:provider/provider.dart';
 
@@ -44,8 +45,7 @@ class _ProfileAvatarCardState extends State<ProfileAvatarCard> {
 
   Future<void> _fetchProfile() async {
     try {
-      final client = context.read<MatrixService>().client;
-      final profile = await client.fetchOwnProfile();
+      final profile = await context.read<UserRepository>().fetchOwnProfile();
       if (mounted) {
         setState(() {
           _avatarUrl = profile.avatarUrl;
@@ -62,12 +62,9 @@ class _ProfileAvatarCardState extends State<ProfileAvatarCard> {
     final newName = _displayNameController.text.trim();
     if (newName == (_displayName ?? '')) return;
 
-    final client = context.read<MatrixService>().client;
     setState(() => _displayNameSaving = true);
     try {
-      await client.setProfileField(
-        client.userID!, 'displayname', {'displayname': newName},
-      );
+      await context.read<UserRepository>().setDisplayName(newName);
       debugPrint('[Kohera] Display name updated to: $newName');
       await _fetchProfile();
     } catch (e) {
@@ -93,15 +90,11 @@ class _ProfileAvatarCardState extends State<ProfileAvatarCard> {
     );
     if (picked == null || !mounted) return;
 
+    final userRepo = context.read<UserRepository>();
     setState(() => _avatarUploading = true);
     try {
-      final client = context.read<MatrixService>().client;
       final bytes = await picked.readAsBytes();
-      await const ProfileAvatarService().uploadAvatar(
-        client,
-        bytes,
-        picked.name,
-      );
+      await userRepo.setOwnAvatar(bytes, picked.name);
       debugPrint('[Kohera] Avatar uploaded: ${picked.name} (${bytes.length} bytes)');
       await _fetchProfile();
     } catch (e) {
@@ -117,10 +110,9 @@ class _ProfileAvatarCardState extends State<ProfileAvatarCard> {
   }
 
   Future<void> _removeAvatar() async {
-    final client = context.read<MatrixService>().client;
     setState(() => _avatarUploading = true);
     try {
-      await client.setAvatar(null);
+      await context.read<UserRepository>().setOwnAvatar(null, null);
       debugPrint('[Kohera] Avatar removed');
       await _fetchProfile();
     } catch (e) {
@@ -137,10 +129,11 @@ class _ProfileAvatarCardState extends State<ProfileAvatarCard> {
 
   @override
   Widget build(BuildContext context) {
-    final matrix = context.watch<MatrixService>();
+    final userRepo = context.watch<UserRepository>();
+    final mediaRepo = context.read<MediaRepository>();
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final client = matrix.client;
+    final userId = userRepo.userId ?? 'Unknown';
 
     return Card(
       child: Padding(
@@ -152,10 +145,10 @@ class _ProfileAvatarCardState extends State<ProfileAvatarCard> {
                 Stack(
                   children: [
                     UserAvatar(
-                      avatarResolver: matrix.avatarResolver,
+                      avatarResolver: mediaRepo.avatarResolver,
                       avatarUrl: _avatarUrl?.toString(),
-                      userId: client.userID ?? '',
-                      displayname: client.userID ?? 'Unknown',
+                      userId: userRepo.userId ?? '',
+                      displayname: userId,
                       size: 56,
                     ),
                     if (_avatarUploading)
@@ -183,14 +176,14 @@ class _ProfileAvatarCardState extends State<ProfileAvatarCard> {
                         ),
                       const SizedBox(height: 2),
                       Text(
-                        client.userID ?? 'Unknown',
+                        userId,
                         style: _displayName != null && _displayName!.isNotEmpty
                             ? tt.bodyMedium
                             : tt.titleMedium,
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        client.homeserver.toString(),
+                        userRepo.homeserver.toString(),
                         style: tt.bodyMedium,
                       ),
                     ],

@@ -6,8 +6,10 @@ import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/settings/widgets/deactivate_account_dialog.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
@@ -36,6 +38,7 @@ void main() {
     mockUia = MockUiaService();
 
     when(mockMatrix.client).thenReturn(mockClient);
+    when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockMatrix.uia).thenReturn(mockUia);
     when(mockMatrix.chatBackup).thenReturn(mockChatBackup);
     when(mockClient.userID).thenReturn('@alice:example.com');
@@ -70,6 +73,9 @@ void main() {
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
           ChangeNotifierProvider<ClientManager>.value(value: mockManager),
+          ChangeNotifierProvider<UserRepository>(
+            create: (_) => UserRepository(matrix: mockMatrix),
+          ),
         ],
         child: child,
       ),

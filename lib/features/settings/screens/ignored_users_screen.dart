@@ -6,6 +6,8 @@ import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
@@ -26,8 +28,7 @@ class _IgnoredUsersScreenState extends State<IgnoredUsersScreen> {
   @override
   void initState() {
     super.initState();
-    final client = context.read<MatrixService>().client;
-    _syncSub = client.onSync.stream.listen((_) {
+    _syncSub = context.read<UserRepository>().onSync.listen((_) {
       if (mounted) setState(() {});
     });
   }
@@ -38,14 +39,14 @@ class _IgnoredUsersScreenState extends State<IgnoredUsersScreen> {
     super.dispose();
   }
 
-  Future<void> _loadProfile(String userId, Client client) async {
+  Future<void> _loadProfile(String userId, UserRepository userRepo) async {
     if (_displayNames.containsKey(userId) || _loading.contains(userId)) return;
     setState(() => _loading.add(userId));
     try {
-      final profile = await client.getProfileFromUserId(userId);
+      final displayName = await userRepo.fetchDisplayName(userId);
       if (mounted) {
         setState(() {
-          _displayNames[userId] = profile.displayName ?? userId;
+          _displayNames[userId] = displayName ?? userId;
           _loading.remove(userId);
         });
       }
@@ -63,9 +64,8 @@ class _IgnoredUsersScreenState extends State<IgnoredUsersScreen> {
       confirmLabel: 'Unignore',
     );
     if (!confirmed || !mounted) return;
-    final client = context.read<MatrixService>().client;
     try {
-      await client.unignoreUser(userId);
+      await context.read<UserRepository>().unignoreUser(userId);
       if (mounted) {
         setState(() {
           _displayNames.remove(userId);
@@ -83,9 +83,9 @@ class _IgnoredUsersScreenState extends State<IgnoredUsersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final matrix = context.watch<MatrixService>();
-    final client = matrix.client;
-    final ignored = client.ignoredUsers;
+    final userRepo = context.watch<UserRepository>();
+    final mediaRepo = context.read<MediaRepository>();
+    final ignored = userRepo.ignoredUsers;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
@@ -129,14 +129,14 @@ class _IgnoredUsersScreenState extends State<IgnoredUsersScreen> {
               itemBuilder: (context, index) {
                 final userId = ignored[index];
                 WidgetsBinding.instance.addPostFrameCallback(
-                  (_) => _loadProfile(userId, client),
+                  (_) => _loadProfile(userId, userRepo),
                 );
                 final displayName = _displayNames[userId] ?? userId;
                 return _IgnoredUserTile(
                   userId: userId,
                   displayName: displayName,
                   loading: _loading.contains(userId),
-                  avatarResolver: matrix.avatarResolver,
+                  avatarResolver: mediaRepo.avatarResolver,
                   onUnignore: () => _unignore(userId),
                 );
               },

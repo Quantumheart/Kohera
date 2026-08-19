@@ -37,9 +37,35 @@ class UserRepository extends ChangeNotifier {
   String? get userId => _matrix.client.userID;
   String? get deviceId => _matrix.client.deviceID;
 
+  /// The user's own homeserver URI, or null before login.
+  Uri? get homeserver => _matrix.client.homeserver;
+
   /// Fetches the avatar URL from the logged-in user's own profile.
   Future<Uri?> fetchOwnAvatarUrl() async =>
       (await _matrix.client.fetchOwnProfile()).avatarUrl;
+
+  /// Fetches the logged-in user's own display name and avatar URL.
+  Future<({Uri? avatarUrl, String? displayName})> fetchOwnProfile() async {
+    final profile = await _matrix.client.fetchOwnProfile();
+    return (avatarUrl: profile.avatarUrl, displayName: profile.displayName);
+  }
+
+  /// Sets the logged-in user's display name.
+  Future<void> setDisplayName(String name) async {
+    final client = _matrix.client;
+    await client.setProfileField(
+      client.userID!,
+      'displayname',
+      {'displayname': name},
+    );
+  }
+
+  /// Sets (or clears, when [bytes] is null) the logged-in user's avatar.
+  Future<void> setOwnAvatar(Uint8List? bytes, String? name) async {
+    await _matrix.client.setAvatar(
+      bytes == null ? null : MatrixFile(bytes: bytes, name: name ?? ''),
+    );
+  }
 
   KoheraUserSummary? userSummary(String userId) {
     for (final room in _matrix.client.rooms) {
@@ -156,6 +182,10 @@ class UserRepository extends ChangeNotifier {
   Future<void> unignoreUser(String userId) =>
       _matrix.client.unignoreUser(userId);
 
+  /// Fetches the display name from a user's profile, or null if unavailable.
+  Future<String?> fetchDisplayName(String userId) async =>
+      (await _matrix.client.getProfileFromUserId(userId)).displayName;
+
   Future<void> reportEvent(
     String roomId,
     String eventId, {
@@ -213,9 +243,58 @@ class UserRepository extends ChangeNotifier {
     );
   }
 
+  /// Refreshes device keys and starts verification for [deviceId].
+  ///
+  /// Returns the SDK [KeyVerification] to drive the verification dialog, or
+  /// null if the device has no encryption keys. Like [startDeviceVerification]
+  /// this is an escape hatch that returns an SDK type for the E2EE UI flow.
+  Future<KeyVerification?> verifyDevice(String deviceId) async {
+    final client = _matrix.client;
+    final userId = client.userID;
+    if (userId == null) return null;
+    await client.updateUserDeviceKeys();
+    final deviceKeys = client.userDeviceKeys[userId]?.deviceKeys[deviceId];
+    if (deviceKeys == null) return null;
+    return deviceKeys.startVerification();
+  }
+
+  /// Permanently deactivates the signed-in account behind UIA.
+  ///
+  /// [erase] requests the homeserver to redact events and erase non-event
+  /// data where possible. [idServer], when provided, is the identity server
+  /// to unbind all 3PIDs from. The caller is responsible for dropping the
+  /// local client afterwards (see [ClientManager.removeService]).
+  Future<IdServerUnbindResult> deactivateAccount({
+    bool erase = false,
+    String? idServer,
+  }) async {
+    final client = _matrix.client;
+    return client.uiaRequestBackground<IdServerUnbindResult>(
+      (auth) => client.deactivateAccount(
+        auth: auth,
+        erase: erase,
+        idServer: idServer,
+      ),
+    );
+  }
+
+  /// Toggles the blocked state of a device.
+  Future<void> toggleBlockDevice(String deviceId) async {
+    final client = _matrix.client;
+    final userId = client.userID;
+    if (userId == null) return;
+    final deviceKeys = client.userDeviceKeys[userId]?.deviceKeys[deviceId];
+    if (deviceKeys == null) return;
+    await deviceKeys.setBlocked(!deviceKeys.blocked);
+  }
+
   // ── Ignored users ────────────────────────────────────────────
 
   List<String> get ignoredUsers => _matrix.client.ignoredUsers;
+
+  // ── Sync stream ──────────────────────────────────────────────
+
+  Stream<SyncUpdate> get onSync => _matrix.client.onSync.stream;
 
   // ── Presence ─────────────────────────────────────────────────
 

@@ -1,8 +1,9 @@
 // Redundant default args are kept in verify() to assert exact forwarding.
 // ignore_for_file: avoid_redundant_argument_values
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/settings/services/account_deactivation_service.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
@@ -15,12 +16,13 @@ import 'account_deactivation_service_test.mocks.dart';
 void main() {
   late MockClient mockClient;
   late MockMatrixService mockMatrix;
-  late AccountDeactivationService service;
+  late UserRepository repo;
 
   setUp(() {
     mockClient = MockClient();
     mockMatrix = MockMatrixService();
     when(mockMatrix.client).thenReturn(mockClient);
+    when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
 
     // Run the UIA callback inline so deactivateAccount is actually invoked.
     when(mockClient.uiaRequestBackground<IdServerUnbindResult>(any))
@@ -30,10 +32,10 @@ void main() {
       return cb(null);
     });
 
-    service = AccountDeactivationService(matrix: mockMatrix);
+    repo = UserRepository(matrix: mockMatrix);
   });
 
-  group('AccountDeactivationService.deactivate', () {
+  group('UserRepository.deactivateAccount', () {
     test('defaults: erase=false, idServer omitted', () async {
       when(mockClient.deactivateAccount(
         auth: anyNamed('auth'),
@@ -41,7 +43,7 @@ void main() {
         idServer: anyNamed('idServer'),
       )).thenAnswer((_) async => IdServerUnbindResult.success);
 
-      final result = await service.deactivate();
+      final result = await repo.deactivateAccount();
 
       expect(result, IdServerUnbindResult.success);
       verify(mockClient.deactivateAccount(
@@ -58,7 +60,7 @@ void main() {
         idServer: anyNamed('idServer'),
       )).thenAnswer((_) async => IdServerUnbindResult.success);
 
-      await service.deactivate(erase: true);
+      await repo.deactivateAccount(erase: true);
 
       verify(mockClient.deactivateAccount(
         auth: null,
@@ -74,7 +76,7 @@ void main() {
         idServer: anyNamed('idServer'),
       )).thenAnswer((_) async => IdServerUnbindResult.success);
 
-      await service.deactivate(idServer: 'https://vector.im');
+      await repo.deactivateAccount(idServer: 'https://vector.im');
 
       verify(mockClient.deactivateAccount(
         auth: null,
@@ -94,7 +96,7 @@ void main() {
       }));
 
       await expectLater(
-        service.deactivate(),
+        repo.deactivateAccount(),
         throwsA(isA<MatrixException>()),
       );
     });

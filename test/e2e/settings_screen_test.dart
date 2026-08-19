@@ -6,6 +6,8 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/settings/screens/settings_screen.dart';
 import 'package:kohera/shared/widgets/kohera_mark.dart';
@@ -109,6 +111,12 @@ void main() {
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
         ChangeNotifierProvider(create: (_) => PreferencesService()),
         ChangeNotifierProvider(create: (ctx) => StickerPackService(client: ctx.read<MatrixService>().client)),
+        ChangeNotifierProvider<UserRepository>(
+          create: (_) => UserRepository(matrix: matrixService),
+        ),
+        ChangeNotifierProvider<MediaRepository>(
+          create: (_) => MediaRepository(matrix: matrixService),
+        ),
       ],
       child: MaterialApp(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),

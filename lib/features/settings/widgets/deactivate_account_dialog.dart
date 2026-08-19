@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/features/settings/services/account_deactivation_service.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/settings/widgets/uia_password_prompt_dialog.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
@@ -38,7 +38,7 @@ class _DeactivateAccountDialogState extends State<DeactivateAccountDialog> {
 
   late final MatrixService _matrix;
   late final ClientManager _manager;
-  late final AccountDeactivationService _service;
+  late final UserRepository _userRepo;
   Future<String?> Function()? _previousPromptBuilder;
 
   @override
@@ -46,7 +46,7 @@ class _DeactivateAccountDialogState extends State<DeactivateAccountDialog> {
     super.initState();
     _matrix = context.read<MatrixService>();
     _manager = context.read<ClientManager>();
-    _service = AccountDeactivationService(matrix: _matrix);
+    _userRepo = context.read<UserRepository>();
     _previousPromptBuilder = _matrix.uia.passwordPromptBuilder;
     _matrix.uia.passwordPromptBuilder = _promptPassword;
   }
@@ -75,7 +75,7 @@ class _DeactivateAccountDialogState extends State<DeactivateAccountDialog> {
       _idServerError = null;
     });
     try {
-      await _service.deactivate(
+      await _userRepo.deactivateAccount(
         erase: _erase,
         idServer: _showIdServer && idServer.isNotEmpty ? idServer : null,
       );

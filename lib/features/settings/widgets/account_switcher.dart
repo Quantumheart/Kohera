@@ -28,13 +28,13 @@ class AccountSwitcher extends StatelessWidget {
                 ListTile(
                   leading: UserAvatar(
                     avatarResolver: manager.services[i].avatarResolver,
-                    userId: manager.services[i].client.userID ?? '',
-                    displayname: manager.services[i].client.userID ?? 'Unknown',
+                    userId: manager.services[i].userID ?? '',
+                    displayname: manager.services[i].userID ?? 'Unknown',
                     presence: manager.services[i].presence,
                     size: 36,
                   ),
                   title: Text(
-                    manager.services[i].client.userID ?? 'Unknown',
+                    manager.services[i].userID ?? 'Unknown',
                     style: i == manager.activeIndex
                         ? tt.bodyLarge?.copyWith(fontWeight: FontWeight.w600)
                         : null,
