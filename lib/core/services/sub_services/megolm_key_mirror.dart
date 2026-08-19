@@ -23,6 +23,10 @@ class MegolmKeyMirror {
   final List<StreamSubscription<dynamic>> _subs = [];
   String? _appGroupPath;
   bool _started = false;
+  Timer? _remirrorTimer;
+  int _lastRemirrorCount = -1;
+
+  static const Duration _remirrorDebounce = Duration(seconds: 30);
 
   String get _mirrorDbName => 'kohera_${clientName}_keys.db';
   String get _legacyDbName => 'kohera_$clientName.db';
@@ -41,10 +45,17 @@ class MegolmKeyMirror {
     await _migrateLegacyDbIfNeeded();
     await _backfillIfNeeded();
     _hookExistingRooms();
-    _subs.add(client.onSync.stream.listen((_) => _hookExistingRooms()));
+    _subs.add(
+      client.onSync.stream.listen((_) {
+        _hookExistingRooms();
+        _scheduleRemirror();
+      }),
+    );
   }
 
   Future<void> dispose() async {
+    _remirrorTimer?.cancel();
+    _remirrorTimer = null;
     for (final s in _subs) {
       await s.cancel();
     }
@@ -97,6 +108,22 @@ class MegolmKeyMirror {
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getBool(_backfillFlagKey) ?? false) return;
 
+    await _remirrorAll();
+    await prefs.setBool(_backfillFlagKey, true);
+    debugPrint('[Kohera] Key mirror: backfill complete');
+  }
+
+  // ── Per-sync catch-up ────────────────────────────────────────
+
+  void _scheduleRemirror() {
+    if (_remirrorTimer != null) return;
+    _remirrorTimer = Timer(_remirrorDebounce, () {
+      _remirrorTimer = null;
+      unawaited(_remirrorAll());
+    });
+  }
+
+  Future<void> _remirrorAll() async {
     try {
       final sessions = await client.database.getAllInboundGroupSessions();
       final rows = sessions
@@ -117,12 +144,12 @@ class MegolmKeyMirror {
           )
           .toList();
       await _writeRows(rows);
-      await prefs.setBool(_backfillFlagKey, true);
-      debugPrint(
-        '[Kohera] Key mirror: backfilled ${rows.length} sessions',
-      );
+      if (rows.length != _lastRemirrorCount) {
+        debugPrint('[Kohera] Key mirror: mirrored ${rows.length} sessions');
+        _lastRemirrorCount = rows.length;
+      }
     } catch (e) {
-      debugPrint('[Kohera] Key mirror: backfill failed: $e');
+      debugPrint('[Kohera] Key mirror: re-mirror failed: $e');
     }
   }
 
