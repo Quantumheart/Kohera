@@ -1,26 +1,26 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/utils/notification_filter.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
+import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/notifications/enum/inbox_filter.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/models/notification_group.dart';
 import 'package:kohera/features/notifications/services/apns_push_service.dart';
 import 'package:kohera/features/notifications/services/notification_grouper.dart';
 import 'package:matrix/matrix.dart' as matrix_sdk;
-import 'package:matrix/matrix.dart' show Client, MatrixException, Membership;
+import 'package:matrix/matrix.dart' show MatrixException, Membership;
 
 export 'package:kohera/features/notifications/services/notification_grouper.dart';
 
 // ── InboxController ──────────────────────────────────────────
 class InboxController extends ChangeNotifier {
-  InboxController({required Client client})
-      : _client = client,
-        _grouper = NotificationGrouper(client);
+  InboxController({required PushRepository pushRepository})
+      : _pushRepo = pushRepository,
+        _grouper = NotificationGrouper(pushRepository);
 
-  Client _client;
-  Client get client => _client;
+  PushRepository _pushRepo;
+  PushRepository get pushRepository => _pushRepo;
   final NotificationGrouper _grouper;
   bool _disposed = false;
 
@@ -46,7 +46,7 @@ class InboxController extends ChangeNotifier {
 
   // ── Public getters ─────────────────────────────────────────
 
-  int get unreadCount => totalUnreadCount(_client);
+  int get unreadCount => _pushRepo.unreadNotificationCount();
 
   bool get hasMore => _nextToken != null;
 
@@ -58,7 +58,7 @@ class InboxController extends ChangeNotifier {
   Future<String?> loadRootPreview(String roomId, String eventId) async {
     final cached = _grouper.rootPreviewFor(eventId);
     if (cached != null) return cached;
-    final room = _client.getRoomById(roomId);
+    final room = _pushRepo.getRoom(roomId);
     if (room == null) return null;
     try {
       final event = await room.getEventById(eventId);
@@ -79,7 +79,7 @@ class InboxController extends ChangeNotifier {
 
 
   Future<void> fetch() => _withLoad((gen) async {
-        final response = await _client.getNotifications(limit: 30);
+        final response = await _pushRepo.getNotifications(limit: 30);
         if (_disposed || gen != _fetchGeneration) return null;
         _rawNotifications = response.notifications;
         final grouped = await _grouper.group(response.notifications, _filter);
@@ -87,7 +87,7 @@ class InboxController extends ChangeNotifier {
       });
 
   Future<void> refresh() => _withLoad((gen) async {
-        final response = await _client.getNotifications(limit: 30);
+        final response = await _pushRepo.getNotifications(limit: 30);
         if (_disposed || gen != _fetchGeneration) return null;
         final headIds =
             response.notifications.map((n) => n.event.eventId).toSet();
@@ -104,7 +104,7 @@ class InboxController extends ChangeNotifier {
   Future<void> loadMore() async {
     if (_nextToken == null || _isLoading) return;
     await _withLoad((gen) async {
-      final response = await _client.getNotifications(
+      final response = await _pushRepo.getNotifications(
         limit: 30,
         from: _nextToken,
       );
@@ -151,7 +151,7 @@ class InboxController extends ChangeNotifier {
   // ── Filter ─────────────────────────────────────────────────
 
   int get invitationCount =>
-      _client.rooms.where((r) => r.membership == Membership.invite).length;
+      _pushRepo.rooms.where((r) => r.membership == Membership.invite).length;
 
   void setFilter(InboxFilter newFilter) {
     if (_filter == newFilter) return;
@@ -184,7 +184,7 @@ class InboxController extends ChangeNotifier {
   void _bindSync() {
     final existing = _syncSub;
     if (existing != null) unawaited(existing.cancel());
-    _syncSub = _client.onSync.stream.listen(_onSync);
+    _syncSub = _pushRepo.onSync.listen(_onSync);
   }
 
   void _unbindSync() {
@@ -230,7 +230,7 @@ class InboxController extends ChangeNotifier {
 
   Future<void> markRoomAsRead(String roomId) async {
     if (_tokenExpired) return;
-    final room = _client.getRoomById(roomId);
+    final room = _pushRepo.getRoom(roomId);
     if (room == null) return;
 
     String? mainEventId;
@@ -264,7 +264,7 @@ class InboxController extends ChangeNotifier {
       for (final n in _rawNotifications)
         if (n.roomId != roomId) n,
     ];
-    final remainingUnread = totalUnreadCount(_client) - room.notificationCount;
+    final remainingUnread = _pushRepo.unreadNotificationCount() - room.notificationCount;
     final remainingBadge = remainingUnread < 0 ? 0 : remainingUnread;
     unawaited(ApnsPushService.setBadge(remainingBadge));
     if (!_disposed) notifyListeners();
@@ -280,7 +280,7 @@ class InboxController extends ChangeNotifier {
         if (shouldPostMain)
           room.setReadMarker(mainEventId, mRead: mainEventId),
         for (final entry in perThread.entries)
-          _client.postReceipt(
+          _pushRepo.postReceipt(
             roomId,
             matrix_sdk.ReceiptType.mRead,
             entry.value.eventId,
@@ -303,14 +303,14 @@ class InboxController extends ChangeNotifier {
 
   // ── Account switching ──────────────────────────────────────
 
-  void updateClient(Client newClient) {
+  void updateRepository(PushRepository newRepo) {
     _tokenExpired = false;
-    if (identical(_client, newClient)) return;
+    if (identical(_pushRepo, newRepo)) return;
     final wasActive = _pollingRefCount > 0;
     _unbindSync();
-    _client = newClient;
+    _pushRepo = newRepo;
     _grouper
-      ..client = newClient
+      ..pushRepository = newRepo
       ..clearCache();
     _resetList();
     _isLoading = false;

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/features/home/widgets/inbox/sub_group_section.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/models/notification_group.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
+import 'package:provider/provider.dart';
 
 class NotificationGroupTile extends StatelessWidget {
   const NotificationGroupTile({
@@ -22,8 +23,7 @@ class NotificationGroupTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final client = controller.client;
-    final room = client.getRoomById(group.roomId);
+    final room = controller.pushRepository.getRoom(group.roomId);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -46,7 +46,7 @@ class NotificationGroupTile extends StatelessWidget {
                     RoomAvatarWidget(
                       avatarUrl: room.avatar?.toString(),
                       displayname: room.getLocalizedDisplayname(),
-                      avatarResolver: ClientAvatarResolver(room.client),
+                      avatarResolver: context.read<MediaRepository>().avatarResolver,
                       size: 32,
                     ),
                     const SizedBox(width: 10),

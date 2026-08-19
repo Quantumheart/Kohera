@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/push_repository.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/home/widgets/inbox_screen.dart';
 import 'package:kohera/features/notifications/enum/inbox_filter.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
@@ -59,7 +62,16 @@ GetNotificationsResponse _makeResponse(
 
 class _FakeMatrixService extends ChangeNotifier implements MatrixService {
   @override
+  late Client client;
+  @override
+  AvatarResolver get avatarResolver => _StubAvatarResolver();
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _StubAvatarResolver implements AvatarResolver {
+  @override
+  Future<AvatarThumbnail?> resolve(String? mxcUrl, {required double size}) async => null;
 }
 
 void main() {
@@ -81,8 +93,9 @@ void main() {
       User('@alice:example.com', displayName: 'Alice', room: joinedRoom),
     );
     when(mockClient.getRoomById(any)).thenReturn(joinedRoom);
-    controller = InboxController(client: mockClient);
-    fakeMatrix = _FakeMatrixService();
+    fakeMatrix = _FakeMatrixService()..client = mockClient;
+    final pushRepo = PushRepository(matrix: fakeMatrix);
+    controller = InboxController(pushRepository: pushRepo);
     selectionService = SelectionService(client: mockClient);
   });
 
@@ -97,6 +110,9 @@ void main() {
       providers: [
         ChangeNotifierProvider<InboxController>.value(value: controller),
         ChangeNotifierProvider<MatrixService>.value(value: fakeMatrix),
+        ChangeNotifierProvider<MediaRepository>.value(
+          value: MediaRepository(matrix: fakeMatrix),
+        ),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
       ],
       child: MaterialApp(

@@ -4,9 +4,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:kohera/core/services/app_config.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
+import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/notification_service.dart';
 import 'package:matrix/matrix.dart';
@@ -15,12 +15,12 @@ const apnsMethodChannel = MethodChannel('kohera/apns');
 
 class ApnsPushService {
   ApnsPushService({
-    required this.matrixService,
+    required this.pushRepository,
     required this.preferencesService,
     required this.notificationService,
   });
 
-  final MatrixService matrixService;
+  final PushRepository pushRepository;
   final PreferencesService preferencesService;
   final NotificationService notificationService;
 
@@ -112,27 +112,26 @@ class ApnsPushService {
 
   Future<void> _registerPusher(String token) async {
     if (_disposed) return;
-    final client = matrixService.client;
-    if (client.userID == null) return;
+    if (pushRepository.userId == null) return;
 
     final gatewayUrl = _gatewayUrl;
     if (gatewayUrl == null) return;
 
     try {
-      await client.postPusher(
+      await pushRepository.postPusher(
         Pusher(
           appId: _appId,
           pushkey: token,
           appDisplayName: NotificationChannel.appName,
           deviceDisplayName:
-              client.deviceName ?? NotificationChannel.iosDefaultDeviceName,
+              pushRepository.deviceName ?? NotificationChannel.iosDefaultDeviceName,
           kind: 'http',
           lang: NotificationChannel.defaultLang,
           data: PusherData(
             url: Uri.parse(gatewayUrl),
             format: 'event_id_only',
           ),
-          profileTag: client.deviceID,
+          profileTag: pushRepository.deviceId,
         ),
         append: true,
       );
@@ -146,8 +145,7 @@ class ApnsPushService {
     final token = _currentToken;
     if (token == null) return;
 
-    final client = matrixService.client;
-    await client.deletePusher(
+    await pushRepository.deletePusher(
       PusherId(appId: _appId, pushkey: token),
     );
     debugPrint('[Kohera] APNs pusher unregistered from homeserver');
@@ -159,8 +157,7 @@ class ApnsPushService {
     if (_disposed) return;
 
     try {
-      await matrixService.client
-          .oneShotSync()
+      await pushRepository.oneShotSync()
           .timeout(const Duration(seconds: 20));
     } on TimeoutException {
       debugPrint('[Kohera] APNs oneShotSync timed out after 20s');
@@ -174,7 +171,7 @@ class ApnsPushService {
   Future<void> _handleInlineReply(String roomId, String text) async {
     if (_disposed || text.isEmpty) return;
     try {
-      final room = matrixService.client.getRoomById(roomId);
+      final room = pushRepository.getRoom(roomId);
       if (room == null) {
         debugPrint('[Kohera] Reply failed: room $roomId not found');
         return;
@@ -189,7 +186,7 @@ class ApnsPushService {
   Future<void> _handleMarkAsRead(String roomId, String? eventId) async {
     if (_disposed) return;
     try {
-      final room = matrixService.client.getRoomById(roomId);
+      final room = pushRepository.getRoom(roomId);
       if (room == null) {
         debugPrint('[Kohera] Mark as read failed: room $roomId not found');
         return;

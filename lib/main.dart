@@ -27,6 +27,7 @@ import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/message_search_repository.dart';
 import 'package:kohera/data/repositories/outbox_repository.dart';
+import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/data/repositories/push_rule_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
@@ -342,15 +343,26 @@ ShareIntakeController? _shareIntake;
                   ChangeNotifierProvider<StickerPackService>.value(
                     value: matrix.stickerPacks,
                   ),
-                  ChangeNotifierProxyProvider<MatrixService, InboxController>(
-                    create: (ctx) => InboxController(
-                      client: ctx.read<MatrixService>().client,
-                    ),
+                  ChangeNotifierProxyProvider<MatrixService, PushRepository>(
+                    create: (ctx) =>
+                        PushRepository(matrix: ctx.read<MatrixService>()),
                     update: (_, matrix, previous) {
                       if (previous == null) {
-                        return InboxController(client: matrix.client);
+                        return PushRepository(matrix: matrix);
                       }
-                      previous.updateClient(matrix.client);
+                      previous.updateMatrixService(matrix);
+                      return previous;
+                    },
+                  ),
+                  ChangeNotifierProxyProvider<PushRepository, InboxController>(
+                    create: (ctx) => InboxController(
+                      pushRepository: ctx.read<PushRepository>(),
+                    ),
+                    update: (_, pushRepo, previous) {
+                      if (previous == null) {
+                        return InboxController(pushRepository: pushRepo);
+                      }
+                      previous.updateRepository(pushRepo);
                       return previous;
                     },
                   ),
@@ -552,6 +564,7 @@ ShareIntakeController? _shareIntake;
 
                       return NotificationLifecycleObserver(
                         matrixService: matrix,
+                        pushRepository: context.read<PushRepository>(),
                         preferencesService: prefs,
                         callService: callService,
                         router: router,

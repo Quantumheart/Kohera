@@ -1,21 +1,22 @@
 import 'package:clock/clock.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/core/utils/word_boundary.dart';
+import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/notifications/enum/inbox_filter.dart';
 import 'package:kohera/features/notifications/models/kohera_notification_item.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/models/notification_group.dart';
 import 'package:kohera/features/notifications/models/thread_sub_group.dart';
 import 'package:matrix/matrix.dart' as matrix_sdk;
-import 'package:matrix/matrix.dart' show Client, Event, EventTypes, Membership;
+import 'package:matrix/matrix.dart' show Event, EventTypes, Membership;
 
 // ── NotificationGrouper ──────────────────────────────────────
 
 class NotificationGrouper {
-  NotificationGrouper(this._client);
+  NotificationGrouper(this._pushRepo);
 
-  Client _client;
-  set client(Client value) => _client = value;
+  PushRepository _pushRepo;
+  set pushRepository(PushRepository value) => _pushRepo = value;
 
   final Map<String, Map<String, Object?>> _decryptedContent = {};
 
@@ -56,7 +57,7 @@ class NotificationGrouper {
   }
 
   bool isMention(matrix_sdk.Notification n) {
-    final userId = _client.userID;
+    final userId = _pushRepo.userId;
     if (userId == null) return false;
     if (_hasHighlightAction(n.actions)) return true;
 
@@ -83,8 +84,8 @@ class NotificationGrouper {
     final lower = body.toLowerCase();
     if (lower.contains(userId.toLowerCase())) return true;
 
-    final displayName = _client
-        .getRoomById(roomId)
+    final displayName = _pushRepo
+        .getRoom(roomId)
         ?.unsafeGetUserFromMemoryOrFallback(userId)
         .calcDisplayname();
     return displayName != null &&
@@ -113,7 +114,7 @@ class NotificationGrouper {
       for (final bucket in _bucketByRecency(items, (n) => n.roomId))
         NotificationGroup(
           roomId: bucket.key,
-          roomName: _client.getRoomById(bucket.key)?.getLocalizedDisplayname() ??
+          roomName: _pushRepo.getRoom(bucket.key)?.getLocalizedDisplayname() ??
               bucket.key,
           notifications: bucket.value,
           subGroups: _buildSubGroups(bucket.value),
@@ -128,7 +129,7 @@ class NotificationGrouper {
     final seen = <String>{};
     for (final n in notifications) {
       if (n.read || !seen.add(n.event.eventId)) continue;
-      final room = _client.getRoomById(n.roomId);
+      final room = _pushRepo.getRoom(n.roomId);
       if (room == null || room.membership != Membership.join) continue;
       candidates.add(n);
     }
@@ -150,7 +151,7 @@ class NotificationGrouper {
   }
 
   String _senderName(matrix_sdk.Notification n) {
-    final room = _client.getRoomById(n.roomId);
+    final room = _pushRepo.getRoom(n.roomId);
     return room?.unsafeGetUserFromMemoryOrFallback(n.event.senderId)
             .calcDisplayname() ??
         n.event.senderId;
@@ -208,12 +209,11 @@ class NotificationGrouper {
     final cached = _decryptedContent[eventId];
     if (cached != null) return cached;
     if (_isFailureCached(eventId)) return null;
-    final room = _client.getRoomById(n.roomId);
+    final room = _pushRepo.getRoom(n.roomId);
     if (room == null) return null;
     try {
       final event = Event.fromMatrixEvent(n.event, room);
-      final decrypted = await room.client.encryption
-          ?.decryptRoomEvent(event)
+      final decrypted = await _pushRepo.decryptRoomEvent(room, event)
           .timeout(const Duration(seconds: 3));
       if (decrypted != null) {
         _decryptedContent[eventId] = decrypted.content;

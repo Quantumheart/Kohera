@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/notifications/enum/inbox_filter.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:matrix/matrix.dart';
@@ -15,6 +17,7 @@ import 'package:mockito/mockito.dart';
   MockSpec<User>(),
 ])
 import 'inbox_controller_test.mocks.dart';
+import '../mocks/matrix_service_mock.mocks.dart';
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -55,6 +58,8 @@ GetNotificationsResponse _makeResponse(
 
 void main() {
   late MockClient mockClient;
+  late MockMatrixService mockMatrix;
+  late PushRepository pushRepo;
   late InboxController controller;
 
   late MockRoom defaultRoom;
@@ -73,7 +78,10 @@ void main() {
     when(defaultRoom.unsafeGetUserFromMemoryOrFallback(any)).thenReturn(
       User('@alice:example.com', displayName: 'Alice', room: defaultRoom),
     );
-    controller = InboxController(client: mockClient);
+    mockMatrix = MockMatrixService();
+    when(mockMatrix.client).thenReturn(mockClient);
+    pushRepo = PushRepository(matrix: mockMatrix);
+    controller = InboxController(pushRepository: pushRepo);
   });
 
   tearDown(() {
@@ -646,7 +654,7 @@ void main() {
   group('dispose', () {
     test('no crash when async fetch completes after dispose', () async {
       // Use a separate controller for this test to avoid double-dispose
-      final disposableController = InboxController(client: mockClient);
+      final disposableController = InboxController(pushRepository: pushRepo);
       final completer = Completer<GetNotificationsResponse>();
 
       when(mockClient.getNotifications(
@@ -987,7 +995,7 @@ void main() {
       verifyNever(mockRoom.setReadMarker(any, mRead: anyNamed('mRead')));
     });
 
-    test('updateClient resets token expiry flag', () async {
+    test('updateRepository resets token expiry flag', () async {
       when(mockClient.getNotifications(
         limit: anyNamed('limit'),
         only: anyNamed('only'),
@@ -1008,7 +1016,10 @@ void main() {
             _makeNotification(eventId: 'e1', roomId: '!r1:x'),
           ]),);
 
-      controller.updateClient(newClient);
+      final newMatrix = MockMatrixService();
+      when(newMatrix.client).thenReturn(newClient);
+      final newRepo = PushRepository(matrix: newMatrix);
+      controller.updateRepository(newRepo);
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
 
@@ -1016,9 +1027,9 @@ void main() {
     });
   });
 
-  // ── updateClient() ────────────────────────────────────────
+  // ── updateRepository() ────────────────────────────────────
 
-  group('updateClient()', () {
+  group('updateRepository()', () {
     test('resets state and triggers new fetch', () async {
       when(mockClient.getNotifications(
         limit: anyNamed('limit'),
@@ -1039,7 +1050,10 @@ void main() {
             _makeNotification(eventId: 'new1', roomId: '!new:x'),
           ]),);
 
-      controller.updateClient(newClient);
+      final newMatrix = MockMatrixService();
+      when(newMatrix.client).thenReturn(newClient);
+      final newRepo = PushRepository(matrix: newMatrix);
+      controller.updateRepository(newRepo);
 
       // Wait for async fetch
       await Future<void>.delayed(Duration.zero);
