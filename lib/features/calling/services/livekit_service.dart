@@ -6,9 +6,9 @@ import 'package:flutter_background/flutter_background.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:http/http.dart' as http;
 import 'package:kohera/core/utils/platform_info.dart';
-import 'package:kohera/features/calling/models/call_participant.dart' as ui;
+import 'package:kohera/data/models/call_participant.dart' as ui;
+import 'package:kohera/data/resolvers/call_participant_resolver.dart';
 import 'package:kohera/features/calling/models/call_state.dart';
-import 'package:kohera/features/calling/services/call_participant_resolver.dart';
 import 'package:livekit_client/livekit_client.dart' as livekit;
 import 'package:matrix/matrix.dart';
 

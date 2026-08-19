@@ -5,7 +5,7 @@ import 'package:flutter/widgets.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/data/models/call_constants.dart';
-import 'package:kohera/features/calling/models/call_participant.dart' as ui;
+import 'package:kohera/data/models/call_participant.dart' as ui;
 import 'package:kohera/features/calling/models/call_state.dart';
 import 'package:kohera/features/calling/models/incoming_call_info.dart' as model;
 import 'package:kohera/features/calling/services/call_ringing_service.dart';
