@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:matrix/encryption.dart';
 
 class RecoveryKeyHandler {
-  RecoveryKeyHandler({required this.matrixService});
+  RecoveryKeyHandler({required this.keyBackup});
 
-  final MatrixService matrixService;
+  final KeyBackupRepository keyBackup;
 
   // ── State ─────────────────────────────────────────────────────
 
@@ -56,7 +56,7 @@ class RecoveryKeyHandler {
   }
 
   Future<void> loadStoredKey() async {
-    final storedKey = await matrixService.chatBackup.getStoredRecoveryKey();
+    final storedKey = await keyBackup.chatBackup.getStoredRecoveryKey();
     if (storedKey != null) {
       _storedRecoveryKey = storedKey;
     }
@@ -89,12 +89,12 @@ class RecoveryKeyHandler {
 
       _recoveryKeyError = null;
       if (_saveToDevice) {
-        await matrixService.chatBackup.storeRecoveryKey(key);
+        await keyBackup.chatBackup.storeRecoveryKey(key);
       }
 
       try {
         await bootstrap.openExistingSsss();
-        final encryption = matrixService.client.encryption;
+        final encryption = keyBackup.encryption;
         if (encryption != null && encryption.crossSigning.enabled) {
           debugPrint('[Bootstrap] Self-signing after SSSS unlock');
           await encryption.crossSigning.selfSign(recoveryKey: key);
@@ -112,7 +112,7 @@ class RecoveryKeyHandler {
 
   Future<void> storeIfNeeded() async {
     if (_saveToDevice && _newRecoveryKey != null) {
-      await matrixService.chatBackup.storeRecoveryKey(_newRecoveryKey!);
+      await keyBackup.chatBackup.storeRecoveryKey(_newRecoveryKey!);
     }
   }
 

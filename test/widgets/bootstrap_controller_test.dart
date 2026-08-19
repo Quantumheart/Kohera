@@ -2,6 +2,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_controller.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
@@ -44,7 +45,7 @@ void main() {
 
   BootstrapController createController({bool wipeExisting = false}) {
     return BootstrapController(
-      matrixService: mockMatrixService,
+      keyBackup: KeyBackupRepository(matrix: mockMatrixService),
       wipeExisting: wipeExisting,
     );
   }

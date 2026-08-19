@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/features/e2ee/screens/e2ee_setup_screen.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
@@ -39,6 +40,9 @@ void main() {
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
           ChangeNotifierProvider<ChatBackupService>.value(
             value: mockChatBackup,
+          ),
+          ChangeNotifierProvider<KeyBackupRepository>(
+            create: (_) => KeyBackupRepository(matrix: mockMatrixService),
           ),
         ],
         child: const MaterialApp(

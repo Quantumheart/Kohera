@@ -1,14 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_controller.dart';
 import 'package:matrix/encryption.dart';
-import 'package:matrix/matrix.dart';
 
 class BootstrapDriver {
   BootstrapDriver({
-    required this.matrixService,
+    required this.keyBackup,
     required bool wipeExisting,
     required this.onPhaseChanged,
     required this.onNewSsss,
@@ -17,7 +16,7 @@ class BootstrapDriver {
     required this.onError,
   }) : _wipeExisting = wipeExisting;
 
-  final MatrixService matrixService;
+  final KeyBackupRepository keyBackup;
   final void Function(SetupPhase phase) onPhaseChanged;
   final VoidCallback onNewSsss;
   final VoidCallback onOpenExistingSsss;
@@ -44,8 +43,7 @@ class BootstrapDriver {
   // ── Lifecycle ─────────────────────────────────────────────────
 
   Future<void> start() async {
-    final client = matrixService.client;
-    final encryption = client.encryption;
+    final encryption = keyBackup.encryption;
     if (encryption == null) {
       _state = BootstrapState.error;
       onError('Encryption is not available');
@@ -53,20 +51,8 @@ class BootstrapDriver {
     }
 
     try {
-      const syncTimeout = Duration(seconds: 30);
-      debugPrint('[Bootstrap] Waiting for roomsLoading...');
-      await client.roomsLoading;
-      debugPrint('[Bootstrap] Waiting for accountDataLoading...');
-      await client.accountDataLoading;
-      debugPrint('[Bootstrap] Waiting for userDeviceKeysLoading...');
-      await client.userDeviceKeysLoading;
-      debugPrint('[Bootstrap] prevBatch=${client.prevBatch}');
-      if (client.prevBatch == null) {
-        debugPrint('[Bootstrap] Waiting for first sync...');
-        await client.onSync.stream.first.timeout(syncTimeout);
-      }
-      debugPrint('[Bootstrap] Updating user device keys...');
-      await client.updateUserDeviceKeys();
+      debugPrint('[Bootstrap] Preparing for bootstrap...');
+      await keyBackup.prepareForBootstrap();
       debugPrint('[Bootstrap] Sync preparation complete');
     } on TimeoutException {
       debugPrint('[Bootstrap] Timed out waiting for first sync');
@@ -124,10 +110,7 @@ class BootstrapDriver {
           var wipe = _wipeExisting;
           if (!wipe) {
             try {
-              await matrixService.client.encryption?.keyManager
-                  .getRoomKeysBackupInfo(false);
-            } on MatrixException catch (e) {
-              if (e.errcode == 'M_NOT_FOUND') {
+              if (!await keyBackup.hasServerKeyBackup()) {
                 debugPrint('[Bootstrap] No server-side backup found, '
                     'triggering creation');
                 wipe = true;
