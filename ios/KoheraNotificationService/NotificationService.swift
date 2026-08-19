@@ -150,7 +150,9 @@ class NotificationService: UNNotificationServiceExtension {
         let counterpart = await counterpartTask.value
         let title = resolveTitle(roomId: roomId, roomName: roomName, counterpart: counterpart)
         content.title = title
-        content.subtitle = isDirect ? nil : resolvedSenderName
+        if !isDirect, let resolvedSender = resolvedSenderName {
+            content.subtitle = resolvedSender
+        }
 
         if expired { return }
 
