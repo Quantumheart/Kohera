@@ -8,7 +8,6 @@ import 'package:http/http.dart' as http;
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/utils/media_auth.dart';
 import 'package:kohera/core/utils/media_cache_io.dart'
     if (dart.library.js_interop) 'package:kohera/core/utils/media_cache_web.dart';
 import 'package:kohera/core/utils/notification_filter.dart';
@@ -16,6 +15,7 @@ import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/core/utils/poll_body.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/data/models/call_constants.dart';
+import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/web_notifications.dart';
 import 'package:kohera/features/notifications/services/windows_com_register.dart';
@@ -48,6 +48,7 @@ int _stableNotificationId(String roomId) {
 class NotificationService {
   NotificationService({
     required this.matrixService,
+    required this.pushRepository,
     required this.preferencesService,
     this.router,
     @visibleForTesting FlutterLocalNotificationsPlugin? plugin,
@@ -55,6 +56,7 @@ class NotificationService {
         _useLinux = plugin == null && _isLinux;
 
   final MatrixService matrixService;
+  final PushRepository pushRepository;
   final PreferencesService preferencesService;
   final GoRouter? router;
   final FlutterLocalNotificationsPlugin _plugin;
@@ -136,7 +138,7 @@ class NotificationService {
   void startListening() {
     _firstSyncDone = false;
     unawaited(_syncSub?.cancel());
-    _syncSub = matrixService.client.onSync.stream.listen(_onSync);
+    _syncSub = pushRepository.onSync.listen(_onSync);
     debugPrint('[Kohera] NotificationService listening to sync stream');
   }
 
@@ -211,8 +213,7 @@ class NotificationService {
         return;
       }
 
-      final client = matrixService.client;
-      final room = client.getRoomById(roomId);
+      final room = pushRepository.getRoom(roomId);
 
       // Respect per-room push rules.
       if (room?.pushRuleState == PushRuleState.dontNotify) return;
@@ -226,7 +227,7 @@ class NotificationService {
       if (inviteEvents != null) {
         for (final event in inviteEvents) {
           if (event.type == EventTypes.RoomMember &&
-              event.stateKey == client.userID) {
+              event.stateKey == pushRepository.userId) {
             final inviter =
                 room?.unsafeGetUserFromMemoryOrFallback(event.senderId);
             inviterName = inviter?.calcDisplayname() ?? event.senderId;
@@ -240,18 +241,18 @@ class NotificationService {
       String? avatarUrl;
       if (kIsWeb && inviterAvatarUrl != null) {
         try {
-          final uri = await inviterAvatarUrl.getThumbnailUri(
-            client,
+          final uri = await pushRepository.thumbnailUri(
+            inviterAvatarUrl,
             width: 128,
             height: 128,
           );
           final rawUrl = uri.toString();
-          final headers = mediaAuthHeaders(client, rawUrl);
+          final headers = pushRepository.mediaAuthHeaders(rawUrl);
           avatarUrl = await resolveWebAvatarUrl(rawUrl, headers) ?? rawUrl;
         } catch (_) {}
       } else if (_useLinux) {
         avatarPath =
-            await downloadAvatarToTemp(client, inviterAvatarUrl, inviterName);
+            await downloadAvatarToTemp(inviterAvatarUrl, inviterName);
       }
 
       await _showNotification(
@@ -286,9 +287,10 @@ class NotificationService {
   ) async {
     if (_disposed) return;
     if (isNativeIOS && preferencesService.apnsPushEnabled) return;
-    final client = matrixService.client;
-    final room = client.getRoomById(roomId);
+    final room = pushRepository.getRoom(roomId);
     if (room == null) return;
+
+    final ownUserId = pushRepository.userId;
 
     // If any event is from the current user, they're active in this room —
     // clear any existing notification and stop processing.
@@ -296,7 +298,7 @@ class NotificationService {
         (e.type == EventTypes.Message ||
             e.type == EventTypes.Encrypted ||
             e.type == PollEventContent.startType) &&
-        e.senderId == client.userID,);
+        e.senderId == ownUserId,);
     if (hasOwnMessage) {
       await cancelForRoom(roomId);
       return;
@@ -313,10 +315,10 @@ class NotificationService {
       return;
     }
 
-    final lowerUserId = client.userID?.toLowerCase();
-    final lowerDisplayName = client.userID != null
+    final lowerUserId = ownUserId?.toLowerCase();
+    final lowerDisplayName = ownUserId != null
         ? room
-            .unsafeGetUserFromMemoryOrFallback(client.userID!)
+            .unsafeGetUserFromMemoryOrFallback(ownUserId)
             .calcDisplayname()
             .toLowerCase()
         : null;
@@ -344,7 +346,7 @@ class NotificationService {
       if (!shouldNotifyForEvent(
         eventBody: body,
         senderId: matrixEvent.senderId,
-        ownUserId: client.userID,
+        ownUserId: ownUserId,
         room: room,
         prefs: preferencesService,
         cachedLowerUserId: lowerUserId,
@@ -366,18 +368,17 @@ class NotificationService {
     String? avatarUrl;
     if (kIsWeb && notifiable.first.$3 != null) {
       try {
-        final uri = await notifiable.first.$3!.getThumbnailUri(
-          client,
+        final uri = await pushRepository.thumbnailUri(
+          notifiable.first.$3!,
           width: 128,
           height: 128,
         );
         final rawUrl = uri.toString();
-        final headers = mediaAuthHeaders(client, rawUrl);
+        final headers = pushRepository.mediaAuthHeaders(rawUrl);
         avatarUrl = await resolveWebAvatarUrl(rawUrl, headers) ?? rawUrl;
       } catch (_) {}
     } else if (_useLinux) {
       avatarPath = await downloadAvatarToTemp(
-        client,
         notifiable.first.$3,
         notifiable.first.$1,
       );
@@ -422,8 +423,7 @@ class NotificationService {
 
   Future<String> _tryDecrypt(Room room, Event event) async {
     try {
-      final decrypted = await room.client.encryption
-          ?.decryptRoomEvent(event)
+      final decrypted = await pushRepository.decryptRoomEvent(room, event)
           .timeout(const Duration(seconds: 3));
       if (decrypted != null && callEventTypes.contains(decrypted.type)) {
         return _formatCallEvent(decrypted);
@@ -466,7 +466,6 @@ class NotificationService {
 
   @visibleForTesting
   Future<String?> downloadAvatarToTemp(
-    Client client,
     Uri? avatarUrl,
     String userId,
   ) async {
@@ -478,12 +477,12 @@ class NotificationService {
       final file = File(path);
       if (file.existsSync()) return path;
 
-      final uri = await avatarUrl.getThumbnailUri(
-        client,
+      final uri = await pushRepository.thumbnailUri(
+        avatarUrl,
         width: 128,
         height: 128,
       );
-      final headers = mediaAuthHeaders(client, uri.toString());
+      final headers = pushRepository.mediaAuthHeaders(uri.toString());
       final response = await http
           .get(uri, headers: headers)
           .timeout(const Duration(seconds: 5));
@@ -524,7 +523,7 @@ class NotificationService {
                 : body));
 
     if (kIsWeb) {
-      final unreadCount = totalUnreadCount(matrixService.client);
+      final unreadCount = pushRepository.unreadNotificationCount();
       showWebNotification(
         title: title,
         body: displayBody,
@@ -623,8 +622,7 @@ class NotificationService {
       );
       unawaited(notification.action.then((actionKey) {
         if (_disposed) return;
-        final client = matrixService.client;
-        final room = client.getRoomById(roomId);
+        final room = pushRepository.getRoom(roomId);
         if (actionKey == 'mark_read') {
           debugPrint(
             '[Kohera] Linux notification mark_read for room $roomId',

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
+import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/notifications/services/apns_push_service.dart';
 import 'package:kohera/features/notifications/services/ios_voip_push_service.dart';
@@ -17,6 +18,7 @@ import 'package:provider/provider.dart';
 class NotificationLifecycleObserver extends StatefulWidget {
   const NotificationLifecycleObserver({
     required this.matrixService,
+    required this.pushRepository,
     required this.preferencesService,
     required this.callService,
     required this.router,
@@ -25,6 +27,7 @@ class NotificationLifecycleObserver extends StatefulWidget {
   });
 
   final MatrixService matrixService;
+  final PushRepository pushRepository;
   final PreferencesService preferencesService;
   final CallService callService;
   final GoRouter router;
@@ -63,13 +66,14 @@ class _NotificationLifecycleObserverState
   Future<void> _initServices() async {
     final notificationService = NotificationService(
       matrixService: widget.matrixService,
+      pushRepository: widget.pushRepository,
       preferencesService: widget.preferencesService,
       router: widget.router,
     );
     await notificationService.init();
 
     final pushService = PushService(
-      matrixService: widget.matrixService,
+      pushRepository: widget.pushRepository,
       preferencesService: widget.preferencesService,
       notificationService: notificationService,
       callService: widget.callService,
@@ -77,14 +81,14 @@ class _NotificationLifecycleObserverState
     await pushService.init();
 
     final apnsPushService = ApnsPushService(
-      matrixService: widget.matrixService,
+      pushRepository: widget.pushRepository,
       preferencesService: widget.preferencesService,
       notificationService: notificationService,
     );
     await apnsPushService.init();
 
     final iosVoipPushService = IosVoipPushService(
-      matrixService: widget.matrixService,
+      pushRepository: widget.pushRepository,
       preferencesService: widget.preferencesService,
       notificationService: notificationService,
       callService: widget.callService,
@@ -92,6 +96,7 @@ class _NotificationLifecycleObserverState
     await iosVoipPushService.init();
 
     final webPushService = WebPushService(
+      pushRepository: widget.pushRepository,
       matrixService: widget.matrixService,
       preferencesService: widget.preferencesService,
       router: widget.router,

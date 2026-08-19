@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/notification_filter.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/core/utils/poll_body.dart';
 import 'package:kohera/data/models/call_constants.dart';
+import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/notification_service.dart';
@@ -17,13 +17,13 @@ import 'package:unifiedpush/unifiedpush.dart';
 
 class PushService {
   PushService({
-    required this.matrixService,
+    required this.pushRepository,
     required this.preferencesService,
     required this.notificationService,
     required this.callService,
   });
 
-  final MatrixService matrixService;
+  final PushRepository pushRepository;
   final PreferencesService preferencesService;
   final NotificationService notificationService;
   final CallService callService;
@@ -116,25 +116,24 @@ class PushService {
 
   Future<void> _registerPusher(String endpoint) async {
     if (_disposed) return;
-    final client = matrixService.client;
-    if (client.userID == null) return;
+    if (pushRepository.userId == null) return;
 
     final gatewayUrl = _gatewayUrl;
 
-    await client.postPusher(
+    await pushRepository.postPusher(
       Pusher(
         appId: _appId,
         pushkey: endpoint,
         appDisplayName: NotificationChannel.appName,
         deviceDisplayName:
-            client.deviceName ?? NotificationChannel.defaultDeviceName,
+            pushRepository.deviceName ?? NotificationChannel.defaultDeviceName,
         kind: 'http',
         lang: NotificationChannel.defaultLang,
         data: PusherData(
           url: Uri.parse(gatewayUrl),
           format: 'event_id_only',
         ),
-        profileTag: client.deviceID,
+        profileTag: pushRepository.deviceId,
       ),
       append: true,
     );
@@ -145,8 +144,7 @@ class PushService {
     final endpoint = _currentEndpoint;
     if (endpoint == null) return;
 
-    final client = matrixService.client;
-    await client.deletePusher(
+    await pushRepository.deletePusher(
       PusherId(appId: _appId, pushkey: endpoint),
     );
     debugPrint('[Kohera] Pusher unregistered from homeserver');
@@ -170,8 +168,7 @@ class PushService {
       final roomId = notification['room_id'] as String?;
       if (roomId == null) return;
 
-      final client = matrixService.client;
-      final room = client.getRoomById(roomId);
+      final room = pushRepository.getRoom(roomId);
 
       if (room?.pushRuleState == PushRuleState.dontNotify) return;
 
@@ -187,7 +184,7 @@ class PushService {
 
       MatrixEvent matrixEvent;
       try {
-        matrixEvent = await client.getOneRoomEvent(roomId, eventId);
+        matrixEvent = await pushRepository.getRoomEvent(roomId, eventId);
       } catch (e) {
         debugPrint('[Kohera] Failed to fetch push event: $e');
         await notificationService.showPushNotification(
@@ -220,8 +217,7 @@ class PushService {
   }
 
   Future<void> _handleMessageEvent(Room room, MatrixEvent matrixEvent) async {
-    final client = matrixService.client;
-    if (matrixEvent.senderId == client.userID) return;
+    if (matrixEvent.senderId == pushRepository.userId) return;
 
     final event = Event.fromMatrixEvent(matrixEvent, room);
     String body;
@@ -235,7 +231,7 @@ class PushService {
     if (!shouldNotifyForEvent(
       eventBody: body,
       senderId: matrixEvent.senderId,
-      ownUserId: client.userID,
+      ownUserId: pushRepository.userId,
       room: room,
       prefs: preferencesService,
     )) {
@@ -275,8 +271,7 @@ class PushService {
 
   Future<String> _tryDecrypt(Room room, Event event) async {
     try {
-      final decrypted = await room.client.encryption
-          ?.decryptRoomEvent(event)
+      final decrypted = await pushRepository.decryptRoomEvent(room, event)
           .timeout(const Duration(seconds: 3));
       if (decrypted != null) {
         final poll = pollStartBody(decrypted);

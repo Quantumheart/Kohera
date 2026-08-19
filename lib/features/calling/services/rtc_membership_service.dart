@@ -136,6 +136,26 @@ class RtcMembershipService {
     return false;
   }
 
+  /// Overload that accepts a [Room] and [userId] directly, for consumers
+  /// that no longer hold a raw [Client] (e.g. after repository migration).
+  static bool roomHasRemoteActiveCallWith(Room? room, String? userId) {
+    if (room == null || userId == null) return false;
+    final states = room.states[callMemberEventType];
+    if (states == null) return false;
+    final localPrefix = '_${userId}_';
+    final now = DateTime.now().millisecondsSinceEpoch;
+    for (final entry in states.entries) {
+      if (entry.key.startsWith(localPrefix)) continue;
+      final content = entry.value.content;
+      if (content.isEmpty) continue;
+      final originTs = entry.value is Event
+          ? (entry.value as Event).originServerTs.millisecondsSinceEpoch
+          : now;
+      if (isMembershipActive(content, originTs, now)) return true;
+    }
+    return false;
+  }
+
   static final _stateKeyUserIdRegex = RegExp('_(@[^:]+:[^_]+)_');
 
   static String? userIdFromStateKey(String stateKey) =>

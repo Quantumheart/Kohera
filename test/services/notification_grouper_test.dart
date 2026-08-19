@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/notifications/enum/inbox_filter.dart';
 import 'package:kohera/features/notifications/services/notification_grouper.dart';
 import 'package:matrix/encryption.dart';
@@ -15,6 +17,7 @@ import 'package:mockito/mockito.dart';
   MockSpec<Encryption>(),
 ])
 import 'notification_grouper_test.mocks.dart';
+import '../mocks/matrix_service_mock.mocks.dart';
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -85,6 +88,7 @@ void _wireRoom(MockRoom room, MockClient client) {
 
 void main() {
   late MockClient mockClient;
+  late MockMatrixService mockMatrix;
   late MockRoom mockRoom;
   late MockEncryption mockEncryption;
   late NotificationGrouper grouper;
@@ -93,6 +97,8 @@ void main() {
     mockClient = MockClient();
     mockRoom = MockRoom();
     mockEncryption = MockEncryption();
+    mockMatrix = MockMatrixService();
+    when(mockMatrix.client).thenReturn(mockClient);
     _wireRoom(mockRoom, mockClient);
 
     when(mockClient.getRoomById(any)).thenReturn(mockRoom);
@@ -102,7 +108,7 @@ void main() {
       User('@alice:example.com', displayName: 'Alice', room: mockRoom),
     );
 
-    grouper = NotificationGrouper(mockClient);
+    grouper = NotificationGrouper(PushRepository(matrix: mockMatrix));
   });
 
   // ── Concurrent decryption (#629) ──────────────────────────

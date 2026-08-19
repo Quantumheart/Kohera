@@ -7,6 +7,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
@@ -123,7 +124,9 @@ void main() {
 
     clientManager = ClientManager(storage: mockStorage);
 
-    inboxController = InboxController(client: mockClient);
+    inboxController = InboxController(
+      pushRepository: PushRepository(matrix: matrixService),
+    );
   });
 
   // ── Test app builder ──────────────────────────────────────────────

@@ -9,6 +9,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:matrix/matrix.dart';
 import 'package:web/web.dart' as web;
@@ -35,11 +36,13 @@ JSObject _createSubscribeOptions({
 
 class WebPushService {
   WebPushService({
+    required this.pushRepository,
     required this.matrixService,
     required this.preferencesService,
     this.router,
   });
 
+  final PushRepository pushRepository;
   final MatrixService matrixService;
   final PreferencesService preferencesService;
   final GoRouter? router;
@@ -130,22 +133,21 @@ class WebPushService {
 
   Future<void> _registerPusher(String pushkey, String gatewayUrl) async {
     if (_disposed) return;
-    final client = matrixService.client;
-    if (client.userID == null) return;
+    if (pushRepository.userId == null) return;
 
-    await client.postPusher(
+    await pushRepository.postPusher(
       Pusher(
         appId: _appId,
         pushkey: pushkey,
         appDisplayName: NotificationChannel.appName,
         deviceDisplayName:
-            client.deviceName ?? NotificationChannel.webDefaultDeviceName,
+            pushRepository.deviceName ?? NotificationChannel.webDefaultDeviceName,
         kind: 'http',
         lang: NotificationChannel.defaultLang,
         data: PusherData(
           url: Uri.parse(gatewayUrl),
         ),
-        profileTag: client.deviceID,
+        profileTag: pushRepository.deviceId,
       ),
       append: true,
     );
@@ -153,8 +155,7 @@ class WebPushService {
   }
 
   Future<void> _unregisterPusher(String pushkey) async {
-    final client = matrixService.client;
-    await client.deletePusher(
+    await pushRepository.deletePusher(
       PusherId(appId: _appId, pushkey: pushkey),
     );
     debugPrint('[Kohera] Web pusher unregistered from homeserver');
@@ -201,7 +202,7 @@ class WebPushService {
           case 'mark_read':
             final roomId = obj.getProperty<JSString>('roomId'.toJS).toDart;
             if (roomId.isNotEmpty) {
-              final room = matrixService.client.getRoomById(roomId);
+              final room = pushRepository.getRoom(roomId);
               final lastEventId = room?.lastEvent?.eventId;
               if (room != null && lastEventId != null) {
                 unawaited(

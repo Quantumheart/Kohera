@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/ios_voip_push_service.dart';
@@ -54,7 +55,7 @@ void main() {
     when(mockClient.deviceName).thenReturn('AlicePhone');
 
     service = IosVoipPushService(
-      matrixService: mockMatrix,
+      pushRepository: PushRepository(matrix: mockMatrix),
       preferencesService: prefs,
       notificationService: mockNotification,
       callService: mockCallService,
@@ -96,7 +97,7 @@ void main() {
       final sp = await SharedPreferences.getInstance();
 
       final noopService = IosVoipPushService(
-        matrixService: mockMatrix,
+        pushRepository: PushRepository(matrix: mockMatrix),
         preferencesService: PreferencesService(prefs: sp),
         notificationService: mockNotification,
         callService: mockCallService,

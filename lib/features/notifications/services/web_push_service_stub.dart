@@ -1,14 +1,17 @@
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/data/repositories/push_repository.dart';
 
 class WebPushService {
   WebPushService({
+    required this.pushRepository,
     required this.matrixService,
     required this.preferencesService,
     this.router,
   });
 
+  final PushRepository pushRepository;
   final MatrixService matrixService;
   final PreferencesService preferencesService;
   final GoRouter? router;
