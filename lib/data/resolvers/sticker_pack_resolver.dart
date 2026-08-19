@@ -1,5 +1,5 @@
-import 'package:kohera/core/models/sticker_pack.dart';
-import 'package:kohera/shared/models/kohera_sticker_pack.dart';
+import 'package:kohera/data/models/kohera_sticker_pack.dart';
+import 'package:kohera/data/models/sticker_pack.dart';
 
 /// Converts an SDK-coupled [StickerPack] into a UI-ready, SDK-free
 /// [KoheraStickerPack].

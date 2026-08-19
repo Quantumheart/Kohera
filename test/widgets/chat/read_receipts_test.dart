@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
-import 'package:kohera/features/chat/services/read_receipt_resolver.dart';
+import 'package:kohera/data/models/kohera_read_receipt.dart';
+import 'package:kohera/data/resolvers/read_receipt_resolver.dart';
+import 'package:kohera/data/resolvers/user_summary_resolver.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/chat/widgets/read_receipts.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
-import 'package:kohera/shared/services/user_summary_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';

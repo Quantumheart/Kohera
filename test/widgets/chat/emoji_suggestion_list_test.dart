@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/models/sticker_pack.dart';
+import 'package:kohera/data/models/sticker_pack.dart';
+import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/chat/services/emoji_autocomplete_controller.dart';
 import 'package:kohera/features/chat/widgets/emoji_suggestion_list.dart';
-import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 

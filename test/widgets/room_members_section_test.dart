@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
-import 'package:kohera/features/rooms/models/kohera_room_member.dart';
+import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/rooms/models/room_role.dart';
 import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
 import 'package:kohera/features/rooms/widgets/room_members_section.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
 
 // ── Fakes ──────────────────────────────────────────────────────
 

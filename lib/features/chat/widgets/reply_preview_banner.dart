@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:kohera/core/utils/sender_color.dart';
-import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
+import 'package:kohera/data/models/kohera_reply_preview.dart';
 import 'package:kohera/features/chat/widgets/compose_preview_banner.dart';
 
 class ReplyPreviewBanner extends StatelessWidget {

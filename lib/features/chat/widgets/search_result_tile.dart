@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/text_highlight.dart';
 import 'package:kohera/core/utils/time_format.dart';
-import 'package:kohera/features/chat/models/kohera_message_display.dart';
+import 'package:kohera/data/models/kohera_message_display.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/chat/models/room_search_result.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 
 // coverage:ignore-start

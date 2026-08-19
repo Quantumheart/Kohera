@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/models/emoji_gg_pack.dart';
-import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/core/services/emoji_gg_service.dart';
 import 'package:kohera/core/utils/openmoji_catalog.dart';
-import 'package:kohera/shared/models/kohera_sticker_pack.dart';
-import 'package:kohera/shared/services/sticker_pack_resolver.dart';
+import 'package:kohera/data/models/kohera_sticker_pack.dart';
+import 'package:kohera/data/models/sticker_pack.dart';
+import 'package:kohera/data/resolvers/sticker_pack_resolver.dart';
 import 'package:matrix/matrix.dart';
 
 class ImportProgress {

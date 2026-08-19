@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:kohera/features/chat/models/kohera_message_status.dart';
+import 'package:kohera/data/models/kohera_message_status.dart';
 
 /// A Kohera-owned domain model representing a Matrix message event with
 /// pre-computed display fields.

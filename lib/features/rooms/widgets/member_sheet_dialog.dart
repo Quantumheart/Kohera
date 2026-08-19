@@ -6,10 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
-import 'package:kohera/features/rooms/models/kohera_room_member.dart';
+import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/rooms/models/room_role.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 
 /// Opens the member profile sheet for [member].

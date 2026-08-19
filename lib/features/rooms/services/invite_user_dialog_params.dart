@@ -1,7 +1,7 @@
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/known_contacts.dart' as contacts;
+import 'package:kohera/data/models/kohera_user_summary.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
-import 'package:kohera/shared/models/kohera_user_summary.dart';
 
 /// Builds SDK-free [InviteUserDialogParams] for a Matrix room.
 ///

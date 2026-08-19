@@ -1,10 +1,11 @@
 import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/features/spaces/models/kohera_push_rule_state.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_dialog.dart'
     show CreateSubspaceRequest;
-import 'package:kohera/shared/models/kohera_room_summary.dart';
 import 'package:matrix/matrix.dart';
 
 

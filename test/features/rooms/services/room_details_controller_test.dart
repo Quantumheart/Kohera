@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/models/kohera_push_rule_state.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/models/kohera_push_rule_state.dart';
+import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/rooms/services/room_details_controller.dart';
-import 'package:kohera/shared/models/kohera_room_summary.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';

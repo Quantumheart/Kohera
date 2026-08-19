@@ -7,11 +7,11 @@ import 'dart:async' as _i10;
 import 'dart:ui' as _i8;
 
 import 'package:flutter/material.dart' as _i2;
-import 'package:kohera/core/models/sticker_pack.dart' as _i7;
+import 'package:kohera/data/models/sticker_pack.dart' as _i7;
 import 'package:kohera/core/services/sticker_pack_service.dart' as _i3;
 import 'package:kohera/features/chat/services/emoji_autocomplete_controller.dart'
     as _i5;
-import 'package:kohera/shared/services/media_resolver.dart' as _i9;
+import 'package:kohera/data/services/media_resolver.dart' as _i9;
 import 'package:matrix/matrix.dart' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i6;

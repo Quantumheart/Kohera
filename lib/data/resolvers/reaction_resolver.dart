@@ -1,4 +1,4 @@
-import 'package:kohera/features/chat/models/kohera_reaction.dart';
+import 'package:kohera/data/models/kohera_reaction.dart';
 import 'package:matrix/matrix.dart';
 
 // ── ReactionResolver ─────────────────────────────────────────

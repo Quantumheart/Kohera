@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/settings/models/kohera_device.dart';
+import 'package:kohera/data/models/kohera_device.dart';
 
 void main() {
   group('KoheraDevice', () {

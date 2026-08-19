@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/chat/services/state_event_resolver.dart';
+import 'package:kohera/data/resolvers/state_event_resolver.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';

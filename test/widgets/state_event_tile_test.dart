@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/chat/models/kohera_state_event_text.dart';
+import 'package:kohera/data/models/kohera_state_event_text.dart';
 import 'package:kohera/features/chat/widgets/state_event_tile.dart';
 
 void main() {

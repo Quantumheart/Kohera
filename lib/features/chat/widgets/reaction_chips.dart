@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
-import 'package:kohera/features/chat/models/kohera_reaction.dart';
+import 'package:kohera/data/models/kohera_reaction.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/chat/widgets/long_press_wrapper.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 
 // ── ReactionChips ────────────────────────────────────────────

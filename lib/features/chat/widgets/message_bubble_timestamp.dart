@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/core/utils/time_format.dart';
-import 'package:kohera/features/chat/models/kohera_message_status.dart';
+import 'package:kohera/data/models/kohera_message_status.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_outbox_status.dart';
 
