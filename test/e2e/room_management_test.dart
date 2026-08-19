@@ -4,6 +4,9 @@ import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -161,6 +164,15 @@ void main() {
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
         ChangeNotifierProvider<SelectionService>.value(
           value: matrixService.selection,
+        ),
+        ChangeNotifierProvider<RoomRepository>(
+          create: (_) => RoomRepository(matrix: matrixService),
+        ),
+        ChangeNotifierProvider<UserRepository>(
+          create: (_) => UserRepository(matrix: matrixService),
+        ),
+        ChangeNotifierProvider<MediaRepository>(
+          create: (_) => MediaRepository(matrix: matrixService),
         ),
       ],
       child: MaterialApp.router(

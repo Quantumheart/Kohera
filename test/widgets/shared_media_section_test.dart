@@ -3,9 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
+import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/services/shared_media_loader.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
@@ -14,6 +18,8 @@ import 'package:mockito/mockito.dart';
   MockSpec<Event>(),
   MockSpec<Client>(),
   MockSpec<User>(),
+  MockSpec<MatrixService>(),
+  MockSpec<SelectionService>(),
 ])
 import 'shared_media_section_test.mocks.dart';
 
@@ -79,12 +85,22 @@ MockEvent _makeEvent(
 void main() {
   late MockRoom mockRoom;
   late MockClient mockClient;
+  late MockMatrixService mockMatrix;
+  late MockSelectionService mockSelection;
+  late RoomRepository roomRepo;
 
   setUp(() {
     mockRoom = MockRoom();
     mockClient = MockClient();
+    mockMatrix = MockMatrixService();
+    mockSelection = MockSelectionService();
     when(mockRoom.client).thenReturn(mockClient);
     when(mockRoom.id).thenReturn('!room:example.com');
+    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.selection).thenReturn(mockSelection);
+    when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
+    roomRepo = RoomRepository(matrix: mockMatrix);
   });
 
   Widget buildTestWidget() {
@@ -94,7 +110,7 @@ void main() {
         body: SingleChildScrollView(
           child: SharedMediaSection(
             roomId: mockRoom.id,
-            loader: sharedMediaLoaderForRoom(mockRoom),
+            loader: sharedMediaLoaderForRoom(mockRoom.id, roomRepo),
             avatarResolver: ClientAvatarResolver(mockClient),
           ),
         ),
