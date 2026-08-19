@@ -7,8 +7,9 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/data/models/kohera_device.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
+import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
-import 'package:kohera/features/settings/services/device_management_service.dart';
 import 'package:kohera/features/settings/widgets/device_list_item.dart';
 import 'package:kohera/features/settings/widgets/rename_device_dialog.dart';
 import 'package:kohera/features/settings/widgets/uia_password_prompt_dialog.dart';
@@ -28,7 +29,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
   bool _loading = true;
   String? _error;
 
-  late DeviceManagementService _deviceService;
+  late UserRepository _userRepo;
   late MatrixService _matrix;
 
   // ── Lifecycle ──────────────────────────────────────────────
@@ -37,7 +38,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
   void initState() {
     super.initState();
     _matrix = context.read<MatrixService>();
-    _deviceService = DeviceManagementService(matrix: _matrix);
+    _userRepo = context.read<UserRepository>();
     _matrix.uia.passwordPromptBuilder = _showPasswordPrompt;
     unawaited(_loadDevices());
   }
@@ -56,7 +57,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
       _error = null;
     });
     try {
-      final devices = await _deviceService.loadDevices();
+      final devices = await _userRepo.loadDevices();
       if (!mounted) return;
       setState(() {
         _devices = devices;
@@ -92,7 +93,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
     try {
       if (!mounted) return;
-      await _deviceService.renameDevice(device.deviceId, newName);
+      await _userRepo.renameDevice(device.deviceId, newName);
       await _loadDevices();
     } catch (e) {
       debugPrint('[Kohera] Failed to rename device: $e');
@@ -116,7 +117,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
     try {
       if (!mounted) return;
-      await _deviceService.removeDevice(device.deviceId);
+      await _userRepo.removeDevice(device.deviceId);
       await _loadDevices();
     } catch (e) {
       debugPrint('[Kohera] Failed to remove device: $e');
@@ -128,7 +129,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
   // ── Remove All Other Devices ───────────────────────────────
 
   Future<void> _removeAllOtherDevices() async {
-    final currentDeviceId = _deviceService.currentDeviceId;
+    final currentDeviceId = _userRepo.deviceId;
     final otherIds = _devices
             ?.where((d) => d.deviceId != currentDeviceId)
             .map((d) => d.deviceId)
@@ -147,7 +148,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
     if (!confirmed) return;
 
     try {
-      await _deviceService.removeAllOtherDevices(otherIds);
+      await _userRepo.removeAllOtherDevices(otherIds);
       await _loadDevices();
     } catch (e) {
       debugPrint('[Kohera] Failed to remove devices: $e');
@@ -160,12 +161,13 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
   Future<void> _verifyDevice(KoheraDevice device) async {
     try {
-      final kohera = await _deviceService.verifyDevice(device.deviceId);
-      if (kohera == null) {
+      final verification = await _userRepo.verifyDevice(device.deviceId);
+      if (verification == null) {
         if (!mounted) return;
         context.showSnack('No encryption keys found for device');
         return;
       }
+      final kohera = KoheraKeyVerification(verification);
       if (!mounted) return;
       try {
         await KeyVerificationDialog.show(context, verification: kohera);
@@ -184,7 +186,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
 
   Future<void> _toggleBlockDevice(KoheraDevice device) async {
     try {
-      await _deviceService.toggleBlockDevice(device.deviceId);
+      await _userRepo.toggleBlockDevice(device.deviceId);
       await _loadDevices();
     } catch (e) {
       debugPrint('[Kohera] Failed to toggle block: $e');
@@ -221,7 +223,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
     }
 
     final matrix = context.read<MatrixService>();
-    final currentDeviceId = _deviceService.currentDeviceId;
+    final currentDeviceId = _userRepo.deviceId;
     final thisDevice =
         _devices!.where((d) => d.deviceId == currentDeviceId).toList();
     final otherDevices =
