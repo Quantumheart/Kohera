@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/features/e2ee/widgets/verification_request_listener.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
@@ -67,8 +68,13 @@ void main() {
     );
 
     await tester.pumpWidget(
-      ChangeNotifierProvider<MatrixService>.value(
-        value: mockMatrix,
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
+          ChangeNotifierProvider<KeyBackupRepository>(
+            create: (_) => KeyBackupRepository(matrix: mockMatrix),
+          ),
+        ],
         child: VerificationRequestListener(
           router: router,
           child: MaterialApp.router(

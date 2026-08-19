@@ -43,9 +43,6 @@ class KoheraKeyVerification extends ChangeNotifier {
   /// The other party's device ID, if known.
   String? get otherDeviceId => _verification.deviceId;
 
-  /// Whether this verification is with our own user (another of our devices).
-  bool get isMe => _verification.client.userID == _verification.userId;
-
   /// The cancel/failure reason, if any.
   String? get canceledReason => _verification.canceledReason;
 

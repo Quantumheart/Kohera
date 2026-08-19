@@ -3,7 +3,7 @@ import 'dart:collection';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:matrix/encryption.dart';
@@ -27,23 +27,23 @@ class VerificationRequestListener extends StatefulWidget {
 class _VerificationRequestListenerState
     extends State<VerificationRequestListener> {
   StreamSubscription<KeyVerification>? _sub;
-  MatrixService? _matrix;
+  KeyBackupRepository? _keyBackup;
   bool _dialogOpen = false;
   final Queue<KeyVerification> _pending = Queue<KeyVerification>();
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final matrix = context.read<MatrixService>();
-    if (_matrix != matrix) {
-      _matrix = matrix;
-      _subscribe(matrix);
+    final keyBackup = context.read<KeyBackupRepository>();
+    if (_keyBackup != keyBackup) {
+      _keyBackup = keyBackup;
+      _subscribe(keyBackup);
     }
   }
 
-  void _subscribe(MatrixService matrix) {
+  void _subscribe(KeyBackupRepository keyBackup) {
     unawaited(_sub?.cancel());
-    _sub = matrix.client.onKeyVerificationRequest.stream.listen(_onRequest);
+    _sub = keyBackup.onKeyVerificationRequest.listen(_onRequest);
   }
 
   void _onRequest(KeyVerification verification) {
@@ -81,18 +81,18 @@ class _VerificationRequestListenerState
     _dialogOpen = false;
     if (!mounted) return;
 
-    final matrix = _matrix;
+    final keyBackup = _keyBackup;
     final isSelfVerification =
-        matrix != null && verification.userId == matrix.client.userID;
+        keyBackup != null && verification.userId == keyBackup.userId;
     if (confirmed == true && isSelfVerification) {
       try {
-        await matrix.chatBackup.runKeyRecovery();
+        await keyBackup.chatBackup.runKeyRecovery();
       } catch (e) {
         debugPrint('[Kohera] Post-verification key recovery failed: $e');
       }
       if (!mounted) return;
       try {
-        await matrix.chatBackup.checkChatBackupStatus();
+        await keyBackup.chatBackup.checkChatBackupStatus();
       } catch (e) {
         debugPrint('[Kohera] Post-verification backup status check failed: $e');
       }

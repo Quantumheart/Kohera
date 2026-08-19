@@ -5,9 +5,12 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i5;
 import 'dart:typed_data' as _i12;
+import 'dart:ui' as _i15;
 
 import 'package:async/async.dart' as _i13;
 import 'package:http/http.dart' as _i4;
+import 'package:kohera/core/services/sub_services/chat_backup_service.dart'
+    as _i14;
 import 'package:matrix/encryption.dart' as _i7;
 import 'package:matrix/encryption/cross_signing.dart' as _i10;
 import 'package:matrix/encryption/key_verification_manager.dart' as _i9;
@@ -7033,4 +7036,192 @@ class MockBootstrap extends _i1.Mock implements _i7.Bootstrap {
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
           as _i5.Future<void>);
+}
+
+/// A class which mocks [ChatBackupService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockChatBackupService extends _i1.Mock implements _i14.ChatBackupService {
+  @override
+  bool get chatBackupEnabled =>
+      (super.noSuchMethod(
+            Invocation.getter(#chatBackupEnabled),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get chatBackupLoading =>
+      (super.noSuchMethod(
+            Invocation.getter(#chatBackupLoading),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get setupSkipped =>
+      (super.noSuchMethod(
+            Invocation.getter(#setupSkipped),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get bannerDismissed =>
+      (super.noSuchMethod(
+            Invocation.getter(#bannerDismissed),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get hasListeners =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasListeners),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  _i5.Future<void> loadDismissalState() =>
+      (super.noSuchMethod(
+            Invocation.method(#loadDismissalState, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> markSetupSkipped() =>
+      (super.noSuchMethod(
+            Invocation.method(#markSetupSkipped, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> dismissBanner() =>
+      (super.noSuchMethod(
+            Invocation.method(#dismissBanner, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> deleteDismissalState() =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteDismissalState, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> checkChatBackupStatus() =>
+      (super.noSuchMethod(
+            Invocation.method(#checkChatBackupStatus, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> disableChatBackup() =>
+      (super.noSuchMethod(
+            Invocation.method(#disableChatBackup, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  void resetChatBackupState() => super.noSuchMethod(
+    Invocation.method(#resetChatBackupState, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  _i5.Future<void> tryAutoUnlockBackup() =>
+      (super.noSuchMethod(
+            Invocation.method(#tryAutoUnlockBackup, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> runKeyRecovery({_i7.OpenSSSS? ssssKey}) =>
+      (super.noSuchMethod(
+            Invocation.method(#runKeyRecovery, [], {#ssssKey: ssssKey}),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> requestMissingRoomKeys({bool? force = false}) =>
+      (super.noSuchMethod(
+            Invocation.method(#requestMissingRoomKeys, [], {#force: force}),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<String?> getStoredRecoveryKey() =>
+      (super.noSuchMethod(
+            Invocation.method(#getStoredRecoveryKey, []),
+            returnValue: _i5.Future<String?>.value(),
+            returnValueForMissingStub: _i5.Future<String?>.value(),
+          )
+          as _i5.Future<String?>);
+
+  @override
+  _i5.Future<void> storeRecoveryKey(String? key) =>
+      (super.noSuchMethod(
+            Invocation.method(#storeRecoveryKey, [key]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> deleteStoredRecoveryKey() =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteStoredRecoveryKey, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  void addListener(_i15.VoidCallback? listener) => super.noSuchMethod(
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void removeListener(_i15.VoidCallback? listener) => super.noSuchMethod(
+    Invocation.method(#removeListener, [listener]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void dispose() => super.noSuchMethod(
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void notifyListeners() => super.noSuchMethod(
+    Invocation.method(#notifyListeners, []),
+    returnValueForMissingStub: null,
+  );
 }

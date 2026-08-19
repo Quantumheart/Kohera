@@ -8,6 +8,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_controller.dart';
 import 'package:kohera/features/e2ee/widgets/setup/setup_actions_bar.dart';
 import 'package:kohera/features/e2ee/widgets/setup/setup_custody_gate.dart';
@@ -64,7 +65,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
     _cleanupController();
     _showManagement = false;
     _controller = BootstrapController(
-      matrixService: _matrixService,
+      keyBackup: context.read<KeyBackupRepository>(),
       wipeExisting: wipeExisting,
     );
     _controller!.addListener(_onControllerChanged);

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_driver.dart';
 import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/services/recovery_key_handler.dart';
@@ -11,11 +11,11 @@ enum SetupPhase { loading, savingKey, unlock, verification, done, error }
 
 class BootstrapController extends ChangeNotifier {
   BootstrapController({
-    required this.matrixService,
+    required this.keyBackup,
     required bool wipeExisting,
-  }) : _keyHandler = RecoveryKeyHandler(matrixService: matrixService) {
+  }) : _keyHandler = RecoveryKeyHandler(keyBackup: keyBackup) {
     _driver = BootstrapDriver(
-      matrixService: matrixService,
+      keyBackup: keyBackup,
       wipeExisting: wipeExisting,
       onPhaseChanged: _onPhaseChanged,
       onNewSsss: _onNewSsss,
@@ -25,7 +25,7 @@ class BootstrapController extends ChangeNotifier {
     );
   }
 
-  final MatrixService matrixService;
+  final KeyBackupRepository keyBackup;
   final RecoveryKeyHandler _keyHandler;
   late final BootstrapDriver _driver;
 
@@ -147,22 +147,13 @@ class BootstrapController extends ChangeNotifier {
   // ── Verification ─────────────────────────────────────────────
 
   Future<void> startVerification() async {
-    final client = matrixService.client;
-    final encryption = client.encryption;
-    if (encryption == null) return;
+    if (keyBackup.encryption == null) return;
 
     _phase = SetupPhase.verification;
     _notify();
 
-    await client.updateUserDeviceKeys();
-
-    _verification = KeyVerification(
-      encryption: encryption,
-      userId: client.userID!,
-      deviceId: '*',
-    );
-    await _verification!.start();
-    encryption.keyVerificationManager.addRequest(_verification!);
+    _verification = await keyBackup.startSelfVerification();
+    if (_verification == null) return;
     _koheraVerification = KoheraKeyVerification(_verification!);
     _notify();
   }
@@ -178,7 +169,7 @@ class BootstrapController extends ChangeNotifier {
     _phase = SetupPhase.loading;
     _notify();
 
-    final encryption = matrixService.client.encryption;
+    final encryption = keyBackup.encryption;
     if (encryption != null) {
       for (var i = 0; i < 10; i++) {
         if (_isDisposed) return;
@@ -215,8 +206,7 @@ class BootstrapController extends ChangeNotifier {
 
     await _keyHandler.storeIfNeeded();
 
-    final client = matrixService.client;
-    final encryption = client.encryption;
+    final encryption = keyBackup.encryption;
     final ssssKey =
         _keyHandler.unlockedSsssKey ?? _driver.bootstrap?.newSsssKey;
 
@@ -229,7 +219,7 @@ class BootstrapController extends ChangeNotifier {
       } catch (e) {
         debugPrint('[Bootstrap] Post-bootstrap caching/signing failed: $e');
       }
-      await client.updateUserDeviceKeys();
+      await keyBackup.updateUserDeviceKeys();
     } else if (encryption != null) {
       try {
         if (encryption.crossSigning.enabled &&
@@ -237,7 +227,7 @@ class BootstrapController extends ChangeNotifier {
           debugPrint('[Bootstrap] Self-signing with cached cross-signing keys');
           await encryption.crossSigning.selfSign();
         }
-        await client.updateUserDeviceKeys();
+        await keyBackup.updateUserDeviceKeys();
       } catch (e) {
         debugPrint('[Bootstrap] Post-verification signing failed: $e');
       }
@@ -245,16 +235,16 @@ class BootstrapController extends ChangeNotifier {
 
     if (_driver.bootstrap?.newSsssKey != null) {
       try {
-        await client.database.markInboundGroupSessionsAsNeedingUpload();
+        await keyBackup.markSessionsForBackupUpload();
         debugPrint('[Bootstrap] Marked all local sessions for backup upload');
       } catch (e) {
         debugPrint('[Bootstrap] Failed to mark sessions for upload: $e');
       }
     }
 
-    await matrixService.chatBackup.runKeyRecovery(ssssKey: ssssKey);
-    await matrixService.chatBackup.checkChatBackupStatus();
-    matrixService.uia.clearCachedPassword();
+    await keyBackup.chatBackup.runKeyRecovery(ssssKey: ssssKey);
+    await keyBackup.chatBackup.checkChatBackupStatus();
+    keyBackup.uia.clearCachedPassword();
 
     _phase = SetupPhase.done;
     _notify();

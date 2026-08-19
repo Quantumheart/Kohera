@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/features/e2ee/services/recovery_key_handler.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/encryption/cross_signing.dart';
@@ -27,7 +28,9 @@ void main() {
     mockMatrixService = MockMatrixService();
     mockChatBackup = MockChatBackupService();
     when(mockMatrixService.chatBackup).thenReturn(mockChatBackup);
-    handler = RecoveryKeyHandler(matrixService: mockMatrixService);
+    handler = RecoveryKeyHandler(
+      keyBackup: KeyBackupRepository(matrix: mockMatrixService),
+    );
   });
 
   group('RecoveryKeyHandler', () {
