@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.17.0](https://github.com/Quantumheart/Kohera/compare/v1.16.2...v1.17.0) (2026-08-19)
+
+
+### Features
+
+* **#907:** add sender + date range filter chips to room search ([077a18d](https://github.com/Quantumheart/Kohera/commit/077a18d1f39033e86bd335ae56b1dd087f5949cf)), closes [#907](https://github.com/Quantumheart/Kohera/issues/907)
+* **#908:** persist recent search queries and show suggestions ([0b45fbd](https://github.com/Quantumheart/Kohera/commit/0b45fbd8fc394bd0c78e75523852a58af729ca29)), closes [#908](https://github.com/Quantumheart/Kohera/issues/908)
+* **ios:** show room name in APN banners via NSE title + INSendMessageIntent ([437a9d0](https://github.com/Quantumheart/Kohera/commit/437a9d02bb41bcdb3f83cbcbd10f2dda78acc3cf)), closes [#1014](https://github.com/Quantumheart/Kohera/issues/1014)
+* **search:** date separators + chronological grouping ([#904](https://github.com/Quantumheart/Kohera/issues/904)) ([1dec5a7](https://github.com/Quantumheart/Kohera/commit/1dec5a7449cd3f13f9bf43d0f090569f565a281e)), closes [#895](https://github.com/Quantumheart/Kohera/issues/895)
+* **search:** desktop keyboard navigation for search ([#905](https://github.com/Quantumheart/Kohera/issues/905)) ([e19243a](https://github.com/Quantumheart/Kohera/commit/e19243ac48e5496c31f3479428a80b243edb29bc)), closes [#895](https://github.com/Quantumheart/Kohera/issues/895)
+* **search:** result count header + infinite scroll pagination ([#903](https://github.com/Quantumheart/Kohera/issues/903)) ([d745f54](https://github.com/Quantumheart/Kohera/commit/d745f540214bf96ccd024521c7de7aceb49453d6)), closes [#895](https://github.com/Quantumheart/Kohera/issues/895)
+* **search:** side panel on wide screens for search results ([#906](https://github.com/Quantumheart/Kohera/issues/906)) ([35e6db9](https://github.com/Quantumheart/Kohera/commit/35e6db979d8e8314e3bdec2d3ae05b63bc8fa95c)), closes [#895](https://github.com/Quantumheart/Kohera/issues/895)
+* **search:** timeline-aware display resolution for edits/threads ([#902](https://github.com/Quantumheart/Kohera/issues/902)) ([c8c23f2](https://github.com/Quantumheart/Kohera/commit/c8c23f2832c1a62f952c8044d4125953ef0855fe)), closes [#895](https://github.com/Quantumheart/Kohera/issues/895)
+
+
+### Bug Fixes
+
+* **ios:** remove KoheraNotificationService from CocoaPods (no pods; vodozemac via SPM) ([a6713fa](https://github.com/Quantumheart/Kohera/commit/a6713faa7e2402ef0e3d4cf168c70fa5fe72bce9))
+* **ios:** retry megolm decrypt in NSE to close mirror-write race ([5144b9f](https://github.com/Quantumheart/Kohera/commit/5144b9f3c04ae94085247894cc048d8d0e125918)), closes [#1013](https://github.com/Quantumheart/Kohera/issues/1013)
+* **ios:** update SPM package ref to flutter_vodozemac-0.7.1 ([e4499dc](https://github.com/Quantumheart/Kohera/commit/e4499dc435158b9fcd2507aaafaa070e6be46fdc))
+* remove unnecessary unawaited on animateTo (CI Flutter 3.47) ([79aa178](https://github.com/Quantumheart/Kohera/commit/79aa17872d5ecb214946f13b54e9d823f34d9ead))
+
 ## [1.16.2](https://github.com/Quantumheart/Kohera/compare/v1.16.1...v1.16.2) (2026-08-14)
 
 
