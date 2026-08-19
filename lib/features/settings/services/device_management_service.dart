@@ -1,7 +1,7 @@
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/models/kohera_device.dart';
+import 'package:kohera/data/resolvers/device_resolver.dart';
 import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
-import 'package:kohera/features/settings/models/kohera_device.dart';
-import 'package:kohera/features/settings/services/device_resolver.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/msc_extensions/msc_3814_dehydrated_devices/api.dart';
 

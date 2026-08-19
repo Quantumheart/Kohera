@@ -10,7 +10,7 @@ import 'dart:ui' as _i8;
 import 'package:kohera/core/media/kohera_player.dart' as _i7;
 import 'package:kohera/features/chat/services/media_playback_service.dart'
     as _i6;
-import 'package:kohera/shared/services/avatar_resolver.dart' as _i9;
+import 'package:kohera/data/services/avatar_resolver.dart' as _i9;
 import 'package:kohera/shared/services/media_controller.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i3;

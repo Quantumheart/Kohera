@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
-import 'package:kohera/features/rooms/models/kohera_room_member.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 
 /// Displays a scrollable list of room members with role badges.

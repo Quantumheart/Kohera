@@ -4,12 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/core/utils/openmoji.dart';
-import 'package:kohera/features/chat/models/kohera_message_display.dart';
+import 'package:kohera/data/models/kohera_message_display.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/chat/services/linkable_span_builder.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/message_bubble.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
-import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:provider/provider.dart';
 
 // ── Data class ──────────────────────────────────────────

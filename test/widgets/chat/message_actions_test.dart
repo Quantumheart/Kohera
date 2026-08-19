@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,25 +10,24 @@ import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
+import 'package:kohera/data/models/kohera_reply_preview.dart';
+import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/resolvers/message_display_resolver.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
-import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/features/chat/services/mention_resolver_factory.dart';
-import 'package:kohera/features/chat/services/message_display_resolver.dart';
 import 'package:kohera/features/chat/widgets/edit_preview_banner.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/message_bubble.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
-import 'package:kohera/features/rooms/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
-
 
 @GenerateNiceMocks([
   MockSpec<Client>(),

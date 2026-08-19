@@ -1,7 +1,7 @@
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/known_contacts.dart' as contacts;
-import 'package:kohera/shared/models/kohera_user_summary.dart';
+import 'package:kohera/data/models/kohera_user_summary.dart';
 import 'package:matrix/matrix.dart';
 
 /// Service layer that wraps all SDK calls needed by the room creation and

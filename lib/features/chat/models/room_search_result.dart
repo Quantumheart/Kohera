@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:kohera/features/chat/models/kohera_message_display.dart';
+import 'package:kohera/data/models/kohera_message_display.dart';
 
 /// A single search hit returned by [RoomSearchService].
 ///

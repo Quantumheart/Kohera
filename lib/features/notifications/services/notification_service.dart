@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:desktop_notifications/desktop_notifications.dart' as dn;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -14,10 +15,10 @@ import 'package:kohera/core/utils/notification_filter.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/core/utils/poll_body.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
+import 'package:kohera/data/models/call_constants.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/web_notifications.dart';
 import 'package:kohera/features/notifications/services/windows_com_register.dart';
-import 'package:kohera/shared/models/call_constants.dart';
 import 'package:matrix/matrix.dart';
 import 'package:path_provider/path_provider.dart';
 

@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
-import 'package:kohera/features/chat/models/kohera_poll.dart';
+import 'package:kohera/data/models/kohera_poll.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_skin.dart';
 import 'package:provider/provider.dart';

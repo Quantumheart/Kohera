@@ -10,7 +10,7 @@ import 'dart:ui' as _i28;
 import 'package:flutter/material.dart' as _i30;
 import 'package:flutter/services.dart' as _i29;
 import 'package:http/http.dart' as _i21;
-import 'package:kohera/core/models/space_node.dart' as _i31;
+import 'package:kohera/data/models/space_node.dart' as _i31;
 import 'package:kohera/core/services/matrix_service.dart' as _i25;
 import 'package:kohera/core/services/preferences_service.dart' as _i32;
 import 'package:kohera/core/services/sticker_pack_service.dart' as _i16;
@@ -33,16 +33,16 @@ import 'package:kohera/core/services/sub_services/sync_service.dart' as _i11;
 import 'package:kohera/core/services/sub_services/uia_service.dart' as _i6;
 import 'package:kohera/core/theme/custom_theme.dart' as _i18;
 import 'package:kohera/core/utils/openmoji.dart' as _i33;
-import 'package:kohera/features/chat/services/message_indexer_service.dart'
+import 'package:kohera/data/services/message_indexer_service.dart'
     as _i27;
 import 'package:kohera/features/spaces/models/space_rooms_model.dart' as _i19;
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart'
     as _i24;
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart'
     as _i34;
-import 'package:kohera/shared/models/kohera_room_summary.dart' as _i17;
-import 'package:kohera/shared/services/avatar_resolver.dart' as _i14;
-import 'package:kohera/shared/services/media_resolver.dart' as _i15;
+import 'package:kohera/data/models/kohera_room_summary.dart' as _i17;
+import 'package:kohera/data/services/avatar_resolver.dart' as _i14;
+import 'package:kohera/data/services/media_resolver.dart' as _i15;
 import 'package:matrix/encryption.dart' as _i35;
 import 'package:matrix/matrix.dart' as _i5;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i23;

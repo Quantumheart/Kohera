@@ -1,6 +1,6 @@
 import 'package:kohera/core/utils/reply_fallback.dart';
-import 'package:kohera/features/chat/models/kohera_message_display.dart';
-import 'package:kohera/features/chat/models/kohera_message_status.dart';
+import 'package:kohera/data/models/kohera_message_display.dart';
+import 'package:kohera/data/models/kohera_message_status.dart';
 import 'package:matrix/matrix.dart';
 
 /// Converts an SDK [Event] (+ optional [Timeline]) into a pre-computed

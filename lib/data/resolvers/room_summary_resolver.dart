@@ -1,7 +1,7 @@
 import 'package:kohera/core/utils/poll_body.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
-import 'package:kohera/shared/models/call_constants.dart';
-import 'package:kohera/shared/models/kohera_room_summary.dart';
+import 'package:kohera/data/models/call_constants.dart';
+import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:matrix/matrix.dart';
 
 /// Converts a Matrix SDK [Room] into a [KoheraRoomSummary] domain model.

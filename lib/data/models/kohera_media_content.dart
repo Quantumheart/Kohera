@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:kohera/features/chat/models/kohera_media_type.dart';
+import 'package:kohera/data/models/kohera_media_type.dart';
 
 /// A Kohera-owned domain model representing a media attachment with
 /// pre-computed metadata extracted from a Matrix `Event`.

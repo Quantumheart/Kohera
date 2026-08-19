@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/chat/models/kohera_media_type.dart';
-import 'package:kohera/features/chat/services/media_content_resolver.dart';
+import 'package:kohera/data/models/kohera_media_type.dart';
+import 'package:kohera/data/resolvers/media_content_resolver.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';

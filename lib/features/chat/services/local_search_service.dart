@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show DateTimeRange;
-import 'package:kohera/features/chat/models/kohera_message_display.dart';
-import 'package:kohera/features/chat/models/kohera_message_status.dart';
+import 'package:kohera/data/models/kohera_message_display.dart';
+import 'package:kohera/data/models/kohera_message_status.dart';
+import 'package:kohera/data/resolvers/message_display_resolver.dart';
+import 'package:kohera/data/services/message_search_database.dart';
 import 'package:kohera/features/chat/models/room_search_result.dart';
-import 'package:kohera/features/chat/services/message_display_resolver.dart';
-import 'package:kohera/features/chat/services/message_search_database.dart';
 import 'package:matrix/matrix.dart';
 
 /// Searches encrypted rooms using the local FTS5 index

@@ -4,7 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cached_network_image_platform_interface/cached_network_image_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/pixel_sprite_avatar.dart';
 import 'package:kohera/shared/widgets/pixelation_scope.dart';
 import 'package:kohera/shared/widgets/presence_dot.dart';

@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
-import 'package:kohera/features/chat/models/kohera_media_content.dart';
-import 'package:kohera/features/chat/models/kohera_message_display.dart';
-import 'package:kohera/features/chat/models/kohera_poll.dart';
-import 'package:kohera/features/chat/models/kohera_reaction.dart';
-import 'package:kohera/features/chat/models/kohera_state_event_text.dart';
+import 'package:kohera/data/models/kohera_media_content.dart';
+import 'package:kohera/data/models/kohera_message_display.dart';
+import 'package:kohera/data/models/kohera_poll.dart';
+import 'package:kohera/data/models/kohera_reaction.dart';
+import 'package:kohera/data/models/kohera_state_event_text.dart';
 import 'package:kohera/shared/services/media_controller.dart';
 
 /// The rendering category of a visible message in the timeline.

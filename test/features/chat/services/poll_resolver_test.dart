@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/chat/models/kohera_poll.dart';
-import 'package:kohera/features/chat/services/poll_resolver.dart';
+import 'package:kohera/data/models/kohera_poll.dart';
+import 'package:kohera/data/resolvers/poll_resolver.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';

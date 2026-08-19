@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show DateTimeRange;
+import 'package:kohera/data/services/message_indexer_service.dart';
 import 'package:kohera/features/chat/models/room_search_result.dart';
-import 'package:kohera/features/chat/services/message_indexer_service.dart';
 import 'package:kohera/features/chat/services/room_search_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

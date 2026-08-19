@@ -1,5 +1,5 @@
-import 'package:kohera/features/chat/models/kohera_read_receipt.dart';
-import 'package:kohera/shared/services/user_summary_resolver.dart';
+import 'package:kohera/data/models/kohera_read_receipt.dart';
+import 'package:kohera/data/resolvers/user_summary_resolver.dart';
 import 'package:matrix/matrix.dart';
 
 /// Builds a map from eventId → list of [KoheraReadReceipt] for other users.

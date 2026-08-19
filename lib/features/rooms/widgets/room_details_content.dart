@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/core/models/kohera_push_rule_state.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
-import 'package:kohera/features/rooms/models/kohera_device_key.dart';
+import 'package:kohera/data/models/kohera_device_key.dart';
+import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/features/rooms/services/room_aliases_controller.dart';
 import 'package:kohera/features/rooms/services/room_details_controller.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/features/rooms/models/kohera_room_permissions.dart';
+import 'package:kohera/data/models/kohera_room_permissions.dart';
+import 'package:kohera/data/resolvers/room_permissions_resolver.dart';
 import 'package:kohera/features/rooms/screens/room_permissions_screen.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
-import 'package:kohera/features/rooms/services/room_permissions_resolver.dart';
 import 'package:kohera/features/rooms/services/room_permissions_sync_watcher.dart';
 import 'package:provider/provider.dart';
 

@@ -20,9 +20,9 @@ import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/core/utils/network_error.dart';
-import 'package:kohera/features/chat/services/message_indexer_service.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
-import 'package:kohera/shared/services/media_resolver.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/media_resolver.dart';
+import 'package:kohera/data/services/message_indexer_service.dart';
 import 'package:matrix/matrix.dart';
 // ignore: implementation_imports, no public API for ClientInitException
 import 'package:matrix/src/utils/client_init_exception.dart';

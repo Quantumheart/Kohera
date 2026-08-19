@@ -30,10 +30,10 @@ import 'package:kohera/core/services/sub_services/space_access_service.dart'
     as _i14;
 import 'package:kohera/core/services/sub_services/sync_service.dart' as _i15;
 import 'package:kohera/core/services/sub_services/uia_service.dart' as _i10;
-import 'package:kohera/features/chat/services/message_indexer_service.dart'
+import 'package:kohera/data/services/message_indexer_service.dart'
     as _i27;
-import 'package:kohera/shared/services/avatar_resolver.dart' as _i18;
-import 'package:kohera/shared/services/media_resolver.dart' as _i19;
+import 'package:kohera/data/services/avatar_resolver.dart' as _i18;
+import 'package:kohera/data/services/media_resolver.dart' as _i19;
 import 'package:matrix/encryption.dart' as _i21;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;

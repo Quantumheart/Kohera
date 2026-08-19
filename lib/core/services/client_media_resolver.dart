@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/media_auth.dart';
-import 'package:kohera/shared/services/media_resolver.dart';
+import 'package:kohera/data/services/media_resolver.dart';
 import 'package:matrix/matrix.dart';
 
 /// [MediaResolver] backed by a Matrix SDK [Client].

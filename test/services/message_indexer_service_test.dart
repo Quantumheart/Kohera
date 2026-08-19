@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/chat/services/message_indexer_service.dart';
-import 'package:kohera/features/chat/services/message_search_database.dart';
+import 'package:kohera/data/services/message_indexer_service.dart';
+import 'package:kohera/data/services/message_search_database.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';

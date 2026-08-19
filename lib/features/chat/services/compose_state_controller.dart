@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
-import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
+import 'package:kohera/data/models/kohera_reply_preview.dart';
+import 'package:kohera/data/resolvers/reply_preview_resolver.dart';
 import 'package:kohera/features/chat/services/paste_image_handler.dart';
-import 'package:kohera/features/chat/services/reply_preview_resolver.dart';
 import 'package:matrix/matrix.dart';
 
 enum AddAttachmentResult { ok, tooMany, tooLarge }

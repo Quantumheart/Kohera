@@ -8,7 +8,9 @@ import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
-import 'package:kohera/features/chat/models/kohera_reply_preview.dart';
+import 'package:kohera/data/models/kohera_reply_preview.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/chat/services/emoji_autocomplete_controller.dart';
 import 'package:kohera/features/chat/services/mention_autocomplete_controller.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
@@ -22,8 +24,6 @@ import 'package:kohera/features/chat/widgets/message_bubble_link_preview.dart';
 import 'package:kohera/features/chat/widgets/recording_indicator.dart';
 import 'package:kohera/features/chat/widgets/reply_preview_banner.dart';
 import 'package:kohera/features/chat/widgets/upload_progress_banner.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
-import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:provider/provider.dart';
 
 class ComposeBar extends StatefulWidget {
