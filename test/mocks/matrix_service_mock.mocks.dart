@@ -27,10 +27,9 @@ import 'package:kohera/core/services/sub_services/space_access_service.dart'
     as _i10;
 import 'package:kohera/core/services/sub_services/sync_service.dart' as _i11;
 import 'package:kohera/core/services/sub_services/uia_service.dart' as _i6;
-import 'package:kohera/data/services/message_indexer_service.dart'
-    as _i19;
 import 'package:kohera/data/services/avatar_resolver.dart' as _i14;
 import 'package:kohera/data/services/media_resolver.dart' as _i15;
+import 'package:kohera/data/services/message_indexer_service.dart' as _i19;
 import 'package:matrix/matrix.dart' as _i5;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i18;

@@ -1,8 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/rooms/services/room_details_controller.dart';
 import 'package:matrix/matrix.dart';
@@ -16,6 +20,7 @@ import 'package:mockito/mockito.dart';
   MockSpec<MatrixService>(),
   MockSpec<SelectionService>(),
   MockSpec<AvatarResolver>(),
+  MockSpec<PresenceService>(),
 ])
 import 'room_details_controller_test.mocks.dart';
 
@@ -40,7 +45,12 @@ void main() {
   late MockClient mockClient;
   late MockRoom mockRoom;
   late MockSelectionService mockSelection;
+  late MockPresenceService mockPresence;
+  late MockAvatarResolver mockAvatarResolver;
   late CachedStreamController<SyncUpdate> syncCtl;
+  late RoomRepository roomRepo;
+  late UserRepository userRepo;
+  late MediaRepository mediaRepo;
 
   const roomId = '!room:example.com';
 
@@ -49,9 +59,14 @@ void main() {
     mockClient = MockClient();
     mockRoom = MockRoom();
     mockSelection = MockSelectionService();
+    mockPresence = MockPresenceService();
+    mockAvatarResolver = MockAvatarResolver();
     syncCtl = CachedStreamController<SyncUpdate>();
 
     when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.selection).thenReturn(mockSelection);
+    when(mockMatrix.presence).thenReturn(mockPresence);
+    when(mockMatrix.avatarResolver).thenReturn(mockAvatarResolver);
     when(mockClient.getRoomById(roomId)).thenReturn(mockRoom);
     when(mockClient.onSync).thenReturn(syncCtl);
     when(mockClient.userID).thenReturn('@me:example.com');
@@ -65,7 +80,6 @@ void main() {
     when(mockRoom.participantListComplete).thenReturn(false);
     when(mockRoom.summary).thenReturn(RoomSummary.fromJson({}));
     when(mockSelection.summaryFor(mockRoom)).thenReturn(_summary());
-    when(mockMatrix.avatarResolver).thenReturn(MockAvatarResolver());
     when(mockRoom.setPushRuleState(any)).thenAnswer((_) async {});
     when(mockRoom.setFavourite(any)).thenAnswer((_) async {});
     when(mockRoom.invite(any)).thenAnswer((_) async {});
@@ -74,12 +88,20 @@ void main() {
     when(mockRoom.enableEncryption()).thenAnswer((_) async {});
     when(mockRoom.leave()).thenAnswer((_) async {});
     when(mockClient.updateUserDeviceKeys()).thenAnswer((_) async {});
+
+    roomRepo = RoomRepository(matrix: mockMatrix);
+    userRepo = UserRepository(matrix: mockMatrix);
+    mediaRepo = MediaRepository(matrix: mockMatrix);
   });
 
   group('RoomDetailsController getters with room', () {
     test('hasRoom is true after init', () {
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       expect(ctrl.hasRoom, isTrue);
       ctrl.dispose();
@@ -88,7 +110,11 @@ void main() {
     test('hasRoom is false when room not found', () {
       when(mockClient.getRoomById(roomId)).thenReturn(null);
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       expect(ctrl.hasRoom, isFalse);
       ctrl.dispose();
@@ -96,7 +122,11 @@ void main() {
 
     test('summary returns from selection', () {
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       expect(ctrl.summary, isNotNull);
       expect(ctrl.summary!.displayname, 'Test Room');
@@ -105,7 +135,11 @@ void main() {
 
     test('encrypted reflects room', () {
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       expect(ctrl.encrypted, isFalse);
       ctrl.dispose();
@@ -113,7 +147,11 @@ void main() {
 
     test('isFavourite reflects room', () {
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       expect(ctrl.isFavourite, isFalse);
       ctrl.dispose();
@@ -122,7 +160,11 @@ void main() {
     test('isMuted is true when pushRuleState is dontNotify', () {
       when(mockRoom.pushRuleState).thenReturn(PushRuleState.dontNotify);
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       expect(ctrl.isMuted, isTrue);
       ctrl.dispose();
@@ -130,7 +172,11 @@ void main() {
 
     test('pushRuleState maps correctly', () {
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       expect(ctrl.pushRuleState, KoheraPushRuleState.notify);
       ctrl.dispose();
@@ -138,7 +184,11 @@ void main() {
 
     test('canBan reflects room', () {
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       expect(ctrl.canBan, isFalse);
       ctrl.dispose();
@@ -149,8 +199,12 @@ void main() {
     test('all getters return defaults when room is null', () {
       when(mockClient.getRoomById(roomId)).thenReturn(null);
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
-      // Don't call init — _room is null
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
+      // Don't call init — room is null
       expect(ctrl.hasRoom, isFalse);
       expect(ctrl.summary, isNull);
       expect(ctrl.encrypted, isFalse);
@@ -167,7 +221,11 @@ void main() {
   group('RoomDetailsController actions', () {
     test('toggleMute switches from notify to dontNotify', () async {
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       await ctrl.toggleMute();
       verify(mockRoom.setPushRuleState(PushRuleState.dontNotify)).called(1);
@@ -177,7 +235,11 @@ void main() {
     test('toggleMute switches from dontNotify to notify', () async {
       when(mockRoom.pushRuleState).thenReturn(PushRuleState.dontNotify);
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       await ctrl.toggleMute();
       verify(mockRoom.setPushRuleState(PushRuleState.notify)).called(1);
@@ -186,7 +248,11 @@ void main() {
 
     test('setPushRule calls setPushRuleState', () async {
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       await ctrl.setPushRule(KoheraPushRuleState.mentionsOnly);
       verify(mockRoom.setPushRuleState(PushRuleState.mentionsOnly)).called(1);
@@ -195,7 +261,11 @@ void main() {
 
     test('invite calls room.invite', () async {
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       await ctrl.invite('@user:example.com');
       verify(mockRoom.invite('@user:example.com')).called(1);
@@ -204,7 +274,11 @@ void main() {
 
     test('setName calls room.setName', () async {
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       await ctrl.setName('New Name');
       verify(mockRoom.setName('New Name')).called(1);
@@ -213,7 +287,11 @@ void main() {
 
     test('setDescription calls room.setDescription', () async {
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       await ctrl.setDescription('New topic');
       verify(mockRoom.setDescription('New topic')).called(1);
@@ -222,7 +300,11 @@ void main() {
 
     test('enableEncryption calls room.enableEncryption', () async {
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       await ctrl.enableEncryption();
       verify(mockRoom.enableEncryption()).called(1);
@@ -231,7 +313,11 @@ void main() {
 
     test('leave calls room.leave and selects null', () async {
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       await ctrl.leave();
       verify(mockRoom.leave()).called(1);
@@ -242,7 +328,11 @@ void main() {
     test('toggleFavourite calls setFavourite', () async {
       when(mockRoom.isFavourite).thenReturn(false);
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       await ctrl.toggleFavourite();
       verify(mockRoom.setFavourite(true)).called(1);
@@ -254,7 +344,11 @@ void main() {
     test('init with null room notifies listeners', () {
       when(mockClient.getRoomById(roomId)).thenReturn(null);
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       var notified = false;
       ctrl.addListener(() => notified = true);
       ctrl.init();
@@ -265,13 +359,17 @@ void main() {
     test('checkRoomChanged picks up new room', () {
       when(mockClient.getRoomById(roomId)).thenReturn(null);
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       expect(ctrl.hasRoom, isFalse);
 
       // Room appears
       when(mockClient.getRoomById(roomId)).thenReturn(mockRoom);
-      
+
       ctrl.checkRoomChanged();
       expect(ctrl.hasRoom, isTrue);
       ctrl.dispose();
@@ -279,7 +377,11 @@ void main() {
 
     test('dispose cancels subscriptions', () {
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       ctrl.dispose();
       // No throw = pass
@@ -288,9 +390,12 @@ void main() {
 
   group('RoomDetailsController push rule mapping', () {
     test('notify maps both ways', () {
-      // Test via setPushRule
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       expect(ctrl.pushRuleState, KoheraPushRuleState.notify);
       ctrl.dispose();
@@ -299,7 +404,11 @@ void main() {
     test('dontNotify maps to dontNotify', () {
       when(mockRoom.pushRuleState).thenReturn(PushRuleState.dontNotify);
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       expect(ctrl.pushRuleState, KoheraPushRuleState.dontNotify);
       ctrl.dispose();
@@ -308,7 +417,11 @@ void main() {
     test('mentionsOnly maps to mentionsOnly', () {
       when(mockRoom.pushRuleState).thenReturn(PushRuleState.mentionsOnly);
       final ctrl = RoomDetailsController(
-          roomId: roomId, matrix: mockMatrix, selection: mockSelection);
+        roomId: roomId,
+        roomRepo: roomRepo,
+        userRepo: userRepo,
+        mediaRepo: mediaRepo,
+      );
       ctrl.init();
       expect(ctrl.pushRuleState, KoheraPushRuleState.mentionsOnly);
       ctrl.dispose();

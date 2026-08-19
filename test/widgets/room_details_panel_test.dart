@@ -4,6 +4,9 @@ import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/rooms/screens/room_details_screen.dart';
 import 'package:matrix/matrix.dart';
@@ -85,6 +88,15 @@ void main() {
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+        ChangeNotifierProvider<RoomRepository>(
+          create: (_) => RoomRepository(matrix: mockMatrixService),
+        ),
+        ChangeNotifierProvider<UserRepository>(
+          create: (_) => UserRepository(matrix: mockMatrixService),
+        ),
+        ChangeNotifierProvider<MediaRepository>(
+          create: (_) => MediaRepository(matrix: mockMatrixService),
+        ),
       ],
       child: MaterialApp.router(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),
@@ -236,6 +248,15 @@ void main() {
               ChangeNotifierProvider<SelectionService>.value(
                 value: selectionService,
               ),
+              ChangeNotifierProvider<RoomRepository>(
+                create: (_) => RoomRepository(matrix: mockMatrixService),
+              ),
+              ChangeNotifierProvider<UserRepository>(
+                create: (_) => UserRepository(matrix: mockMatrixService),
+              ),
+              ChangeNotifierProvider<MediaRepository>(
+                create: (_) => MediaRepository(matrix: mockMatrixService),
+              ),
             ],
             child: const RoomDetailsScreen(roomId: '!room:example.com'),
           ),
@@ -260,6 +281,15 @@ void main() {
               ),
               ChangeNotifierProvider<SelectionService>.value(
                 value: selectionService,
+              ),
+              ChangeNotifierProvider<RoomRepository>(
+                create: (_) => RoomRepository(matrix: mockMatrixService),
+              ),
+              ChangeNotifierProvider<UserRepository>(
+                create: (_) => UserRepository(matrix: mockMatrixService),
+              ),
+              ChangeNotifierProvider<MediaRepository>(
+                create: (_) => MediaRepository(matrix: mockMatrixService),
               ),
             ],
             child: const RoomDetailsScreen(roomId: '!missing:example.com'),
