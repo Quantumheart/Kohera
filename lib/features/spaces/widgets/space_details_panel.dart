@@ -6,6 +6,8 @@ import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/resolvers/room_member_list_resolver.dart';
 import 'package:kohera/data/resolvers/room_permissions_resolver.dart';
 import 'package:kohera/features/rooms/services/invite_user_dialog_params.dart';
@@ -138,7 +140,7 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
   ) {
     final space = context.read<MatrixService>().client.getRoomById(spaceId);
     if (space == null) return Future.value();
-    return showRoomMemberSheet(context, room: space, member: member);
+    return showRoomMemberSheet(context, roomId: spaceId, member: member);
   }
 
   Future<void> _unbanMember(
@@ -148,7 +150,7 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
   ) async {
     final space = context.read<MatrixService>().client.getRoomById(spaceId);
     if (space == null) return;
-    await unbanRoomMember(context, space, member);
+    await unbanRoomMember(context, context.read<RoomRepository>(), spaceId, member);
     unawaited(_loadMembers(spaceId));
   }
 
@@ -172,8 +174,14 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
     final space = matrix.client.getRoomById(spaceId);
     if (space == null || !mounted) return;
 
-    final result =
-        await InviteUserDialog.show(context, params: inviteUserDialogParams(spaceId, matrix));
+    final result = await InviteUserDialog.show(
+      context,
+      params: inviteUserDialogParams(
+        spaceId,
+        context.read<RoomRepository>(),
+        context.read<UserRepository>(),
+      ),
+    );
     if (result == null || !mounted) return;
 
     await _run('invite', () async {

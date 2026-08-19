@@ -2,16 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/models/kohera_device_key.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/models/kohera_room_permissions.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
-import 'package:kohera/data/resolvers/room_member_list_resolver.dart';
-import 'package:kohera/data/resolvers/room_permissions_resolver.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
@@ -21,30 +20,34 @@ import 'package:kohera/features/rooms/services/member_sheet_launcher.dart';
 import 'package:kohera/features/rooms/services/shared_media_loader.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
-import 'package:matrix/matrix.dart';
+import 'package:matrix/encryption.dart';
 
 
-/// Owns the SDK `Room` for [RoomDetailsContent] and exposes everything the
-/// SDK-free panel needs: display models ([KoheraRoomSummary],
-/// [KoheraRoomPermissions], [KoheraRoomMemberList]), action callbacks, device
-/// verification, and the Room-typed child widgets ([JoinAccessController],
-/// [SharedMediaSection], member sheet).
+/// Owns the room-details state for [RoomDetailsContent] and exposes
+/// SDK-free domain models from repositories: [KoheraRoomSummary],
+/// [KoheraRoomPermissions], [KoheraRoomMemberList], device keys, and
+/// action callbacks.
 ///
-/// This is the conversion boundary for slice #708: it is the only place in
-/// the room-details feature that imports `package:matrix/matrix.dart`.
+/// This controller no longer imports `package:matrix/matrix.dart` — it
+/// consumes domain models from [RoomRepository], [UserRepository], and
+/// [MediaRepository]. The only SDK type it touches is [KeyVerification]
+/// (from `package:matrix/encryption.dart`) for the E2EE verification
+/// flow, obtained via [UserRepository.startDeviceVerification].
 class RoomDetailsController extends ChangeNotifier {
   RoomDetailsController({
     required this.roomId,
-    required this.matrix,
-    required this.selection,
+    required this.roomRepo,
+    required this.userRepo,
+    required this.mediaRepo,
   });
 
   final String roomId;
-  final MatrixService matrix;
-  final SelectionService selection;
+  final RoomRepository roomRepo;
+  final UserRepository userRepo;
+  final MediaRepository mediaRepo;
 
-  Room? _room;
-  StreamSubscription<SyncUpdate>? _syncSub;
+  bool _hasRoom = false;
+  StreamSubscription<void>? _syncSub;
   Timer? _syncDebounce;
   KoheraRoomMemberList? _memberList;
   bool _loadingMembers = false;
@@ -52,75 +55,57 @@ class RoomDetailsController extends ChangeNotifier {
   int _memberLoadGen = 0;
   bool _disposed = false;
 
-  bool get hasRoom => _room != null;
+  bool get hasRoom => _hasRoom;
 
-  KoheraRoomSummary? get summary =>
-      _room == null ? null : selection.summaryFor(_room!);
+  KoheraRoomSummary? get summary => roomRepo.summaryFor(roomId);
 
-  KoheraRoomPermissions? get permissions => _room == null
-      ? null
-      : const RoomPermissionsResolver()
-          .convert(_room!, myUserId: matrix.client.userID ?? '');
+  KoheraRoomPermissions? get permissions => roomRepo.permissionsFor(roomId);
 
   KoheraRoomMemberList? get memberList => _memberList;
   bool get loadingMembers => _loadingMembers;
-  int? get summaryMemberCount => _room?.summary.mJoinedMemberCount;
-  bool get participantListComplete => _room?.participantListComplete ?? false;
+  int? get summaryMemberCount => roomRepo.getRoomSummaryMemberCount(roomId);
+  bool get participantListComplete =>
+      roomRepo.getRoomParticipantListComplete(roomId);
 
   /// Whether the current user has power to ban/unban in this room.
-  bool get canBan => _room?.canBan ?? false;
+  bool get canBan => roomRepo.getRoomCanBan(roomId);
 
-  bool get isFavourite => _room?.isFavourite ?? false;
+  bool get isFavourite => roomRepo.getRoomIsFavourite(roomId);
   bool get isMuted => pushRuleState != KoheraPushRuleState.notify;
-  bool get encrypted => _room?.encrypted ?? false;
-  bool get isDirectChat => _room?.isDirectChat ?? false;
-  String? get partnerId => _room?.directChatMatrixID;
+  bool get encrypted => roomRepo.getRoomEncrypted(roomId);
+  bool get isDirectChat => roomRepo.getRoomIsDirectChat(roomId);
+  String? get partnerId => roomRepo.getRoomPartnerId(roomId);
 
   KoheraPushRuleState get pushRuleState =>
-      _toKohera(_room?.pushRuleState ?? PushRuleState.notify);
+      roomRepo.getRoomPushRuleState(roomId);
 
   List<KoheraDeviceKey> get deviceKeys {
-    final partner = _room?.directChatMatrixID;
+    final partner = roomRepo.getRoomPartnerId(roomId);
     if (partner == null) return const [];
-    final list = matrix.client.userDeviceKeys[partner];
-    final devices = list?.deviceKeys.values.toList() ?? [];
-    return devices
-        .map(
-          (dk) => KoheraDeviceKey(
-            deviceId: dk.deviceId,
-            displayName: dk.deviceDisplayName,
-            verified: dk.verified,
-            blocked: dk.blocked,
-          ),
-        )
-        .toList();
+    return userRepo.deviceKeysFor(partner);
   }
 
-  AvatarResolver get avatarResolver => matrix.avatarResolver;
-  PresenceService get presence => matrix.presence;
+  AvatarResolver get avatarResolver => mediaRepo.avatarResolver;
+  PresenceService get presence => userRepo.presence;
 
   // ── Lifecycle ───────────────────────────────────────────────
 
   void init() {
-    _room = matrix.client.getRoomById(roomId);
-    if (_room == null) {
+    _hasRoom = roomRepo.rawRoom(roomId) != null;
+    if (!_hasRoom) {
       notifyListeners();
       return;
     }
-    _lastMemberCount = _room!.summary.mJoinedMemberCount;
+    _lastMemberCount = roomRepo.getRoomSummaryMemberCount(roomId);
     unawaited(refreshDeviceKeys());
     unawaited(loadMembers());
-    _syncSub = matrix.client.onSync.stream.listen((update) {
-      final stateEvents = update.rooms?.join?[roomId]?.state ?? [];
-      final hasPowerLevelChanges =
-          stateEvents.any((e) => e.type == EventTypes.RoomPowerLevels);
+    _syncSub = roomRepo.powerLevelChangesFor(roomId).listen((_) {
       _syncDebounce?.cancel();
       _syncDebounce = Timer(const Duration(seconds: 2), () {
         if (_disposed) return;
         notifyListeners();
-        if (hasPowerLevelChanges) {
-          final room = matrix.client.getRoomById(roomId);
-          if (room != null) unawaited(loadMembers());
+        if (roomRepo.rawRoom(roomId) != null) {
+          unawaited(loadMembers());
         }
       });
     });
@@ -129,15 +114,15 @@ class RoomDetailsController extends ChangeNotifier {
   /// Called by the panel on `didUpdateWidget` to detect the room appearing or
   /// a member-count change requiring a member reload.
   void checkRoomChanged() {
-    final room = matrix.client.getRoomById(roomId);
-    if (room != null && _room == null) {
-      _room = room;
-      _lastMemberCount = room.summary.mJoinedMemberCount;
+    final roomExists = roomRepo.rawRoom(roomId) != null;
+    if (roomExists && !_hasRoom) {
+      _hasRoom = true;
+      _lastMemberCount = roomRepo.getRoomSummaryMemberCount(roomId);
       notifyListeners();
       unawaited(loadMembers());
       return;
     }
-    final count = room?.summary.mJoinedMemberCount;
+    final count = roomRepo.getRoomSummaryMemberCount(roomId);
     if (count != null && count != _lastMemberCount && !_loadingMembers) {
       unawaited(loadMembers());
     }
@@ -154,76 +139,65 @@ class RoomDetailsController extends ChangeNotifier {
   // ── Actions ────────────────────────────────────────────────
 
   Future<void> toggleMute() async {
-    final room = _room!;
-    final current = room.pushRuleState;
-    await room.setPushRuleState(
-      current == PushRuleState.notify
-          ? PushRuleState.dontNotify
-          : PushRuleState.notify,
+    final current = pushRuleState;
+    await roomRepo.setPushRuleState(
+      roomId,
+      current == KoheraPushRuleState.notify
+          ? KoheraPushRuleState.dontNotify
+          : KoheraPushRuleState.notify,
     );
   }
 
   Future<void> toggleFavourite() async {
-    final room = _room!;
-    final target = !room.isFavourite;
-    await room.setFavourite(target);
-    await room.client.onSync.stream
-        .firstWhere((_) => room.isFavourite == target)
-        .timeout(
-          const Duration(seconds: 5),
-          onTimeout: () => SyncUpdate(nextBatch: ''),
-        );
+    final target = !isFavourite;
+    await roomRepo.setFavourite(roomId, target);
+    await roomRepo.waitForFavourite(roomId, target);
   }
 
   Future<void> setPushRule(KoheraPushRuleState state) async {
-    await _room!.setPushRuleState(_fromKohera(state));
+    await roomRepo.setPushRuleState(roomId, state);
   }
 
   Future<void> invite(String mxid) async {
-    await _room!.invite(mxid);
+    await roomRepo.invite(roomId, mxid);
   }
 
   Future<void> setAvatar(Uint8List? bytes, String? filename) async {
-    await _room!.setAvatar(
-      bytes == null ? null : MatrixFile(bytes: bytes, name: filename ?? ''),
-    );
+    await roomRepo.setAvatar(roomId, bytes, filename);
   }
 
   Future<void> setName(String name) async {
-    await _room!.setName(name);
+    await roomRepo.setName(roomId, name);
   }
 
   Future<void> setDescription(String topic) async {
-    await _room!.setDescription(topic);
+    await roomRepo.setDescription(roomId, topic);
   }
 
   Future<void> enableEncryption() async {
-    await _room!.enableEncryption();
+    await roomRepo.enableEncryption(roomId);
   }
 
   Future<void> leave() async {
-    await _room!.leave();
-    selection.selectRoom(null);
+    await roomRepo.leaveRoom(roomId);
+    roomRepo.selectRoom(null);
   }
 
   Future<int?> resolveMemberCount(String id) async {
-    if (matrix.client.getRoomById(id) == null) return null;
-    final members = await matrix.client.getJoinedMembersByRoom(id);
-    return members?.length;
+    return roomRepo.resolveMemberCount(id);
   }
 
   Future<void> loadMembers() async {
-    final room = _room;
-    if (room == null) return;
+    if (!_hasRoom) return;
     final gen = ++_memberLoadGen;
     _loadingMembers = true;
     notifyListeners();
     try {
-      final list = await const RoomMemberListResolver().resolve(room);
+      final list = await roomRepo.memberListFor(roomId);
       if (_disposed || gen != _memberLoadGen) return;
       _memberList = list;
       _loadingMembers = false;
-      _lastMemberCount = list.memberCount;
+      _lastMemberCount = list?.memberCount;
       notifyListeners();
     } catch (e) {
       debugPrint('[Kohera] Failed to load members: $e');
@@ -235,17 +209,18 @@ class RoomDetailsController extends ChangeNotifier {
   }
 
   Future<void> refreshDeviceKeys() async {
-    await matrix.client.updateUserDeviceKeys();
+    await userRepo.updateUserDeviceKeys();
     if (!_disposed) notifyListeners();
   }
 
   Future<void> verifyDevice(BuildContext context, String? deviceId) async {
-    final partner = _room?.directChatMatrixID;
+    final partner = roomRepo.getRoomPartnerId(roomId);
     if (partner == null || deviceId == null) return;
-    final dkList = matrix.client.userDeviceKeys[partner];
-    final dk = dkList?.deviceKeys[deviceId];
-    if (dk == null) return;
-    final verification = await dk.startVerification();
+    final verification = await userRepo.startDeviceVerification(
+      partner,
+      deviceId,
+    );
+    if (verification == null) return;
     if (!context.mounted) return;
     final kohera = KoheraKeyVerification(verification);
     try {
@@ -253,47 +228,31 @@ class RoomDetailsController extends ChangeNotifier {
     } finally {
       kohera.dispose();
     }
-    await matrix.client.updateUserDeviceKeys();
+    await userRepo.updateUserDeviceKeys();
     if (!_disposed) notifyListeners();
   }
 
   InviteUserDialogParams inviteDialogParams() =>
-      inviteUserDialogParams(_room!.id, matrix);
+      inviteUserDialogParams(roomId, roomRepo, userRepo);
 
   Future<void> showMemberSheet(
     BuildContext context,
     KoheraRoomMember member,
   ) =>
-      showRoomMemberSheet(context, room: _room!, member: member);
+      showRoomMemberSheet(context, roomId: roomId, member: member);
 
   Future<void> unbanMember(
     BuildContext context,
     KoheraRoomMember member,
   ) async {
-    final room = _room;
-    if (room == null) return;
-    await unbanRoomMember(context, room, member);
+    await unbanRoomMember(context, roomRepo, roomId, member);
     unawaited(loadMembers());
   }
 
-  Widget buildJoinAccessSection() => JoinAccessController(roomId: _room!.id);
+  Widget buildJoinAccessSection() => JoinAccessController(roomId: roomId);
   Widget buildSharedMediaSection() => SharedMediaSection(
-        roomId: _room!.id,
-        loader: sharedMediaLoaderForRoom(_room!),
-        avatarResolver: matrix.avatarResolver,
+        roomId: roomId,
+        loader: sharedMediaLoaderForRoom(roomId, roomRepo),
+        avatarResolver: mediaRepo.avatarResolver,
       );
-
-  // ── Push rule mapping ──────────────────────────────────────
-
-  static KoheraPushRuleState _toKohera(PushRuleState s) => switch (s) {
-        PushRuleState.notify => KoheraPushRuleState.notify,
-        PushRuleState.mentionsOnly => KoheraPushRuleState.mentionsOnly,
-        PushRuleState.dontNotify => KoheraPushRuleState.dontNotify,
-      };
-
-  static PushRuleState _fromKohera(KoheraPushRuleState s) => switch (s) {
-        KoheraPushRuleState.notify => PushRuleState.notify,
-        KoheraPushRuleState.mentionsOnly => PushRuleState.mentionsOnly,
-        KoheraPushRuleState.dontNotify => PushRuleState.dontNotify,
-      };
 }

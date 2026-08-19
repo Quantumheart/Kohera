@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
 import 'package:matrix/matrix.dart';
@@ -14,23 +16,30 @@ import 'package:provider/provider.dart';
 
 // ── Member sheet launcher ─────────────────────────────────────
 
-/// Opens the member profile sheet for [member] in [room].
+/// Opens the member profile sheet for [member] in the room identified by
+/// [roomId].
 ///
 /// This is the SDK boundary helper — it computes permissions from the
-/// [Room], wires all SDK callbacks (start DM, role change, kick, ban,
-/// unban), and delegates to the SDK-free [showMemberSheetDialog].
+/// raw [Room] (obtained via [RoomRepository.rawRoom]), wires all SDK
+/// callbacks (start DM, role change, kick, ban, unban), and delegates
+/// to the SDK-free [showMemberSheetDialog].
 ///
-/// Use this from any widget that has a `Room` + `KoheraRoomMember`
+/// Use this from any widget that has a `roomId` + `KoheraRoomMember`
 /// and needs to show the member profile sheet.
 Future<void> showRoomMemberSheet(
   BuildContext context, {
-  required Room room,
+  required String roomId,
   required KoheraRoomMember member,
 }) {
-  final client = room.client;
+  final roomRepo = context.read<RoomRepository>();
+  final room = roomRepo.rawRoom(roomId);
+  final mediaRepo = context.read<MediaRepository>();
+  final userRepo = context.read<UserRepository>();
+
+  final client = room!.client;
   final isMe = member.userId == client.userID;
   final ownLevel = room.getPowerLevelByUserId(client.userID ?? '').level;
-  final isIgnored = client.ignoredUsers.contains(member.userId);
+  final isIgnored = userRepo.ignoredUsers.contains(member.userId);
 
   return showMemberSheetDialog(
     context,
@@ -47,8 +56,8 @@ Future<void> showRoomMemberSheet(
         room.canBan &&
         member.powerLevel < ownLevel &&
         !member.isBanned,
-    avatarResolver: context.read<MatrixService>().avatarResolver,
-    presence: context.read<MatrixService>().presence,
+    avatarResolver: mediaRepo.avatarResolver,
+    presence: userRepo.presence,
     isIgnored: isIgnored,
     formatError: MatrixService.friendlyAuthError,
     onStartDm: isMe
@@ -64,7 +73,7 @@ Future<void> showRoomMemberSheet(
                   .timeout(const Duration(seconds: 30));
             }
             if (!context.mounted) return;
-            context.read<SelectionService>().selectRoom(dmRoomId);
+            roomRepo.selectRoom(dmRoomId);
             context.goNamed(
               Routes.room,
               pathParameters: {RouteParams.roomId: dmRoomId},
@@ -77,26 +86,29 @@ Future<void> showRoomMemberSheet(
     onKick: (reason) => client.kick(room.id, member.userId, reason: reason),
     onBan: (reason) => client.ban(room.id, member.userId, reason: reason),
     onUnban: (_) => client.unban(room.id, member.userId),
-    onIgnore: isMe ? null : () => client.ignoreUser(member.userId, leaveRooms: false),
-    onUnignore: isMe ? null : () => client.unignoreUser(member.userId),
+    onIgnore: isMe ? null : () => userRepo.ignoreUser(member.userId),
+    onUnignore: isMe ? null : () => userRepo.unignoreUser(member.userId),
   );
 }
 
 // ── Inline unban launcher ───────────────────────────────────────
 
-/// Unbans [member] from [room] and surfaces the result via snackbar.
+/// Unbans [member] from the room identified by [roomId] via [roomRepo]
+/// and surfaces the result via snackbar.
 ///
 /// Used by the banned-users section of [RoomMembersSection] so the snackbar,
 /// error formatting, and [Kohera] logging live in one place. The caller is
 /// responsible for reloading its member list after this returns.
 Future<void> unbanRoomMember(
   BuildContext context,
-  Room room,
+  RoomRepository roomRepo,
+  String roomId,
   KoheraRoomMember member, {
   String? reason,
 }) async {
   try {
-    await room.client.unban(room.id, member.userId, reason: reason);
+    final room = roomRepo.rawRoom(roomId);
+    await room!.client.unban(room.id, member.userId, reason: reason);
     if (context.mounted) context.showSnack('Unbanned ${member.displayname}');
   } catch (e) {
     debugPrint('[Kohera] Unban failed: $e');

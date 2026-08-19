@@ -659,7 +659,7 @@ class _ChatScreenState extends State<ChatScreen>
       membership: sender.membership.name,
       powerLevel: room.getPowerLevelByUserId(sender.id).level,
     );
-    unawaited(showRoomMemberSheet(context, room: room, member: member));
+    unawaited(showRoomMemberSheet(context, roomId: room.id, member: member));
   }
 
   Future<void> _ignoreSender(Event event) async {

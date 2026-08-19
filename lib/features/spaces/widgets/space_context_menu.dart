@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/rooms/services/invite_user_dialog_params.dart';
 import 'package:kohera/features/rooms/widgets/add_existing_rooms_dialog.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
@@ -235,8 +237,14 @@ Future<void> _handleInvite(
   final space = matrix.client.getRoomById(spaceId);
   if (space == null) return;
 
-  final mxid =
-      await InviteUserDialog.show(context, params: inviteUserDialogParams(spaceId, matrix));
+  final mxid = await InviteUserDialog.show(
+    context,
+    params: inviteUserDialogParams(
+      spaceId,
+      context.read<RoomRepository>(),
+      context.read<UserRepository>(),
+    ),
+  );
 
   if (mxid == null || !context.mounted) return;
 
