@@ -122,8 +122,8 @@ class NotificationService: UNNotificationServiceExtension {
             return
         }
 
+        content.body = body
         let fallbackSender = extractSenderName(from: event)
-        updateContent(content: content, senderName: fallbackSender, body: body)
 
         let profileTask = Task { () -> (avatarUrl: String?, displayname: String?)? in
             guard let senderId = senderId else { return nil }
@@ -141,9 +141,8 @@ class NotificationService: UNNotificationServiceExtension {
         if expired { roomNameTask.cancel(); counterpartTask.cancel(); return }
         let profile = await profileTask.value
         if expired { roomNameTask.cancel(); counterpartTask.cancel(); return }
-        if let better = nonEmpty(profile?.displayname) {
-            updateContent(content: content, senderName: better, body: body)
-        }
+
+        let resolvedSenderName = nonEmpty(profile?.displayname) ?? fallbackSender
 
         if expired { roomNameTask.cancel(); counterpartTask.cancel(); return }
         let roomName = await roomNameTask.value
@@ -151,13 +150,14 @@ class NotificationService: UNNotificationServiceExtension {
         let counterpart = await counterpartTask.value
         let title = resolveTitle(roomId: roomId, roomName: roomName, counterpart: counterpart)
         content.title = title
+        content.subtitle = isDirect ? nil : resolvedSenderName
 
         if expired { return }
 
         await applySenderIntent(
             content: content,
             senderId: senderId,
-            senderName: nonEmpty(profile?.displayname) ?? fallbackSender,
+            senderName: resolvedSenderName,
             avatarMxc: profile?.avatarUrl,
             homeserver: homeserver,
             accessToken: accessToken,
@@ -268,14 +268,6 @@ class NotificationService: UNNotificationServiceExtension {
     }
 
     // ── Helpers ────────────────────────────────────────────────────
-
-    private func updateContent(content: UNMutableNotificationContent, senderName: String?, body: String) {
-        if let senderName = senderName {
-            content.body = "\(senderName): \(body)"
-        } else {
-            content.body = body
-        }
-    }
 
     private func extractSenderName(from event: [String: Any]) -> String? {
         if let sender = event["sender"] as? String {

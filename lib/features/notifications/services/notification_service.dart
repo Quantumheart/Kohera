@@ -384,11 +384,15 @@ class NotificationService {
 
     final roomName = room.getLocalizedDisplayname();
 
+    final isDirect = room.isDirectChat;
+
     if (notifiable.length == 1) {
+      final senderDisplayName = notifiable.first.$1;
       await _showNotification(
         roomId: roomId,
         title: roomName,
-        senderName: notifiable.first.$1,
+        subtitle: isDirect ? null : senderDisplayName,
+        senderName: isDirect ? '' : senderDisplayName,
         body: notifiable.first.$2,
         avatarPath: avatarPath,
         avatarUrl: avatarUrl,
@@ -499,17 +503,30 @@ class NotificationService {
     required String title,
     required String senderName,
     required String body,
+    String? subtitle,
     String? avatarPath,
     String? avatarUrl,
     bool isGrouped = false,
   }) async {
+    // Subtitle slot (iOS/macOS `subtitle`, Android `subText`) separates
+    // "who" (sender) from "where" (title) and "what" (body). Platforms
+    // without a subtitle slot fall back to prefixing the body with the sender.
+    final useSubtitleLayout =
+        subtitle != null && !kIsWeb && !_useLinux && !isNativeWindows;
+
+    final displayBody = useSubtitleLayout
+        ? body
+        : (isGrouped
+            ? body
+            : (senderName.isNotEmpty
+                ? NotificationText.senderBody(senderName, body)
+                : body));
+
     if (kIsWeb) {
       final unreadCount = totalUnreadCount(matrixService.client);
       showWebNotification(
         title: title,
-        body: senderName.isNotEmpty
-            ? NotificationText.senderBody(senderName, body)
-            : body,
+        body: displayBody,
         icon: avatarUrl,
         tag: roomId,
         roomId: roomId,
@@ -523,10 +540,8 @@ class NotificationService {
       await _showLinuxNotification(
         roomId: roomId,
         title: title,
-        senderName: senderName,
-        body: body,
+        body: displayBody,
         avatarPath: avatarPath,
-        isGrouped: isGrouped,
       );
       return;
     }
@@ -542,12 +557,14 @@ class NotificationService {
       playSound: preferencesService.notificationSoundEnabled,
       enableVibration: preferencesService.notificationVibrationEnabled,
       groupKey: NotificationChannel.androidGroupKey,
+      subText: useSubtitleLayout ? subtitle : null,
     );
 
     final darwinDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: preferencesService.notificationSoundEnabled,
+      subtitle: useSubtitleLayout ? subtitle : null,
     );
 
     final windowsDetails = WindowsNotificationDetails(
@@ -565,9 +582,6 @@ class NotificationService {
       windows: windowsDetails,
     );
 
-    final displayBody =
-        isGrouped ? body : NotificationText.senderBody(senderName, body);
-
     await _plugin.show(
       id: notificationId,
       title: title,
@@ -582,10 +596,8 @@ class NotificationService {
   Future<void> _showLinuxNotification({
     required String roomId,
     required String title,
-    required String senderName,
     required String body,
     String? avatarPath,
-    bool isGrouped = false,
   }) async {
     try {
       final hints = <dn.NotificationHint>[
@@ -595,12 +607,9 @@ class NotificationService {
         if (avatarPath != null) dn.NotificationHint.imagePath(avatarPath),
       ];
 
-      final displayBody =
-          isGrouped ? body : NotificationText.senderBody(senderName, body);
-
       final notification = await _linuxClient!.notify(
         title,
-        body: displayBody,
+        body: body,
         replacesId: _linuxNotifications[roomId]?.id ?? 0,
         appName: NotificationChannel.appName,
         appIcon: NotificationChannel.linuxAppIcon,
@@ -674,10 +683,12 @@ class NotificationService {
     required String title,
     required String body,
     String senderName = '',
+    String? subtitle,
   }) async {
     await _showNotification(
       roomId: roomId,
       title: title,
+      subtitle: subtitle,
       senderName: senderName,
       body: body,
     );
