@@ -6,6 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -55,6 +58,15 @@ void main() {
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+        ChangeNotifierProvider<SpaceRepository>(
+          create: (_) => SpaceRepository(matrix: mockMatrixService),
+        ),
+        ChangeNotifierProvider<RoomRepository>(
+          create: (_) => RoomRepository(matrix: mockMatrixService),
+        ),
+        ChangeNotifierProvider<UserRepository>(
+          create: (_) => UserRepository(matrix: mockMatrixService),
+        ),
       ],
       child: MaterialApp(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),
@@ -282,6 +294,15 @@ void main() {
               providers: [
                 ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
                 ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+                ChangeNotifierProvider<SpaceRepository>(
+                  create: (_) => SpaceRepository(matrix: mockMatrixService),
+                ),
+                ChangeNotifierProvider<RoomRepository>(
+                  create: (_) => RoomRepository(matrix: mockMatrixService),
+                ),
+                ChangeNotifierProvider<UserRepository>(
+                  create: (_) => UserRepository(matrix: mockMatrixService),
+                ),
               ],
               child: Scaffold(
                 body: Builder(

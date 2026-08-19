@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 
 /// Shows a dialog collecting a required reason for reporting content.
 ///
@@ -17,17 +18,17 @@ Future<String?> showReportContentDialog(BuildContext context) {
 /// Reports a room (or space) by its most recent event to the homeserver.
 ///
 /// The Matrix `/report` endpoint is per-event; there is no room-level
-/// report, so the room's [Room.lastEvent] is used as the representative
-/// event. Prompts for a reason via [showReportContentDialog] and surfaces
-/// success/failure via snackbar.
+/// report, so the room's most recent event ([RoomRepository.lastEventId])
+/// is used as the representative event. Prompts for a reason via
+/// [showReportContentDialog] and surfaces success/failure via snackbar.
 Future<void> reportRoomContent(
   BuildContext context,
-  Client client,
+  RoomRepository roomRepo,
+  UserRepository userRepo,
   String roomId,
 ) async {
-  final room = client.getRoomById(roomId);
-  final eventId = room?.lastEvent?.eventId;
-  if (room == null || eventId == null) {
+  final eventId = roomRepo.lastEventId(roomId);
+  if (eventId == null) {
     if (context.mounted) {
       context.showSnack('No message available to report');
     }
@@ -36,7 +37,7 @@ Future<void> reportRoomContent(
   final reason = await showReportContentDialog(context);
   if (reason == null || reason.isEmpty || !context.mounted) return;
   try {
-    await client.reportEvent(room.id, eventId, reason: reason);
+    await userRepo.reportEvent(roomId, eventId, reason: reason);
     if (context.mounted) context.showSnack('Reported to homeserver');
   } catch (e) {
     debugPrint('[Kohera] Report room failed: $e');

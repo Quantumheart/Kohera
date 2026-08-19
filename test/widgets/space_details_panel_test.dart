@@ -4,7 +4,12 @@ import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
 import 'package:kohera/features/spaces/widgets/space_details_panel.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -71,8 +76,25 @@ void main() {
   Widget buildTestWidget({bool isFullPage = false}) {
     return MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
-      home: ChangeNotifierProvider<MatrixService>.value(
-        value: mockMatrixService,
+      home: MultiProvider(
+        providers: [
+          ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
+          ChangeNotifierProvider<SpaceRepository>(
+            create: (_) => SpaceRepository(matrix: mockMatrixService),
+          ),
+          ChangeNotifierProvider<RoomRepository>(
+            create: (_) => RoomRepository(matrix: mockMatrixService),
+          ),
+          ChangeNotifierProvider<UserRepository>(
+            create: (_) => UserRepository(matrix: mockMatrixService),
+          ),
+          ChangeNotifierProvider<MediaRepository>(
+            create: (_) => MediaRepository(matrix: mockMatrixService),
+          ),
+          Provider<SpaceDiscoveryDataSource>(
+            create: (_) => defaultSpaceDiscoveryDataSource(mockClient),
+          ),
+        ],
         child: Scaffold(
           body: SpaceDetailsPanel(
             spaceId: '!space:example.com',
@@ -159,8 +181,27 @@ void main() {
 
     testWidgets('renders as Scaffold when isFullPage is true', (tester) async {
       await tester.pumpWidget(MaterialApp(
-        home: ChangeNotifierProvider<MatrixService>.value(
-          value: mockMatrixService,
+        home: MultiProvider(
+          providers: [
+            ChangeNotifierProvider<MatrixService>.value(
+              value: mockMatrixService,
+            ),
+            ChangeNotifierProvider<SpaceRepository>(
+              create: (_) => SpaceRepository(matrix: mockMatrixService),
+            ),
+            ChangeNotifierProvider<RoomRepository>(
+              create: (_) => RoomRepository(matrix: mockMatrixService),
+            ),
+            ChangeNotifierProvider<UserRepository>(
+              create: (_) => UserRepository(matrix: mockMatrixService),
+            ),
+            ChangeNotifierProvider<MediaRepository>(
+              create: (_) => MediaRepository(matrix: mockMatrixService),
+            ),
+            Provider<SpaceDiscoveryDataSource>(
+              create: (_) => defaultSpaceDiscoveryDataSource(mockClient),
+            ),
+          ],
           child: const SpaceDetailsPanel(
             spaceId: '!space:example.com',
             isFullPage: true,

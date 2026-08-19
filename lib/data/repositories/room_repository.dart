@@ -178,6 +178,9 @@ class RoomRepository extends ChangeNotifier {
     }
   }
 
+  /// The resolved avatar URI for the room, or null.
+  Uri? avatarUri(String roomId) => _matrix.client.getRoomById(roomId)?.avatar;
+
   String? canonicalAlias(String roomId) {
     final room = _matrix.client.getRoomById(roomId);
     return room?.canonicalAlias.isNotEmpty == true
@@ -248,6 +251,13 @@ class RoomRepository extends ChangeNotifier {
       // Best-effort wait — timeout is fine
     }
   }
+
+  /// The event ID of the room's most recent event, or null if there is none.
+  ///
+  /// Used as the representative event for room-level reporting (the Matrix
+  /// `/report` endpoint is per-event).
+  String? lastEventId(String roomId) =>
+      _matrix.client.getRoomById(roomId)?.lastEvent?.eventId;
 
   // ── Transitional raw room access ──────────────────────────────
 

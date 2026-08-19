@@ -11,6 +11,8 @@ import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
@@ -555,7 +557,7 @@ class _AccountButtonState extends State<_AccountButton> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final userId = context.read<MatrixService>().client.userID;
+    final userId = context.read<UserRepository>().userId;
     if (userId != _lastUserId) {
       _lastUserId = userId;
       unawaited(_fetchProfile());
@@ -564,9 +566,8 @@ class _AccountButtonState extends State<_AccountButton> {
 
   Future<void> _fetchProfile() async {
     try {
-      final client = context.read<MatrixService>().client;
-      final profile = await client.fetchOwnProfile();
-      if (mounted) setState(() => _avatarUrl = profile.avatarUrl);
+      final avatarUrl = await context.read<UserRepository>().fetchOwnAvatarUrl();
+      if (mounted) setState(() => _avatarUrl = avatarUrl);
     } catch (e) {
       debugPrint('[Kohera] Failed to fetch profile: $e');
     }
@@ -576,8 +577,7 @@ class _AccountButtonState extends State<_AccountButton> {
   Widget build(BuildContext context) {
     final cs = widget.cs;
     final manager = context.watch<ClientManager>();
-    final matrix = context.watch<MatrixService>();
-    final userId = matrix.client.userID;
+    final userId = context.watch<UserRepository>().userId;
 
     return PopupMenuButton<_AccountAction>(
       tooltip: 'Account',
@@ -603,14 +603,14 @@ class _AccountButtonState extends State<_AccountButton> {
                 children: [
                   UserAvatar(
                     avatarResolver: manager.services[i].avatarResolver,
-                    userId: manager.services[i].client.userID ?? '',
-                    displayname: manager.services[i].client.userID ?? 'Unknown',
+                    userId: manager.services[i].userID ?? '',
+                    displayname: manager.services[i].userID ?? 'Unknown',
                     size: 28,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      manager.services[i].client.userID ?? 'Unknown',
+                      manager.services[i].userID ?? 'Unknown',
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -634,7 +634,7 @@ class _AccountButtonState extends State<_AccountButton> {
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
         child: UserAvatar(
-          avatarResolver: matrix.avatarResolver,
+          avatarResolver: context.read<MediaRepository>().avatarResolver,
           avatarUrl: _avatarUrl?.toString(),
           userId: userId ?? '',
           displayname: userId ?? 'Unknown',

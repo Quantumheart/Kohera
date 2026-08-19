@@ -8,6 +8,7 @@ import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/data/repositories/auth_repository.dart';
 import 'package:kohera/features/auth/screens/homeserver_screen.dart';
 import 'package:kohera/features/auth/screens/login_screen.dart';
 import 'package:kohera/features/auth/screens/registration_screen.dart';
@@ -125,6 +126,9 @@ void main() {
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
+        ChangeNotifierProvider<AuthRepository>(
+          create: (_) => AuthRepository(matrix: matrixService),
+        ),
       ],
       child: MaterialApp.router(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),

@@ -3,6 +3,8 @@ import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/rooms/services/room_context_menu_actions.dart';
 import 'package:kohera/features/rooms/widgets/add_room_to_space_dialog.dart';
 import 'package:kohera/shared/widgets/popup_menu_item_row.dart';
@@ -26,6 +28,8 @@ Future<void> showRoomContextMenu(
 }) async {
   final selection = context.read<SelectionService>();
   final matrix = context.read<MatrixService>();
+  final roomRepo = context.read<RoomRepository>();
+  final userRepo = context.read<UserRepository>();
   final actions = RoomContextMenuActions(matrix: matrix, selection: selection);
   final cs = Theme.of(context).colorScheme;
 
@@ -154,7 +158,7 @@ Future<void> showRoomContextMenu(
       }
     case _RoomContextAction.reportRoom:
       if (context.mounted) {
-        await reportRoomContent(context, matrix.client, roomId);
+        await reportRoomContent(context, roomRepo, userRepo, roomId);
       }
   }
 }

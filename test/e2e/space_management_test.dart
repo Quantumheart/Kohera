@@ -6,6 +6,10 @@ import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/features/spaces/widgets/space_rail.dart';
@@ -144,6 +148,18 @@ void main() {
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
         ChangeNotifierProvider(create: (_) => PreferencesService()),
         ChangeNotifierProvider<InboxController>.value(value: inboxController),
+        ChangeNotifierProvider<UserRepository>(
+          create: (_) => UserRepository(matrix: matrixService),
+        ),
+        ChangeNotifierProvider<MediaRepository>(
+          create: (_) => MediaRepository(matrix: matrixService),
+        ),
+        ChangeNotifierProvider<RoomRepository>(
+          create: (_) => RoomRepository(matrix: matrixService),
+        ),
+        ChangeNotifierProvider<SpaceRepository>(
+          create: (_) => SpaceRepository(matrix: matrixService),
+        ),
       ],
       child: MaterialApp.router(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),
