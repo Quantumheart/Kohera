@@ -6,6 +6,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
@@ -20,6 +21,7 @@ import 'package:provider/provider.dart';
   MockSpec<Client>(),
   MockSpec<Room>(),
   MockSpec<Timeline>(),
+  MockSpec<RoomRepository>(),
 ])
 import '../mocks/matrix_service_mock.mocks.dart';
 import 'chat_search_test.mocks.dart';
@@ -31,6 +33,8 @@ void main() {
   late MockTimeline mockTimeline;
   late PreferencesService prefsService;
   late SelectionService selectionService;
+  late MockRoomRepository mockRoomRepository;
+  late CachedStreamController<SyncUpdate> syncController;
 
   setUp(() {
     // Use a narrow screen so the search overlay (Stack) layout is used,
@@ -73,12 +77,26 @@ void main() {
     when(mockRoom.encrypted).thenReturn(false);
     when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
         .thenAnswer((_) async => mockTimeline);
+
+    mockRoomRepository = MockRoomRepository();
+    syncController = CachedStreamController<SyncUpdate>();
+    when(mockRoomRepository.rawRoom(any)).thenAnswer(
+      (invocation) =>
+          mockClient.getRoomById(invocation.positionalArguments[0] as String),
+    );
+    when(mockRoomRepository.userId).thenReturn('@me:example.com');
+    when(mockRoomRepository.ignoredUsers).thenReturn([]);
+    when(mockRoomRepository.encryption).thenReturn(null);
+    when(mockRoomRepository.searchClient).thenReturn(mockClient);
+    when(mockRoomRepository.onSync).thenAnswer((_) => syncController.stream);
+    when(mockRoomRepository.roomSummaries).thenReturn([]);
   });
 
   Widget buildTestWidget() {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
+        ChangeNotifierProvider<RoomRepository>.value(value: mockRoomRepository),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
