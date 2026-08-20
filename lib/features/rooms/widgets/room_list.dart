@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/home/widgets/mobile_space_drawer.dart';
 import 'package:kohera/features/rooms/services/room_list_builder.dart';
@@ -30,7 +31,7 @@ class RoomList extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => RoomListController(
-        matrixService: context.read<MatrixService>(),
+        roomRepository: context.read<RoomRepository>(),
         selectionService: context.read<SelectionService>(),
         preferencesService: context.read<PreferencesService>(),
         spaceRoomsController: context.read<SpaceRoomsController>(),
@@ -352,7 +353,7 @@ class _RoomListViewState extends State<_RoomListView>
       InviteItem() => InviteTile(
         summary: item.summary,
         inviterName: () {
-          final room = matrix.client.getRoomById(item.summary.roomId);
+          final room = context.read<RoomRepository>().rawRoom(item.summary.roomId);
           return room != null ? selection.inviterDisplayName(room) : null;
         }(),
       ),
@@ -460,7 +461,7 @@ class _UnjoinedGroupHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final space = matrixService.client.getRoomById(item.spaceId);
+    final space = context.read<RoomRepository>().rawRoom(item.spaceId);
 
     return Padding(
       padding: const EdgeInsets.only(left: 10, right: 10, top: 8, bottom: 2),
@@ -736,7 +737,7 @@ class _SpaceEmptyState extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final state = controller.getRoomState(spaceId);
-    final room = matrixService.client.getRoomById(spaceId);
+    final room = context.read<RoomRepository>().rawRoom(spaceId);
     final spaceName = room?.getLocalizedDisplayname() ?? spaceId;
     final spaceAvatar = room?.avatar;
     final spaceAlias = room?.canonicalAlias;

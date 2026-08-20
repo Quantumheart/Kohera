@@ -125,11 +125,16 @@ void main() {
   // ── New Room Dialog builder ─────────────────────────────────────
 
   Widget buildNewRoomApp() {
-    return MaterialApp(
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<MatrixService>.value(value: matrixService),
+        ChangeNotifierProvider<RoomRepository>(
+          create: (_) => RoomRepository(matrix: matrixService),
+        ),
+      ],
+      child: MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
-      home: ChangeNotifierProvider<MatrixService>.value(
-        value: matrixService,
-        child: Scaffold(
+      home: Scaffold(
           body: Builder(
             builder: (context) => Center(
               child: ElevatedButton(
@@ -374,11 +379,16 @@ void main() {
       stubCreateRoom(mockClient);
 
       await tester.pumpWidget(
-        MaterialApp(
-          theme: ThemeData(splashFactory: InkRipple.splashFactory),
-          home: ChangeNotifierProvider<MatrixService>.value(
-            value: matrixService,
-            child: Scaffold(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<MatrixService>.value(value: matrixService),
+            ChangeNotifierProvider<RoomRepository>(
+              create: (_) => RoomRepository(matrix: matrixService),
+            ),
+          ],
+          child: MaterialApp(
+            theme: ThemeData(splashFactory: InkRipple.splashFactory),
+            home: Scaffold(
               body: Builder(
                 builder: (context) => Center(
                   child: ElevatedButton(

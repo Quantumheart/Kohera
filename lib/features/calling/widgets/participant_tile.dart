@@ -4,7 +4,6 @@ import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:kohera/data/models/call_participant.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
-import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:livekit_client/livekit_client.dart' as livekit;
 import 'package:provider/provider.dart';

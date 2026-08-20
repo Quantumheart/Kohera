@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/models/kohera_room_aliases.dart';
 import 'package:kohera/features/rooms/widgets/room_aliases_section.dart';
 import 'package:matrix/matrix.dart';
@@ -30,10 +30,10 @@ class _RoomAliasesControllerState extends State<RoomAliasesController> {
   StreamSubscription<SyncUpdate>? _syncSub;
   int _fetchGen = 0;
 
-  Client get _client => context.read<MatrixService>().client;
+  RoomRepository get _rooms => context.read<RoomRepository>();
 
   String? get _homeserverDomain {
-    final userId = _client.userID;
+    final userId = _rooms.userId;
     if (userId == null) return null;
     final colon = userId.lastIndexOf(':');
     if (colon <= 0) return null;
@@ -43,7 +43,7 @@ class _RoomAliasesControllerState extends State<RoomAliasesController> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _syncSub ??= _client.onSync.stream.listen(_onSync);
+    _syncSub ??= _rooms.onSync.listen(_onSync);
     if (_data == null) unawaited(_reload());
   }
 
@@ -69,7 +69,7 @@ class _RoomAliasesControllerState extends State<RoomAliasesController> {
       });
     }
     try {
-      final room = _client.getRoomById(widget.roomId);
+      final room = _rooms.rawRoom(widget.roomId);
       if (room == null) {
         if (mounted) {
           setState(() {
@@ -79,7 +79,7 @@ class _RoomAliasesControllerState extends State<RoomAliasesController> {
         }
         return;
       }
-      final aliases = await _client.getLocalAliases(widget.roomId);
+      final aliases = await _rooms.getLocalAliases(widget.roomId);
       if (gen != _fetchGen) return;
       final data = KoheraRoomAliases(
         roomId: widget.roomId,
@@ -108,12 +108,12 @@ class _RoomAliasesControllerState extends State<RoomAliasesController> {
     final domain = _homeserverDomain;
     if (domain == null) throw StateError('No homeserver domain available');
     final alias = '#$localpart:$domain';
-    await _client.setRoomAlias(alias, widget.roomId);
+    await _rooms.setRoomAlias(alias, widget.roomId);
     await _reload();
   }
 
   Future<void> _delete(String alias) async {
-    await _client.deleteRoomAlias(alias);
+    await _rooms.deleteRoomAlias(alias);
     final current = _data?.canonicalAlias;
     if (current == alias) {
       await _clearCanonical();
@@ -122,14 +122,14 @@ class _RoomAliasesControllerState extends State<RoomAliasesController> {
   }
 
   Future<void> _setCanonical(String alias) async {
-    final room = _client.getRoomById(widget.roomId);
+    final room = _rooms.rawRoom(widget.roomId);
     if (room == null) return;
     await room.setCanonicalAlias(alias);
     await _reload();
   }
 
   Future<void> _clearCanonical() async {
-    await _client.setRoomStateWithKey(
+    await _rooms.setRoomStateWithKey(
       widget.roomId,
       EventTypes.RoomCanonicalAlias,
       '',

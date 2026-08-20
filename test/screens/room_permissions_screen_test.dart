@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/models/kohera_room_permissions.dart';
 import 'package:kohera/features/rooms/screens/room_permissions_host.dart';
@@ -105,8 +106,13 @@ Widget _wrapScreen(
   MockMatrixService? matrixService,
 }) {
   if (asHost) {
-    return ChangeNotifierProvider<MatrixService>.value(
-      value: matrixService!,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<MatrixService>.value(value: matrixService!),
+        ChangeNotifierProvider<RoomRepository>(
+          create: (_) => RoomRepository(matrix: matrixService),
+        ),
+      ],
       child: MaterialApp(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: const RoomPermissionsHost(roomId: _roomId),

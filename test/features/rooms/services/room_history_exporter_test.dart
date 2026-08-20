@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/rooms/models/kohera_export_format.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/services/room_history_exporter.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
@@ -84,6 +86,7 @@ MockEvent _stateEvent({
 void main() {
   late MockClient mockClient;
   late MockMatrixService mockMatrix;
+  late RoomRepository rooms;
   late MockRoom mockRoom;
   late MockTimeline mockTimeline;
 
@@ -94,6 +97,8 @@ void main() {
     mockTimeline = MockTimeline();
 
     when(mockMatrix.client).thenReturn(mockClient);
+    when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    rooms = RoomRepository(matrix: mockMatrix);
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
     when(mockRoom.id).thenReturn('!room:example.com');
     when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
@@ -135,7 +140,7 @@ void main() {
       // timeline.events is newest-first
       when(mockTimeline.events).thenReturn([e2, e1]);
 
-      final exporter = RoomHistoryExporter(matrix: mockMatrix);
+      final exporter = RoomHistoryExporter(rooms: rooms);
       final export = await exporter.export(
         roomId: '!room:example.com',
         options: const KoheraExportOptions(),
@@ -162,7 +167,7 @@ void main() {
       );
       when(mockTimeline.events).thenReturn([msg, state]);
 
-      final exporter = RoomHistoryExporter(matrix: mockMatrix);
+      final exporter = RoomHistoryExporter(rooms: rooms);
       final export = await exporter.export(
         roomId: '!room:example.com',
         options: const KoheraExportOptions(),
@@ -186,7 +191,7 @@ void main() {
       );
       when(mockTimeline.events).thenReturn([e2, e1]);
 
-      final exporter = RoomHistoryExporter(matrix: mockMatrix);
+      final exporter = RoomHistoryExporter(rooms: rooms);
       final export = await exporter.export(
         roomId: '!room:example.com',
         options: KoheraExportOptions(
@@ -210,7 +215,7 @@ void main() {
       );
       when(mockTimeline.events).thenReturn([media]);
 
-      final exporter = RoomHistoryExporter(matrix: mockMatrix);
+      final exporter = RoomHistoryExporter(rooms: rooms);
       final withMedia = await exporter.export(
         roomId: '!room:example.com',
         options: const KoheraExportOptions(
@@ -229,7 +234,7 @@ void main() {
 
     test('throws when room not found', () async {
       when(mockClient.getRoomById('!missing:example.com')).thenReturn(null);
-      final exporter = RoomHistoryExporter(matrix: mockMatrix);
+      final exporter = RoomHistoryExporter(rooms: rooms);
       expect(
         () => exporter.export(
           roomId: '!missing:example.com',
@@ -259,7 +264,7 @@ void main() {
         canRequest = false;
       });
 
-      final exporter = RoomHistoryExporter(matrix: mockMatrix);
+      final exporter = RoomHistoryExporter(rooms: rooms);
       final export = await exporter.export(
         roomId: '!room:example.com',
         options: const KoheraExportOptions(),

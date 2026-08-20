@@ -30,7 +30,8 @@ Future<void> showRoomContextMenu(
   final matrix = context.read<MatrixService>();
   final roomRepo = context.read<RoomRepository>();
   final userRepo = context.read<UserRepository>();
-  final actions = RoomContextMenuActions(matrix: matrix, selection: selection);
+  final actions =
+      RoomContextMenuActions(rooms: roomRepo, selection: selection);
   final cs = Theme.of(context).colorScheme;
 
   final (:canRemove, :activeSpaceId) = actions.checkSelectedSpaces();
@@ -52,7 +53,7 @@ Future<void> showRoomContextMenu(
       orderedRoomIds != null &&
       roomIndex >= 0 &&
       roomIndex < orderedRoomIds.length - 1;
-  final canReport = matrix.client.getRoomById(roomId)?.lastEvent != null;
+  final canReport = roomRepo.lastEventId(roomId) != null;
 
   if (!canAdd && !canRemove && !canMoveUp && !canMoveDown && !canReport) return;
 

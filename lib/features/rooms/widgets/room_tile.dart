@@ -13,6 +13,7 @@ import 'package:kohera/core/utils/order_utils.dart' as order_utils;
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/models/kohera_user_summary.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/calling/services/call_navigator.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/widgets/call_state_views.dart'
@@ -579,7 +580,7 @@ class _CallParticipantList extends StatelessWidget {
   Widget build(BuildContext context) {
     final callService = context.watch<CallService>();
     final matrixService = context.read<MatrixService>();
-    final myUserId = matrixService.client.userID;
+    final myUserId = matrixService.userID;
     final participantIds = callService.callParticipantUserIds(roomId).toList();
     final isConnected = callService.activeCallRoomId == roomId &&
         callService.callState == KoheraCallState.connected;
@@ -788,9 +789,8 @@ class _ReorderDragTargetState extends State<_ReorderDragTarget> {
     RoomDragData data, {
     required bool insertAbove,
   }) async {
-    final matrix = context.read<MatrixService>();
     final selection = context.read<SelectionService>();
-    final space = matrix.client.getRoomById(widget.parentSpaceId);
+    final space = context.read<RoomRepository>().rawRoom(widget.parentSpaceId);
     if (space == null) return;
 
     try {

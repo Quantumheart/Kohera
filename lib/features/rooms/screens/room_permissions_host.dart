@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/data/models/kohera_room_permissions.dart';
-import 'package:kohera/data/resolvers/room_permissions_resolver.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/screens/room_permissions_screen.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:kohera/features/rooms/services/room_permissions_sync_watcher.dart';
@@ -25,8 +23,7 @@ class _RoomPermissionsHostState extends State<RoomPermissionsHost> {
   @override
   void initState() {
     super.initState();
-    final matrix = context.read<MatrixService>();
-    _watcher = RoomPermissionsSyncWatcher(matrix: matrix);
+    _watcher = RoomPermissionsSyncWatcher(rooms: context.read<RoomRepository>());
     _watcher.watch(widget.roomId, () {
       if (mounted) setState(() {});
     });
@@ -40,8 +37,8 @@ class _RoomPermissionsHostState extends State<RoomPermissionsHost> {
 
   @override
   Widget build(BuildContext context) {
-    final client = context.read<MatrixService>().client;
-    final room = client.getRoomById(widget.roomId);
+    final rooms = context.read<RoomRepository>();
+    final room = rooms.rawRoom(widget.roomId);
     if (room == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Permissions')),
@@ -49,17 +46,15 @@ class _RoomPermissionsHostState extends State<RoomPermissionsHost> {
       );
     }
 
-    final permissions = const RoomPermissionsResolver().convert(
-      room,
-      myUserId: client.userID ?? '',
-    );
+    final permissions = rooms.permissionsFor(widget.roomId)!;
 
     return RoomPermissionsScreen(
       permissions: permissions,
       onSetJoinRules: (rule) => PowerLevelService.setJoinRules(room, rule),
       onEnableEncryption: room.enableEncryption,
-      onUpdatePowerLevel: (patch) => PowerLevelService.update(room, patch),
-      onApplyPowerLevelsContent: (content) => room.client.setRoomStateWithKey(
+      onUpdatePowerLevel: (patch) =>
+          PowerLevelService.update(rooms, room, patch),
+      onApplyPowerLevelsContent: (content) => rooms.setRoomStateWithKey(
         room.id,
         'm.room.power_levels',
         '',

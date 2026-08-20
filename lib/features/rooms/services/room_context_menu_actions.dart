@@ -1,30 +1,30 @@
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/order_utils.dart' as order_utils;
+import 'package:kohera/data/repositories/room_repository.dart';
 
 /// SDK boundary for room context menu operations.
 ///
-/// All Matrix SDK access (Room, Client, canChangeStateEvent, setSpaceChild,
-/// etc.) is encapsulated here. The [RoomContextMenu] widget calls these
-/// methods without importing `package:matrix/matrix.dart`.
+/// All Matrix SDK access (Room, canChangeStateEvent, setSpaceChild, etc.) is
+/// encapsulated here via [RoomRepository]. The [RoomContextMenu] widget calls
+/// these methods without importing `package:matrix/matrix.dart`.
 class RoomContextMenuActions {
-  RoomContextMenuActions({required this.matrix, required this.selection});
+  RoomContextMenuActions({required this.rooms, required this.selection});
 
-  final MatrixService matrix;
+  final RoomRepository rooms;
   final SelectionService selection;
 
   /// Returns the display name of [roomId], or `null` if the room is not
   /// found.
   String? roomDisplayName(String roomId) {
-    final room = matrix.client.getRoomById(roomId);
+    final room = rooms.rawRoom(roomId);
     return room?.getLocalizedDisplayname();
   }
 
   /// Whether the room with [spaceId] allows the current user to manage
   /// space children (add/remove/reorder).
   bool canManageSpaceChildren(String spaceId) {
-    final space = matrix.client.getRoomById(spaceId);
+    final space = rooms.rawRoom(spaceId);
     if (space == null) return false;
     return space.canChangeStateEvent('m.space.child');
   }
@@ -58,7 +58,7 @@ class RoomContextMenuActions {
   ) async {
     var failures = 0;
     for (final entry in selections.entries) {
-      final space = matrix.client.getRoomById(entry.key);
+      final space = rooms.rawRoom(entry.key);
       if (space == null) continue;
       try {
         await space.setSpaceChild(
@@ -76,7 +76,7 @@ class RoomContextMenuActions {
 
   /// Removes [roomId] from the space [spaceId].
   Future<void> removeFromSpace(String spaceId, String roomId) async {
-    final space = matrix.client.getRoomById(spaceId);
+    final space = rooms.rawRoom(spaceId);
     if (space == null) return;
     await space.removeSpaceChild(roomId);
     selection.invalidateSpaceTree();
@@ -90,7 +90,7 @@ class RoomContextMenuActions {
     int fromIndex,
     int toIndex,
   ) async {
-    final space = matrix.client.getRoomById(spaceId);
+    final space = rooms.rawRoom(spaceId);
     if (space == null) return;
 
     final roomId = orderedRoomIds[fromIndex];

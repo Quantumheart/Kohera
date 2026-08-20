@@ -5,6 +5,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:provider/provider.dart';
 
@@ -39,14 +40,14 @@ class _InviteTileState extends State<InviteTile> {
 
   Future<void> _accept() async {
     if (_inFlight) return;
-    final matrix = context.read<MatrixService>();
+    final rooms = context.read<RoomRepository>();
     setState(() => _isJoining = true);
     try {
       if (widget.onJoin != null) {
         await widget.onJoin!();
       } else {
         // Fallback: join via the client
-        final room = matrix.client.getRoomById(widget.summary.roomId);
+        final room = rooms.rawRoom(widget.summary.roomId);
         if (room != null) await room.join();
       }
     } catch (e) {
@@ -57,8 +58,7 @@ class _InviteTileState extends State<InviteTile> {
     }
     // Join succeeded — wait briefly for the sync so the room appears as joined.
     try {
-      await matrix.client.onSync.stream.first
-          .timeout(const Duration(seconds: 5));
+      await rooms.onSync.first.timeout(const Duration(seconds: 5));
     } catch (_) {
       // Timeout is fine — the join already succeeded server-side.
     }
@@ -86,8 +86,8 @@ class _InviteTileState extends State<InviteTile> {
       if (widget.onDecline != null) {
         await widget.onDecline!();
       } else {
-        final matrix = context.read<MatrixService>();
-        final room = matrix.client.getRoomById(widget.summary.roomId);
+        final room =
+            context.read<RoomRepository>().rawRoom(widget.summary.roomId);
         if (room != null) await room.leave();
       }
     } catch (e) {

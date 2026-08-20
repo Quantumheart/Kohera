@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/rooms/models/kohera_export_format.dart';
 import 'package:kohera/features/rooms/models/kohera_room_export.dart';
@@ -39,8 +40,16 @@ KoheraRoomExport _sample() => KoheraRoomExport(
       options: const KoheraExportOptions(),
     );
 
+RoomRepository _fakeRooms() {
+  final matrix = MockMatrixService();
+  final client = MockClient();
+  when(matrix.client).thenReturn(client);
+  when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+  return RoomRepository(matrix: matrix);
+}
+
 class _FakeExporter extends RoomHistoryExporter {
-  _FakeExporter(this.result) : super(matrix: _DummyMatrix());
+  _FakeExporter(this.result) : super(rooms: _fakeRooms());
   final KoheraRoomExport result;
 
   @override
@@ -58,10 +67,6 @@ class _FakeExporter extends RoomHistoryExporter {
   }
 }
 
-class _DummyMatrix implements MatrixService {
-  @override
-  dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
-}
 
 void main() {
   late MockClient mockClient;

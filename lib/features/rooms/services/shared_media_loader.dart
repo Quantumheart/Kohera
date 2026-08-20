@@ -33,7 +33,7 @@ SharedMediaLoader sharedMediaLoaderForRoom(
 
     final items = result.events.map((event) {
       return SharedMediaItem(
-        media: const MediaContentResolver()(event),
+        media: MediaContentResolver.resolve(event),
         controller: SdkMediaController(event),
       );
     }).toList();

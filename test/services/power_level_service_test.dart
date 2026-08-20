@@ -1,10 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([MockSpec<Room>(), MockSpec<Client>(), MockSpec<Event>()])
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'power_level_service_test.mocks.dart';
 
 Map<String, Object?> _plContent({
@@ -35,11 +38,14 @@ Map<String, Object?> _plContent({
 void main() {
   late MockRoom room;
   late MockClient client;
+  late MockMatrixService mockMatrix;
+  late RoomRepository rooms;
   late MockEvent plEvent;
 
   setUp(() {
     room = MockRoom();
     client = MockClient();
+    mockMatrix = MockMatrixService();
     plEvent = MockEvent();
 
     when(room.client).thenReturn(client);
@@ -49,6 +55,10 @@ void main() {
     when(
       client.setRoomStateWithKey(any, any, any, any),
     ).thenAnswer((_) async => r'$eventId');
+
+    when(mockMatrix.client).thenReturn(client);
+    when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    rooms = RoomRepository(matrix: mockMatrix);
   });
 
   group('PowerLevelPatch.isEmpty', () {
@@ -78,7 +88,7 @@ void main() {
   group('PowerLevelService.update', () {
     group('no-op patch', () {
       test('does not call setRoomStateWithKey when patch is empty', () async {
-        await PowerLevelService.update(room, const PowerLevelPatch());
+        await PowerLevelService.update(rooms, room, const PowerLevelPatch());
 
         verifyNever(client.setRoomStateWithKey(any, any, any, any));
       });
@@ -86,8 +96,7 @@ void main() {
 
     group('single-field update', () {
       test('merges kick threshold and preserves other fields', () async {
-        await PowerLevelService.update(
-          room,
+        await PowerLevelService.update(rooms, room,
           const PowerLevelPatch(kick: 75),
         );
 
@@ -108,8 +117,7 @@ void main() {
       });
 
       test('merges users_default', () async {
-        await PowerLevelService.update(
-          room,
+        await PowerLevelService.update(rooms, room,
           const PowerLevelPatch(usersDefault: 10),
         );
 
@@ -122,8 +130,7 @@ void main() {
       });
 
       test('merges invite threshold', () async {
-        await PowerLevelService.update(
-          room,
+        await PowerLevelService.update(rooms, room,
           const PowerLevelPatch(invite: 50),
         );
 
@@ -141,8 +148,7 @@ void main() {
           _plContent(events: {EventTypes.RoomName: 50}),
         );
 
-        await PowerLevelService.update(
-          room,
+        await PowerLevelService.update(rooms, room,
           const PowerLevelPatch(events: {EventTypes.RoomTopic: 75}),
         );
 
@@ -162,8 +168,7 @@ void main() {
           ),
         );
 
-        await PowerLevelService.update(
-          room,
+        await PowerLevelService.update(rooms, room,
           const PowerLevelPatch(events: {EventTypes.RoomName: 100}),
         );
 
@@ -179,8 +184,7 @@ void main() {
       test('creates events map when none exists', () async {
         when(plEvent.content).thenReturn(_plContent());
 
-        await PowerLevelService.update(
-          room,
+        await PowerLevelService.update(rooms, room,
           const PowerLevelPatch(events: {EventTypes.Encryption: 100}),
         );
 
@@ -195,8 +199,7 @@ void main() {
 
     group('users map update', () {
       test('merges per-user power level', () async {
-        await PowerLevelService.update(
-          room,
+        await PowerLevelService.update(rooms, room,
           const PowerLevelPatch(users: {'@alice:example.com': 50}),
         );
 
@@ -213,8 +216,7 @@ void main() {
           _plContent(users: {'@bob:example.com': 100}),
         );
 
-        await PowerLevelService.update(
-          room,
+        await PowerLevelService.update(rooms, room,
           const PowerLevelPatch(users: {'@alice:example.com': 50}),
         );
 
@@ -230,8 +232,7 @@ void main() {
 
     group('notifications map update', () {
       test('merges notification key', () async {
-        await PowerLevelService.update(
-          room,
+        await PowerLevelService.update(rooms, room,
           const PowerLevelPatch(notifications: {'room': 50}),
         );
 
@@ -248,8 +249,7 @@ void main() {
       test('uses empty base when no power_levels event exists', () async {
         when(room.getState(EventTypes.RoomPowerLevels)).thenReturn(null);
 
-        await PowerLevelService.update(
-          room,
+        await PowerLevelService.update(rooms, room,
           const PowerLevelPatch(kick: 50),
         );
 
@@ -273,8 +273,7 @@ void main() {
         );
 
         expect(
-          () => PowerLevelService.update(
-            room,
+          () => PowerLevelService.update(rooms, room,
             const PowerLevelPatch(kick: 75),
           ),
           throwsA(

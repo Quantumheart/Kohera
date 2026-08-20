@@ -32,13 +32,13 @@ Future<void> showRoomMemberSheet(
   required KoheraRoomMember member,
 }) {
   final roomRepo = context.read<RoomRepository>();
-  final room = roomRepo.rawRoom(roomId);
+  final room = roomRepo.rawRoom(roomId)!;
   final mediaRepo = context.read<MediaRepository>();
   final userRepo = context.read<UserRepository>();
 
-  final client = room!.client;
-  final isMe = member.userId == client.userID;
-  final ownLevel = room.getPowerLevelByUserId(client.userID ?? '').level;
+  final myUserId = roomRepo.userId;
+  final isMe = member.userId == myUserId;
+  final ownLevel = room.getPowerLevelByUserId(myUserId ?? '').level;
   final isIgnored = userRepo.ignoredUsers.contains(member.userId);
 
   return showMemberSheetDialog(
@@ -63,12 +63,12 @@ Future<void> showRoomMemberSheet(
     onStartDm: isMe
         ? null
         : () async {
-            final dmRoomId = await client.startDirectChat(
+            final dmRoomId = await roomRepo.startDirectChat(
               member.userId,
               enableEncryption: true,
             );
-            if (client.getRoomById(dmRoomId) == null) {
-              await client
+            if (roomRepo.rawRoom(dmRoomId) == null) {
+              await roomRepo
                   .waitForRoomInSync(dmRoomId, join: true)
                   .timeout(const Duration(seconds: 30));
             }
@@ -80,12 +80,13 @@ Future<void> showRoomMemberSheet(
             );
           },
     onRoleChange: (level) => PowerLevelService.update(
+      roomRepo,
       room,
       PowerLevelPatch(users: {member.userId: level}),
     ),
-    onKick: (reason) => client.kick(room.id, member.userId, reason: reason),
-    onBan: (reason) => client.ban(room.id, member.userId, reason: reason),
-    onUnban: (_) => client.unban(room.id, member.userId),
+    onKick: (reason) => roomRepo.kick(room.id, member.userId, reason: reason),
+    onBan: (reason) => roomRepo.ban(room.id, member.userId, reason: reason),
+    onUnban: (_) => roomRepo.unban(room.id, member.userId),
     onIgnore: isMe ? null : () => userRepo.ignoreUser(member.userId),
     onUnignore: isMe ? null : () => userRepo.unignoreUser(member.userId),
   );
@@ -107,8 +108,8 @@ Future<void> unbanRoomMember(
   String? reason,
 }) async {
   try {
-    final room = roomRepo.rawRoom(roomId);
-    await room!.client.unban(room.id, member.userId, reason: reason);
+    final room = roomRepo.rawRoom(roomId)!;
+    await roomRepo.unban(room.id, member.userId, reason: reason);
     if (context.mounted) context.showSnack('Unbanned ${member.displayname}');
   } catch (e) {
     debugPrint('[Kohera] Unban failed: $e');

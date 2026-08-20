@@ -7,6 +7,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
@@ -105,6 +106,8 @@ void main() {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
+        ChangeNotifierProvider<RoomRepository>(
+            create: (_) => RoomRepository(matrix: mockMatrix),),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),

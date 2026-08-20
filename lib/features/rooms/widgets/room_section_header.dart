@@ -5,6 +5,7 @@ import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
@@ -34,7 +35,7 @@ class RoomSectionHeader extends StatelessWidget {
     final isCollapsed =
         prefs.collapsedSpaceSections.contains(item.sectionKey);
 
-    final spaceRoom = matrixService.client.getRoomById(item.sectionKey);
+    final spaceRoom = context.read<RoomRepository>().rawRoom(item.sectionKey);
     final canManageChildren = item.isSpace &&
         (spaceRoom?.canChangeStateEvent('m.space.child') ?? false);
 
@@ -181,6 +182,7 @@ class RoomSectionHeader extends StatelessWidget {
     final pos = box.localToGlobal(Offset.zero);
     final cs = Theme.of(context).colorScheme;
     final spaceRepo = context.read<SpaceRepository>();
+    final rooms = context.read<RoomRepository>();
 
     unawaited(showMenu<_HeaderAddAction>(
       context: context,
@@ -223,7 +225,7 @@ class RoomSectionHeader extends StatelessWidget {
             parentSpaceIds: {item.sectionKey},
           ),);
         case _HeaderAddAction.createSubspace:
-          final spaceRoom = matrixService.client.getRoomById(item.sectionKey);
+          final spaceRoom = rooms.rawRoom(item.sectionKey);
           if (spaceRoom != null) {
             unawaited(CreateSubspaceDialog.show(
               context,
@@ -241,7 +243,8 @@ class RoomSectionHeader extends StatelessWidget {
   }
 
   Future<void> _handleDrop(BuildContext context, ReparentDragData data) async {
-    final targetRoom = matrixService.client.getRoomById(item.sectionKey);
+    final rooms = context.read<RoomRepository>();
+    final targetRoom = rooms.rawRoom(item.sectionKey);
     if (targetRoom == null) return;
 
     try {
@@ -259,7 +262,7 @@ class RoomSectionHeader extends StatelessWidget {
 
           await targetRoom.setSpaceChild(spaceId);
           if (oldParentId != null && oldParentId != item.sectionKey) {
-            final oldParent = matrixService.client.getRoomById(oldParentId);
+            final oldParent = rooms.rawRoom(oldParentId);
             await oldParent?.removeSpaceChild(spaceId);
           }
 
@@ -267,8 +270,7 @@ class RoomSectionHeader extends StatelessWidget {
           await targetRoom.setSpaceChild(roomId);
           if (currentParentSpaceId != null &&
               currentParentSpaceId != item.sectionKey) {
-            final oldParent =
-                matrixService.client.getRoomById(currentParentSpaceId);
+            final oldParent = rooms.rawRoom(currentParentSpaceId);
             await oldParent?.removeSpaceChild(roomId);
           }
       }

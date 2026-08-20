@@ -5,12 +5,14 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/services/room_list_controller.dart';
 import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
 import 'package:kohera/features/spaces/models/space_rooms_model.dart';
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
@@ -27,6 +29,7 @@ import 'room_list_controller_test.mocks.dart';
 ])
 void main() {
   late MockMatrixService matrix;
+  late RoomRepository rooms;
   late MockSelectionService selection;
   late MockPreferencesService prefs;
   late MockSpaceRoomsController spaceRooms;
@@ -34,7 +37,7 @@ void main() {
   late MockClient client;
 
   RoomListController makeController() => RoomListController(
-    matrixService: matrix,
+    roomRepository: rooms,
     selectionService: selection,
     preferencesService: prefs,
     spaceRoomsController: spaceRooms,
@@ -67,6 +70,8 @@ void main() {
     client = MockClient();
 
     when(matrix.client).thenReturn(client);
+    when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    rooms = RoomRepository(matrix: matrix);
     when(selection.selectedSpaceIds).thenReturn({});
     when(selection.rooms).thenReturn([]);
     when(selection.spaceTree).thenReturn([]);
@@ -92,7 +97,7 @@ void main() {
 
     test('creates default messageSearch controller', () {
       final controller = RoomListController(
-        matrixService: matrix,
+        roomRepository: rooms,
         selectionService: selection,
         preferencesService: prefs,
         spaceRoomsController: spaceRooms,
