@@ -12,6 +12,8 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -115,6 +117,12 @@ Widget _buildChatWidget({
       ChangeNotifierProvider(
         create: (ctx) =>
             StickerPackService(client: ctx.read<MatrixService>().client),
+      ),
+      ChangeNotifierProvider<RoomRepository>(
+        create: (_) => RoomRepository(matrix: mockMatrix),
+      ),
+      ChangeNotifierProvider<UserRepository>(
+        create: (_) => UserRepository(matrix: mockMatrix),
       ),
     ],
     child: MaterialApp(
@@ -316,9 +324,11 @@ void main() {
 
     when(mockMatrix.client).thenReturn(mockClient);
     when(mockMatrix.selection).thenReturn(selectionService);
+    when(mockMatrix.avatarResolver).thenReturn(const _FakeAvatarResolver());
     when(mockMatrix.presence).thenReturn(PresenceService(client: mockClient));
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
     when(mockClient.userID).thenReturn('@me:example.com');
+    when(mockMatrix.userID).thenReturn('@me:example.com');
     when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
     when(mockRoom.id).thenReturn('!room:example.com');
     when(mockRoom.receiptState).thenReturn(LatestReceiptState.empty());

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/widgets/chat_app_bar.dart';
@@ -62,6 +63,7 @@ void main() {
     presenceController = CachedStreamController<CachedPresence>();
 
     when(mockMatrix.client).thenReturn(mockClient);
+    when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.onPresenceChanged).thenReturn(presenceController);
     when(mockMatrix.presence).thenReturn(PresenceService(client: mockClient));
     when(mockMatrix.avatarResolver).thenReturn(_nullAvatarResolver);
@@ -86,6 +88,9 @@ void main() {
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
           ChangeNotifierProvider<CallService>.value(value: mockCallService),
+          ChangeNotifierProvider<RoomRepository>(
+            create: (_) => RoomRepository(matrix: mockMatrix),
+          ),
         ],
         child: MaterialApp(
           home: Scaffold(

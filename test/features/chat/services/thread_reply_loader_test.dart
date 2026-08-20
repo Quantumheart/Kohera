@@ -41,6 +41,8 @@ void main() {
     mockRoom = MockRoom();
 
     when(mockMatrix.client).thenReturn(mockClient);
+    when(roomRepository.rawRoom(roomId)).thenReturn(mockRoom);
+    when(roomRepository.searchClient).thenReturn(mockClient);
     when(mockClient.getRoomById(roomId)).thenReturn(mockRoom);
     when(mockRoom.id).thenReturn(roomId);
     when(mockRoom.client).thenReturn(mockClient);
@@ -102,7 +104,7 @@ void main() {
     });
 
     test('returns false when room is null', () async {
-      when(mockClient.getRoomById(roomId)).thenReturn(null);
+      when(roomRepository.rawRoom(roomId)).thenReturn(null);
 
       final loader = ThreadReplyLoader();
       final found = await loader.loadRoot(roomRepository, roomId, rootId);
