@@ -5,6 +5,9 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:matrix/matrix.dart';
@@ -24,6 +27,12 @@ import '../../mocks/matrix_service_mock.mocks.dart';
 import 'pinned_messages_test.mocks.dart';
 
 // ── Helpers ───────────────────────────────────────────────────
+
+class _NullAvatarResolver implements AvatarResolver {
+  const _NullAvatarResolver();
+  @override
+  Future<AvatarThumbnail?> resolve(String? mxcUrl, {required double size}) async => null;
+}
 
 late MockRoom _mockRoom;
 
@@ -77,6 +86,8 @@ Widget _buildChatWidget({
       ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
       ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
       ChangeNotifierProvider(create: (ctx) => StickerPackService(client: ctx.read<MatrixService>().client)),
+      ChangeNotifierProvider<RoomRepository>(create: (_) => RoomRepository(matrix: mockMatrix)),
+      ChangeNotifierProvider<UserRepository>(create: (_) => UserRepository(matrix: mockMatrix)),
     ],
     child: MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
@@ -112,8 +123,10 @@ void main() {
 
     when(mockMatrix.client).thenReturn(mockClient);
     when(mockMatrix.selection).thenReturn(selectionService);
+    when(mockMatrix.avatarResolver).thenReturn(const _NullAvatarResolver());
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
     when(mockClient.userID).thenReturn('@me:example.com');
+    when(mockMatrix.userID).thenReturn('@me:example.com');
     when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
     when(mockRoom.id).thenReturn('!room:example.com');
     when(mockRoom.client).thenReturn(mockClient);
