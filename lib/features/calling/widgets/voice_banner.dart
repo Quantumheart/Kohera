@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/calling/services/call_navigator.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/widgets/call_state_views.dart'
@@ -54,7 +55,7 @@ class _VoiceBannerState extends State<VoiceBanner> {
 
     _startTimer();
 
-    final room = callService.client.getRoomById(activeRoomId);
+    final room = context.read<RoomRepository>().rawRoom(activeRoomId);
     final roomName = room?.getLocalizedDisplayname() ?? 'Unknown room';
     final elapsed = callService.callElapsed;
     final elapsedText = elapsed != null ? formatCallElapsed(elapsed) : '';

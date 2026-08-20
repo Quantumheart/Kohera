@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/calling/models/incoming_call_info.dart' as model;
 import 'package:kohera/features/calling/services/call_permission_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -25,7 +26,7 @@ abstract class CallNavigator {
     final granted = await CallPermissionService.request();
     if (!granted || !context.mounted) return;
 
-    final room = callService.client.getRoomById(roomId);
+    final room = context.read<RoomRepository>().rawRoom(roomId);
     final isDm = room?.isDirectChat ?? false;
 
     if (isDm) {

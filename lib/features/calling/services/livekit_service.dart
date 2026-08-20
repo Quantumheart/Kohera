@@ -164,9 +164,9 @@ class LiveKitService {
 
     final local = _livekitRoom!.localParticipant;
     if (local != null) {
-      final localId = const CallParticipantResolver().extractMatrixId(local.identity);
+      final localId = CallParticipantResolver.extractMatrixId(local.identity);
       result.add(
-        const CallParticipantResolver().fromLiveKit(
+        CallParticipantResolver.fromLiveKit(
           local,
           activeSpeakers: _activeSpeakers,
           isLocal: true,
@@ -175,9 +175,9 @@ class LiveKitService {
       );
     }
     for (final p in _participants) {
-      final pId = const CallParticipantResolver().extractMatrixId(p.identity);
+      final pId = CallParticipantResolver.extractMatrixId(p.identity);
       result.add(
-        const CallParticipantResolver().fromLiveKit(
+        CallParticipantResolver.fromLiveKit(
           p,
           activeSpeakers: _activeSpeakers,
           avatarUrl: avatarFor(pId),

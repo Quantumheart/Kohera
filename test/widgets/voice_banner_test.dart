@@ -1,22 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/widgets/voice_banner.dart';
+import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
+import '../mocks/matrix_service_mock.mocks.dart';
 import 'room_tile_test.mocks.dart';
 
 void main() {
   late MockCallService mockCallService;
+  late MockMatrixService mockMatrixService;
   late MockClient mockClient;
   late MockRoom mockRoom;
+  late SelectionService selectionService;
 
   setUp(() {
     mockCallService = MockCallService();
+    mockMatrixService = MockMatrixService();
     mockClient = MockClient();
     mockRoom = MockRoom();
+
+    when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.rooms).thenReturn([]);
+    when(mockMatrixService.client).thenReturn(mockClient);
+    selectionService = SelectionService(client: mockClient);
+    when(mockMatrixService.selection).thenReturn(selectionService);
 
     when(mockCallService.client).thenReturn(mockClient);
     when(mockCallService.callState).thenReturn(KoheraCallState.idle);
@@ -36,11 +51,18 @@ void main() {
       ],
     );
 
-    return ChangeNotifierProvider<CallService>.value(
-      value: mockCallService,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<CallService>.value(value: mockCallService),
+        ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
+        ChangeNotifierProvider<RoomRepository>(
+          create: (_) => RoomRepository(matrix: mockMatrixService),
+        ),
+      ],
       child: MaterialApp.router(
-      theme: ThemeData(splashFactory: InkRipple.splashFactory),
-      routerConfig: router,),
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+        routerConfig: router,
+      ),
     );
   }
 

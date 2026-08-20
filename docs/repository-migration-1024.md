@@ -40,9 +40,9 @@ across `lib/features/`.
 | 2 | Spaces (+ shared `report_content_dialog`) | `bd84f99f` | ✅ Done |
 | 3 | Settings | `3e0da036` | ✅ Done |
 | 4 | E2EE | `71c4f031` | ✅ Done |
-| 5 | Notifications | — | 🔄 In progress |
-| 6 | Calling | — | Open |
-| 7 | Home / share_in | — | Open |
+| 5 | Notifications | `5a0a9175` | ✅ Done |
+| 6 | Calling | — | ✅ Done |
+| 7 | Home / share_in | — | 🔄 In progress |
 | 8 | Core routing (`app_router`, `account_switch_redirector`) | — | Open |
 
 Each done slice: `flutter analyze` clean, `flutter test` **2885 passed, 1
@@ -92,24 +92,48 @@ boundary to `KeyBackupRepository`: `encryption`/`userId` accessors,
 > verification. Recommend an `e2ee-auditor` (or `/security-review`) pass on
 > `71c4f031` against `docs/e2ee-flow.md` before merge.
 
-### 🔄 5 — Notifications (in progress)
+### ✅ 5 — Notifications (`5a0a9175`)
 
 New **`PushRepository`** (`lib/data/repositories/push_repository.dart`) as the
 notification SDK boundary: identity (`userId`/`deviceId`/`deviceName`),
-`onSync`, pusher registration (`postPusher`/`deletePusher`), and push-payload
+`onSync`, pusher registration (`postPusher`/`deletePusher`), push-payload
 access (`getRoom`, `getRoomEvent`, `decryptRoomEvent`,
-`unreadNotificationCount`). Wired into the provider tree in `main.dart`.
+`unreadNotificationCount`), `oneShotSync`, `getNotifications`, `postReceipt`,
+`rooms`, and media helpers (`mediaAuthHeaders`, `thumbnailUri`). Wired into
+the provider tree in `main.dart` (moved above `InboxController`).
 
-- **Done:** `push_service.dart` migrated to `PushRepository`.
-- **Remaining:** `apns_push_service`, `ios_voip_push_service`,
-  `web_push_service` (same pusher pattern), `notification_service`,
-  `notification_grouper`, `inbox_controller`, the
-  `NotificationLifecycleObserver` construction wiring in `main.dart`, and all
-  affected tests.
-- **Note:** `inbox_controller` / `notification_grouper` hold their own `Client`
-  field (`updateClient(Client)`, `_grouper..client = newClient`) — a
-  different shape than the other services; migrating them threads a repository
-  in place of the raw `Client`.
+- **Done:** all notification services migrated to `PushRepository` —
+  `push_service.dart`, `apns_push_service.dart`, `ios_voip_push_service.dart`,
+  `web_push_service.dart` (both real and stub), `notification_service.dart`,
+  `notification_grouper.dart`, `inbox_controller.dart`, and
+  `notification_group_tile.dart`.
+- `InboxController` / `NotificationGrouper` now hold a `PushRepository`
+  instead of a raw `Client`; `updateClient(Client)` →
+  `updateRepository(PushRepository)`.
+- `NotificationGroupTile` uses `MediaRepository.avatarResolver` from context
+  instead of `ClientAvatarResolver(room.client)`.
+- Added `RtcMembershipService.roomHasRemoteActiveCallWith(Room?, String?)`
+  overload so `IosVoipPushService` can check for active calls without holding
+  a raw `Client`.
+- `NotificationService` keeps `MatrixService` only for
+  `selection.selectedRoomId` (not `.client`).
+- `WebPushService` keeps `MatrixService` only for `selection.selectRoom`
+  (not `.client`).
+- `flutter analyze` clean, `flutter test` **2885 passed, 1 skipped**.
+
+### ✅ 6 — Calling
+
+Migrated the calling consumer layer off `.client` / resolver construction.
+`CallParticipantResolver` is now a stateless static surface
+(`extractMatrixId`/`fromLiveKit`), so `livekit_service.dart` calls it without
+constructing an instance. Room lookups in `adaptive_call_screen.dart`,
+`call_pane.dart`, `call_navigator.dart`, and `voice_banner.dart` route through
+`RoomRepository.rawRoom`. Avatar rendering in `call_pane.dart` and
+`participant_tile.dart` uses `MediaRepository.avatarResolver` from context.
+`participant_tile.dart` fetches participant avatars via new
+`UserRepository.fetchAvatarUrl`. `CallService.client` remains as the service's
+own SDK handle (not a consumer `.client` access; out of AC scope). Added
+`RoomRepository` to the `voice_banner_test` provider tree.
 
 ## Key design decisions
 
