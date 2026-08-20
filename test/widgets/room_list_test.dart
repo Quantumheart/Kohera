@@ -3,11 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/spaces/models/space_rooms_model.dart';
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 import 'package:kohera/features/spaces/widgets/space_reparent_controller.dart';
 import 'package:matrix/matrix.dart';
+import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
@@ -46,6 +48,7 @@ void main() {
     when(selection.orphanRooms).thenReturn([]);
     when(prefs.collapsedSpaceSections).thenReturn({});
     when(client.getRoomById(any)).thenReturn(null);
+    when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
   });
 
   Widget wrap(Widget child) => MaterialApp(
@@ -53,6 +56,9 @@ void main() {
     builder: (context, child) => MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrix),
+        ChangeNotifierProvider<RoomRepository>(
+          create: (_) => RoomRepository(matrix: matrix),
+        ),
         ChangeNotifierProvider<SelectionService>.value(value: selection),
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),
         ChangeNotifierProvider<SpaceRoomsController>.value(

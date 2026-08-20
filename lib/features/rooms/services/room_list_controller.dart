@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/services/room_list_builder.dart';
 import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
@@ -16,24 +16,24 @@ import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 /// and space-empty state.
 class RoomListController extends ChangeNotifier {
   RoomListController({
-    required MatrixService matrixService,
+    required RoomRepository roomRepository,
     required SelectionService selectionService,
     required PreferencesService preferencesService,
     required SpaceRoomsController spaceRoomsController,
     RoomListSearchController? messageSearchController,
-  }) : _matrix = matrixService,
+  }) : _rooms = roomRepository,
        _selection = selectionService,
        _prefs = preferencesService,
        _spaceRooms = spaceRoomsController,
        _messageSearch =
            messageSearchController ??
            RoomListSearchController(
-             getClient: () => matrixService.client,
+             getClient: () => roomRepository.searchClient,
            ) {
     _messageSearch.addListener(notifyListeners);
   }
 
-  final MatrixService _matrix;
+  final RoomRepository _rooms;
   final SelectionService _selection;
   final PreferencesService _prefs;
   final SpaceRoomsController _spaceRooms;
@@ -89,7 +89,7 @@ class RoomListController extends ChangeNotifier {
       !hasRoomItems && !hasMessageResults && !isMessageSearchActive;
 
   bool get selectedSpaceCanManage => _selection.selectedSpaceIds.any((id) {
-    final space = _matrix.client.getRoomById(id);
+    final space = _rooms.rawRoom(id);
     return space != null && space.canChangeStateEvent('m.space.child');
   });
 
@@ -102,7 +102,7 @@ class RoomListController extends ChangeNotifier {
     final ids = _selection.selectedSpaceIds;
     if (ids.isEmpty) return 'Chats';
     if (ids.length == 1) {
-      return _matrix.client.getRoomById(ids.first)?.getLocalizedDisplayname() ??
+      return _rooms.rawRoom(ids.first)?.getLocalizedDisplayname() ??
           'Space';
     }
     return '${ids.length} spaces';
@@ -113,7 +113,7 @@ class RoomListController extends ChangeNotifier {
     if (_query.isNotEmpty) return null;
 
     final spaceId = _selection.selectedSpaceIds.first;
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _rooms.rawRoom(spaceId);
     if (space == null || !space.isSpace) return null;
 
     final joinedRooms = _selection.roomsForSpace(spaceId);

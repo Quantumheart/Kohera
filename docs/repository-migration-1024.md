@@ -43,7 +43,9 @@ across `lib/features/`.
 | 5 | Notifications | `5a0a9175` | ✅ Done |
 | 6 | Calling | `0a9a6b06` | ✅ Done |
 | 7 | Home / share_in | — | ✅ Done |
-| 8 | Core routing (`app_router`, `account_switch_redirector`) | — | 🔄 In progress |
+| 8 | Core routing (`app_router`, `account_switch_redirector`) | — | ✅ Done |
+| 9 | Rooms | — | ✅ Done |
+| 10 | Chat | — | 🔄 In progress |
 
 Each done slice: `flutter analyze` clean, `flutter test` **2885 passed, 1
 skipped**.
@@ -145,6 +147,32 @@ escape hatch for the `sendIncomingShareToRoom` helper (which legitimately takes
 a raw `Client`), keeping multi-account correctness by reading the active client
 fresh per handle. Added `MediaRepository` to the `mobile_space_drawer` test
 tree.
+
+### ✅ 8 — Core routing
+
+`app_router` and `account_switch_redirector` no longer touch `matrix.client`
+directly; routing reads flow through the repository/service layer. No source
+changes remained in the working tree at slice close (grep already clean).
+
+### ✅ 9 — Rooms
+
+All 16 rooms source files migrated off `matrix.client` and direct resolver
+construction. `RoomRepository` grew the SDK boundary methods the feature needs:
+`setRoomStateWithKey`, `kick`/`ban`/`unban`, `startDirectChat`,
+`waitForRoomInSync`, alias ops (`getLocalAliases`/`setRoomAlias`/
+`deleteRoomAlias`), `searchUserDirectory`, `knownContacts`/`roomContacts`,
+`createRoom`, `setSpaceChild`, plus `userId` and the transitional `rawRoom`
+escape hatch. `RoomCreationService`, `RoomListController`,
+`RoomHistoryExporter`, `RoomAliasesController`, `JoinAccessController`,
+`PowerLevelService`, `RoomContextMenuActions`, `MemberSheetLauncher`, and the
+permissions host/watcher all take `RoomRepository` instead of `MatrixService`
+for SDK access. `RoomPermissionsHost` now reads `RoomRepository.permissionsFor`
+rather than constructing `RoomPermissionsResolver`; `MediaContentResolver`
+gained a `static resolve(event)` surface (construction stays in the data layer)
+for `shared_media_loader`. Widget/e2e/screen test trees gained a real
+`RoomRepository` provider wrapping the existing mock `MatrixService` (onSync
+stubbed); dialogs opened via `showDialog` needed the provider **above**
+`MaterialApp` so the root-navigator overlay is a descendant.
 
 ## Key design decisions
 

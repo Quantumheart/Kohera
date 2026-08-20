@@ -6,6 +6,7 @@ import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/services/join_access_controller.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -55,8 +56,13 @@ void main() {
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: SingleChildScrollView(
-          child: ChangeNotifierProvider<MatrixService>.value(
-            value: matrix,
+          child: MultiProvider(
+            providers: [
+              ChangeNotifierProvider<MatrixService>.value(value: matrix),
+              ChangeNotifierProvider<RoomRepository>(
+                create: (_) => RoomRepository(matrix: matrix),
+              ),
+            ],
             child: JoinAccessController(
               roomId: room.id,
               candidatesBuilder: candidatesBuilder,

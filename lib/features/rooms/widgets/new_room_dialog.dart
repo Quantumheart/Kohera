@@ -5,9 +5,11 @@ import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/models/kohera_user_summary.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/services/room_creation_service.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
+import 'package:provider/provider.dart';
 
 // ── New Room dialog ───────────────────────────────────────────
 
@@ -69,7 +71,10 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
   @override
   void initState() {
     super.initState();
-    _service = RoomCreationService(widget.matrixService);
+    _service = RoomCreationService(
+      widget.matrixService,
+      context.read<RoomRepository>(),
+    );
     _inviteFocusNode.addListener(_onFocusChanged);
     _initTargetSpaces();
     unawaited(_loadRestrictedCapabilities());
@@ -120,7 +125,7 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
         widget.matrixService.selection.selectedSpaceIds;
     final eligible = <SpaceRef>[];
     for (final id in source) {
-      final space = widget.matrixService.client.getRoomById(id);
+      final space = context.read<RoomRepository>().rawRoom(id);
       if (space != null && space.canChangeStateEvent('m.space.child')) {
         eligible.add((id: id, displayname: space.getLocalizedDisplayname()));
       }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/rooms/services/room_aliases_controller.dart';
 import 'package:matrix/matrix.dart';
@@ -33,6 +34,7 @@ void main() {
     when(mockMatrixService.client).thenReturn(mockClient);
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
     when(mockClient.userID).thenReturn('@me:example.com');
+    when(mockMatrixService.userID).thenReturn('@me:example.com');
     when(mockClient.onSync).thenReturn(syncController);
     when(mockClient.getLocalAliases('!room:example.com'))
         .thenAnswer((_) async => const ['#room:example.com']);
@@ -50,6 +52,9 @@ void main() {
   Widget buildTestWidget() => MultiProvider(
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
+          ChangeNotifierProvider<RoomRepository>(
+            create: (_) => RoomRepository(matrix: mockMatrixService),
+          ),
           ChangeNotifierProvider<SelectionService>.value(value: selectionService),
         ],
         child: const MaterialApp(

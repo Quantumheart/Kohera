@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/utils/known_contacts.dart' as contacts;
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/models/kohera_room_permissions.dart';
@@ -258,6 +259,100 @@ class RoomRepository extends ChangeNotifier {
   /// `/report` endpoint is per-event).
   String? lastEventId(String roomId) =>
       _matrix.client.getRoomById(roomId)?.lastEvent?.eventId;
+
+  // ── State writes ─────────────────────────────────────────────
+
+  /// Writes a room state event of [type] with [stateKey] to [roomId].
+  Future<void> setRoomStateWithKey(
+    String roomId,
+    String type,
+    String stateKey,
+    Map<String, dynamic> content,
+  ) =>
+      _matrix.client.setRoomStateWithKey(roomId, type, stateKey, content);
+
+  /// Unbans [userId] from [roomId], optionally recording a [reason].
+  Future<void> unban(String roomId, String userId, {String? reason}) =>
+      _matrix.client.unban(roomId, userId, reason: reason);
+
+  /// Kicks [userId] from [roomId], optionally recording a [reason].
+  Future<void> kick(String roomId, String userId, {String? reason}) =>
+      _matrix.client.kick(roomId, userId, reason: reason);
+
+  /// Bans [userId] from [roomId], optionally recording a [reason].
+  Future<void> ban(String roomId, String userId, {String? reason}) =>
+      _matrix.client.ban(roomId, userId, reason: reason);
+
+  // ── Direct chats ─────────────────────────────────────────────
+
+  /// The current user's Matrix ID.
+  String? get userId => _matrix.userID;
+
+  /// Starts (or reuses) a direct chat with [userId], returning its room ID.
+  Future<String> startDirectChat(String userId, {bool enableEncryption = true}) =>
+      _matrix.client.startDirectChat(userId, enableEncryption: enableEncryption);
+
+  /// Waits until [roomId] appears in a sync with the given membership.
+  Future<void> waitForRoomInSync(String roomId, {bool join = false}) =>
+      _matrix.client.waitForRoomInSync(roomId, join: join);
+
+  /// Raw client for the cross-room message search controller, which drives the
+  /// `/search` endpoint and scans encrypted rooms locally. Escape hatch pending
+  /// a dedicated search repository (#1025).
+  Client get searchClient => _matrix.client;
+
+  // ── Aliases ──────────────────────────────────────────────────
+
+  /// The local aliases published for [roomId] on the user's homeserver.
+  Future<List<String>> getLocalAliases(String roomId) =>
+      _matrix.client.getLocalAliases(roomId);
+
+  /// Publishes [alias] pointing at [roomId].
+  Future<void> setRoomAlias(String alias, String roomId) =>
+      _matrix.client.setRoomAlias(alias, roomId);
+
+  /// Removes the published [alias].
+  Future<void> deleteRoomAlias(String alias) =>
+      _matrix.client.deleteRoomAlias(alias);
+
+  // ── Room creation ────────────────────────────────────────────
+
+  /// Searches the user directory for [query].
+  Future<List<Profile>> searchUserDirectory(String query, {int limit = 20}) async {
+    final response = await _matrix.client.searchUserDirectory(query, limit: limit);
+    return response.results;
+  }
+
+  /// Profiles for users with an existing direct chat.
+  List<Profile> knownContacts() => contacts.knownContacts(_matrix.client);
+
+  /// Profiles for users from group rooms, excluding [excludeMxids].
+  List<Profile> roomContacts({Set<String> excludeMxids = const {}}) =>
+      contacts.roomContacts(_matrix.client, excludeMxids: excludeMxids);
+
+  /// Creates a room and returns its ID.
+  Future<String> createRoom({
+    String? name,
+    String? topic,
+    Visibility? visibility,
+    String? roomVersion,
+    List<StateEvent>? initialState,
+    List<String>? invite,
+  }) =>
+      _matrix.client.createRoom(
+        name: name,
+        topic: topic,
+        visibility: visibility,
+        roomVersion: roomVersion,
+        initialState: initialState,
+        invite: invite,
+      );
+
+  /// Adds [childRoomId] as a child of [spaceId].
+  Future<void> setSpaceChild(String spaceId, String childRoomId) async {
+    final space = _matrix.client.getRoomById(spaceId);
+    if (space != null) await space.setSpaceChild(childRoomId);
+  }
 
   // ── Transitional raw room access ──────────────────────────────
 

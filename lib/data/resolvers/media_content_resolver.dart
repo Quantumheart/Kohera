@@ -12,6 +12,9 @@ import 'package:matrix/matrix.dart';
 class MediaContentResolver {
   const MediaContentResolver();
 
+  static KoheraMediaContent resolve(Event event) =>
+      const MediaContentResolver()(event);
+
   KoheraMediaContent call(Event event) {
     final mediaType = _mediaTypeFor(event);
     final info = event.content.tryGet<Map<String, Object?>>('info');

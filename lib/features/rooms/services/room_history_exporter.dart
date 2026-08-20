@@ -1,4 +1,4 @@
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/models/kohera_export_format.dart';
 import 'package:kohera/features/rooms/models/kohera_room_export.dart';
 import 'package:matrix/matrix.dart';
@@ -10,9 +10,9 @@ import 'package:matrix/matrix.dart';
 /// [KoheraExportedMessage]s. Formatters below the boundary consume the
 /// returned [KoheraRoomExport] and never import `package:matrix`.
 class RoomHistoryExporter {
-  RoomHistoryExporter({required this.matrix});
+  RoomHistoryExporter({required this.rooms});
 
-  final MatrixService matrix;
+  final RoomRepository rooms;
 
   /// Fetches and converts the full message history of [roomId].
   ///
@@ -24,7 +24,7 @@ class RoomHistoryExporter {
     required KoheraExportOptions options,
     void Function(int loaded, int? total)? onProgress,
   }) async {
-    final room = matrix.client.getRoomById(roomId);
+    final room = rooms.rawRoom(roomId);
     if (room == null) {
       throw StateError('Room $roomId not found');
     }

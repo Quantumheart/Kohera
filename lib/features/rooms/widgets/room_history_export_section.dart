@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/models/kohera_export_format.dart';
 import 'package:kohera/features/rooms/services/history_export_file_writer.dart';
 import 'package:kohera/features/rooms/services/history_export_formatters.dart';
@@ -60,7 +61,7 @@ class _RoomHistoryExportSectionState extends State<RoomHistoryExportSection> {
 
   RoomHistoryExporter get _exporter =>
       widget.exporter ??
-      RoomHistoryExporter(matrix: context.read<MatrixService>());
+      RoomHistoryExporter(rooms: context.read<RoomRepository>());
 
   Future<String?> _save(Uint8List bytes, String fileName) {
     final override = widget.onSaveFile;

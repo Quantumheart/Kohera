@@ -90,6 +90,7 @@ void main() {
     when(mockMatrix.client).thenReturn(mockClient);
     when(mockMatrix.avatarResolver).thenReturn(const _NullAvatarResolver());
     when(mockClient.userID).thenReturn('@me:example.com');
+    when(mockMatrix.userID).thenReturn('@me:example.com');
     when(mockClient.onPresenceChanged).thenReturn(CachedStreamController<CachedPresence>());
     when(mockMatrix.presence).thenReturn(PresenceService(client: mockClient));
 

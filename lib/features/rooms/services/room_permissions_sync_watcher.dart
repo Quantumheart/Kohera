@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:matrix/matrix.dart';
 
 /// Watches sync updates for changes to room permissions-related state events
@@ -10,9 +10,9 @@ import 'package:matrix/matrix.dart';
 /// Encapsulates `SyncUpdate` handling so screens don't need to import
 /// `package:matrix/matrix.dart`.
 class RoomPermissionsSyncWatcher {
-  RoomPermissionsSyncWatcher({required this.matrix});
+  RoomPermissionsSyncWatcher({required this.rooms});
 
-  final MatrixService matrix;
+  final RoomRepository rooms;
 
   static const Set<String> _watchedTypes = {
     EventTypes.RoomPowerLevels,
@@ -26,7 +26,7 @@ class RoomPermissionsSyncWatcher {
   /// Starts watching. Calls [onChanged] (debounced) when permission-related
   /// state events arrive for [roomId].
   void watch(String roomId, VoidCallback onChanged) {
-    _sub = matrix.client.onSync.stream.listen((update) {
+    _sub = rooms.onSync.listen((update) {
       final stateEvents =
           update.rooms?.join?[roomId]?.state ?? [];
       if (!stateEvents.any((e) => _watchedTypes.contains(e.type))) return;

@@ -7,6 +7,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
 import 'package:provider/provider.dart';
 
@@ -47,11 +48,12 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
   bool _userDirty = false;
 
   SpaceAccessService get _service => context.read<MatrixService>().spaceAccess;
+  RoomRepository get _rooms => context.read<RoomRepository>();
 
   @override
   void initState() {
     super.initState();
-    final room = context.read<MatrixService>().client.getRoomById(widget.roomId);
+    final room = _rooms.rawRoom(widget.roomId);
     if (room != null) {
       _mode = _service.getJoinMode(room);
     } else {
@@ -63,7 +65,7 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _syncSub ??= context.read<MatrixService>().client.onSync.stream.listen(_onSync);
+    _syncSub ??= _rooms.onSync.listen(_onSync);
   }
 
   @override
@@ -76,7 +78,7 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
 
   void _onSync(dynamic _) {
     if (_userDirty || _busy || (_saveTimer?.isActive ?? false)) return;
-    final room = context.read<MatrixService>().client.getRoomById(widget.roomId);
+    final room = _rooms.rawRoom(widget.roomId);
     if (room == null) return;
     final remoteMode = _service.getJoinMode(room);
     final remoteAllowed = _resolveAllowed();
@@ -98,12 +100,11 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
   }
 
   List<SpaceRef> _resolveAllowed() {
-    final room = context.read<MatrixService>().client.getRoomById(widget.roomId);
+    final room = _rooms.rawRoom(widget.roomId);
     if (room == null) return const [];
     final ids = _service.allowedSpaceIds(room);
-    final client = context.read<MatrixService>().client;
     return ids
-        .map(client.getRoomById)
+        .map(_rooms.rawRoom)
         .where((r) => r != null)
         .map((r) => (id: r!.id, displayname: r.getLocalizedDisplayname()))
         .toList(growable: false);
@@ -132,7 +133,7 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
 
   bool get _needsUpgrade {
     if (!_mode.isRestrictedFamily) return false;
-    final room = context.read<MatrixService>().client.getRoomById(widget.roomId);
+    final room = _rooms.rawRoom(widget.roomId);
     if (room == null) return false;
     return _service.needsUpgradeForRestricted(
       room,
@@ -200,7 +201,7 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
     if (!confirmed || !mounted) return;
 
     final matrix = context.read<MatrixService>();
-    final room = matrix.client.getRoomById(widget.roomId);
+    final room = _rooms.rawRoom(widget.roomId);
     if (room == null) return;
     final parents = matrix.selection.parentSpacesOf(room);
 
@@ -212,7 +213,7 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
     try {
       final newRoomId = await _service.upgradeRoomTo(room, newVersion);
       try {
-        await matrix.client
+        await _rooms
             .waitForRoomInSync(newRoomId, join: true)
             .timeout(const Duration(seconds: 30));
       } on TimeoutException {
@@ -247,7 +248,7 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final room = context.read<MatrixService>().client.getRoomById(widget.roomId);
+    final room = _rooms.rawRoom(widget.roomId);
     final canEdit =
         room?.canChangeStateEvent('m.room.join_rules') == true && !_busy;
     return Column(
@@ -288,9 +289,8 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
 
   /// Converts a list of room IDs back to [SpaceRef] by looking up each room.
   List<SpaceRef> _idsToRefs(List<String> ids) {
-    final client = context.read<MatrixService>().client;
     return ids
-        .map(client.getRoomById)
+        .map(_rooms.rawRoom)
         .where((r) => r != null)
         .map((r) => (id: r!.id, displayname: r.getLocalizedDisplayname()))
         .toList(growable: false);

@@ -3,11 +3,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/widgets/new_dm_dialog.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:provider/provider.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
@@ -32,7 +34,9 @@ void main() {
   });
 
   Widget buildTestWidget() {
-    return MaterialApp(
+    return ChangeNotifierProvider<RoomRepository>(
+      create: (_) => RoomRepository(matrix: mockMatrixService),
+      child: MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
         body: Builder(
@@ -49,6 +53,7 @@ void main() {
           ),
         ),
       ),
+    ),
     );
   }
 

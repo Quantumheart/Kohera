@@ -1,4 +1,5 @@
 import 'package:kohera/data/models/kohera_room_permissions.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:matrix/matrix.dart';
 
 /// A partial update to a room's `m.room.power_levels` state event.
@@ -73,7 +74,11 @@ class PowerLevelException implements Exception {
 class PowerLevelService {
   const PowerLevelService._();
 
-  static Future<void> update(Room room, PowerLevelPatch patch) async {
+  static Future<void> update(
+    RoomRepository rooms,
+    Room room,
+    PowerLevelPatch patch,
+  ) async {
     if (patch.isEmpty) return;
 
     final current =
@@ -92,7 +97,7 @@ class PowerLevelService {
     _mergeMap(current, 'notifications', patch.notifications);
 
     try {
-      await room.client.setRoomStateWithKey(
+      await rooms.setRoomStateWithKey(
         room.id,
         EventTypes.RoomPowerLevels,
         '',
