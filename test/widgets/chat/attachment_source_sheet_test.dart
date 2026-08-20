@@ -24,6 +24,7 @@ void main() {
           ),
         ),
       ),
+      theme: ThemeData(splashFactory: NoSplash.splashFactory),
     ),);
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
