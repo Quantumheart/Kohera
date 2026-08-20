@@ -32,12 +32,12 @@ import 'package:matrix/matrix.dart';
 /// [RoomSearchResponse.nextBatch] as a decimal string.
 class LocalSearchService {
   LocalSearchService({
-    required this.client,
+    required this.searchClient,
     required this.database,
     this.getTimeline,
   });
 
-  final Client client;
+  final Client searchClient;
   final MessageSearchDatabase database;
 
   /// Optional accessor for the room's live [Timeline], used to aggregate edits
@@ -109,12 +109,11 @@ class LocalSearchService {
       endTs: endTs,
     );
 
-    final room = client.getRoomById(roomId);
+    final room = searchClient.getRoomById(roomId);
     // The room's live timeline (if loaded) drives edit/reply aggregation via
     // `Event.getDisplayEvent`. May be null early in the room lifecycle; the
     // indexed (already-edited) body is used as a fallback then.
     final timeline = getTimeline?.call();
-    const resolver = MessageDisplayResolver();
     final results = <RoomSearchResult>[];
 
     if (matches.isEmpty || room == null) {
@@ -137,15 +136,13 @@ class LocalSearchService {
 
       for (final match in matches) {
         final message =
-            await _resolveMatchedMessage(room, match, resolver, timeline);
+            await _resolveMatchedMessage(room, match, timeline);
         final before = await _resolveContextList(
           beforeByMatch[match] ?? const [],
-          resolver,
           timeline,
         );
         final after = await _resolveContextList(
           afterByMatch[match] ?? const [],
-          resolver,
           timeline,
         );
         results.add(RoomSearchResult(
@@ -252,7 +249,7 @@ class LocalSearchService {
   /// Returns an empty list when the fetch fails.
   Future<List<Event>> _loadEventChunk(Room room, int start) async {
     try {
-      return await client.database.getEventList(
+      return await searchClient.database.getEventList(
         room,
         start: start,
         limit: _chunkSize,
@@ -277,12 +274,11 @@ class LocalSearchService {
   Future<KoheraMessageDisplay> _resolveMatchedMessage(
     Room room,
     IndexedMessage match,
-    MessageDisplayResolver resolver,
     Timeline? timeline,
   ) async {
     Event? event;
     try {
-      event = await client.database.getEventById(match.eventId, room);
+      event = await searchClient.database.getEventById(match.eventId, room);
     } catch (e) {
       debugPrint('[Kohera] Local search: resolve match ${match.eventId}: $e');
     }
@@ -296,7 +292,7 @@ class LocalSearchService {
     // getDisplayEvent applies the latest edit (body, formatted text, …).
     if (timeline != null &&
         decrypted.hasAggregatedEvents(timeline, RelationshipTypes.edit)) {
-      return resolver(decrypted, timeline: timeline);
+      return MessageDisplayResolver.resolve(decrypted, timeline: timeline);
     }
 
     // No aggregated edit. If the indexed body differs from the stored event
@@ -308,7 +304,7 @@ class LocalSearchService {
 
     // Not edited (or edit already matches): rich display via the resolver,
     // using the timeline for reply stripping / relations when available.
-    return resolver(decrypted, timeline: timeline);
+    return MessageDisplayResolver.resolve(decrypted, timeline: timeline);
   }
 
   /// Decrypts and converts a list of context events to display models,
@@ -317,7 +313,6 @@ class LocalSearchService {
   /// aggregated when the timeline has them loaded.
   Future<List<KoheraMessageDisplay>> _resolveContextList(
     List<Event> events,
-    MessageDisplayResolver resolver,
     Timeline? timeline,
   ) async {
     if (events.isEmpty) return const [];
@@ -325,7 +320,10 @@ class LocalSearchService {
       ..sort((a, b) => a.originServerTs.compareTo(b.originServerTs));
     final out = <KoheraMessageDisplay>[];
     for (final event in sorted) {
-      out.add(resolver(await _decryptIfNeeded(event), timeline: timeline));
+      out.add(MessageDisplayResolver.resolve(
+        await _decryptIfNeeded(event),
+        timeline: timeline,
+      ));
     }
     return out;
   }
@@ -336,7 +334,7 @@ class LocalSearchService {
   /// graceful-decryption behaviour.
   Future<Event> _decryptIfNeeded(Event event) async {
     if (event.type != EventTypes.Encrypted) return event;
-    final encryption = client.encryption;
+    final encryption = searchClient.encryption;
     if (encryption == null) return event;
     try {
       return await encryption

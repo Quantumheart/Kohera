@@ -34,7 +34,7 @@ SharedMediaLoader sharedMediaLoaderForRoom(
     final items = result.events.map((event) {
       return SharedMediaItem(
         media: MediaContentResolver.resolve(event),
-        controller: SdkMediaController(event),
+        controller: SdkMediaController(event, roomRepo.searchClient),
       );
     }).toList();
 

@@ -21,9 +21,10 @@ import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/models/sticker_pack.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
 import 'package:kohera/data/resolvers/reply_preview_resolver.dart';
-import 'package:kohera/data/resolvers/room_summary_resolver.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/screens/thread_list_screen.dart';
 import 'package:kohera/features/chat/screens/thread_screen.dart';
@@ -142,9 +143,10 @@ class _ChatScreenState extends State<ChatScreen>
   void initState() {
     super.initState();
     final matrix = context.read<MatrixService>();
+    final rooms = context.read<RoomRepository>();
     final prefs = context.read<PreferencesService>();
     _timelineController = MessageTimelineController(
-      matrix: matrix,
+      rooms: rooms,
       roomId: widget.roomId,
       sendPublicReadReceipts: prefs.readReceipts,
       initialEventId: widget.initialEventId,
@@ -157,7 +159,7 @@ class _ChatScreenState extends State<ChatScreen>
     unawaited(_timelineController.init());
     // Lazily index this room's history for encrypted-room search.
     // This runs in the background and does not block the UI.
-    final room = matrix.client.getRoomById(widget.roomId);
+    final room = rooms.rawRoom(widget.roomId);
     if (room != null && room.encrypted) {
       unawaited(matrix.messageIndexer?.ensureRoomIndexed(room));
     }
@@ -171,17 +173,17 @@ class _ChatScreenState extends State<ChatScreen>
 
   Future<void> _refreshThreadUnreadCount() async {
     if (!mounted) return;
-    final matrix = context.read<MatrixService>();
-    final room = matrix.client.getRoomById(widget.roomId);
+    final rooms = context.read<RoomRepository>();
+    final room = rooms.rawRoom(widget.roomId);
     if (room == null) return;
     try {
       final summaries = await fetchThreadSummaries(
-        client: matrix.client,
+        client: rooms.searchClient,
         room: room,
       );
       if (!mounted) return;
       setState(() => _threadUnreadCount = totalThreadUnread(summaries));
-      _threadCountSyncSub ??= matrix.client.onSync.stream.listen((_) {
+      _threadCountSyncSub ??= rooms.onSync.listen((_) {
         if (!mounted) return;
         _threadCountDebounce?.cancel();
         _threadCountDebounce = Timer(
@@ -206,10 +208,10 @@ class _ChatScreenState extends State<ChatScreen>
     if (old.roomId != widget.roomId ||
         old.initialEventId != widget.initialEventId) {
       _timelineController.dispose();
-      final matrix = context.read<MatrixService>();
+      final rooms = context.read<RoomRepository>();
       final prefs = context.read<PreferencesService>();
       _timelineController = MessageTimelineController(
-        matrix: matrix,
+        rooms: rooms,
         roomId: widget.roomId,
         sendPublicReadReceipts: prefs.readReceipts,
         initialEventId: widget.initialEventId,
@@ -239,8 +241,7 @@ class _ChatScreenState extends State<ChatScreen>
   EmojiAutocompleteController? _emojiController;
 
   void _initControllers() {
-    final room =
-        context.read<MatrixService>().client.getRoomById(widget.roomId);
+    final room = context.read<RoomRepository>().rawRoom(widget.roomId);
     if (room != null) {
       _typingCtrl = TypingController(room: room);
       _voiceCtrl = VoiceRecordingController();
@@ -263,28 +264,29 @@ class _ChatScreenState extends State<ChatScreen>
     return ChatMessageActions(
       getRoomId: () => widget.roomId,
       getRoom: () =>
-          context.read<MatrixService>().client.getRoomById(widget.roomId),
+          context.read<RoomRepository>().rawRoom(widget.roomId),
       getTimeline: () => _timelineController.timeline,
       compose: _compose,
       msgCtrl: _msgCtrl,
       getScaffold: () => ScaffoldMessenger.of(context),
-      getMatrixService: () => context.read<MatrixService>(),
+      getRoomRepository: () => context.read<RoomRepository>(),
     );
   }
 
   ChatSearchController _createSearchController() {
     final matrix = context.read<MatrixService>();
+    final rooms = context.read<RoomRepository>();
     final indexerDb = matrix.messageIndexer?.database;
     return ChatSearchController(
       roomId: widget.roomId,
       messageIndexer: matrix.messageIndexer,
       searchService: RoomSearchService(
-        client: matrix.client,
+        searchClient: rooms.searchClient,
         getTimeline: () => _timelineController.timeline,
         localSearchService: indexerDb == null
             ? null
             : LocalSearchService(
-                client: matrix.client,
+                searchClient: rooms.searchClient,
                 database: indexerDb,
                 getTimeline: () => _timelineController.timeline,
               ),
@@ -369,22 +371,18 @@ class _ChatScreenState extends State<ChatScreen>
 
   void _forwardMessage(String eventId) {
     final matrix = context.read<MatrixService>();
+    final rooms = context.read<RoomRepository>();
     final event = _timelineController.getEventById(eventId);
     if (event == null) return;
     final timeline = _timelineController.timeline;
-    const resolver = RoomSummaryResolver();
-    final myUserId = matrix.client.userID;
-    final targets = matrix.client.rooms
-        .where((r) => r.membership.name == 'join' && !r.isSpace)
-        .map((r) => resolver(r, myUserId: myUserId))
-        .toList();
+    final targets = rooms.roomSummaries;
     unawaited(
       ForwardMessageDialog.show(
         context,
         targets: targets,
         avatarResolver: matrix.avatarResolver,
         onForward: (roomId) async {
-          final target = matrix.client.getRoomById(roomId);
+          final target = rooms.rawRoom(roomId);
           if (target == null) return;
           await MessageForwarder.forward(
             event: event,
@@ -403,8 +401,8 @@ class _ChatScreenState extends State<ChatScreen>
   // ── Mention resolver ───────────────────────────────────
 
   MentionDisplayNameResolver _buildMentionResolver(String roomId) {
-    final matrix = context.read<MatrixService>();
-    final room = matrix.client.getRoomById(roomId);
+    final rooms = context.read<RoomRepository>();
+    final room = rooms.rawRoom(roomId);
     if (room == null) {
       return (_) => null;
     }
@@ -417,7 +415,7 @@ class _ChatScreenState extends State<ChatScreen>
         }
       } else if (identifier.startsWith('!')) {
         try {
-          return room.client.getRoomById(identifier)?.getLocalizedDisplayname();
+          return rooms.rawRoom(identifier)?.getLocalizedDisplayname();
         } catch (_) {
           return null;
         }
@@ -629,7 +627,7 @@ class _ChatScreenState extends State<ChatScreen>
       ];
     }
     final matrix = context.read<MatrixService>();
-    final message = const MessageDisplayResolver()(
+    final message = MessageDisplayResolver.resolve(
       event,
       timeline: _timelineController.timeline,
     );
@@ -677,9 +675,9 @@ class _ChatScreenState extends State<ChatScreen>
       destructive: true,
     );
     if (!confirmed || !mounted) return;
-    final matrix = context.read<MatrixService>();
+    final users = context.read<UserRepository>();
     try {
-      await matrix.client.ignoreUser(senderId, leaveRooms: false);
+      await users.ignoreUser(senderId,);
       if (mounted) context.showSnack('Ignored $displayName');
     } catch (e) {
       debugPrint('[Kohera] Ignore sender failed: $e');
@@ -692,9 +690,9 @@ class _ChatScreenState extends State<ChatScreen>
   Future<void> _reportMessage(Event event) async {
     final reason = await showReportContentDialog(context);
     if (reason == null || reason.isEmpty || !mounted) return;
-    final matrix = context.read<MatrixService>();
+    final rooms = context.read<RoomRepository>();
     try {
-      await matrix.client.reportEvent(
+      await rooms.reportEvent(
         event.room.id,
         event.eventId,
         reason: reason,
@@ -751,7 +749,7 @@ class _ChatScreenState extends State<ChatScreen>
     final cs = Theme.of(context).colorScheme;
     final isPinned = event.room.pinnedEventIds.contains(event.eventId);
     final matrix = context.read<MatrixService>();
-    final message = const MessageDisplayResolver()(
+    final message = MessageDisplayResolver.resolve(
       event,
       timeline: _timelineController.timeline,
     );
@@ -898,7 +896,7 @@ class _ChatScreenState extends State<ChatScreen>
     _searchCtrl.clear();
     // Ensure the room's encrypted history is indexed for search.
     final matrix = context.read<MatrixService>();
-    final room = matrix.client.getRoomById(widget.roomId);
+    final room = context.read<RoomRepository>().rawRoom(widget.roomId);
     if (room != null && room.encrypted) {
       unawaited(matrix.messageIndexer?.ensureRoomIndexed(room));
     }
@@ -930,8 +928,7 @@ class _ChatScreenState extends State<ChatScreen>
       AppConfig.isInitialized && AppConfig.instance.giphyEnabled;
 
   Future<void> _handleGifPressed() async {
-    final room =
-        context.read<MatrixService>().client.getRoomById(widget.roomId);
+    final room = context.read<RoomRepository>().rawRoom(widget.roomId);
     if (room == null) return;
     final gif = await GiphyGet.getGif(
       context: context,
@@ -956,7 +953,7 @@ class _ChatScreenState extends State<ChatScreen>
         MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
     if (isNarrow) {
       final matrix = context.read<MatrixService>();
-      final room = matrix.client.getRoomById(widget.roomId);
+      final room = context.read<RoomRepository>().rawRoom(widget.roomId);
       if (room != null) _openStickerSheet(matrix, room.id);
       return;
     }
@@ -967,7 +964,7 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _openStickerSheet(MatrixService matrix, String roomId) {
-    final room = matrix.client.getRoomById(roomId);
+    final room = context.read<RoomRepository>().rawRoom(roomId);
     if (room == null) return;
     final stickerService = context.read<StickerPackService>();
     final skinTone = context.read<PreferencesService>().skinTone;
@@ -1004,7 +1001,7 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Widget _buildEmojiPanel(MatrixService matrix, String roomId) {
-    final room = matrix.client.getRoomById(roomId);
+    final room = context.read<RoomRepository>().rawRoom(roomId);
     if (room == null) return const SizedBox.shrink();
     final cs = Theme.of(context).colorScheme;
     final stickerService = context.watch<StickerPackService>();
@@ -1040,8 +1037,7 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Future<void> _handleStickerSelected(PackImage sticker) async {
-    final room =
-        context.read<MatrixService>().client.getRoomById(widget.roomId);
+    final room = context.read<RoomRepository>().rawRoom(widget.roomId);
     if (room == null) return;
     try {
       await room.sendEvent(
@@ -1100,7 +1096,7 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   Widget build(BuildContext context) {
     final matrix = context.watch<MatrixService>();
-    final room = matrix.client.getRoomById(widget.roomId);
+    final room = context.watch<RoomRepository>().rawRoom(widget.roomId);
     final tt = Theme.of(context).textTheme;
 
     if (room == null) {
@@ -1197,7 +1193,7 @@ class _ChatScreenState extends State<ChatScreen>
   // ── Chat body (messages + compose) ────────────────────────
 
   Widget _buildChatBody(MatrixService matrix, String roomId) {
-    final room = matrix.client.getRoomById(roomId);
+    final room = context.read<RoomRepository>().rawRoom(roomId);
     if (room == null) {
       return Center(
         child: Text(
@@ -1270,8 +1266,8 @@ class _ChatScreenState extends State<ChatScreen>
                       final event = _timelineController.getEventById(id);
                       final timeline = _timelineController.timeline;
                       if (event == null || timeline == null) return null;
-                      return const ReplyPreviewResolver()
-                          .resolveParent(event, timeline);
+                      return ReplyPreviewResolver.resolveParent(
+                          event, timeline);
                     },
                     isMe: isMe,
                     onParentTap: onParentTap,
@@ -1303,7 +1299,7 @@ class _ChatScreenState extends State<ChatScreen>
         TypingIndicator(
           typingDisplayNamesProvider: () =>
               matrix.selection.summaryFor(room).typingDisplayNames,
-          syncStream: matrix.client.onSync.stream,
+          syncStream: context.read<RoomRepository>().onSync,
         ),
         ComposeBarSection(
           replyNotifier: _compose.replyNotifier,

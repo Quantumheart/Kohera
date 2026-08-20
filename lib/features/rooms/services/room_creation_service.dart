@@ -18,7 +18,7 @@ class RoomCreationService {
 
   /// Searches the user directory for [query], returning `KoheraUserSummary`.
   Future<List<KoheraUserSummary>> searchUserDirectory(String query) async {
-    final results = await _rooms.searchUserDirectory(query, limit: 20);
+    final results = await _rooms.searchUserDirectory(query,);
     return results.map(_toSummary).toList(growable: false);
   }
 

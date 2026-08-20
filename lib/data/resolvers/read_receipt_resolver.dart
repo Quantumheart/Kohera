@@ -17,6 +17,13 @@ import 'package:matrix/matrix.dart';
 class ReadReceiptResolver {
   const ReadReceiptResolver();
 
+  static Map<String, List<KoheraReadReceipt>> resolve(
+    Room room,
+    String? myUserId, {
+    String? threadRootId,
+  }) =>
+      const ReadReceiptResolver()(room, myUserId, threadRootId: threadRootId);
+
   Map<String, List<KoheraReadReceipt>> call(
     Room room,
     String? myUserId, {

@@ -1,4 +1,4 @@
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/chat/services/thread_roots_service.dart';
 import 'package:matrix/matrix.dart';
 
@@ -36,16 +36,16 @@ class ThreadReplyLoader {
   ///
   /// Returns `true` if the root event was found.
   Future<bool> loadRoot(
-    MatrixService matrix,
+    RoomRepository rooms,
     String roomId,
     String threadRootEventId,
   ) async {
-    final room = matrix.client.getRoomById(roomId);
+    final room = rooms.rawRoom(roomId);
     if (room == null) return false;
 
     final root = await room.getEventById(threadRootEventId);
     final page = await fetchThreadChildrenPage(
-      matrix.client,
+      rooms.searchClient,
       room,
       threadRootEventId,
     );
@@ -60,18 +60,18 @@ class ThreadReplyLoader {
   ///
   /// Returns `true` if new replies were loaded, `false` if there are no more.
   Future<bool> loadMoreReplies(
-    MatrixService matrix,
+    RoomRepository rooms,
     String roomId,
     String threadRootEventId,
   ) async {
     final from = _repliesNextBatch;
     if (from == null) return false;
 
-    final room = matrix.client.getRoomById(roomId);
+    final room = rooms.rawRoom(roomId);
     if (room == null) return false;
 
     final page = await fetchThreadChildrenPage(
-      matrix.client,
+      rooms.searchClient,
       room,
       threadRootEventId,
       from: from,

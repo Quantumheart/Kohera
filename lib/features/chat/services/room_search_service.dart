@@ -21,12 +21,12 @@ import 'package:matrix/matrix.dart';
 /// the UI can show the platform-specific "not available" message.
 class RoomSearchService {
   RoomSearchService({
-    required this.client,
+    required this.searchClient,
     this.localSearchService,
     this.getTimeline,
   });
 
-  final Client client;
+  final Client searchClient;
 
   /// Optional local (FTS5) search backend for encrypted rooms. `null` when the
   /// platform does not support the local search index.
@@ -55,7 +55,7 @@ class RoomSearchService {
     String? senderId,
     DateTimeRange? dateRange,
   }) async {
-    final room = client.getRoomById(roomId);
+    final room = searchClient.getRoomById(roomId);
     if (room == null) {
       return const RoomSearchResponse();
     }
@@ -79,7 +79,7 @@ class RoomSearchService {
     }
 
     try {
-      final searchResults = await client.search(
+      final searchResults = await searchClient.search(
         Categories(
           roomEvents: RoomEventsCriteria(
             searchTerm: searchTerm,
@@ -111,26 +111,23 @@ class RoomSearchService {
       // The timeline is not owned by this service and must not be disposed
       // here.
       final timeline = getTimeline?.call();
-      const resolver = MessageDisplayResolver();
       final results = <RoomSearchResult>[];
       for (final result in roomEvents.results ?? <Result>[]) {
         final matrixEvent = result.result;
         if (matrixEvent == null) continue;
 
         final event = Event.fromMatrixEvent(matrixEvent, room);
-        final message = resolver(event, timeline: timeline);
+        final message = MessageDisplayResolver.resolve(event, timeline: timeline);
 
         final context = result.context;
         final before = _resolveContext(
           context?.eventsBefore,
           room,
-          resolver,
           timeline,
         );
         final after = _resolveContext(
           context?.eventsAfter,
           room,
-          resolver,
           timeline,
         );
 
@@ -166,12 +163,14 @@ class RoomSearchService {
   static List<KoheraMessageDisplay> _resolveContext(
     List<MatrixEvent>? events,
     Room room,
-    MessageDisplayResolver resolver,
     Timeline? timeline,
   ) {
     if (events == null || events.isEmpty) return const [];
     return events
-        .map((me) => resolver(Event.fromMatrixEvent(me, room), timeline: timeline))
+        .map((me) => MessageDisplayResolver.resolve(
+              Event.fromMatrixEvent(me, room),
+              timeline: timeline,
+            ))
         .toList(growable: false);
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/models/kohera_message_display.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
 import 'package:matrix/matrix.dart';
 
@@ -12,10 +12,10 @@ class PinnedMessagesLoader {
   /// Loads all pinned events for [roomId] and returns them as
   /// [KoheraMessageDisplay] models, or `null` if the room is not found.
   static Future<List<KoheraMessageDisplay>?> load(
-    MatrixService matrix,
+    RoomRepository rooms,
     String roomId,
   ) async {
-    final room = matrix.client.getRoomById(roomId);
+    final room = rooms.rawRoom(roomId);
     if (room == null) return null;
 
     final ids = room.pinnedEventIds;
@@ -31,24 +31,23 @@ class PinnedMessagesLoader {
     );
 
     final events = results.whereType<Event>().toList();
-    const resolver = MessageDisplayResolver();
-    return events.map((e) => resolver(e)).toList();
+    return events.map(MessageDisplayResolver.resolve).toList();
   }
 
   /// Returns whether the current user can pin/unpin messages in [roomId].
-  static bool canPin(MatrixService matrix, String roomId) {
-    final room = matrix.client.getRoomById(roomId);
+  static bool canPin(RoomRepository rooms, String roomId) {
+    final room = rooms.rawRoom(roomId);
     if (room == null) return false;
     return room.canChangeStateEvent('m.room.pinned_events');
   }
 
   /// Removes [eventId] from the pinned events list for [roomId].
   static Future<void> unpin(
-    MatrixService matrix,
+    RoomRepository rooms,
     String roomId,
     String eventId,
   ) async {
-    final room = matrix.client.getRoomById(roomId);
+    final room = rooms.rawRoom(roomId);
     if (room == null) return;
     final pinned = List<String>.from(room.pinnedEventIds);
     pinned.remove(eventId);

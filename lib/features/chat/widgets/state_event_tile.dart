@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/time_format.dart';
 import 'package:kohera/data/models/kohera_state_event_text.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:provider/provider.dart';
 
 class StateEventTile extends StatelessWidget {
@@ -66,14 +66,14 @@ class StateEventTile extends StatelessWidget {
     final replacement = item.replacementRoomId;
     if (replacement == null || replacement.isEmpty) return;
 
-    final matrix = context.read<MatrixService>();
+    final rooms = context.read<RoomRepository>();
     final scaffold = ScaffoldMessenger.of(context);
     final router = GoRouter.of(context);
 
     try {
-      final existing = matrix.client.getRoomById(replacement);
+      final existing = rooms.rawRoom(replacement);
       if (existing == null) {
-        await matrix.client.joinRoom(replacement);
+        await rooms.joinRoom(replacement);
       }
       router.goNamed(Routes.room, pathParameters: {RouteParams.roomId: replacement});
     } catch (e) {

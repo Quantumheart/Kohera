@@ -23,7 +23,7 @@ class ReplyPreviewResolver {
   /// Calls `event.getReplyEvent(timeline)` and returns a [KoheraReplyPreview]
   /// with pre-computed display fields, or `null` if the parent is unavailable,
   /// redacted, or a redaction event.
-  Future<KoheraReplyPreview?> resolveParent(
+  static Future<KoheraReplyPreview?> resolveParent(
     Event replyEvent,
     Timeline timeline,
   ) async {
@@ -46,9 +46,9 @@ class ReplyPreviewResolver {
   ///
   /// Use this when the event is already known (e.g. the reply/edit target in
   /// the compose bar) and no async parent resolution is needed.
-  KoheraReplyPreview fromEvent(Event event) => _fromEvent(event);
+  static KoheraReplyPreview fromEvent(Event event) => _fromEvent(event);
 
-  KoheraReplyPreview _fromEvent(Event event) {
+  static KoheraReplyPreview _fromEvent(Event event) {
     final sender = event.senderFromMemoryOrFallback;
     final senderName = sender.displayName ?? event.senderId;
     final isBadEncrypted = event.messageType == MessageTypes.BadEncrypted;

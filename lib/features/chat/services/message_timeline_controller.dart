@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/models/call_constants.dart';
 import 'package:kohera/data/models/kohera_media_content.dart';
 import 'package:kohera/data/models/kohera_poll.dart';
 import 'package:kohera/data/models/kohera_reaction.dart';
 import 'package:kohera/data/models/kohera_read_receipt.dart';
 import 'package:kohera/data/models/kohera_state_event_text.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/resolvers/media_content_resolver.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
 import 'package:kohera/data/resolvers/poll_resolver.dart';
@@ -29,7 +29,7 @@ import 'package:matrix/matrix.dart';
 /// [ChatMessageData] and never import `package:matrix/matrix.dart`.
 class MessageTimelineController extends ChangeNotifier {
   MessageTimelineController({
-    required this.matrix,
+    required this.rooms,
     required this.roomId,
     required this.sendPublicReadReceipts,
     this.initialEventId,
@@ -38,7 +38,7 @@ class MessageTimelineController extends ChangeNotifier {
     this.onTimelineChanged,
   }) : _extraEvents = extraEvents;
 
-  final MatrixService matrix;
+  final RoomRepository rooms;
   final String roomId;
   final bool sendPublicReadReceipts;
   final String? initialEventId;
@@ -68,7 +68,7 @@ class MessageTimelineController extends ChangeNotifier {
   Timeline? get timeline => _timeline;
   Room? get room => _room;
 
-  String? get myUserId => matrix.client.userID;
+  String? get myUserId => rooms.userId;
 
   List<ChatMessageData> get messages {
     if (_cachedMessages != null) return _cachedMessages!;
@@ -78,7 +78,7 @@ class MessageTimelineController extends ChangeNotifier {
       timelineEvents,
       extraEvents: _extraEvents,
       threadRootId: threadRootEventId,
-      ignoredUserIds: matrix.client.ignoredUsers,
+      ignoredUserIds: rooms.ignoredUsers,
     );
     _cachedMessages = _buildMessageData(visible);
     return _cachedMessages!;
@@ -94,7 +94,7 @@ class MessageTimelineController extends ChangeNotifier {
       _cachedReceipts = {};
       return _cachedReceipts!;
     }
-    _cachedReceipts = const ReadReceiptResolver()(
+    _cachedReceipts = ReadReceiptResolver.resolve(
       room,
       uid,
       threadRootId: threadRootEventId,
@@ -133,7 +133,7 @@ class MessageTimelineController extends ChangeNotifier {
   // ── Lifecycle ──────────────────────────────────────────
 
   Future<void> init() async {
-    _room = matrix.client.getRoomById(roomId);
+    _room = rooms.rawRoom(roomId);
     if (_room == null) return;
     await _initTimeline();
   }
@@ -182,7 +182,7 @@ class MessageTimelineController extends ChangeNotifier {
   void _requestMissingKeys() {
     final room = _room;
     if (room == null) return;
-    final encryption = room.client.encryption;
+    final encryption = rooms.encryption;
     if (encryption == null) return;
 
     final events = _timeline?.events;
@@ -261,7 +261,6 @@ class MessageTimelineController extends ChangeNotifier {
       if (_disposed) return;
       final room = _room;
       if (room == null) return;
-      final client = matrix.client;
       final threadRootId = threadRootEventId;
 
       if (threadRootId != null) {
@@ -269,7 +268,7 @@ class MessageTimelineController extends ChangeNotifier {
         if (visible.isEmpty) return;
         final lastThreadEvent = visible.first;
         try {
-          await client.postReceipt(
+          await rooms.postReceipt(
             room.id,
             ReceiptType.mRead,
             lastThreadEvent.eventId,
@@ -290,7 +289,7 @@ class MessageTimelineController extends ChangeNotifier {
           lastMainEvent.eventId,
           mRead: sendPublicReadReceipts ? lastMainEvent.eventId : null,
         );
-        await client.postReceipt(
+        await rooms.postReceipt(
           room.id,
           ReceiptType.mRead,
           lastMainEvent.eventId,
@@ -477,7 +476,7 @@ class MessageTimelineController extends ChangeNotifier {
       KoheraReactionList? reactions;
       if (timeline != null &&
           event.hasAggregatedEvents(timeline, RelationshipTypes.reaction)) {
-        reactions = const ReactionResolver().resolve(
+        reactions = ReactionResolver.resolve(
           event,
           timeline,
           myUserId: uid,
@@ -485,7 +484,7 @@ class MessageTimelineController extends ChangeNotifier {
       }
 
       final category = _classifyEvent(event);
-      final message = const MessageDisplayResolver()(
+      final message = MessageDisplayResolver.resolve(
         event,
         timeline: timeline,
       );
@@ -498,15 +497,15 @@ class MessageTimelineController extends ChangeNotifier {
 
       switch (category) {
         case MessageCategory.stateEvent:
-          stateEventText = const StateEventResolver()(event);
+          stateEventText = StateEventResolver.resolve(event);
         case MessageCategory.sticker:
-          media = const MediaContentResolver()(event);
-          mediaController = SdkMediaController(event);
+          media = MediaContentResolver.resolve(event);
+          mediaController = SdkMediaController(event, rooms.searchClient);
         case MessageCategory.callEvent:
           callDuration = _callDuration(event);
         case MessageCategory.poll:
           if (timeline != null) {
-            poll = const PollResolver()(
+            poll = PollResolver.resolve(
               event,
               timeline,
               myUserId: uid,
@@ -515,8 +514,8 @@ class MessageTimelineController extends ChangeNotifier {
           }
         case MessageCategory.message:
           if (!isRedacted) {
-            media = const MediaContentResolver()(event);
-            mediaController = SdkMediaController(event);
+            media = MediaContentResolver.resolve(event);
+            mediaController = SdkMediaController(event, rooms.searchClient);
           }
       }
 

@@ -16,7 +16,7 @@ class ReactionResolver {
   ///
   /// [myUserId] is the current user's Matrix ID — used to compute
   /// [KoheraReaction.reactedByMe] for each emoji group.
-  KoheraReactionList resolve(
+  static KoheraReactionList resolve(
     Event event,
     Timeline timeline, {
     required String myUserId,
