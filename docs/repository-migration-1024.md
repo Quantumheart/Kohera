@@ -41,9 +41,9 @@ across `lib/features/`.
 | 3 | Settings | `3e0da036` | ✅ Done |
 | 4 | E2EE | `71c4f031` | ✅ Done |
 | 5 | Notifications | `5a0a9175` | ✅ Done |
-| 6 | Calling | — | ✅ Done |
-| 7 | Home / share_in | — | 🔄 In progress |
-| 8 | Core routing (`app_router`, `account_switch_redirector`) | — | Open |
+| 6 | Calling | `0a9a6b06` | ✅ Done |
+| 7 | Home / share_in | — | ✅ Done |
+| 8 | Core routing (`app_router`, `account_switch_redirector`) | — | 🔄 In progress |
 
 Each done slice: `flutter analyze` clean, `flutter test` **2885 passed, 1
 skipped**.
@@ -134,6 +134,17 @@ constructing an instance. Room lookups in `adaptive_call_screen.dart`,
 `UserRepository.fetchAvatarUrl`. `CallService.client` remains as the service's
 own SDK handle (not a consumer `.client` access; out of AC scope). Added
 `RoomRepository` to the `voice_banner_test` provider tree.
+
+### ✅ 7 — Home / share_in
+
+`mobile_space_drawer.dart` now renders space avatars via
+`MediaRepository.avatarResolver` from context instead of
+`ClientAvatarResolver(space.client)`. `ShareIntakeController` no longer reaches
+through `activeService.client`; added `ClientManager.activeClient` as the SDK
+escape hatch for the `sendIncomingShareToRoom` helper (which legitimately takes
+a raw `Client`), keeping multi-account correctness by reading the active client
+fresh per handle. Added `MediaRepository` to the `mobile_space_drawer` test
+tree.
 
 ## Key design decisions
 
