@@ -5,8 +5,16 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i5;
 import 'dart:typed_data' as _i10;
+import 'dart:ui' as _i19;
 
 import 'package:http/http.dart' as _i4;
+import 'package:kohera/core/services/matrix_service.dart' as _i15;
+import 'package:kohera/data/models/kohera_push_rule_state.dart' as _i18;
+import 'package:kohera/data/models/kohera_room_member.dart' as _i17;
+import 'package:kohera/data/models/kohera_room_permissions.dart' as _i16;
+import 'package:kohera/data/models/kohera_room_summary.dart' as _i13;
+import 'package:kohera/data/models/space_node.dart' as _i14;
+import 'package:kohera/data/repositories/room_repository.dart' as _i12;
 import 'package:matrix/encryption.dart' as _i8;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;
@@ -8365,4 +8373,652 @@ class MockTimeline extends _i1.Mock implements _i2.Timeline {
                 _i5.Stream<(List<_i2.Event>, String?)>.empty(),
           )
           as _i5.Stream<(List<_i2.Event>, String?)>);
+}
+
+/// A class which mocks [RoomRepository].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockRoomRepository extends _i1.Mock implements _i12.RoomRepository {
+  @override
+  List<_i13.KoheraRoomSummary> get roomSummaries =>
+      (super.noSuchMethod(
+            Invocation.getter(#roomSummaries),
+            returnValue: <_i13.KoheraRoomSummary>[],
+            returnValueForMissingStub: <_i13.KoheraRoomSummary>[],
+          )
+          as List<_i13.KoheraRoomSummary>);
+
+  @override
+  List<_i13.KoheraRoomSummary> get orphanRoomSummaries =>
+      (super.noSuchMethod(
+            Invocation.getter(#orphanRoomSummaries),
+            returnValue: <_i13.KoheraRoomSummary>[],
+            returnValueForMissingStub: <_i13.KoheraRoomSummary>[],
+          )
+          as List<_i13.KoheraRoomSummary>);
+
+  @override
+  Set<String> get selectedSpaceIds =>
+      (super.noSuchMethod(
+            Invocation.getter(#selectedSpaceIds),
+            returnValue: <String>{},
+            returnValueForMissingStub: <String>{},
+          )
+          as Set<String>);
+
+  @override
+  List<_i14.SpaceNode> get spaceTree =>
+      (super.noSuchMethod(
+            Invocation.getter(#spaceTree),
+            returnValue: <_i14.SpaceNode>[],
+            returnValueForMissingStub: <_i14.SpaceNode>[],
+          )
+          as List<_i14.SpaceNode>);
+
+  @override
+  _i5.Stream<_i2.SyncUpdate> get onSync =>
+      (super.noSuchMethod(
+            Invocation.getter(#onSync),
+            returnValue: _i5.Stream<_i2.SyncUpdate>.empty(),
+            returnValueForMissingStub: _i5.Stream<_i2.SyncUpdate>.empty(),
+          )
+          as _i5.Stream<_i2.SyncUpdate>);
+
+  @override
+  List<String> get ignoredUsers =>
+      (super.noSuchMethod(
+            Invocation.getter(#ignoredUsers),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
+          )
+          as List<String>);
+
+  @override
+  _i2.Client get searchClient =>
+      (super.noSuchMethod(
+            Invocation.getter(#searchClient),
+            returnValue: _FakeClient_68(this, Invocation.getter(#searchClient)),
+            returnValueForMissingStub: _FakeClient_68(
+              this,
+              Invocation.getter(#searchClient),
+            ),
+          )
+          as _i2.Client);
+
+  @override
+  bool get hasListeners =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasListeners),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  void updateMatrixService(_i15.MatrixService? matrix) => super.noSuchMethod(
+    Invocation.method(#updateMatrixService, [matrix]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  _i13.KoheraRoomSummary? summaryFor(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#summaryFor, [roomId]),
+            returnValueForMissingStub: null,
+          )
+          as _i13.KoheraRoomSummary?);
+
+  @override
+  List<_i13.KoheraRoomSummary> summariesForSpace(String? spaceId) =>
+      (super.noSuchMethod(
+            Invocation.method(#summariesForSpace, [spaceId]),
+            returnValue: <_i13.KoheraRoomSummary>[],
+            returnValueForMissingStub: <_i13.KoheraRoomSummary>[],
+          )
+          as List<_i13.KoheraRoomSummary>);
+
+  @override
+  _i16.KoheraRoomPermissions? permissionsFor(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#permissionsFor, [roomId]),
+            returnValueForMissingStub: null,
+          )
+          as _i16.KoheraRoomPermissions?);
+
+  @override
+  _i5.Future<_i17.KoheraRoomMemberList?> memberListFor(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#memberListFor, [roomId]),
+            returnValue: _i5.Future<_i17.KoheraRoomMemberList?>.value(),
+            returnValueForMissingStub:
+                _i5.Future<_i17.KoheraRoomMemberList?>.value(),
+          )
+          as _i5.Future<_i17.KoheraRoomMemberList?>);
+
+  @override
+  void selectSpace(String? spaceId) => super.noSuchMethod(
+    Invocation.method(#selectSpace, [spaceId]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void selectRoom(String? roomId) => super.noSuchMethod(
+    Invocation.method(#selectRoom, [roomId]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void toggleSpaceSelection(String? spaceId) => super.noSuchMethod(
+    Invocation.method(#toggleSpaceSelection, [spaceId]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void clearSpaceSelection() => super.noSuchMethod(
+    Invocation.method(#clearSpaceSelection, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  _i5.Future<void> joinRoom(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#joinRoom, [roomId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> leaveRoom(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#leaveRoom, [roomId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> setFavourite(String? roomId, bool? favourite) =>
+      (super.noSuchMethod(
+            Invocation.method(#setFavourite, [roomId, favourite]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> setPushRuleState(
+    String? roomId,
+    _i18.KoheraPushRuleState? state,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#setPushRuleState, [roomId, state]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> invite(String? roomId, String? mxid) =>
+      (super.noSuchMethod(
+            Invocation.method(#invite, [roomId, mxid]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> setName(String? roomId, String? name) =>
+      (super.noSuchMethod(
+            Invocation.method(#setName, [roomId, name]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> setDescription(String? roomId, String? topic) =>
+      (super.noSuchMethod(
+            Invocation.method(#setDescription, [roomId, topic]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> enableEncryption(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#enableEncryption, [roomId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> setAvatar(
+    String? roomId,
+    _i10.Uint8List? bytes,
+    String? filename,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#setAvatar, [roomId, bytes, filename]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<int?> resolveMemberCount(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#resolveMemberCount, [roomId]),
+            returnValue: _i5.Future<int?>.value(),
+            returnValueForMissingStub: _i5.Future<int?>.value(),
+          )
+          as _i5.Future<int?>);
+
+  @override
+  Set<String> existingMemberIds(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#existingMemberIds, [roomId]),
+            returnValue: <String>{},
+            returnValueForMissingStub: <String>{},
+          )
+          as Set<String>);
+
+  @override
+  Uri? avatarUri(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#avatarUri, [roomId]),
+            returnValueForMissingStub: null,
+          )
+          as Uri?);
+
+  @override
+  String? canonicalAlias(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#canonicalAlias, [roomId]),
+            returnValueForMissingStub: null,
+          )
+          as String?);
+
+  @override
+  bool getRoomEncrypted(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getRoomEncrypted, [roomId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool getRoomIsFavourite(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getRoomIsFavourite, [roomId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool getRoomCanBan(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getRoomCanBan, [roomId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool getRoomIsDirectChat(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getRoomIsDirectChat, [roomId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  String? getRoomPartnerId(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getRoomPartnerId, [roomId]),
+            returnValueForMissingStub: null,
+          )
+          as String?);
+
+  @override
+  int? getRoomSummaryMemberCount(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getRoomSummaryMemberCount, [roomId]),
+            returnValueForMissingStub: null,
+          )
+          as int?);
+
+  @override
+  bool getRoomParticipantListComplete(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getRoomParticipantListComplete, [roomId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  _i18.KoheraPushRuleState getRoomPushRuleState(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getRoomPushRuleState, [roomId]),
+            returnValue: _i18.KoheraPushRuleState.notify,
+            returnValueForMissingStub: _i18.KoheraPushRuleState.notify,
+          )
+          as _i18.KoheraPushRuleState);
+
+  @override
+  _i5.Stream<void> powerLevelChangesFor(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#powerLevelChangesFor, [roomId]),
+            returnValue: _i5.Stream<void>.empty(),
+            returnValueForMissingStub: _i5.Stream<void>.empty(),
+          )
+          as _i5.Stream<void>);
+
+  @override
+  _i5.Future<void> waitForFavourite(String? roomId, bool? target) =>
+      (super.noSuchMethod(
+            Invocation.method(#waitForFavourite, [roomId, target]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  String? lastEventId(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#lastEventId, [roomId]),
+            returnValueForMissingStub: null,
+          )
+          as String?);
+
+  @override
+  _i5.Future<void> setRoomStateWithKey(
+    String? roomId,
+    String? type,
+    String? stateKey,
+    Map<String, dynamic>? content,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#setRoomStateWithKey, [
+              roomId,
+              type,
+              stateKey,
+              content,
+            ]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> unban(String? roomId, String? userId, {String? reason}) =>
+      (super.noSuchMethod(
+            Invocation.method(#unban, [roomId, userId], {#reason: reason}),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> kick(String? roomId, String? userId, {String? reason}) =>
+      (super.noSuchMethod(
+            Invocation.method(#kick, [roomId, userId], {#reason: reason}),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> ban(String? roomId, String? userId, {String? reason}) =>
+      (super.noSuchMethod(
+            Invocation.method(#ban, [roomId, userId], {#reason: reason}),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> reportEvent(
+    String? roomId,
+    String? eventId, {
+    String? reason,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #reportEvent,
+              [roomId, eventId],
+              {#reason: reason},
+            ),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> postReceipt(
+    String? roomId,
+    _i2.ReceiptType? type,
+    String? eventId, {
+    String? threadId,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #postReceipt,
+              [roomId, type, eventId],
+              {#threadId: threadId},
+            ),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<Map<String, _i2.RoomMember>?> getJoinedMembersByRoom(
+    String? roomId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#getJoinedMembersByRoom, [roomId]),
+            returnValue: _i5.Future<Map<String, _i2.RoomMember>?>.value(),
+            returnValueForMissingStub:
+                _i5.Future<Map<String, _i2.RoomMember>?>.value(),
+          )
+          as _i5.Future<Map<String, _i2.RoomMember>?>);
+
+  @override
+  _i5.Future<String> startDirectChat(
+    String? userId, {
+    bool? enableEncryption = true,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #startDirectChat,
+              [userId],
+              {#enableEncryption: enableEncryption},
+            ),
+            returnValue: _i5.Future<String>.value(
+              _i9.dummyValue<String>(
+                this,
+                Invocation.method(
+                  #startDirectChat,
+                  [userId],
+                  {#enableEncryption: enableEncryption},
+                ),
+              ),
+            ),
+            returnValueForMissingStub: _i5.Future<String>.value(
+              _i9.dummyValue<String>(
+                this,
+                Invocation.method(
+                  #startDirectChat,
+                  [userId],
+                  {#enableEncryption: enableEncryption},
+                ),
+              ),
+            ),
+          )
+          as _i5.Future<String>);
+
+  @override
+  _i5.Future<void> waitForRoomInSync(String? roomId, {bool? join = false}) =>
+      (super.noSuchMethod(
+            Invocation.method(#waitForRoomInSync, [roomId], {#join: join}),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<List<String>> getLocalAliases(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getLocalAliases, [roomId]),
+            returnValue: _i5.Future<List<String>>.value(<String>[]),
+            returnValueForMissingStub: _i5.Future<List<String>>.value(
+              <String>[],
+            ),
+          )
+          as _i5.Future<List<String>>);
+
+  @override
+  _i5.Future<void> setRoomAlias(String? alias, String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#setRoomAlias, [alias, roomId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> deleteRoomAlias(String? alias) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteRoomAlias, [alias]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<List<_i2.Profile>> searchUserDirectory(
+    String? query, {
+    int? limit = 20,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#searchUserDirectory, [query], {#limit: limit}),
+            returnValue: _i5.Future<List<_i2.Profile>>.value(<_i2.Profile>[]),
+            returnValueForMissingStub: _i5.Future<List<_i2.Profile>>.value(
+              <_i2.Profile>[],
+            ),
+          )
+          as _i5.Future<List<_i2.Profile>>);
+
+  @override
+  List<_i2.Profile> knownContacts() =>
+      (super.noSuchMethod(
+            Invocation.method(#knownContacts, []),
+            returnValue: <_i2.Profile>[],
+            returnValueForMissingStub: <_i2.Profile>[],
+          )
+          as List<_i2.Profile>);
+
+  @override
+  List<_i2.Profile> roomContacts({Set<String>? excludeMxids = const {}}) =>
+      (super.noSuchMethod(
+            Invocation.method(#roomContacts, [], {#excludeMxids: excludeMxids}),
+            returnValue: <_i2.Profile>[],
+            returnValueForMissingStub: <_i2.Profile>[],
+          )
+          as List<_i2.Profile>);
+
+  @override
+  _i5.Future<String> createRoom({
+    String? name,
+    String? topic,
+    _i2.Visibility? visibility,
+    String? roomVersion,
+    List<_i2.StateEvent>? initialState,
+    List<String>? invite,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#createRoom, [], {
+              #name: name,
+              #topic: topic,
+              #visibility: visibility,
+              #roomVersion: roomVersion,
+              #initialState: initialState,
+              #invite: invite,
+            }),
+            returnValue: _i5.Future<String>.value(
+              _i9.dummyValue<String>(
+                this,
+                Invocation.method(#createRoom, [], {
+                  #name: name,
+                  #topic: topic,
+                  #visibility: visibility,
+                  #roomVersion: roomVersion,
+                  #initialState: initialState,
+                  #invite: invite,
+                }),
+              ),
+            ),
+            returnValueForMissingStub: _i5.Future<String>.value(
+              _i9.dummyValue<String>(
+                this,
+                Invocation.method(#createRoom, [], {
+                  #name: name,
+                  #topic: topic,
+                  #visibility: visibility,
+                  #roomVersion: roomVersion,
+                  #initialState: initialState,
+                  #invite: invite,
+                }),
+              ),
+            ),
+          )
+          as _i5.Future<String>);
+
+  @override
+  _i5.Future<void> setSpaceChild(String? spaceId, String? childRoomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#setSpaceChild, [spaceId, childRoomId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i2.Room? rawRoom(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#rawRoom, [roomId]),
+            returnValueForMissingStub: null,
+          )
+          as _i2.Room?);
+
+  @override
+  void notifyListeners() => super.noSuchMethod(
+    Invocation.method(#notifyListeners, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void dispose() => super.noSuchMethod(
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void addListener(_i19.VoidCallback? listener) => super.noSuchMethod(
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void removeListener(_i19.VoidCallback? listener) => super.noSuchMethod(
+    Invocation.method(#removeListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 }
