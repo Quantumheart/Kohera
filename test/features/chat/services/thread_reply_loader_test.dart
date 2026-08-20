@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/chat/services/thread_reply_loader.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
@@ -9,6 +10,7 @@ import 'package:mockito/mockito.dart';
   MockSpec<Client>(),
   MockSpec<Room>(),
   MockSpec<MatrixService>(),
+  MockSpec<RoomRepository>()
 ])
 import 'thread_reply_loader_test.mocks.dart';
 
@@ -25,6 +27,7 @@ MatrixEvent _msgEvent(String id, {int ts = 0}) {
 
 void main() {
   late MockMatrixService mockMatrix;
+  late RoomRepository roomRepository;
   late MockClient mockClient;
   late MockRoom mockRoom;
 
@@ -33,6 +36,7 @@ void main() {
 
   setUp(() {
     mockMatrix = MockMatrixService();
+    roomRepository = MockRoomRepository();
     mockClient = MockClient();
     mockRoom = MockRoom();
 
@@ -59,7 +63,7 @@ void main() {
       ));
 
       final loader = ThreadReplyLoader();
-      final found = await loader.loadRoot(mockMatrix, roomId, rootId);
+      final found = await loader.loadRoot(roomRepository, roomId, rootId);
 
       expect(found, isTrue);
       expect(loader.rootEvent, isNotNull);
@@ -86,7 +90,7 @@ void main() {
       ));
 
       final loader = ThreadReplyLoader();
-      final found = await loader.loadRoot(mockMatrix, roomId, rootId);
+      final found = await loader.loadRoot(roomRepository, roomId, rootId);
 
       expect(found, isFalse);
       expect(loader.rootEvent, isNull);
@@ -101,7 +105,7 @@ void main() {
       when(mockClient.getRoomById(roomId)).thenReturn(null);
 
       final loader = ThreadReplyLoader();
-      final found = await loader.loadRoot(mockMatrix, roomId, rootId);
+      final found = await loader.loadRoot(roomRepository, roomId, rootId);
 
       expect(found, isFalse);
       loader.dispose();
@@ -126,7 +130,7 @@ void main() {
       ));
 
       final loader = ThreadReplyLoader();
-      await loader.loadRoot(mockMatrix, roomId, rootId);
+      await loader.loadRoot(roomRepository, roomId, rootId);
       expect(loader.replyIds, [r'$r1:example.com']);
 
       // Second page: includes a duplicate + a new reply.
@@ -143,7 +147,7 @@ void main() {
         ],
       ));
 
-      final loaded = await loader.loadMoreReplies(mockMatrix, roomId, rootId);
+      final loaded = await loader.loadMoreReplies(roomRepository, roomId, rootId);
 
       expect(loaded, isTrue);
       // Deduped: r1 not duplicated
@@ -167,9 +171,9 @@ void main() {
       )); // no more pages
 
       final loader = ThreadReplyLoader();
-      await loader.loadRoot(mockMatrix, roomId, rootId);
+      await loader.loadRoot(roomRepository, roomId, rootId);
 
-      final loaded = await loader.loadMoreReplies(mockMatrix, roomId, rootId);
+      final loaded = await loader.loadMoreReplies(roomRepository, roomId, rootId);
 
       expect(loaded, isFalse);
       loader.dispose();
@@ -178,7 +182,7 @@ void main() {
     test('returns false when room is null', () async {
       final loader = ThreadReplyLoader();
       // No prior loadRoot → _repliesNextBatch is null → returns false
-      final loaded = await loader.loadMoreReplies(mockMatrix, roomId, rootId);
+      final loaded = await loader.loadMoreReplies(roomRepository, roomId, rootId);
 
       expect(loaded, isFalse);
       loader.dispose();
@@ -202,7 +206,7 @@ void main() {
       ));
 
       final loader = ThreadReplyLoader();
-      await loader.loadRoot(mockMatrix, roomId, rootId);
+      await loader.loadRoot(roomRepository, roomId, rootId);
       expect(loader.rootEvent, isNotNull);
       expect(loader.hasMore, isTrue);
 
