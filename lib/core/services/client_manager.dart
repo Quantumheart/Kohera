@@ -58,6 +58,11 @@ class ClientManager extends ChangeNotifier {
 
   MatrixService get activeService => _services[_activeIndex];
 
+  /// The active account's SDK client. Escape hatch for SDK helpers that
+  /// operate on a raw [Client] (e.g. share intake), so consumers do not reach
+  /// through `activeService.client` themselves.
+  Client get activeClient => activeService.client;
+
   MatrixService? get pendingService => _pendingService;
 
   bool get hasMultipleAccounts => _services.length > 1;

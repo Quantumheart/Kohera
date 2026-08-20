@@ -4,9 +4,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
@@ -49,6 +49,7 @@ class MobileSpaceDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selection = context.watch<SelectionService>();
+    final avatarResolver = context.read<MediaRepository>().avatarResolver;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final topLevel = selection.topLevelSpaces;
@@ -91,7 +92,7 @@ class MobileSpaceDrawer extends StatelessWidget {
                     _SpaceTile(
                       spaceId: space.id,
                       summary: selection.summaryFor(space),
-                      avatarResolver: ClientAvatarResolver(space.client),
+                      avatarResolver: avatarResolver,
                       selected: selection.selectedSpaceIds.contains(space.id),
                       unread: selection.unreadCountForSpace(space.id),
                       onTap: () {
@@ -136,7 +137,7 @@ class MobileSpaceDrawer extends StatelessWidget {
                           child: RoomAvatarWidget(
                           avatarUrl: selection.summaryFor(space).avatarUrl,
                           displayname: selection.summaryFor(space).displayname,
-                          avatarResolver: ClientAvatarResolver(space.client),
+                          avatarResolver: avatarResolver,
                           size: 36,
                         ),
                         ),

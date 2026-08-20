@@ -51,7 +51,7 @@ class ShareIntakeController with WidgetsBindingObserver {
     try {
       if (waitForLoad) {
         try {
-          await _clientManager.activeService.client.roomsLoading;
+          await _clientManager.activeClient.roomsLoading;
         } catch (e) {
           debugPrint('[Kohera] Share intake roomsLoading wait failed: $e');
         }
@@ -63,7 +63,7 @@ class ShareIntakeController with WidgetsBindingObserver {
       // share is sent below.
       await _store.clearIncomingShare();
 
-      final client = _clientManager.activeService.client;
+      final client = _clientManager.activeClient;
       await sendIncomingShareToRoom(client, share.roomId, share);
       final displayname =
           client.getRoomById(share.roomId)?.getLocalizedDisplayname() ?? share.roomId;

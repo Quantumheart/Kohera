@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/home/widgets/mobile_space_drawer.dart';
 import 'package:matrix/matrix.dart' show Client, SyncUpdate;
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -17,6 +20,13 @@ import 'package:provider/provider.dart';
 import 'mobile_space_drawer_test.mocks.dart';
 
 class _FakeMatrixService extends ChangeNotifier implements MatrixService {
+  _FakeMatrixService(this._client);
+
+  final Client _client;
+
+  @override
+  AvatarResolver get avatarResolver => ClientAvatarResolver(_client);
+
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       super.noSuchMethod(invocation);
@@ -32,7 +42,7 @@ void main() {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.onSync)
         .thenReturn(CachedStreamController<SyncUpdate>());
-    fakeMatrix = _FakeMatrixService();
+    fakeMatrix = _FakeMatrixService(mockClient);
     selection = SelectionService(client: mockClient);
   });
 
@@ -63,6 +73,9 @@ void main() {
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: fakeMatrix),
         ChangeNotifierProvider<SelectionService>.value(value: selection),
+        ChangeNotifierProvider<MediaRepository>(
+          create: (_) => MediaRepository(matrix: fakeMatrix),
+        ),
       ],
       child: MaterialApp.router(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
