@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/theme/kohera_theme.dart';
 import 'package:kohera/data/models/kohera_poll.dart';
 import 'package:kohera/features/chat/widgets/poll_message_item.dart';
 import 'package:provider/provider.dart';
