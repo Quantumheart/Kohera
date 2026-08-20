@@ -433,6 +433,11 @@ class _FakeMatrixService_67 extends _i1.SmartFake implements _i7.MatrixService {
     : super(parent, parentInvocation);
 }
 
+class _FakeClient_68 extends _i1.SmartFake implements _i2.Client {
+  _FakeClient_68(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
 /// A class which mocks [Client].
 ///
 /// See the documentation for Mockito's code generation for more information.
@@ -6625,6 +6630,18 @@ class MockClientManager extends _i1.Mock implements _i13.ClientManager {
             ),
           )
           as _i7.MatrixService);
+
+  @override
+  _i2.Client get activeClient =>
+      (super.noSuchMethod(
+            Invocation.getter(#activeClient),
+            returnValue: _FakeClient_68(this, Invocation.getter(#activeClient)),
+            returnValueForMissingStub: _FakeClient_68(
+              this,
+              Invocation.getter(#activeClient),
+            ),
+          )
+          as _i2.Client);
 
   @override
   bool get hasMultipleAccounts =>

@@ -40,7 +40,7 @@ void main() {
 
   group('ReplyPreviewResolver.fromEvent', () {
     test('extracts sender name and body', () {
-      final preview = const ReplyPreviewResolver().fromEvent(event);
+      final preview = ReplyPreviewResolver.fromEvent(event);
 
       expect(preview.parentSenderName, 'Alice');
       expect(preview.parentBody, 'hello');
@@ -52,7 +52,7 @@ void main() {
     test('falls back to senderId when displayName is null', () {
       when(sender.displayName).thenReturn(null);
 
-      final preview = const ReplyPreviewResolver().fromEvent(event);
+      final preview = ReplyPreviewResolver.fromEvent(event);
 
       expect(preview.parentSenderName, '@alice:server');
     });
@@ -61,7 +61,7 @@ void main() {
       when(event.body)
           .thenReturn('> <@bob:server> original\n\nreply text');
 
-      final preview = const ReplyPreviewResolver().fromEvent(event);
+      final preview = ReplyPreviewResolver.fromEvent(event);
 
       expect(preview.parentBody, 'reply text');
     });
@@ -69,7 +69,7 @@ void main() {
     test('returns Unable to decrypt for bad-encrypted messages', () {
       when(event.messageType).thenReturn(MessageTypes.BadEncrypted);
 
-      final preview = const ReplyPreviewResolver().fromEvent(event);
+      final preview = ReplyPreviewResolver.fromEvent(event);
 
       expect(preview.parentBody, 'Unable to decrypt');
     });
@@ -83,7 +83,7 @@ void main() {
         'formatted_body': '<b>hello</b>',
       });
 
-      final preview = const ReplyPreviewResolver().fromEvent(event);
+      final preview = ReplyPreviewResolver.fromEvent(event);
 
       expect(preview.parentFormattedHtml, '<b>hello</b>');
     });
@@ -95,7 +95,7 @@ void main() {
         'msgtype': 'm.text',
       });
 
-      final preview = const ReplyPreviewResolver().fromEvent(event);
+      final preview = ReplyPreviewResolver.fromEvent(event);
 
       expect(preview.parentFormattedHtml, isNull);
     });
@@ -124,7 +124,7 @@ void main() {
           .thenAnswer((_) async => parentEvent);
 
       final preview =
-          await const ReplyPreviewResolver().resolveParent(event, timeline);
+          await ReplyPreviewResolver.resolveParent(event, timeline);
 
       expect(preview, isNotNull);
       expect(preview!.parentSenderName, 'Bob');
@@ -138,7 +138,7 @@ void main() {
       when(event.getReplyEvent(timeline)).thenThrow(Exception('fail'));
 
       final preview =
-          await const ReplyPreviewResolver().resolveParent(event, timeline);
+          await ReplyPreviewResolver.resolveParent(event, timeline);
 
       expect(preview, isNull);
     });
@@ -148,7 +148,7 @@ void main() {
       when(event.getReplyEvent(timeline)).thenAnswer((_) async => null);
 
       final preview =
-          await const ReplyPreviewResolver().resolveParent(event, timeline);
+          await ReplyPreviewResolver.resolveParent(event, timeline);
 
       expect(preview, isNull);
     });
@@ -162,7 +162,7 @@ void main() {
           .thenAnswer((_) async => parentEvent);
 
       final preview =
-          await const ReplyPreviewResolver().resolveParent(event, timeline);
+          await ReplyPreviewResolver.resolveParent(event, timeline);
 
       expect(preview, isNull);
     });
@@ -176,7 +176,7 @@ void main() {
           .thenAnswer((_) async => parentEvent);
 
       final preview =
-          await const ReplyPreviewResolver().resolveParent(event, timeline);
+          await ReplyPreviewResolver.resolveParent(event, timeline);
 
       expect(preview, isNull);
     });

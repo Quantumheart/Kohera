@@ -37,6 +37,9 @@ import 'package:provider/provider.dart';
   MockSpec<User>(),
 ])
 import '../../mocks/matrix_service_mock.mocks.dart';
+// Only need some mocks from services; hide overlapping Matrix SDK mocks to avoid name clashes
+import '../../services/chat_message_actions_test.mocks.dart'
+    hide MockClient, MockEvent, MockRoom, MockTimeline;
 import 'message_actions_test.mocks.dart';
 
 class _FakeAvatarResolver implements AvatarResolver {
@@ -57,6 +60,7 @@ class _FakePresence implements PresenceService {
 // ── Helpers ───────────────────────────────────────────────────
 
 late MockRoom _mockRoom;
+late MockRoomRepository _mockRoomRepository;
 
 MockEvent _makeEvent({
   required String eventId,
@@ -146,7 +150,7 @@ Widget _buildBubble({
                   html: html,
                   style: style,
                   isMe: isMe,
-                  mentionResolver: mentionResolverFromRoom(event.room),
+                  mentionResolver: mentionResolverFromRoom(event.room, _mockRoomRepository),
                 ),
                 onOpenContextMenu: (position) {
                   final displayEvent = timeline != null
@@ -233,7 +237,7 @@ Widget _buildBubbleWithProviders({
                   html: html,
                   style: style,
                   isMe: isMe,
-                  mentionResolver: mentionResolverFromRoom(event.room),
+                  mentionResolver: mentionResolverFromRoom(event.room, _mockRoomRepository),
                 ),
                 onTapSender: () {
                   final sender = event.senderFromMemoryOrFallback;
@@ -283,6 +287,7 @@ void main() {
     mockTimeline = MockTimeline();
     prefsService = PreferencesService();
     _mockRoom = mockRoom;
+    _mockRoomRepository = MockRoomRepository();
 
     when(mockClient.onSync).thenReturn(CachedStreamController());
     when(mockClient.onPresenceChanged).thenReturn(CachedStreamController());
@@ -302,6 +307,9 @@ void main() {
     );
     when(mockRoom.client).thenReturn(mockClient);
     when(mockTimeline.canRequestHistory).thenReturn(false);
+
+    // Common stub used by member sheet launcher to read power levels.
+    when(mockRoom.getPowerLevelByUserId(any)).thenReturn(PowerLevel(0));
   });
 
   // ── EditPreviewBanner ──────────────────────────────────────

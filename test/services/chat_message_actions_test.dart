@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
 import 'package:matrix/matrix.dart';
@@ -13,17 +14,16 @@ import 'package:mockito/mockito.dart';
   MockSpec<Timeline>(),
   MockSpec<Client>(),
   MockSpec<ScaffoldMessengerState>(),
+  MockSpec<RoomRepository>()
 ])
-import '../mocks/matrix_service_mock.mocks.dart';
 import 'chat_message_actions_test.mocks.dart';
 
 void main() {
   late MockRoom mockRoom;
   late MockEvent mockEvent;
   late MockTimeline mockTimeline;
-  late MockClient mockClient;
-  late MockMatrixService mockMatrixService;
   late MockScaffoldMessengerState mockScaffold;
+  late MockRoomRepository mockRoomRepository;
   late ComposeStateController compose;
   late TextEditingController msgCtrl;
   late ChatMessageActions actions;
@@ -32,14 +32,12 @@ void main() {
     mockRoom = MockRoom();
     mockEvent = MockEvent();
     mockTimeline = MockTimeline();
-    mockClient = MockClient();
-    mockMatrixService = MockMatrixService();
     mockScaffold = MockScaffoldMessengerState();
     compose = ComposeStateController();
     msgCtrl = TextEditingController();
+    mockRoomRepository = MockRoomRepository();
 
-    when(mockMatrixService.client).thenReturn(mockClient);
-    when(mockClient.userID).thenReturn('@me:example.com');
+    when(mockRoomRepository.userId).thenReturn('@me:example.com');
     when(mockEvent.room).thenReturn(mockRoom);
     when(mockEvent.eventId).thenReturn(r'$event1');
     actions = ChatMessageActions(
@@ -49,7 +47,7 @@ void main() {
       compose: compose,
       msgCtrl: msgCtrl,
       getScaffold: () => mockScaffold,
-      getMatrixService: () => mockMatrixService,
+      getRoomRepository: () => mockRoomRepository,
     );
   });
 
@@ -67,7 +65,7 @@ void main() {
         compose: compose,
         msgCtrl: msgCtrl,
         getScaffold: () => mockScaffold,
-        getMatrixService: () => mockMatrixService,
+        getRoomRepository: () => mockRoomRepository,
       );
 
       await nullTimelineActions.toggleReaction(mockEvent, '👍');
@@ -251,7 +249,7 @@ void main() {
         compose: compose,
         msgCtrl: msgCtrl,
         getScaffold: () => mockScaffold,
-        getMatrixService: () => mockMatrixService,
+        getRoomRepository: () => mockRoomRepository,
       );
       msgCtrl.text = 'hello';
 

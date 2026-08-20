@@ -33,30 +33,30 @@ void main() {
   group('SdkMediaController', () {
     test('isEncrypted delegates to event', () {
       when(event.isAttachmentEncrypted).thenReturn(true);
-      final controller = SdkMediaController(event);
+      final controller = SdkMediaController(event, client);
       expect(controller.isEncrypted, isTrue);
     });
 
     test('eventId delegates to event', () {
-      final controller = SdkMediaController(event);
+      final controller = SdkMediaController(event, client);
       expect(controller.eventId, r'$123:server');
     });
 
     test('isPendingSend returns true for sending status', () {
       when(event.status).thenReturn(EventStatus.sending);
-      final controller = SdkMediaController(event);
+      final controller = SdkMediaController(event, client);
       expect(controller.isPendingSend, isTrue);
     });
 
     test('isPendingSend returns true for error status', () {
       when(event.status).thenReturn(EventStatus.error);
-      final controller = SdkMediaController(event);
+      final controller = SdkMediaController(event, client);
       expect(controller.isPendingSend, isTrue);
     });
 
     test('isPendingSend returns false for synced status', () {
       when(event.status).thenReturn(EventStatus.synced);
-      final controller = SdkMediaController(event);
+      final controller = SdkMediaController(event, client);
       expect(controller.isPendingSend, isFalse);
     });
 
@@ -64,13 +64,13 @@ void main() {
       when(event.content).thenReturn(<String, Object?>{
         'info': {'mimetype': 'image/png'},
       });
-      final controller = SdkMediaController(event);
+      final controller = SdkMediaController(event, client);
       expect(controller.mimeType, 'image/png');
     });
 
     test('mimeType returns null when info missing', () {
       when(event.content).thenReturn(<String, Object?>{});
-      final controller = SdkMediaController(event);
+      final controller = SdkMediaController(event, client);
       expect(controller.mimeType, isNull);
     });
 
@@ -79,7 +79,7 @@ void main() {
       final file = MatrixFile(bytes: bytes, name: 'test.png');
       when(event.downloadAndDecryptAttachment()).thenAnswer((_) async => file);
 
-      final controller = SdkMediaController(event);
+      final controller = SdkMediaController(event, client);
       final result = await controller.downloadAndDecrypt();
       expect(result, bytes);
     });
@@ -90,7 +90,7 @@ void main() {
       when(event.downloadAndDecryptAttachment(getThumbnail: true))
           .thenAnswer((_) async => file);
 
-      final controller = SdkMediaController(event);
+      final controller = SdkMediaController(event, client);
       final result = await controller.downloadAndDecrypt(getThumbnail: true);
       expect(result, bytes);
     });
@@ -104,7 +104,7 @@ void main() {
         ),
       ).thenAnswer((_) async => Uri.parse('https://example.com/media'));
 
-      final controller = SdkMediaController(event);
+      final controller = SdkMediaController(event, client);
       final result = await controller.getAttachmentUri(width: 280, height: 260);
       expect(result, 'https://example.com/media');
     });
@@ -119,20 +119,20 @@ void main() {
       ).thenAnswer((_) async => null);
       when(event.attachmentMxcUrl).thenReturn(null);
 
-      final controller = SdkMediaController(event);
+      final controller = SdkMediaController(event, client);
       final result = await controller.getAttachmentUri(getThumbnail: true);
       expect(result, isNull);
     });
 
     test('authHeaders returns headers for same-host URL', () {
-      final controller = SdkMediaController(event);
+      final controller = SdkMediaController(event, client);
       final headers = controller.authHeaders('https://example.com/media');
       expect(headers, isNotNull);
       expect(headers!['authorization'], 'Bearer token123');
     });
 
     test('authHeaders returns null for federated URL', () {
-      final controller = SdkMediaController(event);
+      final controller = SdkMediaController(event, client);
       final headers = controller.authHeaders('https://other.com/media');
       expect(headers, isNull);
     });

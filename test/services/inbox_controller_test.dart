@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/notifications/enum/inbox_filter.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
@@ -11,13 +10,13 @@ import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
+import '../mocks/matrix_service_mock.mocks.dart';
 @GenerateNiceMocks([
   MockSpec<Client>(),
   MockSpec<Room>(),
   MockSpec<User>(),
 ])
 import 'inbox_controller_test.mocks.dart';
-import '../mocks/matrix_service_mock.mocks.dart';
 
 // ── Helpers ──────────────────────────────────────────────────
 
