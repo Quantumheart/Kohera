@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +8,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
@@ -26,6 +28,7 @@ import 'chat_screen_test.mocks.dart';
   MockSpec<Client>(),
   MockSpec<Room>(),
   MockSpec<Timeline>(),
+  MockSpec<RoomRepository>()
 ])
 
 // ── Constants ─────────────────────────────────────────────────────────
@@ -101,6 +104,7 @@ void main() {
   late MockRoom mockRoom;
   late MockTimeline mockTimeline;
   late MockFlutterSecureStorage mockStorage;
+  late MockRoomRepository mockRoomRepository;
   late MatrixService matrixService;
   late CachedStreamController<SyncUpdate> syncController;
 
@@ -108,6 +112,7 @@ void main() {
     mockClient = MockClient();
     mockRoom = MockRoom();
     mockTimeline = MockTimeline();
+    mockRoomRepository = MockRoomRepository();
     mockStorage = MockFlutterSecureStorage();
     syncController = CachedStreamController<SyncUpdate>();
 
@@ -127,6 +132,17 @@ void main() {
       storage: mockStorage,
       clientName: 'test',
     );
+
+    when(mockRoomRepository.rawRoom(any)).thenAnswer(
+      (invocation) =>
+          mockClient.getRoomById(invocation.positionalArguments[0] as String),
+    );
+    when(mockRoomRepository.userId).thenReturn(_myUserId);
+    when(mockRoomRepository.ignoredUsers).thenReturn([]);
+    when(mockRoomRepository.encryption).thenReturn(null);
+    when(mockRoomRepository.searchClient).thenReturn(mockClient);
+    when(mockRoomRepository.onSync).thenAnswer((_) => syncController.stream);
+    when(mockRoomRepository.roomSummaries).thenReturn([]);
   });
 
   // ── Test app builder ──────────────────────────────────────────────
@@ -155,6 +171,7 @@ void main() {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
+        ChangeNotifierProvider<RoomRepository>.value(value: mockRoomRepository),
         ChangeNotifierProvider<SelectionService>.value(value: matrixService.selection),
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
         ChangeNotifierProvider(create: (_) => PreferencesService()),
