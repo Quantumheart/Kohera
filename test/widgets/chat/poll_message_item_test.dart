@@ -38,7 +38,7 @@ Widget _harness(
   Future<void> Function()? onEnd,
 }) {
   return MaterialApp(
-    theme: KoheraTheme.light(),
+    theme: ThemeData(splashFactory: InkRipple.splashFactory),
     home: Scaffold(
       body: ChangeNotifierProvider<PreferencesService>.value(
         value: PreferencesService(),

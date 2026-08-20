@@ -31,27 +31,25 @@ KoheraRoomMember _member({
   String? avatarUrl,
   String membership = 'join',
   int powerLevel = 0,
-}) =>
-    KoheraRoomMember(
-      userId: userId,
-      displayname: displayname,
-      avatarUrl: avatarUrl,
-      membership: membership,
-      powerLevel: powerLevel,
-    );
+}) => KoheraRoomMember(
+  userId: userId,
+  displayname: displayname,
+  avatarUrl: avatarUrl,
+  membership: membership,
+  powerLevel: powerLevel,
+);
 
 KoheraRoomMemberList _list(
   List<KoheraRoomMember> members, {
   bool complete = true,
   int count = 0,
   List<KoheraRoomMember> bannedMembers = const [],
-}) =>
-    KoheraRoomMemberList(
-      members: members,
-      participantListComplete: complete,
-      memberCount: count,
-      bannedMembers: bannedMembers,
-    );
+}) => KoheraRoomMemberList(
+  members: members,
+  participantListComplete: complete,
+  memberCount: count,
+  bannedMembers: bannedMembers,
+);
 
 const _avatarResolver = _NullAvatarResolver();
 
@@ -62,27 +60,28 @@ Widget _wrapSection(
   void Function(KoheraRoomMember)? onMemberTap,
   bool canBan = false,
   Future<void> Function(KoheraRoomMember)? onUnban,
-}) =>
-    MaterialApp(
-      home: Scaffold(
-        body: SingleChildScrollView(
-          child: RoomMembersSection(
-            members: members,
-            onMemberTap: onMemberTap ?? (_) {},
-            avatarResolver: _avatarResolver,
-            presence: _nullPresence(),
-            canBan: canBan,
-            onUnban: onUnban,
-          ),
-        ),
+}) => MaterialApp(
+  theme: ThemeData(splashFactory: InkRipple.splashFactory),
+
+  home: Scaffold(
+    body: SingleChildScrollView(
+      child: RoomMembersSection(
+        members: members,
+        onMemberTap: onMemberTap ?? (_) {},
+        avatarResolver: _avatarResolver,
+        presence: _nullPresence(),
+        canBan: canBan,
+        onUnban: onUnban,
       ),
-    );
+    ),
+  ),
+);
 
 Widget _wrapDialog(MemberSheetDialog dialog) => MaterialApp(
-      home: Scaffold(
-        body: Center(child: dialog),
-      ),
-    );
+  home: Scaffold(
+    body: Center(child: dialog),
+  ),
+);
 
 // ── RoomMembersSection tests ──────────────────────────────────
 
@@ -110,8 +109,9 @@ void main() {
       expect(find.text('Bob'), findsOneWidget);
     });
 
-    testWidgets('shows only first 5 members with expand button',
-        (tester) async {
+    testWidgets('shows only first 5 members with expand button', (
+      tester,
+    ) async {
       final members = List.generate(
         8,
         (i) => _member(
@@ -204,8 +204,7 @@ void main() {
       expect(find.text('User0'), findsNothing);
     });
 
-    testWidgets('search field hidden when 5 or fewer members',
-        (tester) async {
+    testWidgets('search field hidden when 5 or fewer members', (tester) async {
       await tester.pumpWidget(
         _wrapSection(
           _list([
@@ -237,13 +236,21 @@ void main() {
       expect(tapped?.userId, '@alice:e.com');
     });
 
-    testWidgets('renders BANNED section when bannedMembers non-empty',
-        (tester) async {
+    testWidgets('renders BANNED section when bannedMembers non-empty', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         _wrapSection(
-          _list([_member()], bannedMembers: [
-            _member(displayname: 'Spammer', userId: '@spam:e.com', membership: 'ban'),
-          ]),
+          _list(
+            [_member()],
+            bannedMembers: [
+              _member(
+                displayname: 'Spammer',
+                userId: '@spam:e.com',
+                membership: 'ban',
+              ),
+            ],
+          ),
         ),
       );
       await tester.pump();
@@ -271,12 +278,16 @@ void main() {
       await tester.pump();
       expect(find.byTooltip('Unban'), findsNothing);
 
-      await tester.pumpWidget(_wrapSection(list, canBan: true, onUnban: (_) async {}));
+      await tester.pumpWidget(
+        _wrapSection(list, canBan: true, onUnban: (_) async {}),
+      );
       await tester.pump();
       expect(find.byTooltip('Unban'), findsOneWidget);
     });
 
-    testWidgets('unban shows confirm dialog then calls onUnban', (tester) async {
+    testWidgets('unban shows confirm dialog then calls onUnban', (
+      tester,
+    ) async {
       KoheraRoomMember? unbanned;
       final banned = _member(
         displayname: 'Spammer',

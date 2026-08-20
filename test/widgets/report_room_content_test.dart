@@ -27,25 +27,33 @@ void main() {
     userRepo = UserRepository(matrix: matrix);
   });
 
-  testWidgets('reports the room lastEvent with the entered reason',
-      (tester) async {
+  testWidgets('reports the room lastEvent with the entered reason', (
+    tester,
+  ) async {
     final room = MockRoom();
     final event = MockEvent();
     when(room.id).thenReturn('!room:server');
     when(event.eventId).thenReturn(r'$event:server');
     when(room.lastEvent).thenReturn(event);
     when(client.getRoomById('!room:server')).thenReturn(room);
-    when(client.reportEvent(any, any, reason: anyNamed('reason')))
-        .thenAnswer((_) async {});
+    when(
+      client.reportEvent(any, any, reason: anyNamed('reason')),
+    ).thenAnswer((_) async {});
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+
         home: Scaffold(
           body: Builder(
             builder: (context) => Center(
               child: ElevatedButton(
-                onPressed: () =>
-                    reportRoomContent(context, roomRepo, userRepo, '!room:server'),
+                onPressed: () => reportRoomContent(
+                  context,
+                  roomRepo,
+                  userRepo,
+                  '!room:server',
+                ),
                 child: const Text('open'),
               ),
             ),
@@ -62,8 +70,9 @@ void main() {
     await tester.tap(find.text('Report'));
     await tester.pumpAndSettle();
 
-    verify(client.reportEvent('!room:server', r'$event:server', reason: 'spam'))
-        .called(1);
+    verify(
+      client.reportEvent('!room:server', r'$event:server', reason: 'spam'),
+    ).called(1);
     expect(find.text('Reported to homeserver'), findsOneWidget);
   });
 
@@ -74,12 +83,17 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
         home: Scaffold(
           body: Builder(
             builder: (context) => Center(
               child: ElevatedButton(
-                onPressed: () =>
-                    reportRoomContent(context, roomRepo, userRepo, '!room:server'),
+                onPressed: () => reportRoomContent(
+                  context,
+                  roomRepo,
+                  userRepo,
+                  '!room:server',
+                ),
                 child: const Text('open'),
               ),
             ),

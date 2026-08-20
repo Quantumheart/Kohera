@@ -48,8 +48,7 @@ class _FakeAvatarResolver implements AvatarResolver {
   Future<AvatarThumbnail?> resolve(
     String? mxcUrl, {
     required double size,
-  }) async =>
-      null;
+  }) async => null;
 }
 
 class _FakePresence implements PresenceService {
@@ -79,7 +78,9 @@ MockEvent _makeEvent({
   when(event.messageType).thenReturn(MessageTypes.Text);
   when(event.originServerTs).thenReturn(DateTime(2025, 1, 1, 12));
   when(event.status).thenReturn(EventStatus.synced);
-  when(event.content).thenReturn(content ?? {'body': body, 'msgtype': 'm.text'});
+  when(
+    event.content,
+  ).thenReturn(content ?? {'body': body, 'msgtype': 'm.text'});
   when(event.room).thenReturn(_mockRoom);
   when(event.redacted).thenReturn(redacted);
   when(event.canRedact).thenReturn(canRedact);
@@ -107,9 +108,14 @@ Widget _buildChatWidget({
     providers: [
       ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
       ChangeNotifierProvider<SelectionService>.value(value: selectionService),
-      ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
+      ChangeNotifierProvider(
+        create: (ctx) => CallService(client: ctx.read<MatrixService>().client),
+      ),
       ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
-      ChangeNotifierProvider(create: (ctx) => StickerPackService(client: ctx.read<MatrixService>().client)),
+      ChangeNotifierProvider(
+        create: (ctx) =>
+            StickerPackService(client: ctx.read<MatrixService>().client),
+      ),
     ],
     child: MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
@@ -150,7 +156,10 @@ Widget _buildBubble({
                   html: html,
                   style: style,
                   isMe: isMe,
-                  mentionResolver: mentionResolverFromRoom(event.room, _mockRoomRepository),
+                  mentionResolver: mentionResolverFromRoom(
+                    event.room,
+                    _mockRoomRepository,
+                  ),
                 ),
                 onOpenContextMenu: (position) {
                   final displayEvent = timeline != null
@@ -158,17 +167,17 @@ Widget _buildBubble({
                       : event;
                   unawaited(
                     showMessageContextMenu(
-                    context,
-                    isMe: isMe,
-                    isPinned: false,
-                    isFailed: false,
-                    isRedacted: false,
-                    copyableBody: stripReplyFallback(displayEvent.body),
-                    position: position,
-                    onReply: onReply,
-                    onEdit: onEdit,
-                    onDelete: onDelete,
-                  ),
+                      context,
+                      isMe: isMe,
+                      isPinned: false,
+                      isFailed: false,
+                      isRedacted: false,
+                      copyableBody: stripReplyFallback(displayEvent.body),
+                      position: position,
+                      onReply: onReply,
+                      onEdit: onEdit,
+                      onDelete: onDelete,
+                    ),
                   );
                 },
                 onTapSender: () {
@@ -182,10 +191,14 @@ Widget _buildBubble({
                         displayname: sender.calcDisplayname(),
                         avatarUrl: sender.avatarUrl?.toString(),
                         membership: sender.membership.name,
-                        powerLevel: event.room.getPowerLevelByUserId(sender.id).level,
+                        powerLevel: event.room
+                            .getPowerLevelByUserId(sender.id)
+                            .level,
                       ),
                       isMe: isSenderMe,
-                      ownLevel: event.room.getPowerLevelByUserId(event.room.client.userID ?? '').level,
+                      ownLevel: event.room
+                          .getPowerLevelByUserId(event.room.client.userID ?? '')
+                          .level,
                       canChangeRole: false,
                       canKick: false,
                       canBan: false,
@@ -237,7 +250,10 @@ Widget _buildBubbleWithProviders({
                   html: html,
                   style: style,
                   isMe: isMe,
-                  mentionResolver: mentionResolverFromRoom(event.room, _mockRoomRepository),
+                  mentionResolver: mentionResolverFromRoom(
+                    event.room,
+                    _mockRoomRepository,
+                  ),
                 ),
                 onTapSender: () {
                   final sender = event.senderFromMemoryOrFallback;
@@ -250,10 +266,14 @@ Widget _buildBubbleWithProviders({
                         displayname: sender.calcDisplayname(),
                         avatarUrl: sender.avatarUrl?.toString(),
                         membership: sender.membership.name,
-                        powerLevel: event.room.getPowerLevelByUserId(sender.id).level,
+                        powerLevel: event.room
+                            .getPowerLevelByUserId(sender.id)
+                            .level,
                       ),
                       isMe: isSenderMe,
-                      ownLevel: event.room.getPowerLevelByUserId(event.room.client.userID ?? '').level,
+                      ownLevel: event.room
+                          .getPowerLevelByUserId(event.room.client.userID ?? '')
+                          .level,
                       canChangeRole: false,
                       canKick: false,
                       canBan: false,
@@ -387,7 +407,9 @@ void main() {
   // ── Redacted message rendering ─────────────────────────────
 
   group('Redacted message rendering', () {
-    testWidgets('shows "You deleted this message" for own redacted message', (tester) async {
+    testWidgets('shows "You deleted this message" for own redacted message', (
+      tester,
+    ) async {
       final event = _makeEvent(
         eventId: r'$evt1',
         senderId: '@me:example.com',
@@ -402,7 +424,9 @@ void main() {
       expect(find.text('You deleted this message'), findsOneWidget);
     });
 
-    testWidgets('shows "This message was deleted" for other user self-redact', (tester) async {
+    testWidgets('shows "This message was deleted" for other user self-redact', (
+      tester,
+    ) async {
       final event = _makeEvent(
         eventId: r'$evt1',
         senderId: '@alice:example.com',
@@ -421,7 +445,9 @@ void main() {
       expect(find.text('This message was deleted'), findsOneWidget);
     });
 
-    testWidgets('shows "Deleted by moderator" for moderator redaction', (tester) async {
+    testWidgets('shows "Deleted by moderator" for moderator redaction', (
+      tester,
+    ) async {
       final event = _makeEvent(
         eventId: r'$evt1',
         senderId: '@alice:example.com',
@@ -436,7 +462,9 @@ void main() {
 
       final modUser = MockUser();
       when(modUser.displayName).thenReturn('Moderator');
-      when(mockRoom.unsafeGetUserFromMemoryOrFallback('@mod:example.com')).thenReturn(modUser);
+      when(
+        mockRoom.unsafeGetUserFromMemoryOrFallback('@mod:example.com'),
+      ).thenReturn(modUser);
 
       await tester.pumpWidget(_buildBubble(event: event, isMe: false));
       await tester.pumpAndSettle();
@@ -448,13 +476,17 @@ void main() {
   // ── Edited message rendering ───────────────────────────────
 
   group('Edited message rendering', () {
-    testWidgets('shows (edited) indicator when message has edits', (tester) async {
+    testWidgets('shows (edited) indicator when message has edits', (
+      tester,
+    ) async {
       final event = _makeEvent(
         eventId: r'$evt1',
         senderId: '@me:example.com',
         body: 'Updated text',
       );
-      when(event.hasAggregatedEvents(mockTimeline, RelationshipTypes.edit)).thenReturn(true);
+      when(
+        event.hasAggregatedEvents(mockTimeline, RelationshipTypes.edit),
+      ).thenReturn(true);
 
       await tester.pumpWidget(
         _buildBubble(
@@ -536,7 +568,9 @@ void main() {
       expect(find.text('Delete'), findsOneWidget);
     });
 
-    testWidgets('shows "Remove" label for other users messages', (tester) async {
+    testWidgets('shows "Remove" label for other users messages', (
+      tester,
+    ) async {
       final event = _makeEvent(
         eventId: r'$evt1',
         senderId: '@alice:example.com',
@@ -626,7 +660,9 @@ void main() {
   // ── Edit flow in ChatScreen ────────────────────────────────
 
   group('ChatScreen edit flow', () {
-    testWidgets('edit preview banner appears after triggering edit', (tester) async {
+    testWidgets('edit preview banner appears after triggering edit', (
+      tester,
+    ) async {
       // Use desktop width to access right-click context menu.
       tester.view.physicalSize = const Size(800, 600);
       tester.view.devicePixelRatio = 1.0;
@@ -641,8 +677,12 @@ void main() {
         body: 'My message to edit',
       );
       when(mockTimeline.events).thenReturn([event]);
-      when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
-          .thenAnswer((_) async => mockTimeline);
+      when(
+        mockRoom.getTimeline(
+          eventContextId: anyNamed('eventContextId'),
+          onUpdate: anyNamed('onUpdate'),
+        ),
+      ).thenAnswer((_) async => mockTimeline);
 
       await tester.pumpWidget(
         _buildChatWidget(
@@ -691,8 +731,12 @@ void main() {
         body: 'My message',
       );
       when(mockTimeline.events).thenReturn([event]);
-      when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
-          .thenAnswer((_) async => mockTimeline);
+      when(
+        mockRoom.getTimeline(
+          eventContextId: anyNamed('eventContextId'),
+          onUpdate: anyNamed('onUpdate'),
+        ),
+      ).thenAnswer((_) async => mockTimeline);
 
       await tester.pumpWidget(
         _buildChatWidget(
@@ -725,7 +769,9 @@ void main() {
       expect(textField.controller?.text, isEmpty);
     });
 
-    testWidgets('sending edit passes editEventId to sendTextEvent', (tester) async {
+    testWidgets('sending edit passes editEventId to sendTextEvent', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -739,8 +785,12 @@ void main() {
         body: 'Original text',
       );
       when(mockTimeline.events).thenReturn([event]);
-      when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
-          .thenAnswer((_) async => mockTimeline);
+      when(
+        mockRoom.getTimeline(
+          eventContextId: anyNamed('eventContextId'),
+          onUpdate: anyNamed('onUpdate'),
+        ),
+      ).thenAnswer((_) async => mockTimeline);
       when(
         mockRoom.sendTextEvent(
           any,
@@ -786,7 +836,9 @@ void main() {
   // ── Delete flow in ChatScreen ──────────────────────────────
 
   group('ChatScreen delete flow', () {
-    testWidgets('delete shows confirmation dialog with "Delete" for own msg', (tester) async {
+    testWidgets('delete shows confirmation dialog with "Delete" for own msg', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -800,8 +852,12 @@ void main() {
         body: 'Delete me',
       );
       when(mockTimeline.events).thenReturn([event]);
-      when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
-          .thenAnswer((_) async => mockTimeline);
+      when(
+        mockRoom.getTimeline(
+          eventContextId: anyNamed('eventContextId'),
+          onUpdate: anyNamed('onUpdate'),
+        ),
+      ).thenAnswer((_) async => mockTimeline);
 
       await tester.pumpWidget(
         _buildChatWidget(
@@ -848,8 +904,12 @@ void main() {
         body: 'Delete me',
       );
       when(mockTimeline.events).thenReturn([event]);
-      when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
-          .thenAnswer((_) async => mockTimeline);
+      when(
+        mockRoom.getTimeline(
+          eventContextId: anyNamed('eventContextId'),
+          onUpdate: anyNamed('onUpdate'),
+        ),
+      ).thenAnswer((_) async => mockTimeline);
       when(mockRoom.redactEvent(r'$evt1')).thenAnswer((_) async => r'$redact1');
 
       await tester.pumpWidget(
@@ -879,7 +939,9 @@ void main() {
       verify(mockRoom.redactEvent(r'$evt1')).called(1);
     });
 
-    testWidgets('cancelling delete dialog does not call redactEvent', (tester) async {
+    testWidgets('cancelling delete dialog does not call redactEvent', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -893,8 +955,12 @@ void main() {
         body: 'Do not delete',
       );
       when(mockTimeline.events).thenReturn([event]);
-      when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
-          .thenAnswer((_) async => mockTimeline);
+      when(
+        mockRoom.getTimeline(
+          eventContextId: anyNamed('eventContextId'),
+          onUpdate: anyNamed('onUpdate'),
+        ),
+      ).thenAnswer((_) async => mockTimeline);
 
       await tester.pumpWidget(
         _buildChatWidget(
@@ -925,7 +991,9 @@ void main() {
   // ── Redacted messages disable interactions ─────────────────
 
   group('Redacted message interactions', () {
-    testWidgets('redacted messages do not show context menu on desktop', (tester) async {
+    testWidgets('redacted messages do not show context menu on desktop', (
+      tester,
+    ) async {
       final event = _makeEvent(
         eventId: r'$evt1',
         senderId: '@me:example.com',
@@ -960,7 +1028,9 @@ void main() {
   // ── Edit events filtered from timeline ─────────────────────
 
   group('Sender avatar profile sheet', () {
-    testWidgets('tapping a sender avatar opens the member profile sheet', (tester) async {
+    testWidgets('tapping a sender avatar opens the member profile sheet', (
+      tester,
+    ) async {
       final event = _makeEvent(
         eventId: r'$evt1',
         senderId: '@alice:example.com',
@@ -1028,7 +1098,9 @@ void main() {
   });
 
   group('Edit events filtered from visible timeline', () {
-    testWidgets('edit relation events are not shown in message list', (tester) async {
+    testWidgets('edit relation events are not shown in message list', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(800, 600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -1048,8 +1120,12 @@ void main() {
         relationshipType: RelationshipTypes.edit,
       );
       when(mockTimeline.events).thenReturn([editEvent, original]);
-      when(mockRoom.getTimeline(eventContextId: anyNamed('eventContextId'), onUpdate: anyNamed('onUpdate')))
-          .thenAnswer((_) async => mockTimeline);
+      when(
+        mockRoom.getTimeline(
+          eventContextId: anyNamed('eventContextId'),
+          onUpdate: anyNamed('onUpdate'),
+        ),
+      ).thenAnswer((_) async => mockTimeline);
 
       await tester.pumpWidget(
         _buildChatWidget(
@@ -1072,6 +1148,8 @@ void main() {
 
   Widget menuHarness({required VoidCallback onOpen}) {
     return MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
+
       home: Scaffold(
         body: Builder(
           builder: (context) => Center(
@@ -1086,8 +1164,9 @@ void main() {
   }
 
   group('Two-tier context menu', () {
-    testWidgets('primary tier shows 5 actions + More… when all callbacks set',
-        (tester) async {
+    testWidgets('primary tier shows 5 actions + More… when all callbacks set', (
+      tester,
+    ) async {
       final fired = <String>[];
       await tester.pumpWidget(
         menuHarness(
@@ -1131,8 +1210,9 @@ void main() {
       expect(fired, isEmpty);
     });
 
-    testWidgets('More… is omitted when no secondary callbacks are set',
-        (tester) async {
+    testWidgets('More… is omitted when no secondary callbacks are set', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         menuHarness(
           onOpen: () => showMessageContextMenu(
@@ -1158,53 +1238,57 @@ void main() {
       expect(find.text('More…'), findsNothing);
     });
 
-    testWidgets('tapping More… opens the secondary tier and fires its handler',
-        (tester) async {
-      final fired = <String>[];
-      await tester.pumpWidget(
-        menuHarness(
-          onOpen: () => showMessageContextMenu(
-            tester.element(find.text('open')),
-            isMe: false,
-            isPinned: false,
-            isFailed: false,
-            isRedacted: false,
-            copyableBody: 'hi',
-            position: const Offset(100, 100),
-            onReply: () => fired.add('reply'),
-            onEdit: () => fired.add('edit'),
-            onReact: () => fired.add('react'),
-            onDelete: () => fired.add('delete'),
-            onReplyInThread: () => fired.add('reply_in_thread'),
-            onForward: () => fired.add('forward'),
-            onPin: () => fired.add('pin'),
-            onIgnoreSender: () => fired.add('ignore_sender'),
-            onReport: () => fired.add('report'),
+    testWidgets(
+      'tapping More… opens the secondary tier and fires its handler',
+      (tester) async {
+        final fired = <String>[];
+        await tester.pumpWidget(
+          menuHarness(
+            onOpen: () => showMessageContextMenu(
+              tester.element(find.text('open')),
+              isMe: false,
+              isPinned: false,
+              isFailed: false,
+              isRedacted: false,
+              copyableBody: 'hi',
+              position: const Offset(100, 100),
+              onReply: () => fired.add('reply'),
+              onEdit: () => fired.add('edit'),
+              onReact: () => fired.add('react'),
+              onDelete: () => fired.add('delete'),
+              onReplyInThread: () => fired.add('reply_in_thread'),
+              onForward: () => fired.add('forward'),
+              onPin: () => fired.add('pin'),
+              onIgnoreSender: () => fired.add('ignore_sender'),
+              onReport: () => fired.add('report'),
+            ),
           ),
-        ),
-      );
-      await tester.tap(find.text('open'));
-      await tester.pumpAndSettle();
+        );
+        await tester.tap(find.text('open'));
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('More…'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('More…'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Reply in thread'), findsOneWidget);
-      expect(find.text('Forward'), findsOneWidget);
-      expect(find.text('Pin'), findsOneWidget);
-      expect(find.text('Ignore user'), findsOneWidget);
-      expect(find.text('Report'), findsOneWidget);
-      // Primary tier closed.
-      expect(find.text('Reply'), findsNothing);
-      expect(find.text('More…'), findsNothing);
+        expect(find.text('Reply in thread'), findsOneWidget);
+        expect(find.text('Forward'), findsOneWidget);
+        expect(find.text('Pin'), findsOneWidget);
+        expect(find.text('Ignore user'), findsOneWidget);
+        expect(find.text('Report'), findsOneWidget);
+        // Primary tier closed.
+        expect(find.text('Reply'), findsNothing);
+        expect(find.text('More…'), findsNothing);
 
-      await tester.tap(find.text('Forward'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Forward'));
+        await tester.pumpAndSettle();
 
-      expect(fired, ['forward']);
-    });
+        expect(fired, ['forward']);
+      },
+    );
 
-    testWidgets('secondary tier reflects pinned state as Unpin', (tester) async {
+    testWidgets('secondary tier reflects pinned state as Unpin', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         menuHarness(
           onOpen: () => showMessageContextMenu(

@@ -8,8 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Finds the [OpenMojiImage] rendered for [emoji].
 Finder _emojiImage(String emoji) => find.byWidgetPredicate(
-      (w) => w is OpenMojiImage && w.grapheme == emoji,
-    );
+  (w) => w is OpenMojiImage && w.grapheme == emoji,
+);
 
 void main() {
   Widget buildTestWidget({
@@ -59,12 +59,15 @@ void main() {
       expect(find.byIcon(Icons.reply_rounded), findsOneWidget);
     });
 
-    testWidgets('action buttons use a clickable pointer cursor',
-        (tester) async {
-      await tester.pumpWidget(buildTestWidget(
-        onQuickReact: (_) {},
-        onReply: () {},
-      ),);
+    testWidgets('action buttons use a clickable pointer cursor', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildTestWidget(
+          onQuickReact: (_) {},
+          onReply: () {},
+        ),
+      );
 
       for (final icon in [
         Icons.add_reaction_outlined,
@@ -102,8 +105,9 @@ void main() {
       expect(pos, isNotNull);
     });
 
-    testWidgets('tap react icon opens quick-react overlay with emojis',
-        (tester) async {
+    testWidgets('tap react icon opens quick-react overlay with emojis', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildTestWidget(onQuickReact: (_) {}));
 
       await tester.tap(find.byIcon(Icons.add_reaction_outlined));
@@ -117,8 +121,9 @@ void main() {
       expect(_emojiImage('\u{1F62E}'), findsOneWidget);
     });
 
-    testWidgets('tap emoji in overlay calls onQuickReact and closes overlay',
-        (tester) async {
+    testWidgets('tap emoji in overlay calls onQuickReact and closes overlay', (
+      tester,
+    ) async {
       String? selectedEmoji;
       await tester.pumpWidget(
         buildTestWidget(onQuickReact: (e) => selectedEmoji = e),
@@ -138,6 +143,8 @@ void main() {
         ChangeNotifierProvider<PreferencesService>(
           create: (_) => PreferencesService(),
           child: MaterialApp(
+            theme: ThemeData(splashFactory: InkRipple.splashFactory),
+
             home: Scaffold(
               body: Align(
                 alignment: alignment,
@@ -151,8 +158,9 @@ void main() {
           ),
         );
 
-    testWidgets('quick-react bar stays on-screen near the left edge',
-        (tester) async {
+    testWidgets('quick-react bar stays on-screen near the left edge', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildEdgeWidget(Alignment.centerLeft));
       await tester.tap(find.byIcon(Icons.add_reaction_outlined));
       await tester.pumpAndSettle();
@@ -163,8 +171,9 @@ void main() {
       );
     });
 
-    testWidgets('quick-react bar stays on-screen near the right edge',
-        (tester) async {
+    testWidgets('quick-react bar stays on-screen near the right edge', (
+      tester,
+    ) async {
       await tester.pumpWidget(buildEdgeWidget(Alignment.centerRight));
       await tester.tap(find.byIcon(Icons.add_reaction_outlined));
       await tester.pumpAndSettle();

@@ -5,16 +5,16 @@ import 'package:kohera/features/chat/models/kohera_poll_draft.dart';
 import 'package:kohera/features/chat/widgets/create_poll_dialog.dart';
 
 Widget _harness() => MaterialApp(
-      theme: KoheraTheme.light(),
-      home: Scaffold(
-        body: Builder(
-          builder: (context) => ElevatedButton(
-            onPressed: () => CreatePollDialog.show(context),
-            child: const Text('open'),
-          ),
-        ),
+  theme: ThemeData(splashFactory: InkRipple.splashFactory),
+  home: Scaffold(
+    body: Builder(
+      builder: (context) => ElevatedButton(
+        onPressed: () => CreatePollDialog.show(context),
+        child: const Text('open'),
       ),
-    );
+    ),
+  ),
+);
 
 Future<void> _fillOption(WidgetTester tester, int index, String text) async {
   await tester.enterText(find.widgetWithText(TextField, 'Option $index'), text);
@@ -76,22 +76,25 @@ void main() {
     expect(find.text('Option 3'), findsNothing);
   });
 
-  testWidgets('returns a single-select disclosed draft on valid submit',
-      (tester) async {
+  testWidgets('returns a single-select disclosed draft on valid submit', (
+    tester,
+  ) async {
     KoheraPollDraft? result;
-    await tester.pumpWidget(MaterialApp(
-      theme: KoheraTheme.light(),
-      home: Scaffold(
-        body: Builder(
-          builder: (context) => ElevatedButton(
-            onPressed: () async {
-              result = await CreatePollDialog.show(context);
-            },
-            child: const Text('open'),
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                result = await CreatePollDialog.show(context);
+              },
+              child: const Text('open'),
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
@@ -108,22 +111,25 @@ void main() {
     expect(result!.maxSelections, 1);
   });
 
-  testWidgets('returns multi-select draft when multi-select toggled',
-      (tester) async {
+  testWidgets('returns multi-select draft when multi-select toggled', (
+    tester,
+  ) async {
     KoheraPollDraft? result;
-    await tester.pumpWidget(MaterialApp(
-      theme: KoheraTheme.light(),
-      home: Scaffold(
-        body: Builder(
-          builder: (context) => ElevatedButton(
-            onPressed: () async {
-              result = await CreatePollDialog.show(context);
-            },
-            child: const Text('open'),
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: KoheraTheme.light(),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                result = await CreatePollDialog.show(context);
+              },
+              child: const Text('open'),
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
