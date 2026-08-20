@@ -26,6 +26,7 @@ void main() {
               ),
             ),
           ),
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
         ),
       );
       await tester.tap(find.text('open'));

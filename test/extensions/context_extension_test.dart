@@ -15,6 +15,7 @@ void main() {
               ),
             ),
           ),
+          theme: ThemeData(splashFactory: InkRipple.splashFactory),
         ),
       );
 

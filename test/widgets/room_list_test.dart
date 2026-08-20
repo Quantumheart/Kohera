@@ -52,6 +52,7 @@ void main() {
   });
 
   Widget wrap(Widget child) => MaterialApp(
+    theme: ThemeData(splashFactory: InkRipple.splashFactory),
     home: child,
     builder: (context, child) => MultiProvider(
       providers: [
