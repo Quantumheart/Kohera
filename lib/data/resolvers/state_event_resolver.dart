@@ -5,6 +5,9 @@ import 'package:matrix/matrix.dart';
 class StateEventResolver {
   const StateEventResolver();
 
+  static KoheraStateEventText resolve(Event event) =>
+      const StateEventResolver()(event);
+
   KoheraStateEventText call(Event event) {
     final sender = event.senderFromMemoryOrFallback.calcDisplayname();
 

@@ -11,9 +11,10 @@ import 'package:matrix/matrix.dart';
 /// that touches the SDK directly — display widgets depend on the
 /// [MediaController] interface, not this implementation.
 class SdkMediaController implements MediaController {
-  SdkMediaController(this._event);
+  SdkMediaController(this._event, this._client);
 
   final Event _event;
+  final Client _client;
 
   @override
   bool get isEncrypted => _event.isAttachmentEncrypted;
@@ -56,7 +57,7 @@ class SdkMediaController implements MediaController {
       final mxc = _event.attachmentMxcUrl;
       if (mxc != null && width != null && height != null) {
         uri = await mxc.getThumbnailUri(
-          _event.room.client,
+          _client,
           width: width.toDouble(),
           height: height.toDouble(),
         );
@@ -67,5 +68,5 @@ class SdkMediaController implements MediaController {
 
   @override
   Map<String, String>? authHeaders(String url) =>
-      mediaAuthHeaders(_event.room.client, url);
+      mediaAuthHeaders(_client, url);
 }

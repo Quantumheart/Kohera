@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:kohera/core/extensions/auth_error_formatter.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/chat/models/kohera_poll_draft.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
 import 'package:kohera/features/chat/services/file_send_handler.dart';
@@ -14,7 +15,7 @@ class ChatMessageActions {
     required this.compose,
     required this.msgCtrl,
     required this.getScaffold,
-    required this.getMatrixService,
+    required this.getRoomRepository,
   });
 
   final String Function() getRoomId;
@@ -23,14 +24,14 @@ class ChatMessageActions {
   final ComposeStateController compose;
   final TextEditingController msgCtrl;
   final ScaffoldMessengerState Function() getScaffold;
-  final MatrixService Function() getMatrixService;
+  final RoomRepository Function() getRoomRepository;
 
   // ── Reactions ──────────────────────────────────────
 
   Future<void> toggleReaction(Event event, String emoji) async {
     final timeline = getTimeline();
     if (timeline == null) return;
-    final myId = getMatrixService().client.userID;
+    final myId = getRoomRepository().userId;
 
     final existing = event
         .aggregatedEvents(timeline, RelationshipTypes.reaction)
@@ -52,7 +53,7 @@ class ChatMessageActions {
       getScaffold().showSnackBar(
         SnackBar(
           content: Text(
-            'Failed to react: ${MatrixService.friendlyAuthError(e)}',
+            'Failed to react: ${AuthErrorFormatter.friendlyAuthError(e)}',
           ),
         ),
       );
@@ -148,7 +149,7 @@ class ChatMessageActions {
         compose.replyNotifier.value = replyPreview;
         compose.editNotifier.value = editPreview;
         scaffold.showSnackBar(
-          SnackBar(content: Text('Failed to send: ${MatrixService.friendlyAuthError(e)}')),
+          SnackBar(content: Text('Failed to send: ${AuthErrorFormatter.friendlyAuthError(e)}')),
         );
       }
     }
@@ -171,7 +172,7 @@ class ChatMessageActions {
     final scaffold = getScaffold();
     if (room == null) return;
 
-    final client = room.client;
+    final client = getRoomRepository().searchClient;
     final answers = draft.answers
         .map(
           (label) => PollAnswer(
@@ -194,7 +195,7 @@ class ChatMessageActions {
       debugPrint('[Kohera] Failed to send poll: $e');
       scaffold.showSnackBar(
         SnackBar(
-          content: Text('Failed to send poll: ${MatrixService.friendlyAuthError(e)}'),
+          content: Text('Failed to send poll: ${AuthErrorFormatter.friendlyAuthError(e)}'),
         ),
       );
     }
@@ -223,7 +224,7 @@ class ChatMessageActions {
       debugPrint('[Kohera] Failed to submit poll vote: $e');
       scaffold.showSnackBar(
         SnackBar(
-          content: Text('Failed to vote: ${MatrixService.friendlyAuthError(e)}'),
+          content: Text('Failed to vote: ${AuthErrorFormatter.friendlyAuthError(e)}'),
         ),
       );
     }
@@ -258,7 +259,7 @@ class ChatMessageActions {
       scaffold.showSnackBar(
         SnackBar(
           content:
-              Text('Failed to end poll: ${MatrixService.friendlyAuthError(e)}'),
+              Text('Failed to end poll: ${AuthErrorFormatter.friendlyAuthError(e)}'),
         ),
       );
     }

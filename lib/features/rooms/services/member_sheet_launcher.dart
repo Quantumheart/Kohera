@@ -65,7 +65,6 @@ Future<void> showRoomMemberSheet(
         : () async {
             final dmRoomId = await roomRepo.startDirectChat(
               member.userId,
-              enableEncryption: true,
             );
             if (roomRepo.rawRoom(dmRoomId) == null) {
               await roomRepo

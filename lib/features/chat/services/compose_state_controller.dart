@@ -32,7 +32,7 @@ class ComposeStateController {
   // ── Reply ───────────────────────────────────────────────
 
   void setReplyTo(Event event) {
-    replyNotifier.value = const ReplyPreviewResolver().fromEvent(event);
+    replyNotifier.value = ReplyPreviewResolver.fromEvent(event);
   }
 
   void cancelReply() {
@@ -61,8 +61,7 @@ class ComposeStateController {
     replyNotifier.value = null;
     final displayEvent =
         timeline != null ? event.getDisplayEvent(timeline) : event;
-    editNotifier.value =
-        const ReplyPreviewResolver().fromEvent(displayEvent);
+    editNotifier.value = ReplyPreviewResolver.fromEvent(displayEvent);
     msgCtrl.text = stripReplyFallback(displayEvent.body);
     msgCtrl.selection =
         TextSelection.collapsed(offset: msgCtrl.text.length);

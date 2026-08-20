@@ -52,7 +52,7 @@ class MessageRepository extends ChangeNotifier {
     Timeline timeline, {
     required String myUserId,
   }) {
-    return const ReactionResolver().resolve(
+    return ReactionResolver.resolve(
       event,
       timeline,
       myUserId: myUserId,
@@ -62,14 +62,14 @@ class MessageRepository extends ChangeNotifier {
   // ── Domain model: reply preview ───────────────────────────────
 
   KoheraReplyPreview replyPreviewFromEvent(Event event) {
-    return const ReplyPreviewResolver().fromEvent(event);
+    return ReplyPreviewResolver.fromEvent(event);
   }
 
   Future<KoheraReplyPreview?> resolveReplyParent(
     Event replyEvent,
     Timeline timeline,
   ) {
-    return const ReplyPreviewResolver().resolveParent(replyEvent, timeline);
+    return ReplyPreviewResolver.resolveParent(replyEvent, timeline);
   }
 
   // ── Domain model: read receipts ──────────────────────────────

@@ -79,7 +79,7 @@ class InboxController extends ChangeNotifier {
 
 
   Future<void> fetch() => _withLoad((gen) async {
-        final response = await _pushRepo.getNotifications(limit: 30);
+        final response = await _pushRepo.getNotifications();
         if (_disposed || gen != _fetchGeneration) return null;
         _rawNotifications = response.notifications;
         final grouped = await _grouper.group(response.notifications, _filter);
@@ -87,7 +87,7 @@ class InboxController extends ChangeNotifier {
       });
 
   Future<void> refresh() => _withLoad((gen) async {
-        final response = await _pushRepo.getNotifications(limit: 30);
+        final response = await _pushRepo.getNotifications();
         if (_disposed || gen != _fetchGeneration) return null;
         final headIds =
             response.notifications.map((n) => n.event.eventId).toSet();
@@ -105,7 +105,6 @@ class InboxController extends ChangeNotifier {
     if (_nextToken == null || _isLoading) return;
     await _withLoad((gen) async {
       final response = await _pushRepo.getNotifications(
-        limit: 30,
         from: _nextToken,
       );
       if (_disposed || gen != _fetchGeneration) return null;

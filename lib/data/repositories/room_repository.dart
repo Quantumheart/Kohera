@@ -11,6 +11,7 @@ import 'package:kohera/data/models/space_node.dart';
 import 'package:kohera/data/resolvers/room_member_list_resolver.dart';
 import 'package:kohera/data/resolvers/room_permissions_resolver.dart';
 import 'package:kohera/data/resolvers/room_summary_resolver.dart';
+import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 
 class RoomRepository extends ChangeNotifier {
@@ -288,6 +289,30 @@ class RoomRepository extends ChangeNotifier {
   /// The current user's Matrix ID.
   String? get userId => _matrix.userID;
 
+  /// User IDs the current account has ignored, for timeline filtering.
+  List<String> get ignoredUsers => _matrix.client.ignoredUsers;
+
+  /// The account's active [Encryption] engine, or `null` when unencrypted.
+  /// Consumers operate on the returned SDK object (escape hatch, #1025).
+  Encryption? get encryption => _matrix.client.encryption;
+
+  /// Reports [eventId] in [roomId] to the homeserver moderators.
+  Future<void> reportEvent(String roomId, String eventId, {String? reason}) =>
+      _matrix.client.reportEvent(roomId, eventId, reason: reason);
+
+  /// Posts a read receipt for [eventId] in [roomId].
+  Future<void> postReceipt(
+    String roomId,
+    ReceiptType type,
+    String eventId, {
+    String? threadId,
+  }) =>
+      _matrix.client.postReceipt(roomId, type, eventId, threadId: threadId);
+
+  /// Fetches the joined members of [roomId] from the homeserver.
+  Future<Map<String, RoomMember>?> getJoinedMembersByRoom(String roomId) =>
+      _matrix.client.getJoinedMembersByRoom(roomId);
+
   /// Starts (or reuses) a direct chat with [userId], returning its room ID.
   Future<String> startDirectChat(String userId, {bool enableEncryption = true}) =>
       _matrix.client.startDirectChat(userId, enableEncryption: enableEncryption);
@@ -356,7 +381,6 @@ class RoomRepository extends ChangeNotifier {
 
   // ── Transitional raw room access ──────────────────────────────
 
-  @Deprecated('Use summaryFor/permissionsFor/memberListFor instead')
   Room? rawRoom(String roomId) => _matrix.client.getRoomById(roomId);
 
   // ── Helpers ──────────────────────────────────────────────────

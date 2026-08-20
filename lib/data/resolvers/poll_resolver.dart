@@ -14,6 +14,11 @@ import 'package:matrix/matrix.dart';
 class PollResolver {
   const PollResolver();
 
+  static KoheraPoll resolve(Event event, Timeline timeline,
+          {required String myUserId, required bool canRedact}) =>
+      const PollResolver()(event, timeline,
+          myUserId: myUserId, canRedact: canRedact);
+
   KoheraPoll call(Event event, Timeline timeline,
       {required String myUserId, required bool canRedact}) {
     assert(event.type == PollEventContent.startType, 'PollResolver requires a poll-start event');

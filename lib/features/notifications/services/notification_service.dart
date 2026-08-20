@@ -243,8 +243,6 @@ class NotificationService {
         try {
           final uri = await pushRepository.thumbnailUri(
             inviterAvatarUrl,
-            width: 128,
-            height: 128,
           );
           final rawUrl = uri.toString();
           final headers = pushRepository.mediaAuthHeaders(rawUrl);
@@ -370,8 +368,6 @@ class NotificationService {
       try {
         final uri = await pushRepository.thumbnailUri(
           notifiable.first.$3!,
-          width: 128,
-          height: 128,
         );
         final rawUrl = uri.toString();
         final headers = pushRepository.mediaAuthHeaders(rawUrl);
@@ -479,8 +475,6 @@ class NotificationService {
 
       final uri = await pushRepository.thumbnailUri(
         avatarUrl,
-        width: 128,
-        height: 128,
       );
       final headers = pushRepository.mediaAuthHeaders(uri.toString());
       final response = await http

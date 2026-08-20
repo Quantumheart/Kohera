@@ -12,6 +12,9 @@ import 'package:matrix/matrix.dart';
 class MessageDisplayResolver {
   const MessageDisplayResolver();
 
+  static KoheraMessageDisplay resolve(Event event, {Timeline? timeline}) =>
+      const MessageDisplayResolver()(event, timeline: timeline);
+
   KoheraMessageDisplay call(Event event, {Timeline? timeline}) {
     final displayEvent =
         timeline != null ? event.getDisplayEvent(timeline) : event;

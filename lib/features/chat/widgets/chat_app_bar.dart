@@ -9,6 +9,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/calling/models/incoming_call_info.dart'
     as model;
 import 'package:kohera/features/calling/services/call_navigator.dart';
@@ -231,16 +232,16 @@ class _HeaderSubtitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final presence = this.presence;
     final userId = this.userId;
-    final matrix = context.read<MatrixService>();
-    final room = matrix.client.getRoomById(roomId);
+    final rooms = context.read<RoomRepository>();
+    final room = rooms.rawRoom(roomId);
     return JoinedMemberCount(
       roomId: roomId,
       summaryMemberCount: room?.summary.mJoinedMemberCount ?? 0,
       participantListComplete: room?.participantListComplete ?? false,
       resolveMemberCount: (id) async {
-        final r = matrix.client.getRoomById(id);
+        final r = rooms.rawRoom(id);
         if (r == null) return null;
-        final members = await r.client.getJoinedMembersByRoom(id);
+        final members = await rooms.getJoinedMembersByRoom(id);
         return members?.length;
       },
       builder: (context, count) {

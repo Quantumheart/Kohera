@@ -2,7 +2,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/chat/services/thread_roots_service.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/widgets/thread_list_tile.dart';
@@ -39,15 +39,15 @@ class _ThreadListScreenState extends State<ThreadListScreen> {
 
   Future<void> _refresh() async {
     if (!mounted) return;
-    final matrix = context.read<MatrixService>();
-    final room = matrix.client.getRoomById(widget.roomId);
+    final rooms = context.read<RoomRepository>();
+    final room = rooms.rawRoom(widget.roomId);
     if (room == null) {
       if (mounted) setState(() => _loading = false);
       return;
     }
     try {
       final summaries = await fetchThreadSummaries(
-        client: matrix.client,
+        client: rooms.searchClient,
         room: room,
       );
       if (!mounted) return;
@@ -56,7 +56,7 @@ class _ThreadListScreenState extends State<ThreadListScreen> {
         _loading = false;
         _error = null;
       });
-      _syncSub ??= matrix.client.onSync.stream.listen((_) {
+      _syncSub ??= rooms.onSync.listen((_) {
         if (mounted) unawaited(_refresh());
       });
     } catch (e) {
@@ -77,8 +77,7 @@ class _ThreadListScreenState extends State<ThreadListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final matrix = context.watch<MatrixService>();
-    final room = matrix.client.getRoomById(widget.roomId);
+    final room = context.watch<RoomRepository>().rawRoom(widget.roomId);
     final tt = Theme.of(context).textTheme;
 
     if (room == null) {

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
 import 'package:kohera/features/chat/services/file_send_handler.dart';
@@ -48,9 +49,9 @@ class _ThreadScreenState extends State<ThreadScreen> {
   @override
   void initState() {
     super.initState();
-    final matrix = context.read<MatrixService>();
+    final rooms = context.read<RoomRepository>();
     _timelineController = MessageTimelineController(
-      matrix: matrix,
+      rooms: rooms,
       roomId: widget.roomId,
       sendPublicReadReceipts: false,
       threadRootEventId: widget.threadRootEventId,
@@ -61,12 +62,12 @@ class _ThreadScreenState extends State<ThreadScreen> {
     _actions = ChatMessageActions(
       getRoomId: () => widget.roomId,
       getRoom: () =>
-          context.read<MatrixService>().client.getRoomById(widget.roomId),
+          context.read<RoomRepository>().rawRoom(widget.roomId),
       getTimeline: () => _timelineController.timeline,
       compose: _compose,
       msgCtrl: _msgCtrl,
       getScaffold: () => ScaffoldMessenger.of(context),
-      getMatrixService: () => context.read<MatrixService>(),
+      getRoomRepository: () => context.read<RoomRepository>(),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -75,8 +76,8 @@ class _ThreadScreenState extends State<ThreadScreen> {
   }
 
   Future<void> _loadRoot() async {
-    final matrix = context.read<MatrixService>();
-    final room = matrix.client.getRoomById(widget.roomId);
+    final rooms = context.read<RoomRepository>();
+    final room = rooms.rawRoom(widget.roomId);
     if (room == null) {
       if (mounted) setState(() => _loadingRoot = false);
       _scheduleFocusReady();
@@ -84,7 +85,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
     }
     try {
       final rootFound = await _threadLoader.loadRoot(
-        matrix,
+        rooms,
         widget.roomId,
         widget.threadRootEventId,
       );
@@ -108,9 +109,9 @@ class _ThreadScreenState extends State<ThreadScreen> {
     if (_loadingMoreReplies || !_threadLoader.hasMore) return;
     setState(() => _loadingMoreReplies = true);
     try {
-      final matrix = context.read<MatrixService>();
+      final rooms = context.read<RoomRepository>();
       await _threadLoader.loadMoreReplies(
-        matrix,
+        rooms,
         widget.roomId,
         widget.threadRootEventId,
       );
@@ -159,7 +160,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
   @override
   Widget build(BuildContext context) {
     final matrix = context.watch<MatrixService>();
-    final room = matrix.client.getRoomById(widget.roomId);
+    final room = context.watch<RoomRepository>().rawRoom(widget.roomId);
     final tt = Theme.of(context).textTheme;
 
     if (room == null) {
