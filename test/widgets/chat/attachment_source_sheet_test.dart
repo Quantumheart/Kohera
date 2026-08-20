@@ -9,23 +9,25 @@ void main() {
     bool showSticker = false,
   }) async {
     AttachmentSource? result;
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: Builder(
-          builder: (context) => ElevatedButton(
-            onPressed: () async {
-              result = await showAttachmentSourceSheet(
-                context,
-                showGif: showGif,
-                showSticker: showSticker,
-              );
-            },
-            child: const Text('open'),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                result = await showAttachmentSourceSheet(
+                  context,
+                  showGif: showGif,
+                  showSticker: showSticker,
+                );
+              },
+              child: const Text('open'),
+            ),
           ),
         ),
+        theme: ThemeData(splashFactory: NoSplash.splashFactory),
       ),
-      theme: ThemeData(splashFactory: NoSplash.splashFactory),
-    ),);
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     return result;
@@ -48,18 +50,24 @@ void main() {
 
   testWidgets('returns gif source when GIF option tapped', (tester) async {
     AttachmentSource? result;
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: Builder(
-          builder: (context) => ElevatedButton(
-            onPressed: () async {
-              result = await showAttachmentSourceSheet(context, showGif: true);
-            },
-            child: const Text('open'),
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                result = await showAttachmentSourceSheet(
+                  context,
+                  showGif: true,
+                );
+              },
+              child: const Text('open'),
+            ),
           ),
         ),
       ),
-    ),);
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('GIF'));
@@ -68,21 +76,26 @@ void main() {
     expect(result, AttachmentSource.gif);
   });
 
-  testWidgets('always shows Poll option and returns poll source when tapped',
-      (tester) async {
+  testWidgets('always shows Poll option and returns poll source when tapped', (
+    tester,
+  ) async {
     AttachmentSource? result;
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: Builder(
-          builder: (context) => ElevatedButton(
-            onPressed: () async {
-              result = await showAttachmentSourceSheet(context);
-            },
-            child: const Text('open'),
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(splashFactory: InkRipple.splashFactory),
+
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                result = await showAttachmentSourceSheet(context);
+              },
+              child: const Text('open'),
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
