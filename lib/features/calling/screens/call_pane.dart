@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/calling/services/call_navigator.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/widgets/call_state_views.dart';
@@ -17,7 +17,7 @@ class CallPane extends StatelessWidget {
   String _resolveRoomName(BuildContext context, CallService callService) {
     final roomId = callService.activeCallRoomId;
     if (roomId == null) return 'Call';
-    final room = context.read<MatrixService>().client.getRoomById(roomId);
+    final room = context.read<RoomRepository>().rawRoom(roomId);
     return room?.getLocalizedDisplayname() ?? 'Call';
   }
 
@@ -37,13 +37,13 @@ class CallPane extends StatelessWidget {
           displayName: _resolveRoomName(context, callService),
           roomAvatar: () {
             final room = roomId != null
-                ? context.read<MatrixService>().client.getRoomById(roomId)
+                ? context.read<RoomRepository>().rawRoom(roomId)
                 : null;
             if (room == null) return null;
             return CallRoomAvatar(
               avatarUrl: room.avatar?.toString(),
               displayName: room.getLocalizedDisplayname(),
-              avatarResolver: ClientAvatarResolver(room.client),
+              avatarResolver: context.read<MediaRepository>().avatarResolver,
             );
           }(),
           phase: callService.joinPhase,

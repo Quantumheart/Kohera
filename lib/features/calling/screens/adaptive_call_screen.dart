@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/calling/screens/call_pane.dart';
 import 'package:kohera/features/calling/screens/call_screen.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
@@ -16,7 +16,7 @@ class AdaptiveCallScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isWide = MediaQuery.sizeOf(context).width >= HomeShell.wideBreakpoint;
     if (isWide) return const CallPane();
-    final room = context.read<MatrixService>().client.getRoomById(roomId);
+    final room = context.read<RoomRepository>().rawRoom(roomId);
     return CallScreen(
       roomId: roomId,
       displayName: room?.getLocalizedDisplayname() ?? 'Call',

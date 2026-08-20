@@ -1,8 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
-import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/data/models/call_participant.dart';
+import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:livekit_client/livekit_client.dart' as livekit;
@@ -54,10 +55,10 @@ class _ParticipantTileState extends State<ParticipantTile> {
       return;
     }
     try {
-      final client = context.read<CallService>().client;
-      final profile = await client.getProfileFromUserId(widget.participant.id);
-      if (mounted && profile.avatarUrl != null) {
-        setState(() => _resolvedAvatarUrl = profile.avatarUrl);
+      final avatarUrl =
+          await context.read<UserRepository>().fetchAvatarUrl(widget.participant.id);
+      if (mounted && avatarUrl != null) {
+        setState(() => _resolvedAvatarUrl = avatarUrl);
       }
     } catch (e) {
       debugPrint('[Kohera] Failed to fetch participant avatar: $e');
@@ -154,12 +155,11 @@ class _ParticipantTileState extends State<ParticipantTile> {
       );
     }
 
-    final matrixClient = context.read<CallService>().client;
     return ColoredBox(
       color: cs.surfaceContainerHighest,
       child: Center(
         child: UserAvatar(
-          avatarResolver: ClientAvatarResolver(matrixClient),
+          avatarResolver: context.read<MediaRepository>().avatarResolver,
           avatarUrl: _resolvedAvatarUrl?.toString(),
           userId: widget.participant.id,
           displayname: widget.participant.displayName,

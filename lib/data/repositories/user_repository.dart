@@ -186,6 +186,15 @@ class UserRepository extends ChangeNotifier {
   Future<String?> fetchDisplayName(String userId) async =>
       (await _matrix.client.getProfileFromUserId(userId)).displayName;
 
+  /// Fetches the avatar URL from a user's profile, or null if unavailable.
+  Future<Uri?> fetchAvatarUrl(String userId) async {
+    try {
+      return (await _matrix.client.getProfileFromUserId(userId)).avatarUrl;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> reportEvent(
     String roomId,
     String eventId, {

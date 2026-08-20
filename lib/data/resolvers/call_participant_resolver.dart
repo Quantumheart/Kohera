@@ -15,17 +15,17 @@ class CallParticipantResolver {
 
   static final _matrixIdPattern = RegExp('@[^:]+:[^:]+');
 
-  String extractMatrixId(String identity) {
+  static String extractMatrixId(String identity) {
     final match = _matrixIdPattern.firstMatch(identity);
     return match?.group(0) ?? identity;
   }
 
-  String _displayNameFromIdentity(String identity) {
+  static String _displayNameFromIdentity(String identity) {
     final match = RegExp('@([^:]+)').firstMatch(identity);
     return match?.group(1) ?? identity;
   }
 
-  CallParticipant fromLiveKit(
+  static CallParticipant fromLiveKit(
     livekit.Participant p, {
     List<livekit.Participant> activeSpeakers = const [],
     bool isLocal = false,
