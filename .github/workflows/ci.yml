@@ -42,7 +42,7 @@ jobs:
       - name: Coverage gate
         run: dart run flutter_ci_guard --skip-format --skip-analyze --skip-tests --min-coverage ${{ env.COVERAGE_THRESHOLD }}
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           files: coverage/lcov.info
           fail_ci_if_error: false
