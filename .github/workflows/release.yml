@@ -159,7 +159,7 @@ jobs:
       - run: flutter pub get
       - name: Repair vodozemac framework layout
         run: |
-          FW="$(find macos/Flutter/ephemeral/Packages/.packages -type d -path '*/flutter_vodozemac-*/flutter_vodozemac.xcframework/macos-arm64_x86_64/flutter_vodozemac.framework' | head -n1)"
+          FW="$(find -L macos/Flutter/ephemeral/Packages/.packages -type d -path '*/flutter_vodozemac-*/flutter_vodozemac.xcframework/macos-arm64_x86_64/flutter_vodozemac.framework' | head -n1)"
           echo "Resolved framework: ${FW:-<none>}"
           if [ -n "$FW" ] && [ -d "$FW/Versions/A" ]; then
             echo "Rebuilding canonical versioned framework layout in $FW"
