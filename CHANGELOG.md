@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.17.1](https://github.com/Quantumheart/Kohera/compare/v1.17.0...v1.17.1) (2026-08-21)
+
+
+### Bug Fixes
+
+* **ios:** re-mirror megolm sessions per sync to close backfill/new-room gaps ([14b9843](https://github.com/Quantumheart/Kohera/commit/14b98435426e48d48ff9cdd2fc49d79705f80ad8)), closes [#1013](https://github.com/Quantumheart/Kohera/issues/1013)
+* **notifications:** assign iOS NSE subtitle via conditional (String is non-optional) ([1d642a1](https://github.com/Quantumheart/Kohera/commit/1d642a1b24f05acc386b61d00a1b133cb9934041))
+* **notifications:** drop duplicate sender in DM push, split room/sender into subtitle slot ([6579181](https://github.com/Quantumheart/Kohera/commit/6579181e942e78cfc4643b558c7a7517ab2225e8))
+
 ## [1.17.0](https://github.com/Quantumheart/Kohera/compare/v1.16.2...v1.17.0) (2026-08-19)
 
 
