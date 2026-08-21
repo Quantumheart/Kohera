@@ -1,30 +1,20 @@
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/media_resolver.dart';
 
 class MediaRepository extends ChangeNotifier {
-  MediaRepository({required MatrixService matrix}) : _matrix = matrix {
-    _matrix.addListener(_onMatrixChanged);
-  }
+  MediaRepository({
+    required AvatarResolver avatarResolver,
+    required MediaResolver mediaResolver,
+  })  : _avatarResolver = avatarResolver,
+        _mediaResolver = mediaResolver;
 
-  MatrixService _matrix;
+  final AvatarResolver _avatarResolver;
+  final MediaResolver _mediaResolver;
   bool _disposed = false;
 
-  void updateMatrixService(MatrixService matrix) {
-    if (identical(matrix, _matrix)) return;
-    _matrix.removeListener(_onMatrixChanged);
-    _matrix = matrix;
-    _matrix.addListener(_onMatrixChanged);
-    notifyListeners();
-  }
-
-  void _onMatrixChanged() {
-    if (!_disposed) notifyListeners();
-  }
-
-  AvatarResolver get avatarResolver => _matrix.avatarResolver;
-  MediaResolver get mediaResolver => _matrix.mediaResolver;
+  AvatarResolver get avatarResolver => _avatarResolver;
+  MediaResolver get mediaResolver => _mediaResolver;
 
   @override
   void notifyListeners() {
@@ -35,7 +25,6 @@ class MediaRepository extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _matrix.removeListener(_onMatrixChanged);
     super.dispose();
   }
 }

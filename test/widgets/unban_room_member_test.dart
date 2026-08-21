@@ -4,6 +4,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/services/member_sheet_launcher.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -38,13 +39,13 @@ void main() {
     final syncCtl = CachedStreamController<SyncUpdate>();
     final roomId = room.id;
 
-    when(matrix.client).thenReturn(client);
+    when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
     when(matrix.selection).thenReturn(selection);
     when(client.onSync).thenReturn(syncCtl);
     when(client.getRoomById(roomId)).thenReturn(room);
     when(room.client).thenReturn(client);
 
-    return RoomRepository(matrix: matrix);
+    return RoomRepository(clientService: matrix.matrixClientService, selection: matrix.selection);
   }
 
   testWidgets(

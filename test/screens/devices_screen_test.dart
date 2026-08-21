@@ -6,6 +6,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/settings/screens/devices_screen.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/matrix.dart';
@@ -31,8 +32,8 @@ void main() {
     mockClient = MockClient();
     mockMatrix = MockMatrixService();
     mockChatBackup = MockChatBackupService();
-    uiaService = UiaService(client: mockClient);
-    when(mockMatrix.client).thenReturn(mockClient);
+    uiaService = UiaService(matrixClientService: MatrixClientService(mockClient));
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.deviceID).thenReturn('THISDEVICE');
     when(mockClient.userID).thenReturn('@alice:example.com');
@@ -49,7 +50,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
           ChangeNotifierProvider<UserRepository>(
-            create: (_) => UserRepository(matrix: mockMatrix),
+            create: (_) => UserRepository(clientService: mockMatrix.matrixClientService, presence: mockMatrix.presence),
           ),
         ],
         child: const DevicesScreen(),

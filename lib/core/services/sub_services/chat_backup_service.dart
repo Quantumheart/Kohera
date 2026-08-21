@@ -4,20 +4,21 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/services/sub_services/backup_version_manager.dart';
 import 'package:kohera/core/services/sub_services/key_backup_signer.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 
 class ChatBackupService extends ChangeNotifier {
   ChatBackupService({
-    required Client client,
+    required MatrixClientService matrixClientService,
     required FlutterSecureStorage storage,
     BackupVersionManager? backupVersion,
-  })  : _client = client,
+  })  : _matrixClientService = matrixClientService,
         _storage = storage,
         _backupVersion =
-            backupVersion ?? BackupVersionManager(client: client);
+            backupVersion ?? BackupVersionManager(client: matrixClientService.client);
 
-  final Client _client;
+  final MatrixClientService _matrixClientService;
   final FlutterSecureStorage _storage;
   final BackupVersionManager _backupVersion;
 
@@ -40,7 +41,7 @@ class ChatBackupService extends ChangeNotifier {
   bool get bannerDismissed => _bannerDismissed;
 
   Future<void> loadDismissalState() async {
-    final userId = _client.userID;
+    final userId = _matrixClientService.client.userID;
     if (userId == null) return;
     final results = await Future.wait([
       _storage.read(key: 'e2ee_setup_skipped_$userId'),
@@ -54,7 +55,7 @@ class ChatBackupService extends ChangeNotifier {
   Future<void> markSetupSkipped() async {
     _setupSkipped = true;
     notifyListeners();
-    final userId = _client.userID;
+    final userId = _matrixClientService.client.userID;
     if (userId == null) return;
     await _storage.write(key: 'e2ee_setup_skipped_$userId', value: 'true');
   }
@@ -62,13 +63,13 @@ class ChatBackupService extends ChangeNotifier {
   Future<void> dismissBanner() async {
     _bannerDismissed = true;
     notifyListeners();
-    final userId = _client.userID;
+    final userId = _matrixClientService.client.userID;
     if (userId == null) return;
     await _storage.write(key: 'e2ee_banner_dismissed_$userId', value: 'true');
   }
 
   Future<void> deleteDismissalState() async {
-    final userId = _client.userID;
+    final userId = _matrixClientService.client.userID;
     if (userId == null) return;
     await Future.wait([
       _storage.delete(key: 'e2ee_setup_skipped_$userId'),
@@ -79,7 +80,7 @@ class ChatBackupService extends ChangeNotifier {
   Future<void> checkChatBackupStatus() async {
     try {
       final hasBackupVersion = await _backupVersion.hasVersion();
-      final state = await _client.getCryptoIdentityState();
+      final state = await _matrixClientService.client.getCryptoIdentityState();
       debugPrint(
         '[Kohera] Backup status: initialized=${state.initialized}, '
         'connected=${state.connected}, hasBackupVersion=$hasBackupVersion',
@@ -100,13 +101,13 @@ class ChatBackupService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final encryption = _client.encryption;
+      final encryption = _matrixClientService.client.encryption;
       if (encryption == null) {
         throw Exception('Encryption is not available');
       }
       try {
         final info = await encryption.keyManager.getRoomKeysBackupInfo();
-        await _client.deleteRoomKeysVersion(info.version);
+        await _matrixClientService.client.deleteRoomKeysVersion(info.version);
       } on MatrixException catch (e) {
         if (e.errcode != 'M_NOT_FOUND') rethrow;
         debugPrint('[Kohera] No server-side key backup to delete');
@@ -137,12 +138,12 @@ class ChatBackupService extends ChangeNotifier {
     if (storedKey != null) {
       debugPrint('[Kohera] Attempting auto-unlock with stored key');
       try {
-        final state = await _client.getCryptoIdentityState();
+        final state = await _matrixClientService.client.getCryptoIdentityState();
         if (state.connected &&
             await _backupVersion.cachedSecretMatchesServer()) {
           debugPrint('[Kohera] Skip restore: already connected and key valid');
         } else {
-          await _client.restoreCryptoIdentity(storedKey);
+          await _matrixClientService.client.restoreCryptoIdentity(storedKey);
         }
         await runKeyRecovery();
       } catch (e) {
@@ -158,13 +159,13 @@ class ChatBackupService extends ChangeNotifier {
   }
 
   Future<void> runKeyRecovery({OpenSSSS? ssssKey}) async {
-    final encryption = _client.encryption;
+    final encryption = _matrixClientService.client.encryption;
     if (encryption == null) return;
 
     final backupInfo = await _backupVersion.ensureExists();
 
     await KeyBackupSigner.signWithCrossSigning(
-      _client,
+      _matrixClientService.client,
       encryption,
       ssssKey: ssssKey,
       backupInfo: backupInfo,
@@ -192,7 +193,7 @@ class ChatBackupService extends ChangeNotifier {
   DateTime? _lastKeyRequestScan;
 
   Future<void> requestMissingRoomKeys({bool force = false}) async {
-    final encryption = _client.encryption;
+    final encryption = _matrixClientService.client.encryption;
     if (encryption == null) return;
 
     final now = DateTime.now();
@@ -204,10 +205,10 @@ class ChatBackupService extends ChangeNotifier {
     _lastKeyRequestScan = now;
 
     final seen = <String>{};
-    for (final room in _client.rooms) {
+    for (final room in _matrixClientService.client.rooms) {
       List<Event> events;
       try {
-        events = await _client.database
+        events = await _matrixClientService.client.database
             .getEventList(room, limit: _keyRequestScanLimit);
       } catch (e) {
         debugPrint('[Kohera] getEventList failed for ${room.id}: $e');
@@ -243,19 +244,19 @@ class ChatBackupService extends ChangeNotifier {
   // ── Recovery Key Storage ──────────────────────────────────────
 
   Future<String?> getStoredRecoveryKey() async {
-    final userId = _client.userID;
+    final userId = _matrixClientService.client.userID;
     if (userId == null) return null;
     return _storage.read(key: 'ssss_recovery_key_$userId');
   }
 
   Future<void> storeRecoveryKey(String key) async {
-    final userId = _client.userID;
+    final userId = _matrixClientService.client.userID;
     if (userId == null) return;
     await _storage.write(key: 'ssss_recovery_key_$userId', value: key);
   }
 
   Future<void> deleteStoredRecoveryKey() async {
-    final userId = _client.userID;
+    final userId = _matrixClientService.client.userID;
     if (userId == null) return;
     await _storage.delete(key: 'ssss_recovery_key_$userId');
   }

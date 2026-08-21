@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/sub_services/outbox_connectivity.dart';
 import 'package:kohera/core/services/sub_services/outbox_database.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 
 @immutable
@@ -42,7 +43,7 @@ class _Entry {
 
 class OutboxService extends ChangeNotifier {
   OutboxService({
-    required Client client,
+    required MatrixClientService matrixClientService,
     required String clientName,
     OutboxDatabase? databaseOverride,
     OutboxConnectivity? connectivity,
@@ -50,7 +51,7 @@ class OutboxService extends ChangeNotifier {
     @visibleForTesting Duration Function(int attempts)? backoffOverride,
     @visibleForTesting int? recentTimelineLookback,
     @visibleForTesting Duration? connectivityDebounce,
-  })  : _client = client,
+  })  : _matrixClientService = matrixClientService,
         _db = databaseOverride ?? OutboxDatabase(clientName: clientName),
         _connectivity = connectivity,
         _random = random ?? math.Random(),
@@ -62,7 +63,7 @@ class OutboxService extends ChangeNotifier {
   static const int kMaxAttempts = 8;
   static const Duration kMaxBackoff = Duration(seconds: 60);
 
-  final Client _client;
+  final MatrixClientService _matrixClientService;
   final OutboxDatabase _db;
   final OutboxConnectivity? _connectivity;
   final math.Random _random;
@@ -95,8 +96,8 @@ class OutboxService extends ChangeNotifier {
     if (_started || _disposed) return;
     _started = true;
     debugPrint('[Kohera] outbox: start');
-    _timelineSub = _client.onTimelineEvent.stream.listen(_onTimelineEvent);
-    _syncSub = _client.onSync.stream.listen((_) {
+    _timelineSub = _matrixClientService.client.onTimelineEvent.stream.listen(_onTimelineEvent);
+    _syncSub = _matrixClientService.client.onSync.stream.listen((_) {
       if (!_scanned) {
         _scanned = true;
         unawaited(_initialScan());
@@ -146,12 +147,12 @@ class OutboxService extends ChangeNotifier {
   Future<void> _initialScan() async {
     if (_disposed) return;
     debugPrint('[Kohera] outbox: initial scan');
-    final db = _client.database;
+    final db = _matrixClientService.client.database;
     final persisted = {
       for (final a in await _db.all()) a.txid: a,
     };
     final liveTxids = <String>{};
-    for (final room in _client.rooms) {
+    for (final room in _matrixClientService.client.rooms) {
       final List<Event> stuck;
       try {
         stuck = await db.getEventList(room, onlySending: true);
@@ -236,7 +237,7 @@ class OutboxService extends ChangeNotifier {
   }
 
   Future<void> _retryInner(String txid, _Entry entry) async {
-    final room = _client.getRoomById(entry.roomId);
+    final room = _matrixClientService.client.getRoomById(entry.roomId);
     if (room == null) {
       debugPrint('[Kohera] outbox: room ${entry.roomId} gone, dropping $txid');
       _evict(txid);
@@ -249,7 +250,7 @@ class OutboxService extends ChangeNotifier {
     }
     Event? stuck;
     try {
-      final list = await _client.database.getEventList(
+      final list = await _matrixClientService.client.database.getEventList(
         room,
         onlySending: true,
       );
@@ -321,7 +322,7 @@ class OutboxService extends ChangeNotifier {
 
   Future<bool> _isAlreadyAccepted(Room room, String txid) async {
     try {
-      final events = await _client.database.getEventList(
+      final events = await _matrixClientService.client.database.getEventList(
         room,
         limit: _recentLookback,
       );

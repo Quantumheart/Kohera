@@ -8,6 +8,7 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:matrix/matrix.dart';
@@ -128,9 +129,9 @@ void main() {
 
       when(mockClient.onSync).thenReturn(CachedStreamController());
       when(mockClient.rooms).thenReturn([]);
-      selectionService = SelectionService(client: mockClient);
+      selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
 
-      when(mockMatrix.client).thenReturn(mockClient);
+      when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
       when(mockMatrix.selection).thenReturn(selectionService);
       when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
       when(mockClient.userID).thenReturn('@me:example.com');
@@ -150,11 +151,11 @@ void main() {
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
           ChangeNotifierProvider<SelectionService>.value(value: selectionService),
-          ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
+          ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
           ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
-          ChangeNotifierProvider(create: (ctx) => StickerPackService(client: ctx.read<MatrixService>().client)),
-          ChangeNotifierProvider<RoomRepository>(create: (_) => RoomRepository(matrix: mockMatrix)),
-          ChangeNotifierProvider<UserRepository>(create: (_) => UserRepository(matrix: mockMatrix)),
+          ChangeNotifierProvider(create: (ctx) => StickerPackService(matrixClientService: MatrixClientService(ctx.read<MatrixService>().matrixClientService.client))),
+          ChangeNotifierProvider<RoomRepository>(create: (_) => RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection)),
+          ChangeNotifierProvider<UserRepository>(create: (_) => UserRepository(clientService: mockMatrix.matrixClientService, presence: mockMatrix.presence)),
         ],
         child: MaterialApp(
           theme: ThemeData(splashFactory: InkRipple.splashFactory),

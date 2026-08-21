@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/notifications/services/notification_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -43,7 +44,7 @@ void main() {
 
     final cachedController = CachedStreamController<SyncUpdate>();
 
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.userID).thenReturn(ownUserId);
     when(mockClient.getRoomById(roomId)).thenReturn(mockRoom);
     when(mockClient.onSync).thenReturn(cachedController);
@@ -57,12 +58,12 @@ void main() {
     when(mockRoom.unsafeGetUserFromMemoryOrFallback(ownUserId))
         .thenReturn(User(ownUserId, room: mockRoom, displayName: 'Me'));
     when(mockClient.rooms).thenReturn([]);
-    selectionService = SelectionService(client: mockClient);
+    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
     when(mockMatrix.selection).thenReturn(selectionService);
 
     service = NotificationService(
       matrixService: mockMatrix,
-      pushRepository: PushRepository(matrix: mockMatrix),
+      pushRepository: PushRepository(clientService: mockMatrix.matrixClientService),
       preferencesService: prefs,
       plugin: mockPlugin,
     );

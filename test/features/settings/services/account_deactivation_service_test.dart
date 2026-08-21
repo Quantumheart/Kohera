@@ -2,6 +2,7 @@
 // ignore_for_file: avoid_redundant_argument_values
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
@@ -21,7 +22,7 @@ void main() {
   setUp(() {
     mockClient = MockClient();
     mockMatrix = MockMatrixService();
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
 
     // Run the UIA callback inline so deactivateAccount is actually invoked.
@@ -32,7 +33,7 @@ void main() {
       return cb(null);
     });
 
-    repo = UserRepository(matrix: mockMatrix);
+    repo = UserRepository(clientService: mockMatrix.matrixClientService, presence: mockMatrix.presence);
   });
 
   group('UserRepository.deactivateAccount', () {

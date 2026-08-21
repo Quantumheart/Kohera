@@ -4,11 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/data/repositories/auth_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/auth/screens/homeserver_screen.dart';
 import 'package:kohera/features/auth/screens/login_screen.dart';
 import 'package:kohera/features/auth/screens/registration_screen.dart';
@@ -31,7 +33,7 @@ class _FixedServiceFactory extends MatrixServiceFactory {
     required String clientName,
     FlutterSecureStorage? storage,
   }) async {
-    return (_service.client, _service);
+    return (_service.matrixClientService.client, _service);
   }
 }
 
@@ -54,7 +56,7 @@ void main() {
     when(mockClient.onPresenceChanged)
         .thenReturn(CachedStreamController<CachedPresence>());
     matrixService = MatrixService(
-      client: mockClient,
+      accountSession: AccountSession(matrixClientService: MatrixClientService(mockClient)),
       storage: mockStorage,
       clientName: 'test',
     );
@@ -123,11 +125,11 @@ void main() {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
-        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
+        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
         ChangeNotifierProvider<AuthRepository>(
-          create: (_) => AuthRepository(matrix: matrixService),
+          create: (_) => AuthRepository(clientService: matrixService.matrixClientService, auth: matrixService.auth, uia: matrixService.uia, chatBackup: matrixService.chatBackup),
         ),
       ],
       child: MaterialApp.router(

@@ -1,5 +1,7 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/mockito.dart';
 
@@ -8,6 +10,22 @@ import 'matrix_service_test.mocks.dart';
 class _FakeDatabase extends Fake implements DatabaseApi {
   @override
   Future<Map<String, dynamic>?> getClient(String name) async => null;
+}
+
+AuthService _buildAuthService({
+  required Client client,
+  required FlutterSecureStorage storage,
+  String clientName = 'test',
+}) {
+  return AuthService(
+    matrixClientService: MatrixClientService(client),
+    storage: storage,
+    clientName: clientName,
+    sync: MockSyncService(),
+    presence: MockPresenceService(),
+    uia: MockUiaService(),
+    chatBackup: MockChatBackupService(),
+  );
 }
 
 void main() {
@@ -20,11 +38,7 @@ void main() {
     mockStorage = MockFlutterSecureStorage();
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.database).thenReturn(_FakeDatabase());
-    service = AuthService(
-      client: mockClient,
-      storage: mockStorage,
-      clientName: 'test',
-    );
+    service = _buildAuthService(client: mockClient, storage: mockStorage);
   });
 
   group('getServerAuthCapabilities', () {
@@ -180,11 +194,11 @@ void main() {
 
   group('migrateStorageKeys', () {
     test('migrates old keys for default client', () async {
-      final defaultService = AuthService(
+      final defaultService = _buildAuthService(
         client: mockClient,
         storage: mockStorage,
         clientName: 'default',
-        );
+      );
 
       when(mockStorage.read(key: 'kohera_access_token'))
           .thenAnswer((_) async => 'old_token');

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/outbox_connectivity.dart';
 import 'package:kohera/core/services/sub_services/outbox_database.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
@@ -127,7 +128,7 @@ void main() {
       _StubDatabase(sendingByRoom: {'!r:s': [stuck]}),
     );
     final service = OutboxService(
-      client: client,
+      matrixClientService: MatrixClientService(client),
       clientName: 'test',
       databaseOverride: _MemoryOutboxDb(),
       backoffOverride: (_) => const Duration(hours: 1),
@@ -150,7 +151,7 @@ void main() {
         _StubDatabase(sendingByRoom: {'!r:s': [stuck]}),
       );
       final service = OutboxService(
-        client: client,
+        matrixClientService: MatrixClientService(client),
         clientName: 'test',
         databaseOverride: _MemoryOutboxDb(),
         backoffOverride: (_) => const Duration(hours: 1),
@@ -190,7 +191,7 @@ void main() {
       ),
     );
     final service = OutboxService(
-      client: client,
+      matrixClientService: MatrixClientService(client),
       clientName: 'test',
       databaseOverride: _MemoryOutboxDb(),
       backoffOverride: (_) => const Duration(hours: 1),
@@ -213,7 +214,7 @@ void main() {
       _StubDatabase(sendingByRoom: {'!r:s': [stuck]}),
     );
     final service = OutboxService(
-      client: client,
+      matrixClientService: MatrixClientService(client),
       clientName: 'test',
       databaseOverride: _MemoryOutboxDb(),
       backoffOverride: (_) => Duration.zero,
@@ -232,7 +233,7 @@ void main() {
   group('computeBackoff', () {
     test('caps at 60s after attempt 6', () {
       final service = OutboxService(
-        client: client,
+        matrixClientService: MatrixClientService(client),
         clientName: 'test',
         databaseOverride: _MemoryOutboxDb(),
       );
@@ -250,7 +251,7 @@ void main() {
 
     test('doubles base before cap', () {
       final service = OutboxService(
-        client: client,
+        matrixClientService: MatrixClientService(client),
         clientName: 'test',
         databaseOverride: _MemoryOutboxDb(),
       );
@@ -276,7 +277,7 @@ void main() {
       );
       final fakeConn = _FakeConnectivity(initiallyOnline: false);
       final service = OutboxService(
-        client: client,
+        matrixClientService: MatrixClientService(client),
         clientName: 'test',
         databaseOverride: _MemoryOutboxDb(),
         connectivity: fakeConn,
@@ -309,7 +310,7 @@ void main() {
       );
       final fakeConn = _FakeConnectivity(initiallyOnline: false);
       final service = OutboxService(
-        client: client,
+        matrixClientService: MatrixClientService(client),
         clientName: 'test',
         databaseOverride: _MemoryOutboxDb(),
         connectivity: fakeConn,
@@ -347,7 +348,7 @@ void main() {
         _StubDatabase(sendingByRoom: {'!r:s': [stuck]}),
       );
       final service = OutboxService(
-        client: client,
+        matrixClientService: MatrixClientService(client),
         clientName: 'test',
         databaseOverride: _MemoryOutboxDb(),
         backoffOverride: (_) => const Duration(seconds: 5),

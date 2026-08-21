@@ -1,28 +1,14 @@
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/services/message_indexer_service.dart';
 
 class MessageSearchRepository extends ChangeNotifier {
-  MessageSearchRepository({required MatrixService matrix}) : _matrix = matrix {
-    _matrix.addListener(_onMatrixChanged);
-  }
+  MessageSearchRepository({required MessageIndexerService? messageIndexer})
+      : _messageIndexer = messageIndexer;
 
-  MatrixService _matrix;
+  final MessageIndexerService? _messageIndexer;
   bool _disposed = false;
 
-  void updateMatrixService(MatrixService matrix) {
-    if (identical(matrix, _matrix)) return;
-    _matrix.removeListener(_onMatrixChanged);
-    _matrix = matrix;
-    _matrix.addListener(_onMatrixChanged);
-    notifyListeners();
-  }
-
-  void _onMatrixChanged() {
-    if (!_disposed) notifyListeners();
-  }
-
-  MessageIndexerService? get messageIndexer => _matrix.messageIndexer;
+  MessageIndexerService? get messageIndexer => _messageIndexer;
 
   @override
   void notifyListeners() {
@@ -33,7 +19,6 @@ class MessageSearchRepository extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _matrix.removeListener(_onMatrixChanged);
     super.dispose();
   }
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/message_search_database.dart';
 import 'package:matrix/matrix.dart';
 
@@ -25,13 +26,13 @@ import 'package:matrix/matrix.dart';
 /// rooms the user actively uses.
 class MessageIndexerService extends ChangeNotifier {
   MessageIndexerService({
-    required Client client,
+    required MatrixClientService matrixClientService,
     required String clientName,
     MessageSearchDatabase? databaseOverride,
-  })  : _client = client,
+  })  : _matrixClientService = matrixClientService,
         _db = databaseOverride ?? MessageSearchDatabase(clientName: clientName);
 
-  final Client _client;
+  final MatrixClientService _matrixClientService;
   final MessageSearchDatabase _db;
 
   bool _started = false;
@@ -78,7 +79,7 @@ class MessageIndexerService extends ChangeNotifier {
   Future<void> init() async {
     if (_started || _disposed || !_db.isAvailable) return;
     _started = true;
-    _syncSub = _client.onSync.stream.listen(_onSync);
+    _syncSub = _matrixClientService.client.onSync.stream.listen(_onSync);
   }
 
   // ── Lazy per-room indexing ────────────────────────────────
@@ -126,7 +127,7 @@ class MessageIndexerService extends ChangeNotifier {
       while (!_disposed) {
         List<Event> events;
         try {
-          events = await _client.database.getEventList(
+          events = await _matrixClientService.client.database.getEventList(
             room,
             limit: chunkSize,
             start: offset,
@@ -215,7 +216,7 @@ class MessageIndexerService extends ChangeNotifier {
       // be indexed on demand via ensureRoomIndexed.
       if (!indexed.contains(roomId)) continue;
 
-      final room = _client.getRoomById(roomId);
+      final room = _matrixClientService.client.getRoomById(roomId);
       if (room == null) continue;
 
       final events = entry.value.timeline?.events;
@@ -271,7 +272,7 @@ class MessageIndexerService extends ChangeNotifier {
 
   Future<Event> _decryptIfNeeded(Event event) async {
     if (event.type != EventTypes.Encrypted) return event;
-    final encryption = _client.encryption;
+    final encryption = _matrixClientService.client.encryption;
     if (encryption == null) return event;
     try {
       return await encryption
@@ -322,7 +323,7 @@ class MessageIndexerService extends ChangeNotifier {
     for (final eventId in eventIds) {
       Event? event;
       try {
-        event = await _client.database.getEventById(eventId, room);
+        event = await _matrixClientService.client.database.getEventById(eventId, room);
       } catch (e) {
         debugPrint('[Kohera] search index: retry fetch $eventId failed: $e');
       }

@@ -107,7 +107,7 @@ ShareIntakeController? _shareIntake;
       getAppGroupPath: _getAppGroupPath,
     );
     _roomSnapshotService = RoomSnapshotService(
-      client: service.client,
+      client: service.session.client,
       sink: ShareInStore(),
       avatarCache: _avatarCacheService,
     )..start();
@@ -307,13 +307,14 @@ ShareIntakeController? _shareIntake;
               final router = _router!;
 
               return MultiProvider(
+                key: ValueKey(matrix.clientName),
                 providers: [
                   ChangeNotifierProvider<MatrixService>.value(
                     value: matrix,
                   ),
                   Provider<OpenGraphService>(
                     create: (ctx) => OpenGraphService(
-                      matrixClient: ctx.read<MatrixService>().client,
+                      matrixClient: ctx.read<MatrixService>().session.client,
                     ),
                     dispose: (_, service) => service.dispose(),
                   ),
@@ -322,13 +323,13 @@ ShareIntakeController? _shareIntake;
                   ),
                   Provider<SpaceDiscoveryDataSource>(
                     create: (cxt) =>
-                        LiveSpaceDiscoveryDataSource(matrix.client),
+                        LiveSpaceDiscoveryDataSource(matrix.session.client),
                   ),
                   ChangeNotifierProvider<SpaceRoomsController>(
                     create: (ctx) {
                       final controller = SpaceRoomsController(
                         dataSource: ctx.read<SpaceDiscoveryDataSource>(),
-                        client: matrix.client,
+                        client: matrix.session.client,
                       );
                       controller.listenToSync();
                       return controller;
@@ -343,16 +344,10 @@ ShareIntakeController? _shareIntake;
                   ChangeNotifierProvider<StickerPackService>.value(
                     value: matrix.stickerPacks,
                   ),
-                  ChangeNotifierProxyProvider<MatrixService, PushRepository>(
-                    create: (ctx) =>
-                        PushRepository(matrix: ctx.read<MatrixService>()),
-                    update: (_, matrix, previous) {
-                      if (previous == null) {
-                        return PushRepository(matrix: matrix);
-                      }
-                      previous.updateMatrixService(matrix);
-                      return previous;
-                    },
+                  ChangeNotifierProvider<PushRepository>(
+                    create: (ctx) => PushRepository(
+                      clientService: ctx.read<MatrixService>().session.matrixClientService,
+                    ),
                   ),
                   ChangeNotifierProxyProvider<PushRepository, InboxController>(
                     create: (ctx) => InboxController(
@@ -369,7 +364,7 @@ ShareIntakeController? _shareIntake;
                   ChangeNotifierProxyProvider<MatrixService, CallService>(
                     create: (ctx) {
                       final cs = CallService(
-                        client: ctx.read<MatrixService>().client,
+                        client: ctx.read<MatrixService>().session.client,
                         ringtoneService: _ringtoneService,
                       )..preferencesService = prefs;
                       if (ctx.read<MatrixService>().isLoggedIn) cs.init();
@@ -378,14 +373,14 @@ ShareIntakeController? _shareIntake;
                     update: (_, matrix, previous) {
                       if (previous == null) {
                         final cs = CallService(
-                          client: matrix.client,
+                          client: matrix.session.client,
                           ringtoneService: _ringtoneService,
                         )..preferencesService = prefs;
                         if (matrix.isLoggedIn) cs.init();
                         return cs;
                       }
                       previous
-                        ..updateClient(matrix.client)
+                        ..updateClient(matrix.session.client)
                         ..preferencesService = prefs;
                       if (matrix.isLoggedIn) {
                         previous.init();
@@ -393,128 +388,73 @@ ShareIntakeController? _shareIntake;
                       return previous;
                     },
                   ),
-                  ChangeNotifierProxyProvider<MatrixService, RoomRepository>(
-                    create: (ctx) =>
-                        RoomRepository(matrix: ctx.read<MatrixService>()),
-                    update: (_, matrix, previous) {
-                      if (previous == null) {
-                        return RoomRepository(matrix: matrix);
-                      }
-                      previous.updateMatrixService(matrix);
-                      return previous;
-                    },
+                  ChangeNotifierProvider<RoomRepository>(
+                    create: (ctx) => RoomRepository(
+                      clientService: ctx.read<MatrixService>().session.matrixClientService,
+                      selection: ctx.read<MatrixService>().session.selection,
+                    ),
                   ),
-                  ChangeNotifierProxyProvider<MatrixService, UserRepository>(
-                    create: (ctx) =>
-                        UserRepository(matrix: ctx.read<MatrixService>()),
-                    update: (_, matrix, previous) {
-                      if (previous == null) {
-                        return UserRepository(matrix: matrix);
-                      }
-                      previous.updateMatrixService(matrix);
-                      return previous;
-                    },
+                  ChangeNotifierProvider<UserRepository>(
+                    create: (ctx) => UserRepository(
+                      clientService: ctx.read<MatrixService>().session.matrixClientService,
+                      presence: ctx.read<MatrixService>().session.presence,
+                    ),
                   ),
-                  ChangeNotifierProxyProvider<MatrixService, MessageRepository>(
-                    create: (ctx) =>
-                        MessageRepository(matrix: ctx.read<MatrixService>()),
-                    update: (_, matrix, previous) {
-                      if (previous == null) {
-                        return MessageRepository(matrix: matrix);
-                      }
-                      previous.updateMatrixService(matrix);
-                      return previous;
-                    },
+                  ChangeNotifierProvider<MessageRepository>(
+                    create: (ctx) => MessageRepository(
+                      clientService: ctx.read<MatrixService>().session.matrixClientService,
+                      messageIndexer: ctx.read<MatrixService>().session.messageIndexer,
+                    ),
                   ),
-                  ChangeNotifierProxyProvider<MatrixService, AuthRepository>(
-                    create: (ctx) =>
-                        AuthRepository(matrix: ctx.read<MatrixService>()),
-                    update: (_, matrix, previous) {
-                      if (previous == null) {
-                        return AuthRepository(matrix: matrix);
-                      }
-                      previous.updateMatrixService(matrix);
-                      return previous;
-                    },
+                  ChangeNotifierProvider<AuthRepository>(
+                    create: (ctx) => AuthRepository(
+                      clientService: ctx.read<MatrixService>().session.matrixClientService,
+                      auth: ctx.read<MatrixService>().session.auth,
+                      uia: ctx.read<MatrixService>().session.uia,
+                      chatBackup: ctx.read<MatrixService>().session.chatBackup,
+                    ),
                   ),
-                  ChangeNotifierProxyProvider<MatrixService, KeyBackupRepository>(
-                    create: (ctx) =>
-                        KeyBackupRepository(matrix: ctx.read<MatrixService>()),
-                    update: (_, matrix, previous) {
-                      if (previous == null) {
-                        return KeyBackupRepository(matrix: matrix);
-                      }
-                      previous.updateMatrixService(matrix);
-                      return previous;
-                    },
+                  ChangeNotifierProvider<KeyBackupRepository>(
+                    create: (ctx) => KeyBackupRepository(
+                      clientService: ctx.read<MatrixService>().session.matrixClientService,
+                      chatBackup: ctx.read<MatrixService>().session.chatBackup,
+                      keyMirror: ctx.read<MatrixService>().session.keyMirror,
+                      uia: ctx.read<MatrixService>().session.uia,
+                    ),
                   ),
-                  ChangeNotifierProxyProvider<MatrixService, MediaRepository>(
-                    create: (ctx) =>
-                        MediaRepository(matrix: ctx.read<MatrixService>()),
-                    update: (_, matrix, previous) {
-                      if (previous == null) {
-                        return MediaRepository(matrix: matrix);
-                      }
-                      previous.updateMatrixService(matrix);
-                      return previous;
-                    },
+                  ChangeNotifierProvider<MediaRepository>(
+                    create: (ctx) => MediaRepository(
+                      avatarResolver: ctx.read<MatrixService>().session.avatarResolver,
+                      mediaResolver: ctx.read<MatrixService>().session.mediaResolver,
+                    ),
                   ),
-                  ChangeNotifierProxyProvider<MatrixService, SpaceRepository>(
-                    create: (ctx) =>
-                        SpaceRepository(matrix: ctx.read<MatrixService>()),
-                    update: (_, matrix, previous) {
-                      if (previous == null) {
-                        return SpaceRepository(matrix: matrix);
-                      }
-                      previous.updateMatrixService(matrix);
-                      return previous;
-                    },
+                  ChangeNotifierProvider<SpaceRepository>(
+                    create: (ctx) => SpaceRepository(
+                      clientService: ctx.read<MatrixService>().session.matrixClientService,
+                      selection: ctx.read<MatrixService>().session.selection,
+                      spaceAccess: ctx.read<MatrixService>().session.spaceAccess,
+                    ),
                   ),
-                  ChangeNotifierProxyProvider<MatrixService, OutboxRepository>(
-                    create: (ctx) =>
-                        OutboxRepository(matrix: ctx.read<MatrixService>()),
-                    update: (_, matrix, previous) {
-                      if (previous == null) {
-                        return OutboxRepository(matrix: matrix);
-                      }
-                      previous.updateMatrixService(matrix);
-                      return previous;
-                    },
+                  ChangeNotifierProvider<OutboxRepository>(
+                    create: (ctx) => OutboxRepository(
+                      outbox: ctx.read<MatrixService>().session.outbox,
+                    ),
                   ),
-                  ChangeNotifierProxyProvider<MatrixService, PushRuleRepository>(
-                    create: (ctx) =>
-                        PushRuleRepository(matrix: ctx.read<MatrixService>()),
-                    update: (_, matrix, previous) {
-                      if (previous == null) {
-                        return PushRuleRepository(matrix: matrix);
-                      }
-                      previous.updateMatrixService(matrix);
-                      return previous;
-                    },
+                  ChangeNotifierProvider<PushRuleRepository>(
+                    create: (ctx) => PushRuleRepository(
+                      callPushRuleManager: ctx.read<MatrixService>().session.callPushRuleManager,
+                      globalPushRuleManager: ctx.read<MatrixService>().session.globalPushRuleManager,
+                    ),
                   ),
-                  ChangeNotifierProxyProvider<MatrixService, StickerPackRepository>(
+                  ChangeNotifierProvider<StickerPackRepository>(
                     create: (ctx) => StickerPackRepository(
-                      matrix: ctx.read<MatrixService>(),
+                      stickerPacks: ctx.read<MatrixService>().session.stickerPacks,
                     ),
-                    update: (_, matrix, previous) {
-                      if (previous == null) {
-                        return StickerPackRepository(matrix: matrix);
-                      }
-                      previous.updateMatrixService(matrix);
-                      return previous;
-                    },
                   ),
-                  ChangeNotifierProxyProvider<MatrixService, MessageSearchRepository>(
+                  ChangeNotifierProvider<MessageSearchRepository>(
                     create: (ctx) => MessageSearchRepository(
-                      matrix: ctx.read<MatrixService>(),
+                      messageIndexer: ctx.read<MatrixService>().session.messageIndexer,
                     ),
-                    update: (_, matrix, previous) {
-                      if (previous == null) {
-                        return MessageSearchRepository(matrix: matrix);
-                      }
-                      previous.updateMatrixService(matrix);
-                      return previous;
-                    },
                   ),
                 ],
                 child: ChangeNotifierProvider(

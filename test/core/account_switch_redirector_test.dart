@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/routing/account_switch_redirector.dart';
+import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
@@ -15,7 +17,7 @@ MatrixService _makeService(String name) {
   when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
   when(mockClient.onPresenceChanged)
       .thenReturn(CachedStreamController<CachedPresence>());
-  return MatrixService(client: mockClient, clientName: name);
+  return MatrixService(accountSession: AccountSession(matrixClientService: MatrixClientService(mockClient)), clientName: name);
 }
 
 void main() {

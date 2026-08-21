@@ -4,6 +4,7 @@ import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_action.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_dialog.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
@@ -200,8 +201,8 @@ void main() {
       mockAccess = MockSpaceAccessService();
       when(mockClient.rooms).thenReturn([]);
       when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-      selectionService = SelectionService(client: mockClient);
-      when(mockMatrixService.client).thenReturn(mockClient);
+      selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
+      when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
       when(mockMatrixService.selection).thenReturn(selectionService);
       when(mockMatrixService.spaceAccess).thenReturn(mockAccess);
       when(mockParentSpace.id).thenReturn('!parent:example.com');
@@ -221,7 +222,7 @@ void main() {
       ).thenAnswer((_) async => '!subspace:example.com');
       when(mockClient.waitForRoomInSync(any, join: anyNamed('join')))
           .thenAnswer((_) async => SyncUpdate(nextBatch: ''));
-      spaceRepo = SpaceRepository(matrix: mockMatrixService);
+      spaceRepo = SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection, spaceAccess: mockMatrixService.spaceAccess);
     });
 
     test('calls createRoom and setSpaceChild', () async {
@@ -310,7 +311,7 @@ void main() {
       mockClient = MockClient();
       mockMatrixService = MockMatrixService();
       mockAccess = MockSpaceAccessService();
-      when(mockMatrixService.client).thenReturn(mockClient);
+      when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
       when(mockMatrixService.spaceAccess).thenReturn(mockAccess);
     });
 

@@ -49,7 +49,7 @@ class DeepLinkService {
   static const _dedupeWindow = Duration(seconds: 2);
 
   MatrixService get _matrix => _clientManager.activeService;
-  Client get _client => _matrix.client;
+  Client get _client => _matrix.session.client;
 
   /// `true` when a `/rooms/…` navigation won't be bounced to `/login` or
   /// `/e2ee-setup` by the router redirect.

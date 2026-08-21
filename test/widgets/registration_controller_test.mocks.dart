@@ -6490,6 +6490,24 @@ class MockAuthService extends _i1.Mock implements _i11.AuthService {
   );
 
   @override
+  _i5.Future<bool> restoreSession() =>
+      (super.noSuchMethod(
+            Invocation.method(#restoreSession, []),
+            returnValue: _i5.Future<bool>.value(false),
+            returnValueForMissingStub: _i5.Future<bool>.value(false),
+          )
+          as _i5.Future<bool>);
+
+  @override
+  _i5.Future<void> handleSoftLogout() =>
+      (super.noSuchMethod(
+            Invocation.method(#handleSoftLogout, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
   _i5.Future<void> logout() =>
       (super.noSuchMethod(
             Invocation.method(#logout, []),

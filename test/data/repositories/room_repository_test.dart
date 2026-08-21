@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_permissions.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
@@ -26,11 +28,11 @@ void main() {
         .thenReturn(CachedStreamController<CachedPresence>());
     when(mockClient.database).thenReturn(_FakeDatabase());
     service = MatrixService(
-      client: mockClient,
+      accountSession: AccountSession(matrixClientService: MatrixClientService(mockClient)),
       storage: mockStorage,
       clientName: 'test',
     );
-    repo = RoomRepository(matrix: service);
+    repo = RoomRepository(clientService: service.matrixClientService, selection: service.selection);
   });
 
   group('summaryFor', () {
@@ -133,34 +135,6 @@ void main() {
     test('returns empty list when no spaces', () {
       when(mockClient.rooms).thenReturn([]);
       expect(repo.spaceTree, isEmpty);
-    });
-  });
-
-  group('notifyListeners', () {
-    test('notifies on MatrixService change', () {
-      var notified = false;
-      repo.addListener(() => notified = true);
-
-      service.notifyListeners();
-
-      expect(notified, isTrue);
-    });
-  });
-
-  group('updateMatrixService', () {
-    test('swaps internal reference and still works', () {
-      repo.selectSpace('!space:example.com');
-      expect(repo.selectedSpaceIds, {'!space:example.com'});
-
-      final service2 = MatrixService(
-        client: mockClient,
-        storage: mockStorage,
-        clientName: 'test2',
-      );
-      repo.updateMatrixService(service2);
-
-      repo.selectSpace('!other:example.com');
-      expect(repo.selectedSpaceIds, {'!other:example.com'});
     });
   });
 

@@ -5,13 +5,12 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i5;
 import 'dart:typed_data' as _i10;
-import 'dart:ui' as _i19;
+import 'dart:ui' as _i18;
 
 import 'package:http/http.dart' as _i4;
-import 'package:kohera/core/services/matrix_service.dart' as _i15;
-import 'package:kohera/data/models/kohera_push_rule_state.dart' as _i18;
-import 'package:kohera/data/models/kohera_room_member.dart' as _i17;
-import 'package:kohera/data/models/kohera_room_permissions.dart' as _i16;
+import 'package:kohera/data/models/kohera_push_rule_state.dart' as _i17;
+import 'package:kohera/data/models/kohera_room_member.dart' as _i16;
+import 'package:kohera/data/models/kohera_room_permissions.dart' as _i15;
 import 'package:kohera/data/models/kohera_room_summary.dart' as _i13;
 import 'package:kohera/data/models/space_node.dart' as _i14;
 import 'package:kohera/data/repositories/room_repository.dart' as _i12;
@@ -8455,12 +8454,6 @@ class MockRoomRepository extends _i1.Mock implements _i12.RoomRepository {
           as bool);
 
   @override
-  void updateMatrixService(_i15.MatrixService? matrix) => super.noSuchMethod(
-    Invocation.method(#updateMatrixService, [matrix]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
   _i13.KoheraRoomSummary? summaryFor(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#summaryFor, [roomId]),
@@ -8478,22 +8471,22 @@ class MockRoomRepository extends _i1.Mock implements _i12.RoomRepository {
           as List<_i13.KoheraRoomSummary>);
 
   @override
-  _i16.KoheraRoomPermissions? permissionsFor(String? roomId) =>
+  _i15.KoheraRoomPermissions? permissionsFor(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#permissionsFor, [roomId]),
             returnValueForMissingStub: null,
           )
-          as _i16.KoheraRoomPermissions?);
+          as _i15.KoheraRoomPermissions?);
 
   @override
-  _i5.Future<_i17.KoheraRoomMemberList?> memberListFor(String? roomId) =>
+  _i5.Future<_i16.KoheraRoomMemberList?> memberListFor(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#memberListFor, [roomId]),
-            returnValue: _i5.Future<_i17.KoheraRoomMemberList?>.value(),
+            returnValue: _i5.Future<_i16.KoheraRoomMemberList?>.value(),
             returnValueForMissingStub:
-                _i5.Future<_i17.KoheraRoomMemberList?>.value(),
+                _i5.Future<_i16.KoheraRoomMemberList?>.value(),
           )
-          as _i5.Future<_i17.KoheraRoomMemberList?>);
+          as _i5.Future<_i16.KoheraRoomMemberList?>);
 
   @override
   void selectSpace(String? spaceId) => super.noSuchMethod(
@@ -8549,7 +8542,7 @@ class MockRoomRepository extends _i1.Mock implements _i12.RoomRepository {
   @override
   _i5.Future<void> setPushRuleState(
     String? roomId,
-    _i18.KoheraPushRuleState? state,
+    _i17.KoheraPushRuleState? state,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#setPushRuleState, [roomId, state]),
@@ -8703,13 +8696,13 @@ class MockRoomRepository extends _i1.Mock implements _i12.RoomRepository {
           as bool);
 
   @override
-  _i18.KoheraPushRuleState getRoomPushRuleState(String? roomId) =>
+  _i17.KoheraPushRuleState getRoomPushRuleState(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#getRoomPushRuleState, [roomId]),
-            returnValue: _i18.KoheraPushRuleState.notify,
-            returnValueForMissingStub: _i18.KoheraPushRuleState.notify,
+            returnValue: _i17.KoheraPushRuleState.notify,
+            returnValueForMissingStub: _i17.KoheraPushRuleState.notify,
           )
-          as _i18.KoheraPushRuleState);
+          as _i17.KoheraPushRuleState);
 
   @override
   _i5.Stream<void> powerLevelChangesFor(String? roomId) =>
@@ -9011,13 +9004,13 @@ class MockRoomRepository extends _i1.Mock implements _i12.RoomRepository {
   );
 
   @override
-  void addListener(_i19.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i18.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i19.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i18.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );

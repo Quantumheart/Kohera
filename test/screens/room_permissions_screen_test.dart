@@ -4,6 +4,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/models/kohera_room_permissions.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/screens/room_permissions_host.dart';
 import 'package:kohera/features/rooms/screens/room_permissions_screen.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
@@ -110,7 +111,7 @@ Widget _wrapScreen(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrixService!),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(matrix: matrixService),
+          create: (_) => RoomRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
         ),
       ],
       child: MaterialApp(
@@ -577,7 +578,7 @@ void main() {
       mockRoom = MockRoom();
       mockPlEvent = MockEvent();
 
-      when(mockMatrixService.client).thenReturn(mockClient);
+      when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
       when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
       when(mockClient.userID).thenReturn('@me:e.com');
       when(mockClient.getRoomById(_roomId)).thenReturn(mockRoom);

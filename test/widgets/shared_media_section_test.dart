@@ -6,6 +6,7 @@ import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/services/shared_media_loader.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
 import 'package:matrix/matrix.dart';
@@ -96,11 +97,11 @@ void main() {
     mockSelection = MockSelectionService();
     when(mockRoom.client).thenReturn(mockClient);
     when(mockRoom.id).thenReturn('!room:example.com');
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrix.selection).thenReturn(mockSelection);
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
-    roomRepo = RoomRepository(matrix: mockMatrix);
+    roomRepo = RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection);
   });
 
   Widget buildTestWidget() {
@@ -111,7 +112,7 @@ void main() {
           child: SharedMediaSection(
             roomId: mockRoom.id,
             loader: sharedMediaLoaderForRoom(mockRoom.id, roomRepo),
-            avatarResolver: ClientAvatarResolver(mockClient),
+            avatarResolver: ClientAvatarResolver(MatrixClientService(mockClient)),
           ),
         ),
       ),

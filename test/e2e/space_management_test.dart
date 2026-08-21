@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
@@ -11,6 +12,7 @@ import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/features/spaces/widgets/space_rail.dart';
@@ -117,7 +119,7 @@ void main() {
     );
 
     matrixService = MatrixService(
-      client: mockClient,
+      accountSession: AccountSession(matrixClientService: MatrixClientService(mockClient)),
       storage: mockStorage,
       clientName: 'test',
     );
@@ -125,7 +127,7 @@ void main() {
     clientManager = ClientManager(storage: mockStorage);
 
     inboxController = InboxController(
-      pushRepository: PushRepository(matrix: matrixService),
+      pushRepository: PushRepository(clientService: matrixService.matrixClientService),
     );
   });
 
@@ -147,21 +149,21 @@ void main() {
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
         ChangeNotifierProvider<SelectionService>.value(
             value: matrixService.selection,),
-        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
+        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
         ChangeNotifierProvider(create: (_) => PreferencesService()),
         ChangeNotifierProvider<InboxController>.value(value: inboxController),
         ChangeNotifierProvider<UserRepository>(
-          create: (_) => UserRepository(matrix: matrixService),
+          create: (_) => UserRepository(clientService: matrixService.matrixClientService, presence: matrixService.presence),
         ),
         ChangeNotifierProvider<MediaRepository>(
-          create: (_) => MediaRepository(matrix: matrixService),
+          create: (_) => MediaRepository(avatarResolver: matrixService.avatarResolver, mediaResolver: matrixService.mediaResolver),
         ),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(matrix: matrixService),
+          create: (_) => RoomRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
         ),
         ChangeNotifierProvider<SpaceRepository>(
-          create: (_) => SpaceRepository(matrix: matrixService),
+          create: (_) => SpaceRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection, spaceAccess: matrixService.spaceAccess),
         ),
       ],
       child: MaterialApp.router(

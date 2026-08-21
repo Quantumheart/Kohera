@@ -3,10 +3,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
+import 'package:kohera/core/services/client_media_resolver.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/home/widgets/mobile_space_drawer.dart';
 import 'package:matrix/matrix.dart' show Client, SyncUpdate;
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -25,7 +28,11 @@ class _FakeMatrixService extends ChangeNotifier implements MatrixService {
   final Client _client;
 
   @override
-  AvatarResolver get avatarResolver => ClientAvatarResolver(_client);
+  AvatarResolver get avatarResolver => ClientAvatarResolver(MatrixClientService(_client));
+
+  @override
+  MediaResolver get mediaResolver =>
+      ClientMediaResolver(MatrixClientService(_client));
 
   @override
   dynamic noSuchMethod(Invocation invocation) =>
@@ -43,7 +50,7 @@ void main() {
     when(mockClient.onSync)
         .thenReturn(CachedStreamController<SyncUpdate>());
     fakeMatrix = _FakeMatrixService(mockClient);
-    selection = SelectionService(client: mockClient);
+    selection = SelectionService(matrixClientService: MatrixClientService(mockClient));
   });
 
   tearDown(() {
@@ -74,7 +81,7 @@ void main() {
         ChangeNotifierProvider<MatrixService>.value(value: fakeMatrix),
         ChangeNotifierProvider<SelectionService>.value(value: selection),
         ChangeNotifierProvider<MediaRepository>(
-          create: (_) => MediaRepository(matrix: fakeMatrix),
+          create: (_) => MediaRepository(avatarResolver: fakeMatrix.avatarResolver, mediaResolver: fakeMatrix.mediaResolver),
         ),
       ],
       child: MaterialApp.router(

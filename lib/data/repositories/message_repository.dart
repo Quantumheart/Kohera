@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/models/kohera_media_content.dart';
 import 'package:kohera/data/models/kohera_message_display.dart';
 import 'package:kohera/data/models/kohera_poll.dart';
@@ -16,28 +15,22 @@ import 'package:kohera/data/resolvers/reaction_resolver.dart';
 import 'package:kohera/data/resolvers/read_receipt_resolver.dart';
 import 'package:kohera/data/resolvers/reply_preview_resolver.dart';
 import 'package:kohera/data/resolvers/state_event_resolver.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/message_indexer_service.dart';
 import 'package:matrix/matrix.dart';
 
 class MessageRepository extends ChangeNotifier {
-  MessageRepository({required MatrixService matrix}) : _matrix = matrix {
-    _matrix.addListener(_onMatrixChanged);
-  }
+  MessageRepository({
+    required MatrixClientService clientService,
+    required MessageIndexerService? messageIndexer,
+  })  : _clientService = clientService,
+        _messageIndexer = messageIndexer;
 
-  MatrixService _matrix;
+  final MatrixClientService _clientService;
+  final MessageIndexerService? _messageIndexer;
   bool _disposed = false;
 
-  void updateMatrixService(MatrixService matrix) {
-    if (identical(matrix, _matrix)) return;
-    _matrix.removeListener(_onMatrixChanged);
-    _matrix = matrix;
-    _matrix.addListener(_onMatrixChanged);
-    notifyListeners();
-  }
-
-  void _onMatrixChanged() {
-    if (!_disposed) notifyListeners();
-  }
+  Client get _client => _clientService.client;
 
   // ── Domain model: message display ────────────────────────────
 
@@ -118,17 +111,17 @@ class MessageRepository extends ChangeNotifier {
   // ── Timeline access (transitional) ───────────────────────────
 
   Future<Timeline?> timelineFor(String roomId) async {
-    final room = _matrix.client.getRoomById(roomId);
+    final room = _client.getRoomById(roomId);
     if (room == null) return null;
     return room.getTimeline();
   }
 
   // ── Message search ───────────────────────────────────────────
 
-  MessageIndexerService? get messageIndexer => _matrix.messageIndexer;
+  MessageIndexerService? get messageIndexer => _messageIndexer;
 
   Future<void> ensureRoomIndexed(Room room) async {
-    await _matrix.messageIndexer?.ensureRoomIndexed(room);
+    await _messageIndexer?.ensureRoomIndexed(room);
   }
 
   @override
@@ -140,7 +133,6 @@ class MessageRepository extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _matrix.removeListener(_onMatrixChanged);
     super.dispose();
   }
 }

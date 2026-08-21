@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -116,7 +118,7 @@ void main() {
     when(mockClient.getRoomById(_roomId)).thenReturn(mockRoom);
 
     matrixService = MatrixService(
-      client: mockClient,
+      accountSession: AccountSession(matrixClientService: MatrixClientService(mockClient)),
       storage: mockStorage,
       clientName: 'test',
     );
@@ -129,7 +131,7 @@ void main() {
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(matrix: matrixService),
+          create: (_) => RoomRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
         ),
       ],
       child: MaterialApp(
@@ -171,13 +173,13 @@ void main() {
           value: matrixService.selection,
         ),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(matrix: matrixService),
+          create: (_) => RoomRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
         ),
         ChangeNotifierProvider<UserRepository>(
-          create: (_) => UserRepository(matrix: matrixService),
+          create: (_) => UserRepository(clientService: matrixService.matrixClientService, presence: matrixService.presence),
         ),
         ChangeNotifierProvider<MediaRepository>(
-          create: (_) => MediaRepository(matrix: matrixService),
+          create: (_) => MediaRepository(avatarResolver: matrixService.avatarResolver, mediaResolver: matrixService.mediaResolver),
         ),
       ],
       child: MaterialApp.router(
@@ -383,7 +385,7 @@ void main() {
           providers: [
             ChangeNotifierProvider<MatrixService>.value(value: matrixService),
             ChangeNotifierProvider<RoomRepository>(
-              create: (_) => RoomRepository(matrix: matrixService),
+              create: (_) => RoomRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
             ),
           ],
           child: MaterialApp(

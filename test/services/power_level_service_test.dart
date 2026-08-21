@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -56,9 +57,9 @@ void main() {
       client.setRoomStateWithKey(any, any, any, any),
     ).thenAnswer((_) async => r'$eventId');
 
-    when(mockMatrix.client).thenReturn(client);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(client));
     when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-    rooms = RoomRepository(matrix: mockMatrix);
+    rooms = RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection);
   });
 
   group('PowerLevelPatch.isEmpty', () {

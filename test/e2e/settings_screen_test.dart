@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
@@ -8,6 +9,7 @@ import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/settings/screens/settings_screen.dart';
 import 'package:kohera/shared/widgets/kohera_mark.dart';
@@ -41,7 +43,7 @@ class _FixedServiceFactory extends MatrixServiceFactory {
     required String clientName,
     FlutterSecureStorage? storage,
   }) async {
-    return (_service.client, _service);
+    return (_service.matrixClientService.client, _service);
   }
 }
 
@@ -89,7 +91,7 @@ void main() {
     stubProfile(mockClient, displayName: 'Alice');
 
     matrixService = MatrixService(
-      client: mockClient,
+      accountSession: AccountSession(matrixClientService: MatrixClientService(mockClient)),
       storage: mockStorage,
       clientName: 'test',
     );
@@ -107,15 +109,15 @@ void main() {
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
         ChangeNotifierProvider<ChatBackupService>.value(value: matrixService.chatBackup),
-        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
+        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
         ChangeNotifierProvider(create: (_) => PreferencesService()),
-        ChangeNotifierProvider(create: (ctx) => StickerPackService(client: ctx.read<MatrixService>().client)),
+        ChangeNotifierProvider(create: (ctx) => StickerPackService(matrixClientService: MatrixClientService(ctx.read<MatrixService>().matrixClientService.client))),
         ChangeNotifierProvider<UserRepository>(
-          create: (_) => UserRepository(matrix: matrixService),
+          create: (_) => UserRepository(clientService: matrixService.matrixClientService, presence: matrixService.presence),
         ),
         ChangeNotifierProvider<MediaRepository>(
-          create: (_) => MediaRepository(matrix: matrixService),
+          create: (_) => MediaRepository(avatarResolver: matrixService.avatarResolver, mediaResolver: matrixService.mediaResolver),
         ),
       ],
       child: MaterialApp(

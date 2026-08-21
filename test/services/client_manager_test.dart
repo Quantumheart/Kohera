@@ -1,8 +1,10 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/secure_storage.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
@@ -41,7 +43,11 @@ class _TestServiceFactory extends MatrixServiceFactory {
       mockClient.onPresenceChanged,
     ).thenReturn(CachedStreamController<CachedPresence>());
     final s = MatrixService(
-      client: mockClient,
+      accountSession: AccountSession(
+        matrixClientService: MatrixClientService(mockClient),
+        storage: storage ?? KoheraSecureStorage(),
+        clientName: clientName,
+      ),
       storage: storage ?? KoheraSecureStorage(),
       clientName: clientName,
     );
@@ -180,7 +186,11 @@ void main() {
         newMockClient.onPresenceChanged,
       ).thenReturn(CachedStreamController<CachedPresence>());
       final newService = MatrixService(
-        client: newMockClient,
+        accountSession: AccountSession(
+          matrixClientService: MatrixClientService(newMockClient),
+          storage: mockStorage,
+          clientName: 'account_1',
+        ),
         storage: mockStorage,
         clientName: 'account_1',
       );
@@ -361,7 +371,11 @@ class _MixedLoginFactory extends MatrixServiceFactory {
       mockClient.onPresenceChanged,
     ).thenReturn(CachedStreamController<CachedPresence>());
     final s = MatrixService(
-      client: mockClient,
+      accountSession: AccountSession(
+        matrixClientService: MatrixClientService(mockClient),
+        storage: storage ?? _storage,
+        clientName: clientName,
+      ),
       storage: storage ?? _storage,
       clientName: clientName,
     );
@@ -397,7 +411,11 @@ class _CountingFactory extends MatrixServiceFactory {
       mockClient.onPresenceChanged,
     ).thenReturn(CachedStreamController<CachedPresence>());
     final s = MatrixService(
-      client: mockClient,
+      accountSession: AccountSession(
+        matrixClientService: MatrixClientService(mockClient),
+        storage: storage ?? _storage,
+        clientName: clientName,
+      ),
       storage: storage ?? _storage,
       clientName: clientName,
     );

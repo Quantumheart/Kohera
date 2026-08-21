@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
@@ -26,7 +27,7 @@ void main() {
     postSyncBackupThrows = false;
 
     service = SyncService(
-      client: mockClient,
+      matrixClientService: MatrixClientService(mockClient),
       onPostSyncBackup: () async {
         postSyncBackupCount++;
         if (postSyncBackupThrows) throw Exception('backup failed');
@@ -102,7 +103,7 @@ void main() {
     setUp(() {
       retryCount = 0;
       retryService = SyncService(
-        client: mockClient,
+        matrixClientService: MatrixClientService(mockClient),
         onPostSyncBackup: () async {
           retryCount++;
         },
@@ -133,7 +134,7 @@ void main() {
     test('does not retry when shouldRetryBackup returns false', () async {
       const backupNeeded = false;
       final noRetryService = SyncService(
-        client: mockClient,
+        matrixClientService: MatrixClientService(mockClient),
         onPostSyncBackup: () async {
           retryCount++;
         },

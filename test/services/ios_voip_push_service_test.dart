@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/ios_voip_push_service.dart';
@@ -49,13 +50,13 @@ void main() {
     mockCallService = MockCallService();
     mockNotification = MockNotificationService();
 
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.userID).thenReturn('@alice:example.com');
     when(mockClient.deviceID).thenReturn('DEV1');
     when(mockClient.deviceName).thenReturn('AlicePhone');
 
     service = IosVoipPushService(
-      pushRepository: PushRepository(matrix: mockMatrix),
+      pushRepository: PushRepository(clientService: mockMatrix.matrixClientService),
       preferencesService: prefs,
       notificationService: mockNotification,
       callService: mockCallService,
@@ -97,7 +98,7 @@ void main() {
       final sp = await SharedPreferences.getInstance();
 
       final noopService = IosVoipPushService(
-        pushRepository: PushRepository(matrix: mockMatrix),
+        pushRepository: PushRepository(clientService: mockMatrix.matrixClientService),
         preferencesService: PreferencesService(prefs: sp),
         notificationService: mockNotification,
         callService: mockCallService,

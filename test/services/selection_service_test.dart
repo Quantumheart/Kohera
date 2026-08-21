@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:matrix/src/utils/space_child.dart';
@@ -31,7 +32,7 @@ void main() {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.onSync)
         .thenReturn(CachedStreamController<SyncUpdate>());
-    service = SelectionService(client: mockClient);
+    service = SelectionService(matrixClientService: MatrixClientService(mockClient));
     service.addListener(() => changeCount++);
   });
 

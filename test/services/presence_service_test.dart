@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
@@ -15,7 +16,7 @@ void main() {
     mockClient = MockClient();
     presenceController = CachedStreamController<CachedPresence>();
     when(mockClient.onPresenceChanged).thenReturn(presenceController);
-    service = PresenceService(client: mockClient);
+    service = PresenceService(matrixClientService: MatrixClientService(mockClient));
   });
 
   tearDown(() => service.dispose());

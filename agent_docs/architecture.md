@@ -109,7 +109,15 @@ All state is Provider + ChangeNotifier. The provider tree in `main.dart` provide
 - `MediaPlaybackService` -- audio/video playback
 
 Per active account (nested inside a Consumer):
-- `MatrixService` -- wraps matrix.Client, central state
+- `MatrixService` -- lifecycle coordinator (app lifecycle, auth-state
+  orchestration, session restore hand-off). Holds an `AccountSession`; forwards
+  sub-services. No public raw-`Client` getter.
+- `MatrixClientService` -- stateless wrapper around the SDK `Client`
+  (`lib/data/services/`). Sole owner of the `Client`; the sanctioned SDK boundary
+  the data layer depends on.
+- `AccountSession` -- per-account composition root (`lib/core/services/`). Builds
+  and owns the sub-service graph in dependency order; `ClientManager` holds one
+  per account.
 - `SelectionService` -- room/space selection
 - `ChatBackupService` -- E2EE key backup status
 - `InboxController` -- notification inbox
@@ -127,7 +135,15 @@ Per active account (nested inside a Consumer):
 - `StickerPackRepository` -- sticker/emoji packs
 - `MessageSearchRepository` -- message search indexing
 
-MatrixService lazy-loads sub-services: AuthService, SyncService, SelectionService, ChatBackupService, UiaService.
+`AccountSession` builds the sub-service graph (AuthService, SyncService,
+SelectionService, ChatBackupService, UiaService, PresenceService,
+SpaceAccessService, OutboxService, MegolmKeyMirror, CallPushRuleManager,
+GlobalPushRuleManager, StickerPackService, MessageIndexerService, and the
+avatar/media resolvers) in dependency order. `AuthService` owns login, SSO,
+registration, logout, session restore, and soft-logout — including their
+post-login orchestration (start sync, presence, session backup). `MatrixService`
+observes `AuthService` and reacts (starts key mirror, outbox, indexer; wires the
+app-lifecycle observer).
 
 ## Repository layer
 
@@ -145,8 +161,12 @@ Each repository:
   `main.dart`, reacting to account switches.
 - Owns the resolver calls for its domain — controllers and widgets should
   consume domain models from repositories, never call resolvers directly.
-- Takes `MatrixService` as a constructor dependency (transitional — will later
-  take `MatrixClientService` + sub-services directly).
+- Takes `MatrixClientService` and/or the specific sub-services it needs as
+  constructor dependencies — never the whole `MatrixService`. Repos that wrap
+  stateless SDK data calls take `MatrixClientService` (the SDK boundary); repos
+  fronting a stateful engine take that sub-service. The `main.dart`
+  `ChangeNotifierProxyProvider` sources these from `matrix.session` and calls the
+  repo's `updateDependencies(...)` on account switch.
 
 | Repository | Domain models | Resolvers owned |
 |---|---|---|

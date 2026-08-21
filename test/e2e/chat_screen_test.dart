@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
@@ -128,7 +130,7 @@ void main() {
     stubRoomDefaults(mockRoom, mockClient);
 
     matrixService = MatrixService(
-      client: mockClient,
+      accountSession: AccountSession(matrixClientService: MatrixClientService(mockClient)),
       storage: mockStorage,
       clientName: 'test',
     );
@@ -173,12 +175,12 @@ void main() {
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
         ChangeNotifierProvider<RoomRepository>.value(value: mockRoomRepository),
         ChangeNotifierProvider<SelectionService>.value(value: matrixService.selection),
-        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
+        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider(create: (_) => PreferencesService()),
         ChangeNotifierProvider(create: (_) => MediaPlaybackService()),
         ChangeNotifierProvider(
           create: (ctx) =>
-              StickerPackService(client: ctx.read<MatrixService>().client),
+              StickerPackService(matrixClientService: MatrixClientService(ctx.read<MatrixService>().matrixClientService.client)),
         ),
       ],
       child: MaterialApp.router(

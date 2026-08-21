@@ -7,6 +7,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/settings/widgets/deactivate_account_dialog.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -37,7 +38,7 @@ void main() {
     mockManager = MockClientManager();
     mockUia = MockUiaService();
 
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockMatrix.uia).thenReturn(mockUia);
     when(mockMatrix.chatBackup).thenReturn(mockChatBackup);
@@ -74,7 +75,7 @@ void main() {
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
           ChangeNotifierProvider<ClientManager>.value(value: mockManager),
           ChangeNotifierProvider<UserRepository>(
-            create: (_) => UserRepository(matrix: mockMatrix),
+            create: (_) => UserRepository(clientService: mockMatrix.matrixClientService, presence: mockMatrix.presence),
           ),
         ],
         child: child,

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/widgets/voice_banner.dart';
 import 'package:matrix/matrix.dart';
@@ -29,8 +30,8 @@ void main() {
 
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.rooms).thenReturn([]);
-    when(mockMatrixService.client).thenReturn(mockClient);
-    selectionService = SelectionService(client: mockClient);
+    when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
+    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
     when(mockMatrixService.selection).thenReturn(selectionService);
 
     when(mockCallService.client).thenReturn(mockClient);
@@ -56,7 +57,7 @@ void main() {
         ChangeNotifierProvider<CallService>.value(value: mockCallService),
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(matrix: mockMatrixService),
+          create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
         ),
       ],
       child: MaterialApp.router(

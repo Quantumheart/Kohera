@@ -4,6 +4,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/models/kohera_export_format.dart';
 import 'package:kohera/features/rooms/models/kohera_room_export.dart';
 import 'package:kohera/features/rooms/services/room_history_exporter.dart';
@@ -43,9 +44,9 @@ KoheraRoomExport _sample() => KoheraRoomExport(
 RoomRepository _fakeRooms() {
   final matrix = MockMatrixService();
   final client = MockClient();
-  when(matrix.client).thenReturn(client);
+  when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
   when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-  return RoomRepository(matrix: matrix);
+  return RoomRepository(clientService: matrix.matrixClientService, selection: matrix.selection);
 }
 
 class _FakeExporter extends RoomHistoryExporter {
@@ -76,10 +77,10 @@ void main() {
   setUp(() {
     mockClient = MockClient();
     mockMatrix = MockMatrixService();
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.userID).thenReturn('@me:example.com');
-    selectionService = SelectionService(client: mockClient);
+    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
     when(mockMatrix.selection).thenReturn(selectionService);
     when(mockMatrix.avatarResolver).thenReturn(const _NullAvatarResolver());
   });

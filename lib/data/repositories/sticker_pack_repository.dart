@@ -1,35 +1,20 @@
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 
 class StickerPackRepository extends ChangeNotifier {
-  StickerPackRepository({required MatrixService matrix}) : _matrix = matrix {
-    _matrix.stickerPacks.addListener(_onStickerPacksChanged);
-    _matrix.addListener(_onMatrixChanged);
+  StickerPackRepository({required StickerPackService stickerPacks})
+      : _stickerPacks = stickerPacks {
+    _stickerPacks.addListener(_onStickerPacksChanged);
   }
 
-  MatrixService _matrix;
+  final StickerPackService _stickerPacks;
   bool _disposed = false;
-
-  void updateMatrixService(MatrixService matrix) {
-    if (identical(matrix, _matrix)) return;
-    _matrix.stickerPacks.removeListener(_onStickerPacksChanged);
-    _matrix.removeListener(_onMatrixChanged);
-    _matrix = matrix;
-    _matrix.stickerPacks.addListener(_onStickerPacksChanged);
-    _matrix.addListener(_onMatrixChanged);
-    notifyListeners();
-  }
 
   void _onStickerPacksChanged() {
     if (!_disposed) notifyListeners();
   }
 
-  void _onMatrixChanged() {
-    if (!_disposed) notifyListeners();
-  }
-
-  StickerPackService get stickerPacks => _matrix.stickerPacks;
+  StickerPackService get stickerPacks => _stickerPacks;
 
   @override
   void notifyListeners() {
@@ -40,8 +25,7 @@ class StickerPackRepository extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _matrix.stickerPacks.removeListener(_onStickerPacksChanged);
-    _matrix.removeListener(_onMatrixChanged);
+    _stickerPacks.removeListener(_onStickerPacksChanged);
     super.dispose();
   }
 }

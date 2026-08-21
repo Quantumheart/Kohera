@@ -8,6 +8,7 @@ import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/services/room_details_controller.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -63,7 +64,7 @@ void main() {
     mockAvatarResolver = MockAvatarResolver();
     syncCtl = CachedStreamController<SyncUpdate>();
 
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrix.selection).thenReturn(mockSelection);
     when(mockMatrix.presence).thenReturn(mockPresence);
     when(mockMatrix.avatarResolver).thenReturn(mockAvatarResolver);
@@ -89,9 +90,9 @@ void main() {
     when(mockRoom.leave()).thenAnswer((_) async {});
     when(mockClient.updateUserDeviceKeys()).thenAnswer((_) async {});
 
-    roomRepo = RoomRepository(matrix: mockMatrix);
-    userRepo = UserRepository(matrix: mockMatrix);
-    mediaRepo = MediaRepository(matrix: mockMatrix);
+    roomRepo = RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection);
+    userRepo = UserRepository(clientService: mockMatrix.matrixClientService, presence: mockMatrix.presence);
+    mediaRepo = MediaRepository(avatarResolver: mockMatrix.avatarResolver, mediaResolver: mockMatrix.mediaResolver);
   });
 
   group('RoomDetailsController getters with room', () {

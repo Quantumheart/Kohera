@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/models/kohera_export_format.dart';
 import 'package:kohera/features/rooms/services/room_history_exporter.dart';
 import 'package:matrix/matrix.dart';
@@ -96,9 +97,9 @@ void main() {
     mockRoom = MockRoom();
     mockTimeline = MockTimeline();
 
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-    rooms = RoomRepository(matrix: mockMatrix);
+    rooms = RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection);
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
     when(mockRoom.id).thenReturn('!room:example.com');
     when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');

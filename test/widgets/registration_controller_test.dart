@@ -7,6 +7,7 @@ import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/data/repositories/auth_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/auth/services/registration_controller.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
@@ -46,10 +47,10 @@ void main() {
     mockMatrixService = MockMatrixService();
     mockAuthService = MockAuthService();
     fakeClientManager = _FakeClientManager([mockMatrixService]);
-    when(mockMatrixService.client).thenReturn(mockClient);
+    when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrixService.auth).thenReturn(mockAuthService);
     when(mockMatrixService.isLoggedIn).thenReturn(false);
-    authRepository = AuthRepository(matrix: mockMatrixService);
+    authRepository = AuthRepository(clientService: mockMatrixService.matrixClientService, auth: mockMatrixService.auth, uia: mockMatrixService.uia, chatBackup: mockMatrixService.chatBackup);
   });
 
   RegistrationController createController({String homeserver = 'example.com'}) {
@@ -289,7 +290,7 @@ void main() {
               accessToken: 'token',
               deviceId: 'DEV1',
             ),);
-        when(mockMatrixService.completeRegistration(any))
+        when(mockAuthService.completeRegistration(any))
             .thenAnswer((_) async {});
 
         await controller.submitForm(
@@ -439,7 +440,7 @@ void main() {
               accessToken: 'tok',
               deviceId: 'D1',
             ),);
-        when(mockMatrixService.completeRegistration(any))
+        when(mockAuthService.completeRegistration(any))
             .thenAnswer((_) async {});
 
         final controller = createController();
@@ -447,7 +448,7 @@ void main() {
         await controller.submitForm(
             username: 'user', password: 'password123',);
 
-        verify(mockMatrixService.completeRegistration(
+        verify(mockAuthService.completeRegistration(
           any,
           password: anyNamed('password'),
         ),).called(1);
@@ -470,7 +471,7 @@ void main() {
               accessToken: 'tok',
               deviceId: 'D1',
             ),);
-        when(mockMatrixService.completeRegistration(any))
+        when(mockAuthService.completeRegistration(any))
             .thenAnswer((_) async {});
 
         final controller = createController();
@@ -494,7 +495,7 @@ void main() {
               accessToken: 'tok',
               deviceId: 'D1',
             ),);
-        when(mockMatrixService.completeRegistration(any))
+        when(mockAuthService.completeRegistration(any))
             .thenAnswer((_) async {});
 
         final controller = createController();
@@ -518,7 +519,7 @@ void main() {
               accessToken: 'tok',
               deviceId: 'D1',
             ),);
-        when(mockMatrixService.completeRegistration(any))
+        when(mockAuthService.completeRegistration(any))
             .thenAnswer((_) async {});
 
         final controller = createController();
@@ -526,7 +527,7 @@ void main() {
         await controller.submitForm(
             username: 'user', password: 'mypassword123',);
 
-        final captured = verify(mockMatrixService.completeRegistration(
+        final captured = verify(mockAuthService.completeRegistration(
           any,
           password: captureAnyNamed('password'),
         ),).captured;
@@ -545,7 +546,7 @@ void main() {
               accessToken: 'tok',
               deviceId: 'D1',
             ),);
-        when(mockMatrixService.completeRegistration(any))
+        when(mockAuthService.completeRegistration(any))
             .thenAnswer((_) async {});
 
         final controller = createController();
@@ -706,7 +707,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
 
-        when(mockMatrixService.completeRegistration(any))
+        when(mockAuthService.completeRegistration(any))
             .thenAnswer((_) async {});
 
         // First call throws UIA challenge, second call succeeds.
@@ -951,7 +952,7 @@ void main() {
             deviceId: 'D1',
           ),);
         });
-        when(mockMatrixService.completeRegistration(any))
+        when(mockAuthService.completeRegistration(any))
             .thenAnswer((_) async {});
 
         final controller = createController();

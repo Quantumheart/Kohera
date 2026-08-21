@@ -5,7 +5,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart' as sqflite;
@@ -14,9 +14,9 @@ import 'package:sqflite/sqflite.dart' as sqflite;
 const _apnsMethodChannel = MethodChannel('kohera/apns');
 
 class MegolmKeyMirror {
-  MegolmKeyMirror({required this.client, required this.clientName});
+  MegolmKeyMirror({required this.matrixClientService, required this.clientName});
 
-  final Client client;
+  final MatrixClientService matrixClientService;
   final String clientName;
 
   final Set<String> _subscribedRooms = <String>{};
@@ -46,7 +46,7 @@ class MegolmKeyMirror {
     await _backfillIfNeeded();
     _hookExistingRooms();
     _subs.add(
-      client.onSync.stream.listen((_) {
+      matrixClientService.client.onSync.stream.listen((_) {
         _hookExistingRooms();
         _scheduleRemirror();
       }),
@@ -125,7 +125,7 @@ class MegolmKeyMirror {
 
   Future<void> _remirrorAll() async {
     try {
-      final sessions = await client.database.getAllInboundGroupSessions();
+      final sessions = await matrixClientService.client.database.getAllInboundGroupSessions();
       final rows = sessions
           .map(
             (s) => {
@@ -154,7 +154,7 @@ class MegolmKeyMirror {
   }
 
   void _hookExistingRooms() {
-    for (final room in client.rooms) {
+    for (final room in matrixClientService.client.rooms) {
       if (_subscribedRooms.add(room.id)) {
         _subs.add(
           room.onSessionKeyReceived.stream.listen(
@@ -168,7 +168,7 @@ class MegolmKeyMirror {
   Future<void> _mirrorSession(String roomId, String sessionId) async {
     try {
       final session =
-          await client.database.getInboundGroupSession(roomId, sessionId);
+          await matrixClientService.client.database.getInboundGroupSession(roomId, sessionId);
       if (session == null) return;
       await _writeRows([
         {

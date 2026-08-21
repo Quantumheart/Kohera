@@ -6,6 +6,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/widgets/room_context_menu.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -36,7 +37,7 @@ void main() {
 
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.rooms).thenReturn([]);
-    when(mockMatrixService.client).thenReturn(mockClient);
+    when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
 
     when(mockSpace.id).thenReturn('!space:example.com');
     when(mockSpace.getLocalizedDisplayname()).thenReturn('Test Space');
@@ -55,7 +56,7 @@ void main() {
     when(mockClient.getRoomById('!space:example.com')).thenReturn(mockSpace);
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
 
-    selectionService = SelectionService(client: mockClient);
+    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
     selectionService.selectSpace('!space:example.com');
     when(mockMatrixService.selection).thenReturn(selectionService);
   });
@@ -69,10 +70,10 @@ void main() {
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(matrix: mockMatrixService),
+          create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
         ),
         ChangeNotifierProvider<UserRepository>(
-          create: (_) => UserRepository(matrix: mockMatrixService),
+          create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService, presence: mockMatrixService.presence),
         ),
       ],
       child: MaterialApp(

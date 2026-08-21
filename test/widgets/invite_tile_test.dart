@@ -9,6 +9,7 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
@@ -43,7 +44,7 @@ void main() {
     mockInvitedRoom = MockRoom();
     mockClient = MockClient();
 
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrix.avatarResolver).thenReturn(const _NullAvatarResolver());
     when(mockClient.userID).thenReturn('@me:example.com');
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
@@ -72,7 +73,7 @@ void main() {
     when(mockClient.rooms).thenReturn([mockInvitedRoom]);
     when(mockClient.getRoomById('!invited:example.com')).thenReturn(mockInvitedRoom);
 
-    selectionService = SelectionService(client: mockClient);
+    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
     when(mockMatrix.selection).thenReturn(selectionService);
   });
 
@@ -107,9 +108,9 @@ void main() {
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
         ChangeNotifierProvider<RoomRepository>(
-            create: (_) => RoomRepository(matrix: mockMatrix),),
+            create: (_) => RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection),),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
-        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
+        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),
         Provider<SpaceDiscoveryDataSource>(
           create: (ctx) => FakeSpaceDiscoveryDataSource(delay: Duration.zero),
@@ -117,7 +118,7 @@ void main() {
         ChangeNotifierProvider<SpaceRoomsController>(
           create: (ctx) => SpaceRoomsController(
             dataSource: ctx.read<SpaceDiscoveryDataSource>(),
-            client: ctx.read<MatrixService>().client,
+            client: ctx.read<MatrixService>().matrixClientService.client,
           ),
         ),
       ],

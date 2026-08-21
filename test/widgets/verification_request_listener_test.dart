@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/e2ee/widgets/verification_request_listener.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
@@ -47,7 +48,7 @@ void main() {
 
     when(mockClient.userID).thenReturn(selfUserId);
     when(mockClient.onKeyVerificationRequest).thenReturn(verificationStream);
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrix.chatBackup).thenReturn(mockChatBackup);
     when(mockChatBackup.runKeyRecovery(ssssKey: anyNamed('ssssKey')))
         .thenAnswer((_) => Future<void>.value());
@@ -72,7 +73,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
           ChangeNotifierProvider<KeyBackupRepository>(
-            create: (_) => KeyBackupRepository(matrix: mockMatrix),
+            create: (_) => KeyBackupRepository(clientService: mockMatrix.matrixClientService, chatBackup: mockMatrix.chatBackup, keyMirror: mockMatrix.keyMirror, uia: mockMatrix.uia),
           ),
         ],
         child: VerificationRequestListener(

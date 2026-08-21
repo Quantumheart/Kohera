@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/shared/widgets/report_content_dialog.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -21,10 +22,10 @@ void main() {
   setUp(() {
     client = MockClient();
     matrix = MockMatrixService();
-    when(matrix.client).thenReturn(client);
+    when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
     when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-    roomRepo = RoomRepository(matrix: matrix);
-    userRepo = UserRepository(matrix: matrix);
+    roomRepo = RoomRepository(clientService: matrix.matrixClientService, selection: matrix.selection);
+    userRepo = UserRepository(clientService: matrix.matrixClientService, presence: matrix.presence);
   });
 
   testWidgets('reports the room lastEvent with the entered reason', (

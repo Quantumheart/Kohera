@@ -15,6 +15,7 @@ import 'package:kohera/data/models/kohera_user_summary.dart';
   MockSpec<CallService>(),
 ])
 import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/rooms/widgets/room_tile.dart';
 import 'package:kohera/shared/widgets/presence_dot.dart';
@@ -87,12 +88,12 @@ void main() {
     mockClient = MockClient();
     mockCallService = MockCallService();
 
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrix.avatarResolver).thenReturn(const _NullAvatarResolver());
     when(mockClient.userID).thenReturn('@me:example.com');
     when(mockMatrix.userID).thenReturn('@me:example.com');
     when(mockClient.onPresenceChanged).thenReturn(CachedStreamController<CachedPresence>());
-    when(mockMatrix.presence).thenReturn(PresenceService(client: mockClient));
+    when(mockMatrix.presence).thenReturn(PresenceService(matrixClientService: MatrixClientService(mockClient)));
 
     when(mockRoom.id).thenReturn('!room:example.com');
     when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
@@ -570,7 +571,7 @@ void main() {
       presenceController = CachedStreamController<CachedPresence>();
       when(mockClient.onPresenceChanged).thenReturn(presenceController);
       when(mockMatrix.presence)
-          .thenReturn(PresenceService(client: mockClient));
+          .thenReturn(PresenceService(matrixClientService: MatrixClientService(mockClient)));
     }
 
     Finder dot() => find.descendant(
