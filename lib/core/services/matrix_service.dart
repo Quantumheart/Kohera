@@ -2,47 +2,41 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kohera/core/services/client_avatar_resolver.dart';
-import 'package:kohera/core/services/client_media_resolver.dart';
+import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/secure_storage.dart';
-import 'package:kohera/core/services/session_backup.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/core/services/sub_services/call_push_rule_manager.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/global_push_rule_manager.dart';
 import 'package:kohera/core/services/sub_services/megolm_key_mirror.dart';
-import 'package:kohera/core/services/sub_services/outbox_connectivity.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
-import 'package:kohera/core/utils/network_error.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/data/services/message_indexer_service.dart';
 import 'package:matrix/matrix.dart';
-// ignore: implementation_imports, no public API for ClientInitException
-import 'package:matrix/src/utils/client_init_exception.dart';
 
 String koheraKey(String clientName, String suffix) =>
     'kohera_${clientName}_$suffix';
 
+/// Lifecycle coordinator for a single account. Owns app-lifecycle wiring,
+/// auth-state reactions, and session restore hand-off; the sub-service graph
+/// lives in [AccountSession]. Sub-service and client access is forwarded so
+/// existing consumers keep working while the graph is composed elsewhere.
 class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
-  static String friendlyAuthError(Object e) {
-    if (isNetworkError(e)) return 'Could not reach server';
-    if (e is TimeoutException) return 'Connection timed out';
-    if (e is FormatException) return 'Invalid server response';
-    return e.toString();
-  }
+  static String friendlyAuthError(Object e) => AuthService.friendlyAuthError(e);
 
   MatrixService({
-    required Client client,
+    required AccountSession accountSession,
     FlutterSecureStorage? storage,
     this.clientName = 'default',
-  }) : _client = client,
+  }) : _accountSession = accountSession,
        _storage =
            storage ??
            KoheraSecureStorage(
@@ -55,66 +49,21 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
                publicKey: 'KoheraSecureStorage',
              ),
            ) {
-    uia = UiaService(client: _client);
-    chatBackup = ChatBackupService(
-      client: _client,
-      storage: _storage,
-    );
-    selection = SelectionService(client: _client);
-    presence = PresenceService(client: _client);
-    spaceAccess = SpaceAccessService(client: _client);
-    sync = SyncService(
-      client: _client,
-      onPostSyncBackup: () async {
-        await chatBackup.tryAutoUnlockBackup();
-      },
-      shouldRetryBackup: () => chatBackup.chatBackupNeeded != false,
-    );
-    auth = AuthService(
-      client: _client,
-      storage: _storage,
-      clientName: clientName,
-    );
-    callPushRuleManager = CallPushRuleManager(client: _client);
-    globalPushRuleManager = GlobalPushRuleManager(client: _client);
-    keyMirror = MegolmKeyMirror(client: _client, clientName: clientName);
-    outbox = OutboxService(
-      client: _client,
-      clientName: clientName,
-      connectivity: RealOutboxConnectivity(),
-    );
-    stickerPacks = StickerPackService(client: _client);
-    messageIndexer = MessageIndexerService(
-      client: _client,
-      clientName: clientName,
-    );
-    avatarResolver = ClientAvatarResolver(_client);
-    mediaResolver = ClientMediaResolver(_client);
     auth.addListener(_onAuthChanged);
   }
 
-  late final CallPushRuleManager callPushRuleManager;
-  late final GlobalPushRuleManager globalPushRuleManager;
-  late final MegolmKeyMirror keyMirror;
-
   // ── Fields ──────────────────────────────────────────────────────
 
+  // ignore: unused_field, retained for session-backup helpers in restore path
   final FlutterSecureStorage _storage;
   final String clientName;
 
-  final Client _client;
-  Client get client => _client;
+  final AccountSession _accountSession;
 
-  bool get isLoggedIn => auth.isLoggedIn;
-
-  @visibleForTesting
-  set isLoggedInForTest(bool value) {
-    auth.isLoggedIn = value;
-    auth.notifyListeners();
-  }
-
-  @visibleForTesting
-  Future<void> activateSessionForTest() => _activateSession();
+  StreamSubscription<LoginState>? _loginStateSub;
+  bool _foregroundSyncStarted = false;
+  bool _lifecycleObserverRegistered = false;
+  Timer? _pauseDebounce;
 
   bool _disposed = false;
   bool get disposed => _disposed;
@@ -125,58 +74,89 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     super.notifyListeners();
   }
 
-  // ── Sub-services ────────────────────────────────────────────────
+  // ── Composition root + client accessors ─────────────────────────
 
-  late final UiaService uia;
-  late final ChatBackupService chatBackup;
-  late final SelectionService selection;
-  late final PresenceService presence;
-  late final SpaceAccessService spaceAccess;
-  late final SyncService sync;
-  late final AuthService auth;
-  late final OutboxService outbox;
-  late final MessageIndexerService? messageIndexer;
-  late final AvatarResolver avatarResolver;
-  late final MediaResolver mediaResolver;
-  late final StickerPackService stickerPacks;
+  AccountSession get session => _accountSession;
+  MatrixClientService get matrixClientService =>
+      _accountSession.matrixClientService;
 
-  StreamSubscription<LoginState>? _loginStateSub;
+  // ── Sub-service forwarding ──────────────────────────────────────
 
-  bool _foregroundSyncStarted = false;
-  bool _lifecycleObserverRegistered = false;
-  Timer? _pauseDebounce;
+  UiaService get uia => _accountSession.uia;
+  ChatBackupService get chatBackup => _accountSession.chatBackup;
+  SelectionService get selection => _accountSession.selection;
+  PresenceService get presence => _accountSession.presence;
+  SpaceAccessService get spaceAccess => _accountSession.spaceAccess;
+  SyncService get sync => _accountSession.sync;
+  AuthService get auth => _accountSession.auth;
+  OutboxService get outbox => _accountSession.outbox;
+  MessageIndexerService? get messageIndexer => _accountSession.messageIndexer;
+  AvatarResolver get avatarResolver => _accountSession.avatarResolver;
+  MediaResolver get mediaResolver => _accountSession.mediaResolver;
+  StickerPackService get stickerPacks => _accountSession.stickerPacks;
+  CallPushRuleManager get callPushRuleManager =>
+      _accountSession.callPushRuleManager;
+  GlobalPushRuleManager get globalPushRuleManager =>
+      _accountSession.globalPushRuleManager;
+  MegolmKeyMirror get keyMirror => _accountSession.keyMirror;
+
+  bool get isLoggedIn => auth.isLoggedIn;
 
   /// The Matrix user ID of this account, or null before login.
-  String? get userID => _client.userID;
+  String? get userID => _accountSession.userID;
 
   bool get hasSkippedSetup => chatBackup.setupSkipped;
   void skipSetup() {
     unawaited(chatBackup.markSetupSkipped());
   }
 
-  @override
-  void dispose() {
-    _disposed = true;
-    _pauseDebounce?.cancel();
-    if (_lifecycleObserverRegistered) {
-      WidgetsBinding.instance.removeObserver(this);
-      _lifecycleObserverRegistered = false;
-    }
-    auth.removeListener(_onAuthChanged);
-    auth.isLoggedIn = false;
-    sync.cancelSyncSub();
-    unawaited(keyMirror.dispose());
-    outbox.dispose();
-    messageIndexer?.dispose();
-    uia.dispose();
-    selection.dispose();
-    presence.dispose();
-    chatBackup.dispose();
-    sync.dispose();
-    stickerPacks.dispose();
-    unawaited(_loginStateSub?.cancel());
-    super.dispose();
+  @visibleForTesting
+  set isLoggedInForTest(bool value) {
+    auth.isLoggedIn = value;
+    auth.notifyListeners();
   }
+
+  @visibleForTesting
+  Future<void> activateSessionForTest() => _activateSession();
+
+  // ── Public API ──────────────────────────────────────────────────
+
+  Future<void> init({bool restoreSession = true}) async {
+    if (restoreSession) {
+      await auth.migrateStorageKeys();
+      final restored = await auth.restoreSession();
+      if (restored) await _activateSession();
+      notifyListeners();
+    }
+  }
+
+  Future<bool> login({
+    required String homeserver,
+    required String username,
+    required String password,
+    bool rememberCredentials = false,
+  }) => auth.login(
+    homeserver: homeserver,
+    username: username,
+    password: password,
+    rememberCredentials: rememberCredentials,
+  );
+
+  Future<bool> completeSsoLogin({
+    required String homeserver,
+    required String loginToken,
+  }) => auth.completeSsoLogin(homeserver: homeserver, loginToken: loginToken);
+
+  Future<void> completeRegistration(
+    RegisterResponse response, {
+    String? password,
+  }) => auth.completeRegistration(response, password: password);
+
+  Future<void> logout() => auth.logout();
+
+  Future<void> handleSoftLogout() => auth.handleSoftLogout();
+
+  // ── Lifecycle ───────────────────────────────────────────────────
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -204,112 +184,20 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  // ── Public API ──────────────────────────────────────────────────
-
-  Future<void> init({bool restoreSession = true}) async {
-    if (restoreSession) await auth.migrateStorageKeys();
-    if (restoreSession) {
-      await _restoreSession();
-      notifyListeners();
+  @override
+  void dispose() {
+    _disposed = true;
+    _pauseDebounce?.cancel();
+    if (_lifecycleObserverRegistered) {
+      WidgetsBinding.instance.removeObserver(this);
+      _lifecycleObserverRegistered = false;
     }
-  }
-
-  // ── Login ──────────────────────────────────────────────────────
-
-  Future<bool> login({
-    required String homeserver,
-    required String username,
-    required String password,
-    bool rememberCredentials = false,
-  }) async {
-    final success = await auth.login(
-      homeserver: homeserver,
-      username: username,
-      password: password,
-      rememberCredentials: rememberCredentials,
-    );
-    if (success) {
-      uia.setCachedPassword(password);
-      try {
-        await sync.startSync(timeout: const Duration(minutes: 5));
-        presence.setOnline();
-        await auth.saveSessionBackup();
-      } catch (e) {
-        debugPrint('[Kohera] Post-login sync error: $e');
-      }
-    }
-    return success;
-  }
-
-  // ── SSO Login ──────────────────────────────────────────────────
-
-  Future<bool> completeSsoLogin({
-    required String homeserver,
-    required String loginToken,
-  }) async {
-    final success = await auth.completeSsoLogin(
-      homeserver: homeserver,
-      loginToken: loginToken,
-    );
-    if (success) {
-      try {
-        await sync.startSync(timeout: const Duration(minutes: 5));
-        presence.setOnline();
-        await auth.saveSessionBackup();
-      } catch (e) {
-        debugPrint('[Kohera] Post-login sync error: $e');
-      }
-    }
-    return success;
-  }
-
-  // ── Registration ──────────────────────────────────────────────
-
-  Future<void> completeRegistration(
-    RegisterResponse response, {
-    String? password,
-  }) async {
-    if (password != null) uia.setCachedPassword(password);
-    await auth.completeRegistration(response, password: password);
-    try {
-      await sync.startSync(timeout: const Duration(minutes: 5));
-      await auth.saveSessionBackup();
-    } catch (e) {
-      debugPrint('[Kohera] Post-login sync error: $e');
-    }
-  }
-
-  // ── Logout ────────────────────────────────────────────────────
-
-  Future<void> logout() async {
-    await auth.logout();
-    await chatBackup.deleteStoredRecoveryKey();
-    await chatBackup.deleteDismissalState();
-  }
-
-  // ── Soft Logout ──────────────────────────────────────────────
-
-  Future<void> handleSoftLogout() async {
-    debugPrint('[Kohera] Soft logout detected, attempting token refresh...');
-    try {
-      await _client.refreshAccessToken();
-      await auth.persistCredentials();
-      await auth.saveSessionBackup();
-      debugPrint('[Kohera] Token refreshed successfully');
-    } catch (e) {
-      debugPrint('[Kohera] Token refresh failed: $e');
-      final cause = _unwrapInitException(e);
-      if (auth.isPermanentAuthFailure(cause)) {
-        await auth.logout();
-        await chatBackup.deleteStoredRecoveryKey();
-        await chatBackup.deleteDismissalState();
-      } else {
-        debugPrint(
-          '[Kohera] Transient refresh failure, keeping session '
-          'for next sync/refresh retry',
-        );
-      }
-    }
+    auth.removeListener(_onAuthChanged);
+    auth.isLoggedIn = false;
+    sync.cancelSyncSub();
+    unawaited(_loginStateSub?.cancel());
+    _accountSession.dispose();
+    super.dispose();
   }
 
   // ── Private: Auth Observer ──────────────────────────────────────
@@ -357,7 +245,9 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
 
   void _listenForLoginState() {
     if (_loginStateSub != null) return;
-    _loginStateSub = _client.onLoginStateChanged.stream.listen((state) async {
+    _loginStateSub = _accountSession.client.onLoginStateChanged.stream.listen((
+      state,
+    ) async {
       if (state == LoginState.loggedOut && auth.isLoggedIn) {
         debugPrint('[Kohera] Server-side logout detected');
         await auth.handleServerLogout();
@@ -367,10 +257,9 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     });
   }
 
-  // ── Private: Initialization ─────────────────────────────────────
+  // ── Private: Session Activation ─────────────────────────────────
 
   Future<void> _activateSession() async {
-    auth.activateRestoredSession();
     if (!_lifecycleObserverRegistered) {
       WidgetsBinding.instance.addObserver(this);
       _lifecycleObserverRegistered = true;
@@ -401,183 +290,4 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     );
     presence.setOnline();
   }
-
-  // ── Private: Session Keys ──────────────────────────────────────
-
-  Future<void> _clearSessionAndBackup() async {
-    await auth.clearSessionKeys();
-    await SessionBackup.delete(clientName: clientName, storage: _storage);
-  }
-
-  Future<
-    ({
-      String? token,
-      String? refreshToken,
-      String? userId,
-      String? homeserver,
-      String? deviceId,
-    })
-  >
-  _readSessionKeys() async {
-    final results = await Future.wait([
-      _storage.read(key: koheraKey(clientName, 'access_token')),
-      _storage.read(key: koheraKey(clientName, 'refresh_token')),
-      _storage.read(key: koheraKey(clientName, 'user_id')),
-      _storage.read(key: koheraKey(clientName, 'homeserver')),
-      _storage.read(key: koheraKey(clientName, 'device_id')),
-    ]);
-    return (
-      token: results[0],
-      refreshToken: results[1],
-      userId: results[2],
-      homeserver: results[3],
-      deviceId: results[4],
-    );
-  }
-
-  // ── Private: Session Restore ───────────────────────────────────
-
-  Future<void> _restoreSession() async {
-    // Tokens live in two places: the SDK database (rewritten on every automatic
-    // token refresh) and the keychain (only rewritten on explicit persist). The
-    // database therefore holds the freshest tokens, so restore from it whenever
-    // it has a session. Seeding a stale keychain token via init(newToken:) would
-    // overwrite the database's fresh tokens and trigger a spurious logout.
-    if (await _hasDatabaseSession()) {
-      await _restoreFromDatabase();
-    } else {
-      await _restoreFromKeychain();
-    }
-  }
-
-  Future<bool> _hasDatabaseSession() async {
-    try {
-      final stored = await _client.database.getClient(clientName);
-      if (stored == null) return false;
-      return stored.tryGet<String>('token') != null ||
-          stored.tryGet<String>('refresh_token') != null;
-    } catch (e) {
-      debugPrint('[Kohera] Database session probe failed: $e');
-      return false;
-    }
-  }
-
-  Future<void> _restoreFromDatabase() async {
-    debugPrint('[Kohera] Restoring session from database for $clientName');
-    try {
-      // Defer database loading and first sync to background so the UI renders
-      // immediately instead of blocking on device-key verification.
-      await _client.init(
-        waitForFirstSync: false,
-        waitUntilLoadCompletedLoaded: false,
-      );
-      if (!_client.isLogged()) {
-        debugPrint('[Kohera] Database restore produced no logged-in session');
-        auth.isLoggedIn = false;
-        return;
-      }
-      debugPrint(
-        '[Kohera] Session restored from database – '
-        'encryption=${_client.encryption != null ? "available" : "null"}, '
-        'encryptionEnabled=${_client.encryptionEnabled}',
-      );
-      await _activateSession();
-      try {
-        if (_client.accessToken != null) {
-          await auth.persistCredentials();
-        }
-        await auth.saveSessionBackup();
-      } catch (e) {
-        debugPrint(
-          '[Kohera] Persisting restored session failed '
-          '(non-fatal): $e',
-        );
-      }
-    } catch (e, s) {
-      debugPrint('[Kohera] Database session restore failed: $e');
-      debugPrint('[Kohera] Stack trace:\n$s');
-      final cause = _unwrapInitException(e);
-      auth.isLoggedIn = false;
-      if (auth.isPermanentAuthFailure(cause)) {
-        await _clearSessionAndBackup();
-      }
-    }
-  }
-
-  Future<void> _restoreFromKeychain() async {
-    final ({
-      String? token,
-      String? refreshToken,
-      String? userId,
-      String? homeserver,
-      String? deviceId,
-    })
-    keys;
-    try {
-      keys = await _readSessionKeys();
-    } catch (e) {
-      debugPrint('[Kohera] Failed to read session keys: $e');
-      return;
-    }
-
-    if (keys.token == null || keys.userId == null || keys.homeserver == null) {
-      return;
-    }
-
-    final backup = await SessionBackup.load(
-      clientName: clientName,
-      storage: _storage,
-    );
-
-    debugPrint(
-      '[Kohera] Database restore unavailable; seeding session from keychain '
-      'for ${keys.userId} on ${keys.homeserver} '
-      '(deviceId=${keys.deviceId}, clientName=$clientName)',
-    );
-
-    try {
-      final homeserverUri = Uri.parse(keys.homeserver!);
-      _client.homeserver = homeserverUri;
-      await _client.init(
-        newToken: keys.token,
-        newRefreshToken: keys.refreshToken ?? backup?.refreshToken,
-        newUserID: keys.userId,
-        newDeviceID: keys.deviceId,
-        newHomeserver: homeserverUri,
-        newDeviceName: 'Kohera Flutter',
-        newOlmAccount: backup?.olmAccount,
-      );
-      debugPrint(
-        '[Kohera] Session restored from keychain – '
-        'encryption=${_client.encryption != null ? "available" : "null"}, '
-        'encryptionEnabled=${_client.encryptionEnabled}',
-      );
-      await _activateSession();
-      try {
-        if (_client.accessToken != null) {
-          await auth.persistCredentials();
-        }
-        await auth.saveSessionBackup();
-      } catch (e) {
-        debugPrint(
-          '[Kohera] Persisting restored session failed '
-          '(non-fatal): $e',
-        );
-      }
-    } catch (e, s) {
-      debugPrint('[Kohera] Keychain session restore failed: $e');
-      debugPrint('[Kohera] Stack trace:\n$s');
-
-      final cause = _unwrapInitException(e);
-      auth.isLoggedIn = false;
-      if (auth.isPermanentAuthFailure(cause)) {
-        await _clearSessionAndBackup();
-      }
-    }
-  }
-
-  // ── Private: Error Classification ──────────────────────────────
-
-  static Object _unwrapInitException(Object e) =>
-      e is ClientInitException ? e.originalException : e;
 }

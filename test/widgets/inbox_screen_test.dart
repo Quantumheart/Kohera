@@ -7,6 +7,8 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/home/widgets/inbox_screen.dart';
 import 'package:kohera/features/notifications/enum/inbox_filter.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
@@ -62,9 +64,11 @@ GetNotificationsResponse _makeResponse(
 
 class _FakeMatrixService extends ChangeNotifier implements MatrixService {
   @override
-  late Client client;
+  late MatrixClientService matrixClientService;
   @override
   AvatarResolver get avatarResolver => _StubAvatarResolver();
+  @override
+  MediaResolver get mediaResolver => _StubMediaResolver();
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
@@ -72,6 +76,16 @@ class _FakeMatrixService extends ChangeNotifier implements MatrixService {
 class _StubAvatarResolver implements AvatarResolver {
   @override
   Future<AvatarThumbnail?> resolve(String? mxcUrl, {required double size}) async => null;
+}
+
+class _StubMediaResolver implements MediaResolver {
+  @override
+  Future<MediaThumbnail?> resolve(
+    String? mxcUrl, {
+    required double? width,
+    required double? height,
+  }) async =>
+      null;
 }
 
 void main() {
@@ -93,10 +107,11 @@ void main() {
       User('@alice:example.com', displayName: 'Alice', room: joinedRoom),
     );
     when(mockClient.getRoomById(any)).thenReturn(joinedRoom);
-    fakeMatrix = _FakeMatrixService()..client = mockClient;
-    final pushRepo = PushRepository(matrix: fakeMatrix);
+    fakeMatrix = _FakeMatrixService()
+      ..matrixClientService = MatrixClientService(mockClient);
+    final pushRepo = PushRepository(clientService: fakeMatrix.matrixClientService);
     controller = InboxController(pushRepository: pushRepo);
-    selectionService = SelectionService(client: mockClient);
+    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
   });
 
   tearDown(() {
@@ -111,7 +126,7 @@ void main() {
         ChangeNotifierProvider<InboxController>.value(value: controller),
         ChangeNotifierProvider<MatrixService>.value(value: fakeMatrix),
         ChangeNotifierProvider<MediaRepository>.value(
-          value: MediaRepository(matrix: fakeMatrix),
+          value: MediaRepository(avatarResolver: fakeMatrix.avatarResolver, mediaResolver: fakeMatrix.mediaResolver),
         ),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
       ],

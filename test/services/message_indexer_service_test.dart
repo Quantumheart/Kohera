@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/message_indexer_service.dart';
 import 'package:kohera/data/services/message_search_database.dart';
 import 'package:matrix/encryption.dart';
@@ -136,7 +137,7 @@ void main() {
     searchDb = MessageSearchDatabase(clientName: 'test', overrideDb: db);
     await searchDb.ensureSchema();
     indexer = MessageIndexerService(
-      client: client,
+      matrixClientService: MatrixClientService(client),
       clientName: 'test',
       databaseOverride: searchDb,
     );

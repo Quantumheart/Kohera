@@ -1,62 +1,60 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/megolm_key_mirror.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 
 class KeyBackupRepository extends ChangeNotifier {
-  KeyBackupRepository({required MatrixService matrix}) : _matrix = matrix {
-    _matrix.chatBackup.addListener(_onChatBackupChanged);
-    _matrix.addListener(_onMatrixChanged);
+  KeyBackupRepository({
+    required MatrixClientService clientService,
+    required ChatBackupService chatBackup,
+    required MegolmKeyMirror keyMirror,
+    required UiaService uia,
+  })  : _clientService = clientService,
+        _chatBackup = chatBackup,
+        _keyMirror = keyMirror,
+        _uia = uia {
+    _chatBackup.addListener(_onChatBackupChanged);
   }
 
-  MatrixService _matrix;
+  final MatrixClientService _clientService;
+  final ChatBackupService _chatBackup;
+  final MegolmKeyMirror _keyMirror;
+  final UiaService _uia;
   bool _disposed = false;
 
-  void updateMatrixService(MatrixService matrix) {
-    if (identical(matrix, _matrix)) return;
-    _matrix.chatBackup.removeListener(_onChatBackupChanged);
-    _matrix.removeListener(_onMatrixChanged);
-    _matrix = matrix;
-    _matrix.chatBackup.addListener(_onChatBackupChanged);
-    _matrix.addListener(_onMatrixChanged);
-    notifyListeners();
-  }
+  Client get _client => _clientService.client;
 
   void _onChatBackupChanged() {
     if (!_disposed) notifyListeners();
   }
 
-  void _onMatrixChanged() {
-    if (!_disposed) notifyListeners();
-  }
-
-  ChatBackupService get chatBackup => _matrix.chatBackup;
-  MegolmKeyMirror get keyMirror => _matrix.keyMirror;
-  UiaService get uia => _matrix.uia;
+  ChatBackupService get chatBackup => _chatBackup;
+  MegolmKeyMirror get keyMirror => _keyMirror;
+  UiaService get uia => _uia;
 
   Stream<KeyVerification> get onKeyVerificationRequest =>
-      _matrix.client.onKeyVerificationRequest.stream;
+      _client.onKeyVerificationRequest.stream;
 
   // ── E2EE bootstrap boundary ───────────────────────────────────
 
   /// The SDK [Encryption] handle, or null when encryption is unavailable.
   /// Escape hatch for the bootstrap/recovery flows that drive SSSS,
   /// cross-signing, and key backup directly.
-  Encryption? get encryption => _matrix.client.encryption;
+  Encryption? get encryption => _client.encryption;
 
   /// The logged-in user's Matrix ID, or null before login.
-  String? get userId => _matrix.client.userID;
+  String? get userId => _client.userID;
 
-  Future<void> updateUserDeviceKeys() => _matrix.client.updateUserDeviceKeys();
+  Future<void> updateUserDeviceKeys() => _client.updateUserDeviceKeys();
 
   /// Marks all locally stored inbound group sessions as needing backup upload.
   Future<void> markSessionsForBackupUpload() =>
-      _matrix.client.database.markInboundGroupSessionsAsNeedingUpload();
+      _client.database.markInboundGroupSessionsAsNeedingUpload();
 
   /// Waits for the client to finish initial loading before bootstrap.
   ///
@@ -66,7 +64,7 @@ class KeyBackupRepository extends ChangeNotifier {
   Future<void> prepareForBootstrap({
     Duration timeout = const Duration(seconds: 30),
   }) async {
-    final client = _matrix.client;
+    final client = _client;
     await client.roomsLoading;
     await client.accountDataLoading;
     await client.userDeviceKeysLoading;
@@ -99,7 +97,7 @@ class KeyBackupRepository extends ChangeNotifier {
     await updateUserDeviceKeys();
     final verification = KeyVerification(
       encryption: enc,
-      userId: _matrix.client.userID!,
+      userId: _client.userID!,
       deviceId: '*',
     );
     await verification.start();
@@ -116,8 +114,7 @@ class KeyBackupRepository extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _matrix.chatBackup.removeListener(_onChatBackupChanged);
-    _matrix.removeListener(_onMatrixChanged);
+    _chatBackup.removeListener(_onChatBackupChanged);
     super.dispose();
   }
 }

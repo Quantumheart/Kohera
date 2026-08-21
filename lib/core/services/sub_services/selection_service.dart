@@ -5,17 +5,18 @@ import 'package:kohera/core/utils/order_utils.dart' as order_utils;
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/models/space_node.dart';
 import 'package:kohera/data/resolvers/room_summary_resolver.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 
 class SelectionService extends ChangeNotifier {
-  SelectionService({required Client client}) : _client = client {
-    _syncSub = _client.onSync.stream.listen((_) {
+  SelectionService({required MatrixClientService matrixClientService}) : _matrixClientService = matrixClientService {
+    _syncSub = _matrixClientService.client.onSync.stream.listen((_) {
       invalidateSpaceTree();
       notifyListeners();
     });
   }
 
-  final Client _client;
+  final MatrixClientService _matrixClientService;
   StreamSubscription<SyncUpdate>? _syncSub;
 
   // ── Space multi-select ──────────────────────────────────────
@@ -56,7 +57,7 @@ class SelectionService extends ChangeNotifier {
   String? get selectedRoomId => _selectedRoomId;
 
   Room? get selectedRoom =>
-      _selectedRoomId != null ? _client.getRoomById(_selectedRoomId!) : null;
+      _selectedRoomId != null ? _matrixClientService.client.getRoomById(_selectedRoomId!) : null;
 
   void selectRoom(String? roomId) {
     _selectedRoomId = roomId;
@@ -119,7 +120,7 @@ class SelectionService extends ChangeNotifier {
   KoheraRoomSummary summaryFor(Room room) {
     return _summaryCache.putIfAbsent(
       room.id,
-      () => const RoomSummaryResolver()(room, myUserId: _client.userID),
+      () => const RoomSummaryResolver()(room, myUserId: _matrixClientService.client.userID),
     );
   }
 
@@ -129,7 +130,7 @@ class SelectionService extends ChangeNotifier {
   }
 
   void _rebuildSpaceTree() {
-    final allSpaces = _client.rooms
+    final allSpaces = _matrixClientService.client.rooms
         .where((r) => r.isSpace && r.membership == Membership.join)
         .toList();
 
@@ -140,7 +141,7 @@ class SelectionService extends ChangeNotifier {
       for (final child in space.spaceChildren) {
         final childId = child.roomId;
         if (childId == null) continue;
-        final childRoom = _client.getRoomById(childId);
+        final childRoom = _matrixClientService.client.getRoomById(childId);
         if (childRoom == null || childRoom.membership != Membership.join) {
           continue;
         }
@@ -211,7 +212,7 @@ class SelectionService extends ChangeNotifier {
     }
     indexNodes(topLevel);
 
-    final sortedRooms = _client.rooms
+    final sortedRooms = _matrixClientService.client.rooms
         .where((r) => !r.isSpace && r.membership == Membership.join)
         .toList()
       ..sort((a, b) {
@@ -240,7 +241,7 @@ class SelectionService extends ChangeNotifier {
   // ── Helpers ──────────────────────────────────────────────────
 
   List<Room> get spaces => _sortByCustomOrder(
-        _client.rooms
+    _matrixClientService.client.rooms
             .where((r) => r.isSpace && r.membership == Membership.join)
             .toList(),
         (r) => r.id,
@@ -248,7 +249,7 @@ class SelectionService extends ChangeNotifier {
       );
 
   List<Room> get topLevelSpaces => spaceTree
-      .map((n) => _client.getRoomById(n.summary.roomId))
+      .map((n) => _matrixClientService.client.getRoomById(n.summary.roomId))
       .whereType<Room>()
       .toList();
 
@@ -257,7 +258,7 @@ class SelectionService extends ChangeNotifier {
     return _cachedRooms!;
   }
 
-  List<Room> get invitedRooms => _client.rooms
+  List<Room> get invitedRooms => _matrixClientService.client.rooms
       .where((r) =>
           !r.isSpace &&
           r.membership == Membership.invite &&
@@ -266,7 +267,7 @@ class SelectionService extends ChangeNotifier {
     ..sort((a, b) => a.getLocalizedDisplayname().compareTo(
         b.getLocalizedDisplayname(),),);
 
-  List<Room> get invitedSpaces => _client.rooms
+  List<Room> get invitedSpaces => _matrixClientService.client.rooms
       .where((r) =>
           r.isSpace &&
           r.membership == Membership.invite &&
@@ -276,15 +277,15 @@ class SelectionService extends ChangeNotifier {
         b.getLocalizedDisplayname(),),);
 
   bool _isInviterIgnored(Room room) {
-    final userId = _client.userID;
+    final userId = _matrixClientService.client.userID;
     if (userId == null) return false;
     final inviteState = room.getState(EventTypes.RoomMember, userId);
     if (inviteState == null) return false;
-    return _client.ignoredUsers.contains(inviteState.senderId);
+    return _matrixClientService.client.ignoredUsers.contains(inviteState.senderId);
   }
 
   String? inviterDisplayName(Room room) {
-    final userId = _client.userID;
+    final userId = _matrixClientService.client.userID;
     if (userId == null) return null;
     final inviteState = room.getState(EventTypes.RoomMember, userId);
     if (inviteState == null) return null;
@@ -295,7 +296,7 @@ class SelectionService extends ChangeNotifier {
   List<Room> parentSpacesOf(Room room) {
     final ids = <String>{};
     final result = <Room>[];
-    for (final candidate in _client.rooms) {
+    for (final candidate in _matrixClientService.client.rooms) {
       if (!candidate.isSpace) continue;
       if (candidate.id == room.id) continue;
       final isParent =
@@ -317,13 +318,13 @@ class SelectionService extends ChangeNotifier {
 
   List<Room> roomsForSpace(String spaceId) {
     _ensureTreeFresh();
-    final space = _client.getRoomById(spaceId);
+    final space = _matrixClientService.client.getRoomById(spaceId);
     if (space == null) return [];
     final childIds = <String>{};
     for (final child in space.spaceChildren) {
       final childId = child.roomId;
       if (childId == null) continue;
-      final childRoom = _client.getRoomById(childId);
+      final childRoom = _matrixClientService.client.getRoomById(childId);
       if (childRoom != null && !childRoom.isSpace) {
         childIds.add(childId);
       }
@@ -361,7 +362,7 @@ class SelectionService extends ChangeNotifier {
     var count = 0;
     void walk(SpaceNode n) {
       for (final roomId in n.directChildRoomIds) {
-        final room = _client.getRoomById(roomId);
+        final room = _matrixClientService.client.getRoomById(roomId);
         if (room != null) count += room.notificationCount;
       }
       for (final sub in n.subspaces) {

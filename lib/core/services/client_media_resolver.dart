@@ -1,18 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/media_auth.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
 import 'package:matrix/matrix.dart';
 
-/// [MediaResolver] backed by a Matrix SDK [Client].
+/// [MediaResolver] backed by a Matrix SDK [MatrixClientService].
 ///
 /// Resolves `mxc://` URIs via `Uri.getThumbnailUri` (for small images) or
 /// `Uri.getDownloadUri` (for larger ones) and attaches auth headers via
 /// [mediaAuthHeaders] (scoped to the homeserver host to prevent token
 /// leakage to federated media servers).
 class ClientMediaResolver implements MediaResolver {
-  ClientMediaResolver(this._client);
+  ClientMediaResolver(this._matrixClientService);
 
-  final Client _client;
+  final MatrixClientService _matrixClientService;
 
   @override
   Future<MediaThumbnail?> resolve(
@@ -34,16 +35,16 @@ class ClientMediaResolver implements MediaResolver {
       final Uri uri;
       if (useThumb) {
         uri = await mxc.getThumbnailUri(
-          _client,
+          _matrixClientService.client,
           width: 48,
           height: 48,
           method: ThumbnailMethod.scale,
         );
       } else {
-        uri = await mxc.getDownloadUri(_client);
+        uri = await mxc.getDownloadUri(_matrixClientService.client);
       }
       final url = uri.toString();
-      return MediaThumbnail(url: url, headers: mediaAuthHeaders(_client, url));
+      return MediaThumbnail(url: url, headers: mediaAuthHeaders(_matrixClientService.client, url));
     } catch (e) {
       debugPrint('[Kohera] Failed to resolve mxc image: $e');
       return null;

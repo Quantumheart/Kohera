@@ -1,6 +1,7 @@
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
@@ -14,7 +15,7 @@ void main() {
   setUp(() {
     mockClient = MockClient();
     when(mockClient.onUiaRequest).thenReturn(CachedStreamController());
-    service = UiaService(client: mockClient);
+    service = UiaService(matrixClientService: MatrixClientService(mockClient));
   });
 
   group('listenForUia', () {

@@ -1,31 +1,20 @@
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/call_push_rule_manager.dart';
 import 'package:kohera/core/services/sub_services/global_push_rule_manager.dart';
 
 class PushRuleRepository extends ChangeNotifier {
-  PushRuleRepository({required MatrixService matrix}) : _matrix = matrix {
-    _matrix.addListener(_onMatrixChanged);
-  }
+  PushRuleRepository({
+    required CallPushRuleManager callPushRuleManager,
+    required GlobalPushRuleManager globalPushRuleManager,
+  })  : _callPushRuleManager = callPushRuleManager,
+        _globalPushRuleManager = globalPushRuleManager;
 
-  MatrixService _matrix;
+  final CallPushRuleManager _callPushRuleManager;
+  final GlobalPushRuleManager _globalPushRuleManager;
   bool _disposed = false;
 
-  void updateMatrixService(MatrixService matrix) {
-    if (identical(matrix, _matrix)) return;
-    _matrix.removeListener(_onMatrixChanged);
-    _matrix = matrix;
-    _matrix.addListener(_onMatrixChanged);
-    notifyListeners();
-  }
-
-  void _onMatrixChanged() {
-    if (!_disposed) notifyListeners();
-  }
-
-  CallPushRuleManager get callPushRuleManager => _matrix.callPushRuleManager;
-  GlobalPushRuleManager get globalPushRuleManager =>
-      _matrix.globalPushRuleManager;
+  CallPushRuleManager get callPushRuleManager => _callPushRuleManager;
+  GlobalPushRuleManager get globalPushRuleManager => _globalPushRuleManager;
 
   @override
   void notifyListeners() {
@@ -36,7 +25,6 @@ class PushRuleRepository extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _matrix.removeListener(_onMatrixChanged);
     super.dispose();
   }
 }

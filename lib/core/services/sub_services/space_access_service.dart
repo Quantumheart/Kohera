@@ -1,11 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/models/join_mode.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 
 class SpaceAccessService {
-  SpaceAccessService({required Client client}) : _client = client;
+  SpaceAccessService({required MatrixClientService matrixClientService}) : _matrixClientService = matrixClientService;
 
-  final Client _client;
+  final MatrixClientService _matrixClientService;
   List<String>? _supportedVersionsCache;
 
   JoinMode getJoinMode(Room room) {
@@ -83,7 +84,7 @@ class SpaceAccessService {
       mode.isRestrictedFamily ? allowSpaceIds : const [],
       preserveEntries: existingForeign,
     );
-    await _client.setRoomStateWithKey(
+    await _matrixClientService.client.setRoomStateWithKey(
       roomId,
       EventTypes.RoomJoinRules,
       '',
@@ -133,8 +134,8 @@ class SpaceAccessService {
   }
 
   List<Map<String, Object?>> _foreignAllowEntries(String roomId) {
-    final existing = _client
-            .getRoomById(roomId)
+    final existing = _matrixClientService
+            .client.getRoomById(roomId)
             ?.getState(EventTypes.RoomJoinRules)
             ?.content
             .tryGetList<Map<String, Object?>>('allow') ??
@@ -145,7 +146,7 @@ class SpaceAccessService {
   }
 
   Future<String> upgradeRoomTo(Room room, String newVersion) {
-    return _client.upgradeRoom(room.id, newVersion);
+    return _matrixClientService.client.upgradeRoom(room.id, newVersion);
   }
 
   Future<void> rewireParentSpaces({
@@ -179,7 +180,7 @@ class SpaceAccessService {
     final cached = _supportedVersionsCache;
     if (cached != null) return cached;
     try {
-      final caps = await _client.getCapabilities();
+      final caps = await _matrixClientService.client.getCapabilities();
       final keys =
           caps.mRoomVersions?.available.keys.toList(growable: false) ??
               const <String>[];

@@ -4,6 +4,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/spaces/models/space_rooms_model.dart';
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
@@ -39,7 +40,7 @@ void main() {
     when(spaceRooms.fetchSpaceRooms(any)).thenAnswer((_) async => {});
     client = MockClient();
 
-    when(matrix.client).thenReturn(client);
+    when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
     when(selection.selectedSpaceIds).thenReturn({});
     when(selection.rooms).thenReturn([]);
     when(selection.spaceTree).thenReturn([]);
@@ -58,7 +59,7 @@ void main() {
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrix),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(matrix: matrix),
+          create: (_) => RoomRepository(clientService: matrix.matrixClientService, selection: matrix.selection),
         ),
         ChangeNotifierProvider<SelectionService>.value(value: selection),
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),

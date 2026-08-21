@@ -1,37 +1,43 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
+import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 
 class AuthRepository extends ChangeNotifier {
-  AuthRepository({required MatrixService matrix}) : _matrix = matrix {
-    _matrix.addListener(_onMatrixChanged);
+  AuthRepository({
+    required MatrixClientService clientService,
+    required AuthService auth,
+    required UiaService uia,
+    required ChatBackupService chatBackup,
+  })  : _clientService = clientService,
+        _auth = auth,
+        _uia = uia,
+        _chatBackup = chatBackup {
+    _auth.addListener(_onAuthChanged);
   }
 
-  MatrixService _matrix;
+  final MatrixClientService _clientService;
+  final AuthService _auth;
+  final UiaService _uia;
+  final ChatBackupService _chatBackup;
   bool _disposed = false;
 
-  void updateMatrixService(MatrixService matrix) {
-    if (identical(matrix, _matrix)) return;
-    _matrix.removeListener(_onMatrixChanged);
-    _matrix = matrix;
-    _matrix.addListener(_onMatrixChanged);
-    notifyListeners();
-  }
+  Client get _client => _clientService.client;
 
-  void _onMatrixChanged() {
+  void _onAuthChanged() {
     if (!_disposed) notifyListeners();
   }
 
-  bool get isLoggedIn => _matrix.isLoggedIn;
-  bool get hasSkippedSetup => _matrix.hasSkippedSetup;
-  void skipSetup() => _matrix.skipSetup();
+  bool get isLoggedIn => _auth.isLoggedIn;
+  bool get hasSkippedSetup => _chatBackup.setupSkipped;
+  void skipSetup() => unawaited(_chatBackup.markSetupSkipped());
 
-  AuthService get auth => _matrix.auth;
-  UiaService get uia => _matrix.uia;
+  AuthService get auth => _auth;
+  UiaService get uia => _uia;
 
   Future<bool> login({
     required String homeserver,
@@ -39,7 +45,7 @@ class AuthRepository extends ChangeNotifier {
     required String password,
     bool rememberCredentials = false,
   }) {
-    return _matrix.login(
+    return _auth.login(
       homeserver: homeserver,
       username: username,
       password: password,
@@ -51,14 +57,14 @@ class AuthRepository extends ChangeNotifier {
     required String homeserver,
     required String loginToken,
   }) {
-    return _matrix.completeSsoLogin(
+    return _auth.completeSsoLogin(
       homeserver: homeserver,
       loginToken: loginToken,
     );
   }
 
   Future<void> checkHomeserver(Uri homeserver) =>
-      _matrix.client.checkHomeserver(homeserver);
+      _client.checkHomeserver(homeserver);
 
   Future<RegisterResponse> register({
     String? username,
@@ -66,7 +72,7 @@ class AuthRepository extends ChangeNotifier {
     String? initialDeviceDisplayName,
     AuthenticationData? auth,
   }) =>
-      _matrix.client.register(
+      _client.register(
         username: username,
         password: password,
         initialDeviceDisplayName: initialDeviceDisplayName,
@@ -77,12 +83,12 @@ class AuthRepository extends ChangeNotifier {
     RegisterResponse response, {
     String? password,
   }) {
-    return _matrix.completeRegistration(response, password: password);
+    return _auth.completeRegistration(response, password: password);
   }
 
-  Future<void> logout() => _matrix.logout();
+  Future<void> logout() => _auth.logout();
 
-  static String friendlyAuthError(Object e) => MatrixService.friendlyAuthError(e);
+  static String friendlyAuthError(Object e) => AuthService.friendlyAuthError(e);
 
   @override
   void notifyListeners() {
@@ -93,7 +99,7 @@ class AuthRepository extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _matrix.removeListener(_onMatrixChanged);
+    _auth.removeListener(_onAuthChanged);
     super.dispose();
   }
 }

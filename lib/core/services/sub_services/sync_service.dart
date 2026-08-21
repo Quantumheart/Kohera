@@ -1,20 +1,21 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 
 class SyncService extends ChangeNotifier {
   SyncService({
-    required Client client,
+    required MatrixClientService matrixClientService,
     required Future<void> Function() onPostSyncBackup,
     bool Function()? shouldRetryBackup,
     Duration retryDebounce = const Duration(seconds: 5),
-  })  : _client = client,
+  })  : _matrixClientService = matrixClientService,
         _onPostSyncBackup = onPostSyncBackup,
         _shouldRetryBackup = shouldRetryBackup,
         _retryDebounceDuration = retryDebounce;
 
-  final Client _client;
+  final MatrixClientService _matrixClientService;
   final Future<void> Function() _onPostSyncBackup;
   final bool Function()? _shouldRetryBackup;
   final Duration _retryDebounceDuration;
@@ -44,7 +45,7 @@ class SyncService extends ChangeNotifier {
 
     final firstSync = Completer<void>();
     unawaited(_syncSub?.cancel());
-    _syncSub = _client.onSync.stream.listen((_) {
+    _syncSub = _matrixClientService.client.onSync.stream.listen((_) {
       if (!firstSync.isCompleted) firstSync.complete();
       _maybeRetryBackup();
     });
@@ -93,15 +94,15 @@ class SyncService extends ChangeNotifier {
 
   Future<void> pause() async {
     if (!_syncing) return;
-    _client.backgroundSync = false;
+    _matrixClientService.client.backgroundSync = false;
     if (!kIsWeb) {
-      await _client.abortSync();
+      await _matrixClientService.client.abortSync();
     }
   }
 
   void resume() {
     if (_disposed || !_syncing) return;
-    _client.backgroundSync = true;
+    _matrixClientService.client.backgroundSync = true;
   }
 
   void cancelSyncSub() {

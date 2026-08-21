@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/mockito.dart';
 
@@ -35,7 +36,7 @@ void main() {
 
   setUp(() {
     client = MockClient();
-    service = SpaceAccessService(client: client);
+    service = SpaceAccessService(matrixClientService: MatrixClientService(client));
   });
 
   group('getJoinMode', () {

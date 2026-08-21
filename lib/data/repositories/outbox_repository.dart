@@ -1,35 +1,19 @@
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
 
 class OutboxRepository extends ChangeNotifier {
-  OutboxRepository({required MatrixService matrix}) : _matrix = matrix {
-    _matrix.outbox.addListener(_onOutboxChanged);
-    _matrix.addListener(_onMatrixChanged);
+  OutboxRepository({required OutboxService outbox}) : _outbox = outbox {
+    _outbox.addListener(_onOutboxChanged);
   }
 
-  MatrixService _matrix;
+  final OutboxService _outbox;
   bool _disposed = false;
-
-  void updateMatrixService(MatrixService matrix) {
-    if (identical(matrix, _matrix)) return;
-    _matrix.outbox.removeListener(_onOutboxChanged);
-    _matrix.removeListener(_onMatrixChanged);
-    _matrix = matrix;
-    _matrix.outbox.addListener(_onOutboxChanged);
-    _matrix.addListener(_onMatrixChanged);
-    notifyListeners();
-  }
 
   void _onOutboxChanged() {
     if (!_disposed) notifyListeners();
   }
 
-  void _onMatrixChanged() {
-    if (!_disposed) notifyListeners();
-  }
-
-  OutboxService get outbox => _matrix.outbox;
+  OutboxService get outbox => _outbox;
 
   @override
   void notifyListeners() {
@@ -40,8 +24,7 @@ class OutboxRepository extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _matrix.outbox.removeListener(_onOutboxChanged);
-    _matrix.removeListener(_onMatrixChanged);
+    _outbox.removeListener(_onOutboxChanged);
     super.dispose();
   }
 }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/screens/room_details_screen.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -43,7 +45,11 @@ void roomManagementTests() {
     when(mockClient.getRoomById(_roomId)).thenReturn(mockRoom);
 
     matrixService = MatrixService(
-      client: mockClient,
+      accountSession: AccountSession(
+        matrixClientService: MatrixClientService(mockClient),
+        storage: mockStorage,
+        clientName: 'test',
+      ),
       storage: mockStorage,
       clientName: 'test',
     );

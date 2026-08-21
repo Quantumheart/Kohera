@@ -7,6 +7,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/services/join_access_controller.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -35,11 +36,11 @@ void main() {
     client = MockClient();
     room = MockRoom();
 
-    when(matrix.client).thenReturn(client);
+    when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
     when(matrix.spaceAccess).thenReturn(access);
     when(client.rooms).thenReturn([]);
     when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-    selection = SelectionService(client: client);
+    selection = SelectionService(matrixClientService: MatrixClientService(client));
     when(matrix.selection).thenReturn(selection);
 
     when(room.id).thenReturn('!r:e.com');
@@ -60,7 +61,7 @@ void main() {
             providers: [
               ChangeNotifierProvider<MatrixService>.value(value: matrix),
               ChangeNotifierProvider<RoomRepository>(
-                create: (_) => RoomRepository(matrix: matrix),
+                create: (_) => RoomRepository(clientService: matrix.matrixClientService, selection: matrix.selection),
               ),
             ],
             child: JoinAccessController(

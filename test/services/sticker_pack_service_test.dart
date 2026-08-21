@@ -6,6 +6,7 @@ import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/utils/openmoji_catalog.dart';
 import 'package:kohera/data/models/kohera_sticker_pack.dart';
 import 'package:kohera/data/models/sticker_pack.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:matrix/src/utils/space_child.dart';
@@ -95,7 +96,7 @@ void main() {
     when(mockClient.onSync).thenReturn(syncCtl);
     when(mockClient.accountData).thenReturn({});
     when(mockClient.rooms).thenReturn([]);
-    service = StickerPackService(client: mockClient);
+    service = StickerPackService(matrixClientService: MatrixClientService(mockClient));
   });
 
   tearDown(() => service.dispose());
@@ -536,7 +537,7 @@ void main() {
     tearDown(OpenMojiCatalog.reset);
 
     Future<StickerPackService> loadedService() async {
-      final s = StickerPackService(client: mockClient);
+      final s = StickerPackService(matrixClientService: MatrixClientService(mockClient));
       await pumpEventQueue();
       return s;
     }

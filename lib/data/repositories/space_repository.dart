@@ -2,46 +2,43 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/models/join_mode.dart';
-import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 
 class SpaceRepository extends ChangeNotifier {
-  SpaceRepository({required MatrixService matrix}) : _matrix = matrix {
-    _matrix.addListener(_onMatrixChanged);
-  }
+  SpaceRepository({
+    required MatrixClientService clientService,
+    required SelectionService selection,
+    required SpaceAccessService spaceAccess,
+  })  : _clientService = clientService,
+        _selection = selection,
+        _spaceAccess = spaceAccess;
 
-  MatrixService _matrix;
+  final MatrixClientService _clientService;
+  final SelectionService _selection;
+  final SpaceAccessService _spaceAccess;
   bool _disposed = false;
 
-  void updateMatrixService(MatrixService matrix) {
-    if (identical(matrix, _matrix)) return;
-    _matrix.removeListener(_onMatrixChanged);
-    _matrix = matrix;
-    _matrix.addListener(_onMatrixChanged);
-    notifyListeners();
-  }
+  Client get _client => _clientService.client;
 
-  void _onMatrixChanged() {
-    if (!_disposed) notifyListeners();
-  }
-
-  SpaceAccessService get spaceAccess => _matrix.spaceAccess;
+  SpaceAccessService get spaceAccess => _spaceAccess;
 
   /// Whether a space with [spaceId] is currently known to the client.
   bool spaceExists(String spaceId) =>
-      _matrix.client.getRoomById(spaceId) != null;
+      _client.getRoomById(spaceId) != null;
 
   /// The host of the user's own homeserver, or null if unknown.
-  String? get ownHomeserverHost => _matrix.client.homeserver?.host;
+  String? get ownHomeserverHost => _client.homeserver?.host;
 
   /// The parent spaces of [roomId] as `(id, displayname)` records.
   List<({String id, String displayname})> parentSpaceRefs(String roomId) {
-    final room = _matrix.client.getRoomById(roomId);
+    final room = _client.getRoomById(roomId);
     if (room == null) return const [];
-    return _matrix.selection
+    return _selection
         .parentSpacesOf(room)
         .map((r) => (id: r.id, displayname: r.getLocalizedDisplayname()))
         .toList();
@@ -49,46 +46,46 @@ class SpaceRepository extends ChangeNotifier {
 
   /// The localized display name of the space, or empty string if unknown.
   String spaceDisplayname(String spaceId) {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     if (space == null) return '';
-    return _matrix.selection.summaryFor(space).displayname;
+    return _selection.summaryFor(space).displayname;
   }
 
   // ── Permissions ────────────────────────────────────────────
 
   /// Whether the user can invite people to the space.
   bool canInvite(String spaceId) {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     return space?.canInvite ?? false;
   }
 
   /// Whether the user can manage space children (add/remove rooms).
   bool canManageChildren(String spaceId) {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     return space?.canChangeStateEvent('m.space.child') ?? false;
   }
 
   /// Whether the user can edit the space name.
   bool canEditName(String spaceId) {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     return space?.canChangeStateEvent('m.room.name') ?? false;
   }
 
   /// Whether the user can edit the space avatar.
   bool canEditAvatar(String spaceId) {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     return space?.canChangeStateEvent('m.room.avatar') ?? false;
   }
 
   /// Whether the user can edit the space topic.
   bool canEditTopic(String spaceId) {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     return space?.canChangeStateEvent('m.room.topic') ?? false;
   }
 
   /// Whether the user can change power levels in the space.
   bool canChangePowerLevel(String spaceId) {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     return space?.canChangePowerLevel ?? false;
   }
 
@@ -96,7 +93,7 @@ class SpaceRepository extends ChangeNotifier {
 
   /// The current push rule state for the space.
   KoheraPushRuleState pushRuleState(String spaceId) {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     if (space == null) return KoheraPushRuleState.notify;
     return KoheraPushRuleState.fromSdk(space.pushRuleState);
   }
@@ -106,7 +103,7 @@ class SpaceRepository extends ChangeNotifier {
     String spaceId,
     KoheraPushRuleState state,
   ) async {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     if (space == null) return;
     await space.setPushRuleState(_toSdkPushRuleState(state));
   }
@@ -115,32 +112,32 @@ class SpaceRepository extends ChangeNotifier {
 
   /// Returns the set of existing child room IDs in the space.
   Set<String> existingChildIds(String spaceId) {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     if (space == null) return {};
     return space.spaceChildren.map((c) => c.roomId).whereType<String>().toSet();
   }
 
   /// Returns summaries of all joined rooms (for "add existing room" dialog).
   List<KoheraRoomSummary> joinedRoomSummaries() {
-    return _matrix.client.rooms
+    return _client.rooms
         .where((r) => r.membership == Membership.join)
-        .map(_matrix.selection.summaryFor)
+        .map(_selection.summaryFor)
         .toList();
   }
 
   /// Adds a room as a child of the space.
   Future<void> setSpaceChild(String spaceId, String childRoomId) async {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     if (space == null) return;
     await space.setSpaceChild(childRoomId);
   }
 
   /// Invalidates the space tree cache in SelectionService.
-  void invalidateSpaceTree() => _matrix.selection.invalidateSpaceTree();
+  void invalidateSpaceTree() => _selection.invalidateSpaceTree();
 
   /// Marks the space and all descendant rooms as read.
   Future<void> markAsRead(String spaceId) async {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     if (space == null) return;
 
     // Mark the space itself as read.
@@ -155,11 +152,11 @@ class SpaceRepository extends ChangeNotifier {
 
     // Also mark all descendant non-space rooms as read.
     final descendantIds = <String>{};
-    _collectDescendantRooms(space, descendantIds, _matrix.client);
+    _collectDescendantRooms(space, descendantIds, _client);
 
     final roomsToMark = <({Room room, String eventId})>[];
     for (final roomId in descendantIds) {
-      final room = _matrix.client.getRoomById(roomId);
+      final room = _client.getRoomById(roomId);
       if (room == null || room.isSpace) continue;
       final childEventId = room.lastEvent?.eventId;
       if (childEventId == null) continue;
@@ -184,7 +181,7 @@ class SpaceRepository extends ChangeNotifier {
 
   /// Invites a user to the space.
   Future<void> invite(String spaceId, String mxid) async {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     if (space == null) return;
     await space.invite(mxid);
   }
@@ -192,20 +189,20 @@ class SpaceRepository extends ChangeNotifier {
   /// Leaves the space, optionally leaving all child rooms too.
   /// Returns the count of child rooms that failed to leave.
   Future<int> leave(String spaceId, {bool leaveChildren = false}) async {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     if (space == null) return 0;
 
     final childRoomIds = <String>{};
     if (leaveChildren) {
-      _collectDescendantRooms(space, childRoomIds, _matrix.client);
+      _collectDescendantRooms(space, childRoomIds, _client);
     }
 
     await space.leave();
-    _matrix.selection.clearSpaceSelection();
+    _selection.clearSpaceSelection();
 
     var failCount = 0;
     for (final roomId in childRoomIds) {
-      final room = _matrix.client.getRoomById(roomId);
+      final room = _client.getRoomById(roomId);
       if (room == null || room.membership != Membership.join) continue;
       try {
         await room.leave();
@@ -218,14 +215,14 @@ class SpaceRepository extends ChangeNotifier {
 
   /// Sets the space name.
   Future<void> setName(String spaceId, String name) async {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     if (space == null) return;
     await space.setName(name);
   }
 
   /// Sets the space topic/description.
   Future<void> setDescription(String spaceId, String topic) async {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     if (space == null) return;
     await space.setDescription(topic);
   }
@@ -236,7 +233,7 @@ class SpaceRepository extends ChangeNotifier {
     Uint8List? bytes,
     String? filename,
   ) async {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     if (space == null) return;
     await space.setAvatar(
       bytes == null ? null : MatrixFile(bytes: bytes, name: filename ?? ''),
@@ -245,7 +242,7 @@ class SpaceRepository extends ChangeNotifier {
 
   /// Enables encryption in the space.
   Future<void> enableEncryption(String spaceId) async {
-    final space = _matrix.client.getRoomById(spaceId);
+    final space = _client.getRoomById(spaceId);
     if (space == null) return;
     await space.enableEncryption();
   }
@@ -261,13 +258,13 @@ class SpaceRepository extends ChangeNotifier {
     String? topic,
     String? restrictedRoomVersion,
   }) async {
-    final client = _matrix.client;
+    final client = _client;
 
     final useRestricted = restrictedRoomVersion != null &&
         joinMode.isRestrictedFamily &&
         allowedSpaceIds.isNotEmpty;
     final joinRulesEvent = useRestricted
-        ? _matrix.spaceAccess.buildJoinRulesStateEvent(
+        ? _spaceAccess.buildJoinRulesStateEvent(
             joinMode,
             allowedSpaceIds,
           )
@@ -293,7 +290,7 @@ class SpaceRepository extends ChangeNotifier {
     if (parentSpace != null) {
       await parentSpace.setSpaceChild(roomId);
     }
-    _matrix.selection.invalidateSpaceTree();
+    _selection.invalidateSpaceTree();
 
     debugPrint('[Kohera] Subspace created: $roomId under $parentSpaceId');
     return roomId;
@@ -307,7 +304,7 @@ class SpaceRepository extends ChangeNotifier {
     required bool enableFederation,
     String? topic,
   }) async {
-    final client = _matrix.client;
+    final client = _client;
     final roomId = await client.createRoom(
       name: name,
       topic: topic,
@@ -341,7 +338,7 @@ class SpaceRepository extends ChangeNotifier {
     String address, {
     List<String>? via,
   }) async {
-    final client = _matrix.client;
+    final client = _client;
     final roomId = await client.joinRoom(address, via: via);
     await client
         .waitForRoomInSync(roomId, join: true)
@@ -404,7 +401,6 @@ class SpaceRepository extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _matrix.removeListener(_onMatrixChanged);
     super.dispose();
   }
 }

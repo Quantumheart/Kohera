@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/chat/services/thread_reply_loader.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
@@ -40,7 +41,7 @@ void main() {
     mockClient = MockClient();
     mockRoom = MockRoom();
 
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(roomRepository.rawRoom(roomId)).thenReturn(mockRoom);
     when(roomRepository.searchClient).thenReturn(mockClient);
     when(mockClient.getRoomById(roomId)).thenReturn(mockRoom);

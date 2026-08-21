@@ -5,6 +5,7 @@ import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/widgets/chat_app_bar.dart';
 import 'package:matrix/matrix.dart';
@@ -62,10 +63,10 @@ void main() {
     mockCallService = MockCallService();
     presenceController = CachedStreamController<CachedPresence>();
 
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.onPresenceChanged).thenReturn(presenceController);
-    when(mockMatrix.presence).thenReturn(PresenceService(client: mockClient));
+    when(mockMatrix.presence).thenReturn(PresenceService(matrixClientService: MatrixClientService(mockClient)));
     when(mockMatrix.avatarResolver).thenReturn(_nullAvatarResolver);
 
     when(mockRoom.client).thenReturn(mockClient);
@@ -89,7 +90,7 @@ void main() {
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
           ChangeNotifierProvider<CallService>.value(value: mockCallService),
           ChangeNotifierProvider<RoomRepository>(
-            create: (_) => RoomRepository(matrix: mockMatrix),
+            create: (_) => RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection),
           ),
         ],
         child: MaterialApp(

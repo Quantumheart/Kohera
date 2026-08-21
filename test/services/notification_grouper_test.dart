@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/notifications/enum/inbox_filter.dart';
 import 'package:kohera/features/notifications/services/notification_grouper.dart';
 import 'package:matrix/encryption.dart';
@@ -97,7 +98,7 @@ void main() {
     mockRoom = MockRoom();
     mockEncryption = MockEncryption();
     mockMatrix = MockMatrixService();
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     _wireRoom(mockRoom, mockClient);
 
     when(mockClient.getRoomById(any)).thenReturn(mockRoom);
@@ -107,7 +108,7 @@ void main() {
       User('@alice:example.com', displayName: 'Alice', room: mockRoom),
     );
 
-    grouper = NotificationGrouper(PushRepository(matrix: mockMatrix));
+    grouper = NotificationGrouper(PushRepository(clientService: mockMatrix.matrixClientService));
   });
 
   // ── Concurrent decryption (#629) ──────────────────────────

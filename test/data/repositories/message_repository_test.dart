@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
@@ -24,11 +26,11 @@ void main() {
         .thenReturn(CachedStreamController<CachedPresence>());
     when(mockClient.database).thenReturn(_FakeDatabase());
     service = MatrixService(
-      client: mockClient,
+      accountSession: AccountSession(matrixClientService: MatrixClientService(mockClient)),
       storage: mockStorage,
       clientName: 'test',
     );
-    repo = MessageRepository(matrix: service);
+    repo = MessageRepository(clientService: service.matrixClientService, messageIndexer: service.messageIndexer);
   });
 
   group('messageIndexer', () {
@@ -41,39 +43,6 @@ void main() {
     test('returns null for unknown room', () async {
       when(mockClient.getRoomById('!unknown:example.com')).thenReturn(null);
       expect(await repo.timelineFor('!unknown:example.com'), isNull);
-    });
-  });
-
-  group('notifyListeners', () {
-    test('notifies on MatrixService change', () {
-      var notified = false;
-      repo.addListener(() => notified = true);
-
-      service.notifyListeners();
-
-      expect(notified, isTrue);
-    });
-  });
-
-  group('updateMatrixService', () {
-    test('swaps internal reference', () {
-      var notified = false;
-      repo.addListener(() => notified = true);
-
-      final service2 = MatrixService(
-        client: mockClient,
-        storage: mockStorage,
-        clientName: 'test2',
-      );
-      repo.updateMatrixService(service2);
-
-      notified = false;
-      service2.notifyListeners();
-      expect(notified, isTrue);
-
-      notified = false;
-      service.notifyListeners();
-      expect(notified, isFalse);
     });
   });
 

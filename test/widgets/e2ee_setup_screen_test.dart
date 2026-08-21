@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/e2ee/screens/e2ee_setup_screen.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
@@ -22,7 +23,7 @@ void main() {
     mockClient = MockClient();
     mockUia = MockUiaService();
 
-    when(mockMatrixService.client).thenReturn(mockClient);
+    when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrixService.chatBackup).thenReturn(mockChatBackup);
     when(mockMatrixService.uia).thenReturn(mockUia);
     when(mockMatrixService.hasSkippedSetup).thenReturn(false);
@@ -42,7 +43,7 @@ void main() {
             value: mockChatBackup,
           ),
           ChangeNotifierProvider<KeyBackupRepository>(
-            create: (_) => KeyBackupRepository(matrix: mockMatrixService),
+            create: (_) => KeyBackupRepository(clientService: mockMatrixService.matrixClientService, chatBackup: mockMatrixService.chatBackup, keyMirror: mockMatrixService.keyMirror, uia: mockMatrixService.uia),
           ),
         ],
         child: const MaterialApp(

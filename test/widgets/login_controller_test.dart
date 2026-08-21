@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/auth/widgets/login_controller.dart';
 import 'package:matrix/matrix.dart' hide LoginState;
 import 'package:mockito/annotations.dart';
@@ -28,7 +29,7 @@ void main() {
     mockClientManager = MockClientManager();
     mockClient = MockClient();
     mockAuthService = MockAuthService();
-    when(mockMatrixService.client).thenReturn(mockClient);
+    when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrixService.auth).thenReturn(mockAuthService);
     when(mockClientManager.services).thenReturn([]);
   });

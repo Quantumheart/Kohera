@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/shared/widgets/pixel_sprite_avatar.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:matrix/matrix.dart';
@@ -142,7 +143,7 @@ void main() {
     setUp(() {
       presenceController = CachedStreamController<CachedPresence>();
       when(mockClient.onPresenceChanged).thenReturn(presenceController);
-      presenceService = PresenceService(client: mockClient);
+      presenceService = PresenceService(matrixClientService: MatrixClientService(mockClient));
     });
 
     tearDown(() => presenceService.dispose());

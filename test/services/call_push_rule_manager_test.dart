@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/call_push_rule_manager.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -14,7 +15,7 @@ void main() {
   setUp(() {
     mockClient = MockClient();
     when(mockClient.userID).thenReturn('@alice:example.com');
-    manager = CallPushRuleManager(client: mockClient);
+    manager = CallPushRuleManager(matrixClientService: MatrixClientService(mockClient));
   });
 
   PushRule makeDesiredRule() => PushRule(

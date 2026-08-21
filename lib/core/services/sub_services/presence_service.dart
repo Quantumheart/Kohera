@@ -1,14 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 
 class PresenceService extends ChangeNotifier {
-  PresenceService({required Client client}) : _client = client {
-    _sub = _client.onPresenceChanged.stream.listen(_onPresenceChanged);
+  PresenceService({required MatrixClientService matrixClientService}) : _matrixClientService = matrixClientService {
+    _sub = _matrixClientService.client.onPresenceChanged.stream.listen(_onPresenceChanged);
   }
 
-  final Client _client;
+  final MatrixClientService _matrixClientService;
   StreamSubscription<CachedPresence>? _sub;
 
   final Map<String, CachedPresence> _presences = {};
@@ -79,8 +80,8 @@ class PresenceService extends ChangeNotifier {
   }
 
   void _apply(PresenceType type) {
-    if (_client.syncPresence == type) return;
-    _client.syncPresence = type;
+    if (_matrixClientService.client.syncPresence == type) return;
+    _matrixClientService.client.syncPresence = type;
     debugPrint('[Kohera] Presence → ${type.name}');
   }
 

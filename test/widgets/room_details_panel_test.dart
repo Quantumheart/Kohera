@@ -8,6 +8,7 @@ import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/screens/room_details_screen.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -38,7 +39,7 @@ void main() {
     syncController = CachedStreamController<SyncUpdate>();
 
     final mockAccess = MockSpaceAccessService();
-    when(mockMatrixService.client).thenReturn(mockClient);
+    when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrixService.spaceAccess).thenReturn(mockAccess);
     when(mockAccess.getJoinMode(mockRoom)).thenReturn(JoinMode.invite);
     when(mockAccess.allowedSpaceIds(mockRoom)).thenReturn(const []);
@@ -76,7 +77,7 @@ void main() {
     when(mockRoom.canBan).thenReturn(false);
     when(mockRoom.requestParticipants(any)).thenAnswer((_) async => []);
     when(mockClient.rooms).thenReturn([]);
-    selectionService = SelectionService(client: mockClient);
+    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
     when(mockMatrixService.selection).thenReturn(selectionService);
     when(
       mockMatrixService.avatarResolver,
@@ -89,13 +90,13 @@ void main() {
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(matrix: mockMatrixService),
+          create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
         ),
         ChangeNotifierProvider<UserRepository>(
-          create: (_) => UserRepository(matrix: mockMatrixService),
+          create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService, presence: mockMatrixService.presence),
         ),
         ChangeNotifierProvider<MediaRepository>(
-          create: (_) => MediaRepository(matrix: mockMatrixService),
+          create: (_) => MediaRepository(avatarResolver: mockMatrixService.avatarResolver, mediaResolver: mockMatrixService.mediaResolver),
         ),
       ],
       child: MaterialApp.router(
@@ -249,13 +250,13 @@ void main() {
                 value: selectionService,
               ),
               ChangeNotifierProvider<RoomRepository>(
-                create: (_) => RoomRepository(matrix: mockMatrixService),
+                create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
               ),
               ChangeNotifierProvider<UserRepository>(
-                create: (_) => UserRepository(matrix: mockMatrixService),
+                create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService, presence: mockMatrixService.presence),
               ),
               ChangeNotifierProvider<MediaRepository>(
-                create: (_) => MediaRepository(matrix: mockMatrixService),
+                create: (_) => MediaRepository(avatarResolver: mockMatrixService.avatarResolver, mediaResolver: mockMatrixService.mediaResolver),
               ),
             ],
             child: const RoomDetailsScreen(roomId: '!room:example.com'),
@@ -283,13 +284,13 @@ void main() {
                 value: selectionService,
               ),
               ChangeNotifierProvider<RoomRepository>(
-                create: (_) => RoomRepository(matrix: mockMatrixService),
+                create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
               ),
               ChangeNotifierProvider<UserRepository>(
-                create: (_) => UserRepository(matrix: mockMatrixService),
+                create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService, presence: mockMatrixService.presence),
               ),
               ChangeNotifierProvider<MediaRepository>(
-                create: (_) => MediaRepository(matrix: mockMatrixService),
+                create: (_) => MediaRepository(avatarResolver: mockMatrixService.avatarResolver, mediaResolver: mockMatrixService.mediaResolver),
               ),
             ],
             child: const RoomDetailsScreen(roomId: '!missing:example.com'),

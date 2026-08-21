@@ -7,6 +7,7 @@ import 'package:kohera/core/utils/openmoji_catalog.dart';
 import 'package:kohera/data/models/kohera_sticker_pack.dart';
 import 'package:kohera/data/models/sticker_pack.dart';
 import 'package:kohera/data/resolvers/sticker_pack_resolver.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 
 class ImportProgress {
@@ -18,8 +19,8 @@ class ImportProgress {
 }
 
 class StickerPackService extends ChangeNotifier {
-  StickerPackService({required Client client}) : _client = client {
-    _sub = client.onSync.stream.listen((sync) {
+  StickerPackService({required MatrixClientService matrixClientService}) : matrixClientService = matrixClientService {
+    _sub = matrixClientService.client.onSync.stream.listen((sync) {
       final relevant =
           sync.accountData?.any(
             (e) =>
@@ -41,7 +42,7 @@ class StickerPackService extends ChangeNotifier {
   /// Stable id of the built-in OpenMoji pack (never persisted to account data).
   static const kOpenMojiPackId = 'openmoji_builtin';
 
-  final Client _client;
+  final MatrixClientService matrixClientService;
   StreamSubscription<SyncUpdate>? _sub;
 
   StickerPack? _openMojiPack;
@@ -107,7 +108,7 @@ class StickerPackService extends ChangeNotifier {
   List<StickerPack> get accountPacks {
     final packs = <StickerPack>[];
 
-    final userContent = _client.accountData[_kUserEmotesType]?.content;
+    final userContent = matrixClientService.client.accountData[_kUserEmotesType]?.content;
     if (userContent != null) {
       final pack = StickerPack.fromContent(
         id: _kUserEmotesType,
@@ -119,7 +120,7 @@ class StickerPackService extends ChangeNotifier {
     packs.addAll(importedPacks);
 
     for (final roomId in _subscribedRoomIds) {
-      final room = _client.getRoomById(roomId);
+      final room = matrixClientService.client.getRoomById(roomId);
       if (room == null) continue;
       final pack = _packForRoom(room);
       if (pack != null) packs.add(pack);
@@ -130,7 +131,7 @@ class StickerPackService extends ChangeNotifier {
 
   /// Packs imported from emoji.gg, stored in account data.
   List<StickerPack> get importedPacks {
-    final content = _client.accountData[_kImportedPacksType]?.content;
+    final content = matrixClientService.client.accountData[_kImportedPacksType]?.content;
     if (content == null) return [];
 
     final rawPacks =
@@ -179,7 +180,7 @@ class StickerPackService extends ChangeNotifier {
 
   /// Slugs of emoji.gg packs already imported by the user.
   Set<String> get importedEmojiGgSlugs {
-    final content = _client.accountData[_kImportedPacksType]?.content;
+    final content = matrixClientService.client.accountData[_kImportedPacksType]?.content;
     if (content == null) return {};
 
     final rawPacks =
@@ -205,7 +206,7 @@ class StickerPackService extends ChangeNotifier {
     for (final parent in room.spaceParents) {
       final parentId = parent.roomId;
       if (parentId == null) continue;
-      final space = _client.getRoomById(parentId);
+      final space = matrixClientService.client.getRoomById(parentId);
       if (space == null) continue;
       final spacePack = _packForRoom(space);
       if (spacePack != null && seen.add(spacePack.id)) {
@@ -226,7 +227,7 @@ class StickerPackService extends ChangeNotifier {
   List<StickerPack> availableRoomPacks() {
     final subscribedIds = {_kUserEmotesType, ..._subscribedRoomIds};
     final packs = <StickerPack>[];
-    for (final room in _client.rooms) {
+    for (final room in matrixClientService.client.rooms) {
       if (subscribedIds.contains(room.id)) continue;
       final pack = _packForRoom(room);
       if (pack != null) packs.add(pack);
@@ -270,7 +271,7 @@ class StickerPackService extends ChangeNotifier {
     for (final emoji in emojis) {
       try {
         final bytes = await emojiGgService.downloadImage(emoji.imageUrl);
-        final mxcUri = await _client.uploadContent(
+        final mxcUri = await matrixClientService.client.uploadContent(
           bytes,
           filename: '${emoji.slug}.png',
           contentType: 'image/png',
@@ -293,12 +294,12 @@ class StickerPackService extends ChangeNotifier {
 
   Future<void> removeImportedPack(String packId) async {
     final content =
-        _client.accountData[_kImportedPacksType]?.content ?? {};
+        matrixClientService.client.accountData[_kImportedPacksType]?.content ?? {};
     final rawPacks =
         (content['packs'] as List?)?.cast<Map<String, Object?>>() ?? [];
     final updated = rawPacks.where((p) => p['id'] != packId).toList();
-    await _client.setAccountData(
-      _client.userID!,
+    await matrixClientService.client.setAccountData(
+      matrixClientService.client.userID!,
       _kImportedPacksType,
       {'packs': updated},
     );
@@ -307,7 +308,7 @@ class StickerPackService extends ChangeNotifier {
   // ── Private helpers ──────────────────────────────────────────
 
   List<String> get _subscribedRoomIds =>
-      _client.accountData[_kSubscriptionsType]
+      matrixClientService.client.accountData[_kSubscriptionsType]
           ?.content
           .tryGetList<String>('room_ids') ??
       [];
@@ -319,8 +320,8 @@ class StickerPackService extends ChangeNotifier {
   }
 
   Future<void> _writeSubscriptions(List<String> roomIds) async {
-    await _client.setAccountData(
-      _client.userID!,
+    await matrixClientService.client.setAccountData(
+      matrixClientService.client.userID!,
       _kSubscriptionsType,
       {'room_ids': roomIds},
     );
@@ -331,7 +332,7 @@ class StickerPackService extends ChangeNotifier {
     Map<String, Object?> images,
   ) async {
     final content =
-        _client.accountData[_kImportedPacksType]?.content ?? {};
+        matrixClientService.client.accountData[_kImportedPacksType]?.content ?? {};
     final rawPacks =
         (content['packs'] as List?)?.cast<Map<String, Object?>>() ?? [];
 
@@ -348,8 +349,8 @@ class StickerPackService extends ChangeNotifier {
         'images': images,
       });
 
-    await _client.setAccountData(
-      _client.userID!,
+    await matrixClientService.client.setAccountData(
+      matrixClientService.client.userID!,
       _kImportedPacksType,
       {'packs': updated},
     );

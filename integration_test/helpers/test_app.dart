@@ -31,7 +31,7 @@ class FixedServiceFactory extends MatrixServiceFactory {
     required String clientName,
     FlutterSecureStorage? storage,
   }) async {
-    return (_service.client, _service);
+    return (_service.matrixClientService.client, _service);
   }
 }
 
@@ -295,7 +295,7 @@ Widget buildRoomTestApp({
         path: '/rooms/:roomId',
         builder: (context, state) {
           final roomId = state.pathParameters['roomId']!;
-          final room = matrixService.client.getRoomById(roomId);
+          final room = matrixService.matrixClientService.client.getRoomById(roomId);
           final name = room?.getLocalizedDisplayname() ?? 'Unknown';
           return Scaffold(
             appBar: AppBar(

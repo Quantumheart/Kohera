@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:integration_test/integration_test.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/screens/call_pane.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/widgets/incoming_call_overlay.dart';
@@ -115,7 +117,11 @@ class _CallTestHarness {
     );
 
     matrixService = MatrixService(
-      client: mockClient,
+      accountSession: AccountSession(
+        matrixClientService: MatrixClientService(mockClient),
+        storage: mockStorage,
+        clientName: 'test',
+      ),
       storage: mockStorage,
       clientName: 'test',
     );

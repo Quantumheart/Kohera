@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
@@ -24,11 +26,11 @@ void main() {
         .thenReturn(CachedStreamController<CachedPresence>());
     when(mockClient.database).thenReturn(_FakeDatabase());
     service = MatrixService(
-      client: mockClient,
+      accountSession: AccountSession(matrixClientService: MatrixClientService(mockClient)),
       storage: mockStorage,
       clientName: 'test',
     );
-    repo = UserRepository(matrix: service);
+    repo = UserRepository(clientService: service.matrixClientService, presence: service.presence);
   });
 
   group('userId', () {
@@ -74,34 +76,6 @@ void main() {
   group('presence', () {
     test('returns MatrixService presence', () {
       expect(repo.presence, isNotNull);
-    });
-  });
-
-  group('notifyListeners', () {
-    test('notifies on MatrixService change', () {
-      var notified = false;
-      repo.addListener(() => notified = true);
-
-      service.notifyListeners();
-
-      expect(notified, isTrue);
-    });
-  });
-
-  group('updateMatrixService', () {
-    test('swaps internal reference', () {
-      when(mockClient.userID).thenReturn('@me:example.com');
-      expect(repo.userId, '@me:example.com');
-
-      final service2 = MatrixService(
-        client: mockClient,
-        storage: mockStorage,
-        clientName: 'test2',
-      );
-      repo.updateMatrixService(service2);
-
-      when(mockClient.userID).thenReturn('@other:example.com');
-      expect(repo.userId, '@other:example.com');
     });
   });
 

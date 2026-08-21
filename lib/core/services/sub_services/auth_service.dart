@@ -5,22 +5,49 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
 import 'package:kohera/core/services/matrix_service.dart' show koheraKey;
 import 'package:kohera/core/services/session_backup.dart';
+import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/core/services/sub_services/presence_service.dart';
+import 'package:kohera/core/services/sub_services/sync_service.dart';
+import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/core/utils/network_error.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 // ignore: implementation_imports, no public API for ClientInitException
 import 'package:matrix/src/utils/client_init_exception.dart';
 
 class AuthService extends ChangeNotifier {
   AuthService({
-    required Client client,
+    required MatrixClientService matrixClientService,
     required FlutterSecureStorage storage,
     required String clientName,
-  })  : _client = client,
+    required SyncService sync,
+    required PresenceService presence,
+    required UiaService uia,
+    required ChatBackupService chatBackup,
+  })  : _matrixClientService = matrixClientService,
         _storage = storage,
-        _clientName = clientName;
+        _clientName = clientName,
+        _sync = sync,
+        _presence = presence,
+        _uia = uia,
+        _chatBackup = chatBackup;
 
-  final Client _client;
+  final MatrixClientService _matrixClientService;
   final FlutterSecureStorage _storage;
   final String _clientName;
+  final SyncService _sync;
+  final PresenceService _presence;
+  final UiaService _uia;
+  final ChatBackupService _chatBackup;
+
+  Client get _client => _matrixClientService.client;
+
+  static String friendlyAuthError(Object e) {
+    if (isNetworkError(e)) return 'Could not reach server';
+    if (e is TimeoutException) return 'Connection timed out';
+    if (e is FormatException) return 'Invalid server response';
+    return e.toString();
+  }
 
   // ── Auth state ────────────────────────────────────────────────
   bool isLoggedIn = false;
@@ -50,13 +77,13 @@ class AuthService extends ChangeNotifier {
       if (!hs.startsWith('http')) hs = 'https://$hs';
 
       debugPrint('[Kohera] Checking homeserver: $hs');
-      await _client.checkHomeserver(Uri.parse(hs));
+      await _matrixClientService.client.checkHomeserver(Uri.parse(hs));
       debugPrint('[Kohera] Homeserver OK');
 
       await _resetStaleClientState();
 
       debugPrint('[Kohera] Logging in as $username ...');
-      await _client.login(
+      await _matrixClientService.client.login(
         LoginType.mLoginPassword,
         identifier: AuthenticationUserIdentifier(user: username.trim()),
         password: password,
@@ -64,10 +91,10 @@ class AuthService extends ChangeNotifier {
         refreshToken: true,
       );
       debugPrint('[Kohera] Login complete – '
-          'deviceId=${_client.deviceID}, '
-          'userId=${_client.userID}, '
-          'encryption=${_client.encryption != null ? "available" : "null"}, '
-          'encryptionEnabled=${_client.encryptionEnabled}');
+          'deviceId=${_matrixClientService.client.deviceID}, '
+          'userId=${_matrixClientService.client.userID}, '
+          'encryption=${_matrixClientService.client.encryption != null ? "available" : "null"}, '
+          'encryptionEnabled=${_matrixClientService.client.encryptionEnabled}');
 
       // Save before notifyListeners() so the credential is stored before
       // the router redirect fires and the login screen is disposed.
@@ -90,6 +117,15 @@ class AuthService extends ChangeNotifier {
         debugPrint('[Kohera] Credential persistence failed (non-fatal): $e');
       }
 
+      _uia.setCachedPassword(password);
+      try {
+        await _sync.startSync(timeout: const Duration(minutes: 5));
+        _presence.setOnline();
+        await saveSessionBackup();
+      } catch (e) {
+        debugPrint('[Kohera] Post-login sync error: $e');
+      }
+
       return true;
     } catch (e, s) {
       debugPrint('[Kohera] Login failed: $e');
@@ -101,11 +137,11 @@ class AuthService extends ChangeNotifier {
 
   Future<void> _resetStaleClientState() async {
     if (isLoggedIn) return;
-    if (_client.onLoginStateChanged.value != LoginState.loggedIn) return;
+    if (_matrixClientService.client.onLoginStateChanged.value != LoginState.loggedIn) return;
     debugPrint('[Kohera] Detected stale SDK login state before login; '
         'clearing client to allow fresh sign-in');
     try {
-      await _client.clear();
+      await _matrixClientService.client.clear();
     } catch (e) {
       debugPrint('[Kohera] Failed to clear stale client state: $e');
     }
@@ -124,20 +160,20 @@ class AuthService extends ChangeNotifier {
       if (hs.isEmpty) throw ArgumentError('Homeserver cannot be empty');
       if (!hs.startsWith('http')) hs = 'https://$hs';
 
-      await _client.checkHomeserver(Uri.parse(hs));
+      await _matrixClientService.client.checkHomeserver(Uri.parse(hs));
 
       await _resetStaleClientState();
 
       debugPrint('[Kohera] Completing SSO login ...');
-      await _client.login(
+      await _matrixClientService.client.login(
         LoginType.mLoginToken,
         token: loginToken,
         initialDeviceDisplayName: 'Kohera Flutter',
         refreshToken: true,
       );
       debugPrint('[Kohera] SSO login complete – '
-          'deviceId=${_client.deviceID}, '
-          'userId=${_client.userID}');
+          'deviceId=${_matrixClientService.client.deviceID}, '
+          'userId=${_matrixClientService.client.userID}');
 
       isLoggedIn = true;
       notifyListeners();
@@ -146,6 +182,14 @@ class AuthService extends ChangeNotifier {
         await persistCredentials();
       } catch (e) {
         debugPrint('[Kohera] Credential persistence failed (non-fatal): $e');
+      }
+
+      try {
+        await _sync.startSync(timeout: const Duration(minutes: 5));
+        _presence.setOnline();
+        await saveSessionBackup();
+      } catch (e) {
+        debugPrint('[Kohera] Post-login sync error: $e');
       }
 
       return true;
@@ -165,10 +209,12 @@ class AuthService extends ChangeNotifier {
   }) async {
     debugPrint('[Kohera] Registration complete – userId=${response.userId}');
 
-    if (_client.accessToken == null || _client.userID == null) {
-      throw StateError('Client was not initialized after register(). '
-          'accessToken=${_client.accessToken}, userID=${_client.userID}');
+    if (_matrixClientService.client.accessToken == null || _matrixClientService.client.userID == null) {
+      throw StateError('MatrixClientService was not initialized after register(). '
+          'accessToken=${_matrixClientService.client.accessToken}, userID=${_matrixClientService.client.userID}');
     }
+
+    if (password != null) _uia.setCachedPassword(password);
 
     isLoggedIn = true;
     notifyListeners();
@@ -177,6 +223,13 @@ class AuthService extends ChangeNotifier {
       await persistCredentials();
     } catch (e) {
       debugPrint('[Kohera] Credential persistence failed (non-fatal): $e');
+    }
+
+    try {
+      await _sync.startSync(timeout: const Duration(minutes: 5));
+      await saveSessionBackup();
+    } catch (e) {
+      debugPrint('[Kohera] Post-login sync error: $e');
     }
   }
 
@@ -187,6 +240,192 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Restores a persisted session into the SDK client. Returns whether a live
+  /// session was restored; the caller (MatrixService) wires runtime activation
+  /// only when this is true.
+  Future<bool> restoreSession() async {
+    // Tokens live in two places: the SDK database (rewritten on every automatic
+    // token refresh) and the keychain (only rewritten on explicit persist). The
+    // database therefore holds the freshest tokens, so restore from it whenever
+    // it has a session. Seeding a stale keychain token via init(newToken:) would
+    // overwrite the database's fresh tokens and trigger a spurious logout.
+    if (await _hasDatabaseSession()) {
+      return _restoreFromDatabase();
+    } else {
+      return _restoreFromKeychain();
+    }
+  }
+
+  Future<bool> _hasDatabaseSession() async {
+    try {
+      final stored = await _client.database.getClient(_clientName);
+      if (stored == null) return false;
+      return stored.tryGet<String>('token') != null ||
+          stored.tryGet<String>('refresh_token') != null;
+    } catch (e) {
+      debugPrint('[Kohera] Database session probe failed: $e');
+      return false;
+    }
+  }
+
+  Future<bool> _restoreFromDatabase() async {
+    debugPrint('[Kohera] Restoring session from database for $_clientName');
+    try {
+      // Defer database loading and first sync to background so the UI renders
+      // immediately instead of blocking on device-key verification.
+      await _client.init(
+        waitForFirstSync: false,
+        waitUntilLoadCompletedLoaded: false,
+      );
+      if (!_client.isLogged()) {
+        debugPrint('[Kohera] Database restore produced no logged-in session');
+        isLoggedIn = false;
+        return false;
+      }
+      debugPrint(
+        '[Kohera] Session restored from database – '
+        'encryption=${_client.encryption != null ? "available" : "null"}, '
+        'encryptionEnabled=${_client.encryptionEnabled}',
+      );
+      activateRestoredSession();
+      await _persistRestoredSession();
+      return true;
+    } catch (e, s) {
+      debugPrint('[Kohera] Database session restore failed: $e');
+      debugPrint('[Kohera] Stack trace:\n$s');
+      final cause = _unwrapInitException(e);
+      isLoggedIn = false;
+      if (isPermanentAuthFailure(cause)) {
+        await _clearSessionAndBackup();
+      }
+      return false;
+    }
+  }
+
+  Future<bool> _restoreFromKeychain() async {
+    final ({
+      String? token,
+      String? refreshToken,
+      String? userId,
+      String? homeserver,
+      String? deviceId,
+    })
+    keys;
+    try {
+      keys = await _readSessionKeys();
+    } catch (e) {
+      debugPrint('[Kohera] Failed to read session keys: $e');
+      return false;
+    }
+
+    if (keys.token == null || keys.userId == null || keys.homeserver == null) {
+      return false;
+    }
+
+    final backup = await SessionBackup.load(
+      clientName: _clientName,
+      storage: _storage,
+    );
+
+    debugPrint(
+      '[Kohera] Database restore unavailable; seeding session from keychain '
+      'for ${keys.userId} on ${keys.homeserver} '
+      '(deviceId=${keys.deviceId}, clientName=$_clientName)',
+    );
+
+    try {
+      final homeserverUri = Uri.parse(keys.homeserver!);
+      _client.homeserver = homeserverUri;
+      await _client.init(
+        newToken: keys.token,
+        newRefreshToken: keys.refreshToken ?? backup?.refreshToken,
+        newUserID: keys.userId,
+        newDeviceID: keys.deviceId,
+        newHomeserver: homeserverUri,
+        newDeviceName: 'Kohera Flutter',
+        newOlmAccount: backup?.olmAccount,
+      );
+      debugPrint(
+        '[Kohera] Session restored from keychain – '
+        'encryption=${_client.encryption != null ? "available" : "null"}, '
+        'encryptionEnabled=${_client.encryptionEnabled}',
+      );
+      activateRestoredSession();
+      await _persistRestoredSession();
+      return true;
+    } catch (e, s) {
+      debugPrint('[Kohera] Keychain session restore failed: $e');
+      debugPrint('[Kohera] Stack trace:\n$s');
+
+      final cause = _unwrapInitException(e);
+      isLoggedIn = false;
+      if (isPermanentAuthFailure(cause)) {
+        await _clearSessionAndBackup();
+      }
+      return false;
+    }
+  }
+
+  Future<void> _persistRestoredSession() async {
+    try {
+      if (_client.accessToken != null) {
+        await persistCredentials();
+      }
+      await saveSessionBackup();
+    } catch (e) {
+      debugPrint('[Kohera] Persisting restored session failed (non-fatal): $e');
+    }
+  }
+
+  Future<
+    ({
+      String? token,
+      String? refreshToken,
+      String? userId,
+      String? homeserver,
+      String? deviceId,
+    })
+  >
+  _readSessionKeys() async {
+    final results = await Future.wait([
+      _storage.read(key: koheraKey(_clientName, 'access_token')),
+      _storage.read(key: koheraKey(_clientName, 'refresh_token')),
+      _storage.read(key: koheraKey(_clientName, 'user_id')),
+      _storage.read(key: koheraKey(_clientName, 'homeserver')),
+      _storage.read(key: koheraKey(_clientName, 'device_id')),
+    ]);
+    return (
+      token: results[0],
+      refreshToken: results[1],
+      userId: results[2],
+      homeserver: results[3],
+      deviceId: results[4],
+    );
+  }
+
+  // ── Soft Logout ──────────────────────────────────────────────
+
+  Future<void> handleSoftLogout() async {
+    debugPrint('[Kohera] Soft logout detected, attempting token refresh...');
+    try {
+      await _client.refreshAccessToken();
+      await persistCredentials();
+      await saveSessionBackup();
+      debugPrint('[Kohera] Token refreshed successfully');
+    } catch (e) {
+      debugPrint('[Kohera] Token refresh failed: $e');
+      final cause = _unwrapInitException(e);
+      if (isPermanentAuthFailure(cause)) {
+        await logout();
+      } else {
+        debugPrint(
+          '[Kohera] Transient refresh failure, keeping session '
+          'for next sync/refresh retry',
+        );
+      }
+    }
+  }
+
   // ── Logout ────────────────────────────────────────────────────
 
   Future<void> logout() async {
@@ -194,35 +433,43 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      if (_client.homeserver != null && _client.accessToken != null) {
-        await _client.logout();
+      if (_matrixClientService.client.homeserver != null && _matrixClientService.client.accessToken != null) {
+        await _matrixClientService.client.logout();
       }
     } catch (e) {
       debugPrint('[Kohera] Logout error: $e');
     }
-    await clearSessionKeys();
-    await SessionBackup.delete(clientName: _clientName, storage: _storage);
+    await _clearSessionAndBackup();
+    await _chatBackup.deleteStoredRecoveryKey();
+    await _chatBackup.deleteDismissalState();
   }
 
   Future<void> handleServerLogout() async {
     isLoggedIn = false;
     notifyListeners();
 
+    await _clearSessionAndBackup();
+  }
+
+  Future<void> _clearSessionAndBackup() async {
     await clearSessionKeys();
     await SessionBackup.delete(clientName: _clientName, storage: _storage);
   }
+
+  static Object _unwrapInitException(Object e) =>
+      e is ClientInitException ? e.originalException : e;
 
   // ── Session Backup ────────────────────────────────────────────
 
   Future<void> saveSessionBackup() async {
     final backup = SessionBackup(
-      accessToken: _client.accessToken!,
+      accessToken: _matrixClientService.client.accessToken!,
       refreshToken: await _readRefreshToken(),
-      userId: _client.userID!,
-      homeserver: _client.homeserver.toString(),
-      deviceId: _client.deviceID!,
+      userId: _matrixClientService.client.userID!,
+      homeserver: _matrixClientService.client.homeserver.toString(),
+      deviceId: _matrixClientService.client.deviceID!,
       deviceName: 'Kohera Flutter',
-      olmAccount: _client.encryption?.pickledOlmAccount,
+      olmAccount: _matrixClientService.client.encryption?.pickledOlmAccount,
     );
     await SessionBackup.save(
       backup,
@@ -233,7 +480,7 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<String?> _readRefreshToken() async {
-    final stored = await _client.database.getClient(_clientName);
+    final stored = await _matrixClientService.client.database.getClient(_clientName);
     return stored?.tryGet<String>('refresh_token');
   }
 
@@ -259,11 +506,11 @@ class AuthService extends ChangeNotifier {
     final lock = Completer<void>();
     _capabilitiesLock = lock;
 
-    final previousHomeserver = _client.homeserver;
+    final previousHomeserver = _matrixClientService.client.homeserver;
     try {
-      await _client.checkHomeserver(Uri.parse(hs));
+      await _matrixClientService.client.checkHomeserver(Uri.parse(hs));
 
-      final loginFlows = await _client.getLoginFlows();
+      final loginFlows = await _matrixClientService.client.getLoginFlows();
       final supportsPassword =
           loginFlows?.any((f) => f.type == AuthenticationTypes.password) ??
               false;
@@ -292,7 +539,7 @@ class AuthService extends ChangeNotifier {
       var supportsRegistration = false;
       var registrationStages = <String>[];
       try {
-        await _client.request(
+        await _matrixClientService.client.request(
           RequestType.POST,
           '/client/v3/register',
           data: <String, dynamic>{},
@@ -313,7 +560,7 @@ class AuthService extends ChangeNotifier {
         }
       } catch (_) {}
 
-      final resolvedHomeserver = _client.homeserver;
+      final resolvedHomeserver = _matrixClientService.client.homeserver;
 
       return ServerAuthCapabilities(
         supportsPassword: supportsPassword,
@@ -324,7 +571,7 @@ class AuthService extends ChangeNotifier {
         resolvedHomeserver: resolvedHomeserver,
       );
     } finally {
-      _client.homeserver = previousHomeserver;
+      _matrixClientService.client.homeserver = previousHomeserver;
       lock.complete();
       _capabilitiesLock = null;
     }
@@ -421,22 +668,22 @@ class AuthService extends ChangeNotifier {
   // ── Credential Persistence ──────────────────────────────────
 
   Future<void> persistCredentials() async {
-    final stored = await _client.database.getClient(_clientName);
+    final stored = await _matrixClientService.client.database.getClient(_clientName);
     final refreshToken = stored?.tryGet<String>('refresh_token');
     await Future.wait([
       _storage.write(
           key: koheraKey(_clientName, 'access_token'),
-          value: _client.accessToken,),
+          value: _matrixClientService.client.accessToken,),
       _storage.write(
           key: koheraKey(_clientName, 'refresh_token'),
           value: refreshToken,),
       _storage.write(
-          key: koheraKey(_clientName, 'user_id'), value: _client.userID,),
+          key: koheraKey(_clientName, 'user_id'), value: _matrixClientService.client.userID,),
       _storage.write(
           key: koheraKey(_clientName, 'homeserver'),
-          value: _client.homeserver.toString(),),
+          value: _matrixClientService.client.homeserver.toString(),),
       _storage.write(
-          key: koheraKey(_clientName, 'device_id'), value: _client.deviceID,),
+          key: koheraKey(_clientName, 'device_id'), value: _matrixClientService.client.deviceID,),
     ]);
   }
 

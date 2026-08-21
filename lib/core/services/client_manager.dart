@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/client_factory.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/secure_storage.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -61,7 +63,7 @@ class ClientManager extends ChangeNotifier {
   /// The active account's SDK client. Escape hatch for SDK helpers that
   /// operate on a raw [Client] (e.g. share intake), so consumers do not reach
   /// through `activeService.client` themselves.
-  Client get activeClient => activeService.client;
+  Client get activeClient => activeService.session.client;
 
   MatrixService? get pendingService => _pendingService;
 
@@ -248,8 +250,13 @@ class ClientManager extends ChangeNotifier {
       clientName,
       onSoftLogout: (_) async => service.handleSoftLogout(),
     );
+    final session = AccountSession(
+      matrixClientService: MatrixClientService(client),
+      clientName: clientName,
+      storage: _storage,
+    );
     service = MatrixService(
-      client: client,
+      accountSession: session,
       clientName: clientName,
       storage: _storage,
     );

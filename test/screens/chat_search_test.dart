@@ -7,6 +7,7 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
@@ -56,9 +57,9 @@ void main() {
 
     when(mockClient.onSync).thenReturn(CachedStreamController());
     when(mockClient.rooms).thenReturn([]);
-    selectionService = SelectionService(client: mockClient);
+    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
 
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrix.selection).thenReturn(selectionService);
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
     when(mockClient.userID).thenReturn('@me:example.com');
@@ -98,9 +99,9 @@ void main() {
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
         ChangeNotifierProvider<RoomRepository>.value(value: mockRoomRepository),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
-        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().client)),
+        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
-        ChangeNotifierProvider(create: (ctx) => StickerPackService(client: ctx.read<MatrixService>().client)),
+        ChangeNotifierProvider(create: (ctx) => StickerPackService(matrixClientService: MatrixClientService(ctx.read<MatrixService>().matrixClientService.client))),
       ],
       child: MaterialApp(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),

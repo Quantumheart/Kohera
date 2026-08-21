@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/e2ee/services/recovery_key_handler.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/encryption/cross_signing.dart';
@@ -22,14 +23,18 @@ import 'recovery_key_handler_test.mocks.dart';
 void main() {
   late MockMatrixService mockMatrixService;
   late MockChatBackupService mockChatBackup;
+  late MockClient mockClient;
   late RecoveryKeyHandler handler;
 
   setUp(() {
     mockMatrixService = MockMatrixService();
     mockChatBackup = MockChatBackupService();
+    mockClient = MockClient();
     when(mockMatrixService.chatBackup).thenReturn(mockChatBackup);
+    when(mockMatrixService.matrixClientService)
+        .thenReturn(MatrixClientService(mockClient));
     handler = RecoveryKeyHandler(
-      keyBackup: KeyBackupRepository(matrix: mockMatrixService),
+      keyBackup: KeyBackupRepository(clientService: mockMatrixService.matrixClientService, chatBackup: mockMatrixService.chatBackup, keyMirror: mockMatrixService.keyMirror, uia: mockMatrixService.uia),
     );
   });
 
@@ -81,8 +86,6 @@ void main() {
       ).thenAnswer((_) async {});
       when(mockBootstrap.openExistingSsss()).thenAnswer((_) async {});
       when(mockChatBackup.storeRecoveryKey(any)).thenAnswer((_) async {});
-      final mockClient = MockClient();
-      when(mockMatrixService.client).thenReturn(mockClient);
       when(mockClient.encryption).thenReturn(null);
 
       handler.setSaveToDevice(true);
@@ -109,7 +112,6 @@ void main() {
       when(mockSsssKey.unlock(keyOrPassphrase: anyNamed('keyOrPassphrase')))
           .thenAnswer((_) async {});
       when(mockBootstrap.openExistingSsss()).thenAnswer((_) async {});
-      when(mockMatrixService.client).thenReturn(MockClient());
 
       handler.markUnlocking();
       expect(handler.unlocking, isTrue);

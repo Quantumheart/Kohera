@@ -4,6 +4,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/home/widgets/inbox/invitations_view.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
@@ -49,7 +50,7 @@ void main() {
     mockSelection = MockSelectionService();
     mockMatrix = MockMatrixService();
     mockClient = MockClient();
-    when(mockMatrix.client).thenReturn(mockClient);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.getRoomById(any)).thenReturn(null);
     when(mockMatrix.avatarResolver).thenReturn(MockAvatarResolver());
     when(mockMatrix.mediaResolver).thenReturn(MockMediaResolver());

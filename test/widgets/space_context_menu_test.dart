@@ -9,6 +9,7 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -38,8 +39,8 @@ void main() {
 
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.rooms).thenReturn([]);
-    when(mockMatrixService.client).thenReturn(mockClient);
-    selectionService = SelectionService(client: mockClient);
+    when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
+    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
     when(mockMatrixService.selection).thenReturn(selectionService);
 
     // Default space setup — admin with all permissions
@@ -59,13 +60,13 @@ void main() {
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
         ChangeNotifierProvider<SpaceRepository>(
-          create: (_) => SpaceRepository(matrix: mockMatrixService),
+          create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection, spaceAccess: mockMatrixService.spaceAccess),
         ),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(matrix: mockMatrixService),
+          create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
         ),
         ChangeNotifierProvider<UserRepository>(
-          create: (_) => UserRepository(matrix: mockMatrixService),
+          create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService, presence: mockMatrixService.presence),
         ),
       ],
       child: MaterialApp(
@@ -295,13 +296,13 @@ void main() {
                 ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
                 ChangeNotifierProvider<SelectionService>.value(value: selectionService),
                 ChangeNotifierProvider<SpaceRepository>(
-                  create: (_) => SpaceRepository(matrix: mockMatrixService),
+                  create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection, spaceAccess: mockMatrixService.spaceAccess),
                 ),
                 ChangeNotifierProvider<RoomRepository>(
-                  create: (_) => RoomRepository(matrix: mockMatrixService),
+                  create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
                 ),
                 ChangeNotifierProvider<UserRepository>(
-                  create: (_) => UserRepository(matrix: mockMatrixService),
+                  create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService, presence: mockMatrixService.presence),
                 ),
               ],
               child: Scaffold(

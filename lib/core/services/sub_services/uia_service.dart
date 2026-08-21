@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 
 /// Shows a password prompt dialog and returns the entered password,
@@ -9,10 +10,10 @@ typedef PasswordPromptBuilder = Future<String?> Function();
 
 class UiaService {
   UiaService({
-    required Client client,
-  })  : _client = client;
+    required MatrixClientService matrixClientService,
+  })  : _matrixClientService = matrixClientService;
 
-  final Client _client;
+  final MatrixClientService _matrixClientService;
 
   // ── UIA (User-Interactive Authentication) ──────────────────────
   String? _cachedPassword;
@@ -32,7 +33,7 @@ class UiaService {
 
   void listenForUia() {
     unawaited(_uiaSub?.cancel());
-    _uiaSub = _client.onUiaRequest.stream.listen(_handleUiaRequest);
+    _uiaSub = _matrixClientService.client.onUiaRequest.stream.listen(_handleUiaRequest);
   }
 
   Future<void> _handleUiaRequest(UiaRequest<dynamic> uiaRequest) async {
@@ -47,7 +48,7 @@ class UiaService {
     switch (stage) {
       case AuthenticationTypes.password:
         final password = _cachedPassword;
-        final userId = _client.userID;
+        final userId = _matrixClientService.client.userID;
         if (password != null && userId != null) {
           debugPrint('[Kohera] UIA: completing with cached password');
           return uiaRequest.completeStage(
@@ -90,7 +91,7 @@ class UiaService {
   }
 
   void completeUiaWithPassword(UiaRequest<dynamic> request, String password) {
-    final userId = _client.userID;
+    final userId = _matrixClientService.client.userID;
     if (userId == null) return;
     setCachedPassword(password);
     unawaited(

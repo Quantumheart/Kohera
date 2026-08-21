@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 
 // Mirrors CallPushRuleManager: the global NotificationLevel was previously a
@@ -10,16 +11,16 @@ import 'package:matrix/matrix.dart';
 // "mentions only" actually suppress non-mention pushes server-side. Per-room
 // push rules take precedence over these global defaults.
 class GlobalPushRuleManager {
-  GlobalPushRuleManager({required Client client}) : _client = client;
+  GlobalPushRuleManager({required MatrixClientService matrixClientService}) : _matrixClientService = matrixClientService;
 
-  final Client _client;
+  final MatrixClientService _matrixClientService;
 
   static const _messageRule = '.m.rule.message';
   static const _encryptedRule = '.m.rule.encrypted';
   static const _masterRule = '.m.rule.master';
 
   Future<void> syncNotificationLevel(NotificationLevel level) async {
-    if (_client.userID == null) return;
+    if (_matrixClientService.client.userID == null) return;
     try {
       switch (level) {
         case NotificationLevel.all:
@@ -46,5 +47,5 @@ class GlobalPushRuleManager {
   }
 
   Future<void> _setEnabled(PushRuleKind kind, String ruleId, bool enabled) =>
-      _client.setPushRuleEnabled(kind, ruleId, enabled);
+      _matrixClientService.client.setPushRuleEnabled(kind, ruleId, enabled);
 }

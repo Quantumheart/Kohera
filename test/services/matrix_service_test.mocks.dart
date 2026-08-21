@@ -5,6 +5,7 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i5;
 import 'dart:typed_data' as _i14;
+import 'dart:ui' as _i26;
 
 import 'package:async/async.dart' as _i19;
 import 'package:flutter/foundation.dart' as _i17;
@@ -12,6 +13,12 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart' as _i7;
 import 'package:http/http.dart' as _i4;
 import 'package:kohera/core/services/sub_services/backup_version_manager.dart'
     as _i24;
+import 'package:kohera/core/services/sub_services/chat_backup_service.dart'
+    as _i29;
+import 'package:kohera/core/services/sub_services/presence_service.dart'
+    as _i27;
+import 'package:kohera/core/services/sub_services/sync_service.dart' as _i25;
+import 'package:kohera/core/services/sub_services/uia_service.dart' as _i28;
 import 'package:matrix/encryption.dart' as _i8;
 import 'package:matrix/encryption/cross_signing.dart' as _i11;
 import 'package:matrix/encryption/key_verification_manager.dart' as _i10;
@@ -11129,4 +11136,419 @@ class MockBackupVersionManager extends _i1.Mock
             returnValueForMissingStub: _i5.Future<bool>.value(false),
           )
           as _i5.Future<bool>);
+}
+
+/// A class which mocks [SyncService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockSyncService extends _i1.Mock implements _i25.SyncService {
+  @override
+  bool get syncing =>
+      (super.noSuchMethod(
+            Invocation.getter(#syncing),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get hasListeners =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasListeners),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  void dispose() => super.noSuchMethod(
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  _i5.Future<void> startSync({
+    Duration? timeout = const Duration(seconds: 30),
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#startSync, [], {#timeout: timeout}),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> pause() =>
+      (super.noSuchMethod(
+            Invocation.method(#pause, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  void resume() => super.noSuchMethod(
+    Invocation.method(#resume, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void cancelSyncSub() => super.noSuchMethod(
+    Invocation.method(#cancelSyncSub, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void addListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void removeListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+    Invocation.method(#removeListener, [listener]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void notifyListeners() => super.noSuchMethod(
+    Invocation.method(#notifyListeners, []),
+    returnValueForMissingStub: null,
+  );
+}
+
+/// A class which mocks [PresenceService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockPresenceService extends _i1.Mock implements _i27.PresenceService {
+  @override
+  bool get publishingEnabled =>
+      (super.noSuchMethod(
+            Invocation.getter(#publishingEnabled),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get hasListeners =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasListeners),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  _i2.CachedPresence? presenceFor(String? userId) =>
+      (super.noSuchMethod(
+            Invocation.method(#presenceFor, [userId]),
+            returnValueForMissingStub: null,
+          )
+          as _i2.CachedPresence?);
+
+  @override
+  String? presenceLabel(String? userId) =>
+      (super.noSuchMethod(
+            Invocation.method(#presenceLabel, [userId]),
+            returnValueForMissingStub: null,
+          )
+          as String?);
+
+  @override
+  void setPublishingEnabled(bool? enabled) => super.noSuchMethod(
+    Invocation.method(#setPublishingEnabled, [enabled]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void setOnline() => super.noSuchMethod(
+    Invocation.method(#setOnline, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void setAway() => super.noSuchMethod(
+    Invocation.method(#setAway, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void setOffline() => super.noSuchMethod(
+    Invocation.method(#setOffline, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void dispose() => super.noSuchMethod(
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void addListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void removeListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+    Invocation.method(#removeListener, [listener]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void notifyListeners() => super.noSuchMethod(
+    Invocation.method(#notifyListeners, []),
+    returnValueForMissingStub: null,
+  );
+}
+
+/// A class which mocks [UiaService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockUiaService extends _i1.Mock implements _i28.UiaService {
+  @override
+  _i5.Stream<_i2.UiaRequest<dynamic>> get onUiaRequest =>
+      (super.noSuchMethod(
+            Invocation.getter(#onUiaRequest),
+            returnValue: _i5.Stream<_i2.UiaRequest<dynamic>>.empty(),
+            returnValueForMissingStub:
+                _i5.Stream<_i2.UiaRequest<dynamic>>.empty(),
+          )
+          as _i5.Stream<_i2.UiaRequest<dynamic>>);
+
+  @override
+  set passwordPromptBuilder(_i28.PasswordPromptBuilder? value) =>
+      super.noSuchMethod(
+        Invocation.setter(#passwordPromptBuilder, value),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void listenForUia() => super.noSuchMethod(
+    Invocation.method(#listenForUia, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void completeUiaWithPassword(
+    _i2.UiaRequest<dynamic>? request,
+    String? password,
+  ) => super.noSuchMethod(
+    Invocation.method(#completeUiaWithPassword, [request, password]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void setCachedPassword(String? password) => super.noSuchMethod(
+    Invocation.method(#setCachedPassword, [password]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void clearCachedPassword() => super.noSuchMethod(
+    Invocation.method(#clearCachedPassword, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void cancelUiaSub() => super.noSuchMethod(
+    Invocation.method(#cancelUiaSub, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void dispose() => super.noSuchMethod(
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
+}
+
+/// A class which mocks [ChatBackupService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockChatBackupService extends _i1.Mock implements _i29.ChatBackupService {
+  @override
+  bool get chatBackupEnabled =>
+      (super.noSuchMethod(
+            Invocation.getter(#chatBackupEnabled),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get chatBackupLoading =>
+      (super.noSuchMethod(
+            Invocation.getter(#chatBackupLoading),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get setupSkipped =>
+      (super.noSuchMethod(
+            Invocation.getter(#setupSkipped),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get bannerDismissed =>
+      (super.noSuchMethod(
+            Invocation.getter(#bannerDismissed),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get hasListeners =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasListeners),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  _i5.Future<void> loadDismissalState() =>
+      (super.noSuchMethod(
+            Invocation.method(#loadDismissalState, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> markSetupSkipped() =>
+      (super.noSuchMethod(
+            Invocation.method(#markSetupSkipped, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> dismissBanner() =>
+      (super.noSuchMethod(
+            Invocation.method(#dismissBanner, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> deleteDismissalState() =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteDismissalState, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> checkChatBackupStatus() =>
+      (super.noSuchMethod(
+            Invocation.method(#checkChatBackupStatus, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> disableChatBackup() =>
+      (super.noSuchMethod(
+            Invocation.method(#disableChatBackup, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  void resetChatBackupState() => super.noSuchMethod(
+    Invocation.method(#resetChatBackupState, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  _i5.Future<void> tryAutoUnlockBackup() =>
+      (super.noSuchMethod(
+            Invocation.method(#tryAutoUnlockBackup, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> runKeyRecovery({_i8.OpenSSSS? ssssKey}) =>
+      (super.noSuchMethod(
+            Invocation.method(#runKeyRecovery, [], {#ssssKey: ssssKey}),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> requestMissingRoomKeys({bool? force = false}) =>
+      (super.noSuchMethod(
+            Invocation.method(#requestMissingRoomKeys, [], {#force: force}),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<String?> getStoredRecoveryKey() =>
+      (super.noSuchMethod(
+            Invocation.method(#getStoredRecoveryKey, []),
+            returnValue: _i5.Future<String?>.value(),
+            returnValueForMissingStub: _i5.Future<String?>.value(),
+          )
+          as _i5.Future<String?>);
+
+  @override
+  _i5.Future<void> storeRecoveryKey(String? key) =>
+      (super.noSuchMethod(
+            Invocation.method(#storeRecoveryKey, [key]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> deleteStoredRecoveryKey() =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteStoredRecoveryKey, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  void addListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void removeListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+    Invocation.method(#removeListener, [listener]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void dispose() => super.noSuchMethod(
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void notifyListeners() => super.noSuchMethod(
+    Invocation.method(#notifyListeners, []),
+    returnValueForMissingStub: null,
+  );
 }

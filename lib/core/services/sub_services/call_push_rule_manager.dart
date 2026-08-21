@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/data/models/call_constants.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 
 /// Inlined from `rtc_membership_service.dart` to avoid core→features dependency.
@@ -13,14 +14,14 @@ const _callMemberEventType = 'org.matrix.msc3401.call.member';
 // changes.
 
 class CallPushRuleManager {
-  CallPushRuleManager({required Client client}) : _client = client;
+  CallPushRuleManager({required MatrixClientService matrixClientService}) : _matrixClientService = matrixClientService;
 
-  final Client _client;
+  final MatrixClientService _matrixClientService;
 
   Future<void> ensureRule() async {
-    if (_client.userID == null) return;
+    if (_matrixClientService.client.userID == null) return;
     try {
-      final rules = await _client.getPushRules();
+      final rules = await _matrixClientService.client.getPushRules();
       final existing = rules.override
           ?.where((r) => r.ruleId == kPushRuleCallMember)
           .firstOrNull;
@@ -31,7 +32,7 @@ class CallPushRuleManager {
         return;
       }
 
-      await _client.setPushRule(
+      await _matrixClientService.client.setPushRule(
         PushRuleKind.override,
         kPushRuleCallMember,
         _desiredActions(),

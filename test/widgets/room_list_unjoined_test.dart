@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/services/room_list_builder.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
@@ -44,7 +45,7 @@ void main() {
     mockSpace = MockRoom();
     mockJoinedRoom = MockRoom();
 
-    when(mockMatrixService.client).thenReturn(mockClient);
+    when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.userID).thenReturn('@me:example.com');
 
@@ -92,7 +93,7 @@ void main() {
     when(mockClient.getRoomById(spaceId)).thenReturn(mockSpace);
     when(mockClient.getRoomById(joinedRoomId)).thenReturn(mockJoinedRoom);
 
-    selection = SelectionService(client: mockClient);
+    selection = SelectionService(matrixClientService: MatrixClientService(mockClient));
     when(mockMatrixService.selection).thenReturn(selection);
 
     dataSource = FakeSpaceDiscoveryDataSource(delay: Duration.zero);

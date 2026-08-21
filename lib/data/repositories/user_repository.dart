@@ -1,58 +1,51 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/data/models/kohera_device.dart';
 import 'package:kohera/data/models/kohera_device_key.dart';
 import 'package:kohera/data/models/kohera_user_summary.dart';
 import 'package:kohera/data/resolvers/device_resolver.dart';
 import 'package:kohera/data/resolvers/user_summary_resolver.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/msc_extensions/msc_3814_dehydrated_devices/api.dart';
 
 class UserRepository extends ChangeNotifier {
-  UserRepository({required MatrixService matrix}) : _matrix = matrix {
-    _matrix.addListener(_onMatrixChanged);
-  }
+  UserRepository({
+    required MatrixClientService clientService,
+    required PresenceService presence,
+  })  : _clientService = clientService,
+        _presence = presence;
 
-  MatrixService _matrix;
+  final MatrixClientService _clientService;
+  final PresenceService _presence;
   bool _disposed = false;
 
-  void updateMatrixService(MatrixService matrix) {
-    if (identical(matrix, _matrix)) return;
-    _matrix.removeListener(_onMatrixChanged);
-    _matrix = matrix;
-    _matrix.addListener(_onMatrixChanged);
-    notifyListeners();
-  }
-
-  void _onMatrixChanged() {
-    if (!_disposed) notifyListeners();
-  }
+  Client get _client => _clientService.client;
 
   // ── Domain model: user identity ──────────────────────────────
 
-  String? get userId => _matrix.client.userID;
-  String? get deviceId => _matrix.client.deviceID;
+  String? get userId => _client.userID;
+  String? get deviceId => _client.deviceID;
 
   /// The user's own homeserver URI, or null before login.
-  Uri? get homeserver => _matrix.client.homeserver;
+  Uri? get homeserver => _client.homeserver;
 
   /// Fetches the avatar URL from the logged-in user's own profile.
   Future<Uri?> fetchOwnAvatarUrl() async =>
-      (await _matrix.client.fetchOwnProfile()).avatarUrl;
+      (await _client.fetchOwnProfile()).avatarUrl;
 
   /// Fetches the logged-in user's own display name and avatar URL.
   Future<({Uri? avatarUrl, String? displayName})> fetchOwnProfile() async {
-    final profile = await _matrix.client.fetchOwnProfile();
+    final profile = await _client.fetchOwnProfile();
     return (avatarUrl: profile.avatarUrl, displayName: profile.displayName);
   }
 
   /// Sets the logged-in user's display name.
   Future<void> setDisplayName(String name) async {
-    final client = _matrix.client;
+    final client = _client;
     await client.setProfileField(
       client.userID!,
       'displayname',
@@ -62,13 +55,13 @@ class UserRepository extends ChangeNotifier {
 
   /// Sets (or clears, when [bytes] is null) the logged-in user's avatar.
   Future<void> setOwnAvatar(Uint8List? bytes, String? name) async {
-    await _matrix.client.setAvatar(
+    await _client.setAvatar(
       bytes == null ? null : MatrixFile(bytes: bytes, name: name ?? ''),
     );
   }
 
   KoheraUserSummary? userSummary(String userId) {
-    for (final room in _matrix.client.rooms) {
+    for (final room in _client.rooms) {
       final user = room.unsafeGetUserFromMemoryOrFallback(userId);
       if (user.id == userId) {
         return const UserSummaryResolver()(user);
@@ -80,7 +73,7 @@ class UserRepository extends ChangeNotifier {
   // ── Domain model: device keys (DM partner) ───────────────────
 
   List<KoheraDeviceKey> deviceKeysFor(String userId) {
-    final list = _matrix.client.userDeviceKeys[userId];
+    final list = _client.userDeviceKeys[userId];
     final devices = list?.deviceKeys.values.toList() ?? [];
     return devices
         .map(
@@ -97,7 +90,7 @@ class UserRepository extends ChangeNotifier {
   // ── Domain model: own devices ────────────────────────────────
 
   Future<List<KoheraDevice>> loadDevices() async {
-    final client = _matrix.client;
+    final client = _client;
     final devicesFuture = client.getDevices();
     final dehydratedIdFuture = _dehydratedDeviceId(client);
     final devices = await devicesFuture;
@@ -126,7 +119,7 @@ class UserRepository extends ChangeNotifier {
   List<KoheraUserSummary> knownContacts() {
     final seen = <String>{};
     final contacts = <KoheraUserSummary>[];
-    for (final room in _matrix.client.rooms) {
+    for (final room in _client.rooms) {
       if (!room.isDirectChat) continue;
       final mxid = room.directChatMatrixID;
       if (mxid == null || !seen.add(mxid)) continue;
@@ -147,11 +140,11 @@ class UserRepository extends ChangeNotifier {
     Set<String> excludeMxids = const {},
     int limit = 50,
   }) {
-    final myId = _matrix.client.userID;
+    final myId = _client.userID;
     final seen = <String>{...excludeMxids, ?myId};
     final contacts = <KoheraUserSummary>[];
 
-    final groupRooms = _matrix.client.rooms
+    final groupRooms = _client.rooms
         .where((r) => !r.isDirectChat)
         .toList()
       ..sort((a, b) => (b.lastEvent?.originServerTs ?? DateTime(0))
@@ -177,19 +170,19 @@ class UserRepository extends ChangeNotifier {
   // ── User operations (write path) ──────────────────────────────
 
   Future<void> ignoreUser(String userId, {bool leaveRooms = false}) =>
-      _matrix.client.ignoreUser(userId, leaveRooms: leaveRooms);
+      _client.ignoreUser(userId, leaveRooms: leaveRooms);
 
   Future<void> unignoreUser(String userId) =>
-      _matrix.client.unignoreUser(userId);
+      _client.unignoreUser(userId);
 
   /// Fetches the display name from a user's profile, or null if unavailable.
   Future<String?> fetchDisplayName(String userId) async =>
-      (await _matrix.client.getProfileFromUserId(userId)).displayName;
+      (await _client.getProfileFromUserId(userId)).displayName;
 
   /// Fetches the avatar URL from a user's profile, or null if unavailable.
   Future<Uri?> fetchAvatarUrl(String userId) async {
     try {
-      return (await _matrix.client.getProfileFromUserId(userId)).avatarUrl;
+      return (await _client.getProfileFromUserId(userId)).avatarUrl;
     } catch (_) {
       return null;
     }
@@ -200,15 +193,15 @@ class UserRepository extends ChangeNotifier {
     String eventId, {
     String? reason,
   }) =>
-      _matrix.client.reportEvent(roomId, eventId, reason: reason);
+      _client.reportEvent(roomId, eventId, reason: reason);
 
   Future<void> renameDevice(String deviceId, String newName) =>
-      _matrix.client.updateDevice(deviceId, displayName: newName);
+      _client.updateDevice(deviceId, displayName: newName);
 
   // ── Device operations (write path) ────────────────────────────
 
   Future<void> updateUserDeviceKeys() =>
-      _matrix.client.updateUserDeviceKeys();
+      _client.updateUserDeviceKeys();
 
   /// Starts interactive verification for a specific device.
   ///
@@ -219,14 +212,14 @@ class UserRepository extends ChangeNotifier {
     String userId,
     String deviceId,
   ) async {
-    final dkList = _matrix.client.userDeviceKeys[userId];
+    final dkList = _client.userDeviceKeys[userId];
     final dk = dkList?.deviceKeys[deviceId];
     if (dk == null) return null;
     return dk.startVerification();
   }
 
   Future<List<KoheraUserSummary>> searchUserDirectory(String term) async {
-    final response = await _matrix.client.searchUserDirectory(term, limit: 20);
+    final response = await _client.searchUserDirectory(term, limit: 20);
     return response.results
         .map(
           (p) => KoheraUserSummary(
@@ -239,14 +232,14 @@ class UserRepository extends ChangeNotifier {
   }
 
   Future<void> removeDevice(String deviceId) async {
-    final client = _matrix.client;
+    final client = _client;
     await client.uiaRequestBackground(
       (auth) => client.deleteDevices([deviceId], auth: auth),
     );
   }
 
   Future<void> removeAllOtherDevices(List<String> deviceIds) async {
-    final client = _matrix.client;
+    final client = _client;
     await client.uiaRequestBackground(
       (auth) => client.deleteDevices(deviceIds, auth: auth),
     );
@@ -258,7 +251,7 @@ class UserRepository extends ChangeNotifier {
   /// null if the device has no encryption keys. Like [startDeviceVerification]
   /// this is an escape hatch that returns an SDK type for the E2EE UI flow.
   Future<KeyVerification?> verifyDevice(String deviceId) async {
-    final client = _matrix.client;
+    final client = _client;
     final userId = client.userID;
     if (userId == null) return null;
     await client.updateUserDeviceKeys();
@@ -277,7 +270,7 @@ class UserRepository extends ChangeNotifier {
     bool erase = false,
     String? idServer,
   }) async {
-    final client = _matrix.client;
+    final client = _client;
     return client.uiaRequestBackground<IdServerUnbindResult>(
       (auth) => client.deactivateAccount(
         auth: auth,
@@ -289,7 +282,7 @@ class UserRepository extends ChangeNotifier {
 
   /// Toggles the blocked state of a device.
   Future<void> toggleBlockDevice(String deviceId) async {
-    final client = _matrix.client;
+    final client = _client;
     final userId = client.userID;
     if (userId == null) return;
     final deviceKeys = client.userDeviceKeys[userId]?.deviceKeys[deviceId];
@@ -299,15 +292,15 @@ class UserRepository extends ChangeNotifier {
 
   // ── Ignored users ────────────────────────────────────────────
 
-  List<String> get ignoredUsers => _matrix.client.ignoredUsers;
+  List<String> get ignoredUsers => _client.ignoredUsers;
 
   // ── Sync stream ──────────────────────────────────────────────
 
-  Stream<SyncUpdate> get onSync => _matrix.client.onSync.stream;
+  Stream<SyncUpdate> get onSync => _client.onSync.stream;
 
   // ── Presence ─────────────────────────────────────────────────
 
-  PresenceService get presence => _matrix.presence;
+  PresenceService get presence => _presence;
 
   // ── Helpers ──────────────────────────────────────────────────
 
@@ -335,7 +328,6 @@ class UserRepository extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
-    _matrix.removeListener(_onMatrixChanged);
     super.dispose();
   }
 }

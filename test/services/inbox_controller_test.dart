@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/notifications/enum/inbox_filter.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:matrix/matrix.dart';
@@ -78,8 +79,8 @@ void main() {
       User('@alice:example.com', displayName: 'Alice', room: defaultRoom),
     );
     mockMatrix = MockMatrixService();
-    when(mockMatrix.client).thenReturn(mockClient);
-    pushRepo = PushRepository(matrix: mockMatrix);
+    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
+    pushRepo = PushRepository(clientService: mockMatrix.matrixClientService);
     controller = InboxController(pushRepository: pushRepo);
   });
 
@@ -1016,8 +1017,8 @@ void main() {
           ]),);
 
       final newMatrix = MockMatrixService();
-      when(newMatrix.client).thenReturn(newClient);
-      final newRepo = PushRepository(matrix: newMatrix);
+      when(newMatrix.matrixClientService).thenReturn(MatrixClientService(newClient));
+      final newRepo = PushRepository(clientService: newMatrix.matrixClientService);
       controller.updateRepository(newRepo);
       await Future<void>.delayed(Duration.zero);
       await Future<void>.delayed(Duration.zero);
@@ -1050,8 +1051,8 @@ void main() {
           ]),);
 
       final newMatrix = MockMatrixService();
-      when(newMatrix.client).thenReturn(newClient);
-      final newRepo = PushRepository(matrix: newMatrix);
+      when(newMatrix.matrixClientService).thenReturn(MatrixClientService(newClient));
+      final newRepo = PushRepository(clientService: newMatrix.matrixClientService);
       controller.updateRepository(newRepo);
 
       // Wait for async fetch

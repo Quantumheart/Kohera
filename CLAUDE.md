@@ -38,7 +38,7 @@ Mock generation (`build_runner`) must run before `flutter test` whenever `@Gener
 
 Feature-based organization under `lib/`: `core/` (services, routing, theme, utils), `features/` (auth, calling, chat, e2ee, home, notifications, rooms, settings, spaces), `shared/widgets/`.
 
-State is managed via multiple ChangeNotifiers provided at the root. `MatrixService` wraps the Matrix SDK client. Extracted sub-services live in `core/services/sub_services/` (AuthService, SyncService, SelectionService, ChatBackupService, UiaService). Other top-level providers include ClientManager, CallService, PreferencesService, and InboxController.
+State is managed via multiple ChangeNotifiers provided at the root. `MatrixClientService` (`data/services/`) is the stateless, sole owner of the Matrix SDK `Client` — the sanctioned SDK boundary the data layer depends on. `AccountSession` (`core/services/`) is the per-account composition root that builds the sub-service graph (AuthService, SyncService, SelectionService, ChatBackupService, UiaService, and the rest in `core/services/sub_services/`); `AuthService` owns login/logout/restore/soft-logout and their orchestration. `MatrixService` is now a thin lifecycle coordinator that holds an `AccountSession` and has no public raw-`Client` getter. Repositories (`data/repositories/`) depend on `MatrixClientService` + specific sub-services, never the whole `MatrixService`. Other top-level providers include ClientManager, CallService, PreferencesService, and InboxController.
 
 See `agent_docs/architecture.md` for detailed architecture, routing, responsive layout, and E2EE docs. See `docs/e2ee-flow.md` for E2EE state machine diagrams.
 

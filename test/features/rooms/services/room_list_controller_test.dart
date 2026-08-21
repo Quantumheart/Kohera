@@ -6,6 +6,7 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/services/room_list_controller.dart';
 import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
@@ -69,9 +70,9 @@ void main() {
     messageSearch = MockRoomListSearchController();
     client = MockClient();
 
-    when(matrix.client).thenReturn(client);
+    when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
     when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-    rooms = RoomRepository(matrix: matrix);
+    rooms = RoomRepository(clientService: matrix.matrixClientService, selection: matrix.selection);
     when(selection.selectedSpaceIds).thenReturn({});
     when(selection.rooms).thenReturn([]);
     when(selection.spaceTree).thenReturn([]);

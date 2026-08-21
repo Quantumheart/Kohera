@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/data/models/kohera_message_status.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_outbox_status.dart';
 import 'package:matrix/matrix.dart';
@@ -17,7 +18,7 @@ import 'message_bubble_outbox_status_test.mocks.dart';
 ])
 class _StubOutbox extends OutboxService {
   _StubOutbox(this._entries, MockClient client)
-      : super(client: client, clientName: 'test');
+      : super(matrixClientService: MatrixClientService(client), clientName: 'test');
 
   final Map<String, OutboxEntryView> _entries;
 

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_controller.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
@@ -31,7 +32,7 @@ void main() {
     mockMatrixService = MockMatrixService();
     mockChatBackup = MockChatBackupService();
     mockEncryption = MockEncryption();
-    when(mockMatrixService.client).thenReturn(mockClient);
+    when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrixService.chatBackup).thenReturn(mockChatBackup);
     when(mockMatrixService.uia).thenReturn(MockUiaService());
     when(mockClient.encryption).thenReturn(mockEncryption);
@@ -45,7 +46,7 @@ void main() {
 
   BootstrapController createController({bool wipeExisting = false}) {
     return BootstrapController(
-      keyBackup: KeyBackupRepository(matrix: mockMatrixService),
+      keyBackup: KeyBackupRepository(clientService: mockMatrixService.matrixClientService, chatBackup: mockMatrixService.chatBackup, keyMirror: mockMatrixService.keyMirror, uia: mockMatrixService.uia),
       wipeExisting: wipeExisting,
     );
   }
