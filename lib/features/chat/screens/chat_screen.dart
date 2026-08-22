@@ -21,6 +21,7 @@ import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/models/sticker_pack.dart';
+import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
@@ -142,7 +143,6 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   void initState() {
     super.initState();
-    final matrix = context.read<MatrixService>();
     final rooms = context.read<RoomRepository>();
     final prefs = context.read<PreferencesService>();
     _timelineController = MessageTimelineController(
@@ -161,7 +161,7 @@ class _ChatScreenState extends State<ChatScreen>
     // This runs in the background and does not block the UI.
     final room = rooms.rawRoom(widget.roomId);
     if (room != null && room.encrypted) {
-      unawaited(matrix.messageIndexer?.ensureRoomIndexed(room));
+      unawaited(context.read<MessageRepository>().ensureRoomIndexed(room));
     }
     if (kIsWeb) {
       initWebPasteListener();
@@ -274,22 +274,19 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   ChatSearchController _createSearchController() {
-    final matrix = context.read<MatrixService>();
     final rooms = context.read<RoomRepository>();
-    final indexerDb = matrix.messageIndexer?.database;
+    final messages = context.read<MessageRepository>();
     return ChatSearchController(
       roomId: widget.roomId,
-      messageIndexer: matrix.messageIndexer,
+      messageRepository: messages,
       searchService: RoomSearchService(
         searchClient: rooms.searchClient,
         getTimeline: () => _timelineController.timeline,
-        localSearchService: indexerDb == null
-            ? null
-            : LocalSearchService(
-                searchClient: rooms.searchClient,
-                database: indexerDb,
-                getTimeline: () => _timelineController.timeline,
-              ),
+        localSearchService: LocalSearchService(
+          searchClient: rooms.searchClient,
+          database: messages.searchDatabase,
+          getTimeline: () => _timelineController.timeline,
+        ),
       ),
     )..addListener(_onSearchChanged);
   }
@@ -895,10 +892,9 @@ class _ChatScreenState extends State<ChatScreen>
     _search.open();
     _searchCtrl.clear();
     // Ensure the room's encrypted history is indexed for search.
-    final matrix = context.read<MatrixService>();
     final room = context.read<RoomRepository>().rawRoom(widget.roomId);
     if (room != null && room.encrypted) {
-      unawaited(matrix.messageIndexer?.ensureRoomIndexed(room));
+      unawaited(context.read<MessageRepository>().ensureRoomIndexed(room));
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _searchFocusNode.requestFocus();

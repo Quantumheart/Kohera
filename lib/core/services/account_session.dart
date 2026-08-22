@@ -21,7 +21,6 @@ import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
-import 'package:kohera/data/services/message_indexer_service.dart';
 import 'package:matrix/matrix.dart';
 
 /// Per-account composition root. Builds the sub-service graph in dependency
@@ -43,7 +42,6 @@ class AccountSession {
   late final SyncService sync;
   late final AuthService auth;
   late final OutboxService outbox;
-  late final MessageIndexerService? messageIndexer;
   late final AvatarResolver avatarResolver;
   late final MediaResolver mediaResolver;
   late final StickerPackService stickerPacks;
@@ -117,15 +115,11 @@ class AccountSession {
     stickerPacks = StickerPackService(
       matrixClientService: _matrixClientService,
     );
-    messageIndexer = MessageIndexerService(
-      matrixClientService: _matrixClientService,
-      clientName: clientName,
-    );
     avatarResolver = ClientAvatarResolver(_matrixClientService);
     mediaResolver = ClientMediaResolver(_matrixClientService);
     messageRepository = MessageRepository(
       clientService: _matrixClientService,
-      messageIndexer: messageIndexer,
+      clientName: clientName,
     );
   }
 
@@ -134,7 +128,6 @@ class AccountSession {
     messageRepository.dispose();
     unawaited(keyMirror.dispose());
     outbox.dispose();
-    messageIndexer?.dispose();
     uia.dispose();
     selection.dispose();
     presence.dispose();

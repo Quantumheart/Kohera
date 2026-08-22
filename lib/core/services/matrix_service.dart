@@ -19,7 +19,6 @@ import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
-import 'package:kohera/data/services/message_indexer_service.dart';
 import 'package:matrix/matrix.dart';
 
 String koheraKey(String clientName, String suffix) =>
@@ -90,7 +89,6 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   SyncService get sync => _accountSession.sync;
   AuthService get auth => _accountSession.auth;
   OutboxService get outbox => _accountSession.outbox;
-  MessageIndexerService? get messageIndexer => _accountSession.messageIndexer;
   AvatarResolver get avatarResolver => _accountSession.avatarResolver;
   MediaResolver get mediaResolver => _accountSession.mediaResolver;
   StickerPackService get stickerPacks => _accountSession.stickerPacks;
@@ -219,7 +217,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         }),
       );
       unawaited(
-        messageIndexer?.init().catchError((Object e) {
+        _accountSession.messageRepository.initSearchIndex().catchError((Object e) {
           debugPrint('[Kohera] Message indexer init failed: $e');
         }),
       );

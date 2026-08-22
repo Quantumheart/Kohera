@@ -17,20 +17,32 @@ import 'package:kohera/data/resolvers/reply_preview_resolver.dart';
 import 'package:kohera/data/resolvers/state_event_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/message_indexer_service.dart';
+import 'package:kohera/data/services/message_search_database.dart';
 import 'package:matrix/matrix.dart';
 
 class MessageRepository extends ChangeNotifier {
   MessageRepository({
     required MatrixClientService clientService,
-    required MessageIndexerService? messageIndexer,
+    required String clientName,
+    MessageIndexerService? indexerOverride,
   })  : _clientService = clientService,
-        _messageIndexer = messageIndexer;
+        _indexer = indexerOverride ??
+            MessageIndexerService(
+              matrixClientService: clientService,
+              clientName: clientName,
+            ) {
+    _indexer.addListener(_onIndexerChanged);
+  }
 
   final MatrixClientService _clientService;
-  final MessageIndexerService? _messageIndexer;
+  final MessageIndexerService _indexer;
   bool _disposed = false;
 
   Client get _client => _clientService.client;
+
+  void _onIndexerChanged() {
+    if (!_disposed) notifyListeners();
+  }
 
   // ── Domain model: message display ────────────────────────────
 
@@ -118,9 +130,21 @@ class MessageRepository extends ChangeNotifier {
 
   // ── Message search ───────────────────────────────────────────
 
-  Future<void> ensureRoomIndexed(Room room) async {
-    await _messageIndexer?.ensureRoomIndexed(room);
-  }
+  /// Starts the local search index (subscribes to sync; no backfill yet).
+  Future<void> initSearchIndex() => _indexer.init();
+
+  /// Ensures [room]'s history is indexed for local search (background).
+  Future<void> ensureRoomIndexed(Room room) => _indexer.ensureRoomIndexed(room);
+
+  /// `true` while any room's search backfill is in progress.
+  bool get isIndexing => _indexer.isIndexing;
+
+  /// Search-index backfill progress for [roomId], or null if not indexing.
+  int? indexingProgressFor(String roomId) =>
+      _indexer.indexingProgressFor(roomId);
+
+  /// The FTS5 search index, for the local-search query path.
+  MessageSearchDatabase get searchDatabase => _indexer.database;
 
   @override
   void notifyListeners() {
@@ -131,6 +155,8 @@ class MessageRepository extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _indexer.removeListener(_onIndexerChanged);
+    _indexer.dispose();
     super.dispose();
   }
 }

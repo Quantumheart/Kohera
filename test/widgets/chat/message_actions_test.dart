@@ -12,6 +12,7 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
@@ -124,6 +125,9 @@ Widget _buildChatWidget({
       ),
       ChangeNotifierProvider<UserRepository>(
         create: (_) => UserRepository(clientService: mockMatrix.matrixClientService),
+      ),
+      ChangeNotifierProvider<MessageRepository>(
+        create: (_) => MessageRepository(clientService: mockMatrix.matrixClientService, clientName: 'test'),
       ),
     ],
     child: MaterialApp(

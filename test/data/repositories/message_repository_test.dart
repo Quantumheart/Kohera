@@ -30,7 +30,7 @@ void main() {
       storage: mockStorage,
       clientName: 'test',
     );
-    repo = MessageRepository(clientService: service.matrixClientService, messageIndexer: service.messageIndexer);
+    repo = MessageRepository(clientService: service.matrixClientService, clientName: 'test');
   });
 
   group('timelineFor', () {
