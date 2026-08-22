@@ -17,6 +17,7 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
@@ -49,6 +50,8 @@ class AccountSession {
   late final CallPushRuleManager callPushRuleManager;
   late final GlobalPushRuleManager globalPushRuleManager;
   late final MegolmKeyMirror keyMirror;
+
+  late final MessageRepository messageRepository;
 
   final String clientName;
 
@@ -120,10 +123,15 @@ class AccountSession {
     );
     avatarResolver = ClientAvatarResolver(_matrixClientService);
     mediaResolver = ClientMediaResolver(_matrixClientService);
+    messageRepository = MessageRepository(
+      clientService: _matrixClientService,
+      messageIndexer: messageIndexer,
+    );
   }
 
   void dispose() {
     _disposed = true;
+    messageRepository.dispose();
     unawaited(keyMirror.dispose());
     outbox.dispose();
     messageIndexer?.dispose();
