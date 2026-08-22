@@ -14,6 +14,7 @@ import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/models/kohera_user_summary.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/calling/services/call_navigator.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/widgets/call_state_views.dart'
@@ -202,7 +203,7 @@ class _RoomTileState extends State<RoomTile> {
                     PresenceOverlay(
                       size: 48,
                       presence: dmUserId != null
-                          ? context.read<MatrixService>().presence
+                          ? context.read<UserRepository>()
                           : null,
                       userId: dmUserId,
                       child: RoomAvatarWidget(

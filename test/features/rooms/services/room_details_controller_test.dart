@@ -66,7 +66,6 @@ void main() {
 
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrix.selection).thenReturn(mockSelection);
-    when(mockMatrix.presence).thenReturn(mockPresence);
     when(mockMatrix.avatarResolver).thenReturn(mockAvatarResolver);
     when(mockClient.getRoomById(roomId)).thenReturn(mockRoom);
     when(mockClient.onSync).thenReturn(syncCtl);
@@ -91,7 +90,7 @@ void main() {
     when(mockClient.updateUserDeviceKeys()).thenAnswer((_) async {});
 
     roomRepo = RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection);
-    userRepo = UserRepository(clientService: mockMatrix.matrixClientService);
+    userRepo = UserRepository(clientService: mockMatrix.matrixClientService, presenceOverride: mockPresence);
     mediaRepo = MediaRepository(avatarResolver: mockMatrix.avatarResolver, mediaResolver: mockMatrix.mediaResolver);
   });
 
@@ -102,7 +101,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -117,7 +116,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -131,7 +130,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -146,7 +145,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -160,7 +159,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -175,7 +174,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -189,7 +188,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -203,7 +202,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -220,7 +219,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       // Don't call init — room is null
@@ -244,7 +243,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -260,7 +259,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -275,7 +274,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -290,7 +289,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -305,7 +304,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -320,7 +319,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -335,7 +334,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -350,7 +349,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -367,7 +366,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -385,7 +384,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       var notified = false;
@@ -402,7 +401,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -422,7 +421,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -438,7 +437,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -453,7 +452,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();
@@ -468,7 +467,7 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
-        presence: mockPresence,
+        presence: userRepo,
         selection: mockSelection,
       );
       ctrl.init();

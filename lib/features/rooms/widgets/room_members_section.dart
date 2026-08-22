@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 
@@ -26,7 +26,7 @@ class RoomMembersSection extends StatefulWidget {
   final KoheraRoomMemberList members;
   final void Function(KoheraRoomMember member) onMemberTap;
   final AvatarResolver avatarResolver;
-  final PresenceService presence;
+  final UserRepository presence;
 
   /// Whether the current user may unban members in this room. Gates the
   /// per-row Unban action in the banned-users section.
@@ -176,7 +176,7 @@ class _BannedMembersSection extends StatefulWidget {
   final List<KoheraRoomMember> bannedMembers;
   final bool canBan;
   final AvatarResolver avatarResolver;
-  final PresenceService presence;
+  final UserRepository presence;
   final void Function(KoheraRoomMember member) onMemberTap;
   final Future<void> Function(KoheraRoomMember member)? onUnban;
 
@@ -260,7 +260,7 @@ class _BannedMemberTile extends StatelessWidget {
 
   final KoheraRoomMember member;
   final AvatarResolver avatarResolver;
-  final PresenceService presence;
+  final UserRepository presence;
   final bool canUnban;
   final bool unbanning;
   final VoidCallback onTap;
@@ -321,7 +321,7 @@ class _MemberTile extends StatelessWidget {
 
   final KoheraRoomMember member;
   final AvatarResolver avatarResolver;
-  final PresenceService presence;
+  final UserRepository presence;
   final VoidCallback onTap;
 
   @override

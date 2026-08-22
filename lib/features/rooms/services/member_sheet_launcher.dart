@@ -57,7 +57,7 @@ Future<void> showRoomMemberSheet(
         member.powerLevel < ownLevel &&
         !member.isBanned,
     avatarResolver: mediaRepo.avatarResolver,
-    presence: context.read<MatrixService>().presence,
+    presence: context.read<UserRepository>(),
     isIgnored: isIgnored,
     formatError: MatrixService.friendlyAuthError,
     onStartDm: isMe

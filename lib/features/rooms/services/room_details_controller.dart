@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/models/kohera_device_key.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
@@ -40,7 +39,7 @@ class RoomDetailsController extends ChangeNotifier {
     required this.roomRepo,
     required this.userRepo,
     required this.mediaRepo,
-    required PresenceService presence,
+    required UserRepository presence,
     required SelectionService selection,
   })  : _presence = presence,
         _selection = selection;
@@ -49,7 +48,7 @@ class RoomDetailsController extends ChangeNotifier {
   final RoomRepository roomRepo;
   final UserRepository userRepo;
   final MediaRepository mediaRepo;
-  final PresenceService _presence;
+  final UserRepository _presence;
   final SelectionService _selection;
 
   bool _hasRoom = false;
@@ -92,7 +91,7 @@ class RoomDetailsController extends ChangeNotifier {
   }
 
   AvatarResolver get avatarResolver => mediaRepo.avatarResolver;
-  PresenceService get presence => _presence;
+  UserRepository get presence => _presence;
 
   // ── Lifecycle ───────────────────────────────────────────────
 

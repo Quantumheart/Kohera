@@ -261,7 +261,7 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
             onMemberTap: (member) =>
                 _showMemberSheet(context, spaceId, member),
             avatarResolver: context.read<MediaRepository>().avatarResolver,
-            presence: context.read<MatrixService>().presence,
+            presence: context.read<UserRepository>(),
             canBan: _canBan,
             onUnban: (member) => _unbanMember(context, spaceId, member),
           ),
