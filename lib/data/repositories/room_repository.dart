@@ -7,7 +7,6 @@ import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/models/kohera_room_permissions.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
-import 'package:kohera/data/models/space_node.dart';
 import 'package:kohera/data/resolvers/room_member_list_resolver.dart';
 import 'package:kohera/data/resolvers/room_permissions_resolver.dart';
 import 'package:kohera/data/resolvers/room_summary_resolver.dart';
@@ -87,22 +86,6 @@ class RoomRepository extends ChangeNotifier {
     if (room == null) return null;
     return const RoomMemberListResolver().resolve(room);
   }
-
-  // ── Selection state ──────────────────────────────────────────
-
-  Set<String> get selectedSpaceIds => _selection.selectedSpaceIds;
-  String? get selectedRoomId => _selection.selectedRoomId;
-
-  void selectSpace(String? spaceId) =>
-      _selection.selectSpace(spaceId);
-  void selectRoom(String? roomId) => _selection.selectRoom(roomId);
-  void toggleSpaceSelection(String spaceId) =>
-      _selection.toggleSpaceSelection(spaceId);
-  void clearSpaceSelection() => _selection.clearSpaceSelection();
-
-  // ── Space tree ───────────────────────────────────────────────
-
-  List<SpaceNode> get spaceTree => _selection.spaceTree;
 
   // ── Room operations (write path) ──────────────────────────────
 

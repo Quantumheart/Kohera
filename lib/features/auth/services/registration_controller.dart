@@ -141,7 +141,7 @@ class RegistrationController extends ChangeNotifier {
 
     try {
       final caps =
-          await authRepository.auth.getServerAuthCapabilities(_homeserver, isLoggedIn: authRepository.isLoggedIn);
+          await authRepository.getServerAuthCapabilities(_homeserver);
       if (_isDisposed || generation != _checkGeneration) return;
 
       if (!caps.supportsRegistration) {

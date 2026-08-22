@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
+import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/models/kohera_device_key.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
@@ -39,12 +40,17 @@ class RoomDetailsController extends ChangeNotifier {
     required this.roomRepo,
     required this.userRepo,
     required this.mediaRepo,
-  });
+    required PresenceService presence,
+    required SelectionService selection,
+  })  : _presence = presence,
+        _selection = selection;
 
   final String roomId;
   final RoomRepository roomRepo;
   final UserRepository userRepo;
   final MediaRepository mediaRepo;
+  final PresenceService _presence;
+  final SelectionService _selection;
 
   bool _hasRoom = false;
   StreamSubscription<void>? _syncSub;
@@ -86,7 +92,7 @@ class RoomDetailsController extends ChangeNotifier {
   }
 
   AvatarResolver get avatarResolver => mediaRepo.avatarResolver;
-  PresenceService get presence => userRepo.presence;
+  PresenceService get presence => _presence;
 
   // ── Lifecycle ───────────────────────────────────────────────
 
@@ -180,7 +186,7 @@ class RoomDetailsController extends ChangeNotifier {
 
   Future<void> leave() async {
     await roomRepo.leaveRoom(roomId);
-    roomRepo.selectRoom(null);
+    _selection.selectRoom(null);
   }
 
   Future<int?> resolveMemberCount(String id) async {

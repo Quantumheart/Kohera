@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
-import 'package:kohera/core/services/sub_services/megolm_key_mirror.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/encryption.dart';
@@ -12,18 +11,15 @@ class KeyBackupRepository extends ChangeNotifier {
   KeyBackupRepository({
     required MatrixClientService clientService,
     required ChatBackupService chatBackup,
-    required MegolmKeyMirror keyMirror,
     required UiaService uia,
   })  : _clientService = clientService,
         _chatBackup = chatBackup,
-        _keyMirror = keyMirror,
         _uia = uia {
     _chatBackup.addListener(_onChatBackupChanged);
   }
 
   final MatrixClientService _clientService;
   final ChatBackupService _chatBackup;
-  final MegolmKeyMirror _keyMirror;
   final UiaService _uia;
   bool _disposed = false;
 
@@ -33,9 +29,19 @@ class KeyBackupRepository extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
-  ChatBackupService get chatBackup => _chatBackup;
-  MegolmKeyMirror get keyMirror => _keyMirror;
-  UiaService get uia => _uia;
+  // ── Recovery / backup operations ──────────────────────────────
+
+  Future<void> runKeyRecovery({OpenSSSS? ssssKey}) =>
+      _chatBackup.runKeyRecovery(ssssKey: ssssKey);
+
+  Future<void> checkChatBackupStatus() => _chatBackup.checkChatBackupStatus();
+
+  Future<String?> getStoredRecoveryKey() => _chatBackup.getStoredRecoveryKey();
+
+  Future<void> storeRecoveryKey(String key) =>
+      _chatBackup.storeRecoveryKey(key);
+
+  void clearCachedPassword() => _uia.clearCachedPassword();
 
   Stream<KeyVerification> get onKeyVerificationRequest =>
       _client.onKeyVerificationRequest.stream;

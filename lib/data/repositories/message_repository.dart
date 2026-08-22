@@ -118,8 +118,6 @@ class MessageRepository extends ChangeNotifier {
 
   // ── Message search ───────────────────────────────────────────
 
-  MessageIndexerService? get messageIndexer => _messageIndexer;
-
   Future<void> ensureRoomIndexed(Room room) async {
     await _messageIndexer?.ensureRoomIndexed(room);
   }

@@ -86,13 +86,13 @@ class _VerificationRequestListenerState
         keyBackup != null && verification.userId == keyBackup.userId;
     if (confirmed == true && isSelfVerification) {
       try {
-        await keyBackup.chatBackup.runKeyRecovery();
+        await keyBackup.runKeyRecovery();
       } catch (e) {
         debugPrint('[Kohera] Post-verification key recovery failed: $e');
       }
       if (!mounted) return;
       try {
-        await keyBackup.chatBackup.checkChatBackupStatus();
+        await keyBackup.checkChatBackupStatus();
       } catch (e) {
         debugPrint('[Kohera] Post-verification backup status check failed: $e');
       }

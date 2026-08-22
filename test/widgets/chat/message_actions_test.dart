@@ -123,7 +123,7 @@ Widget _buildChatWidget({
         create: (_) => RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection),
       ),
       ChangeNotifierProvider<UserRepository>(
-        create: (_) => UserRepository(clientService: mockMatrix.matrixClientService, presence: mockMatrix.presence),
+        create: (_) => UserRepository(clientService: mockMatrix.matrixClientService),
       ),
     ],
     child: MaterialApp(

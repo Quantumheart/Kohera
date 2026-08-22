@@ -106,35 +106,10 @@ void main() {
     });
   });
 
-  group('selection', () {
-    test('selectSpace delegates to SelectionService', () {
-      repo.selectSpace('!space:example.com');
-      expect(repo.selectedSpaceIds, {'!space:example.com'});
-    });
-
-    test('selectRoom delegates to SelectionService', () {
-      repo.selectRoom('!room:example.com');
-      expect(repo.selectedRoomId, '!room:example.com');
-    });
-
-    test('clearSpaceSelection delegates to SelectionService', () {
-      repo.selectSpace('!space:example.com');
-      repo.clearSpaceSelection();
-      expect(repo.selectedSpaceIds, isEmpty);
-    });
-  });
-
   group('roomSummaries', () {
     test('returns empty list when no rooms', () {
       when(mockClient.rooms).thenReturn([]);
       expect(repo.roomSummaries, isEmpty);
-    });
-  });
-
-  group('spaceTree', () {
-    test('returns empty list when no spaces', () {
-      when(mockClient.rooms).thenReturn([]);
-      expect(repo.spaceTree, isEmpty);
     });
   });
 

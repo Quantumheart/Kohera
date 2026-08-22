@@ -25,8 +25,6 @@ class SpaceRepository extends ChangeNotifier {
 
   Client get _client => _clientService.client;
 
-  SpaceAccessService get spaceAccess => _spaceAccess;
-
   /// Whether a space with [spaceId] is currently known to the client.
   bool spaceExists(String spaceId) =>
       _client.getRoomById(spaceId) != null;

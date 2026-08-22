@@ -242,9 +242,9 @@ class BootstrapController extends ChangeNotifier {
       }
     }
 
-    await keyBackup.chatBackup.runKeyRecovery(ssssKey: ssssKey);
-    await keyBackup.chatBackup.checkChatBackupStatus();
-    keyBackup.uia.clearCachedPassword();
+    await keyBackup.runKeyRecovery(ssssKey: ssssKey);
+    await keyBackup.checkChatBackupStatus();
+    keyBackup.clearCachedPassword();
 
     _phase = SetupPhase.done;
     _notify();

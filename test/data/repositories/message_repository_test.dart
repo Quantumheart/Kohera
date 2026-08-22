@@ -33,12 +33,6 @@ void main() {
     repo = MessageRepository(clientService: service.matrixClientService, messageIndexer: service.messageIndexer);
   });
 
-  group('messageIndexer', () {
-    test('returns MatrixService messageIndexer', () {
-      expect(repo.messageIndexer, isNotNull);
-    });
-  });
-
   group('timelineFor', () {
     test('returns null for unknown room', () async {
       when(mockClient.getRoomById('!unknown:example.com')).thenReturn(null);

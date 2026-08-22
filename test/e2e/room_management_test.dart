@@ -176,7 +176,7 @@ void main() {
           create: (_) => RoomRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
         ),
         ChangeNotifierProvider<UserRepository>(
-          create: (_) => UserRepository(clientService: matrixService.matrixClientService, presence: matrixService.presence),
+          create: (_) => UserRepository(clientService: matrixService.matrixClientService),
         ),
         ChangeNotifierProvider<MediaRepository>(
           create: (_) => MediaRepository(avatarResolver: matrixService.avatarResolver, mediaResolver: matrixService.mediaResolver),

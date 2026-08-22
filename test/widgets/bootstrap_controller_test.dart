@@ -46,7 +46,7 @@ void main() {
 
   BootstrapController createController({bool wipeExisting = false}) {
     return BootstrapController(
-      keyBackup: KeyBackupRepository(clientService: mockMatrixService.matrixClientService, chatBackup: mockMatrixService.chatBackup, keyMirror: mockMatrixService.keyMirror, uia: mockMatrixService.uia),
+      keyBackup: KeyBackupRepository(clientService: mockMatrixService.matrixClientService, chatBackup: mockMatrixService.chatBackup, uia: mockMatrixService.uia),
       wipeExisting: wipeExisting,
     );
   }

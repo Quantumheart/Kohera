@@ -50,7 +50,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
           ChangeNotifierProvider<UserRepository>(
-            create: (_) => UserRepository(clientService: mockMatrix.matrixClientService, presence: mockMatrix.presence),
+            create: (_) => UserRepository(clientService: mockMatrix.matrixClientService),
           ),
         ],
         child: const DevicesScreen(),

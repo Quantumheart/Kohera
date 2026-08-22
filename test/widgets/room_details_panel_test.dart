@@ -93,7 +93,7 @@ void main() {
           create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
         ),
         ChangeNotifierProvider<UserRepository>(
-          create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService, presence: mockMatrixService.presence),
+          create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService),
         ),
         ChangeNotifierProvider<MediaRepository>(
           create: (_) => MediaRepository(avatarResolver: mockMatrixService.avatarResolver, mediaResolver: mockMatrixService.mediaResolver),
@@ -253,7 +253,7 @@ void main() {
                 create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
               ),
               ChangeNotifierProvider<UserRepository>(
-                create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService, presence: mockMatrixService.presence),
+                create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService),
               ),
               ChangeNotifierProvider<MediaRepository>(
                 create: (_) => MediaRepository(avatarResolver: mockMatrixService.avatarResolver, mediaResolver: mockMatrixService.mediaResolver),
@@ -287,7 +287,7 @@ void main() {
                 create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
               ),
               ChangeNotifierProvider<UserRepository>(
-                create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService, presence: mockMatrixService.presence),
+                create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService),
               ),
               ChangeNotifierProvider<MediaRepository>(
                 create: (_) => MediaRepository(avatarResolver: mockMatrixService.avatarResolver, mediaResolver: mockMatrixService.mediaResolver),

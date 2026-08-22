@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
@@ -31,11 +32,14 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
     super.didChangeDependencies();
     if (!_created) {
       _created = true;
+      final matrix = context.read<MatrixService>();
       _controller = RoomDetailsController(
         roomId: widget.roomId,
         roomRepo: context.read<RoomRepository>(),
         userRepo: context.read<UserRepository>(),
         mediaRepo: context.read<MediaRepository>(),
+        presence: matrix.presence,
+        selection: matrix.selection,
       )..addListener(_onChanged);
       _controller.init();
     }

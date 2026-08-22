@@ -14,11 +14,10 @@ import 'package:flutter/src/material/scaffold.dart' as _i8;
 import 'package:flutter/src/material/snack_bar.dart' as _i16;
 import 'package:flutter/widgets.dart' as _i10;
 import 'package:http/http.dart' as _i5;
-import 'package:kohera/data/models/kohera_push_rule_state.dart' as _i24;
-import 'package:kohera/data/models/kohera_room_member.dart' as _i23;
-import 'package:kohera/data/models/kohera_room_permissions.dart' as _i22;
+import 'package:kohera/data/models/kohera_push_rule_state.dart' as _i23;
+import 'package:kohera/data/models/kohera_room_member.dart' as _i22;
+import 'package:kohera/data/models/kohera_room_permissions.dart' as _i21;
 import 'package:kohera/data/models/kohera_room_summary.dart' as _i20;
-import 'package:kohera/data/models/space_node.dart' as _i21;
 import 'package:kohera/data/repositories/room_repository.dart' as _i19;
 import 'package:matrix/encryption.dart' as _i15;
 import 'package:matrix/matrix.dart' as _i2;
@@ -9643,24 +9642,6 @@ class MockRoomRepository extends _i1.Mock implements _i19.RoomRepository {
           as List<_i20.KoheraRoomSummary>);
 
   @override
-  Set<String> get selectedSpaceIds =>
-      (super.noSuchMethod(
-            Invocation.getter(#selectedSpaceIds),
-            returnValue: <String>{},
-            returnValueForMissingStub: <String>{},
-          )
-          as Set<String>);
-
-  @override
-  List<_i21.SpaceNode> get spaceTree =>
-      (super.noSuchMethod(
-            Invocation.getter(#spaceTree),
-            returnValue: <_i21.SpaceNode>[],
-            returnValueForMissingStub: <_i21.SpaceNode>[],
-          )
-          as List<_i21.SpaceNode>);
-
-  @override
   _i6.Stream<_i2.SyncUpdate> get onSync =>
       (super.noSuchMethod(
             Invocation.getter(#onSync),
@@ -9717,46 +9698,22 @@ class MockRoomRepository extends _i1.Mock implements _i19.RoomRepository {
           as List<_i20.KoheraRoomSummary>);
 
   @override
-  _i22.KoheraRoomPermissions? permissionsFor(String? roomId) =>
+  _i21.KoheraRoomPermissions? permissionsFor(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#permissionsFor, [roomId]),
             returnValueForMissingStub: null,
           )
-          as _i22.KoheraRoomPermissions?);
+          as _i21.KoheraRoomPermissions?);
 
   @override
-  _i6.Future<_i23.KoheraRoomMemberList?> memberListFor(String? roomId) =>
+  _i6.Future<_i22.KoheraRoomMemberList?> memberListFor(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#memberListFor, [roomId]),
-            returnValue: _i6.Future<_i23.KoheraRoomMemberList?>.value(),
+            returnValue: _i6.Future<_i22.KoheraRoomMemberList?>.value(),
             returnValueForMissingStub:
-                _i6.Future<_i23.KoheraRoomMemberList?>.value(),
+                _i6.Future<_i22.KoheraRoomMemberList?>.value(),
           )
-          as _i6.Future<_i23.KoheraRoomMemberList?>);
-
-  @override
-  void selectSpace(String? spaceId) => super.noSuchMethod(
-    Invocation.method(#selectSpace, [spaceId]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void selectRoom(String? roomId) => super.noSuchMethod(
-    Invocation.method(#selectRoom, [roomId]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void toggleSpaceSelection(String? spaceId) => super.noSuchMethod(
-    Invocation.method(#toggleSpaceSelection, [spaceId]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void clearSpaceSelection() => super.noSuchMethod(
-    Invocation.method(#clearSpaceSelection, []),
-    returnValueForMissingStub: null,
-  );
+          as _i6.Future<_i22.KoheraRoomMemberList?>);
 
   @override
   _i6.Future<void> joinRoom(String? roomId) =>
@@ -9788,7 +9745,7 @@ class MockRoomRepository extends _i1.Mock implements _i19.RoomRepository {
   @override
   _i6.Future<void> setPushRuleState(
     String? roomId,
-    _i24.KoheraPushRuleState? state,
+    _i23.KoheraPushRuleState? state,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#setPushRuleState, [roomId, state]),
@@ -9942,13 +9899,13 @@ class MockRoomRepository extends _i1.Mock implements _i19.RoomRepository {
           as bool);
 
   @override
-  _i24.KoheraPushRuleState getRoomPushRuleState(String? roomId) =>
+  _i23.KoheraPushRuleState getRoomPushRuleState(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#getRoomPushRuleState, [roomId]),
-            returnValue: _i24.KoheraPushRuleState.notify,
-            returnValueForMissingStub: _i24.KoheraPushRuleState.notify,
+            returnValue: _i23.KoheraPushRuleState.notify,
+            returnValueForMissingStub: _i23.KoheraPushRuleState.notify,
           )
-          as _i24.KoheraPushRuleState);
+          as _i23.KoheraPushRuleState);
 
   @override
   _i6.Stream<void> powerLevelChangesFor(String? roomId) =>
