@@ -9,7 +9,6 @@ import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/core/services/sub_services/call_push_rule_manager.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/global_push_rule_manager.dart';
-import 'package:kohera/core/services/sub_services/megolm_key_mirror.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
@@ -96,7 +95,6 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       _accountSession.callPushRuleManager;
   GlobalPushRuleManager get globalPushRuleManager =>
       _accountSession.globalPushRuleManager;
-  MegolmKeyMirror get keyMirror => _accountSession.keyMirror;
 
   bool get isLoggedIn => auth.isLoggedIn;
 
@@ -207,7 +205,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       unawaited(chatBackup.loadDismissalState());
       unawaited(callPushRuleManager.ensureRule());
       unawaited(
-        keyMirror.start().catchError((Object e) {
+        _accountSession.keyBackupRepository.startKeyMirror().catchError((Object e) {
           debugPrint('[Kohera] Key mirror start failed: $e');
         }),
       );
@@ -225,7 +223,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       unawaited(_loginStateSub?.cancel());
       _loginStateSub = null;
       sync.cancelSyncSub();
-      unawaited(keyMirror.dispose());
+      unawaited(_accountSession.keyBackupRepository.stopKeyMirror());
       uia.clearCachedPassword();
       uia.cancelUiaSub();
       selection.resetSelection();

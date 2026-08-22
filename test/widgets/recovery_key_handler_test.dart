@@ -34,7 +34,7 @@ void main() {
     when(mockMatrixService.matrixClientService)
         .thenReturn(MatrixClientService(mockClient));
     handler = RecoveryKeyHandler(
-      keyBackup: KeyBackupRepository(clientService: mockMatrixService.matrixClientService, chatBackup: mockMatrixService.chatBackup, uia: mockMatrixService.uia),
+      keyBackup: KeyBackupRepository(clientService: mockMatrixService.matrixClientService, clientName: 'test', chatBackup: mockMatrixService.chatBackup, uia: mockMatrixService.uia),
     );
   });
 

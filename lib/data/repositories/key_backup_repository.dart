@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/core/services/sub_services/megolm_key_mirror.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/encryption.dart';
@@ -10,17 +11,25 @@ import 'package:matrix/matrix.dart';
 class KeyBackupRepository extends ChangeNotifier {
   KeyBackupRepository({
     required MatrixClientService clientService,
+    required String clientName,
     required ChatBackupService chatBackup,
     required UiaService uia,
+    MegolmKeyMirror? keyMirrorOverride,
   })  : _clientService = clientService,
         _chatBackup = chatBackup,
-        _uia = uia {
+        _uia = uia,
+        _keyMirror = keyMirrorOverride ??
+            MegolmKeyMirror(
+              matrixClientService: clientService,
+              clientName: clientName,
+            ) {
     _chatBackup.addListener(_onChatBackupChanged);
   }
 
   final MatrixClientService _clientService;
   final ChatBackupService _chatBackup;
   final UiaService _uia;
+  final MegolmKeyMirror _keyMirror;
   bool _disposed = false;
 
   Client get _client => _clientService.client;
@@ -28,6 +37,15 @@ class KeyBackupRepository extends ChangeNotifier {
   void _onChatBackupChanged() {
     if (!_disposed) notifyListeners();
   }
+
+  // ── Key mirror (iOS megolm key export for push decryption) ────
+
+  /// Starts mirroring megolm session keys to the shared App Group store so
+  /// the iOS notification extension can decrypt pushed events. No-op off iOS.
+  Future<void> startKeyMirror() => _keyMirror.start();
+
+  /// Tears down the key mirror (on logout); safe to call repeatedly.
+  Future<void> stopKeyMirror() => _keyMirror.dispose();
 
   // ── Recovery / backup operations ──────────────────────────────
 
@@ -121,6 +139,7 @@ class KeyBackupRepository extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _chatBackup.removeListener(_onChatBackupChanged);
+    unawaited(_keyMirror.dispose());
     super.dispose();
   }
 }
