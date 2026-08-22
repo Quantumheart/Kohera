@@ -267,7 +267,7 @@ void main() {
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
         ChangeNotifierProvider<AuthRepository>(
-          create: (_) => AuthRepository(clientService: matrixService.matrixClientService, auth: matrixService.auth, uia: matrixService.uia, chatBackup: matrixService.chatBackup),
+          create: (_) => AuthRepository(clientService: matrixService.matrixClientService, auth: matrixService.auth, chatBackup: matrixService.chatBackup),
         ),
       ],
       child: MaterialApp.router(

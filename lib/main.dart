@@ -25,13 +25,9 @@ import 'package:kohera/data/repositories/auth_repository.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
-import 'package:kohera/data/repositories/message_search_repository.dart';
-import 'package:kohera/data/repositories/outbox_repository.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
-import 'package:kohera/data/repositories/push_rule_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
-import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/auth/services/sso_web_init.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -397,7 +393,6 @@ ShareIntakeController? _shareIntake;
                   ChangeNotifierProvider<UserRepository>(
                     create: (ctx) => UserRepository(
                       clientService: ctx.read<MatrixService>().session.matrixClientService,
-                      presence: ctx.read<MatrixService>().session.presence,
                     ),
                   ),
                   ChangeNotifierProvider<MessageRepository>(
@@ -410,7 +405,6 @@ ShareIntakeController? _shareIntake;
                     create: (ctx) => AuthRepository(
                       clientService: ctx.read<MatrixService>().session.matrixClientService,
                       auth: ctx.read<MatrixService>().session.auth,
-                      uia: ctx.read<MatrixService>().session.uia,
                       chatBackup: ctx.read<MatrixService>().session.chatBackup,
                     ),
                   ),
@@ -418,7 +412,6 @@ ShareIntakeController? _shareIntake;
                     create: (ctx) => KeyBackupRepository(
                       clientService: ctx.read<MatrixService>().session.matrixClientService,
                       chatBackup: ctx.read<MatrixService>().session.chatBackup,
-                      keyMirror: ctx.read<MatrixService>().session.keyMirror,
                       uia: ctx.read<MatrixService>().session.uia,
                     ),
                   ),
@@ -433,27 +426,6 @@ ShareIntakeController? _shareIntake;
                       clientService: ctx.read<MatrixService>().session.matrixClientService,
                       selection: ctx.read<MatrixService>().session.selection,
                       spaceAccess: ctx.read<MatrixService>().session.spaceAccess,
-                    ),
-                  ),
-                  ChangeNotifierProvider<OutboxRepository>(
-                    create: (ctx) => OutboxRepository(
-                      outbox: ctx.read<MatrixService>().session.outbox,
-                    ),
-                  ),
-                  ChangeNotifierProvider<PushRuleRepository>(
-                    create: (ctx) => PushRuleRepository(
-                      callPushRuleManager: ctx.read<MatrixService>().session.callPushRuleManager,
-                      globalPushRuleManager: ctx.read<MatrixService>().session.globalPushRuleManager,
-                    ),
-                  ),
-                  ChangeNotifierProvider<StickerPackRepository>(
-                    create: (ctx) => StickerPackRepository(
-                      stickerPacks: ctx.read<MatrixService>().session.stickerPacks,
-                    ),
-                  ),
-                  ChangeNotifierProvider<MessageSearchRepository>(
-                    create: (ctx) => MessageSearchRepository(
-                      messageIndexer: ctx.read<MatrixService>().session.messageIndexer,
                     ),
                   ),
                 ],

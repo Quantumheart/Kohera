@@ -57,7 +57,7 @@ Future<void> showRoomMemberSheet(
         member.powerLevel < ownLevel &&
         !member.isBanned,
     avatarResolver: mediaRepo.avatarResolver,
-    presence: userRepo.presence,
+    presence: context.read<MatrixService>().presence,
     isIgnored: isIgnored,
     formatError: MatrixService.friendlyAuthError,
     onStartDm: isMe
@@ -72,7 +72,7 @@ Future<void> showRoomMemberSheet(
                   .timeout(const Duration(seconds: 30));
             }
             if (!context.mounted) return;
-            roomRepo.selectRoom(dmRoomId);
+            context.read<MatrixService>().selection.selectRoom(dmRoomId);
             context.goNamed(
               Routes.room,
               pathParameters: {RouteParams.roomId: dmRoomId},

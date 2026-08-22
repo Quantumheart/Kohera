@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/data/models/kohera_device.dart';
 import 'package:kohera/data/models/kohera_device_key.dart';
 import 'package:kohera/data/models/kohera_user_summary.dart';
@@ -13,14 +12,10 @@ import 'package:matrix/matrix.dart';
 import 'package:matrix/msc_extensions/msc_3814_dehydrated_devices/api.dart';
 
 class UserRepository extends ChangeNotifier {
-  UserRepository({
-    required MatrixClientService clientService,
-    required PresenceService presence,
-  })  : _clientService = clientService,
-        _presence = presence;
+  UserRepository({required MatrixClientService clientService})
+      : _clientService = clientService;
 
   final MatrixClientService _clientService;
-  final PresenceService _presence;
   bool _disposed = false;
 
   Client get _client => _clientService.client;
@@ -297,10 +292,6 @@ class UserRepository extends ChangeNotifier {
   // ── Sync stream ──────────────────────────────────────────────
 
   Stream<SyncUpdate> get onSync => _client.onSync.stream;
-
-  // ── Presence ─────────────────────────────────────────────────
-
-  PresenceService get presence => _presence;
 
   // ── Helpers ──────────────────────────────────────────────────
 

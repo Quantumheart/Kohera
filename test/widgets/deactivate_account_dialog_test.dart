@@ -75,7 +75,7 @@ void main() {
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
           ChangeNotifierProvider<ClientManager>.value(value: mockManager),
           ChangeNotifierProvider<UserRepository>(
-            create: (_) => UserRepository(clientService: mockMatrix.matrixClientService, presence: mockMatrix.presence),
+            create: (_) => UserRepository(clientService: mockMatrix.matrixClientService),
           ),
         ],
         child: child,

@@ -105,7 +105,7 @@ void main() {
                 CallService(client: ctx.read<MatrixService>().matrixClientService.client),),
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
         ChangeNotifierProvider<AuthRepository>(
-          create: (_) => AuthRepository(clientService: matrixService.matrixClientService, auth: matrixService.auth, uia: matrixService.uia, chatBackup: matrixService.chatBackup),
+          create: (_) => AuthRepository(clientService: matrixService.matrixClientService, auth: matrixService.auth, chatBackup: matrixService.chatBackup),
         ),
       ],
       child: MaterialApp(

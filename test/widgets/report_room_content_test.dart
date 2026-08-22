@@ -25,7 +25,7 @@ void main() {
     when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
     when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     roomRepo = RoomRepository(clientService: matrix.matrixClientService, selection: matrix.selection);
-    userRepo = UserRepository(clientService: matrix.matrixClientService, presence: matrix.presence);
+    userRepo = UserRepository(clientService: matrix.matrixClientService);
   });
 
   testWidgets('reports the room lastEvent with the entered reason', (

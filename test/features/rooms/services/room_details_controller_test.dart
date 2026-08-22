@@ -91,7 +91,7 @@ void main() {
     when(mockClient.updateUserDeviceKeys()).thenAnswer((_) async {});
 
     roomRepo = RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection);
-    userRepo = UserRepository(clientService: mockMatrix.matrixClientService, presence: mockMatrix.presence);
+    userRepo = UserRepository(clientService: mockMatrix.matrixClientService);
     mediaRepo = MediaRepository(avatarResolver: mockMatrix.avatarResolver, mediaResolver: mockMatrix.mediaResolver);
   });
 
@@ -102,6 +102,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       expect(ctrl.hasRoom, isTrue);
@@ -115,6 +117,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       expect(ctrl.hasRoom, isFalse);
@@ -127,6 +131,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       expect(ctrl.summary, isNotNull);
@@ -140,6 +146,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       expect(ctrl.encrypted, isFalse);
@@ -152,6 +160,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       expect(ctrl.isFavourite, isFalse);
@@ -165,6 +175,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       expect(ctrl.isMuted, isTrue);
@@ -177,6 +189,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       expect(ctrl.pushRuleState, KoheraPushRuleState.notify);
@@ -189,6 +203,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       expect(ctrl.canBan, isFalse);
@@ -204,6 +220,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       // Don't call init — room is null
       expect(ctrl.hasRoom, isFalse);
@@ -226,6 +244,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       await ctrl.toggleMute();
@@ -240,6 +260,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       await ctrl.toggleMute();
@@ -253,6 +275,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       await ctrl.setPushRule(KoheraPushRuleState.mentionsOnly);
@@ -266,6 +290,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       await ctrl.invite('@user:example.com');
@@ -279,6 +305,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       await ctrl.setName('New Name');
@@ -292,6 +320,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       await ctrl.setDescription('New topic');
@@ -305,6 +335,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       await ctrl.enableEncryption();
@@ -318,6 +350,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       await ctrl.leave();
@@ -333,6 +367,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       await ctrl.toggleFavourite();
@@ -349,6 +385,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       var notified = false;
       ctrl.addListener(() => notified = true);
@@ -364,6 +402,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       expect(ctrl.hasRoom, isFalse);
@@ -382,6 +422,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       ctrl.dispose();
@@ -396,6 +438,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       expect(ctrl.pushRuleState, KoheraPushRuleState.notify);
@@ -409,6 +453,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       expect(ctrl.pushRuleState, KoheraPushRuleState.dontNotify);
@@ -422,6 +468,8 @@ void main() {
         roomRepo: roomRepo,
         userRepo: userRepo,
         mediaRepo: mediaRepo,
+        presence: mockPresence,
+        selection: mockSelection,
       );
       ctrl.init();
       expect(ctrl.pushRuleState, KoheraPushRuleState.mentionsOnly);

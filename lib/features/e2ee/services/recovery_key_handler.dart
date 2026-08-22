@@ -56,7 +56,7 @@ class RecoveryKeyHandler {
   }
 
   Future<void> loadStoredKey() async {
-    final storedKey = await keyBackup.chatBackup.getStoredRecoveryKey();
+    final storedKey = await keyBackup.getStoredRecoveryKey();
     if (storedKey != null) {
       _storedRecoveryKey = storedKey;
     }
@@ -89,7 +89,7 @@ class RecoveryKeyHandler {
 
       _recoveryKeyError = null;
       if (_saveToDevice) {
-        await keyBackup.chatBackup.storeRecoveryKey(key);
+        await keyBackup.storeRecoveryKey(key);
       }
 
       try {
@@ -112,7 +112,7 @@ class RecoveryKeyHandler {
 
   Future<void> storeIfNeeded() async {
     if (_saveToDevice && _newRecoveryKey != null) {
-      await keyBackup.chatBackup.storeRecoveryKey(_newRecoveryKey!);
+      await keyBackup.storeRecoveryKey(_newRecoveryKey!);
     }
   }
 

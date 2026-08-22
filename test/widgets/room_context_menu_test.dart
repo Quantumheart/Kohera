@@ -73,7 +73,7 @@ void main() {
           create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
         ),
         ChangeNotifierProvider<UserRepository>(
-          create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService, presence: mockMatrixService.presence),
+          create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService),
         ),
       ],
       child: MaterialApp(

@@ -30,7 +30,7 @@ void main() {
       storage: mockStorage,
       clientName: 'test',
     );
-    repo = UserRepository(clientService: service.matrixClientService, presence: service.presence);
+    repo = UserRepository(clientService: service.matrixClientService);
   });
 
   group('userId', () {
@@ -70,12 +70,6 @@ void main() {
     test('returns client ignoredUsers', () {
       when(mockClient.ignoredUsers).thenReturn(['@spammer:example.com']);
       expect(repo.ignoredUsers, ['@spammer:example.com']);
-    });
-  });
-
-  group('presence', () {
-    test('returns MatrixService presence', () {
-      expect(repo.presence, isNotNull);
     });
   });
 

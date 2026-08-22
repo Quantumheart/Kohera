@@ -33,7 +33,7 @@ void main() {
       return cb(null);
     });
 
-    repo = UserRepository(clientService: mockMatrix.matrixClientService, presence: mockMatrix.presence);
+    repo = UserRepository(clientService: mockMatrix.matrixClientService);
   });
 
   group('UserRepository.deactivateAccount', () {

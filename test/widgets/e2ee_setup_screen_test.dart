@@ -43,7 +43,7 @@ void main() {
             value: mockChatBackup,
           ),
           ChangeNotifierProvider<KeyBackupRepository>(
-            create: (_) => KeyBackupRepository(clientService: mockMatrixService.matrixClientService, chatBackup: mockMatrixService.chatBackup, keyMirror: mockMatrixService.keyMirror, uia: mockMatrixService.uia),
+            create: (_) => KeyBackupRepository(clientService: mockMatrixService.matrixClientService, chatBackup: mockMatrixService.chatBackup, uia: mockMatrixService.uia),
           ),
         ],
         child: const MaterialApp(

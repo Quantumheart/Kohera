@@ -73,7 +73,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
           ChangeNotifierProvider<KeyBackupRepository>(
-            create: (_) => KeyBackupRepository(clientService: mockMatrix.matrixClientService, chatBackup: mockMatrix.chatBackup, keyMirror: mockMatrix.keyMirror, uia: mockMatrix.uia),
+            create: (_) => KeyBackupRepository(clientService: mockMatrix.matrixClientService, chatBackup: mockMatrix.chatBackup, uia: mockMatrix.uia),
           ),
         ],
         child: VerificationRequestListener(
