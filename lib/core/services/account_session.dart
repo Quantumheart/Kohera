@@ -7,14 +7,13 @@ import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/core/services/sub_services/call_push_rule_manager.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/global_push_rule_manager.dart';
-import 'package:kohera/core/services/sub_services/outbox_connectivity.dart';
-import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
+import 'package:kohera/data/repositories/outbox_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
@@ -38,7 +37,6 @@ class AccountSession {
   late final PresenceService presence;
   late final SyncService sync;
   late final AuthService auth;
-  late final OutboxService outbox;
   late final AvatarResolver avatarResolver;
   late final MediaResolver mediaResolver;
   late final StickerPackService stickerPacks;
@@ -48,6 +46,7 @@ class AccountSession {
   late final MessageRepository messageRepository;
   late final KeyBackupRepository keyBackupRepository;
   late final UserRepository userRepository;
+  late final OutboxRepository outboxRepository;
 
   final String clientName;
 
@@ -100,11 +99,6 @@ class AccountSession {
     globalPushRuleManager = GlobalPushRuleManager(
       matrixClientService: matrixClientService,
     );
-    outbox = OutboxService(
-      matrixClientService: _matrixClientService,
-      clientName: clientName,
-      connectivity: RealOutboxConnectivity(),
-    );
     stickerPacks = StickerPackService(
       matrixClientService: _matrixClientService,
     );
@@ -124,6 +118,10 @@ class AccountSession {
       clientService: _matrixClientService,
       presenceOverride: presence,
     );
+    outboxRepository = OutboxRepository(
+      clientService: _matrixClientService,
+      clientName: clientName,
+    );
   }
 
   void dispose() {
@@ -131,7 +129,7 @@ class AccountSession {
     messageRepository.dispose();
     keyBackupRepository.dispose();
     userRepository.dispose();
-    outbox.dispose();
+    outboxRepository.dispose();
     uia.dispose();
     selection.dispose();
     presence.dispose();

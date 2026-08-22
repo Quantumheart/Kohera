@@ -14,7 +14,6 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
-import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/web_shell_sync.dart';
 import 'package:kohera/core/theme/kohera_theme.dart';
@@ -25,6 +24,7 @@ import 'package:kohera/data/repositories/auth_repository.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
+import 'package:kohera/data/repositories/outbox_repository.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
@@ -334,8 +334,8 @@ ShareIntakeController? _shareIntake;
                   ChangeNotifierProvider<ChatBackupService>.value(
                     value: matrix.chatBackup,
                   ),
-                  ChangeNotifierProvider<OutboxService>.value(
-                    value: matrix.outbox,
+                  ChangeNotifierProvider<OutboxRepository>.value(
+                    value: matrix.session.outboxRepository,
                   ),
                   ChangeNotifierProvider<StickerPackService>.value(
                     value: matrix.stickerPacks,
