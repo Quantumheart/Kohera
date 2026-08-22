@@ -9,7 +9,6 @@ import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/core/services/sub_services/call_push_rule_manager.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/global_push_rule_manager.dart';
-import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
@@ -83,7 +82,6 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   SelectionService get selection => _accountSession.selection;
   SyncService get sync => _accountSession.sync;
   AuthService get auth => _accountSession.auth;
-  OutboxService get outbox => _accountSession.outbox;
   AvatarResolver get avatarResolver => _accountSession.avatarResolver;
   MediaResolver get mediaResolver => _accountSession.mediaResolver;
   StickerPackService get stickerPacks => _accountSession.stickerPacks;
@@ -206,7 +204,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         }),
       );
       unawaited(
-        outbox.start().catchError((Object e) {
+        _accountSession.outboxRepository.start().catchError((Object e) {
           debugPrint('[Kohera] Outbox start failed: $e');
         }),
       );

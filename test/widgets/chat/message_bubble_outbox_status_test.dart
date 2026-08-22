@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/data/models/kohera_message_status.dart';
+import 'package:kohera/data/repositories/outbox_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_outbox_status.dart';
@@ -29,6 +30,16 @@ class _StubOutbox extends OutboxService {
   Future<void> start() async {}
 }
 
+OutboxRepository _repo(
+  Map<String, OutboxEntryView> entries,
+  MockClient client,
+) =>
+    OutboxRepository(
+      clientService: MatrixClientService(client),
+      clientName: 'test',
+      outboxOverride: _StubOutbox(entries, client),
+    );
+
 OutboxEntryView _entry({
   required String txid,
   int attempts = 0,
@@ -43,14 +54,14 @@ OutboxEntryView _entry({
     );
 
 Widget _harness({
-  required OutboxService outbox,
+  required OutboxRepository outbox,
   required KoheraMessageStatus status,
   String? txid,
   String eventId = r'$evt',
 }) {
   return MaterialApp(
     theme: ThemeData(splashFactory: InkRipple.splashFactory),
-    home: ChangeNotifierProvider<OutboxService>.value(
+    home: ChangeNotifierProvider<OutboxRepository>.value(
       value: outbox,
       child: Scaffold(
         body: Center(
@@ -76,7 +87,7 @@ void main() {
   });
 
   testWidgets('synced event shows done_all icon', (tester) async {
-    final outbox = _StubOutbox({}, client);
+    final outbox = _repo({}, client);
     await tester.pumpWidget(
       _harness(
         outbox: outbox,
@@ -88,7 +99,7 @@ void main() {
 
   testWidgets('sending event with no outbox entry shows schedule',
       (tester) async {
-    final outbox = _StubOutbox({}, client);
+    final outbox = _repo({}, client);
     await tester.pumpWidget(
       _harness(
         outbox: outbox,
@@ -100,7 +111,7 @@ void main() {
   });
 
   testWidgets('retrying entry shows schedule with tooltip', (tester) async {
-    final outbox = _StubOutbox(
+    final outbox = _repo(
       {'tx': _entry(txid: 'tx', attempts: 2)},
       client,
     );
@@ -117,7 +128,7 @@ void main() {
 
   testWidgets('final-failed entry shows error_outline indicator',
       (tester) async {
-    final outbox = _StubOutbox(
+    final outbox = _repo(
       {'tx': _entry(txid: 'tx', attempts: 8, failed: true)},
       client,
     );

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/data/models/kohera_message_status.dart';
+import 'package:kohera/data/repositories/outbox_repository.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:provider/provider.dart';
 
@@ -25,9 +25,9 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = KoheraPalette.of(context);
     final onBubble = palette.onOwnBubble;
-    OutboxService? outbox;
+    OutboxRepository? outbox;
     try {
-      outbox = context.watch<OutboxService>();
+      outbox = context.watch<OutboxRepository>();
     } on ProviderNotFoundException {
       outbox = null;
     }
@@ -83,7 +83,7 @@ class MessageBubbleOutboxStatus extends StatelessWidget {
     }
   }
 
-  OutboxEntryView? _lookup(OutboxService outbox) {
+  OutboxEntryView? _lookup(OutboxRepository outbox) {
     final entries = outbox.entries;
     if (transactionId != null && entries.containsKey(transactionId)) {
       return entries[transactionId];
