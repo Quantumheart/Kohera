@@ -60,7 +60,7 @@ void main() {
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
         ChangeNotifierProvider<SpaceRepository>(
-          create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection, spaceAccess: mockMatrixService.spaceAccess),
+          create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
         ),
         ChangeNotifierProvider<RoomRepository>(
           create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
@@ -296,7 +296,7 @@ void main() {
                 ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
                 ChangeNotifierProvider<SelectionService>.value(value: selectionService),
                 ChangeNotifierProvider<SpaceRepository>(
-                  create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection, spaceAccess: mockMatrixService.spaceAccess),
+                  create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
                 ),
                 ChangeNotifierProvider<RoomRepository>(
                   create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),

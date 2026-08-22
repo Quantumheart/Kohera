@@ -163,7 +163,7 @@ void main() {
           create: (_) => RoomRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
         ),
         ChangeNotifierProvider<SpaceRepository>(
-          create: (_) => SpaceRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection, spaceAccess: matrixService.spaceAccess),
+          create: (_) => SpaceRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
         ),
       ],
       child: MaterialApp.router(

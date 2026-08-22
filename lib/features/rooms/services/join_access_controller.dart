@@ -5,9 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
 import 'package:provider/provider.dart';
 
@@ -47,7 +47,7 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
   StreamSubscription<dynamic>? _syncSub;
   bool _userDirty = false;
 
-  SpaceAccessService get _service => context.read<MatrixService>().spaceAccess;
+  SpaceRepository get _service => context.read<SpaceRepository>();
   RoomRepository get _rooms => context.read<RoomRepository>();
 
   @override

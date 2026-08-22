@@ -204,7 +204,6 @@ void main() {
       selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
       when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
       when(mockMatrixService.selection).thenReturn(selectionService);
-      when(mockMatrixService.spaceAccess).thenReturn(mockAccess);
       when(mockParentSpace.id).thenReturn('!parent:example.com');
       when(mockClient.getRoomById('!parent:example.com'))
           .thenReturn(mockParentSpace);
@@ -222,7 +221,7 @@ void main() {
       ).thenAnswer((_) async => '!subspace:example.com');
       when(mockClient.waitForRoomInSync(any, join: anyNamed('join')))
           .thenAnswer((_) async => SyncUpdate(nextBatch: ''));
-      spaceRepo = SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection, spaceAccess: mockMatrixService.spaceAccess);
+      spaceRepo = SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection, spaceAccessOverride: mockAccess);
     });
 
     test('calls createRoom and setSpaceChild', () async {
@@ -304,15 +303,20 @@ void main() {
 
   group('loadSubspaceCapabilities', () {
     late MockClient mockClient;
-    late MockMatrixService mockMatrixService;
     late MockSpaceAccessService mockAccess;
+    late SpaceRepository spaceRepo;
 
     setUp(() {
       mockClient = MockClient();
-      mockMatrixService = MockMatrixService();
       mockAccess = MockSpaceAccessService();
-      when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
-      when(mockMatrixService.spaceAccess).thenReturn(mockAccess);
+      when(mockClient.rooms).thenReturn([]);
+      when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+      final clientService = MatrixClientService(mockClient);
+      spaceRepo = SpaceRepository(
+        clientService: clientService,
+        selection: SelectionService(matrixClientService: clientService),
+        spaceAccessOverride: mockAccess,
+      );
     });
 
     test('reports restricted unavailable when server lacks knock support',
@@ -323,7 +327,7 @@ void main() {
         ),
       ).thenAnswer((_) async => null);
 
-      final caps = await loadSubspaceCapabilities(mockMatrixService);
+      final caps = await loadSubspaceCapabilities(spaceRepo);
 
       expect(caps.restrictedRoomVersion, isNull);
       expect(caps.disabledModes[JoinMode.knockRestricted], isNotNull);
@@ -335,7 +339,7 @@ void main() {
       when(mockAccess.pickRestrictedRoomVersion(wantKnock: false))
           .thenAnswer((_) async => '10');
 
-      final caps = await loadSubspaceCapabilities(mockMatrixService);
+      final caps = await loadSubspaceCapabilities(spaceRepo);
 
       expect(caps.restrictedRoomVersion, '10');
       expect(caps.disabledModes, isEmpty);

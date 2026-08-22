@@ -13,10 +13,11 @@ class SpaceRepository extends ChangeNotifier {
   SpaceRepository({
     required MatrixClientService clientService,
     required SelectionService selection,
-    required SpaceAccessService spaceAccess,
+    SpaceAccessService? spaceAccessOverride,
   })  : _clientService = clientService,
         _selection = selection,
-        _spaceAccess = spaceAccess;
+        _spaceAccess = spaceAccessOverride ??
+            SpaceAccessService(matrixClientService: clientService);
 
   final MatrixClientService _clientService;
   final SelectionService _selection;
@@ -48,6 +49,62 @@ class SpaceRepository extends ChangeNotifier {
     if (space == null) return '';
     return _selection.summaryFor(space).displayname;
   }
+
+  // ── Join access ────────────────────────────────────────────
+
+  /// The join mode of [room] (public/knock/restricted/invite).
+  JoinMode getJoinMode(Room room) => _spaceAccess.getJoinMode(room);
+
+  /// The space IDs allowed to join [room] under a restricted rule.
+  List<String> allowedSpaceIds(Room room) =>
+      _spaceAccess.allowedSpaceIds(room);
+
+  /// Whether [room] needs a version upgrade for a restricted join rule.
+  bool needsUpgradeForRestricted(Room room, {required bool wantKnock}) =>
+      _spaceAccess.needsUpgradeForRestricted(room, wantKnock: wantKnock);
+
+  /// Applies a join [mode] to [roomId], scoped to [allowSpaceIds].
+  Future<void> applyJoinMode({
+    required String roomId,
+    required JoinMode mode,
+    List<String> allowSpaceIds = const [],
+  }) =>
+      _spaceAccess.applyJoinMode(
+        roomId: roomId,
+        mode: mode,
+        allowSpaceIds: allowSpaceIds,
+      );
+
+  /// Picks the highest server room version supporting restricted joins.
+  Future<String?> pickRestrictedRoomVersion({required bool wantKnock}) =>
+      _spaceAccess.pickRestrictedRoomVersion(wantKnock: wantKnock);
+
+  /// Upgrades [room] to [newVersion], returning the replacement room ID.
+  Future<String> upgradeRoomTo(Room room, String newVersion) =>
+      _spaceAccess.upgradeRoomTo(room, newVersion);
+
+  /// Rewires [parents] to point at [newRoomId] in place of [oldRoomId].
+  Future<void> rewireParentSpaces({
+    required String oldRoomId,
+    required String newRoomId,
+    required List<Room> parents,
+  }) =>
+      _spaceAccess.rewireParentSpaces(
+        oldRoomId: oldRoomId,
+        newRoomId: newRoomId,
+        parents: parents,
+      );
+
+  /// Builds an `m.room.join_rules` state event for [mode].
+  StateEvent buildJoinRulesStateEvent(
+    JoinMode mode,
+    List<String> allowSpaceIds,
+  ) =>
+      _spaceAccess.buildJoinRulesStateEvent(mode, allowSpaceIds);
+
+  /// All room versions advertised by the server.
+  Future<List<String>> serverSupportedRoomVersions() =>
+      _spaceAccess.serverSupportedRoomVersions();
 
   // ── Permissions ────────────────────────────────────────────
 

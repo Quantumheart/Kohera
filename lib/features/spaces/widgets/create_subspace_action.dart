@@ -1,5 +1,4 @@
 import 'package:kohera/core/models/join_mode.dart';
-import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_dialog.dart';
 
@@ -8,9 +7,8 @@ import 'package:kohera/features/spaces/widgets/create_subspace_dialog.dart';
 /// Parent-side code: calls `SpaceAccessService` to determine whether the
 /// server supports restricted join rules and which room version to use.
 Future<SubspaceCapabilities> loadSubspaceCapabilities(
-  MatrixService matrix,
+  SpaceRepository access,
 ) async {
-  final access = matrix.spaceAccess;
   final knockVersion =
       await access.pickRestrictedRoomVersion(wantKnock: true);
   final basicVersion =

@@ -7,6 +7,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
@@ -133,6 +134,9 @@ void main() {
         ChangeNotifierProvider<RoomRepository>(
           create: (_) => RoomRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
         ),
+        ChangeNotifierProvider<SpaceRepository>(
+          create: (_) => SpaceRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
+        ),
       ],
       child: MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
@@ -174,6 +178,9 @@ void main() {
         ),
         ChangeNotifierProvider<RoomRepository>(
           create: (_) => RoomRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
+        ),
+        ChangeNotifierProvider<SpaceRepository>(
+          create: (_) => SpaceRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
         ),
         ChangeNotifierProvider<UserRepository>(
           create: (_) => UserRepository(clientService: matrixService.matrixClientService),
@@ -386,6 +393,9 @@ void main() {
             ChangeNotifierProvider<MatrixService>.value(value: matrixService),
             ChangeNotifierProvider<RoomRepository>(
               create: (_) => RoomRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
+            ),
+            ChangeNotifierProvider<SpaceRepository>(
+              create: (_) => SpaceRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
             ),
           ],
           child: MaterialApp(
