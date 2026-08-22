@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' show DateTimeRange;
-import 'package:kohera/data/services/message_indexer_service.dart';
+import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/features/chat/models/room_search_result.dart';
 import 'package:kohera/features/chat/services/room_search_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,12 +12,12 @@ class ChatSearchController extends ChangeNotifier {
   ChatSearchController({
     required this.roomId,
     required this.searchService,
-    this.messageIndexer,
+    this.messageRepository,
   });
 
   final String roomId;
   final RoomSearchService searchService;
-  final MessageIndexerService? messageIndexer;
+  final MessageRepository? messageRepository;
 
   // ── Constants ──────────────────────────────────────────────
   static const searchBatchLimit = 50;
@@ -94,7 +94,7 @@ class ChatSearchController extends ChangeNotifier {
 
   void open() {
     _isSearching = true;
-    messageIndexer?.addListener(_onIndexerChanged);
+    messageRepository?.addListener(_onIndexerChanged);
     _updateIndexingState();
     _results = [];
     _nextBatch = null;
@@ -113,7 +113,7 @@ class ChatSearchController extends ChangeNotifier {
   }
 
   void close() {
-    messageIndexer?.removeListener(_onIndexerChanged);
+    messageRepository?.removeListener(_onIndexerChanged);
     _debounceTimer?.cancel();
     _highlightTimer?.cancel();
     _highlightedEventId = null;
@@ -249,7 +249,7 @@ class ChatSearchController extends ChangeNotifier {
   }
 
   void _updateIndexingState() {
-    final indexer = messageIndexer;
+    final indexer = messageRepository;
     if (indexer == null) return;
     final wasIndexing = _isIndexingRoom;
     _isIndexingRoom = indexer.isIndexing &&

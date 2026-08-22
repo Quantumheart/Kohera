@@ -6,6 +6,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -98,6 +99,7 @@ void main() {
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
         ChangeNotifierProvider<RoomRepository>.value(value: mockRoomRepository),
+        ChangeNotifierProvider<MessageRepository>(create: (_) => MessageRepository(clientService: mockMatrix.matrixClientService, clientName: 'test')),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
