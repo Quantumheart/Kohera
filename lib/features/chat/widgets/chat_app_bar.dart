@@ -7,9 +7,9 @@ import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/calling/models/incoming_call_info.dart'
     as model;
 import 'package:kohera/features/calling/services/call_navigator.dart';
@@ -53,7 +53,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
         onBack ?? (isNarrow ? () => context.popOrGo(Routes.home) : null);
     final dmUserId = summary.dmUserId;
     final presence =
-        dmUserId != null ? context.read<MatrixService>().presence : null;
+        dmUserId != null ? context.read<UserRepository>() : null;
     final pinnedCount = summary.pinnedEventIds.length;
 
     return AppBar(
@@ -225,7 +225,7 @@ class _HeaderSubtitle extends StatelessWidget {
   final String roomId;
   final int summaryMemberCount;
   final TextStyle? style;
-  final PresenceService? presence;
+  final UserRepository? presence;
   final String? userId;
 
   @override

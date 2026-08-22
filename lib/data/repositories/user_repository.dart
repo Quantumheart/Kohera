@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/data/models/kohera_device.dart';
 import 'package:kohera/data/models/kohera_device_key.dart';
 import 'package:kohera/data/models/kohera_user_summary.dart';
@@ -12,13 +13,46 @@ import 'package:matrix/matrix.dart';
 import 'package:matrix/msc_extensions/msc_3814_dehydrated_devices/api.dart';
 
 class UserRepository extends ChangeNotifier {
-  UserRepository({required MatrixClientService clientService})
-      : _clientService = clientService;
+  UserRepository({
+    required MatrixClientService clientService,
+    PresenceService? presenceOverride,
+  })  : _clientService = clientService,
+        _presenceOverride = presenceOverride,
+        _ownsPresence = presenceOverride == null;
 
   final MatrixClientService _clientService;
+  final PresenceService? _presenceOverride;
+  final bool _ownsPresence;
+  PresenceService? _presence;
   bool _disposed = false;
 
   Client get _client => _clientService.client;
+
+  void _onPresenceChanged() {
+    if (!_disposed) notifyListeners();
+  }
+
+  // ── Presence ─────────────────────────────────────────────────
+
+  /// Lazily binds the presence source and re-broadcasts its changes. In the
+  /// app the [AccountSession] presence node is passed in and already syncing;
+  /// standalone construction defers creation until presence is first read.
+  PresenceService _ensurePresence() {
+    final existing = _presence;
+    if (existing != null) return existing;
+    final presence = _presenceOverride ??
+        PresenceService(matrixClientService: _clientService);
+    presence.addListener(_onPresenceChanged);
+    return _presence = presence;
+  }
+
+  /// The cached presence for [userId], or null when unknown.
+  CachedPresence? presenceFor(String userId) =>
+      _ensurePresence().presenceFor(userId);
+
+  /// A human-readable presence line for [userId], or null when unknown.
+  String? presenceLabel(String userId) =>
+      _ensurePresence().presenceLabel(userId);
 
   // ── Domain model: user identity ──────────────────────────────
 
@@ -319,6 +353,11 @@ class UserRepository extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    final presence = _presence;
+    if (presence != null) {
+      presence.removeListener(_onPresenceChanged);
+      if (_ownsPresence) presence.dispose();
+    }
     super.dispose();
   }
 }

@@ -4,9 +4,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
-import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/rooms/models/room_role.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
@@ -27,7 +27,7 @@ Future<void> showMemberSheetDialog(
   required bool canKick,
   required bool canBan,
   required AvatarResolver avatarResolver,
-  required PresenceService presence,
+  required UserRepository presence,
   bool isIgnored = false,
   Future<void> Function()? onStartDm,
   Future<void> Function(int newLevel)? onRoleChange,
@@ -93,7 +93,7 @@ class MemberSheetDialog extends StatefulWidget {
   final bool canKick;
   final bool canBan;
   final AvatarResolver avatarResolver;
-  final PresenceService presence;
+  final UserRepository presence;
   final bool isIgnored;
   final Future<void> Function()? onStartDm;
   final Future<void> Function(int newLevel)? onRoleChange;

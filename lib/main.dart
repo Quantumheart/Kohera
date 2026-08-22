@@ -390,10 +390,8 @@ ShareIntakeController? _shareIntake;
                       selection: ctx.read<MatrixService>().session.selection,
                     ),
                   ),
-                  ChangeNotifierProvider<UserRepository>(
-                    create: (ctx) => UserRepository(
-                      clientService: ctx.read<MatrixService>().session.matrixClientService,
-                    ),
+                  ChangeNotifierProvider<UserRepository>.value(
+                    value: matrix.session.userRepository,
                   ),
                   ChangeNotifierProvider<MessageRepository>.value(
                     value: matrix.session.messageRepository,

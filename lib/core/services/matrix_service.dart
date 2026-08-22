@@ -10,7 +10,6 @@ import 'package:kohera/core/services/sub_services/call_push_rule_manager.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/global_push_rule_manager.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
-import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
@@ -82,7 +81,6 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   UiaService get uia => _accountSession.uia;
   ChatBackupService get chatBackup => _accountSession.chatBackup;
   SelectionService get selection => _accountSession.selection;
-  PresenceService get presence => _accountSession.presence;
   SyncService get sync => _accountSession.sync;
   AuthService get auth => _accountSession.auth;
   OutboxService get outbox => _accountSession.outbox;
@@ -160,19 +158,19 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         _pauseDebounce = null;
         sync.resume();
         _startForegroundSync();
-        presence.setOnline();
+        _accountSession.presence.setOnline();
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:
         _pauseDebounce?.cancel();
         _pauseDebounce = Timer(const Duration(seconds: 3), () {
           unawaited(sync.pause());
         });
-        presence.setAway();
+        _accountSession.presence.setAway();
       case AppLifecycleState.detached:
         _pauseDebounce?.cancel();
         _pauseDebounce = null;
         unawaited(sync.pause());
-        presence.setOffline();
+        _accountSession.presence.setOffline();
       case AppLifecycleState.inactive:
         break;
     }
@@ -282,6 +280,6 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
         }
       }),
     );
-    presence.setOnline();
+    _accountSession.presence.setOnline();
   }
 }

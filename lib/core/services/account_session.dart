@@ -15,6 +15,7 @@ import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
@@ -46,6 +47,7 @@ class AccountSession {
 
   late final MessageRepository messageRepository;
   late final KeyBackupRepository keyBackupRepository;
+  late final UserRepository userRepository;
 
   final String clientName;
 
@@ -118,12 +120,17 @@ class AccountSession {
       chatBackup: chatBackup,
       uia: uia,
     );
+    userRepository = UserRepository(
+      clientService: _matrixClientService,
+      presenceOverride: presence,
+    );
   }
 
   void dispose() {
     _disposed = true;
     messageRepository.dispose();
     keyBackupRepository.dispose();
+    userRepository.dispose();
     outbox.dispose();
     uia.dispose();
     selection.dispose();

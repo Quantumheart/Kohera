@@ -7,7 +7,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
-import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
@@ -55,7 +54,7 @@ class _FakeAvatarResolver implements AvatarResolver {
   }) async => null;
 }
 
-class _FakePresence implements PresenceService {
+class _FakePresence implements UserRepository {
   @override
   dynamic noSuchMethod(Invocation invocation) => null;
 }
@@ -330,7 +329,6 @@ void main() {
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrix.selection).thenReturn(selectionService);
     when(mockMatrix.avatarResolver).thenReturn(const _FakeAvatarResolver());
-    when(mockMatrix.presence).thenReturn(PresenceService(matrixClientService: MatrixClientService(mockClient)));
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
     when(mockClient.userID).thenReturn('@me:example.com');
     when(mockMatrix.userID).thenReturn('@me:example.com');

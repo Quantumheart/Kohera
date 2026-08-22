@@ -7,6 +7,7 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/models/kohera_user_summary.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 @GenerateNiceMocks([
   MockSpec<Room>(),
   MockSpec<Client>(),
@@ -76,6 +77,7 @@ void main() {
   late MockClient mockClient;
   late MockCallService mockCallService;
   late PreferencesService prefs;
+  late UserRepository userRepo;
   String? lastNavigatedRoom;
 
   setUp(() async {
@@ -93,7 +95,10 @@ void main() {
     when(mockClient.userID).thenReturn('@me:example.com');
     when(mockMatrix.userID).thenReturn('@me:example.com');
     when(mockClient.onPresenceChanged).thenReturn(CachedStreamController<CachedPresence>());
-    when(mockMatrix.presence).thenReturn(PresenceService(matrixClientService: MatrixClientService(mockClient)));
+    userRepo = UserRepository(
+      clientService: MatrixClientService(mockClient),
+      presenceOverride: PresenceService(matrixClientService: MatrixClientService(mockClient)),
+    );
 
     when(mockRoom.id).thenReturn('!room:example.com');
     when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
@@ -152,6 +157,7 @@ void main() {
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
         ChangeNotifierProvider<CallService>.value(value: mockCallService),
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),
+        ChangeNotifierProvider<UserRepository>.value(value: userRepo),
       ],
       child: MaterialApp.router(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
@@ -570,8 +576,10 @@ void main() {
     void enablePresence() {
       presenceController = CachedStreamController<CachedPresence>();
       when(mockClient.onPresenceChanged).thenReturn(presenceController);
-      when(mockMatrix.presence)
-          .thenReturn(PresenceService(matrixClientService: MatrixClientService(mockClient)));
+      userRepo = UserRepository(
+        clientService: MatrixClientService(mockClient),
+        presenceOverride: PresenceService(matrixClientService: MatrixClientService(mockClient)),
+      );
     }
 
     Finder dot() => find.descendant(

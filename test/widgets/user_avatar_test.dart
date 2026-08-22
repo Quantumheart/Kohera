@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/shared/widgets/pixel_sprite_avatar.dart';
@@ -138,15 +139,18 @@ void main() {
 
   group('UserAvatar presence dot', () {
     late CachedStreamController<CachedPresence> presenceController;
-    late PresenceService presenceService;
+    late UserRepository presenceRepo;
 
     setUp(() {
       presenceController = CachedStreamController<CachedPresence>();
       when(mockClient.onPresenceChanged).thenReturn(presenceController);
-      presenceService = PresenceService(matrixClientService: MatrixClientService(mockClient));
+      presenceRepo = UserRepository(
+        clientService: MatrixClientService(mockClient),
+        presenceOverride: PresenceService(matrixClientService: MatrixClientService(mockClient)),
+      );
     });
 
-    tearDown(() => presenceService.dispose());
+    tearDown(() => presenceRepo.dispose());
 
     Widget buildWithPresence(
       String userId, {
@@ -160,7 +164,7 @@ void main() {
             avatarResolver: avatarResolver,
             userId: userId,
             displayname: userId,
-            presence: presenceService,
+            presence: presenceRepo,
             size: size,
           ),
         ),

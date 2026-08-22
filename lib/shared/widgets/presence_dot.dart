@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/sub_services/presence_service.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/shared/models/kohera_presence_type.dart';
 
 /// A presence status dot. Rebuilds independently when [presence] changes and
@@ -15,7 +15,7 @@ class PresenceDot extends StatelessWidget {
     super.key,
   });
 
-  final PresenceService presence;
+  final UserRepository presence;
   final String userId;
   final double size;
 
@@ -70,7 +70,7 @@ class PresenceOverlay extends StatelessWidget {
 
   final double size;
   final Widget child;
-  final PresenceService? presence;
+  final UserRepository? presence;
   final String? userId;
 
   @override
