@@ -405,12 +405,8 @@ ShareIntakeController? _shareIntake;
                       chatBackup: ctx.read<MatrixService>().session.chatBackup,
                     ),
                   ),
-                  ChangeNotifierProvider<KeyBackupRepository>(
-                    create: (ctx) => KeyBackupRepository(
-                      clientService: ctx.read<MatrixService>().session.matrixClientService,
-                      chatBackup: ctx.read<MatrixService>().session.chatBackup,
-                      uia: ctx.read<MatrixService>().session.uia,
-                    ),
+                  ChangeNotifierProvider<KeyBackupRepository>.value(
+                    value: matrix.session.keyBackupRepository,
                   ),
                   ChangeNotifierProvider<MediaRepository>(
                     create: (ctx) => MediaRepository(

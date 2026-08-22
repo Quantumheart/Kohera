@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/client_media_resolver.dart';
@@ -9,7 +7,6 @@ import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/core/services/sub_services/call_push_rule_manager.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/global_push_rule_manager.dart';
-import 'package:kohera/core/services/sub_services/megolm_key_mirror.dart';
 import 'package:kohera/core/services/sub_services/outbox_connectivity.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
@@ -17,6 +14,7 @@ import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
@@ -47,9 +45,9 @@ class AccountSession {
   late final StickerPackService stickerPacks;
   late final CallPushRuleManager callPushRuleManager;
   late final GlobalPushRuleManager globalPushRuleManager;
-  late final MegolmKeyMirror keyMirror;
 
   late final MessageRepository messageRepository;
+  late final KeyBackupRepository keyBackupRepository;
 
   final String clientName;
 
@@ -103,10 +101,6 @@ class AccountSession {
     globalPushRuleManager = GlobalPushRuleManager(
       matrixClientService: matrixClientService,
     );
-    keyMirror = MegolmKeyMirror(
-      matrixClientService: _matrixClientService,
-      clientName: clientName,
-    );
     outbox = OutboxService(
       matrixClientService: _matrixClientService,
       clientName: clientName,
@@ -121,12 +115,18 @@ class AccountSession {
       clientService: _matrixClientService,
       clientName: clientName,
     );
+    keyBackupRepository = KeyBackupRepository(
+      clientService: _matrixClientService,
+      clientName: clientName,
+      chatBackup: chatBackup,
+      uia: uia,
+    );
   }
 
   void dispose() {
     _disposed = true;
     messageRepository.dispose();
-    unawaited(keyMirror.dispose());
+    keyBackupRepository.dispose();
     outbox.dispose();
     uia.dispose();
     selection.dispose();
