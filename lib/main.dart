@@ -418,7 +418,6 @@ ShareIntakeController? _shareIntake;
                     create: (ctx) => SpaceRepository(
                       clientService: ctx.read<MatrixService>().session.matrixClientService,
                       selection: ctx.read<MatrixService>().session.selection,
-                      spaceAccess: ctx.read<MatrixService>().session.spaceAccess,
                     ),
                   ),
                 ],

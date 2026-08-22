@@ -162,7 +162,7 @@ Future<void> showSpaceContextMenu(
             id: spaceId,
             displayname: spaceRepo.spaceDisplayname(spaceId),
           ),
-          loadCapabilities: () => loadSubspaceCapabilities(matrix),
+          loadCapabilities: () => loadSubspaceCapabilities(spaceRepo),
           onCreateSubspace: (request) => spaceRepo.createSubspace(
             parentSpaceId: spaceId,
             name: request.name,

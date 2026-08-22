@@ -2,6 +2,7 @@ import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/models/kohera_user_summary.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:matrix/matrix.dart';
 
 /// Service layer that wraps all SDK calls needed by the room creation and
@@ -11,10 +12,11 @@ import 'package:matrix/matrix.dart';
 /// and receive Kohera-owned types. The SDK `Client` is never exposed;
 /// SDK access routes through [RoomRepository].
 class RoomCreationService {
-  RoomCreationService(this._matrix, this._rooms);
+  RoomCreationService(this._matrix, this._rooms, this._spaces);
 
   final MatrixService _matrix;
   final RoomRepository _rooms;
+  final SpaceRepository _spaces;
 
   /// Searches the user directory for [query], returning `KoheraUserSummary`.
   Future<List<KoheraUserSummary>> searchUserDirectory(String query) async {
@@ -95,17 +97,17 @@ class RoomCreationService {
     JoinMode mode,
     List<String> allowedSpaceIds,
   ) {
-    return _matrix.spaceAccess.buildJoinRulesStateEvent(mode, allowedSpaceIds);
+    return _spaces.buildJoinRulesStateEvent(mode, allowedSpaceIds);
   }
 
   /// Picks a room version that supports restricted join rules.
   Future<String?> pickRestrictedRoomVersion({required bool wantKnock}) async {
-    return _matrix.spaceAccess.pickRestrictedRoomVersion(wantKnock: wantKnock);
+    return _spaces.pickRestrictedRoomVersion(wantKnock: wantKnock);
   }
 
   /// Returns all server-supported room versions (for debugging).
   Future<List<String>> serverSupportedRoomVersions() async {
-    return _matrix.spaceAccess.serverSupportedRoomVersions();
+    return _spaces.serverSupportedRoomVersions();
   }
 
   /// Adds a room as a child of [spaceId].

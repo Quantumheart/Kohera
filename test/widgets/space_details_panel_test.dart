@@ -44,7 +44,6 @@ void main() {
     selection = SelectionService(matrixClientService: MatrixClientService(mockClient));
 
     when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
-    when(mockMatrixService.spaceAccess).thenReturn(mockAccess);
     when(mockMatrixService.selection).thenReturn(selection);
     when(mockMatrixService.avatarResolver)
         .thenReturn(const _NullAvatarResolver());
@@ -81,7 +80,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
           ChangeNotifierProvider<SpaceRepository>(
-            create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection, spaceAccess: mockMatrixService.spaceAccess),
+            create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection, spaceAccessOverride: mockAccess),
           ),
           ChangeNotifierProvider<RoomRepository>(
             create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
@@ -188,7 +187,7 @@ void main() {
               value: mockMatrixService,
             ),
             ChangeNotifierProvider<SpaceRepository>(
-              create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection, spaceAccess: mockMatrixService.spaceAccess),
+              create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection, spaceAccessOverride: mockAccess),
             ),
             ChangeNotifierProvider<RoomRepository>(
               create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),

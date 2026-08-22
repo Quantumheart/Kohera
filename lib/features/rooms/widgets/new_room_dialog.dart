@@ -6,6 +6,7 @@ import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/models/kohera_user_summary.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/features/rooms/services/room_creation_service.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
@@ -74,6 +75,7 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
     _service = RoomCreationService(
       widget.matrixService,
       context.read<RoomRepository>(),
+      context.read<SpaceRepository>(),
     );
     _inviteFocusNode.addListener(_onFocusChanged);
     _initTargetSpaces();

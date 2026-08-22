@@ -233,7 +233,7 @@ class RoomSectionHeader extends StatelessWidget {
                 id: spaceRoom.id,
                 displayname: spaceRoom.getLocalizedDisplayname(),
               ),
-              loadCapabilities: () => loadSubspaceCapabilities(matrixService),
+              loadCapabilities: () => loadSubspaceCapabilities(spaceRepo),
               onCreateSubspace: (request) =>
                   createSubspace(spaceRepo, spaceRoom.id, request),
             ),);

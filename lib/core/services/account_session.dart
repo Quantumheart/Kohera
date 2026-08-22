@@ -11,7 +11,6 @@ import 'package:kohera/core/services/sub_services/outbox_connectivity.dart';
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
-import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
@@ -36,7 +35,6 @@ class AccountSession {
   late final ChatBackupService chatBackup;
   late final SelectionService selection;
   late final PresenceService presence;
-  late final SpaceAccessService spaceAccess;
   late final SyncService sync;
   late final AuthService auth;
   late final OutboxService outbox;
@@ -78,7 +76,6 @@ class AccountSession {
     );
     selection = SelectionService(matrixClientService: matrixClientService);
     presence = PresenceService(matrixClientService: matrixClientService);
-    spaceAccess = SpaceAccessService(matrixClientService: matrixClientService);
     sync = SyncService(
       matrixClientService: matrixClientService,
       onPostSyncBackup: () async {

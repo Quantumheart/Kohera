@@ -12,7 +12,6 @@ import 'package:kohera/core/services/sub_services/global_push_rule_manager.dart'
 import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
-import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
@@ -84,7 +83,6 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   ChatBackupService get chatBackup => _accountSession.chatBackup;
   SelectionService get selection => _accountSession.selection;
   PresenceService get presence => _accountSession.presence;
-  SpaceAccessService get spaceAccess => _accountSession.spaceAccess;
   SyncService get sync => _accountSession.sync;
   AuthService get auth => _accountSession.auth;
   OutboxService get outbox => _accountSession.outbox;

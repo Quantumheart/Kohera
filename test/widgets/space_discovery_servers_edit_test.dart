@@ -79,7 +79,7 @@ void main() {
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
         ChangeNotifierProvider<SpaceRepository>(
-          create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection, spaceAccess: mockMatrixService.spaceAccess),
+          create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
         ),
       ],
       child: MaterialApp(

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/widgets/new_dm_dialog.dart';
 import 'package:matrix/matrix.dart';
@@ -35,8 +36,15 @@ void main() {
   });
 
   Widget buildTestWidget() {
-    return ChangeNotifierProvider<RoomRepository>(
-      create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<RoomRepository>(
+          create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
+        ),
+        ChangeNotifierProvider<SpaceRepository>(
+          create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
+        ),
+      ],
       child: MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(
