@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:kohera/shared/models/call_constants.dart';
+import 'package:kohera/data/models/call_constants.dart';
 import 'package:matrix/matrix.dart';
 
 /// Inlined from `rtc_membership_service.dart` to avoid core→features dependency.

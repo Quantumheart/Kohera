@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/shared/models/kohera_user_summary.dart';
+import 'package:kohera/data/models/kohera_user_summary.dart';
 
 void main() {
   group('KoheraUserSummary', () {

@@ -1,4 +1,4 @@
-import 'package:kohera/shared/models/kohera_user_summary.dart';
+import 'package:kohera/data/models/kohera_user_summary.dart';
 import 'package:matrix/matrix.dart';
 
 /// Converts a Matrix SDK [User] into a [KoheraUserSummary] domain model.

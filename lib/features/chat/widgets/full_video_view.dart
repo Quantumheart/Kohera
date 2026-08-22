@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/media/kohera_video_controller.dart';
-import 'package:kohera/features/chat/models/kohera_media_content.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
+import 'package:kohera/data/models/kohera_media_content.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/shared/services/media_controller.dart';
 import 'package:kohera/shared/widgets/media_viewer_shell.dart';
 import 'package:kohera/shared/widgets/video_fullscreen_controls.dart';

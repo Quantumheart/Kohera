@@ -1,4 +1,4 @@
-import 'package:kohera/shared/models/kohera_user_summary.dart';
+import 'package:kohera/data/models/kohera_user_summary.dart';
 
 /// A read receipt with a pre-computed [KoheraUserSummary] and timestamp.
 ///

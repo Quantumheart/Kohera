@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/features/chat/models/kohera_message_display.dart';
-import 'package:kohera/features/chat/models/kohera_message_status.dart';
+import 'package:kohera/data/models/kohera_message_display.dart';
+import 'package:kohera/data/models/kohera_message_status.dart';
+import 'package:kohera/data/services/avatar_resolver.dart';
+import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/chat/widgets/message_action_sheet.dart';
-import 'package:kohera/shared/services/avatar_resolver.dart';
-import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
 import 'package:provider/provider.dart';
 

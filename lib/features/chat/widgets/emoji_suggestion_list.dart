@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/core/models/sticker_pack.dart';
+import 'package:kohera/data/models/sticker_pack.dart';
+import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/chat/services/emoji_autocomplete_controller.dart';
-import 'package:kohera/shared/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
 

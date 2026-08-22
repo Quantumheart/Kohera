@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart' as http_testing;
+import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/share_in/models/room_snapshot.dart';
 import 'package:kohera/features/share_in/services/avatar_cache_service.dart';
-import 'package:kohera/shared/services/media_resolver.dart';
 
 class _FakeMediaResolver implements MediaResolver {
   _FakeMediaResolver(this.resolved);

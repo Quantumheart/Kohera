@@ -6,7 +6,7 @@ import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
-import 'package:kohera/features/rooms/models/kohera_room_member.dart';
+import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
 import 'package:matrix/matrix.dart';

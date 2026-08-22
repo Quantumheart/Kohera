@@ -1,4 +1,4 @@
-import 'package:kohera/features/chat/services/media_content_resolver.dart';
+import 'package:kohera/data/resolvers/media_content_resolver.dart';
 import 'package:kohera/features/chat/services/sdk_media_controller.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
 import 'package:matrix/matrix.dart';

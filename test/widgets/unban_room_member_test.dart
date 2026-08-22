@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/rooms/models/kohera_room_member.dart';
+import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/features/rooms/services/member_sheet_launcher.dart';
 import 'package:mockito/mockito.dart';
 

@@ -80,6 +80,7 @@ dev_dependencies:
   very_good_analysis: ^10.3.0
 
 
+  async: any
 flutter:
   uses-material-design: true
   assets:

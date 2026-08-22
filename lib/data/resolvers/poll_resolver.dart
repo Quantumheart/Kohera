@@ -1,5 +1,5 @@
 import 'package:kohera/core/utils/poll_content.dart';
-import 'package:kohera/features/chat/models/kohera_poll.dart';
+import 'package:kohera/data/models/kohera_poll.dart';
 import 'package:matrix/matrix.dart';
 
 /// Converts an MSC3381 poll-start [Event] (+ [Timeline]) into a pre-computed

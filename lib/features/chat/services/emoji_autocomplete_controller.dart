@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/models/sticker_pack.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
+import 'package:kohera/data/models/sticker_pack.dart';
 import 'package:matrix/matrix.dart';
 
 /// Encapsulates autocomplete state and logic for custom emoji triggered by `:`.

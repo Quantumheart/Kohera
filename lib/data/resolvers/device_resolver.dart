@@ -1,5 +1,5 @@
 import 'package:kohera/core/extensions/device_extension.dart';
-import 'package:kohera/features/settings/models/kohera_device.dart';
+import 'package:kohera/data/models/kohera_device.dart';
 import 'package:matrix/matrix.dart';
 
 /// Converts a Matrix SDK [Device] (with optional [DeviceKeys]) into a

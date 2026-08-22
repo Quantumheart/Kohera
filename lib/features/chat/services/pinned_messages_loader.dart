@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/features/chat/models/kohera_message_display.dart';
-import 'package:kohera/features/chat/services/message_display_resolver.dart';
+import 'package:kohera/data/models/kohera_message_display.dart';
+import 'package:kohera/data/resolvers/message_display_resolver.dart';
 import 'package:matrix/matrix.dart';
 
 /// Loads pinned messages for a room and converts them to

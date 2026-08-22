@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/settings/services/device_resolver.dart';
+import 'package:kohera/data/resolvers/device_resolver.dart';
 import 'package:matrix/matrix.dart';
 
 void main() {

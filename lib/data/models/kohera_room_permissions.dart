@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:kohera/features/rooms/models/kohera_room_member.dart';
+import 'package:kohera/data/models/kohera_room_member.dart';
 
 // ── KoheraJoinRule ────────────────────────────────────────────
 
