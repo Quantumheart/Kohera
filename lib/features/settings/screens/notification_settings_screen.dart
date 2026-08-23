@@ -166,7 +166,8 @@ class _NotificationSettingsScreenState
                 unawaited(
                   context
                       .read<MatrixService>()
-                      .globalPushRuleManager
+                      .session
+                      .pushRuleRepository
                       .syncNotificationLevel(v),
                 );
               },
