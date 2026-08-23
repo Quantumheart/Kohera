@@ -135,7 +135,7 @@ class _NotificationLifecycleObserverState
   }
 
   Future<void> _syncGlobalPushRules() async {
-    await widget.matrixService.globalPushRuleManager
+    await widget.matrixService.session.pushRuleRepository
         .syncNotificationLevel(widget.preferencesService.notificationLevel);
   }
 

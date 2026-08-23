@@ -6,9 +6,7 @@ import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/secure_storage.dart';
 import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
-import 'package:kohera/core/services/sub_services/call_push_rule_manager.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
-import 'package:kohera/core/services/sub_services/global_push_rule_manager.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
@@ -85,10 +83,6 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   AvatarResolver get avatarResolver => _accountSession.avatarResolver;
   MediaResolver get mediaResolver => _accountSession.mediaResolver;
   StickerPackService get stickerPacks => _accountSession.stickerPacks;
-  CallPushRuleManager get callPushRuleManager =>
-      _accountSession.callPushRuleManager;
-  GlobalPushRuleManager get globalPushRuleManager =>
-      _accountSession.globalPushRuleManager;
 
   bool get isLoggedIn => auth.isLoggedIn;
 
@@ -197,7 +191,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       uia.listenForUia();
       _listenForLoginState();
       unawaited(chatBackup.loadDismissalState());
-      unawaited(callPushRuleManager.ensureRule());
+      unawaited(_accountSession.pushRuleRepository.ensureCallRule());
       unawaited(
         _accountSession.keyBackupRepository.startKeyMirror().catchError((Object e) {
           debugPrint('[Kohera] Key mirror start failed: $e');
