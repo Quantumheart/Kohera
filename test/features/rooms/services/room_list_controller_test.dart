@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
@@ -22,6 +23,7 @@ import 'room_list_controller_test.mocks.dart';
 @GenerateNiceMocks([
   MockSpec<MatrixService>(),
   MockSpec<SelectionService>(),
+  MockSpec<SelectionController>(),
   MockSpec<PreferencesService>(),
   MockSpec<SpaceRoomsController>(),
   MockSpec<RoomListSearchController>(),
@@ -32,6 +34,7 @@ void main() {
   late MockMatrixService matrix;
   late RoomRepository rooms;
   late MockSelectionService selection;
+  late MockSelectionController selectionState;
   late MockPreferencesService prefs;
   late MockSpaceRoomsController spaceRooms;
   late MockRoomListSearchController messageSearch;
@@ -40,6 +43,7 @@ void main() {
   RoomListController makeController() => RoomListController(
     roomRepository: rooms,
     selectionService: selection,
+    selectionController: selectionState,
     preferencesService: prefs,
     spaceRoomsController: spaceRooms,
     messageSearchController: messageSearch,
@@ -65,6 +69,7 @@ void main() {
   setUp(() {
     matrix = MockMatrixService();
     selection = MockSelectionService();
+    selectionState = MockSelectionController();
     prefs = MockPreferencesService();
     spaceRooms = MockSpaceRoomsController();
     messageSearch = MockRoomListSearchController();
@@ -73,7 +78,7 @@ void main() {
     when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
     when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     rooms = RoomRepository(clientService: matrix.matrixClientService, selection: matrix.selection);
-    when(selection.selectedSpaceIds).thenReturn({});
+    when(selectionState.selectedSpaceIds).thenReturn({});
     when(selection.rooms).thenReturn([]);
     when(selection.spaceTree).thenReturn([]);
     when(selection.spaces).thenReturn([]);
@@ -100,6 +105,7 @@ void main() {
       final controller = RoomListController(
         roomRepository: rooms,
         selectionService: selection,
+        selectionController: selectionState,
         preferencesService: prefs,
         spaceRoomsController: spaceRooms,
       );
@@ -271,7 +277,7 @@ void main() {
 
   group('RoomListController app bar', () {
     test('appBarTitle returns Chats when no space selected', () {
-      when(selection.selectedSpaceIds).thenReturn({});
+      when(selectionState.selectedSpaceIds).thenReturn({});
       final controller = makeController();
       expect(controller.appBarTitle(), 'Chats');
     });
@@ -279,7 +285,7 @@ void main() {
     test('appBarTitle returns room displayname for single selection', () {
       const spaceId = '!space:example.com';
       final space = MockRoom();
-      when(selection.selectedSpaceIds).thenReturn({spaceId});
+      when(selectionState.selectedSpaceIds).thenReturn({spaceId});
       when(client.getRoomById(spaceId)).thenReturn(space);
       when(space.getLocalizedDisplayname()).thenReturn('My Space');
       final controller = makeController();
@@ -288,7 +294,7 @@ void main() {
 
     test('appBarTitle returns count for multi selection', () {
       when(
-        selection.selectedSpaceIds,
+        selectionState.selectedSpaceIds,
       ).thenReturn({'!a:example.com', '!b:example.com'});
       final controller = makeController();
       expect(controller.appBarTitle(), '2 spaces');
@@ -299,20 +305,20 @@ void main() {
     const spaceId = '!space:example.com';
 
     test('returns null when no space selected', () {
-      when(selection.selectedSpaceIds).thenReturn({});
+      when(selectionState.selectedSpaceIds).thenReturn({});
       final controller = makeController();
       expect(controller.spaceWithNoJoinedRooms(), isNull);
     });
 
     test('returns null when query is non-empty', () {
       final controller = makeController()..setQuery('hello');
-      when(selection.selectedSpaceIds).thenReturn({spaceId});
+      when(selectionState.selectedSpaceIds).thenReturn({spaceId});
       expect(controller.spaceWithNoJoinedRooms(), isNull);
     });
 
     test('returns null when selected id is not a space', () {
       final room = MockRoom();
-      when(selection.selectedSpaceIds).thenReturn({spaceId});
+      when(selectionState.selectedSpaceIds).thenReturn({spaceId});
       when(client.getRoomById(spaceId)).thenReturn(room);
       when(room.isSpace).thenReturn(false);
       final controller = makeController();
@@ -322,7 +328,7 @@ void main() {
     test('returns null when space has joined rooms', () {
       final space = MockRoom();
       final joined = MockRoom();
-      when(selection.selectedSpaceIds).thenReturn({spaceId});
+      when(selectionState.selectedSpaceIds).thenReturn({spaceId});
       when(client.getRoomById(spaceId)).thenReturn(space);
       when(space.isSpace).thenReturn(true);
       when(selection.roomsForSpace(spaceId)).thenReturn([joined]);
@@ -332,7 +338,7 @@ void main() {
 
     test('returns spaceId when uncached', () {
       final space = MockRoom();
-      when(selection.selectedSpaceIds).thenReturn({spaceId});
+      when(selectionState.selectedSpaceIds).thenReturn({spaceId});
       when(client.getRoomById(spaceId)).thenReturn(space);
       when(space.isSpace).thenReturn(true);
       when(selection.roomsForSpace(spaceId)).thenReturn([]);
@@ -343,7 +349,7 @@ void main() {
 
     test('returns spaceId when cached and loading', () {
       final space = MockRoom();
-      when(selection.selectedSpaceIds).thenReturn({spaceId});
+      when(selectionState.selectedSpaceIds).thenReturn({spaceId});
       when(client.getRoomById(spaceId)).thenReturn(space);
       when(space.isSpace).thenReturn(true);
       when(selection.roomsForSpace(spaceId)).thenReturn([]);
@@ -363,7 +369,7 @@ void main() {
         memberCount: 1,
         roomType: 'm.room',
       );
-      when(selection.selectedSpaceIds).thenReturn({spaceId});
+      when(selectionState.selectedSpaceIds).thenReturn({spaceId});
       when(client.getRoomById(spaceId)).thenReturn(space);
       when(space.isSpace).thenReturn(true);
       when(selection.roomsForSpace(spaceId)).thenReturn([]);
@@ -385,7 +391,7 @@ void main() {
       () {
         const spaceId = '!space:example.com';
         final space = MockRoom();
-        when(selection.selectedSpaceIds).thenReturn({spaceId});
+        when(selectionState.selectedSpaceIds).thenReturn({spaceId});
         when(client.getRoomById(spaceId)).thenReturn(space);
         when(space.canChangeStateEvent('m.space.child')).thenReturn(true);
         final controller = makeController();
@@ -406,7 +412,7 @@ void main() {
   group('RoomListController hierarchy fetch', () {
     test('maybeFetchSpaceHierarchy fetches uncached selected spaces', () {
       when(
-        selection.selectedSpaceIds,
+        selectionState.selectedSpaceIds,
       ).thenReturn({'!a:example.com', '!b:example.com'});
       when(spaceRooms.isCached('!a:example.com')).thenReturn(false);
       when(spaceRooms.isCached('!b:example.com')).thenReturn(true);

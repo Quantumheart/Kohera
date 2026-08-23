@@ -72,7 +72,7 @@ Future<void> showRoomMemberSheet(
                   .timeout(const Duration(seconds: 30));
             }
             if (!context.mounted) return;
-            context.read<MatrixService>().selection.selectRoom(dmRoomId);
+            context.read<MatrixService>().selectionController.selectRoom(dmRoomId);
             context.goNamed(
               Routes.room,
               pathParameters: {RouteParams.roomId: dmRoomId},

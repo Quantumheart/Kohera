@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
@@ -27,11 +28,12 @@ Future<void> showRoomContextMenu(
   List<String>? sectionRoomIds,
 }) async {
   final selection = context.read<SelectionService>();
+  final selectionState = context.read<SelectionController>();
   final matrix = context.read<MatrixService>();
   final roomRepo = context.read<RoomRepository>();
   final userRepo = context.read<UserRepository>();
   final actions =
-      RoomContextMenuActions(rooms: roomRepo, selection: selection);
+      RoomContextMenuActions(rooms: roomRepo, selection: selection, selectionState: selectionState);
   final cs = Theme.of(context).colorScheme;
 
   final (:canRemove, :activeSpaceId) = actions.checkSelectedSpaces();

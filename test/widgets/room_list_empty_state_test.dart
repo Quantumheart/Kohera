@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/services/room_list_builder.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
@@ -29,6 +30,7 @@ void main() {
   late FakeSpaceDiscoveryDataSource dataSource;
   late SpaceRoomsController controller;
   late SelectionService selection;
+  late SelectionController selectionState;
   late PreferencesService prefs;
 
   const spaceId = '!fake-space-0:example.org';
@@ -73,6 +75,7 @@ void main() {
     when(mockClient.getRoomById(spaceId)).thenReturn(mockSpace);
 
     selection = SelectionService(matrixClientService: MatrixClientService(mockClient));
+    selectionState = SelectionController(clientService: MatrixClientService(mockClient));
     when(mockMatrixService.selection).thenReturn(selection);
 
     dataSource = FakeSpaceDiscoveryDataSource(delay: Duration.zero);
@@ -87,10 +90,11 @@ void main() {
 
   group('zero-joined space empty state', () {
     test('section is skipped when hierarchy is not yet cached', () {
-      selection.selectSpace(spaceId);
+      selectionState.selectSpace(spaceId);
 
       final items = buildSectionItems(
         selection,
+        selectionState,
         prefs,
         '',
         spaceRoomsController: controller,
@@ -104,11 +108,12 @@ void main() {
     });
 
     test('unjoined rooms appear after hierarchy fetch', () async {
-      selection.selectSpace(spaceId);
+      selectionState.selectSpace(spaceId);
       await controller.fetchSpaceRooms(spaceId);
 
       final items = buildSectionItems(
         selection,
+        selectionState,
         prefs,
         '',
         spaceRoomsController: controller,
@@ -122,7 +127,7 @@ void main() {
     });
 
     test('error item shown on hierarchy failure', () async {
-      selection.selectSpace(spaceId);
+      selectionState.selectSpace(spaceId);
       controller = SpaceRoomsController(
         dataSource: FakeSpaceDiscoveryDataSource(
           delay: Duration.zero,
@@ -134,6 +139,7 @@ void main() {
 
       final items = buildSectionItems(
         selection,
+        selectionState,
         prefs,
         '',
         spaceRoomsController: controller,
@@ -143,7 +149,7 @@ void main() {
     });
 
     test('forbidden item shown on M_FORBIDDEN', () async {
-      selection.selectSpace(spaceId);
+      selectionState.selectSpace(spaceId);
       controller = SpaceRoomsController(
         dataSource: FakeSpaceDiscoveryDataSource(
           delay: Duration.zero,
@@ -155,6 +161,7 @@ void main() {
 
       final items = buildSectionItems(
         selection,
+        selectionState,
         prefs,
         '',
         spaceRoomsController: controller,
@@ -166,7 +173,7 @@ void main() {
     test(
       'controller reports unjoined rooms after fetch for zero-joined space',
       () async {
-        selection.selectSpace(spaceId);
+        selectionState.selectSpace(spaceId);
         await controller.fetchSpaceRooms(spaceId);
 
         final state = controller.getRoomState(spaceId);

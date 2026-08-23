@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/services/room_list_builder.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
@@ -30,6 +31,7 @@ void main() {
   late FakeSpaceDiscoveryDataSource dataSource;
   late SpaceRoomsController controller;
   late SelectionService selection;
+  late SelectionController selectionState;
   late PreferencesService prefs;
 
   const spaceId = '!fake-space-0:example.org';
@@ -94,6 +96,7 @@ void main() {
     when(mockClient.getRoomById(joinedRoomId)).thenReturn(mockJoinedRoom);
 
     selection = SelectionService(matrixClientService: MatrixClientService(mockClient));
+    selectionState = SelectionController(clientService: MatrixClientService(mockClient));
     when(mockMatrixService.selection).thenReturn(selection);
 
     dataSource = FakeSpaceDiscoveryDataSource(delay: Duration.zero);
@@ -110,11 +113,12 @@ void main() {
 
   group('buildSectionItems — unjoined group', () {
     test('appends unjoined room items after joined rooms', () async {
-      selection.selectSpace(spaceId);
+      selectionState.selectSpace(spaceId);
       await controller.fetchSpaceRooms(spaceId);
 
       final items = buildSectionItems(
         selection,
+        selectionState,
         prefs,
         '',
         spaceRoomsController: controller,
@@ -128,10 +132,11 @@ void main() {
     });
 
     test('shows loading item when hierarchy is not cached', () {
-      selection.selectSpace(spaceId);
+      selectionState.selectSpace(spaceId);
 
       final items = buildSectionItems(
         selection,
+        selectionState,
         prefs,
         '',
         spaceRoomsController: controller,
@@ -142,7 +147,7 @@ void main() {
     });
 
     test('shows error item on hierarchy failure', () async {
-      selection.selectSpace(spaceId);
+      selectionState.selectSpace(spaceId);
       controller = SpaceRoomsController(
         dataSource: FakeSpaceDiscoveryDataSource(
           delay: Duration.zero,
@@ -154,6 +159,7 @@ void main() {
 
       final items = buildSectionItems(
         selection,
+        selectionState,
         prefs,
         '',
         spaceRoomsController: controller,
@@ -164,7 +170,7 @@ void main() {
     });
 
     test('shows forbidden item on M_FORBIDDEN', () async {
-      selection.selectSpace(spaceId);
+      selectionState.selectSpace(spaceId);
       controller = SpaceRoomsController(
         dataSource: FakeSpaceDiscoveryDataSource(
           delay: Duration.zero,
@@ -176,6 +182,7 @@ void main() {
 
       final items = buildSectionItems(
         selection,
+        selectionState,
         prefs,
         '',
         spaceRoomsController: controller,
@@ -185,13 +192,14 @@ void main() {
     });
 
     test('hides unjoined group when section is collapsed', () async {
-      selection.selectSpace(spaceId);
+      selectionState.selectSpace(spaceId);
       await controller.fetchSpaceRooms(spaceId);
 
       await prefs.toggleSectionCollapsed(spaceId);
 
       final items = buildSectionItems(
         selection,
+        selectionState,
         prefs,
         '',
         spaceRoomsController: controller,
@@ -202,11 +210,12 @@ void main() {
     });
 
     test('filters unjoined rooms by search query', () async {
-      selection.selectSpace(spaceId);
+      selectionState.selectSpace(spaceId);
       await controller.fetchSpaceRooms(spaceId);
 
       final items = buildSectionItems(
         selection,
+        selectionState,
         prefs,
         'offtopic',
         spaceRoomsController: controller,
@@ -220,7 +229,7 @@ void main() {
 
   group('_UnjoinedRoomTile join flow', () {
     test('controller.join removes room from unjoined list', () async {
-      selection.selectSpace(spaceId);
+      selectionState.selectSpace(spaceId);
       await controller.fetchSpaceRooms(spaceId);
 
       final state = controller.getRoomState(spaceId);

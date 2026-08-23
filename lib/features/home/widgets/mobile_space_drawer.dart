@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
@@ -49,12 +50,13 @@ class MobileSpaceDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selection = context.watch<SelectionService>();
+    final selectionState = context.watch<SelectionController>();
     final avatarResolver = context.read<MediaRepository>().avatarResolver;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final topLevel = selection.topLevelSpaces;
     final invited = selection.invitedSpaces;
-    final homeSelected = selection.selectedSpaceIds.isEmpty;
+    final homeSelected = selectionState.selectedSpaceIds.isEmpty;
 
     return Drawer(
       child: SafeArea(
@@ -78,7 +80,7 @@ class MobileSpaceDrawer extends StatelessWidget {
               title: const Text('Home'),
               selected: homeSelected,
               onTap: () {
-                selection.clearSpaceSelection();
+                selectionState.clearSpaceSelection();
                 Navigator.of(context).pop();
                 context.goNamed(Routes.home);
               },
@@ -93,10 +95,10 @@ class MobileSpaceDrawer extends StatelessWidget {
                       spaceId: space.id,
                       summary: selection.summaryFor(space),
                       avatarResolver: avatarResolver,
-                      selected: selection.selectedSpaceIds.contains(space.id),
+                      selected: selectionState.selectedSpaceIds.contains(space.id),
                       unread: selection.unreadCountForSpace(space.id),
                       onTap: () {
-                        selection.selectSpace(space.id);
+                        selectionState.selectSpace(space.id);
                         Navigator.of(context).pop();
                         context.goNamed(Routes.home);
                       },
@@ -152,7 +154,7 @@ class MobileSpaceDrawer extends StatelessWidget {
                             onDecline: space.leave,
                           );
                           if (result == true && context.mounted) {
-                            selection.selectSpace(space.id);
+                            selectionState.selectSpace(space.id);
                             if (context.mounted) {
                               Navigator.of(context).pop();
                               context.goNamed(Routes.home);

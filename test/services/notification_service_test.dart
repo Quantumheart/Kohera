@@ -2,6 +2,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/notifications/services/notification_service.dart';
@@ -27,6 +28,7 @@ void main() {
   late PreferencesService prefs;
   late NotificationService service;
   late SelectionService selectionService;
+  late SelectionController selectionController;
 
   const roomId = '!room:example.com';
   const ownUserId = '@me:example.com';
@@ -60,6 +62,8 @@ void main() {
     when(mockClient.rooms).thenReturn([]);
     selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
     when(mockMatrix.selection).thenReturn(selectionService);
+    selectionController = SelectionController(clientService: MatrixClientService(mockClient));
+    when(mockMatrix.selectionController).thenReturn(selectionController);
 
     service = NotificationService(
       matrixService: mockMatrix,
@@ -211,13 +215,13 @@ void main() {
     });
 
     test('currently selected room suppresses notification', () async {
-      selectionService.selectRoom(roomId);
+      selectionController.selectRoom(roomId);
       await emitMessage();
       verifyNever(mockPlugin.show(id: anyNamed('id'), title: anyNamed('title'), body: anyNamed('body'), notificationDetails: anyNamed('notificationDetails'), payload: anyNamed('payload')));
     });
 
     test('foreground toggle overrides selected room suppression', () async {
-      selectionService.selectRoom(roomId);
+      selectionController.selectRoom(roomId);
       await prefs.setForegroundNotificationsEnabled(true);
       await emitMessage();
       verify(mockPlugin.show(id: anyNamed('id'), title: anyNamed('title'), body: anyNamed('body'), notificationDetails: anyNamed('notificationDetails'), payload: roomId)).called(1);

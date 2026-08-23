@@ -4,6 +4,7 @@ import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
@@ -32,6 +33,7 @@ void main() {
   late MockRoom mockRoom;
   late CachedStreamController<SyncUpdate> syncController;
   late SelectionService selectionService;
+  late SelectionController selectionController;
   late MockSpaceAccessService mockAccess;
 
   setUp(() {
@@ -80,6 +82,8 @@ void main() {
     when(mockClient.rooms).thenReturn([]);
     selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
     when(mockMatrixService.selection).thenReturn(selectionService);
+    selectionController = SelectionController(clientService: MatrixClientService(mockClient));
+    when(mockMatrixService.selectionController).thenReturn(selectionController);
     when(
       mockMatrixService.avatarResolver,
     ).thenReturn(const _NullAvatarResolver());
@@ -222,7 +226,7 @@ void main() {
       await tester.pumpAndSettle();
 
       verify(mockRoom.leave()).called(1);
-      expect(selectionService.selectedRoomId, isNull);
+      expect(selectionController.selectedRoomId, isNull);
     });
 
     testWidgets('notification section shows radio options', (tester) async {

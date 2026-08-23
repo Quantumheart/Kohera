@@ -39,7 +39,7 @@ class _RoomDetailsScreenState extends State<RoomDetailsScreen> {
         userRepo: context.read<UserRepository>(),
         mediaRepo: context.read<MediaRepository>(),
         presence: context.read<UserRepository>(),
-        selection: matrix.selection,
+        selection: matrix.selectionController,
       )..addListener(_onChanged);
       _controller.init();
     }

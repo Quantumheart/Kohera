@@ -8,6 +8,7 @@ import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/outbox_repository.dart';
@@ -33,6 +34,7 @@ class AccountSession {
   late final UiaService uia;
   late final ChatBackupService chatBackup;
   late final SelectionService selection;
+  late final SelectionController selectionController;
   late final PresenceService presence;
   late final SyncService sync;
   late final AuthService auth;
@@ -73,6 +75,8 @@ class AccountSession {
       storage: _flutterSecureStorage,
     );
     selection = SelectionService(matrixClientService: matrixClientService);
+    selectionController =
+        SelectionController(clientService: matrixClientService);
     presence = PresenceService(matrixClientService: matrixClientService);
     sync = SyncService(
       matrixClientService: matrixClientService,
@@ -126,6 +130,7 @@ class AccountSession {
     outboxRepository.dispose();
     uia.dispose();
     selection.dispose();
+    selectionController.dispose();
     presence.dispose();
     chatBackup.dispose();
     sync.dispose();

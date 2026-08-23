@@ -6,6 +6,7 @@ import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/client_media_resolver.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
@@ -43,6 +44,7 @@ void main() {
   late MockClient mockClient;
   late _FakeMatrixService fakeMatrix;
   late SelectionService selection;
+  late SelectionController selectionController;
 
   setUp(() {
     mockClient = MockClient();
@@ -51,6 +53,7 @@ void main() {
         .thenReturn(CachedStreamController<SyncUpdate>());
     fakeMatrix = _FakeMatrixService(mockClient);
     selection = SelectionService(matrixClientService: MatrixClientService(mockClient));
+    selectionController = SelectionController(clientService: MatrixClientService(mockClient));
   });
 
   tearDown(() {
@@ -80,6 +83,7 @@ void main() {
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: fakeMatrix),
         ChangeNotifierProvider<SelectionService>.value(value: selection),
+        ChangeNotifierProvider<SelectionController>.value(value: selectionController),
         ChangeNotifierProvider<MediaRepository>(
           create: (_) => MediaRepository(avatarResolver: fakeMatrix.avatarResolver, mediaResolver: fakeMatrix.mediaResolver),
         ),
@@ -109,7 +113,7 @@ void main() {
       await tester.tap(find.text('Home'));
       await tester.pumpAndSettle();
 
-      expect(selection.selectedSpaceIds, isEmpty);
+      expect(selectionController.selectedSpaceIds, isEmpty);
     });
   });
 }

@@ -7,6 +7,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
@@ -34,6 +35,7 @@ void main() {
   late MockClient mockClient;
   late PreferencesService prefs;
   late SelectionService selectionService;
+  late SelectionController selectionController;
 
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
@@ -74,6 +76,7 @@ void main() {
     when(mockClient.getRoomById('!invited:example.com')).thenReturn(mockInvitedRoom);
 
     selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
+    selectionController = SelectionController(clientService: MatrixClientService(mockClient));
     when(mockMatrix.selection).thenReturn(selectionService);
   });
 
@@ -110,6 +113,7 @@ void main() {
         ChangeNotifierProvider<RoomRepository>(
             create: (_) => RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection),),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+        ChangeNotifierProvider<SelectionController>.value(value: selectionController),
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),
         Provider<SpaceDiscoveryDataSource>(

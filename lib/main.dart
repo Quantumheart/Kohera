@@ -15,6 +15,7 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/web_shell_sync.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/core/theme/kohera_theme.dart';
 import 'package:kohera/core/theme/theme_presets.dart';
 import 'package:kohera/core/utils/platform_info.dart';
@@ -316,6 +317,9 @@ ShareIntakeController? _shareIntake;
                   ),
                   ChangeNotifierProvider<SelectionService>.value(
                     value: matrix.selection,
+                  ),
+                  ChangeNotifierProvider<SelectionController>.value(
+                    value: matrix.selectionController,
                   ),
                   Provider<SpaceDiscoveryDataSource>(
                     create: (cxt) =>

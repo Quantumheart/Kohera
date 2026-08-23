@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/core/utils/order_utils.dart' as order_utils;
 import 'package:kohera/data/repositories/room_repository.dart';
 
@@ -9,10 +10,15 @@ import 'package:kohera/data/repositories/room_repository.dart';
 /// encapsulated here via [RoomRepository]. The [RoomContextMenu] widget calls
 /// these methods without importing `package:matrix/matrix.dart`.
 class RoomContextMenuActions {
-  RoomContextMenuActions({required this.rooms, required this.selection});
+  RoomContextMenuActions({
+    required this.rooms,
+    required this.selection,
+    required this.selectionState,
+  });
 
   final RoomRepository rooms;
   final SelectionService selection;
+  final SelectionController selectionState;
 
   /// Returns the display name of [roomId], or `null` if the room is not
   /// found.
@@ -31,7 +37,7 @@ class RoomContextMenuActions {
 
   /// Whether any of the selected spaces allows managing children.
   ({bool canRemove, String? activeSpaceId}) checkSelectedSpaces() {
-    for (final spaceId in selection.selectedSpaceIds) {
+    for (final spaceId in selectionState.selectedSpaceIds) {
       if (canManageSpaceChildren(spaceId)) {
         return (canRemove: true, activeSpaceId: spaceId);
       }

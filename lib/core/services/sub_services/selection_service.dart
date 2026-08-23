@@ -19,56 +19,6 @@ class SelectionService extends ChangeNotifier {
   final MatrixClientService _matrixClientService;
   StreamSubscription<SyncUpdate>? _syncSub;
 
-  // ── Space multi-select ──────────────────────────────────────
-  final Set<String> _selectedSpaceIds = {};
-  Set<String> get selectedSpaceIds => Set.unmodifiable(_selectedSpaceIds);
-
-  void selectSpace(String? spaceId) {
-    if (spaceId == null) {
-      _selectedSpaceIds.clear();
-    } else if (_selectedSpaceIds.length == 1 &&
-        _selectedSpaceIds.contains(spaceId)) {
-      _selectedSpaceIds.clear();
-    } else {
-      _selectedSpaceIds
-        ..clear()
-        ..add(spaceId);
-    }
-    _spaceTreeDirty = true;
-    notifyListeners();
-  }
-
-  void toggleSpaceSelection(String spaceId) {
-    if (!_selectedSpaceIds.remove(spaceId)) {
-      _selectedSpaceIds.add(spaceId);
-    }
-    _spaceTreeDirty = true;
-    notifyListeners();
-  }
-
-  void clearSpaceSelection() {
-    _selectedSpaceIds.clear();
-    _spaceTreeDirty = true;
-    notifyListeners();
-  }
-
-  // ── Room selection ──────────────────────────────────────────
-  String? _selectedRoomId;
-  String? get selectedRoomId => _selectedRoomId;
-
-  Room? get selectedRoom =>
-      _selectedRoomId != null ? _matrixClientService.client.getRoomById(_selectedRoomId!) : null;
-
-  void selectRoom(String? roomId) {
-    _selectedRoomId = roomId;
-    notifyListeners();
-  }
-
-  void resetSelection() {
-    _selectedSpaceIds.clear();
-    _selectedRoomId = null;
-  }
-
   // ── Custom space ordering ──────────────────────────────────
   List<String> _customSpaceOrder = [];
 

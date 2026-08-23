@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
@@ -46,6 +47,7 @@ void main() {
   late MockClient mockClient;
   late MockRoom mockRoom;
   late MockSelectionService mockSelection;
+  late SelectionController selectionController;
   late MockPresenceService mockPresence;
   late MockAvatarResolver mockAvatarResolver;
   late CachedStreamController<SyncUpdate> syncCtl;
@@ -60,6 +62,7 @@ void main() {
     mockClient = MockClient();
     mockRoom = MockRoom();
     mockSelection = MockSelectionService();
+    selectionController = SelectionController(clientService: MatrixClientService(mockClient));
     mockPresence = MockPresenceService();
     mockAvatarResolver = MockAvatarResolver();
     syncCtl = CachedStreamController<SyncUpdate>();
@@ -102,7 +105,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       expect(ctrl.hasRoom, isTrue);
@@ -117,7 +120,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       expect(ctrl.hasRoom, isFalse);
@@ -131,7 +134,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       expect(ctrl.summary, isNotNull);
@@ -146,7 +149,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       expect(ctrl.encrypted, isFalse);
@@ -160,7 +163,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       expect(ctrl.isFavourite, isFalse);
@@ -175,7 +178,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       expect(ctrl.isMuted, isTrue);
@@ -189,7 +192,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       expect(ctrl.pushRuleState, KoheraPushRuleState.notify);
@@ -203,7 +206,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       expect(ctrl.canBan, isFalse);
@@ -220,7 +223,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       // Don't call init — room is null
       expect(ctrl.hasRoom, isFalse);
@@ -244,7 +247,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       await ctrl.toggleMute();
@@ -260,7 +263,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       await ctrl.toggleMute();
@@ -275,7 +278,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       await ctrl.setPushRule(KoheraPushRuleState.mentionsOnly);
@@ -290,7 +293,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       await ctrl.invite('@user:example.com');
@@ -305,7 +308,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       await ctrl.setName('New Name');
@@ -320,7 +323,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       await ctrl.setDescription('New topic');
@@ -335,7 +338,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       await ctrl.enableEncryption();
@@ -350,12 +353,13 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
+      selectionController.selectRoom('!room:example.com');
       await ctrl.leave();
       verify(mockRoom.leave()).called(1);
-      verify(mockSelection.selectRoom(null)).called(1);
+      expect(selectionController.selectedRoomId, isNull);
       ctrl.dispose();
     });
 
@@ -367,7 +371,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       await ctrl.toggleFavourite();
@@ -385,7 +389,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       var notified = false;
       ctrl.addListener(() => notified = true);
@@ -402,7 +406,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       expect(ctrl.hasRoom, isFalse);
@@ -422,7 +426,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       ctrl.dispose();
@@ -438,7 +442,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       expect(ctrl.pushRuleState, KoheraPushRuleState.notify);
@@ -453,7 +457,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       expect(ctrl.pushRuleState, KoheraPushRuleState.dontNotify);
@@ -468,7 +472,7 @@ void main() {
         userRepo: userRepo,
         mediaRepo: mediaRepo,
         presence: userRepo,
-        selection: mockSelection,
+        selection: selectionController,
       );
       ctrl.init();
       expect(ctrl.pushRuleState, KoheraPushRuleState.mentionsOnly);

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/models/kohera_device_key.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
@@ -40,7 +40,7 @@ class RoomDetailsController extends ChangeNotifier {
     required this.userRepo,
     required this.mediaRepo,
     required UserRepository presence,
-    required SelectionService selection,
+    required SelectionController selection,
   })  : _presence = presence,
         _selection = selection;
 
@@ -49,7 +49,7 @@ class RoomDetailsController extends ChangeNotifier {
   final UserRepository userRepo;
   final MediaRepository mediaRepo;
   final UserRepository _presence;
-  final SelectionService _selection;
+  final SelectionController _selection;
 
   bool _hasRoom = false;
   StreamSubscription<void>? _syncSub;

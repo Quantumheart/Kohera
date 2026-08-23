@@ -264,7 +264,7 @@ Widget buildRoomTestApp({
     refreshListenable: matrixService,
     initialLocation: '/',
     redirect: (context, state) {
-      final roomId = matrixService.selection.selectedRoomId;
+      final roomId = matrixService.selectionController.selectedRoomId;
       if (roomId != null && state.matchedLocation == '/') {
         return '/rooms/$roomId';
       }

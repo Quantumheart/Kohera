@@ -307,7 +307,7 @@ class NotificationService {
 
     // Suppress for the currently viewed room only when the app is visible,
     // unless the user has opted in to foreground notifications.
-    if (matrixService.selection.selectedRoomId == roomId &&
+    if (matrixService.selectionController.selectedRoomId == roomId &&
         isAppResumed &&
         !preferencesService.foregroundNotificationsEnabled) {
       return;
@@ -657,7 +657,7 @@ class NotificationService {
     if (router != null) {
       router!.goNamed(Routes.room, pathParameters: {RouteParams.roomId: roomId});
     } else {
-      matrixService.selection.selectRoom(roomId);
+      matrixService.selectionController.selectRoom(roomId);
     }
   }
 

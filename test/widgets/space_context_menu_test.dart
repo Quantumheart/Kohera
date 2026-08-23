@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
@@ -31,6 +32,7 @@ void main() {
   late MockMatrixService mockMatrixService;
   late MockRoom mockSpace;
   late SelectionService selectionService;
+  late SelectionController selectionController;
 
   setUp(() {
     mockClient = MockClient();
@@ -41,6 +43,7 @@ void main() {
     when(mockClient.rooms).thenReturn([]);
     when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
     selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
+    selectionController = SelectionController(clientService: MatrixClientService(mockClient));
     when(mockMatrixService.selection).thenReturn(selectionService);
 
     // Default space setup — admin with all permissions
@@ -59,6 +62,7 @@ void main() {
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+                ChangeNotifierProvider<SelectionController>.value(value: selectionController),
         ChangeNotifierProvider<SpaceRepository>(
           create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
         ),
@@ -190,7 +194,7 @@ void main() {
       await tester.pumpAndSettle();
 
       verify(mockSpace.leave()).called(1);
-      expect(selectionService.selectedSpaceIds, isEmpty);
+      expect(selectionController.selectedSpaceIds, isEmpty);
     });
 
     testWidgets('Cancelling leave does not call space.leave()',
@@ -246,7 +250,7 @@ void main() {
 
       verify(mockSpace.leave()).called(1);
       verify(mockChildRoom.leave()).called(1);
-      expect(selectionService.selectedSpaceIds, isEmpty);
+      expect(selectionController.selectedSpaceIds, isEmpty);
     });
 
     testWidgets('Leave without checkbox keeps child rooms',
@@ -295,6 +299,7 @@ void main() {
               providers: [
                 ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
                 ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+                ChangeNotifierProvider<SelectionController>.value(value: selectionController),
                 ChangeNotifierProvider<SpaceRepository>(
                   create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
                 ),
