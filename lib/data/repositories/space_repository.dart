@@ -253,7 +253,6 @@ class SpaceRepository extends ChangeNotifier {
     }
 
     await space.leave();
-    _selection.clearSpaceSelection();
 
     var failCount = 0;
     for (final roomId in childRoomIds) {

@@ -118,7 +118,7 @@ class RoomCreationService {
   void invalidateSpaceTree() => _matrix.selection.invalidateSpaceTree();
 
   /// Selects a room in the SelectionService.
-  void selectRoom(String roomId) => _matrix.selection.selectRoom(roomId);
+  void selectRoom(String roomId) => _matrix.selectionController.selectRoom(roomId);
 
   KoheraUserSummary _toSummary(Profile p) => KoheraUserSummary(
         userId: p.userId,

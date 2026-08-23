@@ -124,7 +124,7 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
 
   List<SpaceRef> _eligibleParentSpaceRefs() {
     final source = widget.parentSpaceIds ??
-        widget.matrixService.selection.selectedSpaceIds;
+        widget.matrixService.selectionController.selectedSpaceIds;
     final eligible = <SpaceRef>[];
     for (final id in source) {
       final space = context.read<RoomRepository>().rawRoom(id);

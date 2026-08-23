@@ -78,52 +78,52 @@ void main() {
   group('selectSpace', () {
     test('updates selectedSpaceIds and notifies listeners', () {
       var notified = false;
-      service.selection.addListener(() => notified = true);
+      service.selectionController.addListener(() => notified = true);
 
-      service.selection.selectSpace('!space:example.com');
+      service.selectionController.selectSpace('!space:example.com');
 
-      expect(service.selection.selectedSpaceIds, {'!space:example.com'});
+      expect(service.selectionController.selectedSpaceIds, {'!space:example.com'});
       expect(notified, isTrue);
     });
 
     test('can be cleared to null', () {
-      service.selection.selectSpace('!space:example.com');
-      service.selection.selectSpace(null);
+      service.selectionController.selectSpace('!space:example.com');
+      service.selectionController.selectSpace(null);
 
-      expect(service.selection.selectedSpaceIds, isEmpty);
+      expect(service.selectionController.selectedSpaceIds, isEmpty);
     });
 
     test('clears when selecting the only selected space again', () {
-      service.selection.selectSpace('!space:example.com');
-      service.selection.selectSpace('!space:example.com');
+      service.selectionController.selectSpace('!space:example.com');
+      service.selectionController.selectSpace('!space:example.com');
 
-      expect(service.selection.selectedSpaceIds, isEmpty);
+      expect(service.selectionController.selectedSpaceIds, isEmpty);
     });
 
     test('replaces previous selection', () {
-      service.selection.selectSpace('!a:example.com');
-      service.selection.selectSpace('!b:example.com');
+      service.selectionController.selectSpace('!a:example.com');
+      service.selectionController.selectSpace('!b:example.com');
 
-      expect(service.selection.selectedSpaceIds, {'!b:example.com'});
+      expect(service.selectionController.selectedSpaceIds, {'!b:example.com'});
     });
   });
 
   group('selectRoom', () {
     test('updates selectedRoomId and notifies listeners', () {
       var notified = false;
-      service.selection.addListener(() => notified = true);
+      service.selectionController.addListener(() => notified = true);
 
-      service.selection.selectRoom('!room:example.com');
+      service.selectionController.selectRoom('!room:example.com');
 
-      expect(service.selection.selectedRoomId, '!room:example.com');
+      expect(service.selectionController.selectedRoomId, '!room:example.com');
       expect(notified, isTrue);
     });
 
     test('can be cleared to null', () {
-      service.selection.selectRoom('!room:example.com');
-      service.selection.selectRoom(null);
+      service.selectionController.selectRoom('!room:example.com');
+      service.selectionController.selectRoom(null);
 
-      expect(service.selection.selectedRoomId, isNull);
+      expect(service.selectionController.selectedRoomId, isNull);
     });
   });
 
@@ -209,7 +209,7 @@ void main() {
       when(mockClient.rooms).thenReturn([space, childRoom, otherRoom]);
       when(mockClient.getRoomById('!space:example.com')).thenReturn(space);
 
-      service.selection.selectSpace('!space:example.com');
+      service.selectionController.selectSpace('!space:example.com');
 
       final rooms = service.selection.rooms;
       expect(rooms, hasLength(2));
@@ -333,14 +333,14 @@ void main() {
         username: 'user',
         password: 'pass',
       );
-      service.selection.selectSpace('!space:example.com');
-      service.selection.selectRoom('!room:example.com');
+      service.selectionController.selectSpace('!space:example.com');
+      service.selectionController.selectRoom('!room:example.com');
 
       await service.logout();
 
       expect(service.isLoggedIn, isFalse);
-      expect(service.selection.selectedSpaceIds, isEmpty);
-      expect(service.selection.selectedRoomId, isNull);
+      expect(service.selectionController.selectedSpaceIds, isEmpty);
+      expect(service.selectionController.selectedRoomId, isNull);
       // Verify namespaced key deletion.
       verify(mockStorage.delete(key: 'kohera_test_access_token')).called(1);
       verify(mockStorage.delete(key: 'kohera_test_refresh_token')).called(1);
@@ -456,8 +456,8 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       expect(service.isLoggedIn, isFalse);
-      expect(service.selection.selectedSpaceIds, isEmpty);
-      expect(service.selection.selectedRoomId, isNull);
+      expect(service.selectionController.selectedSpaceIds, isEmpty);
+      expect(service.selectionController.selectedRoomId, isNull);
       expect(notified, isTrue);
     });
 
@@ -1009,32 +1009,32 @@ void main() {
 
   group('toggleSpaceSelection', () {
     test('adds space to selection', () {
-      service.selection.toggleSpaceSelection('!a:example.com');
+      service.selectionController.toggleSpaceSelection('!a:example.com');
 
-      expect(service.selection.selectedSpaceIds, {'!a:example.com'});
+      expect(service.selectionController.selectedSpaceIds, {'!a:example.com'});
     });
 
     test('removes space if already selected', () {
-      service.selection.toggleSpaceSelection('!a:example.com');
-      service.selection.toggleSpaceSelection('!a:example.com');
+      service.selectionController.toggleSpaceSelection('!a:example.com');
+      service.selectionController.toggleSpaceSelection('!a:example.com');
 
-      expect(service.selection.selectedSpaceIds, isEmpty);
+      expect(service.selectionController.selectedSpaceIds, isEmpty);
     });
 
     test('supports multi-select', () {
-      service.selection.toggleSpaceSelection('!a:example.com');
-      service.selection.toggleSpaceSelection('!b:example.com');
+      service.selectionController.toggleSpaceSelection('!a:example.com');
+      service.selectionController.toggleSpaceSelection('!b:example.com');
 
-      expect(service.selection.selectedSpaceIds, {'!a:example.com', '!b:example.com'});
+      expect(service.selectionController.selectedSpaceIds, {'!a:example.com', '!b:example.com'});
     });
   });
 
   group('clearSpaceSelection', () {
     test('empties the selected set', () {
-      service.selection.selectSpace('!a:example.com');
-      service.selection.clearSpaceSelection();
+      service.selectionController.selectSpace('!a:example.com');
+      service.selectionController.clearSpaceSelection();
 
-      expect(service.selection.selectedSpaceIds, isEmpty);
+      expect(service.selectionController.selectedSpaceIds, isEmpty);
     });
   });
 
@@ -1339,7 +1339,7 @@ void main() {
     });
 
     test('rooms getter returns all non-space rooms unfiltered', () {
-      service.selection.selectSpace('!spaceA:example.com');
+      service.selectionController.selectSpace('!spaceA:example.com');
 
       final allRooms = service.selection.rooms;
       expect(allRooms, hasLength(4)); // room1, room2, room3, orphanRoom

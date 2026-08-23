@@ -11,6 +11,7 @@ import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
@@ -48,6 +49,7 @@ class _SpaceRailState extends State<SpaceRail> {
   @override
   Widget build(BuildContext context) {
     final selection = context.watch<SelectionService>();
+    final selectionState = context.watch<SelectionController>();
     final cs = Theme.of(context).colorScheme;
     final spaces = selection.topLevelSpaces;
 
@@ -68,10 +70,10 @@ class _SpaceRailState extends State<SpaceRail> {
           _RailIcon(
             label: 'H',
             tooltip: 'Home',
-            isSelected: selection.selectedSpaceIds.isEmpty,
+            isSelected: selectionState.selectedSpaceIds.isEmpty,
             color: cs.primary,
             onTap: () {
-              selection.clearSpaceSelection();
+              selectionState.clearSpaceSelection();
               final current = GoRouterState.of(context).topRoute?.name;
               if (current != Routes.home) {
                 context.goNamed(Routes.home);
@@ -128,7 +130,7 @@ class _SpaceRailState extends State<SpaceRail> {
                         tooltip:
                             '$displayName \u00b7 $childCount rooms',
                         isSelected:
-                            selection.selectedSpaceIds.contains(space.id),
+                            selectionState.selectedSpaceIds.contains(space.id),
                         avatarUrl: summary.avatarUrl,
                         color: _spaceColor(i, cs),
                         unreadCount: unread,
@@ -141,9 +143,9 @@ class _SpaceRailState extends State<SpaceRail> {
                               keys.contains(LogicalKeyboardKey.metaLeft) ||
                               keys.contains(LogicalKeyboardKey.metaRight);
                           if (isModifier) {
-                            selection.toggleSpaceSelection(space.id);
+                            selectionState.toggleSpaceSelection(space.id);
                           } else {
-                            selection.selectSpace(space.id);
+                            selectionState.selectSpace(space.id);
                           }
                           final current =
                               GoRouterState.of(context).topRoute?.name;
@@ -263,7 +265,7 @@ class _SpaceRailState extends State<SpaceRail> {
                                     onDecline: space.leave,
                                   );
                                   if (result == true && mounted) {
-                                    selection.selectSpace(space.id);
+                                    selectionState.selectSpace(space.id);
                                   }
                                 },
                               ),

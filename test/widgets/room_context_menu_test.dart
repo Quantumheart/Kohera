@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
@@ -28,6 +29,7 @@ void main() {
   late MockRoom mockSpace;
   late MockRoom mockRoom;
   late SelectionService selectionService;
+  late SelectionController selectionController;
 
   setUp(() {
     mockClient = MockClient();
@@ -57,7 +59,8 @@ void main() {
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
 
     selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
-    selectionService.selectSpace('!space:example.com');
+    selectionController = SelectionController(clientService: MatrixClientService(mockClient));
+    selectionController.selectSpace('!space:example.com');
     when(mockMatrixService.selection).thenReturn(selectionService);
   });
 
@@ -69,6 +72,7 @@ void main() {
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+        ChangeNotifierProvider<SelectionController>.value(value: selectionController),
         ChangeNotifierProvider<RoomRepository>(
           create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
         ),
@@ -141,7 +145,7 @@ void main() {
 
     testWidgets('menu hidden when no space selected and no eligible spaces',
         (tester) async {
-      selectionService.selectSpace(null);
+      selectionController.selectSpace(null);
       when(mockSpace.spaceChildren).thenReturn([
         SpaceChild.fromState(StrippedStateEvent(
           type: EventTypes.SpaceChild,

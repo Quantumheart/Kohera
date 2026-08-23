@@ -9,6 +9,7 @@ import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
@@ -77,6 +78,8 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   UiaService get uia => _accountSession.uia;
   ChatBackupService get chatBackup => _accountSession.chatBackup;
   SelectionService get selection => _accountSession.selection;
+  SelectionController get selectionController =>
+      _accountSession.selectionController;
   SyncService get sync => _accountSession.sync;
   AuthService get auth => _accountSession.auth;
   AvatarResolver get avatarResolver => _accountSession.avatarResolver;
@@ -212,7 +215,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       unawaited(_accountSession.keyBackupRepository.stopKeyMirror());
       uia.clearCachedPassword();
       uia.cancelUiaSub();
-      selection.resetSelection();
+      selectionController.resetSelection();
       chatBackup.resetChatBackupState();
       _foregroundSyncStarted = false;
       if (_lifecycleObserverRegistered) {

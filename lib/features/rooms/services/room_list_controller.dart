@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/services/room_list_builder.dart';
 import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
@@ -18,11 +19,13 @@ class RoomListController extends ChangeNotifier {
   RoomListController({
     required RoomRepository roomRepository,
     required SelectionService selectionService,
+    required SelectionController selectionController,
     required PreferencesService preferencesService,
     required SpaceRoomsController spaceRoomsController,
     RoomListSearchController? messageSearchController,
   }) : _rooms = roomRepository,
        _selection = selectionService,
+       _selectionState = selectionController,
        _prefs = preferencesService,
        _spaceRooms = spaceRoomsController,
        _messageSearch =
@@ -35,6 +38,7 @@ class RoomListController extends ChangeNotifier {
 
   final RoomRepository _rooms;
   final SelectionService _selection;
+  final SelectionController _selectionState;
   final PreferencesService _prefs;
   final SpaceRoomsController _spaceRooms;
   final RoomListSearchController _messageSearch;
@@ -51,6 +55,7 @@ class RoomListController extends ChangeNotifier {
   List<ListItem> get items {
     final baseItems = buildSectionItems(
       _selection,
+      _selectionState,
       _prefs,
       _query,
       spaceRoomsController: _spaceRooms,
@@ -88,7 +93,7 @@ class RoomListController extends ChangeNotifier {
   bool get isEmpty =>
       !hasRoomItems && !hasMessageResults && !isMessageSearchActive;
 
-  bool get selectedSpaceCanManage => _selection.selectedSpaceIds.any((id) {
+  bool get selectedSpaceCanManage => _selectionState.selectedSpaceIds.any((id) {
     final space = _rooms.rawRoom(id);
     return space != null && space.canChangeStateEvent('m.space.child');
   });
@@ -99,7 +104,7 @@ class RoomListController extends ChangeNotifier {
   };
 
   String appBarTitle() {
-    final ids = _selection.selectedSpaceIds;
+    final ids = _selectionState.selectedSpaceIds;
     if (ids.isEmpty) return 'Chats';
     if (ids.length == 1) {
       return _rooms.rawRoom(ids.first)?.getLocalizedDisplayname() ??
@@ -109,10 +114,10 @@ class RoomListController extends ChangeNotifier {
   }
 
   String? spaceWithNoJoinedRooms() {
-    if (_selection.selectedSpaceIds.length != 1) return null;
+    if (_selectionState.selectedSpaceIds.length != 1) return null;
     if (_query.isNotEmpty) return null;
 
-    final spaceId = _selection.selectedSpaceIds.first;
+    final spaceId = _selectionState.selectedSpaceIds.first;
     final space = _rooms.rawRoom(spaceId);
     if (space == null || !space.isSpace) return null;
 
@@ -180,10 +185,10 @@ class RoomListController extends ChangeNotifier {
     }
   }
 
-  Set<String>? selectedSpaceRoomIds() => spaceRoomIds(_selection);
+  Set<String>? selectedSpaceRoomIds() => spaceRoomIds(_selection, _selectionState);
 
   void maybeFetchSpaceHierarchy() {
-    for (final spaceId in _selection.selectedSpaceIds) {
+    for (final spaceId in _selectionState.selectedSpaceIds) {
       if (!_spaceRooms.isCached(spaceId)) {
         unawaited(_spaceRooms.fetchSpaceRooms(spaceId));
       }

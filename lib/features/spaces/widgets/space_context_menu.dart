@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
@@ -321,9 +322,11 @@ Future<void> _handleLeave(
 
   if (result == null || !result.confirmed || !context.mounted) return;
 
+  final selectionController = context.read<SelectionController>();
   try {
     final failCount =
         await spaceRepo.leave(spaceId, leaveChildren: result.leaveChildren);
+    selectionController.clearSpaceSelection();
     if (failCount > 0 && context.mounted) {
       context.showSnack('Failed to leave $failCount room(s)');
     }

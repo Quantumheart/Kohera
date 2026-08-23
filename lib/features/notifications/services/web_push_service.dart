@@ -194,7 +194,7 @@ class WebPushService {
               if (router != null) {
                 router!.goNamed(Routes.room, pathParameters: {RouteParams.roomId: roomId});
               } else {
-                matrixService.selection.selectRoom(roomId);
+                matrixService.selectionController.selectRoom(roomId);
               }
               debugPrint('[Kohera] Web push notification tapped, navigating to room $roomId');
             }

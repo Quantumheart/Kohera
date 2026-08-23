@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
@@ -24,6 +25,7 @@ void main() {
   late MockClient mockClient;
   late MockMatrixService mockMatrixService;
   late SelectionService selectionService;
+  late SelectionController selectionController;
 
   setUp(() {
     mockClient = MockClient();
@@ -33,6 +35,8 @@ void main() {
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
     when(mockMatrixService.selection).thenReturn(selectionService);
+    selectionController = SelectionController(clientService: MatrixClientService(mockClient));
+    when(mockMatrixService.selectionController).thenReturn(selectionController);
   });
 
   Widget buildTestWidget() {
@@ -142,7 +146,7 @@ void main() {
         '@alice:example.com',
         enableEncryption: true,
       ),).called(1);
-      expect(selectionService.selectedRoomId, '!dm:example.com');
+      expect(selectionController.selectedRoomId, '!dm:example.com');
     });
 
     testWidgets('shows known contacts when search is empty', (tester) async {

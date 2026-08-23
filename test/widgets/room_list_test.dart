@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
@@ -18,6 +19,7 @@ import 'package:provider/provider.dart';
 @GenerateNiceMocks([
   MockSpec<MatrixService>(),
   MockSpec<SelectionService>(),
+  MockSpec<SelectionController>(),
   MockSpec<PreferencesService>(),
   MockSpec<SpaceRoomsController>(),
   MockSpec<Client>(),
@@ -28,6 +30,7 @@ import 'room_list_test.mocks.dart';
 void main() {
   late MockMatrixService matrix;
   late MockSelectionService selection;
+  late MockSelectionController selectionState;
   late MockPreferencesService prefs;
   late MockSpaceRoomsController spaceRooms;
   late MockClient client;
@@ -35,13 +38,14 @@ void main() {
   setUp(() {
     matrix = MockMatrixService();
     selection = MockSelectionService();
+    selectionState = MockSelectionController();
     prefs = MockPreferencesService();
     spaceRooms = MockSpaceRoomsController();
     when(spaceRooms.fetchSpaceRooms(any)).thenAnswer((_) async => {});
     client = MockClient();
 
     when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
-    when(selection.selectedSpaceIds).thenReturn({});
+    when(selectionState.selectedSpaceIds).thenReturn({});
     when(selection.rooms).thenReturn([]);
     when(selection.spaceTree).thenReturn([]);
     when(selection.spaces).thenReturn([]);
@@ -62,6 +66,7 @@ void main() {
           create: (_) => RoomRepository(clientService: matrix.matrixClientService, selection: matrix.selection),
         ),
         ChangeNotifierProvider<SelectionService>.value(value: selection),
+        ChangeNotifierProvider<SelectionController>.value(value: selectionState),
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),
         ChangeNotifierProvider<SpaceRoomsController>.value(
           value: spaceRooms,
@@ -106,7 +111,7 @@ void main() {
       final space = MockRoom();
       when(space.id).thenReturn(spaceId);
       when(space.isSpace).thenReturn(true);
-      when(selection.selectedSpaceIds).thenReturn({spaceId});
+      when(selectionState.selectedSpaceIds).thenReturn({spaceId});
       when(client.getRoomById(spaceId)).thenReturn(space);
       when(selection.roomsForSpace(spaceId)).thenReturn([]);
       when(spaceRooms.isCached(spaceId)).thenReturn(true);
@@ -127,7 +132,7 @@ void main() {
       when(space.id).thenReturn(spaceId);
       when(space.getLocalizedDisplayname()).thenReturn('Test Space');
       when(space.isSpace).thenReturn(true);
-      when(selection.selectedSpaceIds).thenReturn({spaceId});
+      when(selectionState.selectedSpaceIds).thenReturn({spaceId});
       when(client.getRoomById(spaceId)).thenReturn(space);
       when(selection.roomsForSpace(spaceId)).thenReturn([]);
       when(spaceRooms.isCached(spaceId)).thenReturn(true);
@@ -149,7 +154,7 @@ void main() {
       when(space.id).thenReturn(spaceId);
       when(space.getLocalizedDisplayname()).thenReturn('Secret Space');
       when(space.isSpace).thenReturn(true);
-      when(selection.selectedSpaceIds).thenReturn({spaceId});
+      when(selectionState.selectedSpaceIds).thenReturn({spaceId});
       when(client.getRoomById(spaceId)).thenReturn(space);
       when(selection.roomsForSpace(spaceId)).thenReturn([]);
       when(spaceRooms.isCached(spaceId)).thenReturn(true);

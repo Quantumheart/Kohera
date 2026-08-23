@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/core/utils/matrix_address_parser.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
@@ -155,7 +155,7 @@ class _CreateSpaceDialogState extends State<CreateSpaceDialog> {
       );
 
       if (!mounted) return;
-      context.read<SelectionService>().selectSpace(roomId);
+      context.read<SelectionController>().selectSpace(roomId);
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
@@ -331,7 +331,7 @@ class _JoinWithAddressDialogState extends State<JoinWithAddressDialog> {
       );
 
       if (!mounted) return;
-      final selection = context.read<SelectionService>();
+      final selection = context.read<SelectionController>();
       if (result.isSpace) {
         selection.selectSpace(result.roomId);
       } else {
@@ -891,7 +891,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
 
       if (!mounted) return;
       if (widget.dataSource.isSpace(joinedId)) {
-        context.read<SelectionService>().selectSpace(joinedId);
+        context.read<SelectionController>().selectSpace(joinedId);
         Navigator.pop(context);
         return;
       }
@@ -907,7 +907,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
   }
 
   void _openExistingSpace(String roomId) {
-    context.read<SelectionService>().selectSpace(roomId);
+    context.read<SelectionController>().selectSpace(roomId);
     Navigator.pop(context);
   }
 

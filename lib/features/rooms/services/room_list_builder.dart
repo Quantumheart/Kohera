@@ -1,5 +1,6 @@
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/models/space_node.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
@@ -29,8 +30,11 @@ List<KoheraRoomSummary> applySearch(
   return summaries.where((s) => roomSummaryMatchesQuery(s, q)).toList();
 }
 
-Set<String>? spaceRoomIds(SelectionService matrix) {
-  final selectedIds = matrix.selectedSpaceIds;
+Set<String>? spaceRoomIds(
+  SelectionService matrix,
+  SelectionController selection,
+) {
+  final selectedIds = selection.selectedSpaceIds;
   if (selectedIds.isEmpty) return null;
 
   final ids = <String>{};
@@ -49,12 +53,13 @@ Set<String>? spaceRoomIds(SelectionService matrix) {
 
 List<ListItem> buildSectionItems(
   SelectionService matrix,
+  SelectionController selection,
   PreferencesService prefs,
   String query, {
   SpaceRoomsController? spaceRoomsController,
 }) {
   final collapsed = prefs.collapsedSpaceSections;
-  final selectedIds = matrix.selectedSpaceIds;
+  final selectedIds = selection.selectedSpaceIds;
   final tree = matrix.spaceTree;
   final items = <ListItem>[];
 
