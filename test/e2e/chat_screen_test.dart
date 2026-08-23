@@ -7,10 +7,10 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
@@ -182,7 +182,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => MediaPlaybackService()),
         ChangeNotifierProvider(
           create: (ctx) =>
-              StickerPackService(matrixClientService: MatrixClientService(ctx.read<MatrixService>().matrixClientService.client)),
+              StickerPackRepository(clientService: MatrixClientService(ctx.read<MatrixService>().matrixClientService.client)),
         ),
       ],
       child: MaterialApp.router(

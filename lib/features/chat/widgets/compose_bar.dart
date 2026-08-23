@@ -6,9 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
+import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/chat/services/emoji_autocomplete_controller.dart';
@@ -65,7 +65,7 @@ class ComposeBar extends StatefulWidget {
   final VoidCallback? onAttach;
   final VoidCallback? onGif;
   final VoidCallback? onSticker;
-  final StickerPackService? stickerPackService;
+  final StickerPackRepository? stickerPackService;
   final ValueNotifier<UploadState?>? uploadNotifier;
 
   final AvatarResolver avatarResolver;

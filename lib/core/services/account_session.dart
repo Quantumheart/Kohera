@@ -2,7 +2,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/client_media_resolver.dart';
 import 'package:kohera/core/services/secure_storage.dart';
-import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
@@ -13,6 +12,7 @@ import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/outbox_repository.dart';
 import 'package:kohera/data/repositories/push_rule_repository.dart';
+import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
@@ -38,13 +38,12 @@ class AccountSession {
   late final AuthService auth;
   late final AvatarResolver avatarResolver;
   late final MediaResolver mediaResolver;
-  late final StickerPackService stickerPacks;
-
   late final MessageRepository messageRepository;
   late final KeyBackupRepository keyBackupRepository;
   late final UserRepository userRepository;
   late final OutboxRepository outboxRepository;
   late final PushRuleRepository pushRuleRepository;
+  late final StickerPackRepository stickerPackRepository;
 
   final String clientName;
 
@@ -91,9 +90,6 @@ class AccountSession {
       uia: uia,
       chatBackup: chatBackup,
     );
-    stickerPacks = StickerPackService(
-      matrixClientService: _matrixClientService,
-    );
     avatarResolver = ClientAvatarResolver(_matrixClientService);
     mediaResolver = ClientMediaResolver(_matrixClientService);
     messageRepository = MessageRepository(
@@ -117,6 +113,9 @@ class AccountSession {
     pushRuleRepository = PushRuleRepository(
       clientService: _matrixClientService,
     );
+    stickerPackRepository = StickerPackRepository(
+      clientService: _matrixClientService,
+    );
   }
 
   void dispose() {
@@ -130,7 +129,7 @@ class AccountSession {
     presence.dispose();
     chatBackup.dispose();
     sync.dispose();
-    stickerPacks.dispose();
+    stickerPackRepository.dispose();
   }
 }
 

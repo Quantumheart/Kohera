@@ -6,7 +6,7 @@ import 'package:kohera/core/models/emoji_gg_pack.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/emoji_gg_service.dart';
-import 'package:kohera/core/services/sticker_pack_service.dart';
+import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:provider/provider.dart';
 
@@ -42,7 +42,7 @@ class _EmojiGgBrowseScreenState extends State<EmojiGgBrowseScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _importedSlugs =
-        context.read<StickerPackService>().importedEmojiGgSlugs;
+        context.read<StickerPackRepository>().importedEmojiGgSlugs;
   }
 
   @override
@@ -74,7 +74,7 @@ class _EmojiGgBrowseScreenState extends State<EmojiGgBrowseScreen> {
 
     setState(() => _importing[pack.slug] = 0.0);
 
-    final service = context.read<StickerPackService>();
+    final service = context.read<StickerPackRepository>();
     var succeeded = 0;
 
     await for (final progress

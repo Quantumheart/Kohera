@@ -14,7 +14,6 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/core/utils/platform_info.dart';
@@ -23,6 +22,7 @@ import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/models/sticker_pack.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
 import 'package:kohera/data/resolvers/reply_preview_resolver.dart';
@@ -251,7 +251,7 @@ class _ChatScreenState extends State<ChatScreen>
         room: room,
         joinedRooms: joinedRooms,
       );
-      final stickerService = context.read<StickerPackService>();
+      final stickerService = context.read<StickerPackRepository>();
       _emojiController = EmojiAutocompleteController(
         textController: _msgCtrl,
         stickerPackService: stickerService,
@@ -962,7 +962,7 @@ class _ChatScreenState extends State<ChatScreen>
   void _openStickerSheet(MatrixService matrix, String roomId) {
     final room = context.read<RoomRepository>().rawRoom(roomId);
     if (room == null) return;
-    final stickerService = context.read<StickerPackService>();
+    final stickerService = context.read<StickerPackRepository>();
     final skinTone = context.read<PreferencesService>().skinTone;
     unawaited(
       showModalBottomSheet<void>(
@@ -1000,7 +1000,7 @@ class _ChatScreenState extends State<ChatScreen>
     final room = context.read<RoomRepository>().rawRoom(roomId);
     if (room == null) return const SizedBox.shrink();
     final cs = Theme.of(context).colorScheme;
-    final stickerService = context.watch<StickerPackService>();
+    final stickerService = context.watch<StickerPackRepository>();
     final skinTone = context.watch<PreferencesService>().skinTone;
     final size = MediaQuery.sizeOf(context);
     final width = (size.width - 16).clamp(0.0, 360.0);
@@ -1307,7 +1307,7 @@ class _ChatScreenState extends State<ChatScreen>
           onCancelEdit: () => _compose.cancelEdit(_msgCtrl),
           onAttach: _handleAttachPressed,
           onSticker: _toggleStickerPicker,
-          stickerPackService: context.read<StickerPackService>(),
+          stickerPackService: context.read<StickerPackRepository>(),
           onGif: _giphyEnabled ? _handleGifPressed : null,
           onPasteImage: _isDesktop ? _handlePasteImage : null,
           uploadNotifier: _compose.uploadNotifier,
