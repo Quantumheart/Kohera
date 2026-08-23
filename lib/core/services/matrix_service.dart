@@ -4,7 +4,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/secure_storage.dart';
-import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
@@ -82,7 +81,6 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   AuthService get auth => _accountSession.auth;
   AvatarResolver get avatarResolver => _accountSession.avatarResolver;
   MediaResolver get mediaResolver => _accountSession.mediaResolver;
-  StickerPackService get stickerPacks => _accountSession.stickerPacks;
 
   bool get isLoggedIn => auth.isLoggedIn;
 

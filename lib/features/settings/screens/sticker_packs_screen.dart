@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/data/models/kohera_sticker_pack.dart';
+import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:provider/provider.dart';
@@ -27,7 +27,7 @@ class StickerPacksScreen extends StatelessWidget {
         ),
         title: const Text('Sticker & emoji packs'),
       ),
-      body: Consumer<StickerPackService>(
+      body: Consumer<StickerPackRepository>(
         builder: (context, service, _) {
           final accountPacks = service.koheraAccountPacks;
           final availablePacks = service.koheraAvailableRoomPacks();
@@ -190,7 +190,7 @@ class _ReorderablePackList extends StatelessWidget {
 
   final List<KoheraStickerPack> packs;
   final MediaResolver mediaResolver;
-  final StickerPackService service;
+  final StickerPackRepository service;
   final bool hasLeadingPack;
 
   @override

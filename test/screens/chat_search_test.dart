@@ -4,10 +4,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/chat/screens/chat_screen.dart';
@@ -103,7 +103,7 @@ void main() {
         ChangeNotifierProvider<SelectionService>.value(value: selectionService),
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
-        ChangeNotifierProvider(create: (ctx) => StickerPackService(matrixClientService: MatrixClientService(ctx.read<MatrixService>().matrixClientService.client))),
+        ChangeNotifierProvider(create: (ctx) => StickerPackRepository(clientService: MatrixClientService(ctx.read<MatrixService>().matrixClientService.client))),
       ],
       child: MaterialApp(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),

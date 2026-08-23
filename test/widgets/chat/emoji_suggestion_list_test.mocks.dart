@@ -7,8 +7,8 @@ import 'dart:async' as _i10;
 import 'dart:ui' as _i8;
 
 import 'package:flutter/material.dart' as _i2;
-import 'package:kohera/core/services/sticker_pack_service.dart' as _i3;
 import 'package:kohera/data/models/sticker_pack.dart' as _i7;
+import 'package:kohera/data/repositories/sticker_pack_repository.dart' as _i3;
 import 'package:kohera/data/services/media_resolver.dart' as _i9;
 import 'package:kohera/features/chat/services/emoji_autocomplete_controller.dart'
     as _i5;
@@ -38,9 +38,9 @@ class _FakeTextEditingController_0 extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
-class _FakeStickerPackService_1 extends _i1.SmartFake
-    implements _i3.StickerPackService {
-  _FakeStickerPackService_1(Object parent, Invocation parentInvocation)
+class _FakeStickerPackRepository_1 extends _i1.SmartFake
+    implements _i3.StickerPackRepository {
+  _FakeStickerPackRepository_1(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
@@ -75,19 +75,19 @@ class MockEmojiAutocompleteController extends _i1.Mock
           as _i2.TextEditingController);
 
   @override
-  _i3.StickerPackService get stickerPackService =>
+  _i3.StickerPackRepository get stickerPackService =>
       (super.noSuchMethod(
             Invocation.getter(#stickerPackService),
-            returnValue: _FakeStickerPackService_1(
+            returnValue: _FakeStickerPackRepository_1(
               this,
               Invocation.getter(#stickerPackService),
             ),
-            returnValueForMissingStub: _FakeStickerPackService_1(
+            returnValueForMissingStub: _FakeStickerPackRepository_1(
               this,
               Invocation.getter(#stickerPackService),
             ),
           )
-          as _i3.StickerPackService);
+          as _i3.StickerPackRepository);
 
   @override
   _i4.Room get room =>

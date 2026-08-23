@@ -12,7 +12,6 @@ import 'package:kohera/core/services/deep_link_service.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/web_shell_sync.dart';
@@ -28,6 +27,7 @@ import 'package:kohera/data/repositories/outbox_repository.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/auth/services/sso_web_init.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -337,8 +337,8 @@ ShareIntakeController? _shareIntake;
                   ChangeNotifierProvider<OutboxRepository>.value(
                     value: matrix.session.outboxRepository,
                   ),
-                  ChangeNotifierProvider<StickerPackService>.value(
-                    value: matrix.stickerPacks,
+                  ChangeNotifierProvider<StickerPackRepository>.value(
+                    value: matrix.session.stickerPackRepository,
                   ),
                   ChangeNotifierProvider<PushRepository>(
                     create: (ctx) => PushRepository(

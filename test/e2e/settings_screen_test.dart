@@ -5,9 +5,9 @@ import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -112,7 +112,7 @@ void main() {
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
         ChangeNotifierProvider(create: (_) => PreferencesService()),
-        ChangeNotifierProvider(create: (ctx) => StickerPackService(matrixClientService: MatrixClientService(ctx.read<MatrixService>().matrixClientService.client))),
+        ChangeNotifierProvider(create: (ctx) => StickerPackRepository(clientService: MatrixClientService(ctx.read<MatrixService>().matrixClientService.client))),
         ChangeNotifierProvider<UserRepository>(
           create: (_) => UserRepository(clientService: matrixService.matrixClientService),
         ),

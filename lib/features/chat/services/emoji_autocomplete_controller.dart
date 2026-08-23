@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/data/models/sticker_pack.dart';
+import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:matrix/matrix.dart';
 
 /// Encapsulates autocomplete state and logic for custom emoji triggered by `:`.
@@ -21,7 +21,7 @@ class EmojiAutocompleteController extends ChangeNotifier {
   }
 
   final TextEditingController textController;
-  final StickerPackService stickerPackService;
+  final StickerPackRepository stickerPackService;
   final Room room;
   @visibleForTesting
   final Duration debounceDuration;

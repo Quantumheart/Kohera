@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/data/models/sticker_pack.dart';
+import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/features/chat/services/emoji_autocomplete_controller.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
-  MockSpec<StickerPackService>(),
+  MockSpec<StickerPackRepository>(),
   MockSpec<Room>(),
 ])
 import 'emoji_autocomplete_controller_test.mocks.dart';
@@ -33,7 +33,7 @@ StickerPack _makePack(List<PackImage> emoji, {String id = 'test-pack'}) =>
 
 EmojiAutocompleteController _makeCtrl({
   required TextEditingController textCtrl,
-  required MockStickerPackService service,
+  required MockStickerPackRepository service,
   required MockRoom room,
 }) =>
     EmojiAutocompleteController(
@@ -46,7 +46,7 @@ EmojiAutocompleteController _makeCtrl({
 void main() {
   group('EmojiAutocompleteController', () {
     late TextEditingController textCtrl;
-    late MockStickerPackService mockService;
+    late MockStickerPackRepository mockService;
     late MockRoom mockRoom;
 
     final waveEmoji = _makeEmoji('wave', body: 'Waving hand');
@@ -56,7 +56,7 @@ void main() {
 
     setUp(() {
       textCtrl = TextEditingController();
-      mockService = MockStickerPackService();
+      mockService = MockStickerPackRepository();
       mockRoom = MockRoom();
       when(mockService.packsForRoom(any)).thenReturn([testPack]);
     });
