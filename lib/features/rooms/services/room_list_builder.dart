@@ -1,8 +1,8 @@
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/models/space_node.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
 import 'package:kohera/features/spaces/models/space_rooms_model.dart';
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
@@ -31,7 +31,7 @@ List<KoheraRoomSummary> applySearch(
 }
 
 Set<String>? spaceRoomIds(
-  SelectionService matrix,
+  SpaceTreeRepository matrix,
   SelectionController selection,
 ) {
   final selectedIds = selection.selectedSpaceIds;
@@ -52,7 +52,7 @@ Set<String>? spaceRoomIds(
 }
 
 List<ListItem> buildSectionItems(
-  SelectionService matrix,
+  SpaceTreeRepository matrix,
   SelectionController selection,
   PreferencesService prefs,
   String query, {
@@ -166,7 +166,7 @@ void _addSpaceSection(
   List<ListItem> items,
   SpaceNode node,
   int depth,
-  SelectionService matrix,
+  SpaceTreeRepository matrix,
   Set<String> collapsed,
   Set<String> pinnedIds,
   String query, [

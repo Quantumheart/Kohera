@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/join_mode.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_action.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_dialog.dart';
@@ -191,7 +191,7 @@ void main() {
     late MockMatrixService mockMatrixService;
     late MockRoom mockParentSpace;
     late MockSpaceAccessService mockAccess;
-    late SelectionService selectionService;
+    late SpaceTreeRepository selectionService;
     late SpaceRepository spaceRepo;
 
     setUp(() {
@@ -201,9 +201,9 @@ void main() {
       mockAccess = MockSpaceAccessService();
       when(mockClient.rooms).thenReturn([]);
       when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-      selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
+      selectionService = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
       when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
-      when(mockMatrixService.selection).thenReturn(selectionService);
+      when(mockMatrixService.spaceTree).thenReturn(selectionService);
       when(mockParentSpace.id).thenReturn('!parent:example.com');
       when(mockClient.getRoomById('!parent:example.com'))
           .thenReturn(mockParentSpace);
@@ -221,7 +221,7 @@ void main() {
       ).thenAnswer((_) async => '!subspace:example.com');
       when(mockClient.waitForRoomInSync(any, join: anyNamed('join')))
           .thenAnswer((_) async => SyncUpdate(nextBatch: ''));
-      spaceRepo = SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection, spaceAccessOverride: mockAccess);
+      spaceRepo = SpaceRepository(clientService: mockMatrixService.matrixClientService, spaceAccessOverride: mockAccess);
     });
 
     test('calls createRoom and setSpaceChild', () async {
@@ -314,7 +314,6 @@ void main() {
       final clientService = MatrixClientService(mockClient);
       spaceRepo = SpaceRepository(
         clientService: clientService,
-        selection: SelectionService(matrixClientService: clientService),
         spaceAccessOverride: mockAccess,
       );
     });

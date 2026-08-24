@@ -4,10 +4,10 @@ import 'package:flutter/material.dart' hide Visibility;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
@@ -132,10 +132,10 @@ void main() {
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
+          create: (_) => RoomRepository(clientService: matrixService.matrixClientService),
         ),
         ChangeNotifierProvider<SpaceRepository>(
-          create: (_) => SpaceRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
+          create: (_) => SpaceRepository(clientService: matrixService.matrixClientService),
         ),
       ],
       child: MaterialApp(
@@ -173,14 +173,14 @@ void main() {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
-        ChangeNotifierProvider<SelectionService>.value(
-          value: matrixService.selection,
+        ChangeNotifierProvider<SpaceTreeRepository>.value(
+          value: matrixService.spaceTree,
         ),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
+          create: (_) => RoomRepository(clientService: matrixService.matrixClientService),
         ),
         ChangeNotifierProvider<SpaceRepository>(
-          create: (_) => SpaceRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
+          create: (_) => SpaceRepository(clientService: matrixService.matrixClientService),
         ),
         ChangeNotifierProvider<UserRepository>(
           create: (_) => UserRepository(clientService: matrixService.matrixClientService),
@@ -392,10 +392,10 @@ void main() {
           providers: [
             ChangeNotifierProvider<MatrixService>.value(value: matrixService),
             ChangeNotifierProvider<RoomRepository>(
-              create: (_) => RoomRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
+              create: (_) => RoomRepository(clientService: matrixService.matrixClientService),
             ),
             ChangeNotifierProvider<SpaceRepository>(
-              create: (_) => SpaceRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
+              create: (_) => SpaceRepository(clientService: matrixService.matrixClientService),
             ),
           ],
           child: MaterialApp(

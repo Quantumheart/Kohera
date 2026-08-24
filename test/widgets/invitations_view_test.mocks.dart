@@ -15,13 +15,12 @@ import 'package:kohera/core/services/matrix_service.dart' as _i20;
 import 'package:kohera/core/services/sub_services/auth_service.dart' as _i10;
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart'
     as _i6;
-import 'package:kohera/core/services/sub_services/selection_service.dart'
-    as _i7;
 import 'package:kohera/core/services/sub_services/sync_service.dart' as _i9;
 import 'package:kohera/core/services/sub_services/uia_service.dart' as _i5;
 import 'package:kohera/core/state/selection_controller.dart' as _i8;
 import 'package:kohera/data/models/kohera_room_summary.dart' as _i2;
 import 'package:kohera/data/models/space_node.dart' as _i18;
+import 'package:kohera/data/repositories/space_tree_repository.dart' as _i7;
 import 'package:kohera/data/services/avatar_resolver.dart' as _i11;
 import 'package:kohera/data/services/matrix_client_service.dart' as _i4;
 import 'package:kohera/data/services/media_resolver.dart' as _i12;
@@ -79,9 +78,9 @@ class _FakeChatBackupService_4 extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
-class _FakeSelectionService_5 extends _i1.SmartFake
-    implements _i7.SelectionService {
-  _FakeSelectionService_5(Object parent, Invocation parentInvocation)
+class _FakeSpaceTreeRepository_5 extends _i1.SmartFake
+    implements _i7.SpaceTreeRepository {
+  _FakeSpaceTreeRepository_5(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
@@ -536,10 +535,11 @@ class _FakeUser_82 extends _i1.SmartFake implements _i13.User {
     : super(parent, parentInvocation);
 }
 
-/// A class which mocks [SelectionService].
+/// A class which mocks [SpaceTreeRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockSelectionService extends _i1.Mock implements _i7.SelectionService {
+class MockSpaceTreeRepository extends _i1.Mock
+    implements _i7.SpaceTreeRepository {
   @override
   List<_i18.SpaceNode> get spaceTree =>
       (super.noSuchMethod(
@@ -794,19 +794,19 @@ class MockMatrixService extends _i1.Mock implements _i20.MatrixService {
           as _i6.ChatBackupService);
 
   @override
-  _i7.SelectionService get selection =>
+  _i7.SpaceTreeRepository get spaceTree =>
       (super.noSuchMethod(
-            Invocation.getter(#selection),
-            returnValue: _FakeSelectionService_5(
+            Invocation.getter(#spaceTree),
+            returnValue: _FakeSpaceTreeRepository_5(
               this,
-              Invocation.getter(#selection),
+              Invocation.getter(#spaceTree),
             ),
-            returnValueForMissingStub: _FakeSelectionService_5(
+            returnValueForMissingStub: _FakeSpaceTreeRepository_5(
               this,
-              Invocation.getter(#selection),
+              Invocation.getter(#spaceTree),
             ),
           )
-          as _i7.SelectionService);
+          as _i7.SpaceTreeRepository);
 
   @override
   _i8.SelectionController get selectionController =>

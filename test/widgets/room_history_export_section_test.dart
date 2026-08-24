@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/models/kohera_export_format.dart';
@@ -46,7 +46,7 @@ RoomRepository _fakeRooms() {
   final client = MockClient();
   when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
   when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-  return RoomRepository(clientService: matrix.matrixClientService, selection: matrix.selection);
+  return RoomRepository(clientService: matrix.matrixClientService);
 }
 
 class _FakeExporter extends RoomHistoryExporter {
@@ -72,7 +72,7 @@ class _FakeExporter extends RoomHistoryExporter {
 void main() {
   late MockClient mockClient;
   late MockMatrixService mockMatrix;
-  late SelectionService selectionService;
+  late SpaceTreeRepository selectionService;
 
   setUp(() {
     mockClient = MockClient();
@@ -80,15 +80,15 @@ void main() {
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.userID).thenReturn('@me:example.com');
-    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
-    when(mockMatrix.selection).thenReturn(selectionService);
+    selectionService = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
+    when(mockMatrix.spaceTree).thenReturn(selectionService);
     when(mockMatrix.avatarResolver).thenReturn(const _NullAvatarResolver());
   });
 
   Widget buildTestWidget(RoomHistoryExportSection child) => MultiProvider(
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
-          ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+          ChangeNotifierProvider<SpaceTreeRepository>.value(value: selectionService),
         ],
         child: MaterialApp(
           home: Scaffold(body: SingleChildScrollView(child: child)),

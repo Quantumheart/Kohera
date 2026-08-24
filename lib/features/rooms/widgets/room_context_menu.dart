@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/rooms/services/room_context_menu_actions.dart';
 import 'package:kohera/features/rooms/widgets/add_room_to_space_dialog.dart';
@@ -18,7 +18,7 @@ enum _RoomContextAction { addToSpace, removeFromSpace, moveUp, moveDown, reportR
 
 /// Shows a context menu for a room in the room list.
 ///
-/// This function reads [MatrixService] and [SelectionService] from context
+/// This function reads [MatrixService] and [SpaceTreeRepository] from context
 /// and delegates SDK operations to [RoomContextMenuActions].
 Future<void> showRoomContextMenu(
   BuildContext context,
@@ -27,7 +27,7 @@ Future<void> showRoomContextMenu(
   String? parentSpaceId,
   List<String>? sectionRoomIds,
 }) async {
-  final selection = context.read<SelectionService>();
+  final selection = context.read<SpaceTreeRepository>();
   final selectionState = context.read<SelectionController>();
   final matrix = context.read<MatrixService>();
   final roomRepo = context.read<RoomRepository>();

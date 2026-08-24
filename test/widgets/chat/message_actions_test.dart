@@ -6,12 +6,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
@@ -104,13 +104,13 @@ Widget _buildChatWidget({
   required MockClient mockClient,
   required MockMatrixService mockMatrix,
   required PreferencesService prefsService,
-  required SelectionService selectionService,
+  required SpaceTreeRepository selectionService,
   double width = 400,
 }) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
-      ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+      ChangeNotifierProvider<SpaceTreeRepository>.value(value: selectionService),
       ChangeNotifierProvider(
         create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client),
       ),
@@ -120,7 +120,7 @@ Widget _buildChatWidget({
             StickerPackRepository(clientService: MatrixClientService(ctx.read<MatrixService>().matrixClientService.client)),
       ),
       ChangeNotifierProvider<RoomRepository>(
-        create: (_) => RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection),
+        create: (_) => RoomRepository(clientService: mockMatrix.matrixClientService),
       ),
       ChangeNotifierProvider<UserRepository>(
         create: (_) => UserRepository(clientService: mockMatrix.matrixClientService),
@@ -236,12 +236,12 @@ Widget _buildBubbleWithProviders({
   required MockEvent event,
   required bool isMe,
   required MockMatrixService mockMatrix,
-  required SelectionService selectionService,
+  required SpaceTreeRepository selectionService,
 }) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
-      ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+      ChangeNotifierProvider<SpaceTreeRepository>.value(value: selectionService),
       ChangeNotifierProvider<PreferencesService>.value(
         value: PreferencesService(),
       ),
@@ -310,7 +310,7 @@ void main() {
   late MockRoom mockRoom;
   late MockTimeline mockTimeline;
   late PreferencesService prefsService;
-  late SelectionService selectionService;
+  late SpaceTreeRepository selectionService;
 
   setUp(() {
     mockClient = MockClient();
@@ -324,10 +324,10 @@ void main() {
     when(mockClient.onSync).thenReturn(CachedStreamController());
     when(mockClient.onPresenceChanged).thenReturn(CachedStreamController());
     when(mockClient.rooms).thenReturn([]);
-    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
+    selectionService = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
 
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
-    when(mockMatrix.selection).thenReturn(selectionService);
+    when(mockMatrix.spaceTree).thenReturn(selectionService);
     when(mockMatrix.avatarResolver).thenReturn(const _FakeAvatarResolver());
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
     when(mockClient.userID).thenReturn('@me:example.com');

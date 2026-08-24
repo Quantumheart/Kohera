@@ -5,9 +5,9 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/client_media_resolver.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
@@ -43,7 +43,7 @@ class _FakeMatrixService extends ChangeNotifier implements MatrixService {
 void main() {
   late MockClient mockClient;
   late _FakeMatrixService fakeMatrix;
-  late SelectionService selection;
+  late SpaceTreeRepository selection;
   late SelectionController selectionController;
 
   setUp(() {
@@ -52,7 +52,7 @@ void main() {
     when(mockClient.onSync)
         .thenReturn(CachedStreamController<SyncUpdate>());
     fakeMatrix = _FakeMatrixService(mockClient);
-    selection = SelectionService(matrixClientService: MatrixClientService(mockClient));
+    selection = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
     selectionController = SelectionController(clientService: MatrixClientService(mockClient));
   });
 
@@ -82,7 +82,7 @@ void main() {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: fakeMatrix),
-        ChangeNotifierProvider<SelectionService>.value(value: selection),
+        ChangeNotifierProvider<SpaceTreeRepository>.value(value: selection),
         ChangeNotifierProvider<SelectionController>.value(value: selectionController),
         ChangeNotifierProvider<MediaRepository>(
           create: (_) => MediaRepository(avatarResolver: fakeMatrix.avatarResolver, mediaResolver: fakeMatrix.mediaResolver),

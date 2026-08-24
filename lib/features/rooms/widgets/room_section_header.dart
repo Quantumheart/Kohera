@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/features/rooms/widgets/new_room_dialog.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
 import 'package:kohera/features/spaces/widgets/create_subspace_action.dart';
@@ -25,7 +25,7 @@ class RoomSectionHeader extends StatelessWidget {
 
   final HeaderItem item;
   final PreferencesService prefs;
-  final SelectionService selection;
+  final SpaceTreeRepository selection;
   final MatrixService matrixService;
 
   @override

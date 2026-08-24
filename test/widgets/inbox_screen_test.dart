@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
@@ -92,7 +92,7 @@ void main() {
   late MockClient mockClient;
   late InboxController controller;
   late _FakeMatrixService fakeMatrix;
-  late SelectionService selectionService;
+  late SpaceTreeRepository selectionService;
 
   setUp(() {
     mockClient = MockClient();
@@ -111,7 +111,7 @@ void main() {
       ..matrixClientService = MatrixClientService(mockClient);
     final pushRepo = PushRepository(clientService: fakeMatrix.matrixClientService);
     controller = InboxController(pushRepository: pushRepo);
-    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
+    selectionService = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
   });
 
   tearDown(() {
@@ -128,7 +128,7 @@ void main() {
         ChangeNotifierProvider<MediaRepository>.value(
           value: MediaRepository(avatarResolver: fakeMatrix.avatarResolver, mediaResolver: fakeMatrix.mediaResolver),
         ),
-        ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+        ChangeNotifierProvider<SpaceTreeRepository>.value(value: selectionService),
       ],
       child: MaterialApp(
         theme: ThemeData(splashFactory: InkRipple.splashFactory),
@@ -243,7 +243,7 @@ void main() {
           providers: [
             ChangeNotifierProvider<InboxController>.value(value: controller),
             ChangeNotifierProvider<MatrixService>.value(value: fakeMatrix),
-        ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+        ChangeNotifierProvider<SpaceTreeRepository>.value(value: selectionService),
           ],
           child: MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),

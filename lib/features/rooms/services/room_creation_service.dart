@@ -115,7 +115,7 @@ class RoomCreationService {
       _rooms.setSpaceChild(spaceId, childRoomId);
 
   /// Invalidates the space tree cache.
-  void invalidateSpaceTree() => _matrix.selection.invalidateSpaceTree();
+  void invalidateSpaceTree() => _matrix.spaceTree.invalidateSpaceTree();
 
   /// Selects a room in the SelectionService.
   void selectRoom(String roomId) => _matrix.selectionController.selectRoom(roomId);

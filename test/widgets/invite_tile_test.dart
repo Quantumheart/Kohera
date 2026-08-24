@@ -6,9 +6,9 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -34,7 +34,7 @@ void main() {
   late MockRoom mockInvitedRoom;
   late MockClient mockClient;
   late PreferencesService prefs;
-  late SelectionService selectionService;
+  late SpaceTreeRepository selectionService;
   late SelectionController selectionController;
 
   setUp(() async {
@@ -75,9 +75,9 @@ void main() {
     when(mockClient.rooms).thenReturn([mockInvitedRoom]);
     when(mockClient.getRoomById('!invited:example.com')).thenReturn(mockInvitedRoom);
 
-    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
+    selectionService = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
     selectionController = SelectionController(clientService: MatrixClientService(mockClient));
-    when(mockMatrix.selection).thenReturn(selectionService);
+    when(mockMatrix.spaceTree).thenReturn(selectionService);
   });
 
   late GoRouter testRouter;
@@ -111,8 +111,8 @@ void main() {
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
         ChangeNotifierProvider<RoomRepository>(
-            create: (_) => RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection),),
-        ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+            create: (_) => RoomRepository(clientService: mockMatrix.matrixClientService),),
+        ChangeNotifierProvider<SpaceTreeRepository>.value(value: selectionService),
         ChangeNotifierProvider<SelectionController>.value(value: selectionController),
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),

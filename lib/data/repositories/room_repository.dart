@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/known_contacts.dart' as contacts;
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
@@ -17,14 +16,11 @@ import 'package:matrix/matrix.dart';
 class RoomRepository extends ChangeNotifier {
   RoomRepository({
     required MatrixClientService clientService,
-    required SelectionService selection,
-  })  : _clientService = clientService,
-        _selection = selection {
+  }) : _clientService = clientService {
     _subscribeSync();
   }
 
   final MatrixClientService _clientService;
-  final SelectionService _selection;
   StreamSubscription<SyncUpdate>? _syncSub;
   bool _disposed = false;
 
@@ -32,7 +28,6 @@ class RoomRepository extends ChangeNotifier {
 
   void _subscribeSync() {
     _syncSub = _client.onSync.stream.listen((_) {
-      _selection.invalidateSpaceTree();
       notifyListeners();
     });
   }
@@ -42,28 +37,13 @@ class RoomRepository extends ChangeNotifier {
   KoheraRoomSummary? summaryFor(String roomId) {
     final room = _client.getRoomById(roomId);
     if (room == null) return null;
-    return _selection.summaryFor(room);
+    return const RoomSummaryResolver()(room, myUserId: _client.userID);
   }
 
   List<KoheraRoomSummary> get roomSummaries {
     final myUserId = _client.userID;
     return _client.rooms
         .where((r) => !r.isSpace && r.membership == Membership.join)
-        .map((r) => const RoomSummaryResolver()(r, myUserId: myUserId))
-        .toList();
-  }
-
-  List<KoheraRoomSummary> get orphanRoomSummaries {
-    final myUserId = _client.userID;
-    return _selection.orphanRooms
-        .map((r) => const RoomSummaryResolver()(r, myUserId: myUserId))
-        .toList();
-  }
-
-  List<KoheraRoomSummary> summariesForSpace(String spaceId) {
-    final myUserId = _client.userID;
-    return _selection
-        .roomsForSpace(spaceId)
         .map((r) => const RoomSummaryResolver()(r, myUserId: myUserId))
         .toList();
   }

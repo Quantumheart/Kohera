@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/home/widgets/mobile_space_drawer.dart';
 import 'package:kohera/features/rooms/services/room_list_builder.dart';
@@ -33,7 +33,7 @@ class RoomList extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => RoomListController(
         roomRepository: context.read<RoomRepository>(),
-        selectionService: context.read<SelectionService>(),
+        selectionService: context.read<SpaceTreeRepository>(),
         selectionController: context.read<SelectionController>(),
         preferencesService: context.read<PreferencesService>(),
         spaceRoomsController: context.read<SpaceRoomsController>(),
@@ -112,7 +112,7 @@ class _RoomListViewState extends State<_RoomListView>
   @override
   Widget build(BuildContext context) {
     final matrix = context.read<MatrixService>();
-    final selection = context.watch<SelectionService>();
+    final selection = context.watch<SpaceTreeRepository>();
     final selectionState = context.watch<SelectionController>();
     final prefs = context.watch<PreferencesService>();
     final spaceRoomsController = context.watch<SpaceRoomsController>();
@@ -345,7 +345,7 @@ class _RoomListViewState extends State<_RoomListView>
     BuildContext context,
     ListItem item,
     MatrixService matrix,
-    SelectionService selection,
+    SpaceTreeRepository selection,
     PreferencesService prefs,
     bool selectedSpaceCanManage,
     Set<String> manageableSpaceIds,

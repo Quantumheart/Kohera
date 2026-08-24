@@ -32,7 +32,7 @@ void main() {
       storage: mockStorage,
       clientName: 'test',
     );
-    repo = RoomRepository(clientService: service.matrixClientService, selection: service.selection);
+    repo = RoomRepository(clientService: service.matrixClientService);
   });
 
   group('summaryFor', () {

@@ -2,25 +2,22 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/models/join_mode.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/resolvers/room_summary_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 
 class SpaceRepository extends ChangeNotifier {
   SpaceRepository({
     required MatrixClientService clientService,
-    required SelectionService selection,
     SpaceAccessService? spaceAccessOverride,
   })  : _clientService = clientService,
-        _selection = selection,
         _spaceAccess = spaceAccessOverride ??
             SpaceAccessService(matrixClientService: clientService);
 
   final MatrixClientService _clientService;
-  final SelectionService _selection;
   final SpaceAccessService _spaceAccess;
   bool _disposed = false;
 
@@ -35,10 +32,18 @@ class SpaceRepository extends ChangeNotifier {
 
   /// The parent spaces of [roomId] as `(id, displayname)` records.
   List<({String id, String displayname})> parentSpaceRefs(String roomId) {
-    final room = _client.getRoomById(roomId);
-    if (room == null) return const [];
-    return _selection
-        .parentSpacesOf(room)
+    if (_client.getRoomById(roomId) == null) return const [];
+    final parents = _client.rooms.where(
+      (candidate) =>
+          candidate.isSpace &&
+          candidate.id != roomId &&
+          candidate.spaceChildren.any((c) => c.roomId == roomId),
+    ).toList()
+      ..sort(
+        (a, b) =>
+            a.getLocalizedDisplayname().compareTo(b.getLocalizedDisplayname()),
+      );
+    return parents
         .map((r) => (id: r.id, displayname: r.getLocalizedDisplayname()))
         .toList();
   }
@@ -47,7 +52,8 @@ class SpaceRepository extends ChangeNotifier {
   String spaceDisplayname(String spaceId) {
     final space = _client.getRoomById(spaceId);
     if (space == null) return '';
-    return _selection.summaryFor(space).displayname;
+    return const RoomSummaryResolver()(space, myUserId: _client.userID)
+        .displayname;
   }
 
   // ── Join access ────────────────────────────────────────────
@@ -176,7 +182,7 @@ class SpaceRepository extends ChangeNotifier {
   List<KoheraRoomSummary> joinedRoomSummaries() {
     return _client.rooms
         .where((r) => r.membership == Membership.join)
-        .map(_selection.summaryFor)
+        .map((r) => const RoomSummaryResolver()(r, myUserId: _client.userID))
         .toList();
   }
 
@@ -186,9 +192,6 @@ class SpaceRepository extends ChangeNotifier {
     if (space == null) return;
     await space.setSpaceChild(childRoomId);
   }
-
-  /// Invalidates the space tree cache in SelectionService.
-  void invalidateSpaceTree() => _selection.invalidateSpaceTree();
 
   /// Marks the space and all descendant rooms as read.
   Future<void> markAsRead(String spaceId) async {
@@ -344,7 +347,6 @@ class SpaceRepository extends ChangeNotifier {
     if (parentSpace != null) {
       await parentSpace.setSpaceChild(roomId);
     }
-    _selection.invalidateSpaceTree();
 
     debugPrint('[Kohera] Subspace created: $roomId under $parentSpaceId');
     return roomId;

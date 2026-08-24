@@ -1,11 +1,11 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/widgets/new_dm_dialog.dart';
 import 'package:matrix/matrix.dart';
@@ -24,7 +24,7 @@ import 'new_dm_dialog_test.mocks.dart';
 void main() {
   late MockClient mockClient;
   late MockMatrixService mockMatrixService;
-  late SelectionService selectionService;
+  late SpaceTreeRepository selectionService;
   late SelectionController selectionController;
 
   setUp(() {
@@ -33,8 +33,8 @@ void main() {
     when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
-    when(mockMatrixService.selection).thenReturn(selectionService);
+    selectionService = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
+    when(mockMatrixService.spaceTree).thenReturn(selectionService);
     selectionController = SelectionController(clientService: MatrixClientService(mockClient));
     when(mockMatrixService.selectionController).thenReturn(selectionController);
   });
@@ -43,10 +43,10 @@ void main() {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
+          create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService),
         ),
         ChangeNotifierProvider<SpaceRepository>(
-          create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
+          create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService),
         ),
       ],
       child: MaterialApp(

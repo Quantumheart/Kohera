@@ -111,7 +111,7 @@ Widget _wrapScreen(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrixService!),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
+          create: (_) => RoomRepository(clientService: matrixService.matrixClientService),
         ),
       ],
       child: MaterialApp(

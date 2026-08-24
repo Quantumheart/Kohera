@@ -13,11 +13,10 @@ import 'package:kohera/core/services/matrix_service.dart' as _i12;
 import 'package:kohera/core/services/sub_services/auth_service.dart' as _i9;
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart'
     as _i5;
-import 'package:kohera/core/services/sub_services/selection_service.dart'
-    as _i6;
 import 'package:kohera/core/services/sub_services/sync_service.dart' as _i8;
 import 'package:kohera/core/services/sub_services/uia_service.dart' as _i4;
 import 'package:kohera/core/state/selection_controller.dart' as _i7;
+import 'package:kohera/data/repositories/space_tree_repository.dart' as _i6;
 import 'package:kohera/data/services/avatar_resolver.dart' as _i10;
 import 'package:kohera/data/services/matrix_client_service.dart' as _i3;
 import 'package:kohera/data/services/media_resolver.dart' as _i11;
@@ -64,9 +63,9 @@ class _FakeChatBackupService_3 extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
-class _FakeSelectionService_4 extends _i1.SmartFake
-    implements _i6.SelectionService {
-  _FakeSelectionService_4(Object parent, Invocation parentInvocation)
+class _FakeSpaceTreeRepository_4 extends _i1.SmartFake
+    implements _i6.SpaceTreeRepository {
+  _FakeSpaceTreeRepository_4(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
@@ -183,19 +182,19 @@ class MockMatrixService extends _i1.Mock implements _i12.MatrixService {
           as _i5.ChatBackupService);
 
   @override
-  _i6.SelectionService get selection =>
+  _i6.SpaceTreeRepository get spaceTree =>
       (super.noSuchMethod(
-            Invocation.getter(#selection),
-            returnValue: _FakeSelectionService_4(
+            Invocation.getter(#spaceTree),
+            returnValue: _FakeSpaceTreeRepository_4(
               this,
-              Invocation.getter(#selection),
+              Invocation.getter(#spaceTree),
             ),
-            returnValueForMissingStub: _FakeSelectionService_4(
+            returnValueForMissingStub: _FakeSpaceTreeRepository_4(
               this,
-              Invocation.getter(#selection),
+              Invocation.getter(#spaceTree),
             ),
           )
-          as _i6.SelectionService);
+          as _i6.SpaceTreeRepository);
 
   @override
   _i7.SelectionController get selectionController =>

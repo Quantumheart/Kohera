@@ -10,9 +10,9 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
@@ -38,7 +38,7 @@ class _SpaceRailState extends State<SpaceRail> {
     super.didChangeDependencies();
     if (!_orderSynced) {
       _orderSynced = true;
-      final selection = context.read<SelectionService>();
+      final selection = context.read<SpaceTreeRepository>();
       final prefs = context.read<PreferencesService>();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) selection.updateSpaceOrder(prefs.spaceOrder);
@@ -48,7 +48,7 @@ class _SpaceRailState extends State<SpaceRail> {
 
   @override
   Widget build(BuildContext context) {
-    final selection = context.watch<SelectionService>();
+    final selection = context.watch<SpaceTreeRepository>();
     final selectionState = context.watch<SelectionController>();
     final cs = Theme.of(context).colorScheme;
     final spaces = selection.topLevelSpaces;

@@ -6,10 +6,11 @@ import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/secure_storage.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
+
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
@@ -77,7 +78,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
 
   UiaService get uia => _accountSession.uia;
   ChatBackupService get chatBackup => _accountSession.chatBackup;
-  SelectionService get selection => _accountSession.selection;
+  SpaceTreeRepository get spaceTree => _accountSession.spaceTree;
   SelectionController get selectionController =>
       _accountSession.selectionController;
   SyncService get sync => _accountSession.sync;

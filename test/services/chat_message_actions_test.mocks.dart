@@ -9633,15 +9633,6 @@ class MockRoomRepository extends _i1.Mock implements _i19.RoomRepository {
           as List<_i20.KoheraRoomSummary>);
 
   @override
-  List<_i20.KoheraRoomSummary> get orphanRoomSummaries =>
-      (super.noSuchMethod(
-            Invocation.getter(#orphanRoomSummaries),
-            returnValue: <_i20.KoheraRoomSummary>[],
-            returnValueForMissingStub: <_i20.KoheraRoomSummary>[],
-          )
-          as List<_i20.KoheraRoomSummary>);
-
-  @override
   _i6.Stream<_i2.SyncUpdate> get onSync =>
       (super.noSuchMethod(
             Invocation.getter(#onSync),
@@ -9687,15 +9678,6 @@ class MockRoomRepository extends _i1.Mock implements _i19.RoomRepository {
             returnValueForMissingStub: null,
           )
           as _i20.KoheraRoomSummary?);
-
-  @override
-  List<_i20.KoheraRoomSummary> summariesForSpace(String? spaceId) =>
-      (super.noSuchMethod(
-            Invocation.method(#summariesForSpace, [spaceId]),
-            returnValue: <_i20.KoheraRoomSummary>[],
-            returnValueForMissingStub: <_i20.KoheraRoomSummary>[],
-          )
-          as List<_i20.KoheraRoomSummary>);
 
   @override
   _i21.KoheraRoomPermissions? permissionsFor(String? roomId) =>

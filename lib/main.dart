@@ -13,7 +13,6 @@ import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/web_shell_sync.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/core/theme/kohera_theme.dart';
@@ -28,6 +27,7 @@ import 'package:kohera/data/repositories/outbox_repository.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/auth/services/sso_web_init.dart';
@@ -315,8 +315,8 @@ ShareIntakeController? _shareIntake;
                     ),
                     dispose: (_, service) => service.dispose(),
                   ),
-                  ChangeNotifierProvider<SelectionService>.value(
-                    value: matrix.selection,
+                  ChangeNotifierProvider<SpaceTreeRepository>.value(
+                    value: matrix.spaceTree,
                   ),
                   ChangeNotifierProvider<SelectionController>.value(
                     value: matrix.selectionController,
@@ -391,7 +391,6 @@ ShareIntakeController? _shareIntake;
                   ChangeNotifierProvider<RoomRepository>(
                     create: (ctx) => RoomRepository(
                       clientService: ctx.read<MatrixService>().session.matrixClientService,
-                      selection: ctx.read<MatrixService>().session.selection,
                     ),
                   ),
                   ChangeNotifierProvider<UserRepository>.value(
@@ -419,7 +418,6 @@ ShareIntakeController? _shareIntake;
                   ChangeNotifierProvider<SpaceRepository>(
                     create: (ctx) => SpaceRepository(
                       clientService: ctx.read<MatrixService>().session.matrixClientService,
-                      selection: ctx.read<MatrixService>().session.selection,
                     ),
                   ),
                 ],
