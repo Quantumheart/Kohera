@@ -7,12 +7,13 @@ import 'package:kohera/core/services/auth_service.dart';
 import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/secure_storage.dart';
 import 'package:kohera/core/services/sync_service.dart';
-import 'package:kohera/core/services/uia_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
+import 'package:kohera/core/state/uia_interaction_controller.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
+import 'package:kohera/data/services/password_cache.dart';
 import 'package:matrix/matrix.dart';
 
 String koheraKey(String clientName, String suffix) =>
@@ -75,7 +76,8 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── Sub-service forwarding ──────────────────────────────────────
 
-  UiaService get uia => _accountSession.uia;
+  UiaInteractionController get uia => _accountSession.uia;
+  PasswordCache get passwordCache => _accountSession.passwordCache;
   ChatBackupService get chatBackup => _accountSession.chatBackup;
   SpaceTreeRepository get spaceTree => _accountSession.spaceTree;
   SelectionController get selectionController =>
@@ -213,7 +215,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       _loginStateSub = null;
       sync.cancelSyncSub();
       unawaited(_accountSession.keyBackupRepository.stopKeyMirror());
-      uia.clearCachedPassword();
+      passwordCache.clearCachedPassword();
       uia.cancelUiaSub();
       selectionController.resetSelection();
       chatBackup.resetChatBackupState();

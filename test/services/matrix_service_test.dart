@@ -6,8 +6,9 @@ import 'package:kohera/core/services/backup_version_manager.dart';
 import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sync_service.dart';
-import 'package:kohera/core/services/uia_service.dart';
+import 'package:kohera/core/state/uia_interaction_controller.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/password_cache.dart';
 import 'package:kohera/data/services/presence_service.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/encryption/cross_signing.dart';
@@ -31,7 +32,8 @@ import 'package:mockito/mockito.dart';
   MockSpec<BackupVersionManager>(),
   MockSpec<SyncService>(),
   MockSpec<PresenceService>(),
-  MockSpec<UiaService>(),
+  MockSpec<UiaInteractionController>(),
+  MockSpec<PasswordCache>(),
   MockSpec<ChatBackupService>(),
 ])
 import 'matrix_service_test.mocks.dart';

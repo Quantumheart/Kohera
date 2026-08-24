@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/uia_service.dart';
+import 'package:kohera/core/state/uia_interaction_controller.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/password_cache.dart';
 import 'package:kohera/features/settings/screens/devices_screen.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/matrix.dart';
@@ -26,13 +27,13 @@ void main() {
   late MockClient mockClient;
   late MockMatrixService mockMatrix;
   late MockChatBackupService mockChatBackup;
-  late UiaService uiaService;
+  late UiaInteractionController uiaService;
 
   setUp(() {
     mockClient = MockClient();
     mockMatrix = MockMatrixService();
     mockChatBackup = MockChatBackupService();
-    uiaService = UiaService(matrixClientService: MatrixClientService(mockClient));
+    uiaService = UiaInteractionController(matrixClientService: MatrixClientService(mockClient), passwordCache: PasswordCache());
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.deviceID).thenReturn('THISDEVICE');

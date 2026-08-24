@@ -83,7 +83,7 @@ class _DeactivateAccountDialogState extends State<DeactivateAccountDialog> {
       Navigator.of(context).pop();
       await _manager.removeService(_matrix);
     } on MatrixException catch (e) {
-      _matrix.uia.clearCachedPassword();
+      _matrix.passwordCache.clearCachedPassword();
       _setError(e.errorMessage);
     } on Exception catch (e) {
       if (_isCancelError(e)) {

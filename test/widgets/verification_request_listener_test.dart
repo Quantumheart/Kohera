@@ -5,6 +5,7 @@ import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/password_cache.dart';
 import 'package:kohera/features/e2ee/widgets/verification_request_listener.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
@@ -72,7 +73,7 @@ void main() {
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
           ChangeNotifierProvider<KeyBackupRepository>(
-            create: (_) => KeyBackupRepository(clientService: mockMatrix.matrixClientService, clientName: 'test', chatBackup: mockMatrix.chatBackup, uia: mockMatrix.uia),
+            create: (_) => KeyBackupRepository(clientService: mockMatrix.matrixClientService, clientName: 'test', chatBackup: mockMatrix.chatBackup, passwordCache: PasswordCache()),
           ),
         ],
         child: VerificationRequestListener(

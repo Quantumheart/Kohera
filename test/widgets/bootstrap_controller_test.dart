@@ -1,9 +1,10 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/chat_backup_service.dart';
-import 'package:kohera/core/services/uia_service.dart';
+import 'package:kohera/core/state/uia_interaction_controller.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/password_cache.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_controller.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
@@ -11,12 +12,12 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
+  MockSpec<UiaInteractionController>(),
   MockSpec<Client>(),
   MockSpec<ChatBackupService>(),
   MockSpec<Encryption>(),
   MockSpec<Bootstrap>(),
   MockSpec<OpenSSSS>(),
-  MockSpec<UiaService>(),
 ])
 import '../mocks/matrix_service_mock.mocks.dart';
 import 'bootstrap_controller_test.mocks.dart';
@@ -34,7 +35,6 @@ void main() {
     mockEncryption = MockEncryption();
     when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrixService.chatBackup).thenReturn(mockChatBackup);
-    when(mockMatrixService.uia).thenReturn(MockUiaService());
     when(mockClient.encryption).thenReturn(mockEncryption);
 
     when(mockClient.roomsLoading).thenAnswer((_) async {});
@@ -46,7 +46,7 @@ void main() {
 
   BootstrapController createController({bool wipeExisting = false}) {
     return BootstrapController(
-      keyBackup: KeyBackupRepository(clientService: mockMatrixService.matrixClientService, clientName: 'test', chatBackup: mockMatrixService.chatBackup, uia: mockMatrixService.uia),
+      keyBackup: KeyBackupRepository(clientService: mockMatrixService.matrixClientService, clientName: 'test', chatBackup: mockMatrixService.chatBackup, passwordCache: PasswordCache()),
       wipeExisting: wipeExisting,
     );
   }
