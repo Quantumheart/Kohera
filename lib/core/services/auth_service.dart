@@ -3,14 +3,14 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
+import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/matrix_service.dart' show koheraKey;
 import 'package:kohera/core/services/session_backup.dart';
-import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
-import 'package:kohera/core/services/sub_services/presence_service.dart';
-import 'package:kohera/core/services/sub_services/sync_service.dart';
-import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/core/services/sync_service.dart';
+import 'package:kohera/core/services/uia_service.dart';
 import 'package:kohera/core/utils/network_error.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/presence_service.dart';
 import 'package:matrix/matrix.dart';
 // ignore: implementation_imports, no public API for ClientInitException
 import 'package:matrix/src/utils/client_init_exception.dart';

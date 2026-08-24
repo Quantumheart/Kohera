@@ -3,9 +3,9 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
+import 'package:kohera/core/services/auth_service.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/data/repositories/auth_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/auth/services/registration_controller.dart';

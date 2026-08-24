@@ -1,6 +1,6 @@
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/call_push_rule_manager.dart';
-import 'package:kohera/core/services/sub_services/global_push_rule_manager.dart';
+import 'package:kohera/data/services/call_push_rule_manager.dart';
+import 'package:kohera/data/services/global_push_rule_manager.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 
 /// Manages server-side push rules for an account: the VoIP call-member

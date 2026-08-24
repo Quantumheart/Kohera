@@ -1,13 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/models/emoji_gg_pack.dart';
 import 'package:kohera/core/services/emoji_gg_service.dart';
-import 'package:kohera/core/services/sticker_pack_service.dart';
 import 'package:kohera/data/models/kohera_sticker_pack.dart';
 import 'package:kohera/data/models/sticker_pack.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/sticker_pack_service.dart';
 import 'package:matrix/matrix.dart';
 
-export 'package:kohera/core/services/sticker_pack_service.dart'
+export 'package:kohera/data/services/sticker_pack_service.dart'
     show ImportProgress;
 
 /// Owns an account's sticker/emoji packs — personal, imported, subscribed

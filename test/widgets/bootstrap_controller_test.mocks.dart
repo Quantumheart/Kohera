@@ -9,9 +9,8 @@ import 'dart:ui' as _i14;
 
 import 'package:async/async.dart' as _i15;
 import 'package:http/http.dart' as _i4;
-import 'package:kohera/core/services/sub_services/chat_backup_service.dart'
-    as _i13;
-import 'package:kohera/core/services/sub_services/uia_service.dart' as _i16;
+import 'package:kohera/core/services/chat_backup_service.dart' as _i13;
+import 'package:kohera/core/services/uia_service.dart' as _i16;
 import 'package:matrix/encryption.dart' as _i7;
 import 'package:matrix/encryption/cross_signing.dart' as _i10;
 import 'package:matrix/encryption/key_verification_manager.dart' as _i9;

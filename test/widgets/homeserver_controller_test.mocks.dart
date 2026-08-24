@@ -7,7 +7,7 @@ import 'dart:async' as _i4;
 import 'dart:ui' as _i6;
 
 import 'package:kohera/core/models/server_auth_capabilities.dart' as _i2;
-import 'package:kohera/core/services/sub_services/auth_service.dart' as _i3;
+import 'package:kohera/core/services/auth_service.dart' as _i3;
 import 'package:matrix/matrix.dart' as _i5;
 import 'package:mockito/mockito.dart' as _i1;
 

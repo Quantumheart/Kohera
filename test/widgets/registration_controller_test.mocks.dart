@@ -9,7 +9,7 @@ import 'dart:ui' as _i12;
 
 import 'package:http/http.dart' as _i4;
 import 'package:kohera/core/models/server_auth_capabilities.dart' as _i7;
-import 'package:kohera/core/services/sub_services/auth_service.dart' as _i11;
+import 'package:kohera/core/services/auth_service.dart' as _i11;
 import 'package:matrix/encryption.dart' as _i8;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;

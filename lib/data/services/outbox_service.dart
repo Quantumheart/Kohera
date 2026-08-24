@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/sub_services/outbox_connectivity.dart';
-import 'package:kohera/core/services/sub_services/outbox_database.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/outbox_connectivity.dart';
+import 'package:kohera/data/services/outbox_database.dart';
 import 'package:matrix/matrix.dart';
 
 @immutable
