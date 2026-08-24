@@ -1,8 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
-import 'package:kohera/data/services/matrix_client_service.dart';
-import 'package:kohera/data/services/password_cache.dart';
 import 'package:kohera/features/e2ee/services/recovery_key_handler.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/encryption/cross_signing.dart';
@@ -11,32 +8,24 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
-  MockSpec<ChatBackupService>(),
+  MockSpec<KeyBackupRepository>(),
   MockSpec<Bootstrap>(),
   MockSpec<OpenSSSS>(),
   MockSpec<Client>(),
   MockSpec<Encryption>(),
   MockSpec<CrossSigning>(),
 ])
-import '../mocks/matrix_service_mock.mocks.dart';
 import 'recovery_key_handler_test.mocks.dart';
 
 void main() {
-  late MockMatrixService mockMatrixService;
-  late MockChatBackupService mockChatBackup;
+  late MockKeyBackupRepository mockKeyBackup;
   late MockClient mockClient;
   late RecoveryKeyHandler handler;
 
   setUp(() {
-    mockMatrixService = MockMatrixService();
-    mockChatBackup = MockChatBackupService();
+    mockKeyBackup = MockKeyBackupRepository();
     mockClient = MockClient();
-    when(mockMatrixService.chatBackup).thenReturn(mockChatBackup);
-    when(mockMatrixService.matrixClientService)
-        .thenReturn(MatrixClientService(mockClient));
-    handler = RecoveryKeyHandler(
-      keyBackup: KeyBackupRepository(clientService: mockMatrixService.matrixClientService, clientName: 'test', chatBackup: mockMatrixService.chatBackup, passwordCache: PasswordCache()),
-    );
+    handler = RecoveryKeyHandler(keyBackup: mockKeyBackup);
   });
 
   group('RecoveryKeyHandler', () {
@@ -86,14 +75,14 @@ void main() {
         mockSsssKey.unlock(keyOrPassphrase: anyNamed('keyOrPassphrase')),
       ).thenAnswer((_) async {});
       when(mockBootstrap.openExistingSsss()).thenAnswer((_) async {});
-      when(mockChatBackup.storeRecoveryKey(any)).thenAnswer((_) async {});
+      when(mockKeyBackup.storeRecoveryKey(any)).thenAnswer((_) async {});
       when(mockClient.encryption).thenReturn(null);
 
       handler.setSaveToDevice(true);
       final result = await handler.unlockExisting(mockBootstrap, 'valid-key');
 
       expect(result, isTrue);
-      verify(mockChatBackup.storeRecoveryKey('valid-key')).called(1);
+      verify(mockKeyBackup.storeRecoveryKey('valid-key')).called(1);
       expect(handler.unlockedSsssKey, mockSsssKey);
     });
 
@@ -130,13 +119,13 @@ void main() {
         final mockSsssKey = MockOpenSSSS();
         when(mockBootstrap.newSsssKey).thenReturn(mockSsssKey);
         when(mockSsssKey.recoveryKey).thenReturn('KEY');
-        when(mockChatBackup.storeRecoveryKey(any)).thenAnswer((_) async {});
+        when(mockKeyBackup.storeRecoveryKey(any)).thenAnswer((_) async {});
 
         await handler.generateNewKey(mockBootstrap);
         handler.setSaveToDevice(true);
         await handler.storeIfNeeded();
 
-        verify(mockChatBackup.storeRecoveryKey('KEY')).called(1);
+        verify(mockKeyBackup.storeRecoveryKey('KEY')).called(1);
       },
     );
 
@@ -150,7 +139,7 @@ void main() {
       await handler.generateNewKey(mockBootstrap);
       await handler.storeIfNeeded();
 
-      verifyNever(mockChatBackup.storeRecoveryKey(any));
+      verifyNever(mockKeyBackup.storeRecoveryKey(any));
     });
 
     test('reset clears all state', () async {
@@ -175,7 +164,7 @@ void main() {
 
     test('consumeStoredRecoveryKey returns and clears key', () async {
       when(
-        mockChatBackup.getStoredRecoveryKey(),
+        mockKeyBackup.getStoredRecoveryKey(),
       ).thenAnswer((_) async => 'stored-key');
 
       await handler.loadStoredKey();

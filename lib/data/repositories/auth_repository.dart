@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
 import 'package:kohera/core/services/auth_service.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
+import 'package:kohera/core/state/key_backup_setup_state.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 
@@ -11,16 +11,16 @@ class AuthRepository extends ChangeNotifier {
   AuthRepository({
     required MatrixClientService clientService,
     required AuthService auth,
-    required ChatBackupService chatBackup,
+    required KeyBackupSetupState setupState,
   })  : _clientService = clientService,
         _auth = auth,
-        _chatBackup = chatBackup {
+        _setupState = setupState {
     _auth.addListener(_onAuthChanged);
   }
 
   final MatrixClientService _clientService;
   final AuthService _auth;
-  final ChatBackupService _chatBackup;
+  final KeyBackupSetupState _setupState;
   bool _disposed = false;
 
   Client get _client => _clientService.client;
@@ -30,8 +30,8 @@ class AuthRepository extends ChangeNotifier {
   }
 
   bool get isLoggedIn => _auth.isLoggedIn;
-  bool get hasSkippedSetup => _chatBackup.setupSkipped;
-  void skipSetup() => unawaited(_chatBackup.markSetupSkipped());
+  bool get hasSkippedSetup => _setupState.setupSkipped;
+  void skipSetup() => unawaited(_setupState.markSetupSkipped());
 
   Future<ServerAuthCapabilities> getServerAuthCapabilities(String homeserver) =>
       _auth.getServerAuthCapabilities(homeserver, isLoggedIn: _auth.isLoggedIn);

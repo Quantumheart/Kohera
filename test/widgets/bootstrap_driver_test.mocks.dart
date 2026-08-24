@@ -4,12 +4,12 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i5;
-import 'dart:typed_data' as _i12;
-import 'dart:ui' as _i15;
+import 'dart:typed_data' as _i13;
 
-import 'package:async/async.dart' as _i13;
+import 'package:async/async.dart' as _i14;
+import 'package:flutter/foundation.dart' as _i15;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart' as _i11;
 import 'package:http/http.dart' as _i4;
-import 'package:kohera/core/services/chat_backup_service.dart' as _i14;
 import 'package:matrix/encryption.dart' as _i7;
 import 'package:matrix/encryption/cross_signing.dart' as _i10;
 import 'package:matrix/encryption/key_verification_manager.dart' as _i9;
@@ -18,7 +18,7 @@ import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;
 import 'package:matrix/src/utils/cached_stream_controller.dart' as _i3;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i11;
+import 'package:mockito/src/dummies.dart' as _i12;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -479,6 +479,38 @@ class _FakeEncryption_76 extends _i1.SmartFake implements _i7.Encryption {
     : super(parent, parentInvocation);
 }
 
+class _FakeIOSOptions_77 extends _i1.SmartFake implements _i11.IOSOptions {
+  _FakeIOSOptions_77(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeAndroidOptions_78 extends _i1.SmartFake
+    implements _i11.AndroidOptions {
+  _FakeAndroidOptions_78(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeLinuxOptions_79 extends _i1.SmartFake implements _i11.LinuxOptions {
+  _FakeLinuxOptions_79(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeWindowsOptions_80 extends _i1.SmartFake
+    implements _i11.WindowsOptions {
+  _FakeWindowsOptions_80(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeWebOptions_81 extends _i1.SmartFake implements _i11.WebOptions {
+  _FakeWebOptions_81(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeAppleOptions_82 extends _i1.SmartFake implements _i11.AppleOptions {
+  _FakeAppleOptions_82(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
 /// A class which mocks [Client].
 ///
 /// See the documentation for Mockito's code generation for more information.
@@ -655,11 +687,11 @@ class MockClient extends _i1.Mock implements _i2.Client {
   String get clientName =>
       (super.noSuchMethod(
             Invocation.getter(#clientName),
-            returnValue: _i11.dummyValue<String>(
+            returnValue: _i12.dummyValue<String>(
               this,
               Invocation.getter(#clientName),
             ),
-            returnValueForMissingStub: _i11.dummyValue<String>(
+            returnValueForMissingStub: _i12.dummyValue<String>(
               this,
               Invocation.getter(#clientName),
             ),
@@ -706,11 +738,11 @@ class MockClient extends _i1.Mock implements _i2.Client {
   String get dehydratedDeviceDisplayName =>
       (super.noSuchMethod(
             Invocation.getter(#dehydratedDeviceDisplayName),
-            returnValue: _i11.dummyValue<String>(
+            returnValue: _i12.dummyValue<String>(
               this,
               Invocation.getter(#dehydratedDeviceDisplayName),
             ),
-            returnValueForMissingStub: _i11.dummyValue<String>(
+            returnValueForMissingStub: _i12.dummyValue<String>(
               this,
               Invocation.getter(#dehydratedDeviceDisplayName),
             ),
@@ -748,11 +780,11 @@ class MockClient extends _i1.Mock implements _i2.Client {
   String get identityKey =>
       (super.noSuchMethod(
             Invocation.getter(#identityKey),
-            returnValue: _i11.dummyValue<String>(
+            returnValue: _i12.dummyValue<String>(
               this,
               Invocation.getter(#identityKey),
             ),
-            returnValueForMissingStub: _i11.dummyValue<String>(
+            returnValueForMissingStub: _i12.dummyValue<String>(
               this,
               Invocation.getter(#identityKey),
             ),
@@ -763,11 +795,11 @@ class MockClient extends _i1.Mock implements _i2.Client {
   String get fingerprintKey =>
       (super.noSuchMethod(
             Invocation.getter(#fingerprintKey),
-            returnValue: _i11.dummyValue<String>(
+            returnValue: _i12.dummyValue<String>(
               this,
               Invocation.getter(#fingerprintKey),
             ),
-            returnValueForMissingStub: _i11.dummyValue<String>(
+            returnValueForMissingStub: _i12.dummyValue<String>(
               this,
               Invocation.getter(#fingerprintKey),
             ),
@@ -1507,11 +1539,11 @@ class MockClient extends _i1.Mock implements _i2.Client {
   String generateUniqueTransactionId() =>
       (super.noSuchMethod(
             Invocation.method(#generateUniqueTransactionId, []),
-            returnValue: _i11.dummyValue<String>(
+            returnValue: _i12.dummyValue<String>(
               this,
               Invocation.method(#generateUniqueTransactionId, []),
             ),
-            returnValueForMissingStub: _i11.dummyValue<String>(
+            returnValueForMissingStub: _i12.dummyValue<String>(
               this,
               Invocation.method(#generateUniqueTransactionId, []),
             ),
@@ -1879,8 +1911,8 @@ class MockClient extends _i1.Mock implements _i2.Client {
       (super.noSuchMethod(
             Invocation.method(#uiaRequestBackground, [request]),
             returnValue:
-                _i11.ifNotNull(
-                  _i11.dummyValueOrNull<T>(
+                _i12.ifNotNull(
+                  _i12.dummyValueOrNull<T>(
                     this,
                     Invocation.method(#uiaRequestBackground, [request]),
                   ),
@@ -1891,8 +1923,8 @@ class MockClient extends _i1.Mock implements _i2.Client {
                   Invocation.method(#uiaRequestBackground, [request]),
                 ),
             returnValueForMissingStub:
-                _i11.ifNotNull(
-                  _i11.dummyValueOrNull<T>(
+                _i12.ifNotNull(
+                  _i12.dummyValueOrNull<T>(
                     this,
                     Invocation.method(#uiaRequestBackground, [request]),
                   ),
@@ -1929,7 +1961,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               },
             ),
             returnValue: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(
                   #startDirectChat,
@@ -1946,7 +1978,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(
                   #startDirectChat,
@@ -1994,7 +2026,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               #powerLevelContentOverride: powerLevelContentOverride,
             }),
             returnValue: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#createGroupChat, [], {
                   #groupName: groupName,
@@ -2012,7 +2044,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#createGroupChat, [], {
                   #groupName: groupName,
@@ -2100,7 +2132,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               #waitForSync: waitForSync,
             }),
             returnValue: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#createSpace, [], {
                   #name: name,
@@ -2115,7 +2147,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#createSpace, [], {
                   #name: name,
@@ -2567,7 +2599,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
 
   @override
   _i5.Future<Uri> uploadContent(
-    _i12.Uint8List? file, {
+    _i13.Uint8List? file, {
     String? filename,
     String? contentType,
   }) =>
@@ -2982,7 +3014,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
           as _i5.Future<String?>);
 
   @override
-  Never unexpectedResponse(_i4.BaseResponse? response, _i12.Uint8List? body) =>
+  Never unexpectedResponse(_i4.BaseResponse? response, _i13.Uint8List? body) =>
       (super.noSuchMethod(
             Invocation.method(#unexpectedResponse, [response, body]),
             returnValue: null,
@@ -4208,7 +4240,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               #visibility: visibility,
             }),
             returnValue: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#createRoom, [], {
                   #creationContent: creationContent,
@@ -4227,7 +4259,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#createRoom, [], {
                   #creationContent: creationContent,
@@ -4486,7 +4518,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               {#via: via, #reason: reason, #thirdPartySigned: thirdPartySigned},
             ),
             returnValue: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(
                   #joinRoom,
@@ -4500,7 +4532,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(
                   #joinRoom,
@@ -4679,7 +4711,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               {#via: via, #reason: reason},
             ),
             returnValue: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(
                   #knockRoom,
@@ -4689,7 +4721,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(
                   #knockRoom,
@@ -5478,13 +5510,13 @@ class MockClient extends _i1.Mock implements _i2.Client {
       (super.noSuchMethod(
             Invocation.method(#postRoomKeysVersion, [algorithm, authData]),
             returnValue: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#postRoomKeysVersion, [algorithm, authData]),
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#postRoomKeysVersion, [algorithm, authData]),
               ),
@@ -5666,7 +5698,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               {#reason: reason, #thirdPartySigned: thirdPartySigned},
             ),
             returnValue: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(
                   #joinRoomById,
@@ -5676,7 +5708,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(
                   #joinRoomById,
@@ -5870,7 +5902,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
       (super.noSuchMethod(
             Invocation.method(#sendMessage, [roomId, eventType, txnId, body]),
             returnValue: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#sendMessage, [
                   roomId,
@@ -5881,7 +5913,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#sendMessage, [
                   roomId,
@@ -5944,7 +5976,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               body,
             ]),
             returnValue: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#setRoomStateWithKey, [
                   roomId,
@@ -5955,7 +5987,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#setRoomStateWithKey, [
                   roomId,
@@ -5990,7 +6022,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               {#additionalCreators: additionalCreators},
             ),
             returnValue: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(
                   #upgradeRoom,
@@ -6000,7 +6032,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(
                   #upgradeRoom,
@@ -6228,13 +6260,13 @@ class MockClient extends _i1.Mock implements _i2.Client {
       (super.noSuchMethod(
             Invocation.method(#defineFilter, [userId, body]),
             returnValue: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#defineFilter, [userId, body]),
               ),
             ),
             returnValueForMissingStub: _i5.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#defineFilter, [userId, body]),
               ),
@@ -6427,7 +6459,7 @@ class MockClient extends _i1.Mock implements _i2.Client {
   _i5.Future<Map<String, Object?>> uploadContentToMXC(
     String? serverName,
     String? mediaId,
-    _i12.Uint8List? body, {
+    _i13.Uint8List? body, {
     String? filename,
     String? contentType,
   }) =>
@@ -6557,11 +6589,11 @@ class MockEncryption extends _i1.Mock implements _i7.Encryption {
   String get ourDeviceId =>
       (super.noSuchMethod(
             Invocation.getter(#ourDeviceId),
-            returnValue: _i11.dummyValue<String>(
+            returnValue: _i12.dummyValue<String>(
               this,
               Invocation.getter(#ourDeviceId),
             ),
-            returnValueForMissingStub: _i11.dummyValue<String>(
+            returnValueForMissingStub: _i12.dummyValue<String>(
               this,
               Invocation.getter(#ourDeviceId),
             ),
@@ -6875,7 +6907,7 @@ class MockBootstrap extends _i1.Mock implements _i7.Bootstrap {
   );
 
   @override
-  set errorResult(_i13.ErrorResult? value) => super.noSuchMethod(
+  set errorResult(_i14.ErrorResult? value) => super.noSuchMethod(
     Invocation.setter(#errorResult, value),
     returnValueForMissingStub: null,
   );
@@ -6908,11 +6940,11 @@ class MockBootstrap extends _i1.Mock implements _i7.Bootstrap {
   String mostUsedKey(Map<String, Set<String>>? secrets) =>
       (super.noSuchMethod(
             Invocation.method(#mostUsedKey, [secrets]),
-            returnValue: _i11.dummyValue<String>(
+            returnValue: _i12.dummyValue<String>(
               this,
               Invocation.method(#mostUsedKey, [secrets]),
             ),
-            returnValueForMissingStub: _i11.dummyValue<String>(
+            returnValueForMissingStub: _i12.dummyValue<String>(
               this,
               Invocation.method(#mostUsedKey, [secrets]),
             ),
@@ -7037,190 +7069,300 @@ class MockBootstrap extends _i1.Mock implements _i7.Bootstrap {
           as _i5.Future<void>);
 }
 
-/// A class which mocks [ChatBackupService].
+/// A class which mocks [FlutterSecureStorage].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockChatBackupService extends _i1.Mock implements _i14.ChatBackupService {
+class MockFlutterSecureStorage extends _i1.Mock
+    implements _i11.FlutterSecureStorage {
   @override
-  bool get chatBackupEnabled =>
+  _i11.IOSOptions get iOptions =>
       (super.noSuchMethod(
-            Invocation.getter(#chatBackupEnabled),
-            returnValue: false,
-            returnValueForMissingStub: false,
+            Invocation.getter(#iOptions),
+            returnValue: _FakeIOSOptions_77(this, Invocation.getter(#iOptions)),
+            returnValueForMissingStub: _FakeIOSOptions_77(
+              this,
+              Invocation.getter(#iOptions),
+            ),
           )
-          as bool);
+          as _i11.IOSOptions);
 
   @override
-  bool get chatBackupLoading =>
+  _i11.AndroidOptions get aOptions =>
       (super.noSuchMethod(
-            Invocation.getter(#chatBackupLoading),
-            returnValue: false,
-            returnValueForMissingStub: false,
+            Invocation.getter(#aOptions),
+            returnValue: _FakeAndroidOptions_78(
+              this,
+              Invocation.getter(#aOptions),
+            ),
+            returnValueForMissingStub: _FakeAndroidOptions_78(
+              this,
+              Invocation.getter(#aOptions),
+            ),
           )
-          as bool);
+          as _i11.AndroidOptions);
 
   @override
-  bool get setupSkipped =>
+  _i11.LinuxOptions get lOptions =>
       (super.noSuchMethod(
-            Invocation.getter(#setupSkipped),
-            returnValue: false,
-            returnValueForMissingStub: false,
+            Invocation.getter(#lOptions),
+            returnValue: _FakeLinuxOptions_79(
+              this,
+              Invocation.getter(#lOptions),
+            ),
+            returnValueForMissingStub: _FakeLinuxOptions_79(
+              this,
+              Invocation.getter(#lOptions),
+            ),
           )
-          as bool);
+          as _i11.LinuxOptions);
 
   @override
-  bool get bannerDismissed =>
+  _i11.WindowsOptions get wOptions =>
       (super.noSuchMethod(
-            Invocation.getter(#bannerDismissed),
-            returnValue: false,
-            returnValueForMissingStub: false,
+            Invocation.getter(#wOptions),
+            returnValue: _FakeWindowsOptions_80(
+              this,
+              Invocation.getter(#wOptions),
+            ),
+            returnValueForMissingStub: _FakeWindowsOptions_80(
+              this,
+              Invocation.getter(#wOptions),
+            ),
           )
-          as bool);
+          as _i11.WindowsOptions);
 
   @override
-  bool get hasListeners =>
+  _i11.WebOptions get webOptions =>
       (super.noSuchMethod(
-            Invocation.getter(#hasListeners),
-            returnValue: false,
-            returnValueForMissingStub: false,
+            Invocation.getter(#webOptions),
+            returnValue: _FakeWebOptions_81(
+              this,
+              Invocation.getter(#webOptions),
+            ),
+            returnValueForMissingStub: _FakeWebOptions_81(
+              this,
+              Invocation.getter(#webOptions),
+            ),
           )
-          as bool);
+          as _i11.WebOptions);
 
   @override
-  _i5.Future<void> loadDismissalState() =>
+  _i11.AppleOptions get mOptions =>
       (super.noSuchMethod(
-            Invocation.method(#loadDismissalState, []),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            Invocation.getter(#mOptions),
+            returnValue: _FakeAppleOptions_82(
+              this,
+              Invocation.getter(#mOptions),
+            ),
+            returnValueForMissingStub: _FakeAppleOptions_82(
+              this,
+              Invocation.getter(#mOptions),
+            ),
           )
-          as _i5.Future<void>);
+          as _i11.AppleOptions);
 
   @override
-  _i5.Future<void> markSetupSkipped() =>
+  Map<String, List<_i15.ValueChanged<String?>>> get getListeners =>
       (super.noSuchMethod(
-            Invocation.method(#markSetupSkipped, []),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
+            Invocation.getter(#getListeners),
+            returnValue: <String, List<_i15.ValueChanged<String?>>>{},
+            returnValueForMissingStub:
+                <String, List<_i15.ValueChanged<String?>>>{},
           )
-          as _i5.Future<void>);
+          as Map<String, List<_i15.ValueChanged<String?>>>);
 
   @override
-  _i5.Future<void> dismissBanner() =>
-      (super.noSuchMethod(
-            Invocation.method(#dismissBanner, []),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
-          )
-          as _i5.Future<void>);
-
-  @override
-  _i5.Future<void> deleteDismissalState() =>
-      (super.noSuchMethod(
-            Invocation.method(#deleteDismissalState, []),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
-          )
-          as _i5.Future<void>);
-
-  @override
-  _i5.Future<void> checkChatBackupStatus() =>
-      (super.noSuchMethod(
-            Invocation.method(#checkChatBackupStatus, []),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
-          )
-          as _i5.Future<void>);
-
-  @override
-  _i5.Future<void> disableChatBackup() =>
-      (super.noSuchMethod(
-            Invocation.method(#disableChatBackup, []),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
-          )
-          as _i5.Future<void>);
-
-  @override
-  void resetChatBackupState() => super.noSuchMethod(
-    Invocation.method(#resetChatBackupState, []),
+  void registerListener({
+    required String? key,
+    required _i15.ValueChanged<String?>? listener,
+  }) => super.noSuchMethod(
+    Invocation.method(#registerListener, [], {#key: key, #listener: listener}),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i5.Future<void> tryAutoUnlockBackup() =>
+  void unregisterListener({
+    required String? key,
+    required _i15.ValueChanged<String?>? listener,
+  }) => super.noSuchMethod(
+    Invocation.method(#unregisterListener, [], {
+      #key: key,
+      #listener: listener,
+    }),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void unregisterAllListenersForKey({required String? key}) =>
+      super.noSuchMethod(
+        Invocation.method(#unregisterAllListenersForKey, [], {#key: key}),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void unregisterAllListeners() => super.noSuchMethod(
+    Invocation.method(#unregisterAllListeners, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  _i5.Future<void> write({
+    required String? key,
+    required String? value,
+    _i11.AppleOptions? iOptions,
+    _i11.AndroidOptions? aOptions,
+    _i11.LinuxOptions? lOptions,
+    _i11.WebOptions? webOptions,
+    _i11.AppleOptions? mOptions,
+    _i11.WindowsOptions? wOptions,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#tryAutoUnlockBackup, []),
+            Invocation.method(#write, [], {
+              #key: key,
+              #value: value,
+              #iOptions: iOptions,
+              #aOptions: aOptions,
+              #lOptions: lOptions,
+              #webOptions: webOptions,
+              #mOptions: mOptions,
+              #wOptions: wOptions,
+            }),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
           as _i5.Future<void>);
 
   @override
-  _i5.Future<void> runKeyRecovery({_i7.OpenSSSS? ssssKey}) =>
+  _i5.Future<String?> read({
+    required String? key,
+    _i11.AppleOptions? iOptions,
+    _i11.AndroidOptions? aOptions,
+    _i11.LinuxOptions? lOptions,
+    _i11.WebOptions? webOptions,
+    _i11.AppleOptions? mOptions,
+    _i11.WindowsOptions? wOptions,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#runKeyRecovery, [], {#ssssKey: ssssKey}),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
-          )
-          as _i5.Future<void>);
-
-  @override
-  _i5.Future<void> requestMissingRoomKeys({bool? force = false}) =>
-      (super.noSuchMethod(
-            Invocation.method(#requestMissingRoomKeys, [], {#force: force}),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
-          )
-          as _i5.Future<void>);
-
-  @override
-  _i5.Future<String?> getStoredRecoveryKey() =>
-      (super.noSuchMethod(
-            Invocation.method(#getStoredRecoveryKey, []),
+            Invocation.method(#read, [], {
+              #key: key,
+              #iOptions: iOptions,
+              #aOptions: aOptions,
+              #lOptions: lOptions,
+              #webOptions: webOptions,
+              #mOptions: mOptions,
+              #wOptions: wOptions,
+            }),
             returnValue: _i5.Future<String?>.value(),
             returnValueForMissingStub: _i5.Future<String?>.value(),
           )
           as _i5.Future<String?>);
 
   @override
-  _i5.Future<void> storeRecoveryKey(String? key) =>
+  _i5.Future<bool> containsKey({
+    required String? key,
+    _i11.AppleOptions? iOptions,
+    _i11.AndroidOptions? aOptions,
+    _i11.LinuxOptions? lOptions,
+    _i11.WebOptions? webOptions,
+    _i11.AppleOptions? mOptions,
+    _i11.WindowsOptions? wOptions,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#storeRecoveryKey, [key]),
+            Invocation.method(#containsKey, [], {
+              #key: key,
+              #iOptions: iOptions,
+              #aOptions: aOptions,
+              #lOptions: lOptions,
+              #webOptions: webOptions,
+              #mOptions: mOptions,
+              #wOptions: wOptions,
+            }),
+            returnValue: _i5.Future<bool>.value(false),
+            returnValueForMissingStub: _i5.Future<bool>.value(false),
+          )
+          as _i5.Future<bool>);
+
+  @override
+  _i5.Future<void> delete({
+    required String? key,
+    _i11.AppleOptions? iOptions,
+    _i11.AndroidOptions? aOptions,
+    _i11.LinuxOptions? lOptions,
+    _i11.WebOptions? webOptions,
+    _i11.AppleOptions? mOptions,
+    _i11.WindowsOptions? wOptions,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#delete, [], {
+              #key: key,
+              #iOptions: iOptions,
+              #aOptions: aOptions,
+              #lOptions: lOptions,
+              #webOptions: webOptions,
+              #mOptions: mOptions,
+              #wOptions: wOptions,
+            }),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
           as _i5.Future<void>);
 
   @override
-  _i5.Future<void> deleteStoredRecoveryKey() =>
+  _i5.Future<Map<String, String>> readAll({
+    _i11.AppleOptions? iOptions,
+    _i11.AndroidOptions? aOptions,
+    _i11.LinuxOptions? lOptions,
+    _i11.WebOptions? webOptions,
+    _i11.AppleOptions? mOptions,
+    _i11.WindowsOptions? wOptions,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#deleteStoredRecoveryKey, []),
+            Invocation.method(#readAll, [], {
+              #iOptions: iOptions,
+              #aOptions: aOptions,
+              #lOptions: lOptions,
+              #webOptions: webOptions,
+              #mOptions: mOptions,
+              #wOptions: wOptions,
+            }),
+            returnValue: _i5.Future<Map<String, String>>.value(
+              <String, String>{},
+            ),
+            returnValueForMissingStub: _i5.Future<Map<String, String>>.value(
+              <String, String>{},
+            ),
+          )
+          as _i5.Future<Map<String, String>>);
+
+  @override
+  _i5.Future<void> deleteAll({
+    _i11.AppleOptions? iOptions,
+    _i11.AndroidOptions? aOptions,
+    _i11.LinuxOptions? lOptions,
+    _i11.WebOptions? webOptions,
+    _i11.AppleOptions? mOptions,
+    _i11.WindowsOptions? wOptions,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteAll, [], {
+              #iOptions: iOptions,
+              #aOptions: aOptions,
+              #lOptions: lOptions,
+              #webOptions: webOptions,
+              #mOptions: mOptions,
+              #wOptions: wOptions,
+            }),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
           as _i5.Future<void>);
 
   @override
-  void addListener(_i15.VoidCallback? listener) => super.noSuchMethod(
-    Invocation.method(#addListener, [listener]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void removeListener(_i15.VoidCallback? listener) => super.noSuchMethod(
-    Invocation.method(#removeListener, [listener]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void dispose() => super.noSuchMethod(
-    Invocation.method(#dispose, []),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void notifyListeners() => super.noSuchMethod(
-    Invocation.method(#notifyListeners, []),
-    returnValueForMissingStub: null,
-  );
+  _i5.Future<bool?> isCupertinoProtectedDataAvailable() =>
+      (super.noSuchMethod(
+            Invocation.method(#isCupertinoProtectedDataAvailable, []),
+            returnValue: _i5.Future<bool?>.value(),
+            returnValueForMissingStub: _i5.Future<bool?>.value(),
+          )
+          as _i5.Future<bool?>);
 }

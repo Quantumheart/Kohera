@@ -5,10 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -56,14 +56,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final matrix = context.watch<MatrixService>();
-    context.watch<ChatBackupService>();
+    final keyBackup = context.watch<KeyBackupRepository>();
     final manager = context.watch<ClientManager>();
     final prefs = context.watch<PreferencesService>();
     final cs = Theme.of(context).colorScheme;
 
     // Surface backup errors via SnackBar.
-    final error = matrix.chatBackup.chatBackupError;
+    final error = keyBackup.chatBackupError;
     if (error != null && error != _lastShownError) {
       _lastShownError = error;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -200,14 +199,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _SettingsTile(
                   icon: Icons.cloud_outlined,
                   title: 'Chat backup',
-                  subtitle: matrix.chatBackup.chatBackupLoading
+                  subtitle: keyBackup.chatBackupLoading
                       ? 'Setting up…'
-                      : matrix.chatBackup.chatBackupNeeded == null
+                      : keyBackup.chatBackupNeeded == null
                           ? 'Checking...'
-                          : matrix.chatBackup.chatBackupEnabled
+                          : keyBackup.chatBackupEnabled
                               ? 'Your keys are backed up'
                               : 'Not set up',
-                  onTap: matrix.chatBackup.chatBackupLoading
+                  onTap: keyBackup.chatBackupLoading
                       ? () {}
                       : () => context.go(RoutePaths.e2eeSetup),
                 ),
@@ -311,7 +310,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _confirmLogout(BuildContext context) {
     final matrix = context.read<MatrixService>();
     final manager = context.read<ClientManager>();
-    final backupMissing = !matrix.chatBackup.chatBackupEnabled;
+    final backupMissing = !context.read<KeyBackupRepository>().chatBackupEnabled;
 
     unawaited(showDialog(
       context: context,

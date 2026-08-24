@@ -3,7 +3,7 @@ import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 
 /// A [Listenable] that forwards notifications from the currently active
-/// [MatrixService] (and its [ChatBackupService]), re-binding automatically
+/// [MatrixService] (and its key-backup repository), re-binding automatically
 /// when the active account changes. Lets the router use a stable
 /// `refreshListenable` across account switches.
 class ActiveMatrixListenable extends ChangeNotifier {
@@ -26,7 +26,7 @@ class ActiveMatrixListenable extends ChangeNotifier {
 
   void _attach(MatrixService service) {
     service.addListener(notifyListeners);
-    service.chatBackup.addListener(notifyListeners);
+    service.keyBackupRepository.addListener(notifyListeners);
     _attachedService = service;
   }
 
@@ -34,7 +34,7 @@ class ActiveMatrixListenable extends ChangeNotifier {
     final previousService = _attachedService;
     if (previousService == null) return;
     previousService.removeListener(notifyListeners);
-    previousService.chatBackup.removeListener(notifyListeners);
+    previousService.keyBackupRepository.removeListener(notifyListeners);
     _attachedService = null;
   }
 

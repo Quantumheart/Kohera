@@ -34,13 +34,13 @@ void main() {
 
   group('AuthRepository', () {
     test('isLoggedIn delegates to MatrixService', () {
-      final repo = AuthRepository(clientService: service.matrixClientService, auth: service.auth, chatBackup: service.chatBackup);
+      final repo = AuthRepository(clientService: service.matrixClientService, auth: service.auth, setupState: service.keyBackupSetupState);
       expect(repo.isLoggedIn, service.isLoggedIn);
       repo.dispose();
     });
 
     test('notifies on auth change', () {
-      final repo = AuthRepository(clientService: service.matrixClientService, auth: service.auth, chatBackup: service.chatBackup);
+      final repo = AuthRepository(clientService: service.matrixClientService, auth: service.auth, setupState: service.keyBackupSetupState);
       var notified = false;
       repo.addListener(() => notified = true);
       service.auth.loginError = 'boom';

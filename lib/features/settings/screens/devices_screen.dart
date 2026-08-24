@@ -245,7 +245,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           // Chat backup warning
-          if (matrix.chatBackup.chatBackupNeeded == true) ...[
+          if (matrix.keyBackupRepository.chatBackupNeeded == true) ...[
             Card(
               color: cs.errorContainer,
               child: Padding(

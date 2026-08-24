@@ -8,7 +8,7 @@ import 'dart:typed_data' as _i9;
 import 'dart:ui' as _i11;
 
 import 'package:http/http.dart' as _i4;
-import 'package:kohera/core/services/chat_backup_service.dart' as _i10;
+import 'package:kohera/data/repositories/key_backup_repository.dart' as _i10;
 import 'package:matrix/encryption.dart' as _i7;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;
@@ -6392,10 +6392,11 @@ class MockClient extends _i1.Mock implements _i2.Client {
           as _i5.Future<Map<String, Object?>>);
 }
 
-/// A class which mocks [ChatBackupService].
+/// A class which mocks [KeyBackupRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockChatBackupService extends _i1.Mock implements _i10.ChatBackupService {
+class MockKeyBackupRepository extends _i1.Mock
+    implements _i10.KeyBackupRepository {
   @override
   bool get chatBackupEnabled =>
       (super.noSuchMethod(
@@ -6415,22 +6416,13 @@ class MockChatBackupService extends _i1.Mock implements _i10.ChatBackupService {
           as bool);
 
   @override
-  bool get setupSkipped =>
+  _i5.Stream<_i7.KeyVerification> get onKeyVerificationRequest =>
       (super.noSuchMethod(
-            Invocation.getter(#setupSkipped),
-            returnValue: false,
-            returnValueForMissingStub: false,
+            Invocation.getter(#onKeyVerificationRequest),
+            returnValue: _i5.Stream<_i7.KeyVerification>.empty(),
+            returnValueForMissingStub: _i5.Stream<_i7.KeyVerification>.empty(),
           )
-          as bool);
-
-  @override
-  bool get bannerDismissed =>
-      (super.noSuchMethod(
-            Invocation.getter(#bannerDismissed),
-            returnValue: false,
-            returnValueForMissingStub: false,
-          )
-          as bool);
+          as _i5.Stream<_i7.KeyVerification>);
 
   @override
   bool get hasListeners =>
@@ -6442,36 +6434,18 @@ class MockChatBackupService extends _i1.Mock implements _i10.ChatBackupService {
           as bool);
 
   @override
-  _i5.Future<void> loadDismissalState() =>
+  _i5.Future<void> startKeyMirror() =>
       (super.noSuchMethod(
-            Invocation.method(#loadDismissalState, []),
+            Invocation.method(#startKeyMirror, []),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
           as _i5.Future<void>);
 
   @override
-  _i5.Future<void> markSetupSkipped() =>
+  _i5.Future<void> stopKeyMirror() =>
       (super.noSuchMethod(
-            Invocation.method(#markSetupSkipped, []),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
-          )
-          as _i5.Future<void>);
-
-  @override
-  _i5.Future<void> dismissBanner() =>
-      (super.noSuchMethod(
-            Invocation.method(#dismissBanner, []),
-            returnValue: _i5.Future<void>.value(),
-            returnValueForMissingStub: _i5.Future<void>.value(),
-          )
-          as _i5.Future<void>);
-
-  @override
-  _i5.Future<void> deleteDismissalState() =>
-      (super.noSuchMethod(
-            Invocation.method(#deleteDismissalState, []),
+            Invocation.method(#stopKeyMirror, []),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
@@ -6556,14 +6530,61 @@ class MockChatBackupService extends _i1.Mock implements _i10.ChatBackupService {
           as _i5.Future<void>);
 
   @override
-  void addListener(_i11.VoidCallback? listener) => super.noSuchMethod(
-    Invocation.method(#addListener, [listener]),
+  void clearCachedPassword() => super.noSuchMethod(
+    Invocation.method(#clearCachedPassword, []),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i11.VoidCallback? listener) => super.noSuchMethod(
-    Invocation.method(#removeListener, [listener]),
+  _i5.Future<void> updateUserDeviceKeys() =>
+      (super.noSuchMethod(
+            Invocation.method(#updateUserDeviceKeys, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> markSessionsForBackupUpload() =>
+      (super.noSuchMethod(
+            Invocation.method(#markSessionsForBackupUpload, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> prepareForBootstrap({
+    Duration? timeout = const Duration(seconds: 30),
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#prepareForBootstrap, [], {#timeout: timeout}),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<bool> hasServerKeyBackup() =>
+      (super.noSuchMethod(
+            Invocation.method(#hasServerKeyBackup, []),
+            returnValue: _i5.Future<bool>.value(false),
+            returnValueForMissingStub: _i5.Future<bool>.value(false),
+          )
+          as _i5.Future<bool>);
+
+  @override
+  _i5.Future<_i7.KeyVerification?> startSelfVerification() =>
+      (super.noSuchMethod(
+            Invocation.method(#startSelfVerification, []),
+            returnValue: _i5.Future<_i7.KeyVerification?>.value(),
+            returnValueForMissingStub: _i5.Future<_i7.KeyVerification?>.value(),
+          )
+          as _i5.Future<_i7.KeyVerification?>);
+
+  @override
+  void notifyListeners() => super.noSuchMethod(
+    Invocation.method(#notifyListeners, []),
     returnValueForMissingStub: null,
   );
 
@@ -6574,8 +6595,14 @@ class MockChatBackupService extends _i1.Mock implements _i10.ChatBackupService {
   );
 
   @override
-  void notifyListeners() => super.noSuchMethod(
-    Invocation.method(#notifyListeners, []),
+  void addListener(_i11.VoidCallback? listener) => super.noSuchMethod(
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void removeListener(_i11.VoidCallback? listener) => super.noSuchMethod(
+    Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
 }

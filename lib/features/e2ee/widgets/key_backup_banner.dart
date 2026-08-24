@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
+import 'package:kohera/core/state/key_backup_setup_state.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:provider/provider.dart';
 
 class KeyBackupBanner extends StatelessWidget {
@@ -9,10 +10,10 @@ class KeyBackupBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final needed = context.select<ChatBackupService, bool?>(
+    final needed = context.select<KeyBackupRepository, bool?>(
       (s) => s.chatBackupNeeded,
     );
-    final dismissed = context.select<ChatBackupService, bool>(
+    final dismissed = context.select<KeyBackupSetupState, bool>(
       (s) => s.bannerDismissed,
     );
 
@@ -97,7 +98,7 @@ class _KeyBackupBannerContent extends StatelessWidget {
                   ),
                   IconButton(
                     onPressed: () =>
-                        context.read<ChatBackupService>().dismissBanner(),
+                        context.read<KeyBackupSetupState>().dismissBanner(),
                     icon: const Icon(Icons.close, size: 18),
                     color: cs.onTertiaryContainer,
                     tooltip: 'Dismiss',

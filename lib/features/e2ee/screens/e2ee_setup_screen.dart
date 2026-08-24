@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
@@ -45,7 +44,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
     _matrixService = context.read<MatrixService>();
     _matrixService.uia.passwordPromptBuilder = _showPasswordPrompt;
 
-    if (_matrixService.chatBackup.chatBackupEnabled) {
+    if (_matrixService.keyBackupRepository.chatBackupEnabled) {
       _showManagement = true;
     }
   }
@@ -197,7 +196,8 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
       destructive: true,
     );
     if (confirmed) {
-      await _matrixService.chatBackup.disableChatBackup();
+      await _matrixService.keyBackupRepository.disableChatBackup();
+      _matrixService.keyBackupSetupState.resetBannerDismissed();
       _matrixService.skipSetup();
       if (mounted) context.go(RoutePaths.home);
     }
@@ -225,7 +225,7 @@ class _E2eeSetupScreenState extends State<E2eeSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final backupNeeded = context.select<ChatBackupService, bool?>(
+    final backupNeeded = context.select<KeyBackupRepository, bool?>(
       (s) => s.chatBackupNeeded,
     );
 

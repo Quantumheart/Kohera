@@ -1,11 +1,30 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
+import 'package:kohera/core/services/backup_version_manager.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/megolm_key_mirror.dart';
+import 'package:kohera/data/services/password_cache.dart';
+import 'package:matrix/encryption.dart';
+import 'package:matrix/encryption/cross_signing.dart';
 import 'package:matrix/matrix.dart';
+import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-import 'matrix_service_test.mocks.dart';
+import 'key_backup_repository_test.mocks.dart';
 
+@GenerateNiceMocks([
+  MockSpec<Client>(),
+  MockSpec<Room>(),
+  MockSpec<FlutterSecureStorage>(),
+  MockSpec<Encryption>(),
+  MockSpec<CrossSigning>(),
+  MockSpec<KeyManager>(),
+  MockSpec<SSSS>(unsupportedMembers: {#pendingShareRequests}),
+  MockSpec<DatabaseApi>(),
+  MockSpec<BackupVersionManager>(),
+  MockSpec<MegolmKeyMirror>(),
+])
 void main() {
   late MockClient mockClient;
   late MockFlutterSecureStorage mockStorage;
@@ -15,7 +34,8 @@ void main() {
   late MockSSSS mockSsss;
   late MockDatabaseApi mockDatabase;
   late MockBackupVersionManager mockBackupVersion;
-  late ChatBackupService service;
+  late MockMegolmKeyMirror mockKeyMirror;
+  late KeyBackupRepository repo;
   late int changeCount;
 
   GetRoomKeysVersionCurrentResponse fakeBackupInfo() =>
@@ -36,6 +56,7 @@ void main() {
     mockSsss = MockSSSS();
     mockDatabase = MockDatabaseApi();
     mockBackupVersion = MockBackupVersionManager();
+    mockKeyMirror = MockMegolmKeyMirror();
     changeCount = 0;
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.encryption).thenReturn(mockEncryption);
@@ -55,19 +76,21 @@ void main() {
     when(mockBackupVersion.cachedSecretMatchesServer())
         .thenAnswer((_) async => true);
     when(mockBackupVersion.hasVersion()).thenAnswer((_) async => true);
-    // Stubs for Client.getCryptoIdentityState() (matrix-dart-sdk v7.5.0)
     when(mockClient.userID).thenReturn('@user:example.com');
     when(mockClient.accountDataLoading).thenReturn(null);
     when(mockClient.firstSyncReceived).thenReturn(null);
     when(mockClient.accountData).thenReturn({});
     when(mockClient.getAccountData(any, any))
         .thenAnswer((_) async => <String, dynamic>{});
-    service = ChatBackupService(
-      matrixClientService: MatrixClientService(mockClient),
+    repo = KeyBackupRepository(
+      clientService: MatrixClientService(mockClient),
+      clientName: 'test',
       storage: mockStorage,
+      passwordCache: PasswordCache(),
+      keyMirrorOverride: mockKeyMirror,
       backupVersion: mockBackupVersion,
     );
-    service.addListener(() => changeCount++);
+    repo.addListener(() => changeCount++);
   });
 
   group('checkChatBackupStatus', () {
@@ -78,10 +101,10 @@ void main() {
       when(mockCrossSigning.isCached()).thenAnswer((_) async => true);
       when(mockKeyManager.isCached()).thenAnswer((_) async => true);
 
-      await service.checkChatBackupStatus();
+      await repo.checkChatBackupStatus();
 
-      expect(service.chatBackupNeeded, isFalse);
-      expect(service.chatBackupEnabled, isTrue);
+      expect(repo.chatBackupNeeded, isFalse);
+      expect(repo.chatBackupEnabled, isTrue);
       expect(changeCount, greaterThan(0));
     });
 
@@ -91,17 +114,17 @@ void main() {
       when(mockCrossSigning.isCached()).thenAnswer((_) async => false);
       when(mockKeyManager.isCached()).thenAnswer((_) async => false);
 
-      await service.checkChatBackupStatus();
+      await repo.checkChatBackupStatus();
 
-      expect(service.chatBackupNeeded, isTrue);
+      expect(repo.chatBackupNeeded, isTrue);
     });
 
     test('sets chatBackupNeeded true on error', () async {
       when(mockClient.encryption).thenReturn(null);
 
-      await service.checkChatBackupStatus();
+      await repo.checkChatBackupStatus();
 
-      expect(service.chatBackupNeeded, isTrue);
+      expect(repo.chatBackupNeeded, isTrue);
       expect(changeCount, greaterThan(0));
     });
 
@@ -115,9 +138,9 @@ void main() {
       when(mockKeyManager.isCached()).thenAnswer((_) async => true);
       when(mockBackupVersion.hasVersion()).thenAnswer((_) async => false);
 
-      await service.checkChatBackupStatus();
+      await repo.checkChatBackupStatus();
 
-      expect(service.chatBackupNeeded, isTrue);
+      expect(repo.chatBackupNeeded, isTrue);
     });
   });
 
@@ -131,9 +154,9 @@ void main() {
       when(mockCrossSigning.isCached()).thenAnswer((_) async => false);
       when(mockKeyManager.isCached()).thenAnswer((_) async => false);
 
-      await service.tryAutoUnlockBackup();
+      await repo.tryAutoUnlockBackup();
 
-      expect(service.chatBackupNeeded, isTrue);
+      expect(repo.chatBackupNeeded, isTrue);
     });
 
     test('skips restore when already connected', () async {
@@ -145,9 +168,9 @@ void main() {
       when(mockCrossSigning.isCached()).thenAnswer((_) async => true);
       when(mockKeyManager.isCached()).thenAnswer((_) async => true);
 
-      await service.tryAutoUnlockBackup();
+      await repo.tryAutoUnlockBackup();
 
-      expect(service.chatBackupNeeded, isFalse);
+      expect(repo.chatBackupNeeded, isFalse);
     });
 
     test('handles errors silently', () async {
@@ -156,9 +179,9 @@ void main() {
           .thenAnswer((_) async => 'recovery-key');
       when(mockClient.encryption).thenReturn(null);
 
-      await service.tryAutoUnlockBackup();
+      await repo.tryAutoUnlockBackup();
 
-      expect(service.chatBackupNeeded, isTrue);
+      expect(repo.chatBackupNeeded, isTrue);
     });
 
     test('requests missing room keys when no stored key', () async {
@@ -193,7 +216,7 @@ void main() {
                 ),
               ],);
 
-      await service.tryAutoUnlockBackup();
+      await repo.tryAutoUnlockBackup();
       await untilCalled(mockKeyManager.maybeAutoRequest(any, any, any));
 
       verify(
@@ -212,7 +235,7 @@ void main() {
       when(mockStorage.read(key: 'ssss_recovery_key_@user:example.com'))
           .thenAnswer((_) async => 'test-key');
 
-      final key = await service.getStoredRecoveryKey();
+      final key = await repo.getStoredRecoveryKey();
 
       expect(key, 'test-key');
     });
@@ -220,7 +243,7 @@ void main() {
     test('storeRecoveryKey writes to storage', () async {
       when(mockClient.userID).thenReturn('@user:example.com');
 
-      await service.storeRecoveryKey('new-key');
+      await repo.storeRecoveryKey('new-key');
 
       verify(
         mockStorage.write(
@@ -233,7 +256,7 @@ void main() {
     test('deleteStoredRecoveryKey deletes from storage', () async {
       when(mockClient.userID).thenReturn('@user:example.com');
 
-      await service.deleteStoredRecoveryKey();
+      await repo.deleteStoredRecoveryKey();
 
       verify(
         mockStorage.delete(
@@ -245,7 +268,7 @@ void main() {
     test('getStoredRecoveryKey returns null when no userID', () async {
       when(mockClient.userID).thenReturn(null);
 
-      final key = await service.getStoredRecoveryKey();
+      final key = await repo.getStoredRecoveryKey();
 
       expect(key, isNull);
     });
@@ -261,20 +284,20 @@ void main() {
         }),
       );
 
-      await service.disableChatBackup();
+      await repo.disableChatBackup();
 
-      expect(service.chatBackupNeeded, isTrue);
-      expect(service.chatBackupError, isNull);
-      expect(service.chatBackupLoading, isFalse);
+      expect(repo.chatBackupNeeded, isTrue);
+      expect(repo.chatBackupError, isNull);
+      expect(repo.chatBackupLoading, isFalse);
     });
 
     test('sets error on failure', () async {
       when(mockClient.encryption).thenReturn(null);
 
-      await service.disableChatBackup();
+      await repo.disableChatBackup();
 
-      expect(service.chatBackupError, isNotNull);
-      expect(service.chatBackupLoading, isFalse);
+      expect(repo.chatBackupError, isNotNull);
+      expect(repo.chatBackupLoading, isFalse);
     });
 
     test('invalidates BackupVersionManager cache after deletion', () async {
@@ -284,106 +307,25 @@ void main() {
       when(mockClient.deleteRoomKeysVersion(any))
           .thenAnswer((_) async {});
 
-      await service.disableChatBackup();
+      await repo.disableChatBackup();
 
       verify(mockBackupVersion.invalidateCache()).called(1);
     });
   });
 
-  group('setup dismissal state', () {
-    const userId = '@user:example.com';
-
-    test('loadDismissalState reads both flags from storage', () async {
-      when(mockClient.userID).thenReturn(userId);
-      when(mockStorage.read(key: 'e2ee_setup_skipped_$userId'))
-          .thenAnswer((_) async => 'true');
-      when(mockStorage.read(key: 'e2ee_banner_dismissed_$userId'))
-          .thenAnswer((_) async => null);
-
-      await service.loadDismissalState();
-
-      expect(service.setupSkipped, isTrue);
-      expect(service.bannerDismissed, isFalse);
-    });
-
-    test('markSetupSkipped sets flag immediately and persists', () async {
-      when(mockClient.userID).thenReturn(userId);
-
-      await service.markSetupSkipped();
-
-      expect(service.setupSkipped, isTrue);
-      verify(
-        mockStorage.write(
-          key: 'e2ee_setup_skipped_$userId',
-          value: 'true',
-        ),
-      ).called(1);
-    });
-
-    test('dismissBanner sets flag immediately and persists', () async {
-      when(mockClient.userID).thenReturn(userId);
-
-      await service.dismissBanner();
-
-      expect(service.bannerDismissed, isTrue);
-      verify(
-        mockStorage.write(
-          key: 'e2ee_banner_dismissed_$userId',
-          value: 'true',
-        ),
-      ).called(1);
-    });
-
-    test('deleteDismissalState removes both keys', () async {
-      when(mockClient.userID).thenReturn(userId);
-
-      await service.deleteDismissalState();
-
-      verify(mockStorage.delete(key: 'e2ee_setup_skipped_$userId')).called(1);
-      verify(mockStorage.delete(key: 'e2ee_banner_dismissed_$userId'))
-          .called(1);
-    });
-
-    test('disableChatBackup re-shows a previously dismissed banner', () async {
-      when(mockClient.userID).thenReturn(userId);
-      await service.dismissBanner();
-      expect(service.bannerDismissed, isTrue);
-
-      when(mockKeyManager.getRoomKeysBackupInfo())
-          .thenAnswer((_) async => fakeBackupInfo());
-      when(mockClient.deleteRoomKeysVersion(any)).thenAnswer((_) async {});
-
-      await service.disableChatBackup();
-
-      expect(service.bannerDismissed, isFalse);
-    });
-  });
-
   group('resetChatBackupState', () {
-    test('resets dismissal flags along with chatBackupNeeded', () async {
-      when(mockClient.userID).thenReturn('@user:example.com');
-      await service.markSetupSkipped();
-      await service.dismissBanner();
-
-      service.resetChatBackupState();
-
-      expect(service.setupSkipped, isFalse);
-      expect(service.bannerDismissed, isFalse);
-      expect(service.chatBackupNeeded, isNull);
-    });
-
     test('resets chatBackupNeeded to null', () async {
       when(mockCrossSigning.enabled).thenReturn(true);
       when(mockKeyManager.enabled).thenReturn(true);
       when(mockCrossSigning.isCached()).thenAnswer((_) async => true);
       when(mockKeyManager.isCached()).thenAnswer((_) async => true);
 
-      await service.checkChatBackupStatus();
-      expect(service.chatBackupNeeded, isFalse);
+      await repo.checkChatBackupStatus();
+      expect(repo.chatBackupNeeded, isFalse);
 
-      service.resetChatBackupState();
+      repo.resetChatBackupState();
 
-      expect(service.chatBackupNeeded, isNull);
+      expect(repo.chatBackupNeeded, isNull);
     });
   });
 
@@ -391,7 +333,7 @@ void main() {
     test('is a no-op when encryption is null', () async {
       when(mockClient.encryption).thenReturn(null);
 
-      await service.requestMissingRoomKeys();
+      await repo.requestMissingRoomKeys();
     });
 
     test('requests keys for undecryptable cached events', () async {
@@ -418,7 +360,7 @@ void main() {
                 ),
               ],);
 
-      await service.requestMissingRoomKeys();
+      await repo.requestMissingRoomKeys();
 
       verify(
         mockKeyManager.maybeAutoRequest(
@@ -466,7 +408,7 @@ void main() {
                 ),
               ],);
 
-      await service.requestMissingRoomKeys();
+      await repo.requestMissingRoomKeys();
 
       verify(mockKeyManager.maybeAutoRequest(
         '!room:example.com',
@@ -504,8 +446,8 @@ void main() {
                 ),
               ],);
 
-      await service.requestMissingRoomKeys();
-      await service.requestMissingRoomKeys();
+      await repo.requestMissingRoomKeys();
+      await repo.requestMissingRoomKeys();
 
       verify(mockKeyManager.maybeAutoRequest(any, any, any)).called(1);
     });
@@ -534,8 +476,8 @@ void main() {
                 ),
               ],);
 
-      await service.requestMissingRoomKeys();
-      await service.requestMissingRoomKeys(force: true);
+      await repo.requestMissingRoomKeys();
+      await repo.requestMissingRoomKeys(force: true);
 
       verify(mockKeyManager.maybeAutoRequest(any, any, any)).called(2);
     });
@@ -544,7 +486,7 @@ void main() {
   group('runKeyRecovery', () {
     test('calls BackupVersionManager.ensureExists before loadAllKeys',
         () async {
-      await service.runKeyRecovery();
+      await repo.runKeyRecovery();
 
       verifyInOrder([
         mockBackupVersion.ensureExists(),
@@ -555,7 +497,7 @@ void main() {
     test('continues to loadAllKeys when ensureExists returns null', () async {
       when(mockBackupVersion.ensureExists()).thenAnswer((_) async => null);
 
-      await service.runKeyRecovery();
+      await repo.runKeyRecovery();
 
       verify(mockKeyManager.loadAllKeys()).called(1);
     });
@@ -588,7 +530,7 @@ void main() {
                 ),
               ],);
 
-      await service.runKeyRecovery();
+      await repo.runKeyRecovery();
 
       verify(mockKeyManager.maybeAutoRequest(
         '!room:example.com',
@@ -600,7 +542,7 @@ void main() {
     test('no-ops when encryption is null', () async {
       when(mockClient.encryption).thenReturn(null);
 
-      await service.runKeyRecovery();
+      await repo.runKeyRecovery();
 
       verifyNever(mockBackupVersion.ensureExists());
       verifyNever(mockKeyManager.loadAllKeys());

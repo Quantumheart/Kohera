@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/matrix_service.dart' show koheraKey;
 import 'package:kohera/core/services/session_backup.dart';
 import 'package:kohera/core/services/sync_service.dart';
@@ -23,14 +22,13 @@ class AuthService extends ChangeNotifier {
     required SyncService sync,
     required PresenceService presence,
     required PasswordCache passwordCache,
-    required ChatBackupService chatBackup,
+    this.onLogoutCleanup,
   })  : _matrixClientService = matrixClientService,
         _storage = storage,
         _clientName = clientName,
         _sync = sync,
         _presence = presence,
-        _passwordCache = passwordCache,
-        _chatBackup = chatBackup;
+        _passwordCache = passwordCache;
 
   final MatrixClientService _matrixClientService;
   final FlutterSecureStorage _storage;
@@ -38,7 +36,11 @@ class AuthService extends ChangeNotifier {
   final SyncService _sync;
   final PresenceService _presence;
   final PasswordCache _passwordCache;
-  final ChatBackupService _chatBackup;
+
+  /// Account-scoped teardown run after logout clears the session — deletes the
+  /// stored recovery key and setup-dismissal state. Wired by [AccountSession]
+  /// so [AuthService] stays unaware of the key-backup repository.
+  final Future<void> Function()? onLogoutCleanup;
 
   Client get _client => _matrixClientService.client;
 
@@ -440,8 +442,8 @@ class AuthService extends ChangeNotifier {
       debugPrint('[Kohera] Logout error: $e');
     }
     await _clearSessionAndBackup();
-    await _chatBackup.deleteStoredRecoveryKey();
-    await _chatBackup.deleteDismissalState();
+    final cleanup = onLogoutCleanup;
+    if (cleanup != null) await cleanup();
   }
 
   Future<void> handleServerLogout() async {

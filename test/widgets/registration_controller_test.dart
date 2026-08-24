@@ -50,7 +50,7 @@ void main() {
     when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrixService.auth).thenReturn(mockAuthService);
     when(mockMatrixService.isLoggedIn).thenReturn(false);
-    authRepository = AuthRepository(clientService: mockMatrixService.matrixClientService, auth: mockMatrixService.auth, chatBackup: mockMatrixService.chatBackup);
+    authRepository = AuthRepository(clientService: mockMatrixService.matrixClientService, auth: mockMatrixService.auth, setupState: mockMatrixService.keyBackupSetupState);
   });
 
   RegistrationController createController({String homeserver = 'example.com'}) {
