@@ -1,9 +1,9 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/notifications/services/notification_service.dart';
 import 'package:matrix/matrix.dart';
@@ -27,7 +27,7 @@ void main() {
   late MockFlutterLocalNotificationsPlugin mockPlugin;
   late PreferencesService prefs;
   late NotificationService service;
-  late SelectionService selectionService;
+  late SpaceTreeRepository selectionService;
   late SelectionController selectionController;
 
   const roomId = '!room:example.com';
@@ -60,8 +60,8 @@ void main() {
     when(mockRoom.unsafeGetUserFromMemoryOrFallback(ownUserId))
         .thenReturn(User(ownUserId, room: mockRoom, displayName: 'Me'));
     when(mockClient.rooms).thenReturn([]);
-    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
-    when(mockMatrix.selection).thenReturn(selectionService);
+    selectionService = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
+    when(mockMatrix.spaceTree).thenReturn(selectionService);
     selectionController = SelectionController(clientService: MatrixClientService(mockClient));
     when(mockMatrix.selectionController).thenReturn(selectionController);
 

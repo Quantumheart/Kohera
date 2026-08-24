@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/features/rooms/services/room_list_builder.dart';
 import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
@@ -18,7 +18,7 @@ import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 class RoomListController extends ChangeNotifier {
   RoomListController({
     required RoomRepository roomRepository,
-    required SelectionService selectionService,
+    required SpaceTreeRepository selectionService,
     required SelectionController selectionController,
     required PreferencesService preferencesService,
     required SpaceRoomsController spaceRoomsController,
@@ -37,7 +37,7 @@ class RoomListController extends ChangeNotifier {
   }
 
   final RoomRepository _rooms;
-  final SelectionService _selection;
+  final SpaceTreeRepository _selection;
   final SelectionController _selectionState;
   final PreferencesService _prefs;
   final SpaceRoomsController _spaceRooms;

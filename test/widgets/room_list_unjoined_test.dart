@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/services/room_list_builder.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
@@ -30,7 +30,7 @@ void main() {
   late MockRoom mockJoinedRoom;
   late FakeSpaceDiscoveryDataSource dataSource;
   late SpaceRoomsController controller;
-  late SelectionService selection;
+  late SpaceTreeRepository selection;
   late SelectionController selectionState;
   late PreferencesService prefs;
 
@@ -95,9 +95,9 @@ void main() {
     when(mockClient.getRoomById(spaceId)).thenReturn(mockSpace);
     when(mockClient.getRoomById(joinedRoomId)).thenReturn(mockJoinedRoom);
 
-    selection = SelectionService(matrixClientService: MatrixClientService(mockClient));
+    selection = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
     selectionState = SelectionController(clientService: MatrixClientService(mockClient));
-    when(mockMatrixService.selection).thenReturn(selection);
+    when(mockMatrixService.spaceTree).thenReturn(selection);
 
     dataSource = FakeSpaceDiscoveryDataSource(delay: Duration.zero);
     // Mark the joined room and space as joined in the fake so they

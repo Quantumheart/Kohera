@@ -3,10 +3,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/services/room_list_controller.dart';
 import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
@@ -22,7 +22,7 @@ import 'room_list_controller_test.mocks.dart';
 
 @GenerateNiceMocks([
   MockSpec<MatrixService>(),
-  MockSpec<SelectionService>(),
+  MockSpec<SpaceTreeRepository>(),
   MockSpec<SelectionController>(),
   MockSpec<PreferencesService>(),
   MockSpec<SpaceRoomsController>(),
@@ -33,7 +33,7 @@ import 'room_list_controller_test.mocks.dart';
 void main() {
   late MockMatrixService matrix;
   late RoomRepository rooms;
-  late MockSelectionService selection;
+  late MockSpaceTreeRepository selection;
   late MockSelectionController selectionState;
   late MockPreferencesService prefs;
   late MockSpaceRoomsController spaceRooms;
@@ -68,7 +68,7 @@ void main() {
 
   setUp(() {
     matrix = MockMatrixService();
-    selection = MockSelectionService();
+    selection = MockSpaceTreeRepository();
     selectionState = MockSelectionController();
     prefs = MockPreferencesService();
     spaceRooms = MockSpaceRoomsController();
@@ -77,7 +77,7 @@ void main() {
 
     when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
     when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-    rooms = RoomRepository(clientService: matrix.matrixClientService, selection: matrix.selection);
+    rooms = RoomRepository(clientService: matrix.matrixClientService);
     when(selectionState.selectedSpaceIds).thenReturn({});
     when(selection.rooms).thenReturn([]);
     when(selection.spaceTree).thenReturn([]);

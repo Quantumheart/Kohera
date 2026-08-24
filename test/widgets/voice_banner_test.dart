@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/widgets/voice_banner.dart';
@@ -20,7 +20,7 @@ void main() {
   late MockMatrixService mockMatrixService;
   late MockClient mockClient;
   late MockRoom mockRoom;
-  late SelectionService selectionService;
+  late SpaceTreeRepository selectionService;
 
   setUp(() {
     mockCallService = MockCallService();
@@ -31,8 +31,8 @@ void main() {
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.rooms).thenReturn([]);
     when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
-    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
-    when(mockMatrixService.selection).thenReturn(selectionService);
+    selectionService = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
+    when(mockMatrixService.spaceTree).thenReturn(selectionService);
 
     when(mockCallService.client).thenReturn(mockClient);
     when(mockCallService.callState).thenReturn(KoheraCallState.idle);
@@ -57,7 +57,7 @@ void main() {
         ChangeNotifierProvider<CallService>.value(value: mockCallService),
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
+          create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService),
         ),
       ],
       child: MaterialApp.router(

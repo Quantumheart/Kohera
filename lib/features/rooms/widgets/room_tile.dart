@@ -7,13 +7,13 @@ import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/core/utils/order_utils.dart' as order_utils;
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/models/kohera_user_summary.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/calling/services/call_navigator.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -790,7 +790,7 @@ class _ReorderDragTargetState extends State<_ReorderDragTarget> {
     RoomDragData data, {
     required bool insertAbove,
   }) async {
-    final selection = context.read<SelectionService>();
+    final selection = context.read<SpaceTreeRepository>();
     final space = context.read<RoomRepository>().rawRoom(widget.parentSpaceId);
     if (space == null) return;
 

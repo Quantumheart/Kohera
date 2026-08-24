@@ -95,7 +95,7 @@ void main() {
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
           ChangeNotifierProvider<CallService>.value(value: mockCallService),
           ChangeNotifierProvider<RoomRepository>(
-            create: (_) => RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection),
+            create: (_) => RoomRepository(clientService: mockMatrix.matrixClientService),
           ),
           ChangeNotifierProvider<UserRepository>.value(value: userRepo),
         ],

@@ -1,12 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
-import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
@@ -20,33 +19,17 @@ import 'package:mockito/mockito.dart';
   MockSpec<Client>(),
   MockSpec<Room>(),
   MockSpec<MatrixService>(),
-  MockSpec<SelectionService>(),
+  MockSpec<SpaceTreeRepository>(),
   MockSpec<AvatarResolver>(),
   MockSpec<PresenceService>(),
 ])
 import 'room_details_controller_test.mocks.dart';
 
-KoheraRoomSummary _summary() => const KoheraRoomSummary(
-      roomId: '!room:example.com',
-      displayname: 'Test Room',
-      isDirectChat: false,
-      isEncrypted: false,
-      isSpace: false,
-      notificationCount: 0,
-      highlightCount: 0,
-      typingDisplayNames: [],
-      pinnedEventIds: [],
-      spaceChildCount: 0,
-      isFavourite: false,
-      lastEventPreview: '',
-      lastEventIsThreadReply: false,
-    );
-
 void main() {
   late MockMatrixService mockMatrix;
   late MockClient mockClient;
   late MockRoom mockRoom;
-  late MockSelectionService mockSelection;
+  late MockSpaceTreeRepository mockSelection;
   late SelectionController selectionController;
   late MockPresenceService mockPresence;
   late MockAvatarResolver mockAvatarResolver;
@@ -61,14 +44,14 @@ void main() {
     mockMatrix = MockMatrixService();
     mockClient = MockClient();
     mockRoom = MockRoom();
-    mockSelection = MockSelectionService();
+    mockSelection = MockSpaceTreeRepository();
     selectionController = SelectionController(clientService: MatrixClientService(mockClient));
     mockPresence = MockPresenceService();
     mockAvatarResolver = MockAvatarResolver();
     syncCtl = CachedStreamController<SyncUpdate>();
 
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
-    when(mockMatrix.selection).thenReturn(mockSelection);
+    when(mockMatrix.spaceTree).thenReturn(mockSelection);
     when(mockMatrix.avatarResolver).thenReturn(mockAvatarResolver);
     when(mockClient.getRoomById(roomId)).thenReturn(mockRoom);
     when(mockClient.onSync).thenReturn(syncCtl);
@@ -82,7 +65,7 @@ void main() {
     when(mockRoom.canBan).thenReturn(false);
     when(mockRoom.participantListComplete).thenReturn(false);
     when(mockRoom.summary).thenReturn(RoomSummary.fromJson({}));
-    when(mockSelection.summaryFor(mockRoom)).thenReturn(_summary());
+    when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');
     when(mockRoom.setPushRuleState(any)).thenAnswer((_) async {});
     when(mockRoom.setFavourite(any)).thenAnswer((_) async {});
     when(mockRoom.invite(any)).thenAnswer((_) async {});
@@ -92,7 +75,7 @@ void main() {
     when(mockRoom.leave()).thenAnswer((_) async {});
     when(mockClient.updateUserDeviceKeys()).thenAnswer((_) async {});
 
-    roomRepo = RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection);
+    roomRepo = RoomRepository(clientService: mockMatrix.matrixClientService);
     userRepo = UserRepository(clientService: mockMatrix.matrixClientService, presenceOverride: mockPresence);
     mediaRepo = MediaRepository(avatarResolver: mockMatrix.avatarResolver, mediaResolver: mockMatrix.mediaResolver);
   });

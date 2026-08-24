@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/services/member_sheet_launcher.dart';
 import 'package:matrix/matrix.dart';
@@ -15,7 +15,7 @@ import 'package:mockito/mockito.dart';
   MockSpec<Client>(),
   MockSpec<Room>(),
   MockSpec<MatrixService>(),
-  MockSpec<SelectionService>(),
+  MockSpec<SpaceTreeRepository>(),
 ])
 import 'unban_room_member_test.mocks.dart';
 
@@ -35,17 +35,17 @@ void main() {
   /// and the room mock so stubs on [client] are visible through the repo.
   RoomRepository roomRepoWithRoom(MockRoom room, MockClient client) {
     final matrix = MockMatrixService();
-    final selection = MockSelectionService();
+    final selection = MockSpaceTreeRepository();
     final syncCtl = CachedStreamController<SyncUpdate>();
     final roomId = room.id;
 
     when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
-    when(matrix.selection).thenReturn(selection);
+    when(matrix.spaceTree).thenReturn(selection);
     when(client.onSync).thenReturn(syncCtl);
     when(client.getRoomById(roomId)).thenReturn(room);
     when(room.client).thenReturn(client);
 
-    return RoomRepository(clientService: matrix.matrixClientService, selection: matrix.selection);
+    return RoomRepository(clientService: matrix.matrixClientService);
   }
 
   testWidgets(

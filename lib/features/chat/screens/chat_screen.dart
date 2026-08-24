@@ -14,7 +14,6 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
@@ -22,6 +21,7 @@ import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/models/sticker_pack.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
@@ -245,7 +245,7 @@ class _ChatScreenState extends State<ChatScreen>
     if (room != null) {
       _typingCtrl = TypingController(room: room);
       _voiceCtrl = VoiceRecordingController();
-      final joinedRooms = context.read<SelectionService>().rooms;
+      final joinedRooms = context.read<SpaceTreeRepository>().rooms;
       _mentionController = MentionAutocompleteController(
         textController: _msgCtrl,
         room: room,
@@ -1113,7 +1113,7 @@ class _ChatScreenState extends State<ChatScreen>
       );
     } else {
       appBar = ChatAppBar(
-        summary: matrix.selection.summaryFor(room),
+        summary: matrix.spaceTree.summaryFor(room),
         onBack: widget.onBack,
         onSearch: _openSearch,
         onPinnedEvent: (eventId) async {
@@ -1294,7 +1294,7 @@ class _ChatScreenState extends State<ChatScreen>
         ),
         TypingIndicator(
           typingDisplayNamesProvider: () =>
-              matrix.selection.summaryFor(room).typingDisplayNames,
+              matrix.spaceTree.summaryFor(room).typingDisplayNames,
           syncStream: context.read<RoomRepository>().onSync,
         ),
         ComposeBarSection(

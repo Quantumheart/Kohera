@@ -59,7 +59,7 @@ void main() {
 
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(client));
     when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-    rooms = RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection);
+    rooms = RoomRepository(clientService: mockMatrix.matrixClientService);
   });
 
   group('PowerLevelPatch.isEmpty', () {

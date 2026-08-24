@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/spaces/models/space_rooms_model.dart';
@@ -18,7 +18,7 @@ import 'package:provider/provider.dart';
 
 @GenerateNiceMocks([
   MockSpec<MatrixService>(),
-  MockSpec<SelectionService>(),
+  MockSpec<SpaceTreeRepository>(),
   MockSpec<SelectionController>(),
   MockSpec<PreferencesService>(),
   MockSpec<SpaceRoomsController>(),
@@ -29,7 +29,7 @@ import 'room_list_test.mocks.dart';
 
 void main() {
   late MockMatrixService matrix;
-  late MockSelectionService selection;
+  late MockSpaceTreeRepository selection;
   late MockSelectionController selectionState;
   late MockPreferencesService prefs;
   late MockSpaceRoomsController spaceRooms;
@@ -37,7 +37,7 @@ void main() {
 
   setUp(() {
     matrix = MockMatrixService();
-    selection = MockSelectionService();
+    selection = MockSpaceTreeRepository();
     selectionState = MockSelectionController();
     prefs = MockPreferencesService();
     spaceRooms = MockSpaceRoomsController();
@@ -63,9 +63,9 @@ void main() {
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrix),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(clientService: matrix.matrixClientService, selection: matrix.selection),
+          create: (_) => RoomRepository(clientService: matrix.matrixClientService),
         ),
-        ChangeNotifierProvider<SelectionService>.value(value: selection),
+        ChangeNotifierProvider<SpaceTreeRepository>.value(value: selection),
         ChangeNotifierProvider<SelectionController>.value(value: selectionState),
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),
         ChangeNotifierProvider<SpaceRoomsController>.value(

@@ -5,7 +5,7 @@ import 'package:kohera/core/services/secure_storage.dart';
 import 'package:kohera/core/services/sub_services/auth_service.dart';
 import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/sub_services/presence_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
+
 import 'package:kohera/core/services/sub_services/sync_service.dart';
 import 'package:kohera/core/services/sub_services/uia_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
@@ -13,6 +13,7 @@ import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/outbox_repository.dart';
 import 'package:kohera/data/repositories/push_rule_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
@@ -33,7 +34,7 @@ class AccountSession {
 
   late final UiaService uia;
   late final ChatBackupService chatBackup;
-  late final SelectionService selection;
+  late final SpaceTreeRepository spaceTree;
   late final SelectionController selectionController;
   late final PresenceService presence;
   late final SyncService sync;
@@ -74,7 +75,7 @@ class AccountSession {
       matrixClientService: _matrixClientService,
       storage: _flutterSecureStorage,
     );
-    selection = SelectionService(matrixClientService: matrixClientService);
+    spaceTree = SpaceTreeRepository(clientService: matrixClientService);
     selectionController =
         SelectionController(clientService: matrixClientService);
     presence = PresenceService(matrixClientService: matrixClientService);
@@ -129,7 +130,7 @@ class AccountSession {
     userRepository.dispose();
     outboxRepository.dispose();
     uia.dispose();
-    selection.dispose();
+    spaceTree.dispose();
     selectionController.dispose();
     presence.dispose();
     chatBackup.dispose();

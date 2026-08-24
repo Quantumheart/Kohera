@@ -1,13 +1,13 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/services/join_access_controller.dart';
 import 'package:matrix/matrix.dart';
@@ -28,7 +28,7 @@ void main() {
   late MockMatrixService matrix;
   late MockSpaceAccessService access;
   late MockClient client;
-  late SelectionService selection;
+  late SpaceTreeRepository selection;
   late MockRoom room;
 
   setUp(() {
@@ -40,8 +40,8 @@ void main() {
     when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
     when(client.rooms).thenReturn([]);
     when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-    selection = SelectionService(matrixClientService: MatrixClientService(client));
-    when(matrix.selection).thenReturn(selection);
+    selection = SpaceTreeRepository(clientService: MatrixClientService(client));
+    when(matrix.spaceTree).thenReturn(selection);
 
     when(room.id).thenReturn('!r:e.com');
     when(client.getRoomById('!r:e.com')).thenReturn(room);
@@ -61,12 +61,11 @@ void main() {
             providers: [
               ChangeNotifierProvider<MatrixService>.value(value: matrix),
               ChangeNotifierProvider<RoomRepository>(
-                create: (_) => RoomRepository(clientService: matrix.matrixClientService, selection: matrix.selection),
+                create: (_) => RoomRepository(clientService: matrix.matrixClientService),
               ),
               ChangeNotifierProvider<SpaceRepository>(
                 create: (_) => SpaceRepository(
                   clientService: matrix.matrixClientService,
-                  selection: matrix.selection,
                   spaceAccessOverride: access,
                 ),
               ),

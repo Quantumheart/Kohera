@@ -6,12 +6,12 @@ import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -23,6 +23,7 @@ import 'package:matrix/src/utils/space_child.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
+
 import '../services/matrix_service_test.mocks.dart' show MockFlutterSecureStorage;
 import 'space_management_test.mocks.dart';
 
@@ -148,8 +149,8 @@ void main() {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
-        ChangeNotifierProvider<SelectionService>.value(
-            value: matrixService.selection,),
+        ChangeNotifierProvider<SpaceTreeRepository>.value(
+            value: matrixService.spaceTree,),
         ChangeNotifierProvider<SelectionController>.value(
             value: matrixService.selectionController,),
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
@@ -163,10 +164,10 @@ void main() {
           create: (_) => MediaRepository(avatarResolver: matrixService.avatarResolver, mediaResolver: matrixService.mediaResolver),
         ),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
+          create: (_) => RoomRepository(clientService: matrixService.matrixClientService),
         ),
         ChangeNotifierProvider<SpaceRepository>(
-          create: (_) => SpaceRepository(clientService: matrixService.matrixClientService, selection: matrixService.selection),
+          create: (_) => SpaceRepository(clientService: matrixService.matrixClientService),
         ),
       ],
       child: MaterialApp.router(

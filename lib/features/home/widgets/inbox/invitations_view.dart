@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/rooms/widgets/invite_tile.dart';
 import 'package:provider/provider.dart';
@@ -16,7 +16,7 @@ class InvitationsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selection = context.watch<SelectionService>();
+    final selection = context.watch<SpaceTreeRepository>();
     final invitedRooms = selection.invitedRooms;
     final invitedSpaces = selection.invitedSpaces;
 

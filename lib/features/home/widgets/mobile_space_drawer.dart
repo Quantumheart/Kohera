@@ -4,10 +4,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
@@ -49,7 +49,7 @@ class MobileSpaceDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selection = context.watch<SelectionService>();
+    final selection = context.watch<SpaceTreeRepository>();
     final selectionState = context.watch<SelectionController>();
     final avatarResolver = context.read<MediaRepository>().avatarResolver;
     final cs = Theme.of(context).colorScheme;

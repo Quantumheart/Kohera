@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/services/shared_media_loader.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
@@ -20,7 +20,7 @@ import 'package:mockito/mockito.dart';
   MockSpec<Client>(),
   MockSpec<User>(),
   MockSpec<MatrixService>(),
-  MockSpec<SelectionService>(),
+  MockSpec<SpaceTreeRepository>(),
 ])
 import 'shared_media_section_test.mocks.dart';
 
@@ -87,21 +87,21 @@ void main() {
   late MockRoom mockRoom;
   late MockClient mockClient;
   late MockMatrixService mockMatrix;
-  late MockSelectionService mockSelection;
+  late MockSpaceTreeRepository mockSelection;
   late RoomRepository roomRepo;
 
   setUp(() {
     mockRoom = MockRoom();
     mockClient = MockClient();
     mockMatrix = MockMatrixService();
-    mockSelection = MockSelectionService();
+    mockSelection = MockSpaceTreeRepository();
     when(mockRoom.client).thenReturn(mockClient);
     when(mockRoom.id).thenReturn('!room:example.com');
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
-    when(mockMatrix.selection).thenReturn(mockSelection);
+    when(mockMatrix.spaceTree).thenReturn(mockSelection);
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
-    roomRepo = RoomRepository(clientService: mockMatrix.matrixClientService, selection: mockMatrix.selection);
+    roomRepo = RoomRepository(clientService: mockMatrix.matrixClientService);
   });
 
   Widget buildTestWidget() {

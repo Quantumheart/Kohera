@@ -24,7 +24,7 @@ void main() {
     matrix = MockMatrixService();
     when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
     when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-    roomRepo = RoomRepository(clientService: matrix.matrixClientService, selection: matrix.selection);
+    roomRepo = RoomRepository(clientService: matrix.matrixClientService);
     userRepo = UserRepository(clientService: matrix.matrixClientService);
   });
 

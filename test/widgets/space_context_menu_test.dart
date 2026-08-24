@@ -5,10 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/spaces/widgets/space_context_menu.dart';
@@ -31,7 +31,7 @@ void main() {
   late MockClient mockClient;
   late MockMatrixService mockMatrixService;
   late MockRoom mockSpace;
-  late SelectionService selectionService;
+  late SpaceTreeRepository selectionService;
   late SelectionController selectionController;
 
   setUp(() {
@@ -42,9 +42,9 @@ void main() {
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.rooms).thenReturn([]);
     when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
-    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
+    selectionService = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
     selectionController = SelectionController(clientService: MatrixClientService(mockClient));
-    when(mockMatrixService.selection).thenReturn(selectionService);
+    when(mockMatrixService.spaceTree).thenReturn(selectionService);
 
     // Default space setup — admin with all permissions
     when(mockSpace.id).thenReturn('!space:example.com');
@@ -61,13 +61,13 @@ void main() {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
-        ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+        ChangeNotifierProvider<SpaceTreeRepository>.value(value: selectionService),
                 ChangeNotifierProvider<SelectionController>.value(value: selectionController),
         ChangeNotifierProvider<SpaceRepository>(
-          create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
+          create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService),
         ),
         ChangeNotifierProvider<RoomRepository>(
-          create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
+          create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService),
         ),
         ChangeNotifierProvider<UserRepository>(
           create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService),
@@ -298,13 +298,13 @@ void main() {
             builder: (context, state) => MultiProvider(
               providers: [
                 ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
-                ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+                ChangeNotifierProvider<SpaceTreeRepository>.value(value: selectionService),
                 ChangeNotifierProvider<SelectionController>.value(value: selectionController),
                 ChangeNotifierProvider<SpaceRepository>(
-                  create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
+                  create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService),
                 ),
                 ChangeNotifierProvider<RoomRepository>(
-                  create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
+                  create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService),
                 ),
                 ChangeNotifierProvider<UserRepository>(
                   create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService),

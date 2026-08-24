@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/services/room_aliases_controller.dart';
@@ -24,7 +24,7 @@ void main() {
   late MockMatrixService mockMatrixService;
   late MockRoom mockRoom;
   late CachedStreamController<SyncUpdate> syncController;
-  late SelectionService selectionService;
+  late SpaceTreeRepository selectionService;
 
   setUp(() {
     mockClient = MockClient();
@@ -44,8 +44,8 @@ void main() {
     when(mockRoom.canChangeStateEvent(EventTypes.RoomCanonicalAlias))
         .thenReturn(true);
 
-    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
-    when(mockMatrixService.selection).thenReturn(selectionService);
+    selectionService = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
+    when(mockMatrixService.spaceTree).thenReturn(selectionService);
     when(mockMatrixService.avatarResolver)
         .thenReturn(const _NullAvatarResolver());
   });
@@ -54,9 +54,9 @@ void main() {
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
           ChangeNotifierProvider<RoomRepository>(
-            create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
+            create: (_) => RoomRepository(clientService: mockMatrixService.matrixClientService),
           ),
-          ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+          ChangeNotifierProvider<SpaceTreeRepository>.value(value: selectionService),
         ],
         child: const MaterialApp(
           home: Scaffold(

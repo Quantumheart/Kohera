@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -23,7 +23,7 @@ SpaceChild _fakeSpaceChild(String roomId) {
 
 void main() {
   late MockClient mockClient;
-  late SelectionService service;
+  late SpaceTreeRepository service;
   late int changeCount;
 
   setUp(() {
@@ -32,7 +32,7 @@ void main() {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.onSync)
         .thenReturn(CachedStreamController<SyncUpdate>());
-    service = SelectionService(matrixClientService: MatrixClientService(mockClient));
+    service = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
     service.addListener(() => changeCount++);
   });
 

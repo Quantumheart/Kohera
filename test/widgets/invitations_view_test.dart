@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
@@ -14,7 +14,7 @@ import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
 @GenerateNiceMocks([
-  MockSpec<SelectionService>(),
+  MockSpec<SpaceTreeRepository>(),
   MockSpec<MatrixService>(),
   MockSpec<Client>(),
   MockSpec<Room>(),
@@ -42,12 +42,12 @@ KoheraRoomSummary _summary(String id, String name) {
 }
 
 void main() {
-  late MockSelectionService mockSelection;
+  late MockSpaceTreeRepository mockSelection;
   late MockMatrixService mockMatrix;
   late MockClient mockClient;
 
   setUp(() {
-    mockSelection = MockSelectionService();
+    mockSelection = MockSpaceTreeRepository();
     mockMatrix = MockMatrixService();
     mockClient = MockClient();
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
@@ -67,7 +67,7 @@ void main() {
       builder: (context, child) => MultiProvider(
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
-          ChangeNotifierProvider<SelectionService>.value(value: mockSelection),
+          ChangeNotifierProvider<SpaceTreeRepository>.value(value: mockSelection),
         ],
         child: child,
       ),

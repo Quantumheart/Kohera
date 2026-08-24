@@ -1,9 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
@@ -47,7 +47,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late MockClient mockClient;
   late MockMatrixService mockMatrixService;
-  late SelectionService selectionService;
+  late SpaceTreeRepository selectionService;
   late PreferencesService prefsService;
 
   setUp(() async {
@@ -59,8 +59,8 @@ void main() {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.homeserver)
         .thenReturn(Uri.parse('https://example.org'));
-    selectionService = SelectionService(matrixClientService: MatrixClientService(mockClient));
-    when(mockMatrixService.selection).thenReturn(selectionService);
+    selectionService = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
+    when(mockMatrixService.spaceTree).thenReturn(selectionService);
     prefsService = PreferencesService(
       packageInfo: PackageInfo(
         appName: 'kohera',
@@ -76,10 +76,10 @@ void main() {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
-        ChangeNotifierProvider<SelectionService>.value(value: selectionService),
+        ChangeNotifierProvider<SpaceTreeRepository>.value(value: selectionService),
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
         ChangeNotifierProvider<SpaceRepository>(
-          create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService, selection: mockMatrixService.selection),
+          create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService),
         ),
       ],
       child: MaterialApp(

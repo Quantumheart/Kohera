@@ -113,7 +113,7 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
   List<SpaceRef> get _candidates {
     final builder = widget.candidatesBuilder;
     if (builder != null) return builder(context, widget.roomId);
-    final selection = context.read<MatrixService>().selection;
+    final selection = context.read<MatrixService>().spaceTree;
     return selection.spaces
         .where((s) => s.id != widget.roomId)
         .map((s) => (id: s.id, displayname: s.getLocalizedDisplayname()))
@@ -203,7 +203,7 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
     final matrix = context.read<MatrixService>();
     final room = _rooms.rawRoom(widget.roomId);
     if (room == null) return;
-    final parents = matrix.selection.parentSpacesOf(room);
+    final parents = matrix.spaceTree.parentSpacesOf(room);
 
     setState(() {
       _busy = true;

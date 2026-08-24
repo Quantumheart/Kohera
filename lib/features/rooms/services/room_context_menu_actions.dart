@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/core/utils/order_utils.dart' as order_utils;
 import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 
 /// SDK boundary for room context menu operations.
 ///
@@ -17,7 +17,7 @@ class RoomContextMenuActions {
   });
 
   final RoomRepository rooms;
-  final SelectionService selection;
+  final SpaceTreeRepository selection;
   final SelectionController selectionState;
 
   /// Returns the display name of [roomId], or `null` if the room is not

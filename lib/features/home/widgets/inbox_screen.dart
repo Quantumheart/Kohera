@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/home/widgets/inbox/invitations_view.dart';
 import 'package:kohera/features/home/widgets/inbox/load_more_button.dart';
@@ -44,7 +44,7 @@ class _InboxScreenState extends State<InboxScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<InboxController>();
-    final selection = context.watch<SelectionService>();
+    final selection = context.watch<SpaceTreeRepository>();
     final inviteCount =
         selection.invitedRooms.length + selection.invitedSpaces.length;
     final cs = Theme.of(context).colorScheme;

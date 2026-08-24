@@ -9,6 +9,7 @@ import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/rooms/services/invite_user_dialog_params.dart';
 import 'package:kohera/features/rooms/widgets/add_existing_rooms_dialog.dart';
@@ -45,6 +46,7 @@ Future<void> showSpaceContextMenu(
   final cs = Theme.of(context).colorScheme;
   final matrix = context.read<MatrixService>();
   final spaceRepo = context.read<SpaceRepository>();
+  final spaceTree = context.read<SpaceTreeRepository>();
   final roomRepo = context.read<RoomRepository>();
   final userRepo = context.read<UserRepository>();
 
@@ -135,7 +137,7 @@ Future<void> showSpaceContextMenu(
                 failures++;
               }
             }
-            spaceRepo.invalidateSpaceTree();
+            spaceTree.invalidateSpaceTree();
             return failures;
           },
         );

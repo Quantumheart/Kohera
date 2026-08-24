@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/sub_services/selection_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
+import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/calling/widgets/voice_banner.dart';
 import 'package:kohera/features/e2ee/widgets/key_backup_banner.dart';
@@ -74,9 +74,9 @@ class _HomeShellState extends State<HomeShell> {
     final width = MediaQuery.sizeOf(context).width;
     final isWide = width >= _wideBreakpoint;
 
-    final selection = context.read<SelectionService>();
+    final selection = context.read<SpaceTreeRepository>();
     final selectionState = context.read<SelectionController>();
-    context.select<SelectionService, int>((s) => Object.hashAll(s.spaces.map((sp) => sp.id)));
+    context.select<SpaceTreeRepository, int>((s) => Object.hashAll(s.spaces.map((sp) => sp.id)));
     context.select<CallService, (KoheraCallState, String?)>(
       (s) => (s.callState, s.activeCallRoomId),
     );
@@ -113,7 +113,7 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Map<ShortcutActivator, VoidCallback> _buildKeyBindings(
-    SelectionService selection,
+    SpaceTreeRepository selection,
     SelectionController selectionState,
   ) {
     final spaces = selection.topLevelSpaces;
