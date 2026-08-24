@@ -8,8 +8,7 @@ import 'dart:typed_data' as _i9;
 import 'dart:ui' as _i11;
 
 import 'package:http/http.dart' as _i4;
-import 'package:kohera/core/services/sub_services/chat_backup_service.dart'
-    as _i10;
+import 'package:kohera/core/services/chat_backup_service.dart' as _i10;
 import 'package:matrix/encryption.dart' as _i7;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;

@@ -6,8 +6,7 @@
 import 'dart:async' as _i3;
 import 'dart:ui' as _i5;
 
-import 'package:kohera/core/services/sub_services/chat_backup_service.dart'
-    as _i2;
+import 'package:kohera/core/services/chat_backup_service.dart' as _i2;
 import 'package:matrix/encryption.dart' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
 

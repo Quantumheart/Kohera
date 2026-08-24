@@ -8,8 +8,7 @@ import 'dart:typed_data' as _i9;
 
 import 'package:http/http.dart' as _i4;
 import 'package:kohera/core/models/join_mode.dart' as _i13;
-import 'package:kohera/core/services/sub_services/space_access_service.dart'
-    as _i12;
+import 'package:kohera/data/services/space_access_service.dart' as _i12;
 import 'package:matrix/encryption.dart' as _i7;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;

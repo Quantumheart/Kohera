@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:kohera/core/services/sub_services/backup_version_manager.dart';
-import 'package:kohera/core/services/sub_services/key_backup_signer.dart';
+import 'package:kohera/core/services/backup_version_manager.dart';
+import 'package:kohera/core/services/key_backup_signer.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';

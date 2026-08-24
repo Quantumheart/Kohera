@@ -11,14 +11,11 @@ import 'package:flutter/services.dart' as _i25;
 import 'package:flutter/widgets.dart' as _i26;
 import 'package:http/http.dart' as _i4;
 import 'package:kohera/core/services/account_session.dart' as _i7;
+import 'package:kohera/core/services/auth_service.dart' as _i14;
+import 'package:kohera/core/services/chat_backup_service.dart' as _i10;
 import 'package:kohera/core/services/matrix_service.dart' as _i23;
-import 'package:kohera/core/services/sub_services/auth_service.dart' as _i14;
-import 'package:kohera/core/services/sub_services/chat_backup_service.dart'
-    as _i10;
-import 'package:kohera/core/services/sub_services/presence_service.dart'
-    as _i28;
-import 'package:kohera/core/services/sub_services/sync_service.dart' as _i13;
-import 'package:kohera/core/services/sub_services/uia_service.dart' as _i9;
+import 'package:kohera/core/services/sync_service.dart' as _i13;
+import 'package:kohera/core/services/uia_service.dart' as _i9;
 import 'package:kohera/core/state/selection_controller.dart' as _i12;
 import 'package:kohera/data/models/kohera_room_summary.dart' as _i17;
 import 'package:kohera/data/models/space_node.dart' as _i27;
@@ -26,6 +23,7 @@ import 'package:kohera/data/repositories/space_tree_repository.dart' as _i11;
 import 'package:kohera/data/services/avatar_resolver.dart' as _i15;
 import 'package:kohera/data/services/matrix_client_service.dart' as _i8;
 import 'package:kohera/data/services/media_resolver.dart' as _i16;
+import 'package:kohera/data/services/presence_service.dart' as _i28;
 import 'package:matrix/encryption.dart' as _i18;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;

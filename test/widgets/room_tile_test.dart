@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/presence_service.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/models/kohera_user_summary.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
@@ -17,6 +16,7 @@ import 'package:kohera/data/repositories/user_repository.dart';
 ])
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/presence_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/rooms/widgets/room_tile.dart';
 import 'package:kohera/shared/widgets/presence_dot.dart';

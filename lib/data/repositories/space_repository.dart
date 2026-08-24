@@ -2,11 +2,11 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/models/join_mode.dart';
-import 'package:kohera/core/services/sub_services/space_access_service.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/resolvers/room_summary_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/space_access_service.dart';
 import 'package:matrix/matrix.dart';
 
 class SpaceRepository extends ChangeNotifier {

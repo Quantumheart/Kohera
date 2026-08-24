@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
-import 'package:kohera/core/services/sub_services/megolm_key_mirror.dart';
-import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/core/services/chat_backup_service.dart';
+import 'package:kohera/core/services/uia_service.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/megolm_key_mirror.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 

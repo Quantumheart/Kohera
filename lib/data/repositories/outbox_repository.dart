@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/services/sub_services/outbox_connectivity.dart';
-import 'package:kohera/core/services/sub_services/outbox_service.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/outbox_connectivity.dart';
+import 'package:kohera/data/services/outbox_service.dart';
 
-export 'package:kohera/core/services/sub_services/outbox_service.dart'
+export 'package:kohera/data/services/outbox_service.dart'
     show OutboxEntryView;
 
 /// Tracks stuck (retrying / failed) outgoing messages so bubbles can show

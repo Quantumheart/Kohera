@@ -1,7 +1,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
-import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/core/services/chat_backup_service.dart';
+import 'package:kohera/core/services/uia_service.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_controller.dart';

@@ -1,13 +1,11 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:kohera/core/services/auth_service.dart';
+import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/client_media_resolver.dart';
 import 'package:kohera/core/services/secure_storage.dart';
-import 'package:kohera/core/services/sub_services/auth_service.dart';
-import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
-import 'package:kohera/core/services/sub_services/presence_service.dart';
-
-import 'package:kohera/core/services/sub_services/sync_service.dart';
-import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/core/services/sync_service.dart';
+import 'package:kohera/core/services/uia_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
@@ -19,6 +17,7 @@ import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
+import 'package:kohera/data/services/presence_service.dart';
 import 'package:matrix/matrix.dart';
 
 /// Per-account composition root. Builds the sub-service graph in dependency

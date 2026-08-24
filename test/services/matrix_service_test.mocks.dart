@@ -11,14 +11,11 @@ import 'package:async/async.dart' as _i19;
 import 'package:flutter/foundation.dart' as _i17;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart' as _i7;
 import 'package:http/http.dart' as _i4;
-import 'package:kohera/core/services/sub_services/backup_version_manager.dart'
-    as _i24;
-import 'package:kohera/core/services/sub_services/chat_backup_service.dart'
-    as _i29;
-import 'package:kohera/core/services/sub_services/presence_service.dart'
-    as _i27;
-import 'package:kohera/core/services/sub_services/sync_service.dart' as _i25;
-import 'package:kohera/core/services/sub_services/uia_service.dart' as _i28;
+import 'package:kohera/core/services/backup_version_manager.dart' as _i24;
+import 'package:kohera/core/services/chat_backup_service.dart' as _i29;
+import 'package:kohera/core/services/sync_service.dart' as _i25;
+import 'package:kohera/core/services/uia_service.dart' as _i28;
+import 'package:kohera/data/services/presence_service.dart' as _i27;
 import 'package:matrix/encryption.dart' as _i8;
 import 'package:matrix/encryption/cross_signing.dart' as _i11;
 import 'package:matrix/encryption/key_verification_manager.dart' as _i10;

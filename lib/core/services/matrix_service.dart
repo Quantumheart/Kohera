@@ -3,12 +3,11 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/services/account_session.dart';
+import 'package:kohera/core/services/auth_service.dart';
+import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/secure_storage.dart';
-import 'package:kohera/core/services/sub_services/auth_service.dart';
-import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
-
-import 'package:kohera/core/services/sub_services/sync_service.dart';
-import 'package:kohera/core/services/sub_services/uia_service.dart';
+import 'package:kohera/core/services/sync_service.dart';
+import 'package:kohera/core/services/uia_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';

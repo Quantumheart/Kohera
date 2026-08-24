@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/e2ee/widgets/verification_request_listener.dart';
@@ -15,7 +15,6 @@ import 'package:provider/provider.dart';
 
 import '../mocks/matrix_service_mock.mocks.dart';
 import 'key_verification_dialog_test.dart' show FakeKeyVerification;
-
 @GenerateNiceMocks([
   MockSpec<Client>(),
   MockSpec<ChatBackupService>(),

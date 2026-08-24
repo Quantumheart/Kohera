@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/sub_services/backup_version_manager.dart';
+import 'package:kohera/core/services/backup_version_manager.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/mockito.dart';
 

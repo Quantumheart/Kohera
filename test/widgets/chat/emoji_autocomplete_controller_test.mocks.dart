@@ -8,10 +8,10 @@ import 'dart:ui' as _i11;
 
 import 'package:kohera/core/models/emoji_gg_pack.dart' as _i9;
 import 'package:kohera/core/services/emoji_gg_service.dart' as _i10;
-import 'package:kohera/core/services/sticker_pack_service.dart' as _i8;
 import 'package:kohera/data/models/kohera_sticker_pack.dart' as _i5;
 import 'package:kohera/data/models/sticker_pack.dart' as _i6;
 import 'package:kohera/data/repositories/sticker_pack_repository.dart' as _i4;
+import 'package:kohera/data/services/sticker_pack_service.dart' as _i8;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/src/models/timeline_chunk.dart' as _i14;
 import 'package:matrix/src/utils/cached_stream_controller.dart' as _i3;

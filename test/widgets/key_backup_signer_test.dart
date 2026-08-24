@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/sub_services/key_backup_signer.dart';
+import 'package:kohera/core/services/key_backup_signer.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/encryption/olm_manager.dart';
 import 'package:matrix/matrix.dart';

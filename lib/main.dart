@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,12 +8,12 @@ import 'package:kohera/core/brand/brand_constants.dart';
 import 'package:kohera/core/routing/active_matrix_listenable.dart';
 import 'package:kohera/core/routing/app_router.dart';
 import 'package:kohera/core/services/app_config.dart';
+import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/deep_link_service.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
-import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
 import 'package:kohera/core/services/web_shell_sync.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/core/theme/kohera_theme.dart';

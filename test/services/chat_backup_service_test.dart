@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/sub_services/chat_backup_service.dart';
+import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/mockito.dart';
