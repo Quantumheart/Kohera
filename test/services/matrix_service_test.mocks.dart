@@ -12,9 +12,10 @@ import 'package:flutter/foundation.dart' as _i17;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart' as _i7;
 import 'package:http/http.dart' as _i4;
 import 'package:kohera/core/services/backup_version_manager.dart' as _i24;
-import 'package:kohera/core/services/chat_backup_service.dart' as _i29;
+import 'package:kohera/core/services/chat_backup_service.dart' as _i30;
 import 'package:kohera/core/services/sync_service.dart' as _i25;
-import 'package:kohera/core/services/uia_service.dart' as _i28;
+import 'package:kohera/core/state/uia_interaction_controller.dart' as _i28;
+import 'package:kohera/data/services/password_cache.dart' as _i29;
 import 'package:kohera/data/services/presence_service.dart' as _i27;
 import 'package:matrix/encryption.dart' as _i8;
 import 'package:matrix/encryption/cross_signing.dart' as _i11;
@@ -11301,10 +11302,11 @@ class MockPresenceService extends _i1.Mock implements _i27.PresenceService {
   );
 }
 
-/// A class which mocks [UiaService].
+/// A class which mocks [UiaInteractionController].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockUiaService extends _i1.Mock implements _i28.UiaService {
+class MockUiaInteractionController extends _i1.Mock
+    implements _i28.UiaInteractionController {
   @override
   _i5.Stream<_i2.UiaRequest<dynamic>> get onUiaRequest =>
       (super.noSuchMethod(
@@ -11338,6 +11340,23 @@ class MockUiaService extends _i1.Mock implements _i28.UiaService {
   );
 
   @override
+  void cancelUiaSub() => super.noSuchMethod(
+    Invocation.method(#cancelUiaSub, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void dispose() => super.noSuchMethod(
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
+}
+
+/// A class which mocks [PasswordCache].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockPasswordCache extends _i1.Mock implements _i29.PasswordCache {
+  @override
   void setCachedPassword(String? password) => super.noSuchMethod(
     Invocation.method(#setCachedPassword, [password]),
     returnValueForMissingStub: null,
@@ -11346,12 +11365,6 @@ class MockUiaService extends _i1.Mock implements _i28.UiaService {
   @override
   void clearCachedPassword() => super.noSuchMethod(
     Invocation.method(#clearCachedPassword, []),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void cancelUiaSub() => super.noSuchMethod(
-    Invocation.method(#cancelUiaSub, []),
     returnValueForMissingStub: null,
   );
 
@@ -11365,7 +11378,7 @@ class MockUiaService extends _i1.Mock implements _i28.UiaService {
 /// A class which mocks [ChatBackupService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockChatBackupService extends _i1.Mock implements _i29.ChatBackupService {
+class MockChatBackupService extends _i1.Mock implements _i30.ChatBackupService {
   @override
   bool get chatBackupEnabled =>
       (super.noSuchMethod(

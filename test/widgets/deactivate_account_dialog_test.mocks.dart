@@ -11,7 +11,8 @@ import 'package:http/http.dart' as _i4;
 import 'package:kohera/core/services/chat_backup_service.dart' as _i11;
 import 'package:kohera/core/services/client_manager.dart' as _i13;
 import 'package:kohera/core/services/matrix_service.dart' as _i7;
-import 'package:kohera/core/services/uia_service.dart' as _i14;
+import 'package:kohera/core/state/uia_interaction_controller.dart' as _i14;
+import 'package:kohera/data/services/password_cache.dart' as _i15;
 import 'package:matrix/encryption.dart' as _i8;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;
@@ -6761,10 +6762,11 @@ class MockClientManager extends _i1.Mock implements _i13.ClientManager {
   );
 }
 
-/// A class which mocks [UiaService].
+/// A class which mocks [UiaInteractionController].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockUiaService extends _i1.Mock implements _i14.UiaService {
+class MockUiaInteractionController extends _i1.Mock
+    implements _i14.UiaInteractionController {
   @override
   _i5.Stream<_i2.UiaRequest<dynamic>> get onUiaRequest =>
       (super.noSuchMethod(
@@ -6798,6 +6800,23 @@ class MockUiaService extends _i1.Mock implements _i14.UiaService {
   );
 
   @override
+  void cancelUiaSub() => super.noSuchMethod(
+    Invocation.method(#cancelUiaSub, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void dispose() => super.noSuchMethod(
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
+}
+
+/// A class which mocks [PasswordCache].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockPasswordCache extends _i1.Mock implements _i15.PasswordCache {
+  @override
   void setCachedPassword(String? password) => super.noSuchMethod(
     Invocation.method(#setCachedPassword, [password]),
     returnValueForMissingStub: null,
@@ -6806,12 +6825,6 @@ class MockUiaService extends _i1.Mock implements _i14.UiaService {
   @override
   void clearCachedPassword() => super.noSuchMethod(
     Invocation.method(#clearCachedPassword, []),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void cancelUiaSub() => super.noSuchMethod(
-    Invocation.method(#cancelUiaSub, []),
     returnValueForMissingStub: null,
   );
 

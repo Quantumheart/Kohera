@@ -7,9 +7,9 @@ import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/matrix_service.dart' show koheraKey;
 import 'package:kohera/core/services/session_backup.dart';
 import 'package:kohera/core/services/sync_service.dart';
-import 'package:kohera/core/services/uia_service.dart';
 import 'package:kohera/core/utils/network_error.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/password_cache.dart';
 import 'package:kohera/data/services/presence_service.dart';
 import 'package:matrix/matrix.dart';
 // ignore: implementation_imports, no public API for ClientInitException
@@ -22,14 +22,14 @@ class AuthService extends ChangeNotifier {
     required String clientName,
     required SyncService sync,
     required PresenceService presence,
-    required UiaService uia,
+    required PasswordCache passwordCache,
     required ChatBackupService chatBackup,
   })  : _matrixClientService = matrixClientService,
         _storage = storage,
         _clientName = clientName,
         _sync = sync,
         _presence = presence,
-        _uia = uia,
+        _passwordCache = passwordCache,
         _chatBackup = chatBackup;
 
   final MatrixClientService _matrixClientService;
@@ -37,7 +37,7 @@ class AuthService extends ChangeNotifier {
   final String _clientName;
   final SyncService _sync;
   final PresenceService _presence;
-  final UiaService _uia;
+  final PasswordCache _passwordCache;
   final ChatBackupService _chatBackup;
 
   Client get _client => _matrixClientService.client;
@@ -117,7 +117,7 @@ class AuthService extends ChangeNotifier {
         debugPrint('[Kohera] Credential persistence failed (non-fatal): $e');
       }
 
-      _uia.setCachedPassword(password);
+      _passwordCache.setCachedPassword(password);
       try {
         await _sync.startSync(timeout: const Duration(minutes: 5));
         _presence.setOnline();
@@ -214,7 +214,7 @@ class AuthService extends ChangeNotifier {
           'accessToken=${_matrixClientService.client.accessToken}, userID=${_matrixClientService.client.userID}');
     }
 
-    if (password != null) _uia.setCachedPassword(password);
+    if (password != null) _passwordCache.setCachedPassword(password);
 
     isLoggedIn = true;
     notifyListeners();

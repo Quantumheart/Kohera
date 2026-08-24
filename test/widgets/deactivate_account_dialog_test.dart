@@ -5,9 +5,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/core/services/uia_service.dart';
+import 'package:kohera/core/state/uia_interaction_controller.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/password_cache.dart';
 import 'package:kohera/features/settings/widgets/deactivate_account_dialog.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
@@ -19,7 +20,8 @@ import 'package:provider/provider.dart';
   MockSpec<Client>(),
   MockSpec<ChatBackupService>(),
   MockSpec<ClientManager>(),
-  MockSpec<UiaService>(),
+  MockSpec<UiaInteractionController>(),
+  MockSpec<PasswordCache>(),
 ])
 import '../mocks/matrix_service_mock.mocks.dart';
 import 'deactivate_account_dialog_test.mocks.dart';
@@ -29,18 +31,21 @@ void main() {
   late MockMatrixService mockMatrix;
   late MockChatBackupService mockChatBackup;
   late MockClientManager mockManager;
-  late MockUiaService mockUia;
+  late MockUiaInteractionController mockUia;
+  late MockPasswordCache mockPasswordCache;
 
   setUp(() {
     mockClient = MockClient();
     mockMatrix = MockMatrixService();
     mockChatBackup = MockChatBackupService();
     mockManager = MockClientManager();
-    mockUia = MockUiaService();
+    mockUia = MockUiaInteractionController();
+    mockPasswordCache = MockPasswordCache();
 
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockMatrix.uia).thenReturn(mockUia);
+    when(mockMatrix.passwordCache).thenReturn(mockPasswordCache);
     when(mockMatrix.chatBackup).thenReturn(mockChatBackup);
     when(mockClient.userID).thenReturn('@alice:example.com');
     when(mockChatBackup.chatBackupNeeded).thenReturn(false);
@@ -225,7 +230,7 @@ void main() {
       await tester.tap(find.text('Deactivate'));
       await tester.pumpAndSettle();
 
-      verify(mockUia.clearCachedPassword()).called(1);
+      verify(mockPasswordCache.clearCachedPassword()).called(1);
     });
 
     testWidgets('rejects an invalid identity server without deactivating',

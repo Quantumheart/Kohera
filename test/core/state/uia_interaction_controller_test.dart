@@ -1,59 +1,44 @@
-import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/uia_service.dart';
+import 'package:kohera/core/state/uia_interaction_controller.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/password_cache.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/mockito.dart';
 
-import 'matrix_service_test.mocks.dart';
+import '../../services/matrix_service_test.mocks.dart';
 
 void main() {
   late MockClient mockClient;
-  late UiaService service;
+  late UiaInteractionController controller;
 
   setUp(() {
     mockClient = MockClient();
     when(mockClient.onUiaRequest).thenReturn(CachedStreamController());
-    service = UiaService(matrixClientService: MatrixClientService(mockClient));
+    controller = UiaInteractionController(
+      matrixClientService: MatrixClientService(mockClient),
+      passwordCache: PasswordCache(),
+    );
   });
 
   group('listenForUia', () {
     test('subscribes to client UIA stream', () {
-      service.listenForUia();
+      controller.listenForUia();
       verify(mockClient.onUiaRequest).called(greaterThanOrEqualTo(1));
-    });
-  });
-
-  group('setCachedPassword', () {
-    test('auto-expires after 30 seconds', () {
-      fakeAsync((async) {
-        service.setCachedPassword('secret');
-
-        async.elapse(const Duration(seconds: 31));
-      });
-    });
-  });
-
-  group('clearCachedPassword', () {
-    test('clears immediately', () {
-      service.setCachedPassword('secret');
-      service.clearCachedPassword();
     });
   });
 
   group('cancelUiaSub', () {
     test('cancels subscription without error', () {
-      service.listenForUia();
-      service.cancelUiaSub();
+      controller.listenForUia();
+      controller.cancelUiaSub();
     });
   });
 
   group('dispose', () {
-    test('closes stream controller and timer', () {
-      service.setCachedPassword('secret');
-      service.listenForUia();
-      service.dispose();
+    test('closes stream controller and subscription', () {
+      controller.listenForUia();
+      controller.dispose();
     });
   });
 
@@ -62,7 +47,7 @@ void main() {
       when(mockClient.userID).thenReturn(null);
 
       final request = MockUiaRequest();
-      service.completeUiaWithPassword(request, 'password');
+      controller.completeUiaWithPassword(request, 'password');
 
       verifyZeroInteractions(request);
     });

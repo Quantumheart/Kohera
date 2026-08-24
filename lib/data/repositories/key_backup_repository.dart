@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/chat_backup_service.dart';
-import 'package:kohera/core/services/uia_service.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/megolm_key_mirror.dart';
+import 'package:kohera/data/services/password_cache.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 
@@ -13,11 +13,11 @@ class KeyBackupRepository extends ChangeNotifier {
     required MatrixClientService clientService,
     required String clientName,
     required ChatBackupService chatBackup,
-    required UiaService uia,
+    required PasswordCache passwordCache,
     MegolmKeyMirror? keyMirrorOverride,
   })  : _clientService = clientService,
         _chatBackup = chatBackup,
-        _uia = uia,
+        _passwordCache = passwordCache,
         _keyMirror = keyMirrorOverride ??
             MegolmKeyMirror(
               matrixClientService: clientService,
@@ -28,7 +28,7 @@ class KeyBackupRepository extends ChangeNotifier {
 
   final MatrixClientService _clientService;
   final ChatBackupService _chatBackup;
-  final UiaService _uia;
+  final PasswordCache _passwordCache;
   final MegolmKeyMirror _keyMirror;
   bool _disposed = false;
 
@@ -59,7 +59,7 @@ class KeyBackupRepository extends ChangeNotifier {
   Future<void> storeRecoveryKey(String key) =>
       _chatBackup.storeRecoveryKey(key);
 
-  void clearCachedPassword() => _uia.clearCachedPassword();
+  void clearCachedPassword() => _passwordCache.clearCachedPassword();
 
   Stream<KeyVerification> get onKeyVerificationRequest =>
       _client.onKeyVerificationRequest.stream;

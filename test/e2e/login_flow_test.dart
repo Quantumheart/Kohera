@@ -81,7 +81,7 @@ void main() {
   });
 
   tearDown(() {
-    matrixService.uia.clearCachedPassword();
+    matrixService.passwordCache.clearCachedPassword();
     AppConfig.reset();
   });
 

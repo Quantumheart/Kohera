@@ -5,8 +5,8 @@ import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/client_media_resolver.dart';
 import 'package:kohera/core/services/secure_storage.dart';
 import 'package:kohera/core/services/sync_service.dart';
-import 'package:kohera/core/services/uia_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
+import 'package:kohera/core/state/uia_interaction_controller.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/outbox_repository.dart';
@@ -17,6 +17,7 @@ import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
+import 'package:kohera/data/services/password_cache.dart';
 import 'package:kohera/data/services/presence_service.dart';
 import 'package:matrix/matrix.dart';
 
@@ -31,7 +32,8 @@ class AccountSession {
   Client get client => _matrixClientService.client;
   String? get userID => _matrixClientService.client.userID;
 
-  late final UiaService uia;
+  late final PasswordCache passwordCache;
+  late final UiaInteractionController uia;
   late final ChatBackupService chatBackup;
   late final SpaceTreeRepository spaceTree;
   late final SelectionController selectionController;
@@ -69,7 +71,11 @@ class AccountSession {
                publicKey: AccountSessionConstants.publicKey,
              ),
            ) {
-    uia = UiaService(matrixClientService: _matrixClientService);
+    passwordCache = PasswordCache();
+    uia = UiaInteractionController(
+      matrixClientService: _matrixClientService,
+      passwordCache: passwordCache,
+    );
     chatBackup = ChatBackupService(
       matrixClientService: _matrixClientService,
       storage: _flutterSecureStorage,
@@ -91,7 +97,7 @@ class AccountSession {
       clientName: clientName,
       sync: sync,
       presence: presence,
-      uia: uia,
+      passwordCache: passwordCache,
       chatBackup: chatBackup,
     );
     avatarResolver = ClientAvatarResolver(_matrixClientService);
@@ -104,7 +110,7 @@ class AccountSession {
       clientService: _matrixClientService,
       clientName: clientName,
       chatBackup: chatBackup,
-      uia: uia,
+      passwordCache: passwordCache,
     );
     userRepository = UserRepository(
       clientService: _matrixClientService,
@@ -129,6 +135,7 @@ class AccountSession {
     userRepository.dispose();
     outboxRepository.dispose();
     uia.dispose();
+    passwordCache.dispose();
     spaceTree.dispose();
     selectionController.dispose();
     presence.dispose();

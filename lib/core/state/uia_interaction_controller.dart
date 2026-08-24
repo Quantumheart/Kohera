@@ -2,22 +2,27 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/password_cache.dart';
 import 'package:matrix/matrix.dart';
 
 /// Shows a password prompt dialog and returns the entered password,
 /// or `null` if the user cancelled.
 typedef PasswordPromptBuilder = Future<String?> Function();
 
-class UiaService {
-  UiaService({
+/// Mediates the Matrix User-Interactive Authentication (UIA) flow between the
+/// SDK and the UI: it listens for UIA challenges, auto-completes them from the
+/// [PasswordCache] when possible, otherwise drives a password prompt (or
+/// forwards to the UI stream). Presentation/interaction state — it owns the
+/// prompt callback that widgets set.
+class UiaInteractionController {
+  UiaInteractionController({
     required MatrixClientService matrixClientService,
-  })  : _matrixClientService = matrixClientService;
+    required PasswordCache passwordCache,
+  })  : _matrixClientService = matrixClientService,
+        _passwordCache = passwordCache;
 
   final MatrixClientService _matrixClientService;
-
-  // ── UIA (User-Interactive Authentication) ──────────────────────
-  String? _cachedPassword;
-  Timer? _passwordExpiryTimer;
+  final PasswordCache _passwordCache;
 
   final _uiaController = StreamController<UiaRequest<dynamic>>.broadcast();
   Stream<UiaRequest<dynamic>> get onUiaRequest => _uiaController.stream;
@@ -47,7 +52,7 @@ class UiaService {
 
     switch (stage) {
       case AuthenticationTypes.password:
-        final password = _cachedPassword;
+        final password = _passwordCache.cachedPassword;
         final userId = _matrixClientService.client.userID;
         if (password != null && userId != null) {
           debugPrint('[Kohera] UIA: completing with cached password');
@@ -63,7 +68,7 @@ class UiaService {
           debugPrint('[Kohera] UIA: prompting for password via callback');
           final entered = await passwordPromptBuilder!();
           if (entered != null && entered.isNotEmpty && userId != null) {
-            setCachedPassword(entered);
+            _passwordCache.setCachedPassword(entered);
             return uiaRequest.completeStage(
               AuthenticationPassword(
                 session: uiaRequest.session,
@@ -93,7 +98,7 @@ class UiaService {
   void completeUiaWithPassword(UiaRequest<dynamic> request, String password) {
     final userId = _matrixClientService.client.userID;
     if (userId == null) return;
-    setCachedPassword(password);
+    _passwordCache.setCachedPassword(password);
     unawaited(
       request.completeStage(
         AuthenticationPassword(
@@ -105,28 +110,12 @@ class UiaService {
     );
   }
 
-  void setCachedPassword(String password) {
-    _cachedPassword = password;
-    _passwordExpiryTimer?.cancel();
-    _passwordExpiryTimer = Timer(const Duration(seconds: 30), () {
-      _cachedPassword = null;
-      _passwordExpiryTimer = null;
-    });
-  }
-
-  void clearCachedPassword() {
-    _cachedPassword = null;
-    _passwordExpiryTimer?.cancel();
-    _passwordExpiryTimer = null;
-  }
-
   void cancelUiaSub() {
     unawaited(_uiaSub?.cancel());
   }
 
   void dispose() {
     unawaited(_uiaController.close());
-    _passwordExpiryTimer?.cancel();
     cancelUiaSub();
   }
 }

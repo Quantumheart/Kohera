@@ -4,6 +4,7 @@ import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/password_cache.dart';
 import 'package:kohera/features/e2ee/screens/e2ee_setup_screen.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
@@ -15,13 +16,13 @@ void main() {
   late MockMatrixService mockMatrixService;
   late MockChatBackupService mockChatBackup;
   late MockClient mockClient;
-  late MockUiaService mockUia;
+  late MockUiaInteractionController mockUia;
 
   setUp(() {
     mockMatrixService = MockMatrixService();
     mockChatBackup = MockChatBackupService();
     mockClient = MockClient();
-    mockUia = MockUiaService();
+    mockUia = MockUiaInteractionController();
 
     when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrixService.chatBackup).thenReturn(mockChatBackup);
@@ -43,7 +44,7 @@ void main() {
             value: mockChatBackup,
           ),
           ChangeNotifierProvider<KeyBackupRepository>(
-            create: (_) => KeyBackupRepository(clientService: mockMatrixService.matrixClientService, clientName: 'test', chatBackup: mockMatrixService.chatBackup, uia: mockMatrixService.uia),
+            create: (_) => KeyBackupRepository(clientService: mockMatrixService.matrixClientService, clientName: 'test', chatBackup: mockMatrixService.chatBackup, passwordCache: PasswordCache()),
           ),
         ],
         child: const MaterialApp(
