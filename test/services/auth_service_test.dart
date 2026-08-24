@@ -25,7 +25,6 @@ AuthService _buildAuthService({
     sync: MockSyncService(),
     presence: MockPresenceService(),
     passwordCache: PasswordCache(),
-    chatBackup: MockChatBackupService(),
   );
 }
 

@@ -1,5 +1,5 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/password_cache.dart';
@@ -14,7 +14,7 @@ import 'package:mockito/mockito.dart';
   MockSpec<Client>(),
   MockSpec<Encryption>(),
   MockSpec<Bootstrap>(),
-  MockSpec<ChatBackupService>(),
+  MockSpec<FlutterSecureStorage>(),
 ])
 import '../mocks/matrix_service_mock.mocks.dart';
 import 'bootstrap_driver_test.mocks.dart';
@@ -34,7 +34,6 @@ void main() {
     mockMatrixService = MockMatrixService();
     mockEncryption = MockEncryption();
     when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
-    when(mockMatrixService.chatBackup).thenReturn(MockChatBackupService());
     when(mockClient.encryption).thenReturn(mockEncryption);
     when(mockClient.roomsLoading).thenAnswer((_) async {});
     when(mockClient.accountDataLoading).thenAnswer((_) async {});
@@ -51,7 +50,7 @@ void main() {
 
   BootstrapDriver createDriver({bool wipeExisting = false}) {
     return BootstrapDriver(
-      keyBackup: KeyBackupRepository(clientService: mockMatrixService.matrixClientService, clientName: 'test', chatBackup: mockMatrixService.chatBackup, passwordCache: PasswordCache()),
+      keyBackup: KeyBackupRepository(clientService: mockMatrixService.matrixClientService, clientName: 'test', storage: MockFlutterSecureStorage(), passwordCache: PasswordCache()),
       wipeExisting: wipeExisting,
       onPhaseChanged: (phase) => lastPhase = phase,
       onNewSsss: () => newSsssCount++,

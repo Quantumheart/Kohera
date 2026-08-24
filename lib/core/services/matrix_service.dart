@@ -4,11 +4,12 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/auth_service.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/secure_storage.dart';
 import 'package:kohera/core/services/sync_service.dart';
+import 'package:kohera/core/state/key_backup_setup_state.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/core/state/uia_interaction_controller.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
@@ -78,7 +79,10 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
 
   UiaInteractionController get uia => _accountSession.uia;
   PasswordCache get passwordCache => _accountSession.passwordCache;
-  ChatBackupService get chatBackup => _accountSession.chatBackup;
+  KeyBackupSetupState get keyBackupSetupState =>
+      _accountSession.keyBackupSetupState;
+  KeyBackupRepository get keyBackupRepository =>
+      _accountSession.keyBackupRepository;
   SpaceTreeRepository get spaceTree => _accountSession.spaceTree;
   SelectionController get selectionController =>
       _accountSession.selectionController;
@@ -92,9 +96,9 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   /// The Matrix user ID of this account, or null before login.
   String? get userID => _accountSession.userID;
 
-  bool get hasSkippedSetup => chatBackup.setupSkipped;
+  bool get hasSkippedSetup => keyBackupSetupState.setupSkipped;
   void skipSetup() {
-    unawaited(chatBackup.markSetupSkipped());
+    unawaited(keyBackupSetupState.markSetupSkipped());
   }
 
   @visibleForTesting
@@ -193,7 +197,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     if (auth.isLoggedIn) {
       uia.listenForUia();
       _listenForLoginState();
-      unawaited(chatBackup.loadDismissalState());
+      unawaited(keyBackupSetupState.loadDismissalState());
       unawaited(_accountSession.pushRuleRepository.ensureCallRule());
       unawaited(
         _accountSession.keyBackupRepository.startKeyMirror().catchError((Object e) {
@@ -218,7 +222,8 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       passwordCache.clearCachedPassword();
       uia.cancelUiaSub();
       selectionController.resetSelection();
-      chatBackup.resetChatBackupState();
+      _accountSession.keyBackupRepository.resetChatBackupState();
+      keyBackupSetupState.reset();
       _foregroundSyncStarted = false;
       if (_lifecycleObserverRegistered) {
         WidgetsBinding.instance.removeObserver(this);
@@ -238,8 +243,8 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       if (state == LoginState.loggedOut && auth.isLoggedIn) {
         debugPrint('[Kohera] Server-side logout detected');
         await auth.handleServerLogout();
-        await chatBackup.deleteStoredRecoveryKey();
-        await chatBackup.deleteDismissalState();
+        await _accountSession.keyBackupRepository.deleteStoredRecoveryKey();
+        await keyBackupSetupState.deleteDismissalState();
       }
     });
   }

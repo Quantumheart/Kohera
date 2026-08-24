@@ -8,13 +8,13 @@ import 'package:kohera/core/brand/brand_constants.dart';
 import 'package:kohera/core/routing/active_matrix_listenable.dart';
 import 'package:kohera/core/routing/app_router.dart';
 import 'package:kohera/core/services/app_config.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/deep_link_service.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/services/web_shell_sync.dart';
+import 'package:kohera/core/state/key_backup_setup_state.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/core/theme/kohera_theme.dart';
 import 'package:kohera/core/theme/theme_presets.dart';
@@ -336,8 +336,8 @@ ShareIntakeController? _shareIntake;
                       return controller;
                     },
                   ),
-                  ChangeNotifierProvider<ChatBackupService>.value(
-                    value: matrix.chatBackup,
+                  ChangeNotifierProvider<KeyBackupSetupState>.value(
+                    value: matrix.keyBackupSetupState,
                   ),
                   ChangeNotifierProvider<OutboxRepository>.value(
                     value: matrix.session.outboxRepository,
@@ -404,11 +404,12 @@ ShareIntakeController? _shareIntake;
                     create: (ctx) => AuthRepository(
                       clientService: ctx.read<MatrixService>().session.matrixClientService,
                       auth: ctx.read<MatrixService>().session.auth,
-                      chatBackup: ctx.read<MatrixService>().session.chatBackup,
+                      setupState:
+                          ctx.read<MatrixService>().session.keyBackupSetupState,
                     ),
                   ),
                   ChangeNotifierProvider<KeyBackupRepository>.value(
-                    value: matrix.session.keyBackupRepository,
+                    value: matrix.keyBackupRepository,
                   ),
                   ChangeNotifierProvider<MediaRepository>(
                     create: (ctx) => MediaRepository(

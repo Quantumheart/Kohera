@@ -27,8 +27,10 @@ class _ShowRecoveryKeyScreenState extends State<ShowRecoveryKeyScreen> {
   @override
   void initState() {
     super.initState();
-    _keyFuture =
-        context.read<MatrixService>().chatBackup.getStoredRecoveryKey();
+    _keyFuture = context
+        .read<MatrixService>()
+        .keyBackupRepository
+        .getStoredRecoveryKey();
   }
 
   @override

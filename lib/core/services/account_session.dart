@@ -1,10 +1,10 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/services/auth_service.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/client_media_resolver.dart';
 import 'package:kohera/core/services/secure_storage.dart';
 import 'package:kohera/core/services/sync_service.dart';
+import 'package:kohera/core/state/key_backup_setup_state.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/core/state/uia_interaction_controller.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
@@ -34,7 +34,7 @@ class AccountSession {
 
   late final PasswordCache passwordCache;
   late final UiaInteractionController uia;
-  late final ChatBackupService chatBackup;
+  late final KeyBackupSetupState keyBackupSetupState;
   late final SpaceTreeRepository spaceTree;
   late final SelectionController selectionController;
   late final PresenceService presence;
@@ -76,8 +76,8 @@ class AccountSession {
       matrixClientService: _matrixClientService,
       passwordCache: passwordCache,
     );
-    chatBackup = ChatBackupService(
-      matrixClientService: _matrixClientService,
+    keyBackupSetupState = KeyBackupSetupState(
+      clientService: _matrixClientService,
       storage: _flutterSecureStorage,
     );
     spaceTree = SpaceTreeRepository(clientService: matrixClientService);
@@ -87,9 +87,10 @@ class AccountSession {
     sync = SyncService(
       matrixClientService: matrixClientService,
       onPostSyncBackup: () async {
-        await chatBackup.tryAutoUnlockBackup();
+        await keyBackupRepository.tryAutoUnlockBackup();
       },
-      shouldRetryBackup: () => chatBackup.chatBackupNeeded != false,
+      shouldRetryBackup: () =>
+          keyBackupRepository.chatBackupNeeded != false,
     );
     auth = AuthService(
       matrixClientService: matrixClientService,
@@ -98,7 +99,10 @@ class AccountSession {
       sync: sync,
       presence: presence,
       passwordCache: passwordCache,
-      chatBackup: chatBackup,
+      onLogoutCleanup: () async {
+        await keyBackupRepository.deleteStoredRecoveryKey();
+        await keyBackupSetupState.deleteDismissalState();
+      },
     );
     avatarResolver = ClientAvatarResolver(_matrixClientService);
     mediaResolver = ClientMediaResolver(_matrixClientService);
@@ -109,7 +113,7 @@ class AccountSession {
     keyBackupRepository = KeyBackupRepository(
       clientService: _matrixClientService,
       clientName: clientName,
-      chatBackup: chatBackup,
+      storage: _flutterSecureStorage,
       passwordCache: passwordCache,
     );
     userRepository = UserRepository(
@@ -139,7 +143,7 @@ class AccountSession {
     spaceTree.dispose();
     selectionController.dispose();
     presence.dispose();
-    chatBackup.dispose();
+    keyBackupSetupState.dispose();
     sync.dispose();
     stickerPackRepository.dispose();
   }

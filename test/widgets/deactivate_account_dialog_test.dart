@@ -2,10 +2,10 @@
 // ignore_for_file: avoid_redundant_argument_values
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/state/uia_interaction_controller.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/password_cache.dart';
@@ -18,10 +18,10 @@ import 'package:provider/provider.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<ChatBackupService>(),
   MockSpec<ClientManager>(),
   MockSpec<UiaInteractionController>(),
   MockSpec<PasswordCache>(),
+  MockSpec<KeyBackupRepository>(),
 ])
 import '../mocks/matrix_service_mock.mocks.dart';
 import 'deactivate_account_dialog_test.mocks.dart';
@@ -29,7 +29,7 @@ import 'deactivate_account_dialog_test.mocks.dart';
 void main() {
   late MockClient mockClient;
   late MockMatrixService mockMatrix;
-  late MockChatBackupService mockChatBackup;
+  late MockKeyBackupRepository mockKeyBackup;
   late MockClientManager mockManager;
   late MockUiaInteractionController mockUia;
   late MockPasswordCache mockPasswordCache;
@@ -37,7 +37,7 @@ void main() {
   setUp(() {
     mockClient = MockClient();
     mockMatrix = MockMatrixService();
-    mockChatBackup = MockChatBackupService();
+    mockKeyBackup = MockKeyBackupRepository();
     mockManager = MockClientManager();
     mockUia = MockUiaInteractionController();
     mockPasswordCache = MockPasswordCache();
@@ -46,9 +46,9 @@ void main() {
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockMatrix.uia).thenReturn(mockUia);
     when(mockMatrix.passwordCache).thenReturn(mockPasswordCache);
-    when(mockMatrix.chatBackup).thenReturn(mockChatBackup);
+    when(mockMatrix.keyBackupRepository).thenReturn(mockKeyBackup);
     when(mockClient.userID).thenReturn('@alice:example.com');
-    when(mockChatBackup.chatBackupNeeded).thenReturn(false);
+    when(mockKeyBackup.chatBackupNeeded).thenReturn(false);
 
     when(mockClient.uiaRequestBackground<IdServerUnbindResult>(any))
         .thenAnswer((inv) {

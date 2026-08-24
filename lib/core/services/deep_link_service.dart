@@ -55,7 +55,8 @@ class DeepLinkService {
   /// `/e2ee-setup` by the router redirect.
   bool get _isReady =>
       _matrix.isLoggedIn &&
-      (_matrix.chatBackup.chatBackupNeeded != true || _matrix.hasSkippedSetup);
+      (_matrix.keyBackupRepository.chatBackupNeeded != true ||
+          _matrix.hasSkippedSetup);
 
   /// Start listening for incoming deep links.
   void init() {

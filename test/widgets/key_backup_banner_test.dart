@@ -1,26 +1,39 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
+import 'package:kohera/core/state/key_backup_setup_state.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/features/e2ee/widgets/key_backup_banner.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
-@GenerateNiceMocks([MockSpec<ChatBackupService>()])
+@GenerateNiceMocks([
+  MockSpec<KeyBackupRepository>(),
+  MockSpec<KeyBackupSetupState>(),
+])
 import 'key_backup_banner_test.mocks.dart';
 
 void main() {
-  late MockChatBackupService mockChatBackup;
+  late MockKeyBackupRepository mockKeyBackup;
+  late MockKeyBackupSetupState mockSetup;
 
   setUp(() {
-    mockChatBackup = MockChatBackupService();
+    mockKeyBackup = MockKeyBackupRepository();
+    mockSetup = MockKeyBackupSetupState();
+    when(mockSetup.bannerDismissed).thenReturn(false);
   });
 
-  Widget buildTestWidget() {
+  Widget buildTestWidget({
+    required KeyBackupRepository repo,
+    required KeyBackupSetupState setup,
+  }) {
     return MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
-      home: ChangeNotifierProvider<ChatBackupService>.value(
-        value: mockChatBackup,
+      home: MultiProvider(
+        providers: [
+          ChangeNotifierProvider<KeyBackupRepository>.value(value: repo),
+          ChangeNotifierProvider<KeyBackupSetupState>.value(value: setup),
+        ],
         child: const Scaffold(body: KeyBackupBanner()),
       ),
     );
@@ -28,16 +41,20 @@ void main() {
 
   group('KeyBackupBanner', () {
     testWidgets('hidden when chatBackupNeeded is null', (tester) async {
-      when(mockChatBackup.chatBackupNeeded).thenReturn(null);
-      await tester.pumpWidget(buildTestWidget());
+      when(mockKeyBackup.chatBackupNeeded).thenReturn(null);
+      await tester.pumpWidget(
+        buildTestWidget(repo: mockKeyBackup, setup: mockSetup),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Protect your messages'), findsNothing);
     });
 
     testWidgets('visible when chatBackupNeeded is true', (tester) async {
-      when(mockChatBackup.chatBackupNeeded).thenReturn(true);
-      await tester.pumpWidget(buildTestWidget());
+      when(mockKeyBackup.chatBackupNeeded).thenReturn(true);
+      await tester.pumpWidget(
+        buildTestWidget(repo: mockKeyBackup, setup: mockSetup),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Protect your messages'), findsOneWidget);
@@ -60,8 +77,10 @@ void main() {
     });
 
     testWidgets('hidden when chatBackupNeeded is false', (tester) async {
-      when(mockChatBackup.chatBackupNeeded).thenReturn(false);
-      await tester.pumpWidget(buildTestWidget());
+      when(mockKeyBackup.chatBackupNeeded).thenReturn(false);
+      await tester.pumpWidget(
+        buildTestWidget(repo: mockKeyBackup, setup: mockSetup),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Protect your messages'), findsNothing);
@@ -69,15 +88,9 @@ void main() {
 
     testWidgets('disappears when backup status changes to enabled',
         (tester) async {
-      final fake = _FakeChatBackupService(chatBackupNeeded: true);
+      final fake = _FakeKeyBackup(chatBackupNeeded: true);
       await tester.pumpWidget(
-        MaterialApp(
-          theme: ThemeData(splashFactory: InkRipple.splashFactory),
-          home: ChangeNotifierProvider<ChatBackupService>.value(
-            value: fake,
-            child: const Scaffold(body: KeyBackupBanner()),
-          ),
-        ),
+        buildTestWidget(repo: fake, setup: _FakeSetupState()),
       );
       await tester.pumpAndSettle();
 
@@ -90,23 +103,22 @@ void main() {
     });
 
     testWidgets('hidden when needed but already dismissed', (tester) async {
-      when(mockChatBackup.chatBackupNeeded).thenReturn(true);
-      when(mockChatBackup.bannerDismissed).thenReturn(true);
-      await tester.pumpWidget(buildTestWidget());
+      when(mockKeyBackup.chatBackupNeeded).thenReturn(true);
+      when(mockSetup.bannerDismissed).thenReturn(true);
+      await tester.pumpWidget(
+        buildTestWidget(repo: mockKeyBackup, setup: mockSetup),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Protect your messages'), findsNothing);
     });
 
     testWidgets('dismiss button hides the banner', (tester) async {
-      final fake = _FakeChatBackupService(chatBackupNeeded: true);
+      final fakeSetup = _FakeSetupState();
       await tester.pumpWidget(
-        MaterialApp(
-          theme: ThemeData(splashFactory: InkRipple.splashFactory),
-          home: ChangeNotifierProvider<ChatBackupService>.value(
-            value: fake,
-            child: const Scaffold(body: KeyBackupBanner()),
-          ),
+        buildTestWidget(
+          repo: _FakeKeyBackup(chatBackupNeeded: true),
+          setup: fakeSetup,
         ),
       );
       await tester.pumpAndSettle();
@@ -117,20 +129,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Protect your messages'), findsNothing);
-      expect(fake.bannerDismissed, isTrue);
+      expect(fakeSetup.bannerDismissed, isTrue);
     });
 
     testWidgets('appears when backup status changes to needed',
         (tester) async {
-      final fake = _FakeChatBackupService(chatBackupNeeded: false);
+      final fake = _FakeKeyBackup(chatBackupNeeded: false);
       await tester.pumpWidget(
-        MaterialApp(
-          theme: ThemeData(splashFactory: InkRipple.splashFactory),
-          home: ChangeNotifierProvider<ChatBackupService>.value(
-            value: fake,
-            child: const Scaffold(body: KeyBackupBanner()),
-          ),
-        ),
+        buildTestWidget(repo: fake, setup: _FakeSetupState()),
       );
       await tester.pumpAndSettle();
 
@@ -144,8 +150,10 @@ void main() {
 
     testWidgets('content wrapped in SafeArea to avoid status-bar overlap',
         (tester) async {
-      when(mockChatBackup.chatBackupNeeded).thenReturn(true);
-      await tester.pumpWidget(buildTestWidget());
+      when(mockKeyBackup.chatBackupNeeded).thenReturn(true);
+      await tester.pumpWidget(
+        buildTestWidget(repo: mockKeyBackup, setup: mockSetup),
+      );
       await tester.pumpAndSettle();
 
       expect(
@@ -159,16 +167,11 @@ void main() {
   });
 }
 
-class _FakeChatBackupService extends ChangeNotifier
-    implements ChatBackupService {
-  bool? _chatBackupNeeded;
-  bool _bannerDismissed;
+class _FakeKeyBackup extends ChangeNotifier implements KeyBackupRepository {
+  _FakeKeyBackup({required bool? chatBackupNeeded})
+      : _chatBackupNeeded = chatBackupNeeded;
 
-  _FakeChatBackupService({
-    required bool? chatBackupNeeded,
-    bool bannerDismissed = false,
-  })  : _chatBackupNeeded = chatBackupNeeded,
-        _bannerDismissed = bannerDismissed;
+  bool? _chatBackupNeeded;
 
   @override
   bool? get chatBackupNeeded => _chatBackupNeeded;
@@ -176,6 +179,16 @@ class _FakeChatBackupService extends ChangeNotifier
     _chatBackupNeeded = value;
     notifyListeners();
   }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _FakeSetupState extends ChangeNotifier implements KeyBackupSetupState {
+  _FakeSetupState({bool bannerDismissed = false})
+      : _bannerDismissed = bannerDismissed;
+
+  bool _bannerDismissed;
 
   @override
   bool get bannerDismissed => _bannerDismissed;

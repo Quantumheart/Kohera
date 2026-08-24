@@ -3,7 +3,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/backup_version_manager.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/sync_service.dart';
 import 'package:kohera/core/state/uia_interaction_controller.dart';
@@ -34,7 +33,6 @@ import 'package:mockito/mockito.dart';
   MockSpec<PresenceService>(),
   MockSpec<UiaInteractionController>(),
   MockSpec<PasswordCache>(),
-  MockSpec<ChatBackupService>(),
 ])
 import 'matrix_service_test.mocks.dart';
 
@@ -534,7 +532,7 @@ void main() {
         () async {
       when(mockClient.userID).thenReturn('@user:example.com');
 
-      await service.chatBackup.storeRecoveryKey('my-recovery-key');
+      await service.keyBackupRepository.storeRecoveryKey('my-recovery-key');
 
       verify(mockStorage.write(
         key: 'ssss_recovery_key_@user:example.com',
@@ -547,7 +545,7 @@ void main() {
       when(mockStorage.read(key: 'ssss_recovery_key_@user:example.com'))
           .thenAnswer((_) async => 'stored-key');
 
-      final result = await service.chatBackup.getStoredRecoveryKey();
+      final result = await service.keyBackupRepository.getStoredRecoveryKey();
 
       expect(result, 'stored-key');
     });
@@ -555,7 +553,7 @@ void main() {
     test('getStoredRecoveryKey returns null when no userID', () async {
       when(mockClient.userID).thenReturn(null);
 
-      final result = await service.chatBackup.getStoredRecoveryKey();
+      final result = await service.keyBackupRepository.getStoredRecoveryKey();
 
       expect(result, isNull);
     });
@@ -563,7 +561,7 @@ void main() {
     test('deleteStoredRecoveryKey removes the key', () async {
       when(mockClient.userID).thenReturn('@user:example.com');
 
-      await service.chatBackup.deleteStoredRecoveryKey();
+      await service.keyBackupRepository.deleteStoredRecoveryKey();
 
       verify(mockStorage.delete(
         key: 'ssss_recovery_key_@user:example.com',
@@ -593,7 +591,7 @@ void main() {
 
     group('checkChatBackupStatus', () {
       test('chatBackupNeeded is null initially (loading state)', () {
-        expect(service.chatBackup.chatBackupNeeded, isNull);
+        expect(service.keyBackupRepository.chatBackupNeeded, isNull);
       });
 
       test('sets chatBackupNeeded false when initialized and connected',
@@ -604,20 +602,20 @@ void main() {
         when(mockCrossSigning.isCached()).thenAnswer((_) async => true);
         when(mockKeyManager.isCached()).thenAnswer((_) async => true);
 
-        await service.chatBackup.checkChatBackupStatus();
+        await service.keyBackupRepository.checkChatBackupStatus();
 
-        expect(service.chatBackup.chatBackupNeeded, isFalse);
-        expect(service.chatBackup.chatBackupEnabled, isTrue);
+        expect(service.keyBackupRepository.chatBackupNeeded, isFalse);
+        expect(service.keyBackupRepository.chatBackupEnabled, isTrue);
       });
 
       test('sets chatBackupNeeded true when client.encryption is null',
           () async {
         when(mockClient.encryption).thenReturn(null);
 
-        await service.chatBackup.checkChatBackupStatus();
+        await service.keyBackupRepository.checkChatBackupStatus();
 
-        expect(service.chatBackup.chatBackupNeeded, isTrue);
-        expect(service.chatBackup.chatBackupEnabled, isFalse);
+        expect(service.keyBackupRepository.chatBackupNeeded, isTrue);
+        expect(service.keyBackupRepository.chatBackupEnabled, isFalse);
       });
 
       test('sets chatBackupNeeded true when cross-signing not cached',
@@ -628,9 +626,9 @@ void main() {
         when(mockCrossSigning.isCached()).thenAnswer((_) async => false);
         when(mockKeyManager.isCached()).thenAnswer((_) async => true);
 
-        await service.chatBackup.checkChatBackupStatus();
+        await service.keyBackupRepository.checkChatBackupStatus();
 
-        expect(service.chatBackup.chatBackupNeeded, isTrue);
+        expect(service.keyBackupRepository.chatBackupNeeded, isTrue);
       });
 
       test('sets chatBackupNeeded true when key backup not enabled',
@@ -639,18 +637,18 @@ void main() {
         when(mockCrossSigning.enabled).thenReturn(true);
         when(mockKeyManager.enabled).thenReturn(false);
 
-        await service.chatBackup.checkChatBackupStatus();
+        await service.keyBackupRepository.checkChatBackupStatus();
 
-        expect(service.chatBackup.chatBackupNeeded, isTrue);
+        expect(service.keyBackupRepository.chatBackupNeeded, isTrue);
       });
 
       test('catches exceptions and sets chatBackupNeeded true', () async {
         when(mockClient.encryption).thenReturn(mockEncryption);
         when(mockKeyManager.enabled).thenThrow(Exception('network error'));
 
-        await service.chatBackup.checkChatBackupStatus();
+        await service.keyBackupRepository.checkChatBackupStatus();
 
-        expect(service.chatBackup.chatBackupNeeded, isTrue);
+        expect(service.keyBackupRepository.chatBackupNeeded, isTrue);
       });
     });
 
@@ -670,7 +668,7 @@ void main() {
         when(mockClient.deleteRoomKeysVersion('1'))
             .thenAnswer((_) async {});
 
-        await service.chatBackup.disableChatBackup();
+        await service.keyBackupRepository.disableChatBackup();
 
         verify(mockClient.deleteRoomKeysVersion('1')).called(1);
         verify(mockStorage.delete(
@@ -683,9 +681,9 @@ void main() {
         when(mockKeyManager.getRoomKeysBackupInfo())
             .thenThrow(Exception('Network error'));
 
-        await service.chatBackup.disableChatBackup();
+        await service.keyBackupRepository.disableChatBackup();
 
-        expect(service.chatBackup.chatBackupError,
+        expect(service.keyBackupRepository.chatBackupError,
             'Failed to disable chat backup. Please try again.',);
       });
     });
@@ -722,7 +720,7 @@ void main() {
       when(mockStorage.read(key: 'ssss_recovery_key_@user:example.com'))
           .thenAnswer((_) async => null);
 
-      await service.chatBackup.tryAutoUnlockBackup();
+      await service.keyBackupRepository.tryAutoUnlockBackup();
     });
 
     test('tryAutoUnlockBackup skips restore when already connected',
@@ -736,9 +734,9 @@ void main() {
       when(mockCrossSigning.isCached()).thenAnswer((_) async => true);
       when(mockKeyManager.isCached()).thenAnswer((_) async => true);
 
-      await service.chatBackup.tryAutoUnlockBackup();
+      await service.keyBackupRepository.tryAutoUnlockBackup();
 
-      expect(service.chatBackup.chatBackupNeeded, isFalse);
+      expect(service.keyBackupRepository.chatBackupNeeded, isFalse);
     });
 
     test('tryAutoUnlockBackup handles errors silently', () async {
@@ -751,9 +749,9 @@ void main() {
       when(mockCrossSigning.isCached()).thenAnswer((_) async => false);
       when(mockKeyManager.isCached()).thenAnswer((_) async => false);
 
-      await service.chatBackup.tryAutoUnlockBackup();
+      await service.keyBackupRepository.tryAutoUnlockBackup();
 
-      expect(service.chatBackup.chatBackupNeeded, isTrue);
+      expect(service.keyBackupRepository.chatBackupNeeded, isTrue);
     });
   });
 
@@ -800,7 +798,7 @@ void main() {
     test('is a no-op when encryption is null', () async {
       when(mockClient.encryption).thenReturn(null);
 
-      await service.chatBackup.requestMissingRoomKeys();
+      await service.keyBackupRepository.requestMissingRoomKeys();
 
       verifyNever(mockClient.rooms);
     });
@@ -819,7 +817,7 @@ void main() {
                 badEncrypted(room, sessionId: 'sess123', senderKey: 'key456'),
               ],);
 
-      await service.chatBackup.requestMissingRoomKeys();
+      await service.keyBackupRepository.requestMissingRoomKeys();
 
       verify(mockKeyManager.maybeAutoRequest(
         '!room:example.com',
@@ -847,7 +845,7 @@ void main() {
                     sessionId: 'new3', senderKey: 'k3', eventId: r'$e3',),
               ],);
 
-      await service.chatBackup.requestMissingRoomKeys();
+      await service.keyBackupRepository.requestMissingRoomKeys();
 
       verify(mockKeyManager.maybeAutoRequest(
               '!room:example.com', 'old1', 'k1',),)
@@ -879,7 +877,7 @@ void main() {
                     sessionId: 'same', senderKey: 'k', eventId: r'$c',),
               ],);
 
-      await service.chatBackup.requestMissingRoomKeys();
+      await service.keyBackupRepository.requestMissingRoomKeys();
 
       verify(mockKeyManager.maybeAutoRequest(
               '!room:example.com', 'same', 'k',),)
@@ -907,7 +905,7 @@ void main() {
                 badEncrypted(good, sessionId: 's', senderKey: 'k'),
               ],);
 
-      await service.chatBackup.requestMissingRoomKeys();
+      await service.keyBackupRepository.requestMissingRoomKeys();
 
       verify(mockKeyManager.maybeAutoRequest(
               '!good:example.com', 's', 'k',),)
@@ -935,7 +933,7 @@ void main() {
                 ),
               ],);
 
-      await service.chatBackup.requestMissingRoomKeys();
+      await service.keyBackupRepository.requestMissingRoomKeys();
 
       verifyNever(mockKeyManager.maybeAutoRequest(any, any, any));
     });
@@ -957,7 +955,7 @@ void main() {
                     canRequest: false,),
               ],);
 
-      await service.chatBackup.requestMissingRoomKeys();
+      await service.keyBackupRepository.requestMissingRoomKeys();
 
       verifyNever(mockKeyManager.maybeAutoRequest(any, any, any));
     });
@@ -986,7 +984,7 @@ void main() {
                 ),
               ],);
 
-      await service.chatBackup.requestMissingRoomKeys();
+      await service.keyBackupRepository.requestMissingRoomKeys();
 
       verifyNever(mockKeyManager.maybeAutoRequest(any, any, any));
     });

@@ -1,6 +1,5 @@
-
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/state/uia_interaction_controller.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
@@ -14,7 +13,7 @@ import 'package:mockito/mockito.dart';
 @GenerateNiceMocks([
   MockSpec<UiaInteractionController>(),
   MockSpec<Client>(),
-  MockSpec<ChatBackupService>(),
+  MockSpec<FlutterSecureStorage>(),
   MockSpec<Encryption>(),
   MockSpec<Bootstrap>(),
   MockSpec<OpenSSSS>(),
@@ -25,16 +24,13 @@ import 'bootstrap_controller_test.mocks.dart';
 void main() {
   late MockClient mockClient;
   late MockMatrixService mockMatrixService;
-  late MockChatBackupService mockChatBackup;
   late MockEncryption mockEncryption;
 
   setUp(() {
     mockClient = MockClient();
     mockMatrixService = MockMatrixService();
-    mockChatBackup = MockChatBackupService();
     mockEncryption = MockEncryption();
     when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
-    when(mockMatrixService.chatBackup).thenReturn(mockChatBackup);
     when(mockClient.encryption).thenReturn(mockEncryption);
 
     when(mockClient.roomsLoading).thenAnswer((_) async {});
@@ -46,7 +42,7 @@ void main() {
 
   BootstrapController createController({bool wipeExisting = false}) {
     return BootstrapController(
-      keyBackup: KeyBackupRepository(clientService: mockMatrixService.matrixClientService, clientName: 'test', chatBackup: mockMatrixService.chatBackup, passwordCache: PasswordCache()),
+      keyBackup: KeyBackupRepository(clientService: mockMatrixService.matrixClientService, clientName: 'test', storage: MockFlutterSecureStorage(), passwordCache: PasswordCache()),
       wipeExisting: wipeExisting,
     );
   }
@@ -71,9 +67,6 @@ void main() {
             as void Function(Bootstrap);
         return MockBootstrap();
       });
-      when(mockChatBackup.checkChatBackupStatus())
-          .thenAnswer((_) async {});
-
       final controller = createController();
       await controller.startBootstrap();
 
@@ -159,8 +152,6 @@ void main() {
 
       final mockBootstrap = MockBootstrap();
       when(mockBootstrap.state).thenReturn(BootstrapState.openExistingSsss);
-      when(mockChatBackup.getStoredRecoveryKey())
-          .thenAnswer((_) async => null);
       onUpdateCb(mockBootstrap);
       await Future<void>.delayed(Duration.zero);
 

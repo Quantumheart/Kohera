@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/state/uia_interaction_controller.dart';
+import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/password_cache.dart';
@@ -18,7 +18,7 @@ import 'package:provider/provider.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<ChatBackupService>(),
+  MockSpec<KeyBackupRepository>(),
 ])
 import '../mocks/matrix_service_mock.mocks.dart';
 import 'devices_screen_test.mocks.dart';
@@ -26,21 +26,21 @@ import 'devices_screen_test.mocks.dart';
 void main() {
   late MockClient mockClient;
   late MockMatrixService mockMatrix;
-  late MockChatBackupService mockChatBackup;
+  late MockKeyBackupRepository mockKeyBackup;
   late UiaInteractionController uiaService;
 
   setUp(() {
     mockClient = MockClient();
     mockMatrix = MockMatrixService();
-    mockChatBackup = MockChatBackupService();
+    mockKeyBackup = MockKeyBackupRepository();
     uiaService = UiaInteractionController(matrixClientService: MatrixClientService(mockClient), passwordCache: PasswordCache());
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
     when(mockClient.deviceID).thenReturn('THISDEVICE');
     when(mockClient.userID).thenReturn('@alice:example.com');
     when(mockMatrix.uia).thenReturn(uiaService);
-    when(mockMatrix.chatBackup).thenReturn(mockChatBackup);
-    when(mockChatBackup.chatBackupNeeded).thenReturn(false);
+    when(mockMatrix.keyBackupRepository).thenReturn(mockKeyBackup);
+    when(mockKeyBackup.chatBackupNeeded).thenReturn(false);
     when(mockClient.userDeviceKeys).thenReturn({});
   });
 
@@ -171,7 +171,7 @@ void main() {
     });
 
     testWidgets('shows backup warning when backup needed', (tester) async {
-      when(mockChatBackup.chatBackupNeeded).thenReturn(true);
+      when(mockKeyBackup.chatBackupNeeded).thenReturn(true);
       when(mockClient.getDevices()).thenAnswer(
         (_) async => [
           Device(deviceId: 'THISDEVICE', displayName: 'Kohera Flutter'),

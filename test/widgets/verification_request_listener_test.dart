@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
-import 'package:kohera/data/services/password_cache.dart';
 import 'package:kohera/features/e2ee/widgets/verification_request_listener.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
@@ -18,7 +16,7 @@ import '../mocks/matrix_service_mock.mocks.dart';
 import 'key_verification_dialog_test.dart' show FakeKeyVerification;
 @GenerateNiceMocks([
   MockSpec<Client>(),
-  MockSpec<ChatBackupService>(),
+  MockSpec<KeyBackupRepository>(),
 ])
 import 'verification_request_listener_test.mocks.dart';
 
@@ -34,7 +32,7 @@ class _FakeVerification extends FakeKeyVerification {
 void main() {
   late MockClient mockClient;
   late MockMatrixService mockMatrix;
-  late MockChatBackupService mockChatBackup;
+  late MockKeyBackupRepository mockKeyBackup;
   late CachedStreamController<KeyVerification> verificationStream;
 
   const selfUserId = '@self:example.com';
@@ -43,16 +41,17 @@ void main() {
   setUp(() {
     mockClient = MockClient();
     mockMatrix = MockMatrixService();
-    mockChatBackup = MockChatBackupService();
+    mockKeyBackup = MockKeyBackupRepository();
     verificationStream = CachedStreamController<KeyVerification>();
 
     when(mockClient.userID).thenReturn(selfUserId);
     when(mockClient.onKeyVerificationRequest).thenReturn(verificationStream);
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
-    when(mockMatrix.chatBackup).thenReturn(mockChatBackup);
-    when(mockChatBackup.runKeyRecovery(ssssKey: anyNamed('ssssKey')))
+    when(mockKeyBackup.onKeyVerificationRequest).thenAnswer((_) => verificationStream.stream);
+    when(mockKeyBackup.userId).thenReturn(selfUserId);
+    when(mockKeyBackup.runKeyRecovery(ssssKey: anyNamed('ssssKey')))
         .thenAnswer((_) => Future<void>.value());
-    when(mockChatBackup.checkChatBackupStatus())
+    when(mockKeyBackup.checkChatBackupStatus())
         .thenAnswer((_) => Future<void>.value());
   });
 
@@ -72,8 +71,8 @@ void main() {
       MultiProvider(
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
-          ChangeNotifierProvider<KeyBackupRepository>(
-            create: (_) => KeyBackupRepository(clientService: mockMatrix.matrixClientService, clientName: 'test', chatBackup: mockMatrix.chatBackup, passwordCache: PasswordCache()),
+          ChangeNotifierProvider<KeyBackupRepository>.value(
+            value: mockKeyBackup,
           ),
         ],
         child: VerificationRequestListener(
@@ -103,7 +102,7 @@ void main() {
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
 
-    verify(mockChatBackup.runKeyRecovery(ssssKey: anyNamed('ssssKey')))
+    verify(mockKeyBackup.runKeyRecovery(ssssKey: anyNamed('ssssKey')))
         .called(1);
   });
 
@@ -122,7 +121,7 @@ void main() {
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
 
-    verify(mockChatBackup.checkChatBackupStatus()).called(1);
+    verify(mockKeyBackup.checkChatBackupStatus()).called(1);
   });
 
   testWidgets(
@@ -140,7 +139,7 @@ void main() {
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
 
-    verifyNever(mockChatBackup.checkChatBackupStatus());
+    verifyNever(mockKeyBackup.checkChatBackupStatus());
   });
 
   testWidgets('self verification cancelled does not trigger runKeyRecovery',
@@ -157,7 +156,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     verifyNever(
-      mockChatBackup.runKeyRecovery(ssssKey: anyNamed('ssssKey')),
+      mockKeyBackup.runKeyRecovery(ssssKey: anyNamed('ssssKey')),
     );
   });
 
@@ -176,7 +175,7 @@ void main() {
     await tester.pumpAndSettle();
 
     verifyNever(
-      mockChatBackup.runKeyRecovery(ssssKey: anyNamed('ssssKey')),
+      mockKeyBackup.runKeyRecovery(ssssKey: anyNamed('ssssKey')),
     );
   });
 }

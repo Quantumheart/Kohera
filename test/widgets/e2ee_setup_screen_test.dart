@@ -1,36 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/chat_backup_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
-import 'package:kohera/data/services/password_cache.dart';
 import 'package:kohera/features/e2ee/screens/e2ee_setup_screen.dart';
+import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
 
 import '../mocks/matrix_service_mock.mocks.dart';
 import 'bootstrap_controller_test.mocks.dart';
+@GenerateNiceMocks([MockSpec<KeyBackupRepository>()])
+import 'e2ee_setup_screen_test.mocks.dart';
 
 void main() {
   late MockMatrixService mockMatrixService;
-  late MockChatBackupService mockChatBackup;
+  late MockKeyBackupRepository mockKeyBackup;
   late MockClient mockClient;
   late MockUiaInteractionController mockUia;
 
   setUp(() {
     mockMatrixService = MockMatrixService();
-    mockChatBackup = MockChatBackupService();
+    mockKeyBackup = MockKeyBackupRepository();
     mockClient = MockClient();
     mockUia = MockUiaInteractionController();
 
     when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
-    when(mockMatrixService.chatBackup).thenReturn(mockChatBackup);
+    when(mockMatrixService.keyBackupRepository).thenReturn(mockKeyBackup);
     when(mockMatrixService.uia).thenReturn(mockUia);
     when(mockMatrixService.hasSkippedSetup).thenReturn(false);
 
-    when(mockChatBackup.chatBackupEnabled).thenReturn(false);
-    when(mockChatBackup.chatBackupNeeded).thenReturn(true);
+    when(mockKeyBackup.chatBackupEnabled).thenReturn(false);
+    when(mockKeyBackup.chatBackupNeeded).thenReturn(true);
 
     when(mockClient.encryption).thenReturn(null);
   });
@@ -40,11 +41,8 @@ void main() {
       MultiProvider(
         providers: [
           ChangeNotifierProvider<MatrixService>.value(value: mockMatrixService),
-          ChangeNotifierProvider<ChatBackupService>.value(
-            value: mockChatBackup,
-          ),
-          ChangeNotifierProvider<KeyBackupRepository>(
-            create: (_) => KeyBackupRepository(clientService: mockMatrixService.matrixClientService, clientName: 'test', chatBackup: mockMatrixService.chatBackup, passwordCache: PasswordCache()),
+          ChangeNotifierProvider<KeyBackupRepository>.value(
+            value: mockKeyBackup,
           ),
         ],
         child: const MaterialApp(
@@ -78,8 +76,8 @@ void main() {
   testWidgets('management path renders when backup already enabled', (
     tester,
   ) async {
-    when(mockChatBackup.chatBackupEnabled).thenReturn(true);
-    when(mockChatBackup.chatBackupNeeded).thenReturn(false);
+    when(mockKeyBackup.chatBackupEnabled).thenReturn(true);
+    when(mockKeyBackup.chatBackupNeeded).thenReturn(false);
 
     await pumpScreen(tester);
 
