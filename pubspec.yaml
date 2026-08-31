@@ -36,7 +36,7 @@ dependencies:
   image_picker: ^1.2.3
   just_audio: ^0.10.6
   livekit_client: ^2.9.0
-  matrix: ^10.2.1
+  matrix: ^10.2.2
   media_kit: ^1.2.6
   media_kit_libs_linux: ^1.2.1
   media_kit_libs_macos_video: ^1.1.4
