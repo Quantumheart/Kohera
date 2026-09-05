@@ -3,6 +3,7 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'dart:async' as _i5;
 import 'dart:typed_data' as _i13;
 import 'dart:ui' as _i21;
@@ -992,6 +993,22 @@ class MockClient extends _i1.Mock implements _i2.Client {
                 ),
           )
           as _i3.CachedStreamController<_i2.LoginState>);
+
+  @override
+  _i3.CachedStreamController<_i2.SessionClearReason> get onSessionCleared =>
+      (super.noSuchMethod(
+            Invocation.getter(#onSessionCleared),
+            returnValue: _FakeCachedStreamController_6<_i2.SessionClearReason>(
+              this,
+              Invocation.getter(#onSessionCleared),
+            ),
+            returnValueForMissingStub:
+                _FakeCachedStreamController_6<_i2.SessionClearReason>(
+                  this,
+                  Invocation.getter(#onSessionCleared),
+                ),
+          )
+          as _i3.CachedStreamController<_i2.SessionClearReason>);
 
   @override
   _i3.CachedStreamController<bool> get onCacheCleared =>
@@ -2730,9 +2747,11 @@ class MockClient extends _i1.Mock implements _i2.Client {
   );
 
   @override
-  _i5.Future<void> clear() =>
+  _i5.Future<void> clear({
+    _i2.SessionClearReason? reason = _i2.SessionClearReason.unspecified,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#clear, []),
+            Invocation.method(#clear, [], {#reason: reason}),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
