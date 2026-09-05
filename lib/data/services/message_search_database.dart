@@ -97,7 +97,20 @@ class MessageSearchDatabase {
     }
     final dir = await getApplicationSupportDirectory();
     final dbPath = p.join(dir.path, 'kohera_${clientName}_search_index.db');
-    if (Platform.isIOS || Platform.isAndroid) {
+    if (Platform.isAndroid) {
+      // Android system SQLite (sqflite plugin) is not compiled with FTS5
+      // on AOSP-derived ROMs (e.g. GrapheneOS), so use the FFI factory —
+      // sqlite3 v3 build hooks bundle a SQLite with SQLITE_ENABLE_FTS5.
+      sqfliteFfiInit();
+      _db = await databaseFactoryFfi.openDatabase(
+        dbPath,
+        options: OpenDatabaseOptions(
+          version: 2,
+          onCreate: _createSchema,
+          onUpgrade: _onUpgrade,
+        ),
+      );
+    } else if (Platform.isIOS) {
       _db = await sqflite_native.openDatabase(
         dbPath,
         version: 2,
