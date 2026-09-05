@@ -264,11 +264,15 @@ class _RoomListViewState extends State<_RoomListView>
               ),
             Positioned(
               right: 16,
-              bottom: MediaQuery.paddingOf(context).bottom + 16,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
+              bottom: 0,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
                   SizeTransition(
                     sizeFactor: _fabAnimation,
                     alignment: Alignment.topCenter,
@@ -332,7 +336,9 @@ class _RoomListViewState extends State<_RoomListView>
                       child: const Icon(Icons.edit_rounded),
                     ),
                   ),
-                ],
+                    ],
+                  ),
+                ),
               ),
             ),
           ],

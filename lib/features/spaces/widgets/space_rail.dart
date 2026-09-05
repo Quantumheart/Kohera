@@ -300,10 +300,12 @@ class _SpaceRailState extends State<SpaceRail> {
           ),
 
           // Account avatar + menu
-          Padding(
-            padding: EdgeInsets.only(
-                bottom: MediaQuery.paddingOf(context).bottom + 12,),
-            child: _AccountButton(cs: cs),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _AccountButton(cs: cs),
+            ),
           ),
         ],
       ),
