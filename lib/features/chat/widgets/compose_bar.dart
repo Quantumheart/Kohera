@@ -24,6 +24,7 @@ import 'package:kohera/features/chat/widgets/message_bubble_link_preview.dart';
 import 'package:kohera/features/chat/widgets/recording_indicator.dart';
 import 'package:kohera/features/chat/widgets/reply_preview_banner.dart';
 import 'package:kohera/features/chat/widgets/upload_progress_banner.dart';
+import 'package:kohera/shared/widgets/safe_bottom_bar.dart';
 import 'package:provider/provider.dart';
 
 class ComposeBar extends StatefulWidget {
@@ -249,12 +250,7 @@ class _ComposeBarState extends State<ComposeBar> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
 
-    return Container(
-      padding: EdgeInsets.only(
-        left: 12,
-        right: 8,
-        bottom: MediaQuery.paddingOf(context).bottom + 8,
-      ),
+    return SafeBottomBar(
       decoration: BoxDecoration(
         color: cs.surface,
         border: Border(
@@ -263,6 +259,7 @@ class _ComposeBarState extends State<ComposeBar> {
           ),
         ),
       ),
+      padding: const EdgeInsets.only(left: 12, right: 8, bottom: 8),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
