@@ -102,6 +102,7 @@ class LiveKitService {
   bool _isScreenAudioEnabled = false;
   bool get isScreenAudioEnabled => _isScreenAudioEnabled;
 
+  double _inputVolume = 1;
   double _outputVolume = 1;
 
   List<livekit.Participant> _activeSpeakers = [];
@@ -449,6 +450,7 @@ class LiveKitService {
       return;
     }
 
+    _inputVolume = inputVolume;
     _outputVolume = outputVolume;
 
     _livekitRoom = _roomFactory(
@@ -516,17 +518,7 @@ class LiveKitService {
 
     if (_livekitRoom == null) return;
 
-    if (inputVolume != 1.0) {
-      try {
-        final audioTrack = _livekitRoom
-            ?.localParticipant?.audioTrackPublications.firstOrNull?.track;
-        if (audioTrack != null) {
-          await rtc.Helper.setVolume(inputVolume, audioTrack.mediaStreamTrack);
-        }
-      } catch (e) {
-        debugPrint('[Kohera] Failed to set input volume: $e');
-      }
-    }
+    await _applyInputVolume();
 
     if (_livekitRoom == null) return;
 
@@ -548,6 +540,19 @@ class LiveKitService {
 
     if (_outputVolume != 1.0) {
       await _applyOutputVolume();
+    }
+  }
+
+  Future<void> _applyInputVolume() async {
+    if (_inputVolume == 1.0 || _livekitRoom == null) return;
+    try {
+      final audioTrack = _livekitRoom
+          ?.localParticipant?.audioTrackPublications.firstOrNull?.track;
+      if (audioTrack != null) {
+        await rtc.Helper.setVolume(_inputVolume, audioTrack.mediaStreamTrack);
+      }
+    } catch (e) {
+      debugPrint('[Kohera] Failed to set input volume: $e');
     }
   }
 
@@ -585,6 +590,7 @@ class LiveKitService {
 
     listener.on<livekit.RoomReconnectedEvent>((_) {
       _connectionEventController.add(LiveKitReconnected());
+      unawaited(_applyInputVolume());
     });
 
     listener.on<livekit.RoomDisconnectedEvent>((_) {
@@ -667,6 +673,7 @@ class LiveKitService {
     _isCameraEnabled = false;
     _isScreenShareEnabled = false;
     _isScreenAudioEnabled = false;
+    _inputVolume = 1;
     _outputVolume = 1;
     _joinPhase = null;
 

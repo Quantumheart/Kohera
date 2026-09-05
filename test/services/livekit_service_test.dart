@@ -937,6 +937,59 @@ void main() {
       expect(events.first, isA<LiveKitReconnected>());
     });
 
+    test('RoomReconnected re-applies input volume (#840)', () async {
+      when(mockClient.requestOpenIdToken(any, any))
+          .thenAnswer((_) async => openIdCredentials);
+
+      service.httpPostForTest = (client, url, {headers, body}) async {
+        return http.Response(
+          jsonEncode({'url': 'wss://lk.example.com', 'jwt': 'jwt'}),
+          200,
+        );
+      };
+
+      final fakeRoom = FakeLiveKitRoom();
+      service.roomFactoryForTest = ({roomOptions}) => fakeRoom;
+
+      await service.connectLiveKit(
+        livekitServiceUrl: 'https://lk.example.com',
+        livekitAlias: '!room:example.com',
+        currentState: () => KoheraCallState.joining,
+        inputVolume: 0.5,
+      );
+
+      await Future<void>.delayed(Duration.zero);
+      final readsAfterConnect =
+          fakeRoom.localParticipantFake!.audioTrackPublicationsReads;
+      expect(readsAfterConnect, greaterThan(0),
+          reason: 'input volume applied once on connect',);
+
+      fakeRoom.listener!.fire(const livekit.RoomReconnectedEvent());
+
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        fakeRoom.localParticipantFake!.audioTrackPublicationsReads,
+        greaterThan(readsAfterConnect),
+        reason: 'input volume re-applied after reconnect',
+      );
+    });
+
+    test('RoomReconnected skips re-apply when input volume at unity', () async {
+      final fakeRoom = await setupConnectedService();
+
+      final readsBefore =
+          fakeRoom.localParticipantFake!.audioTrackPublicationsReads;
+
+      fakeRoom.listener!.fire(const livekit.RoomReconnectedEvent());
+
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        fakeRoom.localParticipantFake!.audioTrackPublicationsReads,
+        readsBefore,
+        reason: 'unity volume skips re-apply',
+      );
+    });
+
     test('RoomDisconnected emits to stream', () async {
       final fakeRoom = await setupConnectedService();
 

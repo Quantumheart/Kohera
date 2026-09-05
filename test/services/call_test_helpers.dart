@@ -14,10 +14,18 @@ class FakeLocalParticipant extends Fake implements livekit.LocalParticipant {
   bool cameraEnabled = false;
   bool screenShareEnabled = false;
   bool throwOnToggle = false;
+  int audioTrackPublicationsReads = 0;
 
   @override
   List<livekit.LocalTrackPublication<livekit.LocalVideoTrack>>
       get videoTrackPublications => [];
+
+  @override
+  List<livekit.LocalTrackPublication<livekit.LocalAudioTrack>>
+      get audioTrackPublications {
+    audioTrackPublicationsReads++;
+    return const [];
+  }
 
   @override
   String get identity => 'local';
