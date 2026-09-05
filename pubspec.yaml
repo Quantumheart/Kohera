@@ -17,7 +17,7 @@ dependencies:
   desktop_drop: ^0.7.0
   desktop_notifications: ^0.6.3
   dynamic_color: ^1.9.0
-  file_picker: ^11.0.2
+  file_picker: ^12.2.0
   flutter:
     sdk: flutter
   flutter_background: ^1.0.0
@@ -44,7 +44,7 @@ dependencies:
   media_kit_video: ^2.0.1
   mobile_scanner: ^7.4.0
   ogg_caf_converter: ^0.1.4
-  package_info_plus: ^9.0.1
+  package_info_plus: ^10.2.1
   pasteboard: ^0.5.0
   path: ^1.9.1
   path_provider: ^2.1.6
