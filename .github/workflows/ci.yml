@@ -104,7 +104,7 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
       - run: flutter pub get
-      - run: flutter build apk --release --target-platform android-arm64 --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
+      - run: flutter build apk --release --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
 
   build-ios:
     needs: [analyze, test]

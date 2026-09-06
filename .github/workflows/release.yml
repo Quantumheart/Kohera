@@ -343,30 +343,32 @@ jobs:
           storeFile=$KEYSTORE_PATH
           EOF
       - run: flutter pub get
-      - run: flutter build apk --release --split-per-abi --target-platform android-arm64 --build-number=${{ github.run_number }} --obfuscate --split-debug-info=build/android/debug-info --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
+      - run: flutter build apk --release --build-number=${{ github.run_number }} --obfuscate --split-debug-info=build/android/debug-info --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
       - name: Rename APK
-        run: cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk kohera-android-arm64.apk
-      - name: Verify APK is arm64-only
+        run: cp build/app/outputs/flutter-apk/app-release.apk kohera-android-universal.apk
+      - name: Verify APK is universal
         run: |
-          if unzip -l kohera-android-arm64.apk | grep -qE 'lib/(x86_64|x86|armeabi-v7a)/'; then
-            echo "::error::APK contains native libraries for non-arm64 ABIs"
-            unzip -l kohera-android-arm64.apk | grep 'lib/'
-            exit 1
-          fi
-          size_mb=$(( $(stat -c%s kohera-android-arm64.apk) / 1024 / 1024 ))
-          echo "arm64 APK size: ${size_mb} MB"
-          if [ "$size_mb" -gt 70 ]; then
-            echo "::error::APK is ${size_mb} MB, exceeds 70 MB budget"
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            if ! unzip -l kohera-android-universal.apk | grep -q "lib/${abi}/"; then
+              echo "::error::APK is missing native libraries for ${abi}"
+              unzip -l kohera-android-universal.apk | grep 'lib/'
+              exit 1
+            fi
+          done
+          size_mb=$(( $(stat -c%s kohera-android-universal.apk) / 1024 / 1024 ))
+          echo "universal APK size: ${size_mb} MB"
+          if [ "$size_mb" -gt 150 ]; then
+            echo "::error::APK is ${size_mb} MB, exceeds 150 MB budget"
             exit 1
           fi
       - name: Generate checksum
-        run: sha256sum kohera-android-arm64.apk > kohera-android-arm64.apk.sha256
+        run: sha256sum kohera-android-universal.apk > kohera-android-universal.apk.sha256
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: android-release
           path: |
-            kohera-android-arm64.apk
-            kohera-android-arm64.apk.sha256
+            kohera-android-universal.apk
+            kohera-android-universal.apk.sha256
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: android-debug-info
@@ -415,8 +417,8 @@ jobs:
             kohera-macos-universal.zip.sha256
             kohera-ios-arm64.ipa
             kohera-ios-arm64.ipa.sha256
-            kohera-android-arm64.apk
-            kohera-android-arm64.apk.sha256
+            kohera-android-universal.apk
+            kohera-android-universal.apk.sha256
           generate_release_notes: false
           append_body: false
           draft: false
