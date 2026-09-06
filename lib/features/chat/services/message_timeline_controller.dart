@@ -52,6 +52,7 @@ class MessageTimelineController extends ChangeNotifier {
   Timeline? _timeline;
   int _initGeneration = 0;
   bool _loadingHistory = false;
+  bool _loadingFuture = false;
   Timer? _readMarkerTimer;
   String? _initialFullyReadId;
   List<ChatMessageData>? _cachedMessages;
@@ -63,7 +64,18 @@ class MessageTimelineController extends ChangeNotifier {
   bool get isReady => _timeline != null;
   bool get isThread => threadRootEventId != null;
   bool get isLoadingHistory => _loadingHistory;
+  bool get isLoadingFuture => _loadingFuture;
   String? get fullyReadMarkerId => _initialFullyReadId;
+
+  /// `true` when the timeline is a fragmented context view (loaded via
+  /// `eventContextId`) and cannot yet receive live sync events. The UI uses
+  /// this to show a jump-to-latest affordance.
+  bool get isFragmented =>
+      _timeline != null && !_timeline!.allowNewEvent;
+
+  /// `true` when newer events can be paginated toward the live edge.
+  bool get canRequestFuture =>
+      _timeline != null && _timeline!.canRequestFuture;
 
   Timeline? get timeline => _timeline;
   Room? get room => _room;
@@ -253,7 +265,40 @@ class MessageTimelineController extends ChangeNotifier {
     }
   }
 
-  // ── Read marker ────────────────────────────────────────
+  /// Loads newer events in a loop until [shouldContinue] returns false or
+  /// the live edge is reached. The widget provides [shouldContinue] based on
+  /// scroll position near the newest end of the reversed list.
+  Future<void> loadNewer({required bool Function() shouldContinue}) async {
+    if (threadRootEventId != null) return;
+    if (_timeline == null ||
+        !_timeline!.canRequestFuture ||
+        _loadingFuture) {
+      return;
+    }
+    _loadingFuture = true;
+    notifyListeners();
+    try {
+      while (!_disposed && _timeline!.canRequestFuture) {
+        await _requestFutureBatch();
+        notifyListeners();
+        if (!shouldContinue()) break;
+      }
+    } catch (e) {
+      debugPrint('[Kohera] Failed to load newer events: $e');
+    } finally {
+      _loadingFuture = false;
+      if (!_disposed) notifyListeners();
+    }
+  }
+
+  Future<void> _requestFutureBatch() async {
+    if (_timeline == null || !_timeline!.canRequestFuture) return;
+    await _timeline!.requestFuture();
+    _cachedMessages = null;
+    _cachedReceipts = null;
+  }
+
+  // ── Read marker ──────────────────────────────────────────
 
   void _markAsRead() {
     _readMarkerTimer?.cancel();
@@ -327,6 +372,41 @@ class MessageTimelineController extends ChangeNotifier {
     _cachedMessages = null;
     _cachedReceipts = null;
     notifyListeners();
+  }
+
+  /// Reloads the timeline at the live edge (`eventContextId: null`),
+  /// restoring the full sync-subscribed timeline. Used by the
+  /// jump-to-latest affordance to escape a fragmented context view.
+  Future<void> reloadTimelineAtLive() async {
+    final room = _room;
+    if (room == null) return;
+    _timeline?.cancelSubscriptions();
+    _cachedMessages = null;
+    _cachedReceipts = null;
+    _timeline = null;
+    notifyListeners();
+
+    final gen = ++_initGeneration;
+    final snapshotFullyRead = room.fullyRead;
+    _initialFullyReadId =
+        snapshotFullyRead.isNotEmpty ? snapshotFullyRead : null;
+    _timeline = await room.getTimeline(
+      onUpdate: () {
+        if (_disposed) return;
+        _cachedMessages = null;
+        _cachedReceipts = null;
+        notifyListeners();
+        onTimelineChanged?.call();
+        _markAsRead();
+      },
+    );
+    if (gen != _initGeneration || _disposed) return;
+    _cachedMessages = null;
+    _cachedReceipts = null;
+    notifyListeners();
+    onTimelineChanged?.call();
+    _markAsRead();
+    _requestMissingKeys();
   }
 
   // ── Visible events filtering ───────────────────────────

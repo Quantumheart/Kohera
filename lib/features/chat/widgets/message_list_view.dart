@@ -109,6 +109,7 @@ class MessageListView extends StatefulWidget {
 
 class MessageListViewState extends State<MessageListView> {
   static const _historyLoadThreshold = 15;
+  static const _futureLoadThreshold = 15;
   static const _scrollAnimationDuration = Duration(milliseconds: 400);
   static const _scrollBackDismissThreshold = 120.0;
 
@@ -154,9 +155,24 @@ class MessageListViewState extends State<MessageListView> {
   void _onScroll() {
     final positions = _itemPosListener.itemPositions.value;
     if (positions.isEmpty) return;
-    final maxIndex =
-        positions.map((p) => p.index).reduce((a, b) => a > b ? a : b);
-    if (maxIndex < controller.messageCount - _historyLoadThreshold) return;
+    final indices = positions.map((p) => p.index);
+    final maxIndex = indices.reduce((a, b) => a > b ? a : b);
+    final minIndex = indices.reduce((a, b) => a < b ? a : b);
+
+    // Backward (older) pagination near the bottom of the reversed list.
+    if (maxIndex >= controller.messageCount - _historyLoadThreshold) {
+      _maybeLoadMoreHistory();
+      return;
+    }
+
+    // Forward (newer) pagination near the top of the reversed list, only
+    // when the timeline is a fragmented context view.
+    if (controller.canRequestFuture && minIndex <= _futureLoadThreshold) {
+      _maybeLoadNewer();
+    }
+  }
+
+  void _maybeLoadMoreHistory() {
     if (controller.isThread) {
       if (!widget.extraLoading) widget.onLoadMoreExtra?.call();
       return;
@@ -175,6 +191,23 @@ class MessageListViewState extends State<MessageListView> {
         ),
       );
     }
+  }
+
+  void _maybeLoadNewer() {
+    if (controller.isThread) return;
+    if (controller.isLoadingFuture) return;
+    unawaited(
+      controller.loadNewer(
+        shouldContinue: () {
+          if (!mounted) return false;
+          final pos = _itemPosListener.itemPositions.value;
+          if (pos.isEmpty) return false;
+          final minIdx =
+              pos.map((p) => p.index).reduce((a, b) => a < b ? a : b);
+          return controller.canRequestFuture && minIdx <= _futureLoadThreshold;
+        },
+      ),
+    );
   }
 
   bool _handleScrollNotification(ScrollNotification notification) {
@@ -231,6 +264,22 @@ class MessageListViewState extends State<MessageListView> {
             duration: _scrollAnimationDuration,
             curve: Curves.easeInOut,
             alignment: 0.5,
+          ),
+        );
+      }
+    });
+  }
+
+  /// Scrolls to the newest message (index 0 of the reversed list). Used by
+  /// the jump-to-latest affordance after [reloadTimelineAtLive].
+  void scrollToLatest() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_itemScrollCtrl.isAttached) {
+        unawaited(
+          _itemScrollCtrl.scrollTo(
+            index: 0,
+            duration: _scrollAnimationDuration,
+            curve: Curves.easeInOut,
           ),
         );
       }
