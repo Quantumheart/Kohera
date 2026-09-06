@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.18.0](https://github.com/Quantumheart/Kohera/compare/v1.17.1...v1.18.0) (2026-09-06)
+
+
+### Features
+
+* add stateless MatrixClientService SDK boundary ([30e1eec](https://github.com/Quantumheart/Kohera/commit/30e1eec01f157d478df16039b9b5e37e077e5793))
+* **auth:** add AuthErrorFormatter for friendly authentication error messages ([ecacfa1](https://github.com/Quantumheart/Kohera/commit/ecacfa1699eb4c07d4cb34b7b1a63ea777144c0a))
+* **chat:** enable scroll-back-to-current after search context-jump ([e3d1308](https://github.com/Quantumheart/Kohera/commit/e3d13084fa16f5c1f6ff7341c25159e9ee9dba36)), closes [#1047](https://github.com/Quantumheart/Kohera/issues/1047)
+
+
+### Bug Fixes
+
+* **calling:** re-apply input volume after LiveKit reconnect ([48e7f75](https://github.com/Quantumheart/Kohera/commit/48e7f75e13b64a16ac34305ca801a3cdd0442397)), closes [#840](https://github.com/Quantumheart/Kohera/issues/840) [#838](https://github.com/Quantumheart/Kohera/issues/838)
+* **search:** use FFI SQLite (FTS5) for encrypted-room search on Android ([c183f47](https://github.com/Quantumheart/Kohera/commit/c183f47fb18aeb7de0aa5ce335661ff280b2fce7)), closes [#898](https://github.com/Quantumheart/Kohera/issues/898)
+* **ui:** unify bottom safe-area handling via SafeBottomBar ([9713e68](https://github.com/Quantumheart/Kohera/commit/9713e683997d8bd32e70fd7330b687e706a2bbe0))
+* update tests and regenerate mocks for KeyBackupRepository refactor ([11923b9](https://github.com/Quantumheart/Kohera/commit/11923b948ef0757d96f422c5c4526d853834374d))
+
 ## [1.17.1](https://github.com/Quantumheart/Kohera/compare/v1.17.0...v1.17.1) (2026-08-21)
 
 
