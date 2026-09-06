@@ -58,6 +58,7 @@ import 'package:kohera/features/chat/widgets/desktop_drop_wrapper.dart';
 import 'package:kohera/features/chat/widgets/emoji_picker_sheet.dart';
 import 'package:kohera/features/chat/widgets/forward_message_dialog.dart';
 import 'package:kohera/features/chat/widgets/join_call_banner.dart';
+import 'package:kohera/features/chat/widgets/jump_to_latest_button.dart';
 import 'package:kohera/features/chat/widgets/message_action_sheet.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
 import 'package:kohera/features/chat/widgets/message_list_view.dart';
@@ -918,6 +919,11 @@ class _ChatScreenState extends State<ChatScreen>
     _messageListKey.currentState?.navigateToEventById(eventId);
   }
 
+  Future<void> _jumpToLatest() async {
+    await _timelineController.reloadTimelineAtLive();
+    if (mounted) _messageListKey.currentState?.scrollToLatest();
+  }
+
   // ── GIF ───────────────────────────────────────────────────
 
   bool get _giphyEnabled =>
@@ -1276,6 +1282,15 @@ class _ChatScreenState extends State<ChatScreen>
                 onEndPoll: (eventId) =>
                     _actions.endPoll(eventId),
               ),
+              if (_timelineController.isFragmented)
+                Positioned(
+                  right: 16,
+                  bottom: 16,
+                  child: JumpToLatestButton(
+                    isLoading: _timelineController.isLoadingFuture,
+                    onTap: _jumpToLatest,
+                  ),
+                ),
               if (_emojiPanelOpen) ...[
                 Positioned.fill(
                   child: GestureDetector(
