@@ -99,6 +99,13 @@ class _ChatScreenState extends State<ChatScreen>
 
   late MessageTimelineController _timelineController;
 
+  /// Whether the newest message is currently visible. Drives the
+  /// jump-to-latest affordance when scrolled up in the live timeline.
+  bool _atLatest = true;
+
+  /// Whether a jump-to-latest live-timeline reload is in flight.
+  bool _loadingLatest = false;
+
   // ── Compose state ───────────────────────────────────────
   final _compose = ComposeStateController();
 
@@ -920,7 +927,14 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Future<void> _jumpToLatest() async {
-    await _timelineController.reloadTimelineAtLive();
+    if (_timelineController.isFragmented) {
+      setState(() => _loadingLatest = true);
+      try {
+        await _timelineController.reloadTimelineAtLive();
+      } finally {
+        if (mounted) setState(() => _loadingLatest = false);
+      }
+    }
     if (mounted) _messageListKey.currentState?.scrollToLatest();
   }
 
@@ -1243,6 +1257,9 @@ class _ChatScreenState extends State<ChatScreen>
                 },
                 onHighlight: _search.setHighlight,
                 onScrollBack: isTouchDevice ? _dismissKeyboard : null,
+                onAtLatestChanged: (atLatest) {
+                  if (mounted) setState(() => _atLatest = atLatest);
+                },
                 onOpenThread: _openThread,
                 onReplyInThread: _replyInThread,
                 onForward: _forwardMessage,
@@ -1282,12 +1299,12 @@ class _ChatScreenState extends State<ChatScreen>
                 onEndPoll: (eventId) =>
                     _actions.endPoll(eventId),
               ),
-              if (_timelineController.isFragmented)
+              if (_timelineController.isFragmented || !_atLatest)
                 Positioned(
                   right: 16,
                   bottom: 16,
                   child: JumpToLatestButton(
-                    isLoading: _timelineController.isLoadingFuture,
+                    isLoading: _loadingLatest,
                     onTap: _jumpToLatest,
                   ),
                 ),
