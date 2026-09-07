@@ -53,89 +53,14 @@ void main() {
 
   tearDown(() => controller.dispose());
 
-  group('canRequestFuture / isFragmented', () {
-    test('reflect timeline.allowNewEvent and canRequestFuture', () async {
+  group('isFragmented', () {
+    test('reflects timeline.allowNewEvent', () async {
       await controller.init();
       when(mockTimeline.allowNewEvent).thenReturn(false);
-      when(mockTimeline.canRequestFuture).thenReturn(true);
       expect(controller.isFragmented, isTrue);
-      expect(controller.canRequestFuture, isTrue);
 
       when(mockTimeline.allowNewEvent).thenReturn(true);
-      when(mockTimeline.canRequestFuture).thenReturn(false);
       expect(controller.isFragmented, isFalse);
-      expect(controller.canRequestFuture, isFalse);
-    });
-  });
-
-  group('loadNewer', () {
-    test('no-op when canRequestFuture is false', () async {
-      await controller.init();
-      when(mockTimeline.canRequestFuture).thenReturn(false);
-
-      await controller.loadNewer(shouldContinue: () => true);
-
-      verifyNever(mockTimeline.requestFuture(
-        historyCount: anyNamed('historyCount'),
-        filter: anyNamed('filter'),
-      ));
-      expect(controller.isLoadingFuture, isFalse);
-    });
-
-    test('calls requestFuture once when shouldContinue stops the loop',
-        () async {
-      await controller.init();
-      when(mockTimeline.canRequestFuture).thenReturn(true);
-      when(mockTimeline.requestFuture(
-        historyCount: anyNamed('historyCount'),
-        filter: anyNamed('filter'),
-      )).thenAnswer((_) async {});
-
-      await controller.loadNewer(shouldContinue: () => false);
-
-      verify(mockTimeline.requestFuture(
-        historyCount: anyNamed('historyCount'),
-        filter: anyNamed('filter'),
-      )).called(1);
-      expect(controller.isLoadingFuture, isFalse);
-    });
-
-    test('loops until shouldContinue returns false', () async {
-      await controller.init();
-      var calls = 0;
-      when(mockTimeline.canRequestFuture).thenAnswer((_) => calls < 3);
-      when(mockTimeline.requestFuture(
-        historyCount: anyNamed('historyCount'),
-        filter: anyNamed('filter'),
-      )).thenAnswer((_) async {
-        calls++;
-      });
-
-      await controller.loadNewer(shouldContinue: () => calls < 3);
-
-      verify(mockTimeline.requestFuture(
-        historyCount: anyNamed('historyCount'),
-        filter: anyNamed('filter'),
-      )).called(3);
-    });
-
-    test('skipped for thread timelines', () async {
-      final threadController = MessageTimelineController(
-        rooms: mockRooms,
-        roomId: roomId,
-        sendPublicReadReceipts: false,
-        threadRootEventId: r'$root:example.com',
-      );
-      addTearDown(threadController.dispose);
-      await threadController.init();
-      when(mockTimeline.canRequestFuture).thenReturn(true);
-
-      await threadController.loadNewer(shouldContinue: () => true);
-
-      verifyNever(mockTimeline.requestFuture(
-        historyCount: anyNamed('historyCount'),
-        filter: anyNamed('filter'),
-      ));
     });
   });
 

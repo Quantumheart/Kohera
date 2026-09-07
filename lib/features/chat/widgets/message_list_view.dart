@@ -35,6 +35,7 @@ class MessageListView extends StatefulWidget {
     required this.onHighlight,
     this.highlightedEventId,
     this.onScrollBack,
+    this.onAtLatestChanged,
     this.onReplyInThread,
     this.onOpenThread,
     this.onForward,
@@ -62,6 +63,11 @@ class MessageListView extends StatefulWidget {
   final Future<void> Function(String eventId) onPin;
   final void Function(String eventId) onHighlight;
   final VoidCallback? onScrollBack;
+
+  /// Called when the newest message (index 0 of the reversed list) enters or
+  /// leaves the viewport, so the parent can toggle a jump-to-latest affordance
+  /// while scrolled up in the live timeline.
+  final void Function(bool atLatest)? onAtLatestChanged;
   final void Function(String eventId)? onReplyInThread;
   final void Function(String eventId)? onOpenThread;
   final void Function(String eventId)? onForward;
@@ -109,7 +115,6 @@ class MessageListView extends StatefulWidget {
 
 class MessageListViewState extends State<MessageListView> {
   static const _historyLoadThreshold = 15;
-  static const _futureLoadThreshold = 15;
   static const _scrollAnimationDuration = Duration(milliseconds: 400);
   static const _scrollBackDismissThreshold = 120.0;
 
@@ -117,6 +122,8 @@ class MessageListViewState extends State<MessageListView> {
   final _itemPosListener = ItemPositionsListener.create();
   double _scrollBackDelta = 0;
   bool _scrollBackFired = false;
+  bool _isJumping = false;
+  bool _atLatest = true;
 
   MessageTimelineController get controller => widget.controller;
 
@@ -153,22 +160,24 @@ class MessageListViewState extends State<MessageListView> {
   // ── Scroll & history ───────────────────────────────────
 
   void _onScroll() {
+    if (_isJumping) return;
     final positions = _itemPosListener.itemPositions.value;
     if (positions.isEmpty) return;
     final indices = positions.map((p) => p.index);
     final maxIndex = indices.reduce((a, b) => a > b ? a : b);
     final minIndex = indices.reduce((a, b) => a < b ? a : b);
 
-    // Backward (older) pagination near the bottom of the reversed list.
-    if (maxIndex >= controller.messageCount - _historyLoadThreshold) {
-      _maybeLoadMoreHistory();
-      return;
+    final atLatest = minIndex <= 0;
+    if (atLatest != _atLatest) {
+      _atLatest = atLatest;
+      widget.onAtLatestChanged?.call(atLatest);
     }
 
-    // Forward (newer) pagination near the top of the reversed list, only
-    // when the timeline is a fragmented context view.
-    if (controller.canRequestFuture && minIndex <= _futureLoadThreshold) {
-      _maybeLoadNewer();
+    // Backward (older) pagination near the bottom of the reversed list.
+    // A fragmented context view is a peek: it never paginates forward toward
+    // the live edge on scroll — the jump-to-latest button reloads live instead.
+    if (maxIndex >= controller.messageCount - _historyLoadThreshold) {
+      _maybeLoadMoreHistory();
     }
   }
 
@@ -191,23 +200,6 @@ class MessageListViewState extends State<MessageListView> {
         ),
       );
     }
-  }
-
-  void _maybeLoadNewer() {
-    if (controller.isThread) return;
-    if (controller.isLoadingFuture) return;
-    unawaited(
-      controller.loadNewer(
-        shouldContinue: () {
-          if (!mounted) return false;
-          final pos = _itemPosListener.itemPositions.value;
-          if (pos.isEmpty) return false;
-          final minIdx =
-              pos.map((p) => p.index).reduce((a, b) => a < b ? a : b);
-          return controller.canRequestFuture && minIdx <= _futureLoadThreshold;
-        },
-      ),
-    );
   }
 
   bool _handleScrollNotification(ScrollNotification notification) {
@@ -233,13 +225,21 @@ class MessageListViewState extends State<MessageListView> {
   }
 
   Future<void> _navigateToEventById(String eventId) async {
-    var index = controller.indexOf(eventId);
-    if (index == -1) {
-      debugPrint('[Kohera] Event not in loaded timeline, reloading: $eventId');
-      await controller.reloadTimelineAt(eventId);
-      index = controller.indexOf(eventId);
+    // Already on screen: a short in-place scroll is smoothest and keeps the
+    // live timeline intact (e.g. tapping a reply to a nearby message).
+    final loadedIndex = controller.indexOf(eventId);
+    if (loadedIndex != -1 && _isIndexVisible(loadedIndex)) {
+      _scrollToIndex(loadedIndex, eventId, animate: true);
+      return;
     }
+
+    // Otherwise load a fresh context fragment centered on the target and land
+    // on it instantly. Deterministic regardless of how much history was loaded.
+    _isJumping = true;
+    await controller.reloadTimelineAt(eventId);
+    final index = controller.indexOf(eventId);
     if (index == -1) {
+      _isJumping = false;
       debugPrint('[Kohera] Event not found after context load: $eventId');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -251,21 +251,40 @@ class MessageListViewState extends State<MessageListView> {
       }
       return;
     }
-    _scrollToIndex(index, eventId);
+    _scrollToIndex(index, eventId, animate: false);
   }
 
-  void _scrollToIndex(int index, String eventId) {
+  bool _isIndexVisible(int index) {
+    final positions = _itemPosListener.itemPositions.value;
+    if (positions.isEmpty) return false;
+    final indices = positions.map((p) => p.index);
+    final maxIndex = indices.reduce((a, b) => a > b ? a : b);
+    final minIndex = indices.reduce((a, b) => a < b ? a : b);
+    return index >= minIndex && index <= maxIndex;
+  }
+
+  void _scrollToIndex(int index, String eventId, {required bool animate}) {
     widget.onHighlight(eventId);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_itemScrollCtrl.isAttached) {
-        unawaited(
-          _itemScrollCtrl.scrollTo(
+    _isJumping = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!_itemScrollCtrl.isAttached) {
+        _isJumping = false;
+        return;
+      }
+      try {
+        if (animate) {
+          await _itemScrollCtrl.scrollTo(
             index: index,
             duration: _scrollAnimationDuration,
             curve: Curves.easeInOut,
             alignment: 0.5,
-          ),
-        );
+          );
+        } else {
+          _itemScrollCtrl.jumpTo(index: index, alignment: 0.5);
+        }
+      } finally {
+        _isJumping = false;
+        _onScroll();
       }
     });
   }
