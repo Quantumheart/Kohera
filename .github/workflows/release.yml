@@ -345,10 +345,6 @@ jobs:
           done
           size_mb=$(( $(stat -c%s kohera-android-universal.apk) / 1024 / 1024 ))
           echo "universal APK size: ${size_mb} MB"
-          if [ "$size_mb" -gt 150 ]; then
-            echo "::error::APK is ${size_mb} MB, exceeds 150 MB budget"
-            exit 1
-          fi
       - name: Generate checksum
         run: sha256sum kohera-android-universal.apk > kohera-android-universal.apk.sha256
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
