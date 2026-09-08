@@ -40,7 +40,7 @@ Feature-based organization under `lib/`: `core/` (services, routing, theme, util
 
 State is managed via multiple ChangeNotifiers provided at the root. `MatrixClientService` (`data/services/`) is the stateless, sole owner of the Matrix SDK `Client` — the sanctioned SDK boundary the data layer depends on. `AccountSession` (`core/services/`) is the per-account composition root that builds the sub-service graph (AuthService, SyncService, SelectionService, ChatBackupService, UiaService, and the rest in `core/services/sub_services/`); `AuthService` owns login/logout/restore/soft-logout and their orchestration. `MatrixService` is now a thin lifecycle coordinator that holds an `AccountSession` and has no public raw-`Client` getter. Repositories (`data/repositories/`) depend on `MatrixClientService` + specific sub-services, never the whole `MatrixService`. Other top-level providers include ClientManager, CallService, PreferencesService, and InboxController.
 
-See `agent_docs/architecture.md` for detailed architecture, routing, responsive layout, and E2EE docs. See `docs/e2ee-flow.md` for E2EE state machine diagrams.
+See `docs/architecture.md` for detailed architecture, routing, responsive layout, and E2EE docs. See `docs/e2ee-flow.md` for E2EE state machine diagrams.
 
 ## Conventions
 
