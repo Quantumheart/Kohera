@@ -44,7 +44,7 @@ See `agent_docs/architecture.md` for detailed architecture, routing, responsive 
 
 ## Conventions
 
-- **Commits:** `feat:`, `fix:`, `refactor:`, `style:`, `docs:`, `test:`, `chore:`, `perf:`, `ci:`, `build:`, `revert:`. A commitlint CI check enforces this. In the commit body, avoid lines that start with `Word:` or contain inline `#123` refs — the parser treats them as footer trailers and fails the `footer-leading-blank` rule. Put issue refs only in the trailing footer (`Refs #123`, `Closes #123`) after a blank line.
+- **Commits:** scope-prefixed, `scope: description` (e.g. `chat: fix jump-to-latest`), like Linux, Git, and Go. The scope names the area changed, not the kind of change — no `feat`/`fix`/`chore` types. Scope is free-form; prefer a feature area (`auth`, `calling`, `chat`, `e2ee`, `home`, `notifications`, `rooms`, `settings`, `share_in`, `spaces`, `whats_new`), a cross-cutting area (`core`, `data`, `shared`, `routing`, `theme`, `media`, `brand`), or infra (`build`, `ci`, `deps`, `release`, `docs`, `test`) — see `CONTRIBUTING.md`. A commitlint CI check enforces that a lowercase scope prefix is present. In the commit body, avoid lines that start with `Word:` or contain inline `#123` refs — the parser treats them as footer trailers and fails the `footer-leading-blank` rule. Put issue refs only in the trailing footer (`Refs #123`, `Closes #123`) after a blank line.
 - **Logging:** `debugPrint('[Kohera] ...')` prefix for all log messages
 - **No comments** -- code should be self-descriptive. Section markers (`// ── Section Name ──────`) are the exception.
 

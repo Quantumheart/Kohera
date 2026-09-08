@@ -25,22 +25,10 @@ jobs:
             exit 1
           fi
 
-  # Hide the release-please-created release as a draft the moment the tag
-  # pushes, so users never see a "released" version that has no artifacts yet.
-  # publish-release un-drafts it only after every platform build + TestFlight
-  # succeed; a failed deploy leaves it hidden as a draft.
-  hide-release:
-    needs: verify-tag
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - run: gh release edit "$GITHUB_REF_NAME" --draft
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
-
+  # The Prepare Release workflow creates the GitHub Release as a draft (with
+  # generated notes) at tag time, so users never see a "released" version that
+  # has no artifacts yet. publish-release un-drafts it only after every platform
+  # build + TestFlight succeed; a failed deploy leaves it hidden as a draft.
   build-linux:
     needs: verify-tag
     runs-on: ubuntu-latest

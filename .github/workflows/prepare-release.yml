@@ -1,0 +1,83 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Semver level to bump
+        type: choice
+        required: true
+        default: patch
+        options: [patch, minor, major]
+
+concurrency:
+  group: prepare-release
+  cancel-in-progress: false
+
+jobs:
+  prepare-release:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Generate App token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Compute next version
+        id: version
+        run: |
+          current="$(grep -m1 '^version:' pubspec.yaml | sed 's/^version:[[:space:]]*//')"
+          semver="${current%%+*}"
+          build="${current##*+}"
+          [ "$build" = "$current" ] && build=0
+          IFS='.' read -r major minor patch <<< "$semver"
+          case "${{ inputs.bump }}" in
+            major) major=$((major + 1)); minor=0; patch=0 ;;
+            minor) minor=$((minor + 1)); patch=0 ;;
+            patch) patch=$((patch + 1)) ;;
+          esac
+          next="${major}.${minor}.${patch}"
+          next_build=$((build + 1))
+          echo "semver=${next}" >> "$GITHUB_OUTPUT"
+          echo "full=${next}+${next_build}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${next}" >> "$GITHUB_OUTPUT"
+          echo "Bumping ${current} -> ${next}+${next_build} (v${next})"
+
+      - name: Write pubspec version
+        run: |
+          sed -i "s/^version:.*/version: ${{ steps.version.outputs.full }}/" pubspec.yaml
+
+      - name: Commit and tag
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          FULL: ${{ steps.version.outputs.full }}
+        run: |
+          git config user.name "kohera-release[bot]"
+          git config user.email "kohera-release[bot]@users.noreply.github.com"
+          git add pubspec.yaml
+          git commit -m "release: ${FULL}"
+          git tag "$TAG"
+          git push origin HEAD:master
+          git push origin "$TAG"
+
+      - name: Create draft release with generated notes
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --draft \
+            --generate-notes \
+            --target master

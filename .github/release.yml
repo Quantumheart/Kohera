@@ -1,0 +1,14 @@
+changelog:
+  categories:
+    - title: ✨ What's new
+      labels: [enhancement]
+    - title: 🐛 Fixes
+      labels: [bug]
+    - title: ⚡ Performance
+      labels: [performance]
+    - title: 🔁 Reverts
+      labels: [revert]
+    - title: Other changes
+      labels: ['*']
+  exclude:
+    labels: [internal, dependencies, ci, no-changelog]
