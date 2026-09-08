@@ -74,10 +74,21 @@ The app connects to any Matrix homeserver. Enter your homeserver URL, username, 
 
 ### Building for Release
 
+Kohera builds for all six platforms:
+
 ```bash
 flutter build linux --release
 flutter build windows --release
+flutter build macos --release
+flutter build apk --release      # Android
+flutter build ipa --release      # iOS
+flutter build web --release
 ```
+
+The CI release pipeline passes `--dart-define=GIPHY_API_KEY=...` and, on mobile,
+`--obfuscate --split-debug-info=...`; add those when building artifacts that
+match a release. Signing, notarization, and store upload are handled by the
+`Release` workflow — see [CI/CD](#cicd).
 
 ### Web Deployment (Docker)
 
