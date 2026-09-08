@@ -18,6 +18,11 @@ Kohera is a retro-pixel Matrix chat client — coherent threads for encrypted me
 - Pinned messages
 - In-room message search
 
+**Voice & Video Calling**
+- 1:1 and group calls over LiveKit
+- Camera and microphone controls
+- Screen sharing
+
 **End-to-End Encryption**
 - Cross-signing and device verification (SAS emoji)
 - Key backup setup with recovery key
@@ -51,14 +56,14 @@ Kohera is a retro-pixel Matrix chat client — coherent threads for encrypted me
 
 ### Prerequisites
 
-- Flutter 3.16+ (stable)
-- Dart 3.1+
+- Flutter 3.47.0 (stable)
+- Dart 3.11+
 
 ### Setup
 
 ```bash
-git clone https://github.com/<your-org>/kohera.git
-cd kohera
+git clone https://github.com/Quantumheart/Kohera.git
+cd Kohera
 flutter pub get
 flutter run              # default device
 flutter run -d linux     # Linux desktop
@@ -100,25 +105,34 @@ Feature-based organization under `lib/`:
 lib/
 ├── main.dart
 ├── core/
+│   ├── brand/            # Wordmark, lockup, and brand assets
 │   ├── extensions/       # Responsive device helpers
+│   ├── media/            # Media handling helpers
 │   ├── models/           # Space tree, upload state
 │   ├── routing/          # GoRouter configuration
-│   ├── services/         # MatrixService + mixins (auth, sync, selection, UIA)
+│   ├── services/         # AccountSession + sub_services (auth, sync, selection, UIA)
+│   ├── state/            # Root ChangeNotifiers
 │   ├── theme/            # Material You light/dark themes
 │   └── utils/            # Emoji, colors, time formatting, syntax highlighting
+├── data/
+│   ├── repositories/     # Feature-facing data access
+│   └── services/         # MatrixClientService (sole Matrix SDK client owner)
 ├── features/
 │   ├── auth/             # Login, registration, SSO, reCAPTCHA
+│   ├── calling/          # Voice/video calls (LiveKit)
 │   ├── chat/             # Message timeline, compose bar, reactions, search
 │   ├── e2ee/             # Bootstrap, device verification, key backup
 │   ├── home/             # Adaptive shell layout, inbox
 │   ├── notifications/    # Push and local notification handling
 │   ├── rooms/            # Room list, details, creation, invites, admin
 │   ├── settings/         # Preferences, devices, themes, notifications
-│   └── spaces/           # Space rail, creation, management
+│   ├── share_in/         # Inbound share handling
+│   ├── spaces/           # Space rail, creation, management
+│   └── whats_new/        # Release highlights
 └── shared/widgets/       # Avatars, image viewer, section headers, speed dial
 ```
 
-**State management:** A single `MatrixService` (ChangeNotifier) provided at the root via Provider. It wraps the Matrix SDK client and manages login, sync, room/space selection, E2EE bootstrap, and UIA flows through composable mixins.
+**State management:** Multiple `ChangeNotifier`s provided at the root via Provider. `MatrixClientService` (`data/services/`) is the sole owner of the Matrix SDK client — the sanctioned boundary the data layer depends on. `AccountSession` (`core/services/`) is the per-account composition root that builds the sub-service graph (AuthService, SyncService, SelectionService, ChatBackupService, UiaService, and the rest under `core/services/sub_services/`). `MatrixService` is a thin lifecycle coordinator that holds an `AccountSession`.
 
 See [`docs/e2ee-flow.md`](docs/e2ee-flow.md) for E2EE state machine diagrams.
 
@@ -135,15 +149,19 @@ Mock generation must run before `flutter test` whenever `@GenerateMocks` annotat
 
 ### Commit Convention
 
+Scope-prefixed commits — `scope: description`, where the scope names the area
+of the codebase that changed (not the kind of change). This follows the style
+used by Linux, Git, FreeBSD, and Go. A commitlint CI check enforces that a
+lowercase scope prefix is present.
+
 ```
-feat:     new feature
-fix:      bug fix
-refactor: code restructuring
-style:    formatting only
-docs:     documentation
-test:     tests
-chore:    maintenance
+chat: fix jump-to-latest after search
+calling: retry LiveKit join on ICE failure
+e2ee: bootstrap key backup on first login
+build: bump Flutter to 3.47.0
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full scope list.
 
 ## Key Dependencies
 
@@ -163,11 +181,12 @@ chore:    maintenance
 ## CI/CD
 
 GitHub Actions runs on push/PR to `master`:
-1. **Analyze** — `flutter analyze`
-2. **Test** — mock generation + `flutter test`
-3. **Build** — Linux release build
+1. **Analyze** — `flutter analyze` (plus an NSE import guard)
+2. **Test** — mock generation + `flutter test --coverage`, with a coverage gate and Codecov upload
+3. **Build** — smoke release builds for Linux, macOS, Android, and iOS
+4. **Commitlint** — enforces the scope-prefixed commit convention
 
-Tagged releases (`v*`) build Linux (tar.gz) and Windows (Inno Setup installer) artifacts and publish a GitHub Release. A separate workflow builds and pushes a web Docker image to `ghcr.io`.
+Releases are cut manually: run the **Prepare Release** workflow, pick a semver bump (patch/minor/major), and it writes `pubspec.yaml`, pushes a `v*` tag, and drafts a GitHub Release whose notes are generated from merged-PR labels (see [`.github/release.yml`](.github/release.yml)). The tag then drives the platform builds — Linux (tar.gz), Windows (Inno Setup installer), macOS (notarized zip), iOS (TestFlight), and Android (APK) — attaches them to the release, and un-drafts it. A separate workflow builds and pushes a web Docker image to `ghcr.io` and deploys it.
 
 ## Attribution
 
