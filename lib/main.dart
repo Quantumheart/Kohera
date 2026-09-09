@@ -70,6 +70,7 @@ class _KoheraAppState extends State<KoheraApp> {
   ClientManager? _clientManager;
   PreferencesService? _preferencesService;
   GoRouter? _router;
+  ActiveMatrixListenable? _refreshListenable;
   Object? _initError;
   MatrixService? _displayedService;
   ThemeData? _splashLight;
@@ -144,21 +145,25 @@ ShareIntakeController? _shareIntake;
         _clientManager = clientManager;
         _preferencesService = prefs;
         _displayedService = clientManager.activeService;
+        _refreshListenable = refreshListenable;
         _router = buildRouter(
           clientManager,
           refreshListenable: refreshListenable,
         );
       });
       _bindShareIn(clientManager.activeService);
+      // The router is rebuilt on account switch (see _onActiveServiceChanged),
+      // so these long-lived services resolve it lazily instead of capturing a
+      // now-stale instance.
       _shareIntake = ShareIntakeController(
         clientManager: clientManager,
-        router: _router!,
+        router: () => _router!,
       )..start();
       // Start deep-link listener now that the router exists. The shared
       // refreshListenable lets queued links replay once login / E2EE setup
       // completes instead of being dropped by the router redirect.
       _deepLinkService = DeepLinkService(
-        router: _router!,
+        router: () => _router!,
         clientManager: clientManager,
         refreshListenable: refreshListenable,
       )..init();
@@ -199,7 +204,22 @@ ShareIntakeController? _shareIntake;
       final current = _clientManager?.activeService;
       if (current == null || identical(current, _displayedService)) return;
       _bindShareIn(current);
-      setState(() => _displayedService = current);
+      // Rebuild the router on switch. The keyed provider subtree remounts the
+      // account's repositories, but go_router's navigators are GlobalKey-backed
+      // and would otherwise survive that remount, leaving screens bound to the
+      // previous account. A fresh router gives fresh navigators, so the whole
+      // screen tree tears down and rebinds to the switched-in AccountSession.
+      final oldRouter = _router;
+      setState(() {
+        _displayedService = current;
+        _router = buildRouter(
+          manager,
+          refreshListenable: _refreshListenable!,
+        );
+      });
+      if (oldRouter != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => oldRouter.dispose());
+      }
     });
   }
 
@@ -207,6 +227,7 @@ ShareIntakeController? _shareIntake;
   void dispose() {
     _clientManager?.removeListener(_onActiveServiceChanged);
     _router?.dispose();
+    _refreshListenable?.dispose();
     _deepLinkService?.dispose();
     _roomSnapshotService?.dispose();
     unawaited(_avatarCacheService?.dispose());

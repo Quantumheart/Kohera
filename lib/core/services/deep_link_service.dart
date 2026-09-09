@@ -22,14 +22,16 @@ import 'package:matrix/matrix.dart';
 /// redirect would silently drop the target.
 class DeepLinkService {
   DeepLinkService({
-    required GoRouter router,
+    required GoRouter Function() router,
     required ClientManager clientManager,
     required Listenable refreshListenable,
   })  : _router = router,
         _clientManager = clientManager,
         _refresh = refreshListenable;
 
-  final GoRouter _router;
+  /// Resolves the active router. The composition root rebuilds the router on
+  /// account switch, so this is read at call time rather than captured.
+  final GoRouter Function() _router;
   final ClientManager _clientManager;
   final Listenable _refresh;
 
@@ -108,7 +110,7 @@ class DeepLinkService {
       return;
     }
     final target = await _resolveIntent(intent);
-    if (target != null) _router.go(target.path, extra: target.eventId);
+    if (target != null) _router().go(target.path, extra: target.eventId);
   }
 
   /// Replayed when auth/backup state changes (login, E2EE setup done).
@@ -118,7 +120,7 @@ class DeepLinkService {
     _pendingIntent = null;
     unawaited(
       _resolveIntent(pending).then((target) {
-        if (target != null) _router.go(target.path, extra: target.eventId);
+        if (target != null) _router().go(target.path, extra: target.eventId);
       }),
     );
   }
