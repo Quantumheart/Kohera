@@ -157,16 +157,22 @@ Domain models live in `lib/data/models/` and resolvers live in
 dependency direction is always features → data, never the reverse.
 
 Each repository:
-- Extends `ChangeNotifier` and is provided via `ChangeNotifierProxyProvider` in
-  `main.dart`, reacting to account switches.
+- Extends `ChangeNotifier` and is provided in `main.dart` inside a per-account
+  provider subtree keyed by the active client — either as a value provider onto
+  an `AccountSession`-owned instance, or created against the active session's
+  `MatrixClientService`/sub-services.
 - Owns the resolver calls for its domain — controllers and widgets should
   consume domain models from repositories, never call resolvers directly.
 - Takes `MatrixClientService` and/or the specific sub-services it needs as
-  constructor dependencies — never the whole `MatrixService`. Repos that wrap
-  stateless SDK data calls take `MatrixClientService` (the SDK boundary); repos
-  fronting a stateful engine take that sub-service. The `main.dart`
-  `ChangeNotifierProxyProvider` sources these from `matrix.session` and calls the
-  repo's `updateDependencies(...)` on account switch.
+  **final** constructor dependencies — never the whole `MatrixService`. Repos
+  that wrap stateless SDK data calls take `MatrixClientService` (the SDK
+  boundary); repos fronting a stateful engine take that sub-service.
+
+Dependencies are injected once at construction; repositories are per-account and
+immutable, not re-pointed at runtime. On account switch the composition root
+rebuilds the router (recreating go_router's navigators) so the whole screen tree
+tears down and rebinds to the new account's repositories, and navigation resets
+to the room list. See `_KoheraAppState._onActiveServiceChanged` in `main.dart`.
 
 | Repository | Domain models | Resolvers owned |
 |---|---|---|
