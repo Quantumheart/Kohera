@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
-import 'package:kohera/core/routing/account_switch_redirector.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/routing/widgets/add_account_shell.dart';
 import 'package:kohera/core/services/app_config.dart';
@@ -36,14 +35,15 @@ import 'package:provider/provider.dart';
 
 /// Creates the app router with auth-aware redirects.
 ///
-/// The router resolves the active [MatrixService] dynamically from
-/// [manager] so that account switches don't require recreating the router
-/// (which would reset the navigation stack and cause a visible flash).
+/// The router resolves the active [MatrixService] dynamically from [manager].
+/// The composition root rebuilds the router on account switch (see
+/// `_KoheraAppState._onActiveServiceChanged`) so the navigators are recreated
+/// and every screen rebinds to the switched-in [AccountSession]; navigation
+/// resets to [RoutePaths.home] as part of that rebuild.
 GoRouter buildRouter(
   ClientManager manager, {
   required Listenable refreshListenable,
 }) {
-  final switchRedirector = AccountSwitchRedirector(manager.activeService);
   return GoRouter(
     refreshListenable: refreshListenable,
     initialLocation: RoutePaths.home,
@@ -55,9 +55,6 @@ GoRouter buildRouter(
           loc.startsWith(RoutePaths.register);
       final onSetupRoute = loc == RoutePaths.e2eeSetup;
       final onAddAccountRoute = loc.startsWith(RoutePaths.addAccount);
-
-      final switchRedirect = switchRedirector.redirectFor(matrixService, loc);
-      if (switchRedirect != null) return switchRedirect;
 
       // The add-account flow drives login against a pending service. If there
       // is none (genuine stray entry, or the moment after a successful commit

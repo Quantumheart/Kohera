@@ -21,14 +21,17 @@ import 'package:matrix/matrix.dart';
 class ShareIntakeController with WidgetsBindingObserver {
   ShareIntakeController({
     required ClientManager clientManager,
-    required GoRouter router,
+    required GoRouter Function() router,
     ShareInStore? store,
   })  : _clientManager = clientManager,
         _router = router,
         _store = store ?? ShareInStore();
 
   final ClientManager _clientManager;
-  final GoRouter _router;
+
+  /// Resolves the active router. The composition root rebuilds the router on
+  /// account switch, so this is read at call time rather than captured.
+  final GoRouter Function() _router;
   final ShareInStore _store;
   bool _handling = false;
   bool _disposed = false;
@@ -68,7 +71,7 @@ class ShareIntakeController with WidgetsBindingObserver {
       final displayname =
           client.getRoomById(share.roomId)?.getLocalizedDisplayname() ?? share.roomId;
       await _store.donateSendMessage(roomId: share.roomId, displayname: displayname);
-      _router.go('${RoutePaths.roomPrefix}${share.roomId}');
+      _router().go('${RoutePaths.roomPrefix}${share.roomId}');
     } catch (e) {
       debugPrint('[Kohera] Share intake failed: $e');
     } finally {
