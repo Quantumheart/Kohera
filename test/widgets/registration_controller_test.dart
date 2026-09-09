@@ -53,12 +53,16 @@ void main() {
     authRepository = AuthRepository(clientService: mockMatrixService.matrixClientService, auth: mockMatrixService.auth, setupState: mockMatrixService.keyBackupSetupState);
   });
 
-  RegistrationController createController({String homeserver = 'example.com'}) {
+  RegistrationController createController({
+    String homeserver = 'example.com',
+    Duration usernameCheckDebounce = Duration.zero,
+  }) {
     return RegistrationController(
       matrixService: mockMatrixService,
       authRepository: authRepository,
       clientManager: fakeClientManager,
       homeserver: homeserver,
+      usernameCheckDebounce: usernameCheckDebounce,
     );
   }
 
@@ -161,7 +165,7 @@ void main() {
         await controller.checkServer();
 
         // Trigger a username error
-        await controller.submitForm(username: '', password: 'password123');
+        await controller.submitForm(username: '', password: 'Sunflower42!');
         expect(controller.usernameError, isNotNull);
 
         await controller.updateHomeserver('new.com');
@@ -184,7 +188,7 @@ void main() {
       test('rejects empty username', () async {
         final controller = createController();
         await controller.checkServer();
-        await controller.submitForm(username: '', password: 'password123');
+        await controller.submitForm(username: '', password: 'Sunflower42!');
 
         expect(controller.state, RegistrationState.formReady);
         expect(controller.usernameError, isNotNull);
@@ -227,7 +231,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'takenuser', password: 'password123',);
+            username: 'takenuser', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.formReady);
         expect(controller.usernameError, contains('already taken'));
@@ -250,10 +254,46 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'bad@user', password: 'password123',);
+            username: 'servername', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.formReady);
         expect(controller.usernameError, contains('invalid'));
+        controller.dispose();
+      });
+
+      test('rejects a malformed localpart without calling the server',
+          () async {
+        final controller = createController();
+        await controller.checkServer();
+        await controller.submitForm(
+            username: 'bad@user', password: 'Sunflower42!',);
+
+        expect(controller.state, RegistrationState.formReady);
+        expect(controller.usernameError, isNotNull);
+        expect(controller.usernameAvailability, UsernameAvailability.invalid);
+        verifyNever(mockClient.register(
+          username: anyNamed('username'),
+          password: anyNamed('password'),
+          initialDeviceDisplayName: anyNamed('initialDeviceDisplayName'),
+          auth: anyNamed('auth'),
+        ),);
+        controller.dispose();
+      });
+
+      test('rejects a common password without calling the server', () async {
+        final controller = createController();
+        await controller.checkServer();
+        await controller.submitForm(
+            username: 'ada', password: 'password123',);
+
+        expect(controller.state, RegistrationState.formReady);
+        expect(controller.passwordError, contains('too common'));
+        verifyNever(mockClient.register(
+          username: anyNamed('username'),
+          password: anyNamed('password'),
+          initialDeviceDisplayName: anyNamed('initialDeviceDisplayName'),
+          auth: anyNamed('auth'),
+        ),);
         controller.dispose();
       });
 
@@ -316,7 +356,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.error);
         expect(controller.error, contains('not allowed'));
@@ -343,7 +383,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.enterEmail);
         controller.dispose();
@@ -370,7 +410,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.recaptcha);
         controller.dispose();
@@ -396,7 +436,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.acceptTerms);
         controller.dispose();
@@ -422,7 +462,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.error);
         expect(controller.error, contains('Unsupported'));
@@ -446,7 +486,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         verify(mockAuthService.completeRegistration(
           any,
@@ -477,7 +517,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.done);
         expect(fakeClientManager.committed, isTrue);
@@ -501,7 +541,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.done);
         expect(fakeClientManager.committed, isFalse);
@@ -554,9 +594,9 @@ void main() {
 
         // Fire two submits — second should be blocked by guard.
         final f1 = controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
         final f2 = controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
         await f1;
         await f2;
 
@@ -581,7 +621,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.error);
         expect(controller.error, 'Could not reach server');
@@ -599,7 +639,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.error);
         expect(controller.error, 'Connection timed out');
@@ -636,7 +676,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.enterEmail);
 
@@ -689,7 +729,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.tokenError, isNotNull);
         expect(controller.state, RegistrationState.formReady);
@@ -737,7 +777,7 @@ void main() {
         });
 
         await controller.submitForm(
-            username: 'user', password: 'password123', token: 'mytoken',);
+            username: 'user', password: 'Sunflower42!', token: 'mytoken',);
 
         // _advanceToNextStage fires _attemptRegister without await,
         // so pump the event loop to let the recursive call complete.
@@ -794,7 +834,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.recaptcha);
         expect(controller.recaptchaPublicKey, 'test_site_key_123');
@@ -821,7 +861,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.recaptcha);
         expect(controller.recaptchaPublicKey, isNull);
@@ -868,7 +908,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.acceptTerms);
         final policies = controller.termsOfServicePolicies;
@@ -898,7 +938,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.termsOfServicePolicies, isEmpty);
         controller.dispose();
@@ -958,9 +998,18 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.acceptTerms);
+
+        await controller.submitTerms();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(controller.state, RegistrationState.acceptTerms,
+            reason: 'unticked policies must block submission',);
+
+        controller.togglePolicyAccepted('https://example.com/tos');
+        expect(controller.allPoliciesAccepted, isTrue);
 
         await controller.submitTerms();
         await Future<void>.delayed(Duration.zero);
@@ -1021,7 +1070,7 @@ void main() {
         final controller = createController();
         await controller.checkServer();
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
 
         expect(controller.state, RegistrationState.recaptcha);
         expect(controller.recaptchaPublicKey, 'key123');
@@ -1046,7 +1095,7 @@ void main() {
 
         // Submit should be a no-op in error state.
         await controller.submitForm(
-            username: 'user', password: 'password123',);
+            username: 'user', password: 'Sunflower42!',);
         expect(controller.state, RegistrationState.error);
         controller.dispose();
       });
@@ -1069,6 +1118,374 @@ void main() {
         // Calling checkServer after dispose should not throw or notify.
         await controller.checkServer();
         expect(notifiedAfterDispose, isFalse);
+      });
+    });
+
+    // ── live username availability ──────────────────────────────
+
+    group('onUsernameChanged', () {
+      setUp(() {
+        when(mockAuthService.getServerAuthCapabilities(any,
+                isLoggedIn: anyNamed('isLoggedIn'),),)
+            .thenAnswer((_) async => const ServerAuthCapabilities(
+                  supportsRegistration: true,
+                  registrationStages: ['m.login.dummy'],
+                ),);
+      });
+
+      test('reports available when the server says so', () async {
+        when(mockClient.checkUsernameAvailability(any))
+            .thenAnswer((_) async => true);
+
+        final controller = createController();
+        await controller.checkServer();
+
+        controller.onUsernameChanged('ada');
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(controller.usernameAvailability, UsernameAvailability.available);
+        expect(controller.usernameError, isNull);
+        controller.dispose();
+      });
+
+      test('reports taken when the server says so', () async {
+        when(mockClient.checkUsernameAvailability(any))
+            .thenAnswer((_) async => false);
+
+        final controller = createController();
+        await controller.checkServer();
+
+        controller.onUsernameChanged('ada');
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(controller.usernameAvailability, UsernameAvailability.taken);
+        expect(controller.usernameError, 'This username is already taken');
+        controller.dispose();
+      });
+
+      test('reports taken when the server raises M_USER_IN_USE', () async {
+        when(mockClient.checkUsernameAvailability(any)).thenThrow(
+          MatrixException.fromJson({
+            'errcode': 'M_USER_IN_USE',
+            'error': 'Taken',
+          }),
+        );
+
+        final controller = createController();
+        await controller.checkServer();
+
+        controller.onUsernameChanged('ada');
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(controller.usernameAvailability, UsernameAvailability.taken);
+        controller.dispose();
+      });
+
+      test('stays unknown when the endpoint is rate limited', () async {
+        when(mockClient.checkUsernameAvailability(any)).thenThrow(
+          MatrixException.fromJson({
+            'errcode': 'M_LIMIT_EXCEEDED',
+            'error': 'Slow down',
+          }),
+        );
+
+        final controller = createController();
+        await controller.checkServer();
+
+        controller.onUsernameChanged('ada');
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(controller.usernameAvailability, UsernameAvailability.unknown);
+        expect(controller.usernameError, isNull);
+        controller.dispose();
+      });
+
+      test('rejects a malformed localpart without asking the server',
+          () async {
+        final controller = createController();
+        await controller.checkServer();
+
+        controller.onUsernameChanged('Bad User');
+        await Future<void>.delayed(Duration.zero);
+
+        expect(controller.usernameAvailability, UsernameAvailability.invalid);
+        expect(controller.usernameError, isNotNull);
+        verifyNever(mockClient.checkUsernameAvailability(any));
+        controller.dispose();
+      });
+
+      test('clears availability when the field is emptied', () async {
+        when(mockClient.checkUsernameAvailability(any))
+            .thenAnswer((_) async => true);
+
+        final controller = createController();
+        await controller.checkServer();
+
+        controller.onUsernameChanged('ada');
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        expect(controller.usernameAvailability, UsernameAvailability.available);
+
+        controller.onUsernameChanged('');
+        expect(controller.usernameAvailability, UsernameAvailability.unknown);
+        controller.dispose();
+      });
+
+      test('a stale in-flight check cannot overwrite a newer one', () async {
+        final slow = Completer<bool?>();
+        when(mockClient.checkUsernameAvailability('ada'))
+            .thenAnswer((_) => slow.future);
+        when(mockClient.checkUsernameAvailability('grace'))
+            .thenAnswer((_) async => true);
+
+        final controller = createController();
+        await controller.checkServer();
+
+        controller.onUsernameChanged('ada');
+        await Future<void>.delayed(Duration.zero);
+
+        controller.onUsernameChanged('grace');
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+        expect(controller.usernameAvailability, UsernameAvailability.available);
+
+        // The abandoned 'ada' lookup resolves as taken, but must be ignored.
+        slow.complete(false);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(controller.usernameAvailability, UsernameAvailability.available);
+        controller.dispose();
+      });
+
+      test('exposes the full Matrix ID preview', () async {
+        final controller = createController(homeserver: 'https://matrix.org');
+        await controller.checkServer();
+
+        expect(controller.matrixIdPreview, isNull);
+
+        controller.onUsernameChanged('ada');
+        expect(controller.matrixIdPreview, '@ada:matrix.org');
+        controller.dispose();
+      });
+    });
+
+    // ── email identity stage ────────────────────────────────────
+
+    group('email identity stage', () {
+      void stubEmailStage() {
+        when(mockAuthService.getServerAuthCapabilities(any,
+                isLoggedIn: anyNamed('isLoggedIn'),),)
+            .thenAnswer((_) async => const ServerAuthCapabilities(
+                  supportsRegistration: true,
+                  registrationStages: ['m.login.email.identity'],
+                ),);
+        when(mockClient.register(
+          username: anyNamed('username'),
+          password: anyNamed('password'),
+          initialDeviceDisplayName: anyNamed('initialDeviceDisplayName'),
+          auth: anyNamed('auth'),
+        ),).thenThrow(
+          MatrixException.fromJson({
+            'flows': [
+              {
+                'stages': ['m.login.email.identity'],
+              },
+            ],
+            'session': 'sess_email',
+          }),
+        );
+      }
+
+      Future<RegistrationController> reachEmailStage() async {
+        stubEmailStage();
+        final controller = createController();
+        await controller.checkServer();
+        await controller.submitForm(
+            username: 'ada', password: 'Sunflower42!',);
+        expect(controller.state, RegistrationState.enterEmail);
+        return controller;
+      }
+
+      test('advertises that the server wants an email', () async {
+        final controller = await reachEmailStage();
+
+        expect(controller.requiresEmail, isTrue);
+        controller.dispose();
+      });
+
+      test('rejects an empty address', () async {
+        final controller = await reachEmailStage();
+
+        await controller.submitEmail('   ');
+
+        expect(controller.state, RegistrationState.enterEmail);
+        expect(controller.emailError, 'Please enter an email address');
+        controller.dispose();
+      });
+
+      test('rejects a malformed address', () async {
+        final controller = await reachEmailStage();
+
+        await controller.submitEmail('not-an-email');
+
+        expect(controller.state, RegistrationState.enterEmail);
+        expect(controller.emailError, 'Please enter a valid email address');
+        verifyNever(mockClient.requestTokenToRegisterEmail(any, any, any));
+        controller.dispose();
+      });
+
+      test('requests a token and waits for verification', () async {
+        final controller = await reachEmailStage();
+        when(mockClient.requestTokenToRegisterEmail(any, any, any))
+            .thenAnswer((_) async => RequestTokenResponse(sid: 'sid_1'));
+
+        await controller.submitEmail('ada@example.com');
+
+        expect(controller.state, RegistrationState.awaitingEmailVerification);
+        expect(controller.pendingEmailAddress, 'ada@example.com');
+        expect(controller.emailSending, isFalse);
+        expect(controller.emailError, isNull);
+
+        final captured =
+            verify(mockClient.requestTokenToRegisterEmail(
+          captureAny,
+          captureAny,
+          captureAny,
+        ),).captured;
+        expect(captured[0], isA<String>().having((s) => s.length, 'length', 32));
+        expect(captured[1], 'ada@example.com');
+        expect(captured[2], 1);
+        controller.dispose();
+      });
+
+      test('surfaces a rejected address on the email field', () async {
+        final controller = await reachEmailStage();
+        when(mockClient.requestTokenToRegisterEmail(any, any, any)).thenThrow(
+          MatrixException.fromJson({
+            'errcode': 'M_THREEPID_IN_USE',
+            'error': 'Already bound',
+          }),
+        );
+
+        await controller.submitEmail('ada@example.com');
+
+        expect(controller.state, RegistrationState.enterEmail);
+        expect(controller.emailError, 'This email is already registered');
+        controller.dispose();
+      });
+
+      test('resend increments send_attempt and reuses the client secret',
+          () async {
+        final controller = await reachEmailStage();
+        when(mockClient.requestTokenToRegisterEmail(any, any, any))
+            .thenAnswer((_) async => RequestTokenResponse(sid: 'sid_1'));
+
+        await controller.submitEmail('ada@example.com');
+        await controller.resendVerificationEmail();
+
+        final captured =
+            verify(mockClient.requestTokenToRegisterEmail(
+          captureAny,
+          any,
+          captureAny,
+        ),).captured;
+        expect(captured[0], captured[2], reason: 'client secret must be reused');
+        expect(captured[1], 1);
+        expect(captured[3], 2);
+        controller.dispose();
+      });
+
+      test('submits threepid_creds once the link is followed', () async {
+        stubEmailStage();
+        final controller = createController();
+        await controller.checkServer();
+        await controller.submitForm(
+            username: 'ada', password: 'Sunflower42!',);
+
+        when(mockClient.requestTokenToRegisterEmail(any, any, any))
+            .thenAnswer((_) async => RequestTokenResponse(sid: 'sid_1'));
+        await controller.submitEmail('ada@example.com');
+
+        when(mockClient.register(
+          username: anyNamed('username'),
+          password: anyNamed('password'),
+          initialDeviceDisplayName: anyNamed('initialDeviceDisplayName'),
+          auth: anyNamed('auth'),
+        ),).thenAnswer((_) async => RegisterResponse(
+              userId: '@ada:example.com',
+              accessToken: 'tok',
+              deviceId: 'D1',
+            ),);
+        when(mockAuthService.completeRegistration(any))
+            .thenAnswer((_) async {});
+
+        await controller.confirmEmailVerified();
+
+        expect(controller.state, RegistrationState.done);
+
+        final auth = verify(mockClient.register(
+          username: anyNamed('username'),
+          password: anyNamed('password'),
+          initialDeviceDisplayName: anyNamed('initialDeviceDisplayName'),
+          auth: captureAnyNamed('auth'),
+        ),).captured.last as AuthenticationData;
+        final json = auth.toJson();
+        expect(json['type'], 'm.login.email.identity');
+        expect(json['session'], 'sess_email');
+        expect(
+          json['threepid_creds'],
+          isA<Map<String, dynamic>>()
+              .having((m) => m['sid'], 'sid', 'sid_1')
+              .having((m) => m['client_secret'], 'client_secret', isNotEmpty),
+        );
+        controller.dispose();
+      });
+
+      test('holds on the waiting screen when the link is not yet followed',
+          () async {
+        stubEmailStage();
+        final controller = createController();
+        await controller.checkServer();
+        await controller.submitForm(
+            username: 'ada', password: 'Sunflower42!',);
+
+        when(mockClient.requestTokenToRegisterEmail(any, any, any))
+            .thenAnswer((_) async => RequestTokenResponse(sid: 'sid_1'));
+        await controller.submitEmail('ada@example.com');
+
+        // The server re-challenges because the threepid is still unverified.
+        await controller.confirmEmailVerified();
+
+        expect(controller.state, RegistrationState.awaitingEmailVerification);
+        expect(controller.emailError, contains('could not confirm'));
+        controller.dispose();
+      });
+
+      test('changeEmailAddress returns to the entry step', () async {
+        final controller = await reachEmailStage();
+        when(mockClient.requestTokenToRegisterEmail(any, any, any))
+            .thenAnswer((_) async => RequestTokenResponse(sid: 'sid_1'));
+        await controller.submitEmail('ada@example.com');
+
+        controller.changeEmailAddress();
+
+        expect(controller.state, RegistrationState.enterEmail);
+        expect(controller.pendingEmailAddress, isNull);
+        controller.dispose();
+      });
+
+      test('confirmEmailVerified is a no-op outside the waiting state',
+          () async {
+        final controller = await reachEmailStage();
+
+        await controller.confirmEmailVerified();
+
+        expect(controller.state, RegistrationState.enterEmail);
+        controller.dispose();
       });
     });
   });

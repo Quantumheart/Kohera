@@ -267,7 +267,7 @@ void main() {
       await tester.enterText(
           find.widgetWithText(TextField, 'Username'), 'alice',);
       await tester.enterText(
-          find.widgetWithText(TextField, 'Password'), 'password123',);
+          find.widgetWithText(TextField, 'Password'), 'Sunflower42!',);
       await tester.enterText(
           find.widgetWithText(TextField, 'Confirm password'), 'different123',);
 
@@ -285,7 +285,7 @@ void main() {
       await tester.enterText(
           find.widgetWithText(TextField, 'Username'), 'alice',);
       await tester.enterText(
-          find.widgetWithText(TextField, 'Password'), 'password123',);
+          find.widgetWithText(TextField, 'Password'), 'Sunflower42!',);
       await tester.enterText(
           find.widgetWithText(TextField, 'Confirm password'), 'different123',);
 
@@ -295,7 +295,7 @@ void main() {
       expect(find.text('Passwords do not match'), findsOneWidget);
 
       await tester.enterText(
-          find.widgetWithText(TextField, 'Confirm password'), 'password123',);
+          find.widgetWithText(TextField, 'Confirm password'), 'Sunflower42!',);
       await tester.pump();
 
       expect(find.text('Passwords do not match'), findsNothing);
@@ -319,9 +319,9 @@ void main() {
       await tester.enterText(
           find.widgetWithText(TextField, 'Username'), 'alice',);
       await tester.enterText(
-          find.widgetWithText(TextField, 'Password'), 'password123',);
+          find.widgetWithText(TextField, 'Password'), 'Sunflower42!',);
       await tester.enterText(
-          find.widgetWithText(TextField, 'Confirm password'), 'password123',);
+          find.widgetWithText(TextField, 'Confirm password'), 'Sunflower42!',);
 
       await tester.tap(find.text('Create Account'));
       await tester.pump();
@@ -367,7 +367,7 @@ void main() {
       await tester.enterText(
           find.widgetWithText(TextField, 'Username'), 'alice',);
       await tester.enterText(
-          find.widgetWithText(TextField, 'Password'), 'password123',);
+          find.widgetWithText(TextField, 'Password'), 'Sunflower42!',);
       await tester.enterText(
           find.widgetWithText(TextField, 'Confirm password'), 'different',);
 

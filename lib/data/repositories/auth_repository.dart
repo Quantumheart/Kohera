@@ -83,6 +83,16 @@ class AuthRepository extends ChangeNotifier {
     return _auth.completeRegistration(response, password: password);
   }
 
+  Future<bool?> checkUsernameAvailability(String username) =>
+      _client.checkUsernameAvailability(username);
+
+  Future<RequestTokenResponse> requestTokenToRegisterEmail({
+    required String clientSecret,
+    required String email,
+    required int sendAttempt,
+  }) =>
+      _client.requestTokenToRegisterEmail(clientSecret, email, sendAttempt);
+
   Future<void> logout() => _auth.logout();
 
   static String friendlyAuthError(Object e) => AuthService.friendlyAuthError(e);

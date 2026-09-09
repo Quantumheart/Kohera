@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/core/utils/matrix_username.dart';
 import 'package:kohera/core/utils/network_error.dart';
+import 'package:kohera/core/utils/password_strength.dart';
 import 'package:kohera/data/repositories/auth_repository.dart';
 import 'package:kohera/features/auth/services/recaptcha_server.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_controller.dart' show BootstrapController;
@@ -15,12 +18,16 @@ enum RegistrationState {
   registrationDisabled,
   formReady,
   enterEmail,
+  awaitingEmailVerification,
   recaptcha,
   acceptTerms,
   registering,
   done,
   error,
 }
+
+/// Result of the live `/register/available` lookup for the typed username.
+enum UsernameAvailability { unknown, checking, available, taken, invalid }
 
 /// Business logic for the registration flow.
 ///
@@ -33,11 +40,15 @@ class RegistrationController extends ChangeNotifier {
     required this.authRepository,
     required this.clientManager,
     required String homeserver,
-  }) : _homeserver = homeserver;
+    Duration usernameCheckDebounce = const Duration(milliseconds: 600),
+  })  : _homeserver = homeserver,
+        _usernameCheckDebounce = usernameCheckDebounce;
 
   final MatrixService matrixService;
   final AuthRepository authRepository;
   final ClientManager clientManager;
+
+  final Duration _usernameCheckDebounce;
 
   String _homeserver;
   String get homeserver => _homeserver;
@@ -59,6 +70,9 @@ class RegistrationController extends ChangeNotifier {
   String? _tokenError;
   String? get tokenError => _tokenError;
 
+  String? _emailError;
+  String? get emailError => _emailError;
+
   String _username = '';
   String _password = '';
   String _token = '';
@@ -69,11 +83,74 @@ class RegistrationController extends ChangeNotifier {
   bool get requiresToken =>
       _registrationStages.contains('m.login.registration_token');
 
+  /// Whether the server will ask for an email address during registration.
+  bool get requiresEmail =>
+      _registrationStages.contains(AuthenticationTypes.emailIdentity);
+
   // UIA tracking
   String? _session;
   List<List<String>> _flows = [];
   List<String> _completedStages = [];
   Map<String, dynamic> _uiaParams = {};
+
+  // ── Live username availability ────────────────────────────────
+
+  Timer? _usernameCheckDebounceTimer;
+  int _usernameCheckGeneration = 0;
+
+  UsernameAvailability _usernameAvailability = UsernameAvailability.unknown;
+  UsernameAvailability get usernameAvailability => _usernameAvailability;
+
+  String _candidateUsername = '';
+
+  /// The full Matrix ID the typed username would claim, e.g. `@ada:matrix.org`.
+  String? get matrixIdPreview {
+    if (_candidateUsername.isEmpty) return null;
+    return formatMatrixId(
+      localpart: _candidateUsername,
+      homeserver: _homeserver,
+    );
+  }
+
+  /// Grades the password currently being typed, for the strength meter.
+  PasswordAssessment _passwordAssessment = assessPassword('');
+  PasswordAssessment get passwordAssessment => _passwordAssessment;
+
+  // ── Email identity stage ──────────────────────────────────────
+
+  String? _emailClientSecret;
+  String? _emailSid;
+  int _emailSendAttempt = 0;
+  String _emailAddress = '';
+
+  /// The address a verification link was sent to, once requested.
+  String? get pendingEmailAddress =>
+      _emailAddress.isEmpty ? null : _emailAddress;
+
+  bool _emailSending = false;
+
+  /// True while the verification email request is in flight.
+  bool get emailSending => _emailSending;
+
+  // ── Terms of Service stage ────────────────────────────────────
+
+  final Set<String> _acceptedPolicyUrls = {};
+
+  /// Whether the policy at [url] has been ticked by the user.
+  bool isPolicyAccepted(String url) => _acceptedPolicyUrls.contains(url);
+
+  /// Whether every advertised policy has been ticked.
+  bool get allPoliciesAccepted {
+    final policies = termsOfServicePolicies;
+    if (policies.isEmpty) return true;
+    return policies.every((p) => _acceptedPolicyUrls.contains(p.url));
+  }
+
+  /// Ticks or unticks the policy at [url].
+  void togglePolicyAccepted(String url) {
+    if (!_acceptedPolicyUrls.remove(url)) _acceptedPolicyUrls.add(url);
+    _notify();
+  }
 
   // ── reCAPTCHA ───────────────────────────────────────────────
   RecaptchaServer? _recaptchaServer;
@@ -115,6 +192,12 @@ class RegistrationController extends ChangeNotifier {
     return result;
   }
 
+  /// Stages of the chosen flow, in order, for the progress indicator.
+  List<String> get plannedStages => _findBestFlow();
+
+  /// Stages the server has already accepted.
+  List<String> get completedStages => List.unmodifiable(_completedStages);
+
   bool _isDisposed = false;
 
   /// Whether the server has been checked and supports registration.
@@ -129,7 +212,9 @@ class RegistrationController extends ChangeNotifier {
     _usernameError = null;
     _passwordError = null;
     _tokenError = null;
+    _emailError = null;
     _error = null;
+    _resetUsernameAvailability();
     await checkServer();
   }
 
@@ -152,12 +237,106 @@ class RegistrationController extends ChangeNotifier {
         _state = RegistrationState.formReady;
       }
       _notify();
+      if (_state == RegistrationState.formReady &&
+          _candidateUsername.isNotEmpty) {
+        await _runUsernameCheck(_candidateUsername);
+      }
     } catch (e) {
       if (_isDisposed || generation != _checkGeneration) return;
       _state = RegistrationState.error;
       _error = e.toString();
       _notify();
     }
+  }
+
+  // ── Live field feedback ─────────────────────────────────────────
+
+  /// Records the username being typed and schedules an availability lookup.
+  void onUsernameChanged(String username) {
+    final trimmed = username.trim();
+    if (trimmed == _candidateUsername) return;
+
+    _candidateUsername = trimmed;
+    _usernameError = null;
+    _usernameCheckDebounceTimer?.cancel();
+    _usernameCheckGeneration++;
+
+    if (trimmed.isEmpty) {
+      _usernameAvailability = UsernameAvailability.unknown;
+      _notify();
+      return;
+    }
+
+    final validationError = validateLocalpart(trimmed);
+    if (validationError != null) {
+      _usernameAvailability = UsernameAvailability.invalid;
+      _usernameError = validationError;
+      _notify();
+      return;
+    }
+
+    _usernameAvailability = UsernameAvailability.checking;
+    _notify();
+
+    _usernameCheckDebounceTimer = Timer(
+      _usernameCheckDebounce,
+      () => unawaited(_runUsernameCheck(trimmed)),
+    );
+  }
+
+  Future<void> _runUsernameCheck(String username) async {
+    if (_isDisposed) return;
+    if (!serverReady && _state != RegistrationState.checkingServer) return;
+
+    final generation = ++_usernameCheckGeneration;
+    _usernameAvailability = UsernameAvailability.checking;
+    _notify();
+
+    try {
+      final available =
+          await authRepository.checkUsernameAvailability(username);
+      if (_isDisposed || generation != _usernameCheckGeneration) return;
+      _usernameAvailability = (available ?? false)
+          ? UsernameAvailability.available
+          : UsernameAvailability.taken;
+      _usernameError = _usernameAvailability == UsernameAvailability.taken
+          ? 'This username is already taken'
+          : null;
+    } on MatrixException catch (e) {
+      if (_isDisposed || generation != _usernameCheckGeneration) return;
+      if (_usernameErrcodes.contains(e.errcode)) {
+        _usernameAvailability = UsernameAvailability.taken;
+        _usernameError = _humanReadableError(e);
+      } else {
+        // The endpoint is optional and rate limited; stay quiet and let
+        // the register call be the authority.
+        _usernameAvailability = UsernameAvailability.unknown;
+      }
+    } catch (_) {
+      if (_isDisposed || generation != _usernameCheckGeneration) return;
+      _usernameAvailability = UsernameAvailability.unknown;
+    }
+    _notify();
+  }
+
+  /// Records the password being typed and refreshes [passwordAssessment].
+  void onPasswordChanged(String password) {
+    final assessment = assessPassword(password);
+    if (assessment.strength == _passwordAssessment.strength &&
+        assessment.suggestions.length == _passwordAssessment.suggestions.length &&
+        _passwordError == null) {
+      _passwordAssessment = assessment;
+      return;
+    }
+    _passwordAssessment = assessment;
+    _passwordError = null;
+    _notify();
+  }
+
+  void _resetUsernameAvailability() {
+    _usernameCheckDebounceTimer?.cancel();
+    _usernameCheckGeneration++;
+    _usernameAvailability = UsernameAvailability.unknown;
   }
 
   // ── Form submission ─────────────────────────────────────────────
@@ -172,10 +351,14 @@ class RegistrationController extends ChangeNotifier {
     _usernameError = null;
     _passwordError = null;
     _tokenError = null;
+    _emailError = null;
     _error = null;
 
-    if (username.trim().isEmpty) {
-      _usernameError = 'Please enter a username';
+    final trimmedUsername = username.trim();
+    final usernameProblem = validateLocalpart(trimmedUsername);
+    if (usernameProblem != null) {
+      _usernameError = usernameProblem;
+      _usernameAvailability = UsernameAvailability.invalid;
       _notify();
       return;
     }
@@ -184,8 +367,15 @@ class RegistrationController extends ChangeNotifier {
       _notify();
       return;
     }
-    if (password.length < 8) {
-      _passwordError = 'Password must be at least 8 characters';
+    if (password.length < kMinimumPasswordLength) {
+      _passwordError =
+          'Password must be at least $kMinimumPasswordLength characters';
+      _notify();
+      return;
+    }
+    _passwordAssessment = assessPassword(password);
+    if (_passwordAssessment.suggestions.contains('Avoid common passwords')) {
+      _passwordError = 'This password is too common — pick another';
       _notify();
       return;
     }
@@ -195,7 +385,7 @@ class RegistrationController extends ChangeNotifier {
       return;
     }
 
-    _username = username.trim();
+    _username = trimmedUsername;
     _password = password;
     _token = token.trim();
 
@@ -259,10 +449,18 @@ class RegistrationController extends ChangeNotifier {
         return;
       }
 
-      // Route username/password errors to their respective fields
-      // so they display inline rather than as a generic error.
+      // Route field-specific errors to their own inputs so they display
+      // inline rather than as a generic error.
       if (_isUsernameError(e.errcode)) {
         _usernameError = _humanReadableError(e);
+        _usernameAvailability = UsernameAvailability.taken;
+        _state = RegistrationState.formReady;
+      } else if (_isEmailError(e.errcode)) {
+        _emailError = _humanReadableError(e);
+        _emailSid = null;
+        _state = RegistrationState.enterEmail;
+      } else if (_isTokenError(e.errcode)) {
+        _tokenError = _humanReadableError(e);
         _state = RegistrationState.formReady;
       } else {
         _state = RegistrationState.error;
@@ -304,7 +502,16 @@ class RegistrationController extends ChangeNotifier {
         );
         return;
       case AuthenticationTypes.emailIdentity:
-        _state = RegistrationState.enterEmail;
+        if (_emailSid != null) {
+          // The link has not been followed yet — the server still rejects
+          // the threepid, so keep waiting rather than asking again.
+          _state = RegistrationState.awaitingEmailVerification;
+          _emailError =
+              'We could not confirm that address yet. Open the link in the '
+              'email, then try again.';
+        } else {
+          _state = RegistrationState.enterEmail;
+        }
       case AuthenticationTypes.recaptcha:
         _state = RegistrationState.recaptcha;
       case 'm.login.terms':
@@ -339,6 +546,130 @@ class RegistrationController extends ChangeNotifier {
       if (aSupported != bSupported) return aSupported ? a : b;
       return aRemaining.length <= bRemaining.length ? a : b;
     });
+  }
+
+  // ── Email identity submission ─────────────────────────────────
+
+  static final RegExp _emailPattern =
+      RegExp(r'^[^@\s]+@[^@\s.]+(\.[^@\s.]+)+$');
+
+  /// Requests a verification email for [email] and waits for the user to
+  /// follow the link it contains.
+  Future<void> submitEmail(String email) async {
+    if (_state != RegistrationState.enterEmail) return;
+
+    final trimmed = email.trim();
+    _emailError = null;
+
+    if (trimmed.isEmpty) {
+      _emailError = 'Please enter an email address';
+      _notify();
+      return;
+    }
+    if (!_emailPattern.hasMatch(trimmed)) {
+      _emailError = 'Please enter a valid email address';
+      _notify();
+      return;
+    }
+
+    _emailAddress = trimmed;
+    _emailClientSecret = _generateClientSecret();
+    _emailSid = null;
+    _emailSendAttempt = 0;
+
+    await _requestEmailToken();
+  }
+
+  /// Asks the homeserver to send the verification email again.
+  Future<void> resendVerificationEmail() async {
+    if (_state != RegistrationState.awaitingEmailVerification) return;
+    if (_emailAddress.isEmpty || _emailClientSecret == null) return;
+    await _requestEmailToken();
+  }
+
+  Future<void> _requestEmailToken() async {
+    final clientSecret = _emailClientSecret;
+    if (clientSecret == null) return;
+
+    _emailSending = true;
+    _emailError = null;
+    _notify();
+
+    try {
+      final response = await authRepository.requestTokenToRegisterEmail(
+        clientSecret: clientSecret,
+        email: _emailAddress,
+        sendAttempt: ++_emailSendAttempt,
+      );
+      if (_isDisposed) return;
+      _emailSid = response.sid;
+      _emailSending = false;
+      _state = RegistrationState.awaitingEmailVerification;
+      debugPrint('[Kohera] Verification email requested for registration');
+      _notify();
+    } on MatrixException catch (e) {
+      if (_isDisposed) return;
+      _emailSending = false;
+      _emailError = _humanReadableError(e);
+      _state = RegistrationState.enterEmail;
+      _notify();
+    } catch (e) {
+      if (_isDisposed) return;
+      _emailSending = false;
+      _emailError = _friendlyError(e);
+      _state = RegistrationState.enterEmail;
+      _notify();
+    }
+  }
+
+  /// Tells the homeserver the email link has been followed, completing the
+  /// `m.login.email_identity` stage.
+  Future<void> confirmEmailVerified() async {
+    if (_state != RegistrationState.awaitingEmailVerification) return;
+
+    final sid = _emailSid;
+    final clientSecret = _emailClientSecret;
+    if (sid == null || clientSecret == null) {
+      _state = RegistrationState.enterEmail;
+      _emailError = 'Please request a verification email first';
+      _notify();
+      return;
+    }
+
+    _emailError = null;
+    await _attemptRegister(
+      auth: _EmailIdentityAuth(
+        session: _session,
+        sid: sid,
+        clientSecret: clientSecret,
+      ),
+    );
+  }
+
+  /// Discards the pending address so a different one can be entered.
+  void changeEmailAddress() {
+    if (_state != RegistrationState.awaitingEmailVerification) return;
+    _emailSid = null;
+    _emailClientSecret = null;
+    _emailSendAttempt = 0;
+    _emailAddress = '';
+    _emailError = null;
+    _state = RegistrationState.enterEmail;
+    _notify();
+  }
+
+  static const String _clientSecretAlphabet =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+  static String _generateClientSecret() {
+    final random = Random.secure();
+    return String.fromCharCodes(
+      List.generate(
+        32,
+        (_) => _clientSecretAlphabet
+            .codeUnitAt(random.nextInt(_clientSecretAlphabet.length)),
+      ),
+    );
   }
 
   // ── reCAPTCHA submission ──────────────────────────────────────
@@ -398,6 +729,7 @@ class RegistrationController extends ChangeNotifier {
 
   Future<void> submitTerms() async {
     if (_state != RegistrationState.acceptTerms) return;
+    if (!allPoliciesAccepted) return;
 
     await _attemptRegister(
       auth: AuthenticationData(
@@ -415,8 +747,20 @@ class RegistrationController extends ChangeNotifier {
     'M_EXCLUSIVE',
   };
 
+  static const _emailErrcodes = {
+    'M_THREEPID_IN_USE',
+    'M_THREEPID_DENIED',
+    'M_THREEPID_NOT_FOUND',
+    'M_THREEPID_AUTH_FAILED',
+  };
+
   bool _isUsernameError(String? errcode) =>
       _usernameErrcodes.contains(errcode);
+
+  bool _isEmailError(String? errcode) => _emailErrcodes.contains(errcode);
+
+  bool _isTokenError(String? errcode) =>
+      errcode == 'M_UNAUTHORIZED' && requiresToken;
 
   String _humanReadableError(MatrixException e) {
     switch (e.errcode) {
@@ -432,6 +776,22 @@ class RegistrationController extends ChangeNotifier {
         return 'This email is already registered';
       case 'M_THREEPID_DENIED':
         return 'This email domain is not allowed';
+      case 'M_THREEPID_NOT_FOUND':
+        return 'That email address could not be verified';
+      case 'M_THREEPID_AUTH_FAILED':
+        return 'Open the link in the email, then try again';
+      case 'M_UNAUTHORIZED':
+        return requiresToken
+            ? 'This registration token was not accepted'
+            : e.errorMessage;
+      case 'M_LIMIT_EXCEEDED':
+        final retryMs = e.retryAfterMs;
+        return retryMs == null
+            ? 'Too many attempts — please wait and try again'
+            : 'Too many attempts — please wait '
+                '${(retryMs / 1000).ceil()}s and try again';
+      case 'M_WEAK_PASSWORD':
+        return 'This server rejected the password as too weak';
       default:
         return e.errorMessage;
     }
@@ -456,6 +816,13 @@ class RegistrationController extends ChangeNotifier {
     _flows = [];
     _completedStages = [];
     _uiaParams = {};
+    _acceptedPolicyUrls.clear();
+    _emailSid = null;
+    _emailClientSecret = null;
+    _emailSendAttempt = 0;
+    _emailAddress = '';
+    _emailError = null;
+    _emailSending = false;
     _error = null;
     _state = RegistrationState.formReady;
     _notify();
@@ -467,6 +834,7 @@ class RegistrationController extends ChangeNotifier {
     _username = '';
     _password = '';
     _token = '';
+    _emailClientSecret = null;
   }
 
   void _notify() {
@@ -478,6 +846,8 @@ class RegistrationController extends ChangeNotifier {
   @override
   void dispose() {
     _isDisposed = true;
+    _usernameCheckDebounceTimer?.cancel();
+    _usernameCheckDebounceTimer = null;
     _recaptchaServer?.dispose();
     _recaptchaServer = null;
     _clearCredentials();
@@ -513,6 +883,30 @@ class _RegistrationTokenAuth extends AuthenticationData {
   Map<String, Object?> toJson() {
     final data = super.toJson();
     data['token'] = _token;
+    return data;
+  }
+}
+
+/// [AuthenticationData] subclass for the `m.login.email_identity` UIA stage.
+class _EmailIdentityAuth extends AuthenticationData {
+  final String _sid;
+  final String _clientSecret;
+
+  _EmailIdentityAuth({
+    required String sid,
+    required String clientSecret,
+    super.session,
+  })  : _sid = sid,
+        _clientSecret = clientSecret,
+        super(type: AuthenticationTypes.emailIdentity);
+
+  @override
+  Map<String, Object?> toJson() {
+    final data = super.toJson();
+    data['threepid_creds'] = {
+      'sid': _sid,
+      'client_secret': _clientSecret,
+    };
     return data;
   }
 }
