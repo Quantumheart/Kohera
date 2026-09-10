@@ -1,10 +1,9 @@
 import 'package:clock/clock.dart';
-import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/core/utils/word_boundary.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
+import 'package:kohera/data/utils/event_preview.dart';
 import 'package:kohera/features/notifications/enum/inbox_filter.dart';
 import 'package:kohera/features/notifications/models/kohera_notification_item.dart';
-import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/models/notification_group.dart';
 import 'package:kohera/features/notifications/models/thread_sub_group.dart';
 import 'package:matrix/matrix.dart' as matrix_sdk;
@@ -18,7 +17,7 @@ class NotificationGrouper {
   PushRepository _pushRepo;
   set pushRepository(PushRepository value) => _pushRepo = value;
 
-  final Map<String, Map<String, Object?>> _decryptedContent = {};
+  final Map<String, Event> _decryptedEvents = {};
 
   // ── Thread-root preview cache ─────────────────────────────
   // Moved here from _SubGroupSectionState so it is scoped to the active
@@ -30,7 +29,7 @@ class NotificationGrouper {
   static const _negativeCacheTtl = Duration(seconds: 30);
 
   Map<String, Object?>? decryptedContentFor(String eventId) =>
-      _decryptedContent[eventId];
+      _decryptedEvents[eventId]?.content;
 
   String? rootPreviewFor(String eventId) => _rootPreviewCache[eventId];
 
@@ -38,7 +37,7 @@ class NotificationGrouper {
       _rootPreviewCache[eventId] = preview;
 
   void clearCache() {
-    _decryptedContent.clear();
+    _decryptedEvents.clear();
     _rootPreviewCache.clear();
     _decryptionFailedAt.clear();
   }
@@ -46,7 +45,7 @@ class NotificationGrouper {
   // ── Queries ────────────────────────────────────────────────
 
   String? threadRootIdFor(matrix_sdk.Notification n) {
-    final content = _decryptedContent[n.event.eventId] ?? n.event.content;
+    final content = _decryptedEvents[n.event.eventId]?.content ?? n.event.content;
     final relatesTo = content['m.relates_to'];
     if (relatesTo is Map &&
         relatesTo['rel_type'] == matrix_sdk.RelationshipTypes.thread) {
@@ -61,7 +60,7 @@ class NotificationGrouper {
     if (userId == null) return false;
     if (_hasHighlightAction(n.actions)) return true;
 
-    final content = _decryptedContent[n.event.eventId] ?? n.event.content;
+    final content = _decryptedEvents[n.event.eventId]?.content ?? n.event.content;
     final mentions = content['m.mentions'];
     if (mentions is Map) {
       final userIds = mentions['user_ids'];
@@ -111,7 +110,8 @@ class NotificationGrouper {
     }
 
     return [
-      for (final bucket in _bucketByRecency(items, (n) => n.roomId))
+      for (final bucket
+          in _bucketByRecency(_collapseCalls(items), (n) => n.roomId))
         NotificationGroup(
           roomId: bucket.key,
           roomName: _pushRepo.getRoom(bucket.key)?.getLocalizedDisplayname() ??
@@ -119,6 +119,27 @@ class NotificationGrouper {
           notifications: bucket.value,
           subGroups: _buildSubGroups(bucket.value),
         ),
+    ];
+  }
+
+  /// Collapses call-membership churn: within each room+thread, keeps only the
+  /// most recent call event so one call renders as one row instead of one row
+  /// per membership state change.
+  List<KoheraNotificationItem> _collapseCalls(
+    List<KoheraNotificationItem> items,
+  ) {
+    final newestCall = <String, int>{};
+    for (final item in items) {
+      if (!item.isCall) continue;
+      final key = '${item.roomId}|${item.threadRootId ?? ''}';
+      final ts = newestCall[key];
+      if (ts == null || item.timestamp > ts) newestCall[key] = item.timestamp;
+    }
+    return [
+      for (final item in items)
+        if (!item.isCall ||
+            item.timestamp == newestCall['${item.roomId}|${item.threadRootId ?? ''}'])
+          item,
     ];
   }
 
@@ -137,15 +158,20 @@ class NotificationGrouper {
   }
 
   KoheraNotificationItem _toItem(matrix_sdk.Notification n) {
-    final content = _decryptedContent[n.event.eventId] ?? n.event.content;
+    final room = _pushRepo.getRoom(n.roomId);
+    final event = _decryptedEvents[n.event.eventId] ??
+        (room != null ? Event.fromMatrixEvent(n.event, room) : null);
     return KoheraNotificationItem(
       eventId: n.event.eventId,
       roomId: n.roomId,
       senderName: _senderName(n),
-      body: _extractBody(content),
+      body: event != null && room != null
+          ? eventPreviewText(event, room: room, myUserId: _pushRepo.userId)
+          : '',
       timestamp: n.ts,
       isRead: n.read,
       isMention: isMention(n),
+      isCall: event != null && isCallEvent(event),
       threadRootId: threadRootIdFor(n),
     );
   }
@@ -155,19 +181,6 @@ class NotificationGrouper {
     return room?.unsafeGetUserFromMemoryOrFallback(n.event.senderId)
             .calcDisplayname() ??
         n.event.senderId;
-  }
-
-  String _extractBody(Map<String, Object?> content) {
-    final msgtype = content['msgtype'];
-    if (msgtype == matrix_sdk.MessageTypes.Image) return InboxText.mediaImage;
-    if (msgtype == matrix_sdk.MessageTypes.Video) return InboxText.mediaVideo;
-    if (msgtype == matrix_sdk.MessageTypes.Audio) return InboxText.mediaAudio;
-    if (msgtype == matrix_sdk.MessageTypes.File) return InboxText.mediaFile;
-
-    final body = content['body'];
-    if (body is String) return stripReplyFallback(body);
-
-    return '';
   }
 
   List<ThreadSubGroup> _buildSubGroups(List<KoheraNotificationItem> items) {
@@ -203,26 +216,24 @@ class NotificationGrouper {
     return [for (final key in order) MapEntry(key, buckets[key]!)];
   }
 
-  Future<Map<String, Object?>?> _tryDecrypt(matrix_sdk.Notification n) async {
-    if (n.event.type != EventTypes.Encrypted) return null;
+  Future<void> _tryDecrypt(matrix_sdk.Notification n) async {
+    if (n.event.type != EventTypes.Encrypted) return;
     final eventId = n.event.eventId;
-    final cached = _decryptedContent[eventId];
-    if (cached != null) return cached;
-    if (_isFailureCached(eventId)) return null;
+    if (_decryptedEvents.containsKey(eventId)) return;
+    if (_isFailureCached(eventId)) return;
     final room = _pushRepo.getRoom(n.roomId);
-    if (room == null) return null;
+    if (room == null) return;
     try {
       final event = Event.fromMatrixEvent(n.event, room);
       final decrypted = await _pushRepo.decryptRoomEvent(room, event)
           .timeout(const Duration(seconds: 3));
       if (decrypted != null) {
-        _decryptedContent[eventId] = decrypted.content;
+        _decryptedEvents[eventId] = decrypted;
         _decryptionFailedAt.remove(eventId);
-        return decrypted.content;
+        return;
       }
     } catch (_) {}
     _decryptionFailedAt[eventId] = clock.now();
-    return null;
   }
 
   bool _isFailureCached(String eventId) {

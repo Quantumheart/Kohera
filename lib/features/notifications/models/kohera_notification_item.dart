@@ -6,6 +6,7 @@ class KoheraNotificationItem {
   final int timestamp;
   final bool isRead;
   final bool isMention;
+  final bool isCall;
   final String? threadRootId;
 
   const KoheraNotificationItem({
@@ -16,6 +17,7 @@ class KoheraNotificationItem {
     required this.timestamp,
     required this.isRead,
     required this.isMention,
+    required this.isCall,
     required this.threadRootId,
   });
 }
