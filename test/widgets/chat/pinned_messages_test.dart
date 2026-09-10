@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/services/draft_store.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
@@ -17,6 +18,7 @@ import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
@@ -90,6 +92,7 @@ Widget _buildChatWidget({
       ChangeNotifierProvider(create: (ctx) => StickerPackRepository(clientService: MatrixClientService(ctx.read<MatrixService>().matrixClientService.client))),
       ChangeNotifierProvider<RoomRepository>(create: (_) => RoomRepository(clientService: mockMatrix.matrixClientService)),
       ChangeNotifierProvider<MessageRepository>(create: (_) => MessageRepository(clientService: mockMatrix.matrixClientService, clientName: 'test')),
+      Provider<DraftStore>(create: (_) => DraftStore(clientName: 'test')),
       ChangeNotifierProvider<UserRepository>(create: (_) => UserRepository(clientService: mockMatrix.matrixClientService)),
     ],
     child: MaterialApp(
@@ -113,6 +116,7 @@ void main() {
   late SpaceTreeRepository selectionService;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     mockClient = MockClient();
     mockMatrix = MockMatrixService();
     mockRoom = MockRoom();

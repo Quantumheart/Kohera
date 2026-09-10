@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/account_session.dart';
+import 'package:kohera/core/services/draft_store.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
@@ -22,6 +23,7 @@ import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/matrix_service_test.mocks.dart' show MockFlutterSecureStorage;
 import 'chat_screen_test.mocks.dart';
@@ -113,6 +115,7 @@ void main() {
   late CachedStreamController<SyncUpdate> syncController;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     mockClient = MockClient();
     mockRoom = MockRoom();
     mockTimeline = MockTimeline();
@@ -180,6 +183,7 @@ void main() {
         ChangeNotifierProvider<SpaceTreeRepository>.value(value: matrixService.spaceTree),
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider(create: (_) => PreferencesService()),
+        Provider<DraftStore>(create: (_) => DraftStore(clientName: 'test')),
         ChangeNotifierProvider(create: (_) => MediaPlaybackService()),
         ChangeNotifierProvider(
           create: (ctx) =>
