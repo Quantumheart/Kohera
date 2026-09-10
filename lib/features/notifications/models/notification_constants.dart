@@ -67,10 +67,6 @@ abstract class InboxText {
   static const sectionRooms = 'Rooms';
   static const tooltipMarkAsRead = 'Mark as read';
   static const tooltipOpen = 'Open';
-  static const mediaImage = '📷 Image';
-  static const mediaVideo = '🎥 Video';
-  static const mediaAudio = '🎵 Audio';
-  static const mediaFile = '📎 File';
   static const loadMore = 'Load more';
   static const inThread = 'in thread';
   static const mentionInThread = '@you in thread';
