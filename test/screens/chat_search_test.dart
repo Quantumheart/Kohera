@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/core/services/draft_store.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
@@ -18,6 +19,7 @@ import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 @GenerateNiceMocks([
   MockSpec<Client>(),
@@ -43,6 +45,7 @@ void main() {
     // matching the test expectations. The default 800px width would
     // trigger the side panel layout on wide screens.
     final binding = TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
     binding.platformDispatcher.views.first.physicalSize =
         const Size(600, 1200);
     binding.platformDispatcher.views.first.devicePixelRatio = 1.0;
@@ -100,6 +103,7 @@ void main() {
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
         ChangeNotifierProvider<RoomRepository>.value(value: mockRoomRepository),
         ChangeNotifierProvider<MessageRepository>(create: (_) => MessageRepository(clientService: mockMatrix.matrixClientService, clientName: 'test')),
+        Provider<DraftStore>(create: (_) => DraftStore(clientName: 'test')),
         ChangeNotifierProvider<SpaceTreeRepository>.value(value: selectionService),
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
