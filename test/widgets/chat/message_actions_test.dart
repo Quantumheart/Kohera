@@ -130,7 +130,7 @@ Widget _buildChatWidget({
       ChangeNotifierProvider<MessageRepository>(
         create: (_) => MessageRepository(clientService: mockMatrix.matrixClientService, clientName: 'test'),
       ),
-      Provider<DraftStore>(create: (_) => DraftStore(clientName: 'test')),
+      ChangeNotifierProvider<DraftStore>(create: (_) => DraftStore(clientName: 'test')),
     ],
     child: MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),

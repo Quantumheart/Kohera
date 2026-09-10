@@ -92,7 +92,7 @@ Widget _buildChatWidget({
       ChangeNotifierProvider(create: (ctx) => StickerPackRepository(clientService: MatrixClientService(ctx.read<MatrixService>().matrixClientService.client))),
       ChangeNotifierProvider<RoomRepository>(create: (_) => RoomRepository(clientService: mockMatrix.matrixClientService)),
       ChangeNotifierProvider<MessageRepository>(create: (_) => MessageRepository(clientService: mockMatrix.matrixClientService, clientName: 'test')),
-      Provider<DraftStore>(create: (_) => DraftStore(clientName: 'test')),
+      ChangeNotifierProvider<DraftStore>(create: (_) => DraftStore(clientName: 'test')),
       ChangeNotifierProvider<UserRepository>(create: (_) => UserRepository(clientService: mockMatrix.matrixClientService)),
     ],
     child: MaterialApp(

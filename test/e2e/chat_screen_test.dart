@@ -183,7 +183,7 @@ void main() {
         ChangeNotifierProvider<SpaceTreeRepository>.value(value: matrixService.spaceTree),
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider(create: (_) => PreferencesService()),
-        Provider<DraftStore>(create: (_) => DraftStore(clientName: 'test')),
+        ChangeNotifierProvider<DraftStore>(create: (_) => DraftStore(clientName: 'test')),
         ChangeNotifierProvider(create: (_) => MediaPlaybackService()),
         ChangeNotifierProvider(
           create: (ctx) =>

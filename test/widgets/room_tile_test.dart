@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/core/services/draft_store.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
@@ -158,6 +159,9 @@ void main() {
         ChangeNotifierProvider<CallService>.value(value: mockCallService),
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),
         ChangeNotifierProvider<UserRepository>.value(value: userRepo),
+        ChangeNotifierProvider<DraftStore>(
+          create: (_) => DraftStore(clientName: 'test'),
+        ),
       ],
       child: MaterialApp.router(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
@@ -309,6 +313,59 @@ void main() {
 
       expect(find.text('Bob is typing'), findsNothing);
       expect(find.text('Last msg'), findsOneWidget);
+    });
+  });
+
+  // ── Draft indicator ───────────────────────────────────────
+
+  group('Draft indicator', () {
+    testWidgets('shows draft text in place of the last message',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'draft:test:!room:example.com': '{"t":"unsent reply","c":11}',
+      });
+      final sp = await SharedPreferences.getInstance();
+      prefs = PreferencesService(prefs: sp);
+
+      await tester.pumpWidget(
+        buildTestWidget(summary: _summary(lastEventPreview: 'Last msg')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Draft: '), findsOneWidget);
+      expect(find.text('unsent reply'), findsOneWidget);
+      expect(find.text('Last msg'), findsNothing);
+    });
+
+    testWidgets('shows last message when there is no draft', (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final sp = await SharedPreferences.getInstance();
+      prefs = PreferencesService(prefs: sp);
+
+      await tester.pumpWidget(
+        buildTestWidget(summary: _summary(lastEventPreview: 'Last msg')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Draft: '), findsNothing);
+      expect(find.text('Last msg'), findsOneWidget);
+    });
+
+    testWidgets('typing takes precedence over a draft', (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'typing_indicators': true,
+        'draft:test:!room:example.com': '{"t":"unsent","c":6}',
+      });
+      final sp = await SharedPreferences.getInstance();
+      prefs = PreferencesService(prefs: sp);
+
+      await tester.pumpWidget(
+        buildTestWidget(summary: _summary(typingDisplayNames: ['Bob'])),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bob is typing'), findsOneWidget);
+      expect(find.text('Draft: '), findsNothing);
     });
   });
 
