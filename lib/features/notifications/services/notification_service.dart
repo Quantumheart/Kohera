@@ -124,10 +124,14 @@ class NotificationService {
     }
 
     if (defaultTargetPlatform == TargetPlatform.android) {
-      await _plugin
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.requestNotificationsPermission();
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      await android?.requestNotificationsPermission();
+      // Remove the pre-v2 channel; its sound is baked in and cannot be
+      // updated, so custom sound only applies to the new channel id.
+      await android?.deleteNotificationChannel(
+        channelId: NotificationChannel.androidLegacyChannelId,
+      );
     }
 
     debugPrint('[Kohera] NotificationService initialized');
@@ -549,6 +553,11 @@ class NotificationService {
       importance: Importance.high,
       priority: Priority.high,
       playSound: preferencesService.notificationSoundEnabled,
+      sound: preferencesService.notificationSoundEnabled
+          ? const RawResourceAndroidNotificationSound(
+              NotificationChannel.androidSoundResource,
+            )
+          : null,
       enableVibration: preferencesService.notificationVibrationEnabled,
       groupKey: NotificationChannel.androidGroupKey,
       subText: useSubtitleLayout ? subtitle : null,

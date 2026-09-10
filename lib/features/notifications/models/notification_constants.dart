@@ -5,10 +5,12 @@ abstract class NotificationChannel {
   static const String appName = BrandConstants.appName;
   static const windowsGuid = 'ef82b5e7-fd65-431d-bcbb-9c7fa9acb761';
 
-  static const androidChannelId = 'kohera_messages';
+  static const androidChannelId = 'kohera_messages_v2';
+  static const androidLegacyChannelId = 'kohera_messages';
   static const androidChannelName = 'Messages';
   static const androidChannelDescription = 'Chat message notifications';
   static const androidGroupKey = 'io.github.quantumheart.kohera.MESSAGES';
+  static const androidSoundResource = 'notification';
 
   static const linuxSoundName = 'message-new-instant';
   static const linuxDesktopEntry = 'kohera';
