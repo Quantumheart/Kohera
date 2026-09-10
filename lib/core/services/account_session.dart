@@ -2,6 +2,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/services/auth_service.dart';
 import 'package:kohera/core/services/client_avatar_resolver.dart';
 import 'package:kohera/core/services/client_media_resolver.dart';
+import 'package:kohera/core/services/draft_store.dart';
 import 'package:kohera/core/services/secure_storage.dart';
 import 'package:kohera/core/services/sync_service.dart';
 import 'package:kohera/core/state/key_backup_setup_state.dart';
@@ -102,6 +103,7 @@ class AccountSession {
       onLogoutCleanup: () async {
         await keyBackupRepository.deleteStoredRecoveryKey();
         await keyBackupSetupState.deleteDismissalState();
+        await DraftStore.clearAccount(clientName);
       },
     );
     avatarResolver = ClientAvatarResolver(_matrixClientService);

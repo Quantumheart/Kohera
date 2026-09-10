@@ -12,6 +12,7 @@ import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
+import 'package:kohera/core/services/draft_store.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
@@ -109,6 +110,11 @@ class _ChatScreenState extends State<ChatScreen>
   // ── Compose state ───────────────────────────────────────
   final _compose = ComposeStateController();
 
+  // ── Draft persistence ───────────────────────────────────
+  DraftStore? _draftStore;
+  Timer? _draftSaveDebounce;
+  static const _draftSaveDelay = Duration(milliseconds: 500);
+
   /// Whether the inline emoji & sticker panel is shown above the compose bar.
   bool _emojiPanelOpen = false;
 
@@ -163,6 +169,9 @@ class _ChatScreenState extends State<ChatScreen>
     _actions = _createActions();
     _search = _createSearchController();
     _initControllers();
+    _draftStore = context.read<DraftStore>();
+    _msgCtrl.addListener(_scheduleDraftSave);
+    unawaited(_loadDraft());
     _composeFocusNode.addListener(_onComposeFocusChanged);
     unawaited(_timelineController.init());
     // Lazily index this room's history for encrypted-room search.
@@ -208,6 +217,44 @@ class _ChatScreenState extends State<ChatScreen>
     if (_composeFocusNode.hasFocus && _emojiPanelOpen) {
       setState(() => _emojiPanelOpen = false);
     }
+  }
+
+  // ── Draft persistence ───────────────────────────────────
+
+  Future<void> _loadDraft() async {
+    final store = _draftStore;
+    if (store == null) return;
+    final draft = await store.read(widget.roomId);
+    // Skip restore if the read lost the race to the user starting to type.
+    if (!mounted || draft == null || _msgCtrl.text.isNotEmpty) return;
+    _msgCtrl.value = TextEditingValue(
+      text: draft.text,
+      selection: TextSelection.collapsed(
+        offset: draft.caret.clamp(0, draft.text.length),
+      ),
+    );
+  }
+
+  void _scheduleDraftSave() {
+    _draftSaveDebounce?.cancel();
+    _draftSaveDebounce = Timer(_draftSaveDelay, _persistDraft);
+  }
+
+  void _persistDraft() {
+    final store = _draftStore;
+    if (store == null) return;
+    final text = _msgCtrl.text;
+    if (text.trim().isEmpty) {
+      unawaited(store.clear(widget.roomId));
+      return;
+    }
+    final caret = _msgCtrl.selection.baseOffset;
+    unawaited(
+      store.write(
+        widget.roomId,
+        Draft(text: text, caret: caret < 0 ? text.length : caret),
+      ),
+    );
   }
 
   @override
@@ -1092,6 +1139,9 @@ class _ChatScreenState extends State<ChatScreen>
     unawaited(_webPasteSub?.cancel() ?? Future.value());
     unawaited(_threadCountSyncSub?.cancel() ?? Future.value());
     _threadCountDebounce?.cancel();
+    _draftSaveDebounce?.cancel();
+    _persistDraft();
+    _msgCtrl.removeListener(_scheduleDraftSave);
     _msgCtrl.dispose();
     _compose.dispose();
     _searchCtrl.dispose();
