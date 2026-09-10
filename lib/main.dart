@@ -10,6 +10,7 @@ import 'package:kohera/core/routing/app_router.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/deep_link_service.dart';
+import 'package:kohera/core/services/draft_store.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
@@ -365,6 +366,9 @@ ShareIntakeController? _shareIntake;
                   ),
                   ChangeNotifierProvider<StickerPackRepository>.value(
                     value: matrix.session.stickerPackRepository,
+                  ),
+                  Provider<DraftStore>(
+                    create: (_) => DraftStore(clientName: matrix.clientName),
                   ),
                   ChangeNotifierProvider<PushRepository>(
                     create: (ctx) => PushRepository(
