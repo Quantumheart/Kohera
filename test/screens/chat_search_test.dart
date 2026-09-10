@@ -103,7 +103,7 @@ void main() {
         ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
         ChangeNotifierProvider<RoomRepository>.value(value: mockRoomRepository),
         ChangeNotifierProvider<MessageRepository>(create: (_) => MessageRepository(clientService: mockMatrix.matrixClientService, clientName: 'test')),
-        Provider<DraftStore>(create: (_) => DraftStore(clientName: 'test')),
+        ChangeNotifierProvider<DraftStore>(create: (_) => DraftStore(clientName: 'test')),
         ChangeNotifierProvider<SpaceTreeRepository>.value(value: selectionService),
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),

@@ -44,6 +44,27 @@ void main() {
     });
   });
 
+  group('draftText and notifications', () {
+    test('draftText returns text once prefs are ready', () async {
+      await store.write('!room:server', const Draft(text: 'hi there', caret: 0));
+      expect(store.draftText('!room:server'), 'hi there');
+    });
+
+    test('draftText is null after a clear', () async {
+      await store.write('!room:server', const Draft(text: 'hi', caret: 0));
+      await store.clear('!room:server');
+      expect(store.draftText('!room:server'), isNull);
+    });
+
+    test('notifies listeners on write and clear', () async {
+      var notifications = 0;
+      store.addListener(() => notifications++);
+      await store.write('!room:server', const Draft(text: 'hi', caret: 0));
+      await store.clear('!room:server');
+      expect(notifications, greaterThanOrEqualTo(2));
+    });
+  });
+
   group('account scoping', () {
     test('different accounts do not share drafts', () async {
       final bob = DraftStore(clientName: 'bob');
