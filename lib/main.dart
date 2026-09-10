@@ -367,7 +367,7 @@ ShareIntakeController? _shareIntake;
                   ChangeNotifierProvider<StickerPackRepository>.value(
                     value: matrix.session.stickerPackRepository,
                   ),
-                  Provider<DraftStore>(
+                  ChangeNotifierProvider<DraftStore>(
                     create: (_) => DraftStore(clientName: matrix.clientName),
                   ),
                   ChangeNotifierProvider<PushRepository>(

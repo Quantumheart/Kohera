@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
+import 'package:kohera/core/services/draft_store.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
@@ -257,7 +258,18 @@ class _RoomTileState extends State<RoomTile> {
                             ],
                           ),
                           const SizedBox(height: 2),
-                          _buildSubtitle(context, prefs, summary, cs, tt),
+                          Selector<DraftStore, String?>(
+                            selector: (_, store) =>
+                                store.draftText(summary.roomId),
+                            builder: (context, draftText, _) => _buildSubtitle(
+                              context,
+                              prefs,
+                              summary,
+                              cs,
+                              tt,
+                              draftText,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -366,6 +378,7 @@ class _RoomTileState extends State<RoomTile> {
     KoheraRoomSummary summary,
     ColorScheme cs,
     TextTheme tt,
+    String? draftText,
   ) {
     if (summary.typingDisplayNames.isNotEmpty && prefs.typingIndicators) {
       return Text(
@@ -376,6 +389,29 @@ class _RoomTileState extends State<RoomTile> {
           color: cs.primary,
           fontStyle: FontStyle.italic,
         ),
+      );
+    }
+    if (draftText != null && draftText.isNotEmpty) {
+      return Row(
+        children: [
+          Text(
+            'Draft: ',
+            style: tt.bodyMedium?.copyWith(
+              color: cs.error,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              draftText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: tt.bodyMedium?.copyWith(
+                color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+              ),
+            ),
+          ),
+        ],
       );
     }
     final previewText = Text(

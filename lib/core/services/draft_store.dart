@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -28,21 +29,44 @@ class Draft {
 /// Keys are namespaced by client name so each account keeps its own drafts and
 /// [clearAccount] can wipe them on logout. Storage is plaintext, matching the
 /// SDK database that already holds each room's decrypted history.
-class DraftStore {
+class DraftStore extends ChangeNotifier {
   DraftStore({required this.clientName, Future<SharedPreferences>? prefs})
-      : _prefs = prefs ?? SharedPreferences.getInstance();
+      : _prefs = prefs ?? SharedPreferences.getInstance() {
+    unawaited(_prefs.then((p) {
+      _cache = p;
+      _safeNotify();
+    }));
+  }
+
+  bool _disposed = false;
+
+  /// Notifies listeners unless the store has been disposed. A pending async
+  /// [write]/[clear] can resolve after the owning provider tears the store down
+  /// on account switch; notifying then would throw.
+  void _safeNotify() {
+    if (!_disposed) notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 
   static const _prefix = 'draft';
 
   final String clientName;
   final Future<SharedPreferences> _prefs;
 
+  /// Resolved [SharedPreferences] once ready, enabling synchronous reads for
+  /// the room list. Null until the async instance lands, during which
+  /// [draftText] reports no draft.
+  SharedPreferences? _cache;
+
   static String _key(String clientName, String roomId) =>
       '$_prefix:$clientName:$roomId';
 
-  Future<Draft?> read(String roomId) async {
-    final prefs = await _prefs;
-    final raw = prefs.getString(_key(clientName, roomId));
+  Draft? _decode(String? raw) {
     if (raw == null) return null;
     try {
       final json = jsonDecode(raw);
@@ -52,17 +76,31 @@ class DraftStore {
     }
   }
 
+  /// The stored draft text for [roomId], or null when there is none. Synchronous
+  /// so tiles can read it during build; drives the room-list draft indicator.
+  String? draftText(String roomId) =>
+      _decode(_cache?.getString(_key(clientName, roomId)))?.text;
+
+  Future<Draft?> read(String roomId) async {
+    final prefs = await _prefs;
+    return _decode(prefs.getString(_key(clientName, roomId)));
+  }
+
   Future<void> write(String roomId, Draft draft) async {
     final prefs = await _prefs;
+    _cache = prefs;
     await prefs.setString(
       _key(clientName, roomId),
       jsonEncode(draft.toJson()),
     );
+    _safeNotify();
   }
 
   Future<void> clear(String roomId) async {
     final prefs = await _prefs;
+    _cache = prefs;
     await prefs.remove(_key(clientName, roomId));
+    _safeNotify();
   }
 
   /// Removes every draft belonging to [clientName]. Called on logout so an
