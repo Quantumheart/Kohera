@@ -2567,7 +2567,7 @@ class MockRoom extends _i1.Mock implements _i2.Room {
     String? mxID, {
     bool? ignoreErrors = false,
     bool? requestState = true,
-    bool? requestProfile = true,
+    bool? requestProfile,
   }) =>
       (super.noSuchMethod(
             Invocation.method(

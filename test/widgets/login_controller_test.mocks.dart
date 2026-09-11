@@ -770,6 +770,24 @@ class MockClient extends _i1.Mock implements _i3.Client {
           as Duration);
 
   @override
+  bool get autoRequestProfileForMissingUsers =>
+      (super.noSuchMethod(
+            Invocation.getter(#autoRequestProfileForMissingUsers),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get getDisplayNameAndAvatarFromPrevContent =>
+      (super.noSuchMethod(
+            Invocation.getter(#getDisplayNameAndAvatarFromPrevContent),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   Duration get typingIndicatorTimeout =>
       (super.noSuchMethod(
             Invocation.getter(#typingIndicatorTimeout),
@@ -816,15 +834,6 @@ class MockClient extends _i1.Mock implements _i3.Client {
             returnValueForMissingStub: <_i3.Room>[],
           )
           as List<_i3.Room>);
-
-  @override
-  List<_i3.ArchivedRoom> get archivedRooms =>
-      (super.noSuchMethod(
-            Invocation.getter(#archivedRooms),
-            returnValue: <_i3.ArchivedRoom>[],
-            returnValueForMissingStub: <_i3.ArchivedRoom>[],
-          )
-          as List<_i3.ArchivedRoom>);
 
   @override
   bool get enableDehydratedDevices =>
@@ -985,17 +994,6 @@ class MockClient extends _i1.Mock implements _i3.Client {
             ),
           )
           as _i4.CachedStreamController<String>);
-
-  @override
-  _i6.Future<List<_i3.Room>> get archive =>
-      (super.noSuchMethod(
-            Invocation.getter(#archive),
-            returnValue: _i6.Future<List<_i3.Room>>.value(<_i3.Room>[]),
-            returnValueForMissingStub: _i6.Future<List<_i3.Room>>.value(
-              <_i3.Room>[],
-            ),
-          )
-          as _i6.Future<List<_i3.Room>>);
 
   @override
   _i4.CachedStreamController<_i3.EventUpdate> get onEvent =>
@@ -2426,20 +2424,6 @@ class MockClient extends _i1.Mock implements _i3.Client {
             ),
           )
           as _i6.Future<_i3.Profile>);
-
-  @override
-  _i3.ArchivedRoom? getArchiveRoomFromCache(String? roomId) =>
-      (super.noSuchMethod(
-            Invocation.method(#getArchiveRoomFromCache, [roomId]),
-            returnValueForMissingStub: null,
-          )
-          as _i3.ArchivedRoom?);
-
-  @override
-  void clearArchivesFromCache() => super.noSuchMethod(
-    Invocation.method(#clearArchivesFromCache, []),
-    returnValueForMissingStub: null,
-  );
 
   @override
   _i6.Future<List<_i3.Room>> loadArchive() =>

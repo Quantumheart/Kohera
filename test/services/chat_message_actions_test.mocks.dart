@@ -1826,7 +1826,7 @@ class MockRoom extends _i1.Mock implements _i2.Room {
     String? mxID, {
     bool? ignoreErrors = false,
     bool? requestState = true,
-    bool? requestProfile = true,
+    bool? requestProfile,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
@@ -3516,6 +3516,24 @@ class MockClient extends _i1.Mock implements _i2.Client {
           as Duration);
 
   @override
+  bool get autoRequestProfileForMissingUsers =>
+      (super.noSuchMethod(
+            Invocation.getter(#autoRequestProfileForMissingUsers),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get getDisplayNameAndAvatarFromPrevContent =>
+      (super.noSuchMethod(
+            Invocation.getter(#getDisplayNameAndAvatarFromPrevContent),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   Duration get typingIndicatorTimeout =>
       (super.noSuchMethod(
             Invocation.getter(#typingIndicatorTimeout),
@@ -3562,15 +3580,6 @@ class MockClient extends _i1.Mock implements _i2.Client {
             returnValueForMissingStub: <_i2.Room>[],
           )
           as List<_i2.Room>);
-
-  @override
-  List<_i2.ArchivedRoom> get archivedRooms =>
-      (super.noSuchMethod(
-            Invocation.getter(#archivedRooms),
-            returnValue: <_i2.ArchivedRoom>[],
-            returnValueForMissingStub: <_i2.ArchivedRoom>[],
-          )
-          as List<_i2.ArchivedRoom>);
 
   @override
   bool get enableDehydratedDevices =>
@@ -3731,17 +3740,6 @@ class MockClient extends _i1.Mock implements _i2.Client {
             ),
           )
           as _i3.CachedStreamController<String>);
-
-  @override
-  _i6.Future<List<_i2.Room>> get archive =>
-      (super.noSuchMethod(
-            Invocation.getter(#archive),
-            returnValue: _i6.Future<List<_i2.Room>>.value(<_i2.Room>[]),
-            returnValueForMissingStub: _i6.Future<List<_i2.Room>>.value(
-              <_i2.Room>[],
-            ),
-          )
-          as _i6.Future<List<_i2.Room>>);
 
   @override
   _i3.CachedStreamController<_i2.EventUpdate> get onEvent =>
@@ -5172,20 +5170,6 @@ class MockClient extends _i1.Mock implements _i2.Client {
             ),
           )
           as _i6.Future<_i2.Profile>);
-
-  @override
-  _i2.ArchivedRoom? getArchiveRoomFromCache(String? roomId) =>
-      (super.noSuchMethod(
-            Invocation.method(#getArchiveRoomFromCache, [roomId]),
-            returnValueForMissingStub: null,
-          )
-          as _i2.ArchivedRoom?);
-
-  @override
-  void clearArchivesFromCache() => super.noSuchMethod(
-    Invocation.method(#clearArchivesFromCache, []),
-    returnValueForMissingStub: null,
-  );
 
   @override
   _i6.Future<List<_i2.Room>> loadArchive() =>
