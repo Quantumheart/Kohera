@@ -1017,8 +1017,8 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: f3a9f95f
-      resolved-ref: f3a9f95f6193c5698f1fa7a486b22bc77bfac10a
+      ref: "8700d36f"
+      resolved-ref: "8700d36f58c82050f4e992f314eae4671251f6fe"
       url: "https://github.com/Quantumheart/matrix-dart-sdk.git"
     source: git
     version: "12.0.2"
