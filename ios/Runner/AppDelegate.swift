@@ -10,6 +10,7 @@ import Intents
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate, CallkitIncomingAppDelegate, PKPushRegistryDelegate {
   private var apnsChannel: FlutterMethodChannel?
+  private var lifecycleChannel: FlutterMethodChannel?
   private var pendingPushPayloads: [[AnyHashable: Any]] = []
   private var pendingNotificationActions: [(action: String, roomId: String, eventId: String?, replyText: String?)] = []
   private var channelReady = false
@@ -55,6 +56,38 @@ import Intents
 
   override func applicationDidBecomeActive(_ application: UIApplication) {
     application.applicationIconBadgeNumber = 0
+  }
+
+  // Open a background-task window on entering the background so Flutter can
+  // drain any in-flight Matrix→sqflite write and release the DB lock before
+  // iOS suspends us. Without this the RunningBoard watchdog kills the process
+  // mid-commit with `0xdead10cc`.
+  override func applicationDidEnterBackground(_ application: UIApplication) {
+    guard let channel = lifecycleChannel else { return }
+
+    var taskId: UIBackgroundTaskIdentifier = .invalid
+    var ended = false
+    let endTask = {
+      guard !ended else { return }
+      ended = true
+      if taskId != .invalid {
+        application.endBackgroundTask(taskId)
+        taskId = .invalid
+      }
+    }
+
+    taskId = application.beginBackgroundTask(withName: "KoheraQuiesce") {
+      endTask()
+    }
+
+    channel.invokeMethod("quiesce", arguments: nil) { _ in
+      endTask()
+    }
+
+    // Safety net: never hold the task open past the OS budget if Dart stalls.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 25) {
+      endTask()
+    }
   }
 
   override func userNotificationCenter(
@@ -217,6 +250,8 @@ import Intents
         result(FlutterMethodNotImplemented)
       }
     }
+
+    lifecycleChannel = FlutterMethodChannel(name: "kohera/lifecycle", binaryMessenger: messenger)
 
     voipChannel = FlutterMethodChannel(name: "kohera/voip", binaryMessenger: messenger)
     voipChannel?.setMethodCallHandler { [weak self] (call, result) in

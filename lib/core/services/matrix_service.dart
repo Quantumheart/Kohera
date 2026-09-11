@@ -175,6 +175,21 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// Drains any in-flight Matrix→SQLite write and stops syncing, awaited to
+  /// completion. Driven by the native background-task window on iOS so the DB
+  /// write-lock is released before the OS suspends us — prevents the
+  /// `0xdead10cc` RunningBoard watchdog kill. `sync.pause()` calls the SDK's
+  /// `abortSync()`, which awaits the current sync transaction before returning.
+  Future<void> quiesceForSuspension() async {
+    _pauseDebounce?.cancel();
+    _pauseDebounce = null;
+    try {
+      await sync.pause();
+    } catch (e) {
+      debugPrint('[Kohera] Quiesce for suspension failed: $e');
+    }
+  }
+
   @override
   void dispose() {
     _disposed = true;
