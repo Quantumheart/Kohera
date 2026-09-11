@@ -8991,6 +8991,18 @@ class MockKeyManager extends _i1.Mock implements _i8.KeyManager {
           as _i5.Future<void>);
 
   @override
+  _i5.Future<void> persistInboundGroupSession(
+    String? roomId,
+    String? sessionId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#persistInboundGroupSession, [roomId, sessionId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
   _i19.SessionKey? getInboundGroupSession(String? roomId, String? sessionId) =>
       (super.noSuchMethod(
             Invocation.method(#getInboundGroupSession, [roomId, sessionId]),

@@ -1016,11 +1016,12 @@ packages:
   matrix:
     dependency: "direct main"
     description:
-      name: matrix
-      sha256: "3ac935337962776a730035ca6c059fb2b27c3a535ebd1491d6b4f8226d98d04f"
-      url: "https://pub.dev"
-    source: hosted
-    version: "12.0.1"
+      path: "."
+      ref: f3a9f95f
+      resolved-ref: f3a9f95f6193c5698f1fa7a486b22bc77bfac10a
+      url: "https://github.com/Quantumheart/matrix-dart-sdk.git"
+    source: git
+    version: "12.0.2"
   media_kit:
     dependency: "direct main"
     description:
@@ -2021,11 +2022,12 @@ packages:
   vodozemac:
     dependency: "direct main"
     description:
-      name: vodozemac
-      sha256: efce261575f7de97ebd052b16775cd57f940e8212af47d288050c166b9f9a167
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.8.0"
+      path: dart
+      ref: "412b996"
+      resolved-ref: "412b996b8d5c3ba1d4b43c57f737aa2a5299e3ae"
+      url: "https://github.com/Quantumheart/dart-vodozemac.git"
+    source: git
+    version: "0.8.2"
   wakelock_plus:
     dependency: transitive
     description:

@@ -103,3 +103,12 @@ dependency_overrides:
     git:
       url: https://github.com/Quantumheart/flutter-webrtc.git
       ref: "ef1ff97"
+  matrix:
+    git:
+      url: https://github.com/Quantumheart/matrix-dart-sdk.git
+      ref: "f3a9f95f"
+  vodozemac:
+    git:
+      url: https://github.com/Quantumheart/dart-vodozemac.git
+      ref: "412b996"
+      path: dart
