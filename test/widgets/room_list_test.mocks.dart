@@ -2449,6 +2449,24 @@ class MockClient extends _i1.Mock implements _i17.Client {
           as Duration);
 
   @override
+  bool get autoRequestProfileForMissingUsers =>
+      (super.noSuchMethod(
+            Invocation.getter(#autoRequestProfileForMissingUsers),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get getDisplayNameAndAvatarFromPrevContent =>
+      (super.noSuchMethod(
+            Invocation.getter(#getDisplayNameAndAvatarFromPrevContent),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   Duration get typingIndicatorTimeout =>
       (super.noSuchMethod(
             Invocation.getter(#typingIndicatorTimeout),
@@ -2495,15 +2513,6 @@ class MockClient extends _i1.Mock implements _i17.Client {
             returnValueForMissingStub: <_i17.Room>[],
           )
           as List<_i17.Room>);
-
-  @override
-  List<_i17.ArchivedRoom> get archivedRooms =>
-      (super.noSuchMethod(
-            Invocation.getter(#archivedRooms),
-            returnValue: <_i17.ArchivedRoom>[],
-            returnValueForMissingStub: <_i17.ArchivedRoom>[],
-          )
-          as List<_i17.ArchivedRoom>);
 
   @override
   bool get enableDehydratedDevices =>
@@ -2664,17 +2673,6 @@ class MockClient extends _i1.Mock implements _i17.Client {
             ),
           )
           as _i18.CachedStreamController<String>);
-
-  @override
-  _i20.Future<List<_i17.Room>> get archive =>
-      (super.noSuchMethod(
-            Invocation.getter(#archive),
-            returnValue: _i20.Future<List<_i17.Room>>.value(<_i17.Room>[]),
-            returnValueForMissingStub: _i20.Future<List<_i17.Room>>.value(
-              <_i17.Room>[],
-            ),
-          )
-          as _i20.Future<List<_i17.Room>>);
 
   @override
   _i18.CachedStreamController<_i17.EventUpdate> get onEvent =>
@@ -4114,20 +4112,6 @@ class MockClient extends _i1.Mock implements _i17.Client {
             ),
           )
           as _i20.Future<_i17.Profile>);
-
-  @override
-  _i17.ArchivedRoom? getArchiveRoomFromCache(String? roomId) =>
-      (super.noSuchMethod(
-            Invocation.method(#getArchiveRoomFromCache, [roomId]),
-            returnValueForMissingStub: null,
-          )
-          as _i17.ArchivedRoom?);
-
-  @override
-  void clearArchivesFromCache() => super.noSuchMethod(
-    Invocation.method(#clearArchivesFromCache, []),
-    returnValueForMissingStub: null,
-  );
 
   @override
   _i20.Future<List<_i17.Room>> loadArchive() =>
@@ -9601,7 +9585,7 @@ class MockRoom extends _i1.Mock implements _i17.Room {
     String? mxID, {
     bool? ignoreErrors = false,
     bool? requestState = true,
-    bool? requestProfile = true,
+    bool? requestProfile,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
