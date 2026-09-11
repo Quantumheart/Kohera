@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/client_factory.dart';
@@ -42,7 +43,9 @@ class ClientManager extends ChangeNotifier {
              ),
            ),
        _prefs = prefs,
-       _serviceFactory = serviceFactory;
+       _serviceFactory = serviceFactory {
+    _registerLifecycleBridge();
+  }
 
   static const _clientNamesKey = 'kohera_client_names';
 
@@ -279,10 +282,36 @@ class ClientManager extends ChangeNotifier {
 
   @override
   void dispose() {
+    _lifecycleChannel?.setMethodCallHandler(null);
     for (final service in _services) {
       unawaited(_clientMap[service]?.dispose());
       service.dispose();
     }
     super.dispose();
   }
+
+  // ── Native suspension bridge ────────────────────────────────────
+
+  MethodChannel? _lifecycleChannel;
+
+  /// On iOS the OS suspends us shortly after backgrounding. If a Matrix→SQLite
+  /// write is still in flight the RunningBoard watchdog kills us with
+  /// `0xdead10cc`. The native `applicationDidEnterBackground` opens a
+  /// background-task window and invokes `quiesce` here; we drain every
+  /// account's in-flight DB write before acking so the write-lock is released
+  /// before suspension.
+  void _registerLifecycleBridge() {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return;
+    const channel = MethodChannel('kohera/lifecycle');
+    _lifecycleChannel = channel;
+    channel.setMethodCallHandler((call) async {
+      if (call.method == 'quiesce') {
+        await quiesceAllForSuspension();
+      }
+      return null;
+    });
+  }
+
+  Future<void> quiesceAllForSuspension() =>
+      Future.wait(_services.map((s) => s.quiesceForSuspension()));
 }
