@@ -28,6 +28,20 @@ jobs:
             echo "::error::Notification Service Extension must not import CallKit or PushKit"
             exit 1
           fi
+      - name: Verify vodozemac ref parity (pubspec / Dockerfile / prepare-web.sh)
+        run: |
+          pubspec_ref=$(grep -A2 'dart-vodozemac.git' pubspec.yaml | grep 'ref:' | head -1 | tr -d ' "' | cut -d: -f2)
+          docker_ref=$(grep 'ARG VODOZEMAC_REF=' Dockerfile | cut -d= -f2)
+          script_ref=$(grep '^ref=' scripts/prepare-web.sh | cut -d= -f2)
+          echo "pubspec=$pubspec_ref docker=$docker_ref script=$script_ref"
+          if [ "$docker_ref" != "$script_ref" ]; then
+            echo "::error::Dockerfile ($docker_ref) and prepare-web.sh ($script_ref) vodozemac refs differ"
+            exit 1
+          fi
+          case "$docker_ref" in
+            "$pubspec_ref"*) ;;
+            *) echo "::error::Web WASM ref ($docker_ref) does not match pubspec.yaml override ($pubspec_ref); the flutter_rust_bridge handshake will fail at runtime"; exit 1 ;;
+          esac
 
   test:
     runs-on: ubuntu-latest
@@ -122,3 +136,20 @@ jobs:
           flutter precache --ios
           pod install --repo-update
       - run: flutter build ios --no-codesign --release --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
+
+  build-web:
+    needs: [analyze, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build web image (compiles vodozemac WASM from the pinned ref)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          build-args: |
+            GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
