@@ -93,7 +93,7 @@ class ComposeBar extends StatefulWidget {
   State<ComposeBar> createState() => _ComposeBarState();
 }
 
-class _ComposeBarState extends State<ComposeBar> {
+class _ComposeBarState extends State<ComposeBar> with WidgetsBindingObserver {
   static final bool _isMacOS = defaultTargetPlatform == TargetPlatform.macOS;
   FocusNode? _ownedFocusNode;
   FocusNode get _focusNode =>
@@ -109,6 +109,14 @@ class _ComposeBarState extends State<ComposeBar> {
     widget.controller.addListener(_onTextChangedForTyping);
     widget.controller.addListener(_onTextChangedForPreview);
     _focusNode.addListener(_onFocusChanged);
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed && _focusNode.hasFocus) {
+      _focusNode.unfocus();
+    }
   }
 
   @override
@@ -152,6 +160,7 @@ class _ComposeBarState extends State<ComposeBar> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     widget.controller.removeListener(_onTextChangedForTyping);
     widget.controller.removeListener(_onTextChangedForPreview);
     _previewDebounce?.cancel();
