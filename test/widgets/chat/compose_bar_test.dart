@@ -54,6 +54,7 @@ Widget _wrap({
   VoidCallback? onGif,
   OpenGraphService? openGraphService,
   MentionAutocompleteController? mentionController,
+  FocusNode? focusNode,
 }) {
   final bar = ComposeBar(
     controller: controller,
@@ -67,6 +68,7 @@ Widget _wrap({
     onRemoveAttachment: (_) {},
     onClearAttachments: () {},
     onGif: onGif,
+    focusNode: focusNode,
   );
 
   final withPrefs = ChangeNotifierProvider<PreferencesService>.value(
@@ -311,6 +313,31 @@ void main() {
       await tester.pump();
 
       verifyNever(mockTyping.onTextChanged(any));
+    });
+
+    testWidgets('compose bar unfocuses when app is backgrounded',
+        (tester) async {
+      final focusNode = FocusNode();
+      addTearDown(focusNode.dispose);
+
+      await tester.pumpWidget(
+        _wrap(
+          controller: controller,
+          onSend: () {},
+          focusNode: focusNode,
+        ),
+      );
+
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
+      expect(focusNode.hasFocus, isTrue);
+
+      tester.binding.handleAppLifecycleStateChanged(
+        AppLifecycleState.paused,
+      );
+      await tester.pump();
+
+      expect(focusNode.hasFocus, isFalse);
     });
   });
 
