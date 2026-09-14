@@ -106,7 +106,7 @@ dependency_overrides:
   matrix:
     git:
       url: https://github.com/Quantumheart/matrix-dart-sdk.git
-      ref: "8700d36f"
+      ref: "a436fac"
   vodozemac:
     git:
       url: https://github.com/Quantumheart/dart-vodozemac.git
