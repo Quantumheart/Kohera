@@ -119,6 +119,24 @@ void main() {
     });
   });
 
+  group('close to tray', () {
+    test('closeToTray defaults to false', () {
+      expect(prefs.closeToTray, isFalse);
+    });
+
+    test('closeToTray round-trips true', () async {
+      await prefs.setCloseToTray(true);
+      expect(prefs.closeToTray, isTrue);
+    });
+
+    test('closeToTray notifies listeners', () async {
+      var notified = false;
+      prefs.addListener(() => notified = true);
+      await prefs.setCloseToTray(true);
+      expect(notified, isTrue);
+    });
+  });
+
   group('read receipts', () {
     test('readReceipts defaults to true', () {
       expect(prefs.readReceipts, isTrue);

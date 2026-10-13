@@ -671,4 +671,31 @@ void main() {
       ),).called(1);
     });
   });
+
+  group('navigateToRoom', () {
+    test('reveals the window before selecting the room', () {
+      final calls = <String>[];
+      final revealing = NotificationService(
+        matrixService: mockMatrix,
+        pushRepository:
+            PushRepository(clientService: mockMatrix.matrixClientService),
+        preferencesService: prefs,
+        plugin: mockPlugin,
+        revealWindow: () async => calls.add('reveal'),
+      );
+      selectionController.addListener(() => calls.add('select'));
+
+      revealing.navigateToRoom(roomId);
+
+      expect(calls, ['reveal', 'select']);
+      expect(selectionController.selectedRoomId, roomId);
+      revealing.dispose();
+    });
+
+    test('selects the room without a reveal callback', () {
+      service.navigateToRoom(roomId);
+
+      expect(selectionController.selectedRoomId, roomId);
+    });
+  });
 }

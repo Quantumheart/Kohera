@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kohera/core/services/desktop_tray_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
@@ -23,6 +24,7 @@ class NotificationLifecycleObserver extends StatefulWidget {
     required this.callService,
     required this.router,
     required this.child,
+    this.desktopTrayService,
     super.key,
   });
 
@@ -31,6 +33,7 @@ class NotificationLifecycleObserver extends StatefulWidget {
   final PreferencesService preferencesService;
   final CallService callService;
   final GoRouter router;
+  final DesktopTrayService? desktopTrayService;
   final Widget child;
 
   @override
@@ -48,12 +51,14 @@ class _NotificationLifecycleObserverState
   bool _wasLoggedIn = false;
   String? _lastSelectedRoomId;
   Object? _focusListenerHandle;
+  StreamSubscription<Object?>? _unreadSyncSub;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.matrixService.addListener(_onMatrixChanged);
+    _listenForTrayUnread();
     unawaited(_initServices());
     if (kIsWeb) {
       _focusListenerHandle = registerWindowFocusListeners(
@@ -69,6 +74,7 @@ class _NotificationLifecycleObserverState
       pushRepository: widget.pushRepository,
       preferencesService: widget.preferencesService,
       router: widget.router,
+      revealWindow: widget.desktopTrayService?.revealWindow,
     );
     await notificationService.init();
 
@@ -139,6 +145,21 @@ class _NotificationLifecycleObserverState
         .syncNotificationLevel(widget.preferencesService.notificationLevel);
   }
 
+  void _listenForTrayUnread() {
+    unawaited(_unreadSyncSub?.cancel());
+    _unreadSyncSub = null;
+    final tray = widget.desktopTrayService;
+    if (tray == null || !tray.isSupported) return;
+    tray.setUnreadCount(_currentUnreadCount());
+    _unreadSyncSub = widget.pushRepository.onSync.listen((_) {
+      tray.setUnreadCount(_currentUnreadCount());
+    });
+  }
+
+  int _currentUnreadCount() => widget.matrixService.isLoggedIn
+      ? widget.pushRepository.unreadNotificationCount()
+      : 0;
+
   void _onMatrixChanged() {
     final roomId = widget.matrixService.selectionController.selectedRoomId;
     if (roomId != null && roomId != _lastSelectedRoomId) {
@@ -161,6 +182,10 @@ class _NotificationLifecycleObserverState
   @override
   void didUpdateWidget(covariant NotificationLifecycleObserver old) {
     super.didUpdateWidget(old);
+    if (old.pushRepository != widget.pushRepository ||
+        old.desktopTrayService != widget.desktopTrayService) {
+      _listenForTrayUnread();
+    }
     if (old.matrixService != widget.matrixService) {
       old.matrixService.removeListener(_onMatrixChanged);
       widget.matrixService.addListener(_onMatrixChanged);
@@ -192,6 +217,7 @@ class _NotificationLifecycleObserverState
         }
         unawaited(_syncGlobalPushRules());
       } else {
+        widget.desktopTrayService?.setUnreadCount(0);
         _notificationService?.stopListening();
         unawaited(_notificationService?.cancelAll());
         unawaited(_pushService?.unregister());
@@ -207,6 +233,7 @@ class _NotificationLifecycleObserverState
     WidgetsBinding.instance.removeObserver(this);
     widget.matrixService.removeListener(_onMatrixChanged);
     unregisterWindowFocusListeners(_focusListenerHandle);
+    unawaited(_unreadSyncSub?.cancel());
     _notificationService?.dispose();
     _pushService?.dispose();
     _apnsPushService?.dispose();

@@ -590,6 +590,18 @@ class PreferencesService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Desktop window ────────────────────────────────────────────
+
+  static const _closeToTrayKey = 'close_to_tray';
+
+  bool get closeToTray => _prefs?.getBool(_closeToTrayKey) ?? false;
+
+  Future<void> setCloseToTray(bool value) async {
+    await _prefs?.setBool(_closeToTrayKey, value);
+    debugPrint('[Kohera] Close to tray ${value ? "enabled" : "disabled"}');
+    notifyListeners();
+  }
+
   // ── Voice & video ─────────────────────────────────────────────
 
   static const _autoMuteOnJoinKey = 'auto_mute_on_join';
