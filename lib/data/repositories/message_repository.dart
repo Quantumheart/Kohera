@@ -144,7 +144,7 @@ class MessageRepository extends ChangeNotifier {
       _indexer.indexingProgressFor(roomId);
 
   /// The FTS5 search index, for the local-search query path.
-  MessageSearchDatabase get searchDatabase => _indexer.database;
+  SearchIndex get searchDatabase => _indexer.database;
 
   @override
   void notifyListeners() {
