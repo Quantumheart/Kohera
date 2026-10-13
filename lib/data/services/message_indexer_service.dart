@@ -4,6 +4,7 @@ import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/message_search_database.dart';
+import 'package:kohera/data/services/search_index_worker.dart';
 import 'package:matrix/matrix.dart';
 
 /// Indexes decrypted message content into a local FTS5 database so
@@ -28,12 +29,12 @@ class MessageIndexerService extends ChangeNotifier {
   MessageIndexerService({
     required MatrixClientService matrixClientService,
     required String clientName,
-    MessageSearchDatabase? databaseOverride,
+    SearchIndex? databaseOverride,
   })  : _matrixClientService = matrixClientService,
-        _db = databaseOverride ?? MessageSearchDatabase(clientName: clientName);
+        _db = databaseOverride ?? IsolatedSearchIndex(clientName: clientName);
 
   final MatrixClientService _matrixClientService;
-  final MessageSearchDatabase _db;
+  final SearchIndex _db;
 
   bool _started = false;
   bool _disposed = false;
@@ -70,9 +71,18 @@ class MessageIndexerService extends ChangeNotifier {
   Future<void>? _drainFuture;
 
   static const maxPendingDecryptionsPerRoom = 1000;
+
+  /// Wall-clock work budget between event-loop yields during backfill.
+  /// Roughly one 60fps frame, so input dispatch is never starved.
+  static const _yieldBudgetMs = 12;
+
+  /// Per-event decrypt ceiling. A local megolm decrypt is sub-millisecond;
+  /// anything slower means the session key is missing and the event gets
+  /// queued for retry via [_markPending].
+  static const _decryptTimeout = Duration(milliseconds: 50);
   final Map<String, Set<String>> _pendingDecryptions = {};
 
-  MessageSearchDatabase get database => _db;
+  SearchIndex get database => _db;
 
   // ── Lifecycle ─────────────────────────────────────────────
 
@@ -121,8 +131,9 @@ class MessageIndexerService extends ChangeNotifier {
     try {
       _subscribeToRoomKeys(room);
       var eventCount = 0;
-      const chunkSize = 500;
+      const chunkSize = 50;
       var offset = 0;
+      final budget = Stopwatch()..start();
 
       while (!_disposed) {
         List<Event> events;
@@ -142,6 +153,18 @@ class MessageIndexerService extends ChangeNotifier {
 
         final batch = <IndexedMessage>[];
         for (final event in events) {
+          // Decryption runs on this isolate — it needs the client's live
+          // megolm session store, which cannot cross an isolate boundary.
+          //
+          // Yield on a wall-clock budget, not an event count: a single
+          // undecryptable event can burn the full decrypt timeout, so N
+          // events is not a bound on elapsed time. One frame budget keeps
+          // the platform message loop dispatching input events.
+          if (budget.elapsedMilliseconds >= _yieldBudgetMs) {
+            budget.reset();
+            await Future<void>.delayed(Duration.zero);
+            if (_disposed) return;
+          }
           if (event.redacted) continue;
           final decrypted = await _decryptIfNeeded(event);
           if (decrypted.type == EventTypes.Encrypted) {
@@ -240,12 +263,14 @@ class MessageIndexerService extends ChangeNotifier {
   }
 
   Future<void> _indexEventBatch(Room room, List<MatrixEvent> rawEvents) async {
+    final batch = <IndexedMessage>[];
+    final redactedIds = <String>[];
     for (final raw in rawEvents) {
       final event = Event.fromMatrixEvent(raw, room);
       if (event.type == EventTypes.Redaction) {
         final redacts = event.redacts;
         if (redacts != null) {
-          await _db.remove(redacts);
+          redactedIds.add(redacts);
         }
         continue;
       }
@@ -260,12 +285,22 @@ class MessageIndexerService extends ChangeNotifier {
       }
       final indexed = _toIndexedMessage(decrypted);
       if (indexed == null) continue;
-      if (event.relationshipType == RelationshipTypes.edit) {
-        await _db.remove(indexed.eventId);
-      }
-      await _db.upsert(indexed);
-      _safeNotify();
+      // An edit is stored under the original event_id. upsertBatch deletes
+      // by event_id before inserting, so it already supersedes the original.
+      batch.add(indexed);
     }
+    if (redactedIds.isEmpty && batch.isEmpty) return;
+    // Write first, then redact. A message and its redaction can arrive in
+    // the same sync batch, and the redaction must win regardless of order.
+    if (batch.isNotEmpty) {
+      await _db.upsertBatch(batch);
+    }
+    for (final eventId in redactedIds) {
+      await _db.remove(eventId);
+    }
+    // One batched write and one notify per sync update, not per event.
+    // Per-event notify rebuilt every listening widget N times per sync.
+    _safeNotify();
   }
 
   // ── Decryption helpers ────────────────────────────────────
@@ -277,7 +312,7 @@ class MessageIndexerService extends ChangeNotifier {
     try {
       return await encryption
           .decryptRoomEvent(event)
-          .timeout(const Duration(milliseconds: 500));
+          .timeout(_decryptTimeout);
     } catch (_) {
       return event;
     }

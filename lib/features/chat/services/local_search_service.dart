@@ -38,7 +38,7 @@ class LocalSearchService {
   });
 
   final Client searchClient;
-  final MessageSearchDatabase database;
+  final SearchIndex database;
 
   /// Optional accessor for the room's live [Timeline], used to aggregate edits
   /// (and reply/thread relations) when resolving matched messages and their

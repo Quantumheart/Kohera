@@ -6,6 +6,55 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart' as sqflite_native;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+/// Read/write surface of the local FTS5 message index.
+///
+/// Two implementations exist: [MessageSearchDatabase] talks to sqflite on
+/// the current isolate, and `IsolatedSearchIndex` proxies the same calls to
+/// a worker isolate. Production uses the worker so SQLite never blocks the
+/// UI isolate; tests inject [MessageSearchDatabase] directly against an
+/// in-memory database.
+abstract interface class SearchIndex {
+  bool get isAvailable;
+
+  Future<void> upsert(IndexedMessage message);
+
+  Future<void> upsertBatch(List<IndexedMessage> messages);
+
+  Future<void> remove(String eventId);
+
+  Future<void> removeRoom(String roomId);
+
+  Future<List<IndexedMessage>> search({
+    required String query,
+    String? roomId,
+    String? senderId,
+    int? startTs,
+    int? endTs,
+    int limit,
+    int offset,
+  });
+
+  Future<int> count({
+    String? roomId,
+    String? query,
+    String? senderId,
+    int? startTs,
+    int? endTs,
+  });
+
+  Future<int> countAll();
+
+  Future<bool> isRoomIndexed(String roomId);
+
+  Future<Set<String>> indexedRoomIds();
+
+  Future<void> markRoomIndexed(String roomId, int eventCount);
+
+  Future<void> clear();
+
+  Future<void> close();
+}
+
 class IndexedMessage {
   const IndexedMessage({
     required this.eventId,
@@ -74,7 +123,7 @@ class IndexedRoom {
       );
 }
 
-class MessageSearchDatabase {
+class MessageSearchDatabase implements SearchIndex {
   MessageSearchDatabase({required this.clientName, Database? overrideDb})
       : _override = overrideDb,
         _isAvailable = overrideDb != null || !kIsWeb;
@@ -84,6 +133,8 @@ class MessageSearchDatabase {
   Database? _db;
 
   bool _isAvailable;
+
+  @override
   bool get isAvailable => _isAvailable;
 
   Future<Database> _open() async {
@@ -210,6 +261,7 @@ class MessageSearchDatabase {
 
   // ── FTS5 message operations ───────────────────────────────
 
+  @override
   Future<void> upsert(IndexedMessage message) async {
     if (!_isAvailable) return;
     final db = await _open();
@@ -223,6 +275,7 @@ class MessageSearchDatabase {
     });
   }
 
+  @override
   Future<void> upsertBatch(List<IndexedMessage> messages) async {
     if (!_isAvailable || messages.isEmpty) return;
     final db = await _open();
@@ -238,6 +291,7 @@ class MessageSearchDatabase {
     });
   }
 
+  @override
   Future<void> remove(String eventId) async {
     if (!_isAvailable) return;
     final db = await _open();
@@ -248,6 +302,7 @@ class MessageSearchDatabase {
     );
   }
 
+  @override
   Future<void> removeRoom(String roomId) async {
     if (!_isAvailable) return;
     final db = await _open();
@@ -268,6 +323,7 @@ class MessageSearchDatabase {
   /// Searches the FTS5 index for [query], optionally narrowed by [roomId],
   /// [senderId], and/or a date range ([startTs]/[endTs] in milliseconds
   /// since epoch, inclusive).
+  @override
   Future<List<IndexedMessage>> search({
     required String query,
     String? roomId,
@@ -310,6 +366,7 @@ class MessageSearchDatabase {
   /// Counts matches for [query], optionally narrowed by [roomId],
   /// [senderId], and/or a date range ([startTs]/[endTs] in milliseconds
   /// since epoch, inclusive).
+  @override
   Future<int> count({
     String? roomId,
     String? query,
@@ -348,6 +405,7 @@ class MessageSearchDatabase {
     return (rows.first['c'] as int?) ?? 0;
   }
 
+  @override
   Future<int> countAll() async {
     if (!_isAvailable) return 0;
     final db = await _open();
@@ -360,6 +418,7 @@ class MessageSearchDatabase {
   /// Returns `true` if [roomId] has been fully indexed (backfill completed).
   /// This is a quick O(1) primary-key lookup — far cheaper than
   /// `SELECT COUNT(*) FROM message_search`.
+  @override
   Future<bool> isRoomIndexed(String roomId) async {
     if (!_isAvailable) return false;
     final db = await _open();
@@ -373,6 +432,7 @@ class MessageSearchDatabase {
   }
 
   /// Returns the set of room_ids that have been indexed.
+  @override
   Future<Set<String>> indexedRoomIds() async {
     if (!_isAvailable) return {};
     final db = await _open();
@@ -381,6 +441,7 @@ class MessageSearchDatabase {
   }
 
   /// Marks [roomId] as fully indexed with [eventCount] events.
+  @override
   Future<void> markRoomIndexed(String roomId, int eventCount) async {
     if (!_isAvailable) return;
     final db = await _open();
@@ -397,6 +458,7 @@ class MessageSearchDatabase {
 
   // ── Legacy / maintenance operations ──────────────────────
 
+  @override
   Future<void> clear() async {
     if (!_isAvailable) return;
     final db = await _open();
@@ -413,6 +475,7 @@ class MessageSearchDatabase {
     await _createSchema(db);
   }
 
+  @override
   Future<void> close() async {
     if (_override != null) return;
     await _db?.close();
