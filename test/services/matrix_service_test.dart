@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -1605,6 +1608,67 @@ void main() {
       WidgetsBinding.instance
           .handleAppLifecycleStateChanged(AppLifecycleState.detached);
       verify(mockClient.syncPresence = PresenceType.offline).called(1);
+    });
+  });
+
+  group('sync while hidden', () {
+    setUpAll(TestWidgetsFlutterBinding.ensureInitialized);
+
+    MatrixService buildService({required bool keepSyncingWhenHidden}) =>
+        MatrixService(
+          accountSession: AccountSession(
+            matrixClientService: MatrixClientService(mockClient),
+            storage: mockStorage,
+            clientName: 'test',
+          ),
+          storage: mockStorage,
+          clientName: 'test',
+          keepSyncingWhenHidden: keepSyncingWhenHidden,
+        );
+
+    for (final state in [AppLifecycleState.hidden, AppLifecycleState.paused]) {
+      test('keeps syncing when $state and keepSyncingWhenHidden is set', () {
+        fakeAsync((async) {
+          final service = buildService(keepSyncingWhenHidden: true);
+          WidgetsBinding.instance
+              .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+          unawaited(service.activateSessionForTest());
+          async.flushMicrotasks();
+          expect(service.sync.syncing, isTrue);
+
+          WidgetsBinding.instance.handleAppLifecycleStateChanged(state);
+          async
+            ..elapse(const Duration(seconds: 10))
+            ..flushMicrotasks();
+
+          verifyNever(mockClient.abortSync());
+          verify(mockClient.syncPresence = PresenceType.unavailable).called(1);
+          service.dispose();
+        });
+      });
+    }
+
+    test('pauses sync after hiding when keepSyncingWhenHidden is off', () {
+      fakeAsync((async) {
+        final service = buildService(keepSyncingWhenHidden: false);
+        WidgetsBinding.instance
+            .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+        unawaited(service.activateSessionForTest());
+        async.flushMicrotasks();
+
+        WidgetsBinding.instance
+            .handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+        async
+          ..elapse(const Duration(seconds: 2))
+          ..flushMicrotasks();
+        verifyNever(mockClient.abortSync());
+
+        async
+          ..elapse(const Duration(seconds: 2))
+          ..flushMicrotasks();
+        verify(mockClient.abortSync()).called(1);
+        service.dispose();
+      });
     });
   });
 }

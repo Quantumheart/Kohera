@@ -9,6 +9,7 @@ import 'package:kohera/core/services/sync_service.dart';
 import 'package:kohera/core/state/key_backup_setup_state.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/core/state/uia_interaction_controller.dart';
+import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
@@ -31,7 +32,9 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
     required AccountSession accountSession,
     FlutterSecureStorage? storage,
     this.clientName = 'default',
+    bool? keepSyncingWhenHidden,
   }) : _accountSession = accountSession,
+       _keepSyncingWhenHidden = keepSyncingWhenHidden ?? isNativeDesktop,
        _storage =
            storage ??
            KoheraSecureStorage(
@@ -54,6 +57,7 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
   final String clientName;
 
   final AccountSession _accountSession;
+  final bool _keepSyncingWhenHidden;
 
   StreamSubscription<LoginState>? _loginStateSub;
   bool _foregroundSyncStarted = false;
@@ -161,9 +165,11 @@ class MatrixService extends ChangeNotifier with WidgetsBindingObserver {
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:
         _pauseDebounce?.cancel();
-        _pauseDebounce = Timer(const Duration(seconds: 3), () {
-          unawaited(sync.pause());
-        });
+        if (!_keepSyncingWhenHidden) {
+          _pauseDebounce = Timer(const Duration(seconds: 3), () {
+            unawaited(sync.pause());
+          });
+        }
         _accountSession.presence.setAway();
       case AppLifecycleState.detached:
         _pauseDebounce?.cancel();
