@@ -51,6 +51,7 @@ class NotificationService {
     required this.pushRepository,
     required this.preferencesService,
     this.router,
+    this.revealWindow,
     @visibleForTesting FlutterLocalNotificationsPlugin? plugin,
   })  : _plugin = plugin ?? FlutterLocalNotificationsPlugin(),
         _useLinux = plugin == null && _isLinux;
@@ -59,6 +60,7 @@ class NotificationService {
   final PushRepository pushRepository;
   final PreferencesService preferencesService;
   final GoRouter? router;
+  final Future<void> Function()? revealWindow;
   final FlutterLocalNotificationsPlugin _plugin;
   final bool _useLinux;
 
@@ -663,6 +665,8 @@ class NotificationService {
   // ── Notification tap ─────────────────────────────────────────
 
   void navigateToRoom(String roomId) {
+    final reveal = revealWindow;
+    if (reveal != null) unawaited(reveal());
     if (router != null) {
       router!.goNamed(Routes.room, pathParameters: {RouteParams.roomId: roomId});
     } else {

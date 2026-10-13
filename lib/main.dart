@@ -10,6 +10,8 @@ import 'package:kohera/core/routing/app_router.dart';
 import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/deep_link_service.dart';
+import 'package:kohera/core/services/desktop_shell.dart';
+import 'package:kohera/core/services/desktop_tray_service.dart';
 import 'package:kohera/core/services/draft_store.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -81,6 +83,7 @@ class _KoheraAppState extends State<KoheraApp> {
   AvatarCacheService? _avatarCacheService;
 ShareIntakeController? _shareIntake;
   DeepLinkService? _deepLinkService;
+  DesktopTrayService? _desktopTray;
 
   @override
   void initState() {
@@ -124,6 +127,12 @@ ShareIntakeController? _shareIntake;
       await prefs.init();
       if (!mounted) return;
       _applySplashTheme(prefs);
+
+      _desktopTray ??= DesktopTrayService(
+        preferences: prefs,
+        shell: createDesktopShell(),
+      );
+      await _desktopTray!.init();
 
       await Future.wait([initVodozemac(), AppConfig.load()]);
 
@@ -233,6 +242,7 @@ ShareIntakeController? _shareIntake;
     _roomSnapshotService?.dispose();
     unawaited(_avatarCacheService?.dispose());
     unawaited(_ringtoneService.dispose());
+    unawaited(_desktopTray?.dispose());
     super.dispose();
   }
 
@@ -499,6 +509,7 @@ ShareIntakeController? _shareIntake;
                         preferencesService: prefs,
                         callService: callService,
                         router: router,
+                        desktopTrayService: _desktopTray,
                         child: MaterialApp.router(
                           title: BrandConstants.appName,
                           debugShowCheckedModeBanner: false,
