@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:kohera/data/models/call_constants.dart';
 import 'package:kohera/data/models/kohera_media_content.dart';
 import 'package:kohera/data/models/kohera_poll.dart';
@@ -27,7 +27,8 @@ import 'package:matrix/matrix.dart';
 /// This is the SDK conversion boundary for the chat message rendering path.
 /// [MessageListView] and [ChatMessageItem] below it consume
 /// [ChatMessageData] and never import `package:matrix/matrix.dart`.
-class MessageTimelineController extends ChangeNotifier {
+class MessageTimelineController extends ChangeNotifier
+    with WidgetsBindingObserver {
   MessageTimelineController({
     required this.rooms,
     required this.roomId,
@@ -53,6 +54,8 @@ class MessageTimelineController extends ChangeNotifier {
   int _initGeneration = 0;
   bool _loadingHistory = false;
   Timer? _readMarkerTimer;
+  bool _readMarkerPending = false;
+  bool _observingLifecycle = false;
   String? _initialFullyReadId;
   List<ChatMessageData>? _cachedMessages;
   Map<String, List<KoheraReadReceipt>>? _cachedReceipts;
@@ -140,6 +143,10 @@ class MessageTimelineController extends ChangeNotifier {
   // ── Lifecycle ──────────────────────────────────────────
 
   Future<void> init() async {
+    if (!_observingLifecycle) {
+      WidgetsBinding.instance.addObserver(this);
+      _observingLifecycle = true;
+    }
     _room = rooms.rawRoom(roomId);
     if (_room == null) return;
     await _initTimeline();
@@ -262,10 +269,26 @@ class MessageTimelineController extends ChangeNotifier {
 
   // ── Read marker ──────────────────────────────────────────
 
+  bool get _isAppInForeground {
+    final state = WidgetsBinding.instance.lifecycleState;
+    return state == null || state == AppLifecycleState.resumed;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed || !_readMarkerPending) return;
+    _readMarkerPending = false;
+    _markAsRead();
+  }
+
   void _markAsRead() {
     _readMarkerTimer?.cancel();
     _readMarkerTimer = Timer(_readMarkerDelay, () async {
       if (_disposed) return;
+      if (!_isAppInForeground) {
+        _readMarkerPending = true;
+        return;
+      }
       final room = _room;
       if (room == null) return;
       final threadRootId = threadRootEventId;
@@ -599,6 +622,7 @@ class MessageTimelineController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    if (_observingLifecycle) WidgetsBinding.instance.removeObserver(this);
     _readMarkerTimer?.cancel();
     _timeline?.cancelSubscriptions();
     super.dispose();
