@@ -28,6 +28,7 @@ class DesktopTrayService {
 
   bool _initialized = false;
   bool _trayShown = false;
+  bool _windowFocused = true;
   int _unreadCount = 0;
   Future<void> _pending = Future.value();
 
@@ -41,7 +42,10 @@ class DesktopTrayService {
     final shell = _shell;
     if (shell == null || _initialized) return;
     try {
-      await shell.init(onCloseRequested: _onCloseRequested);
+      await shell.init(
+        onCloseRequested: _onCloseRequested,
+        onFocusChanged: _onFocusChanged,
+      );
     } catch (e) {
       debugPrint('[Kohera] Desktop shell unavailable, tray disabled: $e');
       return;
@@ -49,6 +53,9 @@ class DesktopTrayService {
     _initialized = true;
     _prefs.addListener(_onPreferencesChanged);
     await _enqueue(_applyPreference);
+    if (_unreadCount > 0) {
+      await _enqueue(() => shell.setBadgeCount(_unreadCount));
+    }
   }
 
   Future<void> dispose() async {
@@ -57,6 +64,7 @@ class DesktopTrayService {
     await _enqueue(() async {
       if (_trayShown) await _shell!.removeTray();
       _trayShown = false;
+      if (_unreadCount > 0) await _shell!.setBadgeCount(0);
     });
   }
 
@@ -65,6 +73,9 @@ class DesktopTrayService {
   Future<void> revealWindow() async {
     if (!_initialized) return;
     await _shell!.revealWindow();
+    if (_unreadCount > 0) {
+      await _enqueue(() => _shell.setBadgeCount(_unreadCount));
+    }
   }
 
   Future<void> quit() async {
@@ -83,14 +94,31 @@ class DesktopTrayService {
     }
   }
 
+  // ── Attention ───────────────────────────────────────────────
+
+  bool get isWindowFocused => _windowFocused;
+
+  void requestAttention({required bool important}) {
+    if (!_initialized || _windowFocused) return;
+    debugPrint('[Kohera] Requesting window attention (important: $important)');
+    unawaited(_enqueue(() => _shell!.requestAttention(important: important)));
+  }
+
+  void _onFocusChanged(bool focused) {
+    if (focused == _windowFocused) return;
+    _windowFocused = focused;
+    if (focused) unawaited(_enqueue(_shell!.cancelAttention));
+  }
+
   // ── Unread indicator ────────────────────────────────────────
 
   void setUnreadCount(int count) {
     if (count == _unreadCount) return;
     _unreadCount = count;
-    if (!_trayShown) return;
+    if (!_initialized) return;
     unawaited(_enqueue(() async {
-      if (_trayShown) await _shell!.updateTray(_trayIconSpec);
+      await _shell!.setBadgeCount(count);
+      if (_trayShown) await _shell.updateTray(_trayIconSpec);
     }));
   }
 
@@ -117,13 +145,15 @@ class DesktopTrayService {
 
   // ── Preference ──────────────────────────────────────────────
 
+  bool get _trayWanted => _prefs.closeToTray && _shell!.supportsTray;
+
   void _onPreferencesChanged() {
-    if (_prefs.closeToTray == _trayShown) return;
+    if (_trayWanted == _trayShown) return;
     unawaited(_enqueue(_applyPreference));
   }
 
   Future<void> _applyPreference() async {
-    final enabled = _prefs.closeToTray;
+    final enabled = _trayWanted;
     if (enabled == _trayShown) return;
     final shell = _shell!;
     if (enabled) {

@@ -41,6 +41,25 @@ class MainFlutterWindow: NSWindow {
       }
     }
 
+    let attentionChannel = FlutterMethodChannel(
+      name: "kohera/window_attention",
+      binaryMessenger: flutterViewController.engine.binaryMessenger
+    )
+    attentionChannel.setMethodCallHandler { (call, result) in
+      switch call.method {
+      case "requestAttention":
+        let args = call.arguments as? [String: Any]
+        if args?["important"] as? Bool == true {
+          NSApp.requestUserAttention(.informationalRequest)
+        }
+        result(nil)
+      case "cancelAttention":
+        result(nil)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+
     super.awakeFromNib()
   }
 

@@ -30,10 +30,27 @@ class TrayMenuLabels {
   final String quit;
 }
 
+String badgeLabelFor(int count, {required bool numericOnly}) {
+  if (count <= 0) return '';
+  if (count > 99 && !numericOnly) return '99+';
+  return '$count';
+}
+
 abstract class DesktopShell {
+  bool get supportsTray;
+
   bool get usesTemplateTrayIcons;
 
-  Future<void> init({required VoidCallback onCloseRequested});
+  Future<void> init({
+    required VoidCallback onCloseRequested,
+    required ValueChanged<bool> onFocusChanged,
+  });
+
+  Future<void> setBadgeCount(int count);
+
+  Future<void> requestAttention({required bool important});
+
+  Future<void> cancelAttention();
 
   Future<void> setInterceptClose(bool intercept);
 

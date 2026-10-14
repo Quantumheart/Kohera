@@ -1,21 +1,25 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:kohera/core/services/desktop_shell_shared.dart';
 import 'package:kohera/core/utils/platform_info.dart';
+import 'package:nativeapi/nativeapi.dart' as nativeapi;
 import 'package:tray_manager/tray_manager.dart' as tray;
 import 'package:window_manager/window_manager.dart';
 
 export 'package:kohera/core/services/desktop_shell_shared.dart';
 
 DesktopShell? createDesktopShell() =>
-    isNativeWindows || isNativeMacOS ? WindowManagerShell() : null;
+    isNativeDesktop ? WindowManagerShell() : null;
 
 // coverage:ignore-start
 class WindowManagerShell with WindowListener implements DesktopShell {
+  static const _attentionChannel = MethodChannel('kohera/window_attention');
+
   VoidCallback? _onCloseRequested;
+  ValueChanged<bool>? _onFocusChanged;
   tray.TrayIcon? _trayIcon;
   tray.Image? _trayImage;
   tray.ListenerId? _trayListenerId;
@@ -23,17 +27,71 @@ class WindowManagerShell with WindowListener implements DesktopShell {
   final List<(tray.MenuItem, tray.ListenerId)> _menuItems = [];
 
   @override
+  bool get supportsTray => Platform.isWindows || Platform.isMacOS;
+
+  @override
   bool get usesTemplateTrayIcons => Platform.isMacOS;
 
   @override
-  Future<void> init({required VoidCallback onCloseRequested}) async {
+  Future<void> init({
+    required VoidCallback onCloseRequested,
+    required ValueChanged<bool> onFocusChanged,
+  }) async {
     _onCloseRequested = onCloseRequested;
+    _onFocusChanged = onFocusChanged;
     await windowManager.ensureInitialized();
     windowManager.addListener(this);
   }
 
   @override
   void onWindowClose() => _onCloseRequested?.call();
+
+  @override
+  void onWindowFocus() => unawaited(_reportActualFocus());
+
+  @override
+  void onWindowBlur() => unawaited(_reportActualFocus());
+
+  Future<void> _reportActualFocus() async {
+    final focused = await windowManager.isFocused();
+    _onFocusChanged?.call(focused);
+  }
+
+  // ── Attention ───────────────────────────────────────────────
+
+  @override
+  Future<void> setBadgeCount(int count) async {
+    final label = badgeLabelFor(count, numericOnly: Platform.isLinux);
+    if (Platform.isWindows) {
+      await _invokeAttention('setBadge', {'label': label});
+      return;
+    }
+    if (!nativeapi.Application.instance.setBadgeLabel(label)) {
+      debugPrint('[Kohera] Badge label could not be set to "$label"');
+    }
+  }
+
+  @override
+  Future<void> requestAttention({required bool important}) =>
+      _invokeAttention('requestAttention', {'important': important});
+
+  @override
+  Future<void> cancelAttention() => _invokeAttention('cancelAttention');
+
+  Future<void> _invokeAttention(
+    String method, [
+    Map<String, Object?>? arguments,
+  ]) async {
+    try {
+      await _attentionChannel.invokeMethod<void>(method, arguments);
+    } on MissingPluginException {
+      debugPrint('[Kohera] Window attention unavailable on this platform');
+    } on PlatformException catch (e) {
+      debugPrint('[Kohera] Window attention failed: ${e.message}');
+    }
+  }
+
+  // ── Window ──────────────────────────────────────────────────
 
   @override
   Future<void> setInterceptClose(bool intercept) =>
