@@ -7,14 +7,19 @@ import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/features/rooms/services/room_list_builder.dart';
 import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
+import 'package:kohera/features/rooms/services/room_list_snapshot.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 
 /// Business logic for the room list screen.
 ///
-/// Owns search query state, FAB open/close state, message search delegation,
-/// and exposes computed list items, context-menu eligibility, app-bar title,
-/// and space-empty state.
+/// Architecture: a **sync-driven computation pipeline** that listens to its
+/// dependencies, debounces their notifications, and produces a single
+/// immutable [RoomListSnapshot] containing everything the view needs.
+///
+/// The view watches only the snapshot via `context.select`, so rebuilds are
+/// triggered by a pre-computed value rather than five independent
+/// `ChangeNotifier`s each firing on every sync.
 class RoomListController extends ChangeNotifier {
   RoomListController({
     required RoomRepository roomRepository,
@@ -33,7 +38,15 @@ class RoomListController extends ChangeNotifier {
            RoomListSearchController(
              getClient: () => roomRepository.searchClient,
            ) {
-    _messageSearch.addListener(notifyListeners);
+    // Listen to every dependency — any change schedules a debounced recompute.
+    _selection.addListener(_scheduleRecompute);
+    _selectionState.addListener(_scheduleRecompute);
+    _prefs.addListener(_scheduleRecompute);
+    _spaceRooms.addListener(_scheduleRecompute);
+    _messageSearch.addListener(_scheduleRecompute);
+
+    // Compute the initial snapshot synchronously so the first build is correct.
+    _recompute();
   }
 
   final RoomRepository _rooms;
@@ -42,6 +55,17 @@ class RoomListController extends ChangeNotifier {
   final PreferencesService _prefs;
   final SpaceRoomsController _spaceRooms;
   final RoomListSearchController _messageSearch;
+
+  // ── Snapshot ─────────────────────────────────────────────────
+
+  RoomListSnapshot _snapshot = RoomListSnapshot.empty;
+
+  /// The current pre-computed snapshot. O(1) — safe to call from `build()`.
+  RoomListSnapshot get snapshot => _snapshot;
+
+  // ── Immediate UI state (not debounced) ───────────────────────
+  // These drive animations and need to feel instant. They trigger an
+  // immediate notify without waiting for the debounce window.
 
   String _query = '';
   bool _searchOpen = false;
@@ -52,8 +76,28 @@ class RoomListController extends ChangeNotifier {
   bool get isFabOpen => _fabOpen;
   RoomListSearchController get messageSearch => _messageSearch;
 
-  List<ListItem> get items {
-    final baseItems = buildSectionItems(
+  // ── Debounced recompute pipeline ─────────────────────────────
+
+  Timer? _recomputeTimer;
+
+  /// Debounce window. Sync updates often arrive in bursts (several syncs
+  /// within 100-200ms). Batching them into a single recompute prevents
+  /// redundant O(rooms × spaces) iterations and rebuild storms.
+  static const _debounceDuration = Duration(milliseconds: 80);
+
+  void _scheduleRecompute() {
+    // If this was triggered by user action (query/search/fab change) we
+    // already called _recompute() immediately in the setter. Sync-driven
+    // notifications arrive here and are debounced.
+    if (_recomputeTimer?.isActive ?? false) return;
+    _recomputeTimer = Timer(_debounceDuration, _recompute);
+  }
+
+  void _recompute() {
+    _recomputeTimer?.cancel();
+    _recomputeTimer = null;
+
+    final items = buildSectionItems(
       _selection,
       _selectionState,
       _prefs,
@@ -61,59 +105,56 @@ class RoomListController extends ChangeNotifier {
       spaceRoomsController: _spaceRooms,
     );
 
-    if (_query.trim().length < RoomListSearchController.minQueryLength) {
-      return baseItems;
+    // Append message-search results if the query is long enough.
+    final hasQuery = _query.trim().length >= RoomListSearchController.minQueryLength;
+    if (hasQuery) {
+      items.add(
+        MessageSearchHeaderItem(
+          resultCount: _messageSearch.totalCount,
+          isLoading: _messageSearch.isLoading,
+          error: _messageSearch.error,
+        ),
+      );
+      for (final result in _messageSearch.results) {
+        items.add(MessageSearchResultItem(result: result));
+      }
+      if (_messageSearch.nextBatch != null && !_messageSearch.isLoading) {
+        items.add(LoadMoreMessagesItem(isLoading: false));
+      }
     }
 
-    baseItems.add(
-      MessageSearchHeaderItem(
-        resultCount: _messageSearch.totalCount,
-        isLoading: _messageSearch.isLoading,
-        error: _messageSearch.error,
-      ),
+    final hasRoomItems = items.any(
+      (i) => i is RoomItem || i is InviteItem || i is HeaderItem,
     );
-    for (final result in _messageSearch.results) {
-      baseItems.add(MessageSearchResultItem(result: result));
-    }
-    if (_messageSearch.nextBatch != null && !_messageSearch.isLoading) {
-      baseItems.add(LoadMoreMessagesItem(isLoading: false));
-    }
 
-    return baseItems;
+    final manageableSpaceIds = {
+      for (final s in _selection.spaces)
+        if (s.canChangeStateEvent('m.space.child')) s.id,
+    };
+
+    final selectedSpaceCanManage = _selectionState.selectedSpaceIds.any((id) {
+      final space = _rooms.rawRoom(id);
+      return space != null && space.canChangeStateEvent('m.space.child');
+    });
+
+    _snapshot = RoomListSnapshot(
+      items: List.unmodifiable(items),
+      manageableSpaceIds: manageableSpaceIds,
+      selectedSpaceCanManage: selectedSpaceCanManage,
+      spaceWithNoJoinedRooms: _computeSpaceWithNoJoinedRooms(),
+      appBarTitle: _computeAppBarTitle(),
+      isEmpty: !hasRoomItems &&
+          _messageSearch.results.isEmpty &&
+          !_messageSearch.isLoading,
+      hasMessageResults: _messageSearch.results.isNotEmpty,
+      isMessageSearchActive: _messageSearch.isLoading,
+      messageSearch: _messageSearch,
+    );
+
+    notifyListeners();
   }
 
-  bool get hasRoomItems => items.any(
-    (i) => i is RoomItem || i is InviteItem || i is HeaderItem,
-  );
-
-  bool get hasMessageResults => _messageSearch.results.isNotEmpty;
-
-  bool get isMessageSearchActive => _messageSearch.isLoading;
-
-  bool get isEmpty =>
-      !hasRoomItems && !hasMessageResults && !isMessageSearchActive;
-
-  bool get selectedSpaceCanManage => _selectionState.selectedSpaceIds.any((id) {
-    final space = _rooms.rawRoom(id);
-    return space != null && space.canChangeStateEvent('m.space.child');
-  });
-
-  Set<String> get manageableSpaceIds => {
-    for (final s in _selection.spaces)
-      if (s.canChangeStateEvent('m.space.child')) s.id,
-  };
-
-  String appBarTitle() {
-    final ids = _selectionState.selectedSpaceIds;
-    if (ids.isEmpty) return 'Chats';
-    if (ids.length == 1) {
-      return _rooms.rawRoom(ids.first)?.getLocalizedDisplayname() ??
-          'Space';
-    }
-    return '${ids.length} spaces';
-  }
-
-  String? spaceWithNoJoinedRooms() {
+  String? _computeSpaceWithNoJoinedRooms() {
     if (_selectionState.selectedSpaceIds.length != 1) return null;
     if (_query.isNotEmpty) return null;
 
@@ -133,21 +174,32 @@ class RoomListController extends ChangeNotifier {
     return spaceId;
   }
 
+  String _computeAppBarTitle() {
+    final ids = _selectionState.selectedSpaceIds;
+    if (ids.isEmpty) return 'Chats';
+    if (ids.length == 1) {
+      return _rooms.rawRoom(ids.first)?.getLocalizedDisplayname() ?? 'Space';
+    }
+    return '${ids.length} spaces';
+  }
+
+  // ── User actions (immediate recompute + notify) ──────────────
+
   void setQuery(String value, {Set<String>? scopeRoomIds}) {
     _query = value;
     _messageSearch.onQueryChanged(value, scopeRoomIds: scopeRoomIds);
-    notifyListeners();
+    _recompute(); // immediate — user typing should feel responsive
   }
 
   void clearQuery() {
     _query = '';
     _messageSearch.clear();
-    notifyListeners();
+    _recompute();
   }
 
   void openSearch() {
     _searchOpen = true;
-    notifyListeners();
+    notifyListeners(); // UI-only change, no snapshot recompute needed
   }
 
   void closeSearch() {
@@ -155,7 +207,7 @@ class RoomListController extends ChangeNotifier {
     _searchOpen = false;
     _query = '';
     _messageSearch.clear();
-    notifyListeners();
+    _recompute();
   }
 
   void toggleSearch() {
@@ -185,6 +237,8 @@ class RoomListController extends ChangeNotifier {
     }
   }
 
+  // ── Helpers ──────────────────────────────────────────────────
+
   Set<String>? selectedSpaceRoomIds() => spaceRoomIds(_selection, _selectionState);
 
   void maybeFetchSpaceHierarchy() {
@@ -197,7 +251,12 @@ class RoomListController extends ChangeNotifier {
 
   @override
   void dispose() {
-    _messageSearch.removeListener(notifyListeners);
+    _recomputeTimer?.cancel();
+    _selection.removeListener(_scheduleRecompute);
+    _selectionState.removeListener(_scheduleRecompute);
+    _prefs.removeListener(_scheduleRecompute);
+    _spaceRooms.removeListener(_scheduleRecompute);
+    _messageSearch.removeListener(_scheduleRecompute);
     _messageSearch.dispose();
     super.dispose();
   }
