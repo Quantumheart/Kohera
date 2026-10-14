@@ -627,7 +627,10 @@ class NotificationService {
           : null,
       enableVibration: preferencesService.notificationVibrationEnabled,
       groupKey: NotificationChannel.androidGroupKey,
-      subText: useSubtitleLayout ? subtitle : null,
+      // Suppress subText when MessagingStyle is active — the style already
+      // shows the sender name in each message bubble, so subText would
+      // duplicate it.
+      subText: androidStyle == null && useSubtitleLayout ? subtitle : null,
       actions: _androidActions,
       styleInformation: androidStyle,
       number: unreadCount > 0 ? unreadCount : null,
@@ -676,7 +679,12 @@ class NotificationService {
   /// Posts (or updates) a silent group-summary notification that collapses
   /// all per-room notifications sharing [NotificationChannel.androidGroupKey]
   /// into a single expandable group in the notification shade.
+  ///
+  /// Skipped when [unreadCount] is zero — with no unread rooms there is
+  /// nothing to summarise.
   Future<void> _showGroupSummary(int unreadCount) async {
+    if (unreadCount <= 0) return;
+
     const summaryDetails = AndroidNotificationDetails(
       NotificationChannel.androidChannelId,
       NotificationChannel.androidChannelName,
@@ -690,12 +698,11 @@ class NotificationService {
       autoCancel: false,
     );
 
+    // No title — the notification header already shows the app name
+    // ("Kohera"). Setting a title would duplicate it.
     await _plugin.show(
       id: _groupSummaryId,
-      title: NotificationChannel.appName,
-      body: unreadCount > 0
-          ? NotificationText.groupSummary(unreadCount)
-          : NotificationChannel.appName,
+      body: NotificationText.groupSummary(unreadCount),
       notificationDetails: const NotificationDetails(android: summaryDetails),
     );
   }
