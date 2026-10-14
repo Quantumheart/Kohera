@@ -1,5 +1,5 @@
 import 'package:kohera/data/models/kohera_room_summary.dart';
-import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
+import 'package:kohera/data/models/message_search_result.dart';
 import 'package:kohera/features/spaces/models/space_rooms_model.dart';
 
 // ── List item types for the flat interleaved list ──────────

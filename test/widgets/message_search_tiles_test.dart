@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
+import 'package:kohera/data/models/message_search_result.dart';
 import 'package:kohera/features/rooms/widgets/message_search_tiles.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
 

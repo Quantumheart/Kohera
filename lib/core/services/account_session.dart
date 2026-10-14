@@ -10,6 +10,7 @@ import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/core/state/uia_interaction_controller.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
+import 'package:kohera/data/repositories/message_search_repository.dart';
 import 'package:kohera/data/repositories/outbox_repository.dart';
 import 'package:kohera/data/repositories/push_rule_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
@@ -18,6 +19,7 @@ import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
+import 'package:kohera/data/services/message_indexer_service.dart';
 import 'package:kohera/data/services/password_cache.dart';
 import 'package:kohera/data/services/presence_service.dart';
 import 'package:matrix/matrix.dart';
@@ -44,6 +46,7 @@ class AccountSession {
   late final AvatarResolver avatarResolver;
   late final MediaResolver mediaResolver;
   late final MessageRepository messageRepository;
+  late final MessageSearchRepository messageSearchRepository;
   late final KeyBackupRepository keyBackupRepository;
   late final UserRepository userRepository;
   late final OutboxRepository outboxRepository;
@@ -108,9 +111,18 @@ class AccountSession {
     );
     avatarResolver = ClientAvatarResolver(_matrixClientService);
     mediaResolver = ClientMediaResolver(_matrixClientService);
+    final indexer = MessageIndexerService(
+      matrixClientService: _matrixClientService,
+      clientName: clientName,
+    );
     messageRepository = MessageRepository(
       clientService: _matrixClientService,
       clientName: clientName,
+      indexerOverride: indexer,
+    );
+    messageSearchRepository = MessageSearchRepository(
+      clientService: _matrixClientService,
+      indexer: indexer,
     );
     keyBackupRepository = KeyBackupRepository(
       clientService: _matrixClientService,
@@ -137,6 +149,7 @@ class AccountSession {
   void dispose() {
     _disposed = true;
     messageRepository.dispose();
+    messageSearchRepository.dispose();
     keyBackupRepository.dispose();
     userRepository.dispose();
     outboxRepository.dispose();

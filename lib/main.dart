@@ -27,6 +27,7 @@ import 'package:kohera/data/repositories/auth_repository.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
+import 'package:kohera/data/repositories/message_search_repository.dart';
 import 'package:kohera/data/repositories/outbox_repository.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
@@ -439,6 +440,9 @@ ShareIntakeController? _shareIntake;
                   ),
                   ChangeNotifierProvider<MessageRepository>.value(
                     value: matrix.session.messageRepository,
+                  ),
+                  ChangeNotifierProvider<MessageSearchRepository>.value(
+                    value: matrix.session.messageSearchRepository,
                   ),
                   ChangeNotifierProvider<AuthRepository>(
                     create: (ctx) => AuthRepository(
