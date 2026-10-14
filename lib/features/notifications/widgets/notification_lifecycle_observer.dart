@@ -75,6 +75,7 @@ class _NotificationLifecycleObserverState
       preferencesService: widget.preferencesService,
       router: widget.router,
       revealWindow: widget.desktopTrayService?.revealWindow,
+      requestAttention: widget.desktopTrayService?.requestAttention,
     );
     await notificationService.init();
 

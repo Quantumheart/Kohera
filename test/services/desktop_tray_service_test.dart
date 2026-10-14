@@ -6,15 +6,23 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeShell implements DesktopShell {
-  _FakeShell({this.usesTemplateTrayIcons = false, this.failInit = false});
+  _FakeShell({
+    this.usesTemplateTrayIcons = false,
+    this.supportsTray = true,
+    this.failInit = false,
+  });
 
   final bool failInit;
+
+  @override
+  final bool supportsTray;
 
   @override
   final bool usesTemplateTrayIcons;
 
   final List<String> calls = [];
   VoidCallback? onCloseRequested;
+  ValueChanged<bool>? onFocusChanged;
   VoidCallback? onOpen;
   VoidCallback? onQuit;
   TrayIconSpec? shownSpec;
@@ -22,11 +30,25 @@ class _FakeShell implements DesktopShell {
   bool interceptClose = false;
 
   @override
-  Future<void> init({required VoidCallback onCloseRequested}) async {
+  Future<void> init({
+    required VoidCallback onCloseRequested,
+    required ValueChanged<bool> onFocusChanged,
+  }) async {
     calls.add('init');
     if (failInit) throw StateError('no window manager');
     this.onCloseRequested = onCloseRequested;
+    this.onFocusChanged = onFocusChanged;
   }
+
+  @override
+  Future<void> setBadgeCount(int count) async => calls.add('badge:$count');
+
+  @override
+  Future<void> requestAttention({required bool important}) async =>
+      calls.add('attention:$important');
+
+  @override
+  Future<void> cancelAttention() async => calls.add('cancelAttention');
 
   @override
   Future<void> setInterceptClose(bool intercept) async {
@@ -80,10 +102,14 @@ void main() {
   Future<void> createService({
     bool closeToTray = false,
     bool template = false,
+    bool supportsTray = true,
   }) async {
     SharedPreferences.setMockInitialValues({'close_to_tray': closeToTray});
     prefs = PreferencesService(prefs: await SharedPreferences.getInstance());
-    shell = _FakeShell(usesTemplateTrayIcons: template);
+    shell = _FakeShell(
+      usesTemplateTrayIcons: template,
+      supportsTray: supportsTray,
+    );
     service = DesktopTrayService(preferences: prefs, shell: shell);
   }
 
@@ -318,7 +344,7 @@ void main() {
 
       service.setUnreadCount(5);
       await _settle();
-      expect(shell.calls, ['init']);
+      expect(shell.calls, ['init', 'badge:5']);
 
       await prefs.setCloseToTray(true);
       await _settle();
@@ -354,6 +380,157 @@ void main() {
       await _settle();
 
       expect(shell.calls, ['removeTray']);
+    });
+  });
+
+  group('tray support', () {
+    test('never shows a tray where the shell has none', () async {
+      await createService(closeToTray: true, supportsTray: false);
+      await service.init();
+
+      await prefs.setCloseToTray(false);
+      await prefs.setCloseToTray(true);
+      await _settle();
+
+      expect(service.isTrayShown, isFalse);
+      expect(shell.calls, ['init']);
+    });
+
+    test('closing the window quits where the shell has no tray', () async {
+      await createService(closeToTray: true, supportsTray: false);
+      await service.init();
+      shell.calls.clear();
+
+      shell.onCloseRequested!();
+      await _settle();
+
+      expect(shell.calls, ['quit']);
+    });
+  });
+
+  group('badge', () {
+    test('follows the unread count without the tray', () async {
+      await createService();
+      await service.init();
+
+      service
+        ..setUnreadCount(3)
+        ..setUnreadCount(0);
+      await _settle();
+
+      expect(shell.calls, ['init', 'badge:3', 'badge:0']);
+    });
+
+    test('is applied at init when a count arrived earlier', () async {
+      await createService();
+
+      service.setUnreadCount(7);
+      await service.init();
+
+      expect(shell.calls, ['init', 'badge:7']);
+    });
+
+    test('is cleared on dispose', () async {
+      await createService();
+      await service.init();
+      service.setUnreadCount(2);
+      await _settle();
+      shell.calls.clear();
+
+      await service.dispose();
+
+      expect(shell.calls, ['badge:0']);
+    });
+
+    test('updates the badge and the tray together', () async {
+      await createService(closeToTray: true);
+      await service.init();
+      shell.calls.clear();
+
+      service.setUnreadCount(4);
+      await _settle();
+
+      expect(shell.calls, ['badge:4', 'updateTray']);
+    });
+  });
+
+  group('attention', () {
+    test('is not requested while the window is focused', () async {
+      await createService();
+      await service.init();
+      shell.calls.clear();
+
+      service.requestAttention(important: true);
+      await _settle();
+
+      expect(service.isWindowFocused, isTrue);
+      expect(shell.calls, isEmpty);
+    });
+
+    test('is requested while the window is unfocused', () async {
+      await createService();
+      await service.init();
+      shell.onFocusChanged!(false);
+      shell.calls.clear();
+
+      service
+        ..requestAttention(important: false)
+        ..requestAttention(important: true);
+      await _settle();
+
+      expect(shell.calls, ['attention:false', 'attention:true']);
+    });
+
+    test('is cancelled when the window regains focus', () async {
+      await createService();
+      await service.init();
+      shell.onFocusChanged!(false);
+      service.requestAttention(important: true);
+      await _settle();
+      shell.calls.clear();
+
+      shell.onFocusChanged!(true);
+      await _settle();
+
+      expect(service.isWindowFocused, isTrue);
+      expect(shell.calls, ['cancelAttention']);
+    });
+
+    test('repeated focus events do not cancel again', () async {
+      await createService();
+      await service.init();
+      shell.calls.clear();
+
+      shell.onFocusChanged!(true);
+      await _settle();
+
+      expect(shell.calls, isEmpty);
+    });
+
+    test('is ignored before init', () async {
+      await createService();
+
+      service.requestAttention(important: true);
+      await _settle();
+
+      expect(shell.calls, isEmpty);
+    });
+  });
+
+  group('badgeLabelFor', () {
+    test('is empty with no unread messages', () {
+      expect(badgeLabelFor(0, numericOnly: false), '');
+      expect(badgeLabelFor(-1, numericOnly: true), '');
+    });
+
+    test('shows the count', () {
+      expect(badgeLabelFor(5, numericOnly: false), '5');
+      expect(badgeLabelFor(99, numericOnly: false), '99');
+    });
+
+    test('caps large counts unless the platform needs a number', () {
+      expect(badgeLabelFor(100, numericOnly: false), '99+');
+      expect(badgeLabelFor(100, numericOnly: true), '100');
     });
   });
 }

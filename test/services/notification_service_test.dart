@@ -698,4 +698,79 @@ void main() {
       expect(selectionController.selectedRoomId, roomId);
     });
   });
+
+  group('window attention', () {
+    late List<bool> attention;
+    late NotificationService attentive;
+
+    setUp(() {
+      attention = [];
+      attentive = NotificationService(
+        matrixService: mockMatrix,
+        pushRepository:
+            PushRepository(clientService: mockMatrix.matrixClientService),
+        preferencesService: prefs,
+        plugin: mockPlugin,
+        requestAttention: ({required important}) => attention.add(important),
+      );
+    });
+
+    tearDown(() => attentive.dispose());
+
+    Future<void> emitMessage() async {
+      attentive.startListening();
+      mockClient.onSync.add(SyncUpdate(nextBatch: 'batch_0'));
+      await Future<void>.delayed(Duration.zero);
+      mockClient.onSync.add(
+        makeSyncUpdate(roomId: roomId, events: [makeMessageEvent()]),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+
+    test('requests ordinary attention for a group message', () async {
+      await emitMessage();
+
+      expect(attention, [false]);
+    });
+
+    test('requests important attention for a direct message', () async {
+      when(mockRoom.isDirectChat).thenReturn(true);
+
+      await emitMessage();
+
+      expect(attention, [true]);
+    });
+
+    test('requests important attention for a mention', () async {
+      when(mockRoom.highlightCount).thenReturn(1);
+
+      await emitMessage();
+
+      expect(attention, [true]);
+    });
+
+    test('does not request attention for a muted room', () async {
+      when(mockRoom.pushRuleState).thenReturn(PushRuleState.dontNotify);
+
+      await emitMessage();
+
+      expect(attention, isEmpty);
+    });
+
+    test('does not request attention when notifications are off', () async {
+      await prefs.setNotificationLevel(NotificationLevel.off);
+
+      await emitMessage();
+
+      expect(attention, isEmpty);
+    });
+
+    test('does not request attention when OS notifications are off', () async {
+      await prefs.setOsNotificationsEnabled(false);
+
+      await emitMessage();
+
+      expect(attention, isEmpty);
+    });
+  });
 }
