@@ -563,6 +563,7 @@ class NotificationService {
       enableVibration: preferencesService.notificationVibrationEnabled,
       groupKey: NotificationChannel.androidGroupKey,
       subText: useSubtitleLayout ? subtitle : null,
+      actions: _androidActions,
     );
 
     final darwinDetails = DarwinNotificationDetails(
@@ -676,9 +677,80 @@ class NotificationService {
 
   void _onNotificationTap(NotificationResponse response) {
     final roomId = response.payload;
-    if (roomId != null && roomId.isNotEmpty) {
-      debugPrint('[Kohera] Notification tapped, selecting room $roomId');
-      navigateToRoom(roomId);
+    if (roomId == null || roomId.isEmpty) return;
+
+    switch (response.actionId) {
+      case _kActionReply:
+        final text = response.input;
+        if (text != null && text.isNotEmpty) {
+          debugPrint('[Kohera] Notification reply for room $roomId');
+          unawaited(_handleInlineReply(roomId, text));
+        }
+      case _kActionMarkRead:
+        debugPrint('[Kohera] Notification mark-as-read for room $roomId');
+        unawaited(_handleMarkAsRead(roomId));
+      default:
+        debugPrint('[Kohera] Notification tapped, selecting room $roomId');
+        navigateToRoom(roomId);
+    }
+  }
+
+  // ── Android notification actions ────────────────────────────
+
+  static const String _kActionReply = 'reply';
+  static const String _kActionMarkRead = 'mark_read';
+
+  /// Action buttons shown on Android message notifications.
+  /// Mirrors the iOS `MESSAGE` category (reply + mark-as-read) and the
+  /// Linux D-Bus notification actions.
+  static const List<AndroidNotificationAction> _androidActions = [
+    AndroidNotificationAction(
+      _kActionReply,
+      NotificationText.replyAction,
+      inputs: [
+        AndroidNotificationActionInput(
+          label: NotificationText.replyAction,
+        ),
+      ],
+      // Keep the notification visible after replying so the user can see
+      // their message was sent; dismiss happens via the normal read-marker
+      // flow when the next sync clears it.
+      cancelNotification: false,
+    ),
+    AndroidNotificationAction(
+      _kActionMarkRead,
+      NotificationText.markAsReadAction,
+    ),
+  ];
+
+  Future<void> _handleInlineReply(String roomId, String text) async {
+    try {
+      final room = pushRepository.getRoom(roomId);
+      if (room == null) {
+        debugPrint('[Kohera] Reply failed: room $roomId not found');
+        return;
+      }
+      await room.sendTextEvent(text);
+      debugPrint('[Kohera] Inline reply sent to room $roomId');
+    } catch (e) {
+      debugPrint('[Kohera] Failed to send inline reply: $e');
+    }
+  }
+
+  Future<void> _handleMarkAsRead(String roomId) async {
+    try {
+      final room = pushRepository.getRoom(roomId);
+      if (room == null) {
+        debugPrint('[Kohera] Mark as read failed: room $roomId not found');
+        return;
+      }
+      final eventId = room.lastEvent?.eventId;
+      if (eventId == null) return;
+      await room.setReadMarker(eventId, mRead: eventId);
+      await cancelForRoom(roomId);
+      debugPrint('[Kohera] Marked room $roomId as read from notification');
+    } catch (e) {
+      debugPrint('[Kohera] Failed to mark as read: $e');
     }
   }
 
