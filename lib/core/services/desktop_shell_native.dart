@@ -81,14 +81,10 @@ class WindowManagerShell with WindowListener implements DesktopShell {
       _menu = menu;
     }
 
-    if (Platform.isWindows) {
-      icon.setContextMenuTrigger(tray.ContextMenuTrigger.rightClicked);
-      _trayListenerId = icon.addListener((event) {
-        if (event is tray.TrayIconClickedEvent) onOpen();
-      });
-    } else {
-      icon.setContextMenuTrigger(tray.ContextMenuTrigger.clicked);
-    }
+    icon.setContextMenuTrigger(tray.ContextMenuTrigger.rightClicked);
+    _trayListenerId = icon.addListener((event) {
+      if (event is tray.TrayIconClickedEvent) onOpen();
+    });
     icon.setVisible(true);
   }
 
