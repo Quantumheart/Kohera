@@ -7,7 +7,13 @@ import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/core/utils/safe_url_launcher.dart';
 
 /// A text widget that detects URLs and renders them as tappable, styled links.
-class LinkableText extends StatelessWidget {
+///
+/// [StatefulWidget] so that [TapGestureRecognizer]s created for link spans
+/// are properly disposed on rebuild and unmount. A leak of undisposed
+/// recognizers on every rebuild was the root cause of progressive memory
+/// growth and eventual OOM crashes in rooms with many URL-containing
+/// messages and frequent timeline updates.
+class LinkableText extends StatefulWidget {
   const LinkableText({
     required this.text, required this.style, required this.isMe, super.key,
     this.maxLines,
@@ -39,30 +45,51 @@ class LinkableText extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final palette = KoheraPalette.of(context);
+  State<LinkableText> createState() => _LinkableTextState();
+}
 
-    final matches = urlRegex.allMatches(text).toList();
-    if (matches.isEmpty) {
-      return Text.rich(
-        TextSpan(children: buildEmojiSpans(text, style)),
-        maxLines: maxLines,
-        overflow: overflow ?? TextOverflow.clip,
-      );
+class _LinkableTextState extends State<LinkableText> {
+  final _recognizers = <TapGestureRecognizer>[];
+  List<InlineSpan>? _cachedSpans;
+  String? _cachedText;
+  TextStyle? _cachedStyle;
+  Color? _cachedLinkColor;
+
+  @override
+  void dispose() {
+    _disposeRecognizers();
+    super.dispose();
+  }
+
+  void _disposeRecognizers() {
+    for (final r in _recognizers) {
+      r.dispose();
     }
+    _recognizers.clear();
+  }
 
-    final onBubble = isMe ? palette.onOwnBubble : palette.onOtherBubble;
-    final linkColor = isMe
-        ? onBubble.withValues(alpha: 0.85)
-        : palette.link;
+  TapGestureRecognizer _createRecognizer(String url) {
+    final recognizer = TapGestureRecognizer()
+      ..onTap = () => unawaited(safeLaunchUrl(url));
+    _recognizers.add(recognizer);
+    return recognizer;
+  }
+
+  List<InlineSpan> _buildSpans(Color linkColor) {
+    final text = widget.text;
+    final style = widget.style;
+    final matches = LinkableText.urlRegex.allMatches(text).toList();
+
+    if (matches.isEmpty) {
+      return buildEmojiSpans(text, style);
+    }
 
     final spans = <InlineSpan>[];
     var lastEnd = 0;
 
     for (final match in matches) {
       final rawUrl = match.group(0)!;
-      final cleanedUrl = cleanUrl(rawUrl);
-      // Adjust match end to account for stripped punctuation.
+      final cleanedUrl = LinkableText.cleanUrl(rawUrl);
       final urlEnd = match.start + cleanedUrl.length;
 
       // Plain text before this URL.
@@ -79,10 +106,7 @@ class LinkableText extends StatelessWidget {
           decoration: TextDecoration.underline,
           decorationColor: linkColor,
         ),
-        recognizer: TapGestureRecognizer()
-          ..onTap = () {
-            unawaited(safeLaunchUrl(cleanedUrl));
-          },
+        recognizer: _createRecognizer(cleanedUrl),
       ),);
 
       lastEnd = urlEnd;
@@ -93,10 +117,32 @@ class LinkableText extends StatelessWidget {
       spans.addAll(buildEmojiSpans(text.substring(lastEnd), style));
     }
 
+    return spans;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = KoheraPalette.of(context);
+    final onBubble =
+        widget.isMe ? palette.onOwnBubble : palette.onOtherBubble;
+    final linkColor = widget.isMe ? onBubble.withValues(alpha: 0.85) : palette.link;
+
+    // Rebuild spans only when inputs actually change.
+    if (_cachedSpans == null ||
+        _cachedText != widget.text ||
+        _cachedStyle != widget.style ||
+        _cachedLinkColor != linkColor) {
+      _disposeRecognizers();
+      _cachedSpans = _buildSpans(linkColor);
+      _cachedText = widget.text;
+      _cachedStyle = widget.style;
+      _cachedLinkColor = linkColor;
+    }
+
     return Text.rich(
-      TextSpan(children: spans),
-      maxLines: maxLines,
-      overflow: overflow ?? TextOverflow.clip,
+      TextSpan(children: _cachedSpans),
+      maxLines: widget.maxLines,
+      overflow: widget.overflow ?? TextOverflow.clip,
     );
   }
 }

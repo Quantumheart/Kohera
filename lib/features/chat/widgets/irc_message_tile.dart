@@ -45,7 +45,7 @@ const Set<String> _mediaMessageTypes = {
 ///
 /// Interactions (reply, edit, react, pin, delete, forward, thread, context
 /// menu, tap-sender) are preserved via the same callbacks as [ChatMessageItem].
-class IrcMessageTile extends StatelessWidget {
+class IrcMessageTile extends StatefulWidget {
   const IrcMessageTile({
     required this.message,
     required this.reactions,
@@ -117,9 +117,60 @@ class IrcMessageTile extends StatelessWidget {
   final void Function(String eventId)? onTapReply;
 
   @override
+  State<IrcMessageTile> createState() => _IrcMessageTileState();
+}
+
+class _IrcMessageTileState extends State<IrcMessageTile> {
+  final _recognizers = <TapGestureRecognizer>[];
+
+  @override
+  void dispose() {
+    _disposeRecognizers();
+    super.dispose();
+  }
+
+  void _disposeRecognizers() {
+    for (final r in _recognizers) {
+      r.dispose();
+    }
+    _recognizers.clear();
+  }
+
+  TapGestureRecognizer _createRecognizer(VoidCallback onTap) {
+    final recognizer = TapGestureRecognizer()..onTap = onTap;
+    _recognizers.add(recognizer);
+    return recognizer;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final w = widget;
     final cs = Theme.of(context).colorScheme;
     final palette = KoheraPalette.of(context);
+
+    // Local aliases to avoid `w.` on every reference.
+    final message = w.message;
+    final reactions = w.reactions;
+    final media = w.media;
+    final mediaController = w.mediaController;
+    final poll = w.poll;
+    final isMe = w.isMe;
+    final isFirst = w.isFirst;
+    final isMobile = w.isMobile;
+    final isPinned = w.isPinned;
+    final hasThread = w.hasThread;
+    final threadReplyCount = w.threadReplyCount;
+    final threadUnreadCount = w.threadUnreadCount;
+    final inThread = w.inThread;
+    final highlightedEventId = w.highlightedEventId;
+    final replyPreviewText = w.replyPreviewText;
+    final onToggleReaction = w.onToggleReaction;
+    final onReply = w.onReply;
+    final onOpenThread = w.onOpenThread;
+    final onTapSender = w.onTapSender;
+    final onOpenContextMenu = w.onOpenContextMenu;
+    final onShowMobileActions = w.onShowMobileActions;
+    final onTapReply = w.onTapReply;
 
     const mono = TextStyle(
       fontFamily: 'RobotoMono',
@@ -167,21 +218,20 @@ class IrcMessageTile extends StatelessWidget {
         style: mono.copyWith(color: nickColor, fontWeight: FontWeight.w600),
         recognizer: onTapSender == null
             ? null
-            : (TapGestureRecognizer()
-              ..onTap = () => onTapSender!(context, message.eventId)),
+            : _createRecognizer(() => onTapSender(context, message.eventId)),
       ));
     }
 
     // Reply marker.
     if (message.replyEventId != null && !isRedacted && replyPreviewText != null) {
-      final preview = replyPreviewText!.replaceAll('\n', ' ');
+      final preview = replyPreviewText.replaceAll('\n', ' ');
       final trimmed = preview.length > 60 ? '${preview.substring(0, 57)}...' : preview;
       spans.add(TextSpan(
         text: '↳ $trimmed ',
         style: mono.copyWith(color: cs.onSurfaceVariant.withValues(alpha: 0.7)),
         recognizer: onTapReply == null
             ? null
-            : (TapGestureRecognizer()..onTap = () => onTapReply!(message.replyEventId!)),
+            : _createRecognizer(() => onTapReply(message.replyEventId!)),
       ));
     }
 
@@ -208,9 +258,9 @@ class IrcMessageTile extends StatelessWidget {
     } else if (isMediaMessage) {
       // Media messages render the attachment below the log line; show a
       // compact label inline so the line is still readable.
-      spans.add(_mediaLabel(media!, mono, palette));
+      spans.add(_mediaLabel(media, mono, palette));
     } else if (poll != null) {
-      spans.add(_pollLabel(poll!, mono, palette));
+      spans.add(_pollLabel(poll, mono, palette));
     } else {
       _addLinkableText(message.body, mono, cs, palette, spans);
       if (message.isEdited) {
@@ -228,7 +278,7 @@ class IrcMessageTile extends StatelessWidget {
         style: mono.copyWith(color: palette.link),
         recognizer: onOpenThread == null
             ? null
-            : (TapGestureRecognizer()..onTap = onOpenThread),
+            : _createRecognizer(onOpenThread),
       ));
       if (threadUnreadCount > 0) {
         spans.add(TextSpan(
@@ -247,8 +297,8 @@ class IrcMessageTile extends StatelessWidget {
     }
 
     // Reaction chips (trailing).
-    if (reactions != null && reactions!.isNotEmpty) {
-      for (final r in reactions!.reactions) {
+    if (reactions != null && reactions.isNotEmpty) {
+      for (final r in reactions.reactions) {
         spans.add(const TextSpan(text: '  '));
         spans.add(TextSpan(
           text: '${r.key} ${r.count}',
@@ -258,7 +308,7 @@ class IrcMessageTile extends StatelessWidget {
           ),
           recognizer: onToggleReaction == null
               ? null
-              : (TapGestureRecognizer()..onTap = () => onToggleReaction!(r.key)),
+              : _createRecognizer(() => onToggleReaction(r.key)),
         ));
       }
     }
@@ -284,7 +334,7 @@ class IrcMessageTile extends StatelessWidget {
 
     // Media attachment rendered below the log line so images/gifs load.
     final mediaWidget = isMediaMessage
-        ? _buildMediaWidget(media!, mediaController!, cs)
+        ? _buildMediaWidget(media, mediaController, cs)
         : null;
 
     final body = mediaWidget == null
@@ -355,8 +405,7 @@ class IrcMessageTile extends StatelessWidget {
           decoration: TextDecoration.underline,
           decorationColor: palette.link,
         ),
-        recognizer: TapGestureRecognizer()
-          ..onTap = () => unawaited(safeLaunchUrl(cleaned)),
+        recognizer: _createRecognizer(() => unawaited(safeLaunchUrl(cleaned))),
       ));
       lastEnd = urlEnd;
     }
@@ -401,21 +450,21 @@ class IrcMessageTile extends StatelessWidget {
         return ImageBubble(
           media: m,
           controller: controller,
-          avatarResolver: avatarResolver!,
+          avatarResolver: widget.avatarResolver!,
         );
       case KoheraMediaType.video:
         return VideoBubble(
           media: m,
           controller: controller,
-          isMe: isMe,
-          avatarResolver: avatarResolver!,
+          isMe: widget.isMe,
+          avatarResolver: widget.avatarResolver!,
         );
       case KoheraMediaType.audio:
-        return AudioBubble(media: m, controller: controller, isMe: isMe);
+        return AudioBubble(media: m, controller: controller, isMe: widget.isMe);
       case KoheraMediaType.file:
-        return FileBubble(media: m, controller: controller, isMe: isMe);
+        return FileBubble(media: m, controller: controller, isMe: widget.isMe);
       case KoheraMediaType.sticker:
-        return FileBubble(media: m, controller: controller, isMe: isMe);
+        return FileBubble(media: m, controller: controller, isMe: widget.isMe);
     }
   }
 

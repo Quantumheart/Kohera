@@ -293,6 +293,8 @@ class LiveKitService {
   static const _androidBgConfig = FlutterBackgroundAndroidConfig(
     notificationTitle: 'Kohera',
     notificationText: 'Sharing screen',
+    notificationIcon:
+        AndroidResource(name: 'notification_icon'),
   );
 
   Future<void> _startAndroidMediaProjectionService() async {

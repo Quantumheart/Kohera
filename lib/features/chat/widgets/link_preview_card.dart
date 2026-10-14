@@ -129,6 +129,8 @@ class _LinkPreviewCardState extends State<LinkPreviewCard>
                           width: 60,
                           height: 60,
                           fit: BoxFit.cover,
+                          cacheWidth: 120,
+                          cacheHeight: 120,
                           headers: matrixClient != null
                               ? mediaAuthHeaders(matrixClient, data.imageUrl!) ?? const {}
                               : const {},

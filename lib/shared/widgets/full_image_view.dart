@@ -81,11 +81,13 @@ class _FullImageContentState extends State<_FullImageContent> {
     }
 
     final image = _imageBytes != null
-        ? Image.memory(_imageBytes!, fit: BoxFit.contain)
+        ? Image.memory(_imageBytes!, fit: BoxFit.contain, cacheWidth: 1080, cacheHeight: 1920)
         : _imageUrl != null
             ? Image.network(
                 _imageUrl!,
                 fit: BoxFit.contain,
+                cacheWidth: 1080,
+                cacheHeight: 1920,
                 headers: widget.controller.authHeaders(_imageUrl!),
                 errorBuilder: (_, _, _) => Center(
                   child: Icon(

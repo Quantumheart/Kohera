@@ -65,7 +65,7 @@ void main() {
 
       expect(find.byType(Image), findsOneWidget);
       final image = tester.widget<Image>(find.byType(Image));
-      expect(image.image, isA<NetworkImage>());
+      expect(image.image, isA<ResizeImage>());
     });
 
     testWidgets('shows fallback text when resolution returns null',
@@ -127,7 +127,7 @@ void main() {
 
       expect(find.byType(Image), findsOneWidget);
       final image = tester.widget<Image>(find.byType(Image));
-      expect(image.image, isA<NetworkImage>());
+      expect(image.image, isA<ResizeImage>());
     });
 
     testWidgets('shows fallback text when resolver throws', (tester) async {

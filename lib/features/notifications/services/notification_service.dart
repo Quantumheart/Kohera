@@ -92,7 +92,7 @@ class NotificationService {
     }
 
     const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@drawable/notification_icon');
     const darwinSettings = DarwinInitializationSettings(
       
     );

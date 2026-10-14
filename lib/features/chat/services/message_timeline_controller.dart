@@ -61,6 +61,31 @@ class MessageTimelineController extends ChangeNotifier
   Map<String, List<KoheraReadReceipt>>? _cachedReceipts;
   bool _disposed = false;
 
+  /// Coalesces rapid-fire [onUpdate] callbacks from the SDK timeline
+  /// (e.g. during batch decryption or history pagination) into a single
+  /// [notifyListeners] call on the next microtask. Without this, dozens of
+  /// synchronous updates can trigger dozens of full message-list rebuilds
+  /// in one frame, each creating and leaking gesture recognizers.
+  bool _updateScheduled = false;
+
+  /// Schedules a coalesced notification. Multiple calls within the same
+  /// microtask are collapsed into one [notifyListeners] + [onTimelineChanged]
+  /// + [_markAsRead] cycle.
+  void _scheduleUpdate() {
+    if (_disposed) return;
+    _cachedMessages = null;
+    _cachedReceipts = null;
+    if (_updateScheduled) return;
+    _updateScheduled = true;
+    scheduleMicrotask(() {
+      _updateScheduled = false;
+      if (_disposed) return;
+      notifyListeners();
+      onTimelineChanged?.call();
+      _markAsRead();
+    });
+  }
+
   // ── State getters ──────────────────────────────────────
 
   bool get isReady => _timeline != null;
@@ -160,14 +185,7 @@ class MessageTimelineController extends ChangeNotifier
         snapshotFullyRead.isNotEmpty ? snapshotFullyRead : null;
     _timeline = await room.getTimeline(
       eventContextId: initialEventId,
-      onUpdate: () {
-        if (_disposed) return;
-        _cachedMessages = null;
-        _cachedReceipts = null;
-        notifyListeners();
-        onTimelineChanged?.call();
-        _markAsRead();
-      },
+      onUpdate: _scheduleUpdate,
     );
     if (gen != _initGeneration || _disposed) return;
     _cachedMessages = null;
@@ -345,14 +363,7 @@ class MessageTimelineController extends ChangeNotifier
     final gen = ++_initGeneration;
     _timeline = await room.getTimeline(
       eventContextId: eventId,
-      onUpdate: () {
-        if (_disposed) return;
-        _cachedMessages = null;
-        _cachedReceipts = null;
-        notifyListeners();
-        onTimelineChanged?.call();
-        _markAsRead();
-      },
+      onUpdate: _scheduleUpdate,
     );
     if (gen != _initGeneration || _disposed) return;
     _cachedMessages = null;
@@ -378,14 +389,7 @@ class MessageTimelineController extends ChangeNotifier
     _initialFullyReadId =
         snapshotFullyRead.isNotEmpty ? snapshotFullyRead : null;
     _timeline = await room.getTimeline(
-      onUpdate: () {
-        if (_disposed) return;
-        _cachedMessages = null;
-        _cachedReceipts = null;
-        notifyListeners();
-        onTimelineChanged?.call();
-        _markAsRead();
-      },
+      onUpdate: _scheduleUpdate,
     );
     if (gen != _initGeneration || _disposed) return;
     _cachedMessages = null;
