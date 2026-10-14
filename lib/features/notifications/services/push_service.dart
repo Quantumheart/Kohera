@@ -249,6 +249,14 @@ class PushService {
       subtitle: isDirect ? null : senderDisplayName,
       senderName: isDirect ? '' : senderDisplayName,
       body: body,
+      androidMessages: [
+        (
+          senderName: senderDisplayName,
+          body: body,
+          timestamp: matrixEvent.originServerTs,
+        ),
+      ],
+      isGroupConversation: !isDirect,
     );
   }
 

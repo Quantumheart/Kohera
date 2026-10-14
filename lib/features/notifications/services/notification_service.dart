@@ -37,6 +37,13 @@ int _stableNotificationId(String roomId) {
   return hash & 0x7FFFFFFF;
 }
 
+/// A single message used to build [MessagingStyleInformation] on Android.
+typedef AndroidNotificationMessage = ({
+  String senderName,
+  String body,
+  DateTime timestamp,
+});
+
 /// Background service that listens to sync events and shows OS notifications.
 ///
 /// This is a plain Dart class (not a ChangeNotifier) — it has no UI state.
@@ -327,7 +334,8 @@ class NotificationService {
             .toLowerCase()
         : null;
 
-    final notifiable = <(String senderName, String body, Uri? avatarUrl)>[];
+    final notifiable =
+        <(String senderName, String body, Uri? avatarUrl, DateTime timestamp)>[];
 
     for (final matrixEvent in events) {
       final isPollStart = matrixEvent.type == PollEventContent.startType;
@@ -363,7 +371,12 @@ class NotificationService {
 
       final sender =
           room.unsafeGetUserFromMemoryOrFallback(matrixEvent.senderId);
-      notifiable.add((sender.calcDisplayname(), body, sender.avatarUrl));
+      notifiable.add((
+        sender.calcDisplayname(),
+        body,
+        sender.avatarUrl,
+        matrixEvent.originServerTs,
+      ));
     }
 
     if (notifiable.isEmpty) return;
@@ -400,10 +413,18 @@ class NotificationService {
         body: notifiable.first.$2,
         avatarPath: avatarPath,
         avatarUrl: avatarUrl,
+        androidMessages: [
+          (
+            senderName: senderDisplayName,
+            body: notifiable.first.$2,
+            timestamp: notifiable.first.$4,
+          ),
+        ],
+        isGroupConversation: !isDirect,
       );
     } else {
       final lines = <String>[];
-      for (final (name, body, _) in notifiable.take(3)) {
+      for (final (name, body, _, _) in notifiable.take(3)) {
         lines.add(NotificationText.senderBody(name, body));
       }
       if (notifiable.length > 3) {
@@ -417,6 +438,11 @@ class NotificationService {
         avatarPath: avatarPath,
         avatarUrl: avatarUrl,
         isGrouped: true,
+        androidMessages: [
+          for (final (name, body, _, ts) in notifiable)
+            (senderName: name, body: body, timestamp: ts),
+        ],
+        isGroupConversation: !isDirect,
       );
     }
   }
@@ -498,6 +524,9 @@ class NotificationService {
 
   // ── Show notification ────────────────────────────────────────
 
+  /// Notification ID for the Android group summary notification.
+  static const int _groupSummaryId = -1;
+
   Future<void> _showNotification({
     required String roomId,
     required String title,
@@ -507,6 +536,8 @@ class NotificationService {
     String? avatarPath,
     String? avatarUrl,
     bool isGrouped = false,
+    List<AndroidNotificationMessage>? androidMessages,
+    bool isGroupConversation = false,
   }) async {
     // Subtitle slot (iOS/macOS `subtitle`, Android `subText`) separates
     // "who" (sender) from "where" (title) and "what" (body). Platforms
@@ -548,6 +579,40 @@ class NotificationService {
 
     final notificationId = _stableNotificationId(roomId);
 
+    final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+
+    // Build messaging-style content for Android when per-message data is
+    // available. This renders a conversation-style notification with
+    // sender names and timestamps, similar to iOS communication
+    // notifications (INSendMessageIntent).
+    MessagingStyleInformation? androidStyle;
+    if (isAndroid && androidMessages != null && androidMessages.isNotEmpty) {
+      final ownUserId = pushRepository.userId;
+      final ownName = ownUserId != null
+          ? pushRepository
+              .getRoom(roomId)
+              ?.unsafeGetUserFromMemoryOrFallback(ownUserId)
+              .calcDisplayname()
+          : null;
+
+      final messages = androidMessages
+          .map((m) => Message(
+                m.body,
+                m.timestamp,
+                Person(key: m.senderName, name: m.senderName),
+              ))
+          .toList();
+
+      androidStyle = MessagingStyleInformation(
+        Person(key: ownUserId, name: ownName ?? 'Me'),
+        conversationTitle: title,
+        groupConversation: isGroupConversation,
+        messages: messages,
+      );
+    }
+
+    final unreadCount = pushRepository.unreadNotificationCount();
+
     final androidDetails = AndroidNotificationDetails(
       NotificationChannel.androidChannelId,
       NotificationChannel.androidChannelName,
@@ -564,6 +629,8 @@ class NotificationService {
       groupKey: NotificationChannel.androidGroupKey,
       subText: useSubtitleLayout ? subtitle : null,
       actions: _androidActions,
+      styleInformation: androidStyle,
+      number: unreadCount > 0 ? unreadCount : null,
     );
 
     final darwinDetails = DarwinNotificationDetails(
@@ -596,7 +663,41 @@ class NotificationService {
       payload: roomId,
     );
 
+    // Post a group summary notification on Android so that multiple room
+    // notifications collapse into a single group in the shade. The summary
+    // is silent — child notifications retain their own sound/vibration.
+    if (isAndroid) {
+      await _showGroupSummary(unreadCount);
+    }
+
     debugPrint('[Kohera] Notification shown for room $roomId');
+  }
+
+  /// Posts (or updates) a silent group-summary notification that collapses
+  /// all per-room notifications sharing [NotificationChannel.androidGroupKey]
+  /// into a single expandable group in the notification shade.
+  Future<void> _showGroupSummary(int unreadCount) async {
+    const summaryDetails = AndroidNotificationDetails(
+      NotificationChannel.androidChannelId,
+      NotificationChannel.androidChannelName,
+      channelDescription: NotificationChannel.androidChannelDescription,
+      importance: Importance.low,
+      priority: Priority.low,
+      playSound: false,
+      enableVibration: false,
+      groupKey: NotificationChannel.androidGroupKey,
+      setAsGroupSummary: true,
+      autoCancel: false,
+    );
+
+    await _plugin.show(
+      id: _groupSummaryId,
+      title: NotificationChannel.appName,
+      body: unreadCount > 0
+          ? NotificationText.groupSummary(unreadCount)
+          : NotificationChannel.appName,
+      notificationDetails: const NotificationDetails(android: summaryDetails),
+    );
   }
 
   Future<void> _showLinuxNotification({
@@ -762,6 +863,8 @@ class NotificationService {
     required String body,
     String senderName = '',
     String? subtitle,
+    List<AndroidNotificationMessage>? androidMessages,
+    bool isGroupConversation = false,
   }) async {
     await _showNotification(
       roomId: roomId,
@@ -769,6 +872,8 @@ class NotificationService {
       subtitle: subtitle,
       senderName: senderName,
       body: body,
+      androidMessages: androidMessages,
+      isGroupConversation: isGroupConversation,
     );
   }
 

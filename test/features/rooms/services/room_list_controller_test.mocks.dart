@@ -1583,6 +1583,15 @@ class MockPreferencesService extends _i1.Mock
           as bool);
 
   @override
+  bool get closeToTray =>
+      (super.noSuchMethod(
+            Invocation.getter(#closeToTray),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   bool get autoMuteOnJoin =>
       (super.noSuchMethod(
             Invocation.getter(#autoMuteOnJoin),
@@ -2000,6 +2009,15 @@ class MockPreferencesService extends _i1.Mock
   _i20.Future<void> setApnsPushEnabled(bool? value) =>
       (super.noSuchMethod(
             Invocation.method(#setApnsPushEnabled, [value]),
+            returnValue: _i20.Future<void>.value(),
+            returnValueForMissingStub: _i20.Future<void>.value(),
+          )
+          as _i20.Future<void>);
+
+  @override
+  _i20.Future<void> setCloseToTray(bool? value) =>
+      (super.noSuchMethod(
+            Invocation.method(#setCloseToTray, [value]),
             returnValue: _i20.Future<void>.value(),
             returnValueForMissingStub: _i20.Future<void>.value(),
           )
