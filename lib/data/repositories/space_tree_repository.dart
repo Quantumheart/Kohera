@@ -12,12 +12,23 @@ class SpaceTreeRepository extends ChangeNotifier {
   SpaceTreeRepository({required MatrixClientService clientService}) : _clientService = clientService {
     _syncSub = _clientService.client.onSync.stream.listen((_) {
       invalidateSpaceTree();
-      notifyListeners();
+      _debounceNotify();
     });
   }
 
   final MatrixClientService _clientService;
   StreamSubscription<SyncUpdate>? _syncSub;
+
+  /// Debounce timer for sync-driven notifications. Matrix syncs often arrive
+  /// in rapid bursts; batching prevents redundant rebuilds across the 5 views
+  /// that watch this repository.
+  Timer? _notifyTimer;
+  static const _notifyDebounce = Duration(milliseconds: 100);
+
+  void _debounceNotify() {
+    _notifyTimer?.cancel();
+    _notifyTimer = Timer(_notifyDebounce, notifyListeners);
+  }
 
   // ── Custom space ordering ──────────────────────────────────
   List<String> _customSpaceOrder = [];
@@ -190,13 +201,13 @@ class SpaceTreeRepository extends ChangeNotifier {
 
   // ── Helpers ──────────────────────────────────────────────────
 
-  List<Room> get spaces => _sortByCustomOrder(
-    _clientService.client.rooms
-            .where((r) => r.isSpace && r.membership == Membership.join)
-            .toList(),
-        (r) => r.id,
-        (r) => r.getLocalizedDisplayname(),
-      );
+  List<Room> get spaces {
+    _ensureTreeFresh();
+    return _cachedSpaceTree!
+        .map((n) => _clientService.client.getRoomById(n.summary.roomId))
+        .whereType<Room>()
+        .toList();
+  }
 
   List<Room> get topLevelSpaces => spaceTree
       .map((n) => _clientService.client.getRoomById(n.summary.roomId))
@@ -268,15 +279,22 @@ class SpaceTreeRepository extends ChangeNotifier {
 
   List<Room> roomsForSpace(String spaceId) {
     _ensureTreeFresh();
+    // Use the cached tree's directChildRoomIds instead of re-querying
+    // space.spaceChildren from the SDK on every call.
+    final node = _cachedNodeById?[spaceId];
     final space = _clientService.client.getRoomById(spaceId);
     if (space == null) return [];
-    final childIds = <String>{};
-    for (final child in space.spaceChildren) {
-      final childId = child.roomId;
-      if (childId == null) continue;
-      final childRoom = _clientService.client.getRoomById(childId);
-      if (childRoom != null && !childRoom.isSpace) {
-        childIds.add(childId);
+    final childIds = node?.directChildRoomIds.toSet() ??
+        <String>{};
+    if (childIds.isEmpty) {
+      // Fallback: query SDK directly for spaces not in the cached tree.
+      for (final child in space.spaceChildren) {
+        final childId = child.roomId;
+        if (childId == null) continue;
+        final childRoom = _clientService.client.getRoomById(childId);
+        if (childRoom != null && !childRoom.isSpace) {
+          childIds.add(childId);
+        }
       }
     }
     final orderMap = order_utils.buildOrderMap(space);
@@ -299,6 +317,7 @@ class SpaceTreeRepository extends ChangeNotifier {
 
   @override
   void dispose() {
+    _notifyTimer?.cancel();
     unawaited(_syncSub?.cancel());
     _syncSub = null;
     super.dispose();
