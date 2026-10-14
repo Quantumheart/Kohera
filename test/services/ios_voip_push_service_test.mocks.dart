@@ -7133,6 +7133,9 @@ class MockNotificationService extends _i1.Mock
     required String? body,
     String? senderName = '',
     String? subtitle,
+    List<({String body, String senderName, DateTime timestamp})>?
+    androidMessages,
+    bool? isGroupConversation = false,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#showPushNotification, [], {
@@ -7141,6 +7144,8 @@ class MockNotificationService extends _i1.Mock
               #body: body,
               #senderName: senderName,
               #subtitle: subtitle,
+              #androidMessages: androidMessages,
+              #isGroupConversation: isGroupConversation,
             }),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),

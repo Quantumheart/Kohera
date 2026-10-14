@@ -51,6 +51,9 @@ abstract class NotificationText {
 
   static String groupTitle(String roomName, int count) =>
       '$roomName \u00b7 $count messages';
+
+  static String groupSummary(int count) =>
+      count == 1 ? '1 unread message' : '$count unread messages';
 }
 
 abstract class InboxText {
