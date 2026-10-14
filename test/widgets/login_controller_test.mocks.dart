@@ -594,6 +594,15 @@ class MockClientManager extends _i1.Mock implements _i9.ClientManager {
   );
 
   @override
+  _i6.Future<void> quiesceAllForSuspension() =>
+      (super.noSuchMethod(
+            Invocation.method(#quiesceAllForSuspension, []),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
   void addListener(_i10.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,

@@ -909,6 +909,15 @@ class MockMatrixService extends _i1.Mock implements _i23.MatrixService {
       );
 
   @override
+  _i20.Future<void> quiesceForSuspension() =>
+      (super.noSuchMethod(
+            Invocation.method(#quiesceForSuspension, []),
+            returnValue: _i20.Future<void>.value(),
+            returnValueForMissingStub: _i20.Future<void>.value(),
+          )
+          as _i20.Future<void>);
+
+  @override
   void dispose() => super.noSuchMethod(
     Invocation.method(#dispose, []),
     returnValueForMissingStub: null,
