@@ -802,9 +802,21 @@ class NotificationService {
   static const String _kActionMarkRead = 'mark_read';
 
   /// Action buttons shown on Android message notifications.
-  /// Mirrors the iOS `MESSAGE` category (reply + mark-as-read) and the
+  /// Mirrors the iOS `MESSAGE` category (mark-as-read + reply) and the
   /// Linux D-Bus notification actions.
+  ///
+  /// `showsUserInterface: true` ensures the action is routed to
+  /// [_onNotificationTap] (via `onDidReceiveNotificationResponse`) on the
+  /// main isolate, where the Matrix client and [pushRepository] are
+  /// available. Without it, the action would be dispatched to
+  /// `onDidReceiveBackgroundNotificationResponse` on a background isolate
+  /// that has no access to the SDK.
   static const List<AndroidNotificationAction> _androidActions = [
+    AndroidNotificationAction(
+      _kActionMarkRead,
+      NotificationText.markAsReadAction,
+      showsUserInterface: true,
+    ),
     AndroidNotificationAction(
       _kActionReply,
       NotificationText.replyAction,
@@ -817,10 +829,7 @@ class NotificationService {
       // their message was sent; dismiss happens via the normal read-marker
       // flow when the next sync clears it.
       cancelNotification: false,
-    ),
-    AndroidNotificationAction(
-      _kActionMarkRead,
-      NotificationText.markAsReadAction,
+      showsUserInterface: true,
     ),
   ];
 
