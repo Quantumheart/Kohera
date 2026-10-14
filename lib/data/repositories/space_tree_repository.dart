@@ -201,13 +201,13 @@ class SpaceTreeRepository extends ChangeNotifier {
 
   // ── Helpers ──────────────────────────────────────────────────
 
-  List<Room> get spaces {
-    _ensureTreeFresh();
-    return _cachedSpaceTree!
-        .map((n) => _clientService.client.getRoomById(n.summary.roomId))
-        .whereType<Room>()
-        .toList();
-  }
+  List<Room> get spaces => _sortByCustomOrder(
+    _clientService.client.rooms
+            .where((r) => r.isSpace && r.membership == Membership.join)
+            .toList(),
+        (r) => r.id,
+        (r) => r.getLocalizedDisplayname(),
+      );
 
   List<Room> get topLevelSpaces => spaceTree
       .map((n) => _clientService.client.getRoomById(n.summary.roomId))
