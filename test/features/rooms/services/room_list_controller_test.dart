@@ -177,7 +177,7 @@ void main() {
   group('RoomListController items', () {
     test('items are empty by default', () {
       final controller = makeController();
-      expect(controller.items, isEmpty);
+      expect(controller.snapshot.items, isEmpty);
     });
 
     test('items include invited rooms', () {
@@ -188,7 +188,7 @@ void main() {
       when(selection.invitedRooms).thenReturn([room]);
       when(selection.summaryFor(room)).thenReturn(summary(roomId: room.id));
       final controller = makeController();
-      final items = controller.items;
+      final items = controller.snapshot.items;
       expect(items.length, 1);
       expect(items.first, isA<InviteItem>());
     });
@@ -201,7 +201,7 @@ void main() {
       when(selection.orphanRooms).thenReturn([room]);
       when(selection.summaryFor(room)).thenReturn(summary(roomId: room.id));
       final controller = makeController();
-      final items = controller.items;
+      final items = controller.snapshot.items;
       expect(items.length, 2);
       expect(items.first, isA<HeaderItem>());
       expect(items.last, isA<RoomItem>());
@@ -212,23 +212,21 @@ void main() {
       () {
         final controller = makeController();
         controller.setQuery('ab');
-        expect(controller.items, isEmpty);
+        expect(controller.snapshot.items, isEmpty);
       },
     );
 
     test('search query appends message search items', () {
-      final controller = makeController();
       when(messageSearch.isLoading).thenReturn(true);
       when(messageSearch.totalCount).thenReturn(5);
+      final controller = makeController();
       controller.setQuery('hello world');
-      final items = controller.items;
+      final items = controller.snapshot.items;
       expect(items.length, 1);
       expect(items.first, isA<MessageSearchHeaderItem>());
     });
 
     test('message results and load-more item are appended', () {
-      final controller = makeController();
-      when(messageSearch.query).thenReturn('hello world');
       when(messageSearch.results).thenReturn([
         MessageSearchResult(
           roomId: '!r:example.com',
@@ -242,8 +240,9 @@ void main() {
       ]);
       when(messageSearch.nextBatch).thenReturn('next');
       when(messageSearch.isLoading).thenReturn(false);
+      final controller = makeController();
       controller.setQuery('hello world');
-      final items = controller.items;
+      final items = controller.snapshot.items;
       expect(items.length, 3);
       expect(items[0], isA<MessageSearchHeaderItem>());
       expect(items[1], isA<MessageSearchResultItem>());
@@ -254,13 +253,13 @@ void main() {
   group('RoomListController emptiness', () {
     test('isEmpty true when no rooms and no search results', () {
       final controller = makeController();
-      expect(controller.isEmpty, true);
+      expect(controller.snapshot.isEmpty, true);
     });
 
     test('isEmpty false when message search is active', () {
-      final controller = makeController();
       when(messageSearch.isLoading).thenReturn(true);
-      expect(controller.isEmpty, false);
+      final controller = makeController();
+      expect(controller.snapshot.isEmpty, false);
     });
 
     test('isEmpty false when rooms exist', () {
@@ -271,7 +270,7 @@ void main() {
       when(selection.orphanRooms).thenReturn([room]);
       when(selection.summaryFor(room)).thenReturn(summary(roomId: room.id));
       final controller = makeController();
-      expect(controller.isEmpty, false);
+      expect(controller.snapshot.isEmpty, false);
     });
   });
 
@@ -279,7 +278,7 @@ void main() {
     test('appBarTitle returns Chats when no space selected', () {
       when(selectionState.selectedSpaceIds).thenReturn({});
       final controller = makeController();
-      expect(controller.appBarTitle(), 'Chats');
+      expect(controller.snapshot.appBarTitle, 'Chats');
     });
 
     test('appBarTitle returns room displayname for single selection', () {
@@ -289,7 +288,7 @@ void main() {
       when(client.getRoomById(spaceId)).thenReturn(space);
       when(space.getLocalizedDisplayname()).thenReturn('My Space');
       final controller = makeController();
-      expect(controller.appBarTitle(), 'My Space');
+      expect(controller.snapshot.appBarTitle, 'My Space');
     });
 
     test('appBarTitle returns count for multi selection', () {
@@ -297,7 +296,7 @@ void main() {
         selectionState.selectedSpaceIds,
       ).thenReturn({'!a:example.com', '!b:example.com'});
       final controller = makeController();
-      expect(controller.appBarTitle(), '2 spaces');
+      expect(controller.snapshot.appBarTitle, '2 spaces');
     });
   });
 
@@ -307,13 +306,14 @@ void main() {
     test('returns null when no space selected', () {
       when(selectionState.selectedSpaceIds).thenReturn({});
       final controller = makeController();
-      expect(controller.spaceWithNoJoinedRooms(), isNull);
+      expect(controller.snapshot.spaceWithNoJoinedRooms, isNull);
     });
 
     test('returns null when query is non-empty', () {
-      final controller = makeController()..setQuery('hello');
+      final controller = makeController();
       when(selectionState.selectedSpaceIds).thenReturn({spaceId});
-      expect(controller.spaceWithNoJoinedRooms(), isNull);
+      controller.setQuery('hello');
+      expect(controller.snapshot.spaceWithNoJoinedRooms, isNull);
     });
 
     test('returns null when selected id is not a space', () {
@@ -322,7 +322,7 @@ void main() {
       when(client.getRoomById(spaceId)).thenReturn(room);
       when(room.isSpace).thenReturn(false);
       final controller = makeController();
-      expect(controller.spaceWithNoJoinedRooms(), isNull);
+      expect(controller.snapshot.spaceWithNoJoinedRooms, isNull);
     });
 
     test('returns null when space has joined rooms', () {
@@ -333,7 +333,7 @@ void main() {
       when(space.isSpace).thenReturn(true);
       when(selection.roomsForSpace(spaceId)).thenReturn([joined]);
       final controller = makeController();
-      expect(controller.spaceWithNoJoinedRooms(), isNull);
+      expect(controller.snapshot.spaceWithNoJoinedRooms, isNull);
     });
 
     test('returns spaceId when uncached', () {
@@ -344,7 +344,7 @@ void main() {
       when(selection.roomsForSpace(spaceId)).thenReturn([]);
       when(spaceRooms.isCached(spaceId)).thenReturn(false);
       final controller = makeController();
-      expect(controller.spaceWithNoJoinedRooms(), spaceId);
+      expect(controller.snapshot.spaceWithNoJoinedRooms, spaceId);
     });
 
     test('returns spaceId when cached and loading', () {
@@ -358,7 +358,7 @@ void main() {
         spaceRooms.getRoomState(spaceId),
       ).thenReturn(const SpaceRoomsState(loading: true));
       final controller = makeController();
-      expect(controller.spaceWithNoJoinedRooms(), spaceId);
+      expect(controller.snapshot.spaceWithNoJoinedRooms, spaceId);
     });
 
     test('returns spaceId when cached and has unjoined rooms', () {
@@ -381,7 +381,7 @@ void main() {
         ),
       );
       final controller = makeController();
-      expect(controller.spaceWithNoJoinedRooms(), spaceId);
+      expect(controller.snapshot.spaceWithNoJoinedRooms, spaceId);
     });
   });
 
@@ -395,7 +395,7 @@ void main() {
         when(client.getRoomById(spaceId)).thenReturn(space);
         when(space.canChangeStateEvent('m.space.child')).thenReturn(true);
         final controller = makeController();
-        expect(controller.selectedSpaceCanManage, true);
+        expect(controller.snapshot.selectedSpaceCanManage, true);
       },
     );
 
@@ -405,7 +405,7 @@ void main() {
       when(space.canChangeStateEvent('m.space.child')).thenReturn(true);
       when(selection.spaces).thenReturn([space]);
       final controller = makeController();
-      expect(controller.manageableSpaceIds, {'!space:example.com'});
+      expect(controller.snapshot.manageableSpaceIds, {'!space:example.com'});
     });
   });
 
@@ -424,15 +424,24 @@ void main() {
   });
 
   group('RoomListController lifecycle', () {
-    test('dispose removes listener and disposes messageSearch', () {
+    test('dispose removes listeners and disposes messageSearch', () {
       final controller = makeController();
       controller.dispose();
+      // Each dependency should have removeListener called once.
+      verify(selection.removeListener(any)).called(1);
+      verify(selectionState.removeListener(any)).called(1);
+      verify(prefs.removeListener(any)).called(1);
+      verify(spaceRooms.removeListener(any)).called(1);
       verify(messageSearch.removeListener(any)).called(1);
       verify(messageSearch.dispose()).called(1);
     });
 
-    test('registers notifyListeners with messageSearch', () {
+    test('registers listeners with all dependencies', () {
       makeController();
+      verify(selection.addListener(any)).called(1);
+      verify(selectionState.addListener(any)).called(1);
+      verify(prefs.addListener(any)).called(1);
+      verify(spaceRooms.addListener(any)).called(1);
       verify(messageSearch.addListener(any)).called(1);
     });
   });
