@@ -112,22 +112,19 @@ class _RoomListViewState extends State<_RoomListView>
   @override
   Widget build(BuildContext context) {
     final matrix = context.read<MatrixService>();
-    final selection = context.watch<SpaceTreeRepository>();
-    final selectionState = context.watch<SelectionController>();
-    final prefs = context.watch<PreferencesService>();
-    final spaceRoomsController = context.watch<SpaceRoomsController>();
     final controller = context.watch<RoomListController>();
+    final snapshot = controller.snapshot;
     final cs = Theme.of(context).colorScheme;
 
     _syncAnimations(controller);
     controller.maybeFetchSpaceHierarchy();
 
-    final items = controller.items;
-    final spaceEmpty = controller.spaceWithNoJoinedRooms();
+    final items = snapshot.items;
+    final spaceEmpty = snapshot.spaceWithNoJoinedRooms;
     final isNarrow =
         MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
-    final manageableSpaceIds = controller.manageableSpaceIds;
-    final selectedSpaceCanManage = controller.selectedSpaceCanManage;
+    final manageableSpaceIds = snapshot.manageableSpaceIds;
+    final selectedSpaceCanManage = snapshot.selectedSpaceCanManage;
 
     return PopScope(
       canPop: !controller.isSearchOpen,
@@ -153,7 +150,10 @@ class _RoomListViewState extends State<_RoomListView>
                       focusNode: _searchFocus,
                       onChanged: (v) => controller.setQuery(
                         v,
-                        scopeRoomIds: spaceRoomIds(selection, selectionState),
+                        scopeRoomIds: spaceRoomIds(
+                          context.read<SpaceTreeRepository>(),
+                          context.read<SelectionController>(),
+                        ),
                       ),
                       decoration: InputDecoration(
                         hintText: 'Search…',
@@ -172,7 +172,7 @@ class _RoomListViewState extends State<_RoomListView>
                     ),
                   )
                 : Text(
-                    controller.appBarTitle(),
+                    snapshot.appBarTitle,
                     key: const ValueKey('title'),
                   ),
           ),
@@ -212,10 +212,10 @@ class _RoomListViewState extends State<_RoomListView>
                   child: spaceEmpty != null
                       ? _SpaceEmptyState(
                           spaceId: spaceEmpty,
-                          controller: spaceRoomsController,
+                          controller: context.read<SpaceRoomsController>(),
                           matrixService: matrix,
                         )
-                      : controller.isEmpty && items.isEmpty
+                      : snapshot.isEmpty && items.isEmpty
                       ? Center(
                           child: Text(
                             controller.query.isNotEmpty
@@ -241,11 +241,8 @@ class _RoomListViewState extends State<_RoomListView>
                               context,
                               item,
                               matrix,
-                              selection,
-                              prefs,
                               selectedSpaceCanManage,
                               manageableSpaceIds,
-                              spaceRoomsController,
                               controller,
                             );
                           },
@@ -351,13 +348,14 @@ class _RoomListViewState extends State<_RoomListView>
     BuildContext context,
     ListItem item,
     MatrixService matrix,
-    SpaceTreeRepository selection,
-    PreferencesService prefs,
     bool selectedSpaceCanManage,
     Set<String> manageableSpaceIds,
-    SpaceRoomsController spaceRoomsController,
     RoomListController roomListController,
   ) {
+    final selection = context.read<SpaceTreeRepository>();
+    final prefs = context.read<PreferencesService>();
+    final spaceRoomsController = context.read<SpaceRoomsController>();
+
     return switch (item) {
       InviteItem() => InviteTile(
         summary: item.summary,
