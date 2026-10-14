@@ -5,11 +5,11 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
-import 'package:kohera/data/repositories/message_repository.dart';
+import 'package:kohera/data/models/message_search_result.dart';
+import 'package:kohera/data/repositories/message_search_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
-import 'package:kohera/data/services/message_search_database.dart';
 import 'package:kohera/features/rooms/services/room_list_controller.dart';
 import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
@@ -31,8 +31,7 @@ import 'room_list_controller_test.mocks.dart';
   MockSpec<RoomListSearchController>(),
   MockSpec<Client>(),
   MockSpec<Room>(),
-  MockSpec<MessageRepository>(),
-  MockSpec<SearchIndex>(),
+  MockSpec<MessageSearchRepository>(),
 ])
 void main() {
   late MockMatrixService matrix;
@@ -43,8 +42,7 @@ void main() {
   late MockSpaceRoomsController spaceRooms;
   late MockRoomListSearchController messageSearch;
   late MockClient client;
-  late MockMessageRepository messageRepository;
-  late MockSearchIndex searchIndex;
+  late MockMessageSearchRepository messageSearchRepository;
 
   RoomListController makeController() => RoomListController(
     roomRepository: rooms,
@@ -52,7 +50,7 @@ void main() {
     selectionController: selectionState,
     preferencesService: prefs,
     spaceRoomsController: spaceRooms,
-    messageRepository: messageRepository,
+    messageSearchRepository: messageSearchRepository,
     messageSearchController: messageSearch,
   );
 
@@ -81,8 +79,7 @@ void main() {
     spaceRooms = MockSpaceRoomsController();
     messageSearch = MockRoomListSearchController();
     client = MockClient();
-    messageRepository = MockMessageRepository();
-    searchIndex = MockSearchIndex();
+    messageSearchRepository = MockMessageSearchRepository();
 
     when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
     when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
@@ -99,9 +96,6 @@ void main() {
     when(messageSearch.nextBatch).thenReturn(null);
     when(messageSearch.totalCount).thenReturn(null);
     when(messageSearch.error).thenReturn(null);
-    when(messageRepository.searchDatabase).thenReturn(searchIndex);
-    when(searchIndex.isAvailable).thenReturn(true);
-    when(messageRepository.ensureRoomIndexed(any)).thenAnswer((_) async {});
   });
 
   group('RoomListController state', () {
@@ -120,7 +114,7 @@ void main() {
         selectionController: selectionState,
         preferencesService: prefs,
         spaceRoomsController: spaceRooms,
-        messageRepository: messageRepository,
+        messageSearchRepository: messageSearchRepository,
       );
       expect(controller.messageSearch, isA<RoomListSearchController>());
       controller.dispose();

@@ -1,88 +1,41 @@
 import 'package:fake_async/fake_async.dart';
-
-// Tests pass redundant args to mockito stubs for explicitness.
-// ignore_for_file: avoid_redundant_argument_values
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/data/services/message_search_database.dart';
+import 'package:kohera/data/models/message_search_result.dart';
+import 'package:kohera/data/repositories/message_search_repository.dart';
 import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
-import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-@GenerateNiceMocks([
-  MockSpec<Client>(),
-  MockSpec<Room>(),
-  MockSpec<User>(),
-  MockSpec<SearchIndex>(),
-])
+@GenerateNiceMocks([MockSpec<MessageSearchRepository>()])
 import 'room_list_search_controller_test.mocks.dart';
 
-SearchResults _buildSearchResults({
-  List<MatrixEvent> events = const [],
-  String? nextBatch,
-  int? count,
-}) {
-  return SearchResults(
-    searchCategories: ResultCategories(
-      roomEvents: ResultRoomEvents(
-        results: events
-            .map((e) => Result(result: e))
-            .toList(),
-        nextBatch: nextBatch,
-        count: count,
-      ),
-    ),
-  );
-}
-
-MatrixEvent _makeMatrixEvent({
+MessageSearchResult _makeResult({
   required String eventId,
-  required String roomId,
-  required String senderId,
-  required String body,
-  required DateTime originServerTs,
+  String roomId = '!r:example.com',
+  String roomName = 'Room',
+  String senderName = 'Alice',
+  String senderId = '@alice:example.com',
+  String body = 'hello world',
+  DateTime? originServerTs,
 }) {
-  return MatrixEvent(
-    type: EventTypes.Message,
-    content: {'body': body, 'msgtype': 'm.text'},
-    senderId: senderId,
-    eventId: eventId,
+  return MessageSearchResult(
     roomId: roomId,
-    originServerTs: originServerTs,
+    roomName: roomName,
+    senderName: senderName,
+    senderId: senderId,
+    body: body,
+    eventId: eventId,
+    originServerTs: originServerTs ?? DateTime(2026),
   );
 }
 
 void main() {
-  late MockClient mockClient;
-  late MockSearchIndex mockSearchIndex;
+  late MockMessageSearchRepository mockRepo;
   late RoomListSearchController controller;
 
   setUp(() {
-    mockClient = MockClient();
-    mockSearchIndex = MockSearchIndex();
-    when(mockClient.rooms).thenReturn([]);
-    when(mockSearchIndex.isAvailable).thenReturn(true);
-    when(mockSearchIndex.search(
-      query: anyNamed('query'),
-      roomId: anyNamed('roomId'),
-      senderId: anyNamed('senderId'),
-      startTs: anyNamed('startTs'),
-      endTs: anyNamed('endTs'),
-      limit: anyNamed('limit'),
-      offset: anyNamed('offset'),
-    )).thenAnswer((_) async => const <IndexedMessage>[]);
-    when(mockSearchIndex.count(
-      roomId: anyNamed('roomId'),
-      query: anyNamed('query'),
-      senderId: anyNamed('senderId'),
-      startTs: anyNamed('startTs'),
-      endTs: anyNamed('endTs'),
-    )).thenAnswer((_) async => 0);
-    when(mockSearchIndex.indexedRoomIds()).thenAnswer((_) async => <String>{});
-    controller = RoomListSearchController(
-      getClient: () => mockClient,
-      searchIndex: mockSearchIndex,
-    );
+    mockRepo = MockMessageSearchRepository();
+    controller = RoomListSearchController(searchRepository: mockRepo);
   });
 
   tearDown(() {
@@ -108,10 +61,12 @@ void main() {
 
         expect(controller.isLoading, isTrue);
 
-        when(mockClient.search(
-          any,
+        when(mockRepo.searchServer(
+          query: anyNamed('query'),
+          limit: anyNamed('limit'),
+          scopeRoomIds: anyNamed('scopeRoomIds'),
           nextBatch: anyNamed('nextBatch'),
-        ),).thenAnswer((_) async => _buildSearchResults());
+        )).thenAnswer((_) async => const ServerSearchPage());
 
         async.elapse(const Duration(milliseconds: 500));
 
@@ -121,10 +76,23 @@ void main() {
 
     test('new query cancels previous debounce', () {
       fakeAsync((async) {
-        when(mockClient.search(
-          any,
+        when(mockRepo.searchServer(
+          query: anyNamed('query'),
+          limit: anyNamed('limit'),
+          scopeRoomIds: anyNamed('scopeRoomIds'),
           nextBatch: anyNamed('nextBatch'),
-        ),).thenAnswer((_) async => _buildSearchResults());
+        )).thenAnswer((_) async => const ServerSearchPage());
+        when(mockRepo.searchLocal(
+          query: anyNamed('query'),
+          limit: anyNamed('limit'),
+          scopeRoomIds: anyNamed('scopeRoomIds'),
+          offset: anyNamed('offset'),
+        )).thenAnswer((_) async => const LocalSearchPage());
+        when(mockRepo.searchUnindexed(
+          query: anyNamed('query'),
+          limit: anyNamed('limit'),
+          scopeRoomIds: anyNamed('scopeRoomIds'),
+        )).thenAnswer((_) async => const UnindexedSearchResult());
 
         controller.onQueryChanged('first query');
         async.elapse(const Duration(milliseconds: 300));
@@ -139,94 +107,65 @@ void main() {
 
   group('performSearch', () {
     test('parses server results into MessageSearchResult list', () async {
-      final mockRoom = MockRoom();
-      final mockUser = MockUser();
-      when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
-      when(mockRoom.getLocalizedDisplayname()).thenReturn('General');
-      when(mockUser.displayName).thenReturn('Alice');
-      when(mockRoom.unsafeGetUserFromMemoryOrFallback(any))
-          .thenReturn(mockUser);
-
-      when(mockClient.search(
-        any,
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
         nextBatch: anyNamed('nextBatch'),
-      ),).thenAnswer((_) async => _buildSearchResults(
-            events: [
-              _makeMatrixEvent(
-                eventId: r'$e1',
-                roomId: '!room:example.com',
-                senderId: '@alice:example.com',
-                body: 'hello world',
-                originServerTs: DateTime(2026),
-              ),
-            ],
+      )).thenAnswer((_) async => ServerSearchPage(
+            results: [_makeResult(eventId: r'$e1')],
             count: 1,
-          ),);
+          ));
+      when(mockRepo.searchLocal(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenAnswer((_) async => const LocalSearchPage());
+      when(mockRepo.searchUnindexed(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+      )).thenAnswer((_) async => const UnindexedSearchResult());
 
       controller.onQueryChanged('hello world');
       await controller.performSearch();
 
       expect(controller.results, hasLength(1));
       expect(controller.results.first.body, 'hello world');
-      expect(controller.results.first.roomName, 'General');
-      expect(controller.results.first.senderName, 'Alice');
       expect(controller.isLoading, isFalse);
       expect(controller.totalCount, 1);
     });
 
-    test('skips events with null/empty body', () async {
-      when(mockClient.search(
-        any,
-        nextBatch: anyNamed('nextBatch'),
-      ),).thenAnswer((_) async => _buildSearchResults(
-            events: [
-              _makeMatrixEvent(
-                eventId: r'$e1',
-                roomId: '!room:example.com',
-                senderId: '@a:x.com',
-                body: '',
-                originServerTs: DateTime(2026),
-              ),
-            ],
-          ),);
-
-      controller.onQueryChanged('hello world');
-      await controller.performSearch();
-
-      expect(controller.results, isEmpty);
-    });
-
     test('deduplicates by eventId and sorts by timestamp descending',
         () async {
-      final mockRoom = MockRoom();
-      final mockUser = MockUser();
-      when(mockClient.getRoomById(any)).thenReturn(mockRoom);
-      when(mockRoom.getLocalizedDisplayname()).thenReturn('Room');
-      when(mockUser.displayName).thenReturn('User');
-      when(mockRoom.unsafeGetUserFromMemoryOrFallback(any))
-          .thenReturn(mockUser);
-
-      when(mockClient.search(
-        any,
+      final older = _makeResult(
+        eventId: r'$older',
+        body: 'older',
+        originServerTs: DateTime(2026),
+      );
+      final newer = _makeResult(
+        eventId: r'$newer',
+        body: 'newer',
+        originServerTs: DateTime(2026, 6),
+      );
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
         nextBatch: anyNamed('nextBatch'),
-      ),).thenAnswer((_) async => _buildSearchResults(
-            events: [
-              _makeMatrixEvent(
-                eventId: r'$older',
-                roomId: '!r:x',
-                senderId: '@a:x',
-                body: 'older',
-                originServerTs: DateTime(2026),
-              ),
-              _makeMatrixEvent(
-                eventId: r'$newer',
-                roomId: '!r:x',
-                senderId: '@a:x',
-                body: 'newer',
-                originServerTs: DateTime(2026, 6),
-              ),
-            ],
-          ),);
+      )).thenAnswer((_) async => ServerSearchPage(results: [older, newer]));
+      when(mockRepo.searchLocal(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenAnswer((_) async => const LocalSearchPage());
+      when(mockRepo.searchUnindexed(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+      )).thenAnswer((_) async => const UnindexedSearchResult());
 
       controller.onQueryChanged('test query');
       await controller.performSearch();
@@ -237,10 +176,23 @@ void main() {
     });
 
     test('sets error on search failure', () async {
-      when(mockClient.search(
-        any,
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
         nextBatch: anyNamed('nextBatch'),
-      ),).thenThrow(Exception('server error'));
+      )).thenThrow(Exception('server error'));
+      when(mockRepo.searchLocal(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenAnswer((_) async => const LocalSearchPage());
+      when(mockRepo.searchUnindexed(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+      )).thenAnswer((_) async => const UnindexedSearchResult());
 
       controller.onQueryChanged('error query');
       await controller.performSearch();
@@ -251,32 +203,29 @@ void main() {
 
     test('discards stale results from previous generation', () async {
       var callCount = 0;
-      when(mockClient.search(
-        any,
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
         nextBatch: anyNamed('nextBatch'),
-      ),).thenAnswer((_) async {
+      )).thenAnswer((_) async {
         callCount++;
         await Future<void>.delayed(const Duration(milliseconds: 50));
-        return _buildSearchResults(
-          events: [
-            _makeMatrixEvent(
-              eventId: '\$e$callCount',
-              roomId: '!r:x',
-              senderId: '@a:x',
-              body: 'result $callCount',
-              originServerTs: DateTime(2026, 1, callCount),
-            ),
-          ],
+        return ServerSearchPage(
+          results: [_makeResult(eventId: '\$e$callCount')],
         );
       });
-
-      final mockRoom = MockRoom();
-      final mockUser = MockUser();
-      when(mockClient.getRoomById(any)).thenReturn(mockRoom);
-      when(mockRoom.getLocalizedDisplayname()).thenReturn('Room');
-      when(mockUser.displayName).thenReturn('User');
-      when(mockRoom.unsafeGetUserFromMemoryOrFallback(any))
-          .thenReturn(mockUser);
+      when(mockRepo.searchLocal(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenAnswer((_) async => const LocalSearchPage());
+      when(mockRepo.searchUnindexed(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+      )).thenAnswer((_) async => const UnindexedSearchResult());
 
       final firstSearch = controller.performSearch();
       controller.onQueryChanged('new query');
@@ -286,49 +235,48 @@ void main() {
     });
 
     test('loadMore appends to existing results', () async {
-      final mockRoom = MockRoom();
-      final mockUser = MockUser();
-      when(mockClient.getRoomById(any)).thenReturn(mockRoom);
-      when(mockRoom.getLocalizedDisplayname()).thenReturn('Room');
-      when(mockUser.displayName).thenReturn('User');
-      when(mockRoom.unsafeGetUserFromMemoryOrFallback(any))
-          .thenReturn(mockUser);
-
-      when(mockClient.search(
-        any,
+      final first = _makeResult(
+        eventId: r'$e1',
+        body: 'first',
+        originServerTs: DateTime(2026, 6),
+      );
+      final second = _makeResult(
+        eventId: r'$e2',
+        body: 'second',
+        originServerTs: DateTime(2026),
+      );
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
         nextBatch: anyNamed('nextBatch'),
-      ),).thenAnswer((_) async => _buildSearchResults(
-            events: [
-              _makeMatrixEvent(
-                eventId: r'$e1',
-                roomId: '!r:x',
-                senderId: '@a:x',
-                body: 'first',
-                originServerTs: DateTime(2026, 6),
-              ),
-            ],
+      )).thenAnswer((_) async => ServerSearchPage(
+            results: [first],
             nextBatch: 'batch2',
             count: 2,
-          ),);
+          ));
+      when(mockRepo.searchLocal(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenAnswer((_) async => const LocalSearchPage());
+      when(mockRepo.searchUnindexed(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+      )).thenAnswer((_) async => const UnindexedSearchResult());
 
       controller.onQueryChanged('test query');
       await controller.performSearch();
       expect(controller.results, hasLength(1));
 
-      when(mockClient.search(
-        any,
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
         nextBatch: anyNamed('nextBatch'),
-      ),).thenAnswer((_) async => _buildSearchResults(
-            events: [
-              _makeMatrixEvent(
-                eventId: r'$e2',
-                roomId: '!r:x',
-                senderId: '@a:x',
-                body: 'second',
-                originServerTs: DateTime(2026),
-              ),
-            ],
-          ),);
+      )).thenAnswer((_) async => ServerSearchPage(results: [second]));
 
       await controller.performSearch(loadMore: true);
       expect(controller.results, hasLength(2));
@@ -337,10 +285,23 @@ void main() {
 
   group('clear', () {
     test('resets all state', () async {
-      when(mockClient.search(
-        any,
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
         nextBatch: anyNamed('nextBatch'),
-      ),).thenAnswer((_) async => _buildSearchResults());
+      )).thenAnswer((_) async => const ServerSearchPage());
+      when(mockRepo.searchLocal(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenAnswer((_) async => const LocalSearchPage());
+      when(mockRepo.searchUnindexed(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+      )).thenAnswer((_) async => const UnindexedSearchResult());
 
       controller.onQueryChanged('test query');
       await controller.performSearch();
@@ -357,55 +318,24 @@ void main() {
   });
 
   group('FTS5 index search', () {
-    test('queries the index with roomId null for global search', () async {
-      when(mockClient.search(
-        any,
-        nextBatch: anyNamed('nextBatch'),
-      ),).thenAnswer((_) async => _buildSearchResults());
-      when(mockSearchIndex.search(
-        query: anyNamed('query'),
-        roomId: anyNamed('roomId'),
-        senderId: anyNamed('senderId'),
-        startTs: anyNamed('startTs'),
-        endTs: anyNamed('endTs'),
-        limit: anyNamed('limit'),
-        offset: anyNamed('offset'),
-      ),).thenAnswer((_) async => const <IndexedMessage>[]);
-      when(mockSearchIndex.count(
-        roomId: anyNamed('roomId'),
-        query: anyNamed('query'),
-        senderId: anyNamed('senderId'),
-        startTs: anyNamed('startTs'),
-        endTs: anyNamed('endTs'),
-      ),).thenAnswer((_) async => 5);
-
-      controller.onQueryChanged('encrypted query');
-      await controller.performSearch();
-
-      verify(mockSearchIndex.search(
-        query: 'encrypted query',
-        roomId: null,
-        senderId: anyNamed('senderId'),
-        startTs: anyNamed('startTs'),
-        endTs: anyNamed('endTs'),
-        limit: 20,
-        offset: anyNamed('offset'),
-      ),).called(1);
-      verify(mockSearchIndex.count(query: 'encrypted query')).called(1);
-    });
-
     test('totalCount includes server count plus index count', () async {
-      when(mockClient.search(
-        any,
-        nextBatch: anyNamed('nextBatch'),
-      ),).thenAnswer((_) async => _buildSearchResults(count: 3));
-      when(mockSearchIndex.count(
-        roomId: anyNamed('roomId'),
+      when(mockRepo.searchServer(
         query: anyNamed('query'),
-        senderId: anyNamed('senderId'),
-        startTs: anyNamed('startTs'),
-        endTs: anyNamed('endTs'),
-      ),).thenAnswer((_) async => 7);
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        nextBatch: anyNamed('nextBatch'),
+      )).thenAnswer((_) async => const ServerSearchPage(count: 3));
+      when(mockRepo.searchLocal(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenAnswer((_) async => const LocalSearchPage(count: 7));
+      when(mockRepo.searchUnindexed(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+      )).thenAnswer((_) async => const UnindexedSearchResult());
 
       controller.onQueryChanged('combined query');
       await controller.performSearch();
@@ -414,51 +344,41 @@ void main() {
     });
 
     test('paginates the index via offset on loadMore', () async {
-      final mockRoom = MockRoom();
-      final mockUser = MockUser();
-      when(mockClient.getRoomById(any)).thenReturn(mockRoom);
-      when(mockRoom.getLocalizedDisplayname()).thenReturn('Room');
-      when(mockUser.displayName).thenReturn('User');
-      when(mockRoom.unsafeGetUserFromMemoryOrFallback(any))
-          .thenReturn(mockUser);
-      when(mockClient.search(
-        any,
-        nextBatch: anyNamed('nextBatch'),
-      ),).thenAnswer((_) async => _buildSearchResults(
-            nextBatch: 'server-batch2',
-            count: 1,
-          ),);
-
-      final indexedMessages = List.generate(
+      final indexedResults = List.generate(
         20,
-        (i) => IndexedMessage(
+        (i) => _makeResult(
           eventId: r'$idx$i',
-          roomId: '!room:example.com',
-          senderId: '@alice:example.com',
           body: 'encrypted match $i',
-          msgtype: 'm.text',
           originServerTs: DateTime(2026, 1, 1, 0, i),
         ),
       );
-      when(mockSearchIndex.search(
+      when(mockRepo.searchServer(
         query: anyNamed('query'),
-        roomId: anyNamed('roomId'),
-        senderId: anyNamed('senderId'),
-        startTs: anyNamed('startTs'),
-        endTs: anyNamed('endTs'),
         limit: anyNamed('limit'),
-        offset: anyNamed('offset'),
-      ),).thenAnswer((invocation) async {
-        final offset = invocation.namedArguments[#offset] as int? ?? 0;
-        return indexedMessages.skip(offset).take(20).toList();
-      });
-      when(mockSearchIndex.count(
-        roomId: anyNamed('roomId'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        nextBatch: anyNamed('nextBatch'),
+      )).thenAnswer((_) async => const ServerSearchPage(
+            nextBatch: 'server-batch2',
+            count: 1,
+          ));
+      when(mockRepo.searchLocal(
         query: anyNamed('query'),
-        senderId: anyNamed('senderId'),
-        startTs: anyNamed('startTs'),
-        endTs: anyNamed('endTs'),
-      ),).thenAnswer((_) async => 40);
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenAnswer((invocation) async {
+        final offset = invocation.namedArguments[#offset] as int? ?? 0;
+        return LocalSearchPage(
+          results: indexedResults.skip(offset).take(20).toList(),
+          count: 40,
+          nextBatch: offset + 20 < 40 ? '${offset + 20}' : null,
+        );
+      });
+      when(mockRepo.searchUnindexed(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+      )).thenAnswer((_) async => const UnindexedSearchResult());
 
       controller.onQueryChanged('paginated query');
       await controller.performSearch();
@@ -467,52 +387,37 @@ void main() {
 
       await controller.performSearch(loadMore: true);
 
-      verify(mockSearchIndex.search(
+      verify(mockRepo.searchLocal(
         query: 'paginated query',
-        roomId: null,
-        senderId: anyNamed('senderId'),
-        startTs: anyNamed('startTs'),
-        endTs: anyNamed('endTs'),
         limit: 20,
+        scopeRoomIds: anyNamed('scopeRoomIds'),
         offset: 20,
-      ),).called(1);
+      )).called(1);
     });
 
-    test('falls back to timeline scan for unindexed encrypted rooms', () async {
-      final mockRoom = MockRoom();
-      final mockUser = MockUser();
-      when(mockRoom.id).thenReturn('!encrypted:example.com');
-      when(mockRoom.encrypted).thenReturn(true);
-      when(mockRoom.getLocalizedDisplayname()).thenReturn('Encrypted Room');
-      when(mockUser.displayName).thenReturn('Alice');
-      when(mockRoom.unsafeGetUserFromMemoryOrFallback(any))
-          .thenReturn(mockUser);
-      when(mockClient.rooms).thenReturn([mockRoom]);
-      when(mockClient.getRoomById('!encrypted:example.com'))
-          .thenReturn(mockRoom);
-      when(mockClient.search(
-        any,
-        nextBatch: anyNamed('nextBatch'),
-      ),).thenAnswer((_) async => _buildSearchResults());
-      when(mockSearchIndex.indexedRoomIds())
-          .thenAnswer((_) async => <String>{});
-
-      final searchEvent = Event(
-        type: EventTypes.Message,
-        content: {'body': 'found it', 'msgtype': 'm.text'},
-        senderId: '@alice:example.com',
-        eventId: r'$fallback1',
-        originServerTs: DateTime(2026),
-        room: mockRoom,
-      );
-      when(mockRoom.searchEvents(
-        searchTerm: anyNamed('searchTerm'),
+    test('surfaces indexingRoomIds from fallback', () async {
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
         limit: anyNamed('limit'),
-      ),).thenAnswer((_) async => (
-        events: [searchEvent],
-        nextBatch: null,
-        searchedUntil: null,
-      ));
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        nextBatch: anyNamed('nextBatch'),
+      )).thenAnswer((_) async => const ServerSearchPage());
+      when(mockRepo.searchLocal(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenAnswer((_) async => const LocalSearchPage());
+      when(mockRepo.searchUnindexed(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+      )).thenAnswer((_) async => UnindexedSearchResult(
+            results: [
+              _makeResult(eventId: r'$fallback1', body: 'found it'),
+            ],
+            indexingRoomIds: {'!encrypted:example.com'},
+          ));
 
       controller.onQueryChanged('fallback query');
       await controller.performSearch();

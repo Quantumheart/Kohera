@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
-import 'package:kohera/data/repositories/message_repository.dart';
+import 'package:kohera/data/repositories/message_search_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
@@ -38,7 +38,7 @@ class RoomList extends StatelessWidget {
         selectionController: context.read<SelectionController>(),
         preferencesService: context.read<PreferencesService>(),
         spaceRoomsController: context.read<SpaceRoomsController>(),
-        messageRepository: context.read<MessageRepository>(),
+        messageSearchRepository: context.read<MessageSearchRepository>(),
       ),
       child: const _RoomListView(),
     );
