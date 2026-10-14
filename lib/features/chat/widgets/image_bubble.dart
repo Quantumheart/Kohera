@@ -104,11 +104,13 @@ class _ImageBubbleState extends State<ImageBubble> {
                   ),
                 )
               : _imageBytes != null
-                  ? Image.memory(_imageBytes!, fit: BoxFit.cover)
+                  ? Image.memory(_imageBytes!, fit: BoxFit.cover, cacheWidth: 560, cacheHeight: 520)
                   : _imageUrl != null
                       ? Image.network(
                           _imageUrl!,
                           fit: BoxFit.cover,
+                          cacheWidth: 560,
+                          cacheHeight: 520,
                           headers: widget.controller.authHeaders(_imageUrl!),
                           errorBuilder: (_, _, _) => Container(
                             height: 80,

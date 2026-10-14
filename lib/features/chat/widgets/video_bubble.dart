@@ -255,12 +255,16 @@ class _VideoBubbleState extends State<VideoBubble>
       thumb = Image.memory(
         _thumbBytes!,
         fit: BoxFit.cover,
+        cacheWidth: 560,
+        cacheHeight: 520,
         errorBuilder: (_, _, _) => _onImageError(cs),
       );
     } else if (_thumbUrl != null) {
       thumb = Image.network(
         _thumbUrl!,
         fit: BoxFit.cover,
+        cacheWidth: 560,
+        cacheHeight: 520,
         headers: widget.controller.authHeaders(_thumbUrl!),
         errorBuilder: (_, _, _) => _onImageError(cs),
       );

@@ -59,6 +59,11 @@ import 'package:provider/provider.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // Cap the image cache to prevent OOM on devices with many media-rich
+  // chat rooms. Default is 100MB / 1000 images; 50MB / 250 is safer for
+  // mobile while still allowing smooth scrolling.
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 50 * 1024 * 1024;
+  PaintingBinding.instance.imageCache.maximumSize = 250;
   runApp(const KoheraApp());
 }
 

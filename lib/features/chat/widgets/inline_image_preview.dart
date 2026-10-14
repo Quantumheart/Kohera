@@ -30,6 +30,8 @@ class InlineImagePreview extends StatelessWidget {
             child: Image.network(
               url,
               fit: BoxFit.contain,
+              cacheWidth: 560,
+              cacheHeight: 520,
               loadingBuilder: (_, child, progress) {
                 if (progress == null) return child;
                 return Container(

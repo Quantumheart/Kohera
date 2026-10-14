@@ -320,11 +320,13 @@ class _MediaThumbnailState extends State<_MediaThumbnail> {
           child: _loading
               ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
               : _thumbnailBytes != null
-                  ? Image.memory(_thumbnailBytes!, fit: BoxFit.cover)
+                  ? Image.memory(_thumbnailBytes!, fit: BoxFit.cover, cacheWidth: 200, cacheHeight: 200)
                   : _thumbnailUrl != null
                       ? Image.network(
                           _thumbnailUrl!,
                           fit: BoxFit.cover,
+                          cacheWidth: 200,
+                          cacheHeight: 200,
                           headers:
                               widget.controller.authHeaders(_thumbnailUrl!),
                           errorBuilder: (_, _, _) => Icon(

@@ -98,6 +98,8 @@ class _MxcImageState extends State<MxcImage> {
       width: widget.width,
       height: widget.height,
       fit: widget.fit,
+      cacheWidth: widget.width != null ? (widget.width! * 2).toInt() : null,
+      cacheHeight: widget.height != null ? (widget.height! * 2).toInt() : null,
       headers: _resolvedHeaders,
       errorBuilder: (_, _, _) => Text(widget.fallbackText, style: widget.fallbackStyle),
     );

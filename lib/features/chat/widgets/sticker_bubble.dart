@@ -102,12 +102,16 @@ class _StickerBubbleState extends State<StickerBubble> {
                     ? Image.memory(
                         _imageBytes!,
                         fit: BoxFit.contain,
+                        cacheWidth: 280,
+                        cacheHeight: 280,
                         semanticLabel: body,
                       )
                     : _imageUrl != null
                         ? Image.network(
                             _imageUrl!,
                             fit: BoxFit.contain,
+                            cacheWidth: 280,
+                            cacheHeight: 280,
                             semanticLabel: body,
                             headers:
                                 widget.controller.authHeaders(_imageUrl!),

@@ -88,6 +88,8 @@ class _AttachmentCard extends StatelessWidget {
                   ? Image.memory(
                       attachment.bytes,
                       fit: BoxFit.cover,
+                      cacheWidth: 200,
+                      cacheHeight: 200,
                       errorBuilder: (_, _, _) => ColoredBox(
                         color: cs.surfaceContainerHighest,
                         child: const Icon(Icons.broken_image_outlined),
