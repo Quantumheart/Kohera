@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
+import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/features/rooms/services/room_list_builder.dart';
@@ -27,6 +28,7 @@ class RoomListController extends ChangeNotifier {
     required SelectionController selectionController,
     required PreferencesService preferencesService,
     required SpaceRoomsController spaceRoomsController,
+    required MessageRepository messageRepository,
     RoomListSearchController? messageSearchController,
   }) : _rooms = roomRepository,
        _selection = selectionService,
@@ -37,6 +39,8 @@ class RoomListController extends ChangeNotifier {
            messageSearchController ??
            RoomListSearchController(
              getClient: () => roomRepository.searchClient,
+             searchIndex: messageRepository.searchDatabase,
+             ensureRoomIndexed: messageRepository.ensureRoomIndexed,
            ) {
     // Listen to every dependency — any change schedules a debounced recompute.
     _selection.addListener(_scheduleRecompute);

@@ -3,9 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
+import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/message_search_database.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/spaces/models/space_rooms_model.dart';
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
@@ -24,6 +26,8 @@ import 'package:provider/provider.dart';
   MockSpec<SpaceRoomsController>(),
   MockSpec<Client>(),
   MockSpec<Room>(),
+  MockSpec<MessageRepository>(),
+  MockSpec<SearchIndex>(),
 ])
 import 'room_list_test.mocks.dart';
 
@@ -34,6 +38,8 @@ void main() {
   late MockPreferencesService prefs;
   late MockSpaceRoomsController spaceRooms;
   late MockClient client;
+  late MockMessageRepository messageRepository;
+  late MockSearchIndex searchIndex;
 
   setUp(() {
     matrix = MockMatrixService();
@@ -43,6 +49,8 @@ void main() {
     spaceRooms = MockSpaceRoomsController();
     when(spaceRooms.fetchSpaceRooms(any)).thenAnswer((_) async => {});
     client = MockClient();
+    messageRepository = MockMessageRepository();
+    searchIndex = MockSearchIndex();
 
     when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
     when(selectionState.selectedSpaceIds).thenReturn({});
@@ -54,6 +62,9 @@ void main() {
     when(prefs.collapsedSpaceSections).thenReturn({});
     when(client.getRoomById(any)).thenReturn(null);
     when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(messageRepository.searchDatabase).thenReturn(searchIndex);
+    when(searchIndex.isAvailable).thenReturn(true);
+    when(messageRepository.ensureRoomIndexed(any)).thenAnswer((_) async {});
   });
 
   Widget wrap(Widget child) => MaterialApp(
@@ -73,6 +84,9 @@ void main() {
         ),
         ChangeNotifierProvider<SpaceReparentController>(
           create: (_) => SpaceReparentController(),
+        ),
+        ChangeNotifierProvider<MessageRepository>.value(
+          value: messageRepository,
         ),
       ],
       child: child,

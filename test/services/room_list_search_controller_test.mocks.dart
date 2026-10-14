@@ -8,6 +8,7 @@ import 'dart:async' as _i5;
 import 'dart:typed_data' as _i9;
 
 import 'package:http/http.dart' as _i4;
+import 'package:kohera/data/services/message_search_database.dart' as _i12;
 import 'package:matrix/encryption.dart' as _i7;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;
@@ -8343,4 +8344,161 @@ class MockUser extends _i1.Mock implements _i2.User {
             returnValueForMissingStub: <String, Object?>{},
           )
           as Map<String, Object?>);
+}
+
+/// A class which mocks [SearchIndex].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockSearchIndex extends _i1.Mock implements _i12.SearchIndex {
+  @override
+  bool get isAvailable =>
+      (super.noSuchMethod(
+            Invocation.getter(#isAvailable),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  _i5.Future<void> upsert(_i12.IndexedMessage? message) =>
+      (super.noSuchMethod(
+            Invocation.method(#upsert, [message]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> upsertBatch(List<_i12.IndexedMessage>? messages) =>
+      (super.noSuchMethod(
+            Invocation.method(#upsertBatch, [messages]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> remove(String? eventId) =>
+      (super.noSuchMethod(
+            Invocation.method(#remove, [eventId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> removeRoom(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#removeRoom, [roomId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<List<_i12.IndexedMessage>> search({
+    required String? query,
+    String? roomId,
+    String? senderId,
+    int? startTs,
+    int? endTs,
+    int? limit,
+    int? offset,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#search, [], {
+              #query: query,
+              #roomId: roomId,
+              #senderId: senderId,
+              #startTs: startTs,
+              #endTs: endTs,
+              #limit: limit,
+              #offset: offset,
+            }),
+            returnValue: _i5.Future<List<_i12.IndexedMessage>>.value(
+              <_i12.IndexedMessage>[],
+            ),
+            returnValueForMissingStub:
+                _i5.Future<List<_i12.IndexedMessage>>.value(
+                  <_i12.IndexedMessage>[],
+                ),
+          )
+          as _i5.Future<List<_i12.IndexedMessage>>);
+
+  @override
+  _i5.Future<int> count({
+    String? roomId,
+    String? query,
+    String? senderId,
+    int? startTs,
+    int? endTs,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#count, [], {
+              #roomId: roomId,
+              #query: query,
+              #senderId: senderId,
+              #startTs: startTs,
+              #endTs: endTs,
+            }),
+            returnValue: _i5.Future<int>.value(0),
+            returnValueForMissingStub: _i5.Future<int>.value(0),
+          )
+          as _i5.Future<int>);
+
+  @override
+  _i5.Future<int> countAll() =>
+      (super.noSuchMethod(
+            Invocation.method(#countAll, []),
+            returnValue: _i5.Future<int>.value(0),
+            returnValueForMissingStub: _i5.Future<int>.value(0),
+          )
+          as _i5.Future<int>);
+
+  @override
+  _i5.Future<bool> isRoomIndexed(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#isRoomIndexed, [roomId]),
+            returnValue: _i5.Future<bool>.value(false),
+            returnValueForMissingStub: _i5.Future<bool>.value(false),
+          )
+          as _i5.Future<bool>);
+
+  @override
+  _i5.Future<Set<String>> indexedRoomIds() =>
+      (super.noSuchMethod(
+            Invocation.method(#indexedRoomIds, []),
+            returnValue: _i5.Future<Set<String>>.value(<String>{}),
+            returnValueForMissingStub: _i5.Future<Set<String>>.value(
+              <String>{},
+            ),
+          )
+          as _i5.Future<Set<String>>);
+
+  @override
+  _i5.Future<void> markRoomIndexed(String? roomId, int? eventCount) =>
+      (super.noSuchMethod(
+            Invocation.method(#markRoomIndexed, [roomId, eventCount]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> clear() =>
+      (super.noSuchMethod(
+            Invocation.method(#clear, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> close() =>
+      (super.noSuchMethod(
+            Invocation.method(#close, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
 }
