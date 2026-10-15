@@ -78,7 +78,7 @@ void main() {
         ChangeNotifierProvider<SpaceReparentController>(
           create: (_) => SpaceReparentController(),
         ),
-        ChangeNotifierProvider<MessageSearchRepository>.value(
+        Provider<MessageSearchRepository>.value(
           value: messageSearchRepository,
         ),
       ],

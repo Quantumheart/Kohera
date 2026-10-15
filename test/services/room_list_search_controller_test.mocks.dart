@@ -5,7 +5,6 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
 import 'dart:async' as _i3;
-import 'dart:ui' as _i4;
 
 import 'package:kohera/data/repositories/message_search_repository.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
@@ -49,15 +48,6 @@ class _FakeUnindexedSearchResult_2 extends _i1.SmartFake
 /// See the documentation for Mockito's code generation for more information.
 class MockMessageSearchRepository extends _i1.Mock
     implements _i2.MessageSearchRepository {
-  @override
-  bool get hasListeners =>
-      (super.noSuchMethod(
-            Invocation.getter(#hasListeners),
-            returnValue: false,
-            returnValueForMissingStub: false,
-          )
-          as bool);
-
   @override
   _i3.Future<_i2.ServerSearchPage> searchServer({
     required String? query,
@@ -171,28 +161,4 @@ class MockMessageSearchRepository extends _i1.Mock
                 ),
           )
           as _i3.Future<_i2.UnindexedSearchResult>);
-
-  @override
-  void dispose() => super.noSuchMethod(
-    Invocation.method(#dispose, []),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void addListener(_i4.VoidCallback? listener) => super.noSuchMethod(
-    Invocation.method(#addListener, [listener]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void removeListener(_i4.VoidCallback? listener) => super.noSuchMethod(
-    Invocation.method(#removeListener, [listener]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void notifyListeners() => super.noSuchMethod(
-    Invocation.method(#notifyListeners, []),
-    returnValueForMissingStub: null,
-  );
 }

@@ -149,7 +149,6 @@ class AccountSession {
   void dispose() {
     _disposed = true;
     messageRepository.dispose();
-    messageSearchRepository.dispose();
     keyBackupRepository.dispose();
     userRepository.dispose();
     outboxRepository.dispose();

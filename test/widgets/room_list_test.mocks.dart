@@ -9958,15 +9958,6 @@ class MockRoom extends _i1.Mock implements _i17.Room {
 class MockMessageSearchRepository extends _i1.Mock
     implements _i23.MessageSearchRepository {
   @override
-  bool get hasListeners =>
-      (super.noSuchMethod(
-            Invocation.getter(#hasListeners),
-            returnValue: false,
-            returnValueForMissingStub: false,
-          )
-          as bool);
-
-  @override
   _i20.Future<_i23.ServerSearchPage> searchServer({
     required String? query,
     required int? limit,
@@ -10079,28 +10070,4 @@ class MockMessageSearchRepository extends _i1.Mock
                 ),
           )
           as _i20.Future<_i23.UnindexedSearchResult>);
-
-  @override
-  void dispose() => super.noSuchMethod(
-    Invocation.method(#dispose, []),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void addListener(_i26.VoidCallback? listener) => super.noSuchMethod(
-    Invocation.method(#addListener, [listener]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void removeListener(_i26.VoidCallback? listener) => super.noSuchMethod(
-    Invocation.method(#removeListener, [listener]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void notifyListeners() => super.noSuchMethod(
-    Invocation.method(#notifyListeners, []),
-    returnValueForMissingStub: null,
-  );
 }

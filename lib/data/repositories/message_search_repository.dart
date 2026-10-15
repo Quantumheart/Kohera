@@ -64,26 +64,18 @@ class UnindexedSearchResult {
 /// 3. **Fallback scan** ([searchUnindexed]) — a bounded timeline scan for
 ///    encrypted rooms that have not been indexed yet, which also triggers
 ///    lazy background indexing.
-class MessageSearchRepository extends ChangeNotifier {
+class MessageSearchRepository {
   MessageSearchRepository({
     required MatrixClientService clientService,
     required MessageIndexerService indexer,
   })  : _clientService = clientService,
-        _indexer = indexer {
-    _indexer.addListener(_onIndexerChanged);
-  }
+        _indexer = indexer;
 
   final MatrixClientService _clientService;
   final MessageIndexerService _indexer;
 
   Client get _client => _clientService.client;
   SearchIndex get _index => _indexer.database;
-
-  bool _disposed = false;
-
-  void _onIndexerChanged() {
-    if (!_disposed) notifyListeners();
-  }
 
   // ── Server search (unencrypted rooms) ─────────────────────
 
@@ -250,7 +242,6 @@ class MessageSearchRepository extends ChangeNotifier {
     const batchSize = 5;
     final allResults = <MessageSearchResult>[];
     for (var i = 0; i < unindexedRooms.length; i += batchSize) {
-      if (_disposed) break;
       final batch = unindexedRooms.sublist(
         i,
         i + batchSize > unindexedRooms.length
@@ -320,10 +311,4 @@ class MessageSearchRepository extends ChangeNotifier {
     );
   }
 
-  @override
-  void dispose() {
-    _disposed = true;
-    _indexer.removeListener(_onIndexerChanged);
-    super.dispose();
-  }
 }
