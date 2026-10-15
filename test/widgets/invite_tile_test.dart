@@ -7,6 +7,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
+import 'package:kohera/data/repositories/message_search_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
@@ -25,6 +26,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 @GenerateNiceMocks([
   MockSpec<Room>(),
   MockSpec<Client>(),
+  MockSpec<MessageSearchRepository>(),
 ])
 import '../mocks/matrix_service_mock.mocks.dart';
 import 'invite_tile_test.mocks.dart';
@@ -33,6 +35,7 @@ void main() {
   late MockMatrixService mockMatrix;
   late MockRoom mockInvitedRoom;
   late MockClient mockClient;
+  late MockMessageSearchRepository messageSearchRepository;
   late PreferencesService prefs;
   late SpaceTreeRepository selectionService;
   late SelectionController selectionController;
@@ -45,6 +48,7 @@ void main() {
     mockMatrix = MockMatrixService();
     mockInvitedRoom = MockRoom();
     mockClient = MockClient();
+    messageSearchRepository = MockMessageSearchRepository();
 
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrix.avatarResolver).thenReturn(const _NullAvatarResolver());
@@ -116,6 +120,8 @@ void main() {
         ChangeNotifierProvider<SelectionController>.value(value: selectionController),
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),
+        ChangeNotifierProvider<MessageSearchRepository>.value(
+            value: messageSearchRepository,),
         Provider<SpaceDiscoveryDataSource>(
           create: (ctx) => FakeSpaceDiscoveryDataSource(delay: Duration.zero),
         ),
