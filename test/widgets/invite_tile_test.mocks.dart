@@ -6,7 +6,6 @@
 
 import 'dart:async' as _i5;
 import 'dart:typed_data' as _i12;
-import 'dart:ui' as _i13;
 
 import 'package:http/http.dart' as _i4;
 import 'package:kohera/data/repositories/message_search_repository.dart' as _i7;
@@ -8056,15 +8055,6 @@ class MockClient extends _i1.Mock implements _i2.Client {
 class MockMessageSearchRepository extends _i1.Mock
     implements _i7.MessageSearchRepository {
   @override
-  bool get hasListeners =>
-      (super.noSuchMethod(
-            Invocation.getter(#hasListeners),
-            returnValue: false,
-            returnValueForMissingStub: false,
-          )
-          as bool);
-
-  @override
   _i5.Future<_i7.ServerSearchPage> searchServer({
     required String? query,
     required int? limit,
@@ -8177,28 +8167,4 @@ class MockMessageSearchRepository extends _i1.Mock
                 ),
           )
           as _i5.Future<_i7.UnindexedSearchResult>);
-
-  @override
-  void dispose() => super.noSuchMethod(
-    Invocation.method(#dispose, []),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void addListener(_i13.VoidCallback? listener) => super.noSuchMethod(
-    Invocation.method(#addListener, [listener]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void removeListener(_i13.VoidCallback? listener) => super.noSuchMethod(
-    Invocation.method(#removeListener, [listener]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void notifyListeners() => super.noSuchMethod(
-    Invocation.method(#notifyListeners, []),
-    returnValueForMissingStub: null,
-  );
 }

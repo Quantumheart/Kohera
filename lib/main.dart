@@ -441,7 +441,7 @@ ShareIntakeController? _shareIntake;
                   ChangeNotifierProvider<MessageRepository>.value(
                     value: matrix.session.messageRepository,
                   ),
-                  ChangeNotifierProvider<MessageSearchRepository>.value(
+                  Provider<MessageSearchRepository>.value(
                     value: matrix.session.messageSearchRepository,
                   ),
                   ChangeNotifierProvider<AuthRepository>(

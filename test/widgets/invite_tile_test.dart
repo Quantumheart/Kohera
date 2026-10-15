@@ -120,7 +120,7 @@ void main() {
         ChangeNotifierProvider<SelectionController>.value(value: selectionController),
         ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),
-        ChangeNotifierProvider<MessageSearchRepository>.value(
+        Provider<MessageSearchRepository>.value(
             value: messageSearchRepository,),
         Provider<SpaceDiscoveryDataSource>(
           create: (ctx) => FakeSpaceDiscoveryDataSource(delay: Duration.zero),
