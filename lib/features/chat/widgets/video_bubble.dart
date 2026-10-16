@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/core/media/kohera_player_factory.dart';
@@ -13,6 +12,7 @@ import 'package:kohera/features/chat/services/media_playback_service.dart';
 import 'package:kohera/features/chat/widgets/full_video_view.dart';
 import 'package:kohera/features/chat/widgets/inline_video_controls.dart';
 import 'package:kohera/shared/services/media_controller.dart';
+import 'package:kohera/shared/widgets/one_time_memory_image.dart';
 import 'package:provider/provider.dart';
 
 
@@ -46,7 +46,7 @@ enum _VideoState { initial, loadingThumb, loadingVideo, playing, error }
 class _VideoBubbleState extends State<VideoBubble>
     with SingleTickerProviderStateMixin {
   _VideoState _state = _VideoState.initial;
-  Uint8List? _thumbBytes;
+  ImageProvider? _thumbProvider;
   String? _thumbUrl;
   bool _thumbFailed = false;
   KoheraVideoController? _videoController;
@@ -122,7 +122,12 @@ class _VideoBubbleState extends State<VideoBubble>
         );
         if (mounted) {
           setState(() {
-            _thumbBytes = bytes;
+            _thumbProvider = OneTimeMemoryImage(
+              eventId: widget.controller.eventId,
+              bytes: bytes,
+              cacheWidth: 560,
+              cacheHeight: 520,
+            );
             _state = _VideoState.initial;
           });
         }
@@ -251,12 +256,10 @@ class _VideoBubbleState extends State<VideoBubble>
       thumb = _buildSkeleton(cs);
     } else if (_thumbFailed) {
       thumb = _placeholderThumb(cs);
-    } else if (_thumbBytes != null && _thumbBytes!.isNotEmpty) {
-      thumb = Image.memory(
-        _thumbBytes!,
+    } else if (_thumbProvider != null) {
+      thumb = Image(
+        image: _thumbProvider!,
         fit: BoxFit.cover,
-        cacheWidth: 560,
-        cacheHeight: 520,
         errorBuilder: (_, _, _) => _onImageError(cs),
       );
     } else if (_thumbUrl != null) {
