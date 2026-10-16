@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:kohera/data/models/kohera_media_content.dart';
 import 'package:kohera/shared/services/media_controller.dart';
+import 'package:kohera/shared/widgets/one_time_memory_image.dart';
 
 // coverage:ignore-start
 
@@ -26,7 +26,7 @@ class StickerBubble extends StatefulWidget {
 class _StickerBubbleState extends State<StickerBubble> {
   static const double _maxSize = 180;
 
-  Uint8List? _imageBytes;
+  ImageProvider? _imageProvider;
   String? _imageUrl;
   bool _loading = true;
 
@@ -40,7 +40,7 @@ class _StickerBubbleState extends State<StickerBubble> {
   void didUpdateWidget(StickerBubble old) {
     super.didUpdateWidget(old);
     if (old.controller.eventId != widget.controller.eventId) {
-      _imageBytes = null;
+      _imageProvider = null;
       _imageUrl = null;
       _loading = true;
       unawaited(_loadSticker());
@@ -53,7 +53,12 @@ class _StickerBubbleState extends State<StickerBubble> {
         final bytes = await widget.controller.downloadAndDecrypt();
         if (mounted) {
           setState(() {
-            _imageBytes = bytes;
+            _imageProvider = OneTimeMemoryImage(
+              eventId: widget.controller.eventId,
+              bytes: bytes,
+              cacheWidth: 280,
+              cacheHeight: 280,
+            );
             _loading = false;
           });
         }
@@ -98,15 +103,17 @@ class _StickerBubbleState extends State<StickerBubble> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   )
-                : _imageBytes != null
-                    ? Image.memory(
-                        _imageBytes!,
-                        fit: BoxFit.contain,
-                        cacheWidth: 280,
-                        cacheHeight: 280,
-                        semanticLabel: body,
-                      )
-                    : _imageUrl != null
+                : _imageProvider != null
+                  ? Image(
+                      image: _imageProvider!,
+                      fit: BoxFit.contain,
+                      semanticLabel: body,
+                      errorBuilder: (_, _, _) => const Icon(
+                        Icons.broken_image_outlined,
+                        size: 48,
+                      ),
+                    )
+                  : _imageUrl != null
                         ? Image.network(
                             _imageUrl!,
                             fit: BoxFit.contain,
