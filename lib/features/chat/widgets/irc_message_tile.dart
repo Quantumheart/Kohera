@@ -122,6 +122,17 @@ class IrcMessageTile extends StatefulWidget {
 
 class _IrcMessageTileState extends State<IrcMessageTile> {
   final _recognizers = <TapGestureRecognizer>[];
+  List<InlineSpan>? _cachedSpans;
+  String? _cachedEventId;
+  bool? _cachedIsPinned;
+  String? _cachedHighlightedEventId;
+  bool? _cachedHasThread;
+  int? _cachedThreadReplyCount;
+  int? _cachedThreadUnreadCount;
+  String? _cachedReplyPreviewText;
+  Object? _cachedReactions;
+  Object? _cachedPoll;
+  int? _cachedNickColorValue;
 
   @override
   void dispose() {
@@ -148,7 +159,6 @@ class _IrcMessageTileState extends State<IrcMessageTile> {
     final cs = Theme.of(context).colorScheme;
     final palette = KoheraPalette.of(context);
 
-    // Local aliases to avoid `w.` on every reference.
     final message = w.message;
     final reactions = w.reactions;
     final media = w.media;
@@ -189,7 +199,161 @@ class _IrcMessageTileState extends State<IrcMessageTile> {
         ? message.senderId
         : message.senderName;
 
-    // ── Line fragments ──────────────────────────────────────
+    final isMediaMessage = !isRedacted &&
+        _mediaMessageTypes.contains(message.messageType) &&
+        media != null &&
+        mediaController != null;
+
+    // ── Line fragments (cached with recognizer lifecycle) ───
+    //
+    // Spans are cached and only rebuilt when a key input changes. This
+    // ensures [TapGestureRecognizer]s are not leaked on every rebuild —
+    // old recognizers are disposed before new ones are created, matching
+    // the pattern in [LinkableText] and [HtmlMessageText].
+    final nickColorValue = nickColor.toARGB32();
+    if (_cachedSpans == null ||
+        _cachedEventId != message.eventId ||
+        _cachedIsPinned != isPinned ||
+        _cachedHighlightedEventId != highlightedEventId ||
+        _cachedHasThread != hasThread ||
+        _cachedThreadReplyCount != threadReplyCount ||
+        _cachedThreadUnreadCount != threadUnreadCount ||
+        _cachedReplyPreviewText != replyPreviewText ||
+        !identical(_cachedReactions, reactions) ||
+        !identical(_cachedPoll, poll) ||
+        _cachedNickColorValue != nickColorValue) {
+      _disposeRecognizers();
+      _cachedSpans = _buildLineSpans(
+        context: context,
+        cs: cs,
+        palette: palette,
+        mono: mono,
+        nickColor: nickColor,
+        nick: nick,
+        isRedacted: isRedacted,
+        isEmote: isEmote,
+        isNotice: isNotice,
+        isMediaMessage: isMediaMessage,
+        isMe: isMe,
+        isPinned: isPinned,
+        hasThread: hasThread,
+        inThread: inThread,
+        threadReplyCount: threadReplyCount,
+        threadUnreadCount: threadUnreadCount,
+        highlightedEventId: highlightedEventId,
+        replyPreviewText: replyPreviewText,
+        reactions: reactions,
+        media: media,
+        poll: poll,
+        onToggleReaction: onToggleReaction,
+        onOpenThread: onOpenThread,
+        onTapSender: onTapSender,
+        onTapReply: onTapReply,
+      );
+      _cachedEventId = message.eventId;
+      _cachedIsPinned = isPinned;
+      _cachedHighlightedEventId = highlightedEventId;
+      _cachedHasThread = hasThread;
+      _cachedThreadReplyCount = threadReplyCount;
+      _cachedThreadUnreadCount = threadUnreadCount;
+      _cachedReplyPreviewText = replyPreviewText;
+      _cachedReactions = reactions;
+      _cachedPoll = poll;
+      _cachedNickColorValue = nickColorValue;
+    }
+
+    final line = Padding(
+      padding: EdgeInsets.fromLTRB(4, isFirst ? 2 : 0, 4, 0),
+      child: Container(
+        decoration: isHighlighted
+            ? BoxDecoration(
+                color: cs.primaryContainer.withValues(alpha: 0.25),
+                border: Border(left: BorderSide(color: cs.primary, width: 2)),
+              )
+            : null,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+        child: SelectionArea(
+          child: Text.rich(
+            TextSpan(children: _cachedSpans),
+            style: mono.copyWith(color: cs.onSurface),
+          ),
+        ),
+      ),
+    );
+
+    // Media attachment rendered below the log line so images/gifs load.
+    final mediaWidget = isMediaMessage
+        ? _buildMediaWidget(media, mediaController, cs)
+        : null;
+
+    final body = mediaWidget == null
+        ? line
+        : Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                line,
+                Padding(
+                  padding: const EdgeInsets.only(left: 64, top: 1),
+                  child: mediaWidget,
+                ),
+              ],
+            ),
+          );
+
+    // ── Interactions ─────────────────────────────────────
+    final content = isMobile
+        ? SwipeableMessage(
+            onReply: () => onReply?.call(),
+            child: LongPressWrapper(
+              onLongPress: (rect) => onShowMobileActions?.call(rect),
+              child: body,
+            ),
+          )
+        : Listener(
+            onPointerDown: (event) {
+              if (event.buttons == kSecondaryMouseButton && !isRedacted) {
+                onOpenContextMenu?.call(event.position);
+              }
+            },
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: body,
+            ),
+          );
+
+    return KeyedSubtree(key: ValueKey(message.eventId), child: content);
+  }
+
+  List<InlineSpan> _buildLineSpans({
+    required BuildContext context,
+    required ColorScheme cs,
+    required KoheraPalette palette,
+    required TextStyle mono,
+    required Color nickColor,
+    required String nick,
+    required bool isRedacted,
+    required bool isEmote,
+    required bool isNotice,
+    required bool isMediaMessage,
+    required bool isMe,
+    required bool isPinned,
+    required bool hasThread,
+    required bool inThread,
+    required int threadReplyCount,
+    required int threadUnreadCount,
+    required String? highlightedEventId,
+    required String? replyPreviewText,
+    required KoheraReactionList? reactions,
+    required KoheraMediaContent? media,
+    required KoheraPoll? poll,
+    required void Function(String emoji)? onToggleReaction,
+    required VoidCallback? onOpenThread,
+    required void Function(BuildContext, String eventId)? onTapSender,
+    required void Function(String eventId)? onTapReply,
+  }) {
+    final message = widget.message;
     final spans = <InlineSpan>[];
 
     // Timestamp prefix.
@@ -236,11 +400,6 @@ class _IrcMessageTileState extends State<IrcMessageTile> {
     }
 
     // Body.
-    final isMediaMessage = !isRedacted &&
-        _mediaMessageTypes.contains(message.messageType) &&
-        media != null &&
-        mediaController != null;
-
     if (isRedacted) {
       spans.add(TextSpan(
         text: '• redacted',
@@ -256,9 +415,7 @@ class _IrcMessageTileState extends State<IrcMessageTile> {
         ));
       }
     } else if (isMediaMessage) {
-      // Media messages render the attachment below the log line; show a
-      // compact label inline so the line is still readable.
-      spans.add(_mediaLabel(media, mono, palette));
+      spans.add(_mediaLabel(media!, mono, palette));
     } else if (poll != null) {
       spans.add(_pollLabel(poll, mono, palette));
     } else {
@@ -313,71 +470,9 @@ class _IrcMessageTileState extends State<IrcMessageTile> {
       }
     }
 
-    final line = Padding(
-      padding: EdgeInsets.fromLTRB(4, isFirst ? 2 : 0, 4, 0),
-      child: Container(
-        decoration: isHighlighted
-            ? BoxDecoration(
-                color: cs.primaryContainer.withValues(alpha: 0.25),
-                border: Border(left: BorderSide(color: cs.primary, width: 2)),
-              )
-            : null,
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-        child: SelectionArea(
-          child: Text.rich(
-            TextSpan(children: spans),
-            style: mono.copyWith(color: cs.onSurface),
-          ),
-        ),
-      ),
-    );
-
-    // Media attachment rendered below the log line so images/gifs load.
-    final mediaWidget = isMediaMessage
-        ? _buildMediaWidget(media, mediaController, cs)
-        : null;
-
-    final body = mediaWidget == null
-        ? line
-        : Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                line,
-                Padding(
-                  padding: const EdgeInsets.only(left: 64, top: 1),
-                  child: mediaWidget,
-                ),
-              ],
-            ),
-          );
-
-    // ── Interactions ─────────────────────────────────────
-    final content = isMobile
-        ? SwipeableMessage(
-            onReply: () => onReply?.call(),
-            child: LongPressWrapper(
-              onLongPress: (rect) => onShowMobileActions?.call(rect),
-              child: body,
-            ),
-          )
-        : Listener(
-            onPointerDown: (event) {
-              if (event.buttons == kSecondaryMouseButton && !isRedacted) {
-                onOpenContextMenu?.call(event.position);
-              }
-            },
-            child: MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: body,
-            ),
-          );
-
-    return KeyedSubtree(key: ValueKey(message.eventId), child: content);
+    return spans;
   }
 
-  /// Adds the message body as linkable, emoji-aware inline spans.
   void _addLinkableText(
     String text,
     TextStyle style,
@@ -414,7 +509,6 @@ class _IrcMessageTileState extends State<IrcMessageTile> {
     }
   }
 
-  /// Compact inline label for the log line (e.g. `[image: photo.png]`).
   TextSpan _mediaLabel(KoheraMediaContent m, TextStyle style, KoheraPalette palette) {
     final label = switch (m.mediaType) {
       KoheraMediaType.image => '[image]',
@@ -430,7 +524,6 @@ class _IrcMessageTileState extends State<IrcMessageTile> {
     );
   }
 
-  /// Compact inline label for a poll-start event (`[poll] question`).
   TextSpan _pollLabel(KoheraPoll p, TextStyle style, KoheraPalette palette) {
     final state = p.ended ? 'ended' : 'open';
     return TextSpan(
@@ -439,7 +532,6 @@ class _IrcMessageTileState extends State<IrcMessageTile> {
     );
   }
 
-  /// Renders the actual media attachment so images/gifs load and display.
   Widget _buildMediaWidget(
     KoheraMediaContent m,
     MediaController controller,
