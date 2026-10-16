@@ -184,6 +184,75 @@ void main() {
       expect(results.first.eventId, r'$e1');
     });
 
+
+    test('filters by roomIds set', () async {
+      await searchDb.upsertBatch([
+        IndexedMessage(
+          eventId: r'$e1',
+          roomId: '!r1:s',
+          senderId: '@u:s',
+          body: 'hello',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024),
+        ),
+        IndexedMessage(
+          eventId: r'$e2',
+          roomId: '!r2:s',
+          senderId: '@u:s',
+          body: 'hello',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024, 1, 2),
+        ),
+        IndexedMessage(
+          eventId: r'$e3',
+          roomId: '!r3:s',
+          senderId: '@u:s',
+          body: 'hello',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024, 1, 3),
+        ),
+      ]);
+      final results = await searchDb.search(
+        query: 'hello',
+        roomIds: {'!r1:s', '!r2:s'},
+      );
+      expect(results, hasLength(2));
+      expect(results.map((m) => m.roomId).toSet(), {'!r1:s', '!r2:s'});
+    });
+
+    test('count with roomIds set', () async {
+      await searchDb.upsertBatch([
+        IndexedMessage(
+          eventId: r'$e1',
+          roomId: '!r1:s',
+          senderId: '@u:s',
+          body: 'alpha',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024),
+        ),
+        IndexedMessage(
+          eventId: r'$e2',
+          roomId: '!r2:s',
+          senderId: '@u:s',
+          body: 'alpha',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024, 1, 2),
+        ),
+        IndexedMessage(
+          eventId: r'$e3',
+          roomId: '!r3:s',
+          senderId: '@u:s',
+          body: 'alpha',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024, 1, 3),
+        ),
+      ]);
+      expect(
+        await searchDb.count(query: 'alpha', roomIds: {'!r1:s', '!r2:s'}),
+        2,
+      );
+    });
+
     test('supports limit and offset', () async {
       await searchDb.upsertBatch([
         for (var i = 0; i < 5; i++)

@@ -29,6 +29,33 @@ MessageSearchResult _makeResult({
   );
 }
 
+void _stubServer(MockMessageSearchRepository mockRepo) {
+  when(mockRepo.searchServer(
+    query: anyNamed('query'),
+    limit: anyNamed('limit'),
+    scopeRoomIds: anyNamed('scopeRoomIds'),
+    nextBatch: anyNamed('nextBatch'),
+  )).thenAnswer((_) async => const ServerSearchPage());
+}
+
+void _stubLocal(MockMessageSearchRepository mockRepo) {
+  when(mockRepo.searchLocal(
+    query: anyNamed('query'),
+    limit: anyNamed('limit'),
+    scopeRoomIds: anyNamed('scopeRoomIds'),
+    offset: anyNamed('offset'),
+  )).thenAnswer((_) async => const LocalSearchPage());
+}
+
+void _stubUnindexed(MockMessageSearchRepository mockRepo) {
+  when(mockRepo.searchUnindexed(
+    query: anyNamed('query'),
+    limit: anyNamed('limit'),
+    scopeRoomIds: anyNamed('scopeRoomIds'),
+    shouldAbort: anyNamed('shouldAbort'),
+  )).thenAnswer((_) async => const UnindexedSearchResult());
+}
+
 void main() {
   late MockMessageSearchRepository mockRepo;
   late RoomListSearchController controller;
@@ -76,23 +103,9 @@ void main() {
 
     test('new query cancels previous debounce', () {
       fakeAsync((async) {
-        when(mockRepo.searchServer(
-          query: anyNamed('query'),
-          limit: anyNamed('limit'),
-          scopeRoomIds: anyNamed('scopeRoomIds'),
-          nextBatch: anyNamed('nextBatch'),
-        )).thenAnswer((_) async => const ServerSearchPage());
-        when(mockRepo.searchLocal(
-          query: anyNamed('query'),
-          limit: anyNamed('limit'),
-          scopeRoomIds: anyNamed('scopeRoomIds'),
-          offset: anyNamed('offset'),
-        )).thenAnswer((_) async => const LocalSearchPage());
-        when(mockRepo.searchUnindexed(
-          query: anyNamed('query'),
-          limit: anyNamed('limit'),
-          scopeRoomIds: anyNamed('scopeRoomIds'),
-        )).thenAnswer((_) async => const UnindexedSearchResult());
+        _stubServer(mockRepo);
+        _stubLocal(mockRepo);
+        _stubUnindexed(mockRepo);
 
         controller.onQueryChanged('first query');
         async.elapse(const Duration(milliseconds: 300));
@@ -116,17 +129,8 @@ void main() {
             results: [_makeResult(eventId: r'$e1')],
             count: 1,
           ));
-      when(mockRepo.searchLocal(
-        query: anyNamed('query'),
-        limit: anyNamed('limit'),
-        scopeRoomIds: anyNamed('scopeRoomIds'),
-        offset: anyNamed('offset'),
-      )).thenAnswer((_) async => const LocalSearchPage());
-      when(mockRepo.searchUnindexed(
-        query: anyNamed('query'),
-        limit: anyNamed('limit'),
-        scopeRoomIds: anyNamed('scopeRoomIds'),
-      )).thenAnswer((_) async => const UnindexedSearchResult());
+      _stubLocal(mockRepo);
+      _stubUnindexed(mockRepo);
 
       controller.onQueryChanged('hello world');
       await controller.performSearch();
@@ -155,17 +159,8 @@ void main() {
         scopeRoomIds: anyNamed('scopeRoomIds'),
         nextBatch: anyNamed('nextBatch'),
       )).thenAnswer((_) async => ServerSearchPage(results: [older, newer]));
-      when(mockRepo.searchLocal(
-        query: anyNamed('query'),
-        limit: anyNamed('limit'),
-        scopeRoomIds: anyNamed('scopeRoomIds'),
-        offset: anyNamed('offset'),
-      )).thenAnswer((_) async => const LocalSearchPage());
-      when(mockRepo.searchUnindexed(
-        query: anyNamed('query'),
-        limit: anyNamed('limit'),
-        scopeRoomIds: anyNamed('scopeRoomIds'),
-      )).thenAnswer((_) async => const UnindexedSearchResult());
+      _stubLocal(mockRepo);
+      _stubUnindexed(mockRepo);
 
       controller.onQueryChanged('test query');
       await controller.performSearch();
@@ -175,7 +170,7 @@ void main() {
       expect(controller.results.last.eventId, r'$older');
     });
 
-    test('sets error on search failure', () async {
+    test('sets error when all sources fail and no results', () async {
       when(mockRepo.searchServer(
         query: anyNamed('query'),
         limit: anyNamed('limit'),
@@ -187,18 +182,47 @@ void main() {
         limit: anyNamed('limit'),
         scopeRoomIds: anyNamed('scopeRoomIds'),
         offset: anyNamed('offset'),
-      )).thenAnswer((_) async => const LocalSearchPage());
+      )).thenThrow(Exception('index error'));
       when(mockRepo.searchUnindexed(
         query: anyNamed('query'),
         limit: anyNamed('limit'),
         scopeRoomIds: anyNamed('scopeRoomIds'),
-      )).thenAnswer((_) async => const UnindexedSearchResult());
+        shouldAbort: anyNamed('shouldAbort'),
+      )).thenThrow(Exception('fallback error'));
 
       controller.onQueryChanged('error query');
       await controller.performSearch();
 
       expect(controller.error, isNotNull);
       expect(controller.isLoading, isFalse);
+      expect(controller.results, isEmpty);
+    });
+
+    test('shows partial results when server fails but index succeeds',
+        () async {
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        nextBatch: anyNamed('nextBatch'),
+      )).thenThrow(Exception('server error'));
+      when(mockRepo.searchLocal(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenAnswer((_) async => LocalSearchPage(
+            results: [_makeResult(eventId: r'$idx1', body: 'encrypted')],
+            count: 1,
+          ));
+      _stubUnindexed(mockRepo);
+
+      controller.onQueryChanged('partial query');
+      await controller.performSearch();
+
+      expect(controller.error, isNull);
+      expect(controller.results, hasLength(1));
+      expect(controller.results.first.eventId, r'$idx1');
     });
 
     test('discards stale results from previous generation', () async {
@@ -215,17 +239,8 @@ void main() {
           results: [_makeResult(eventId: '\$e$callCount')],
         );
       });
-      when(mockRepo.searchLocal(
-        query: anyNamed('query'),
-        limit: anyNamed('limit'),
-        scopeRoomIds: anyNamed('scopeRoomIds'),
-        offset: anyNamed('offset'),
-      )).thenAnswer((_) async => const LocalSearchPage());
-      when(mockRepo.searchUnindexed(
-        query: anyNamed('query'),
-        limit: anyNamed('limit'),
-        scopeRoomIds: anyNamed('scopeRoomIds'),
-      )).thenAnswer((_) async => const UnindexedSearchResult());
+      _stubLocal(mockRepo);
+      _stubUnindexed(mockRepo);
 
       final firstSearch = controller.performSearch();
       controller.onQueryChanged('new query');
@@ -255,17 +270,8 @@ void main() {
             nextBatch: 'batch2',
             count: 2,
           ));
-      when(mockRepo.searchLocal(
-        query: anyNamed('query'),
-        limit: anyNamed('limit'),
-        scopeRoomIds: anyNamed('scopeRoomIds'),
-        offset: anyNamed('offset'),
-      )).thenAnswer((_) async => const LocalSearchPage());
-      when(mockRepo.searchUnindexed(
-        query: anyNamed('query'),
-        limit: anyNamed('limit'),
-        scopeRoomIds: anyNamed('scopeRoomIds'),
-      )).thenAnswer((_) async => const UnindexedSearchResult());
+      _stubLocal(mockRepo);
+      _stubUnindexed(mockRepo);
 
       controller.onQueryChanged('test query');
       await controller.performSearch();
@@ -285,23 +291,9 @@ void main() {
 
   group('clear', () {
     test('resets all state', () async {
-      when(mockRepo.searchServer(
-        query: anyNamed('query'),
-        limit: anyNamed('limit'),
-        scopeRoomIds: anyNamed('scopeRoomIds'),
-        nextBatch: anyNamed('nextBatch'),
-      )).thenAnswer((_) async => const ServerSearchPage());
-      when(mockRepo.searchLocal(
-        query: anyNamed('query'),
-        limit: anyNamed('limit'),
-        scopeRoomIds: anyNamed('scopeRoomIds'),
-        offset: anyNamed('offset'),
-      )).thenAnswer((_) async => const LocalSearchPage());
-      when(mockRepo.searchUnindexed(
-        query: anyNamed('query'),
-        limit: anyNamed('limit'),
-        scopeRoomIds: anyNamed('scopeRoomIds'),
-      )).thenAnswer((_) async => const UnindexedSearchResult());
+      _stubServer(mockRepo);
+      _stubLocal(mockRepo);
+      _stubUnindexed(mockRepo);
 
       controller.onQueryChanged('test query');
       await controller.performSearch();
@@ -331,11 +323,7 @@ void main() {
         scopeRoomIds: anyNamed('scopeRoomIds'),
         offset: anyNamed('offset'),
       )).thenAnswer((_) async => const LocalSearchPage(count: 7));
-      when(mockRepo.searchUnindexed(
-        query: anyNamed('query'),
-        limit: anyNamed('limit'),
-        scopeRoomIds: anyNamed('scopeRoomIds'),
-      )).thenAnswer((_) async => const UnindexedSearchResult());
+      _stubUnindexed(mockRepo);
 
       controller.onQueryChanged('combined query');
       await controller.performSearch();
@@ -374,11 +362,7 @@ void main() {
           nextBatch: offset + 20 < 40 ? '${offset + 20}' : null,
         );
       });
-      when(mockRepo.searchUnindexed(
-        query: anyNamed('query'),
-        limit: anyNamed('limit'),
-        scopeRoomIds: anyNamed('scopeRoomIds'),
-      )).thenAnswer((_) async => const UnindexedSearchResult());
+      _stubUnindexed(mockRepo);
 
       controller.onQueryChanged('paginated query');
       await controller.performSearch();
@@ -395,27 +379,19 @@ void main() {
       )).called(1);
     });
 
-    test('surfaces indexingRoomIds from fallback', () async {
-      when(mockRepo.searchServer(
-        query: anyNamed('query'),
-        limit: anyNamed('limit'),
-        scopeRoomIds: anyNamed('scopeRoomIds'),
-        nextBatch: anyNamed('nextBatch'),
-      )).thenAnswer((_) async => const ServerSearchPage());
-      when(mockRepo.searchLocal(
-        query: anyNamed('query'),
-        limit: anyNamed('limit'),
-        scopeRoomIds: anyNamed('scopeRoomIds'),
-        offset: anyNamed('offset'),
-      )).thenAnswer((_) async => const LocalSearchPage());
+    test('surfaces fallback results', () async {
+      _stubServer(mockRepo);
+      _stubLocal(mockRepo);
       when(mockRepo.searchUnindexed(
         query: anyNamed('query'),
         limit: anyNamed('limit'),
         scopeRoomIds: anyNamed('scopeRoomIds'),
+        shouldAbort: anyNamed('shouldAbort'),
       )).thenAnswer((_) async => UnindexedSearchResult(
             results: [
               _makeResult(eventId: r'$fallback1', body: 'found it'),
             ],
+            count: 1,
             indexingRoomIds: {'!encrypted:example.com'},
           ));
 
@@ -426,7 +402,135 @@ void main() {
         controller.results.any((r) => r.eventId == r'$fallback1'),
         isTrue,
       );
-      expect(controller.indexingRoomIds, contains('!encrypted:example.com'));
+    });
+  });
+
+  group('source exhaustion', () {
+    test('loadMore skips exhausted index source', () async {
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        nextBatch: anyNamed('nextBatch'),
+      )).thenAnswer((_) async => ServerSearchPage(
+            results: [_makeResult(eventId: r'$s1')],
+            nextBatch: 'server-batch2',
+            count: 5,
+          ));
+      when(mockRepo.searchLocal(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenAnswer((_) async => LocalSearchPage(
+            results: [_makeResult(eventId: r'$i1')],
+            count: 1,
+          ));
+      _stubUnindexed(mockRepo);
+
+      controller.onQueryChanged('exhaust test');
+      await controller.performSearch();
+
+      await controller.performSearch(loadMore: true);
+
+      verify(mockRepo.searchLocal(
+        query: 'exhaust test',
+        limit: 20,
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).called(1);
+    });
+
+    test('loadMore skips exhausted server source', () async {
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        nextBatch: anyNamed('nextBatch'),
+      )).thenAnswer((_) async => ServerSearchPage(
+            results: [_makeResult(eventId: r'$s1')],
+            count: 1,
+          ));
+      when(mockRepo.searchLocal(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenAnswer((_) async => LocalSearchPage(
+            results: [_makeResult(eventId: r'$i1')],
+            nextBatch: '20',
+            count: 40,
+          ));
+      _stubUnindexed(mockRepo);
+
+      controller.onQueryChanged('server exhaust');
+      await controller.performSearch();
+
+      await controller.performSearch(loadMore: true);
+
+      verify(mockRepo.searchServer(
+        query: 'server exhaust',
+        limit: 20,
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        nextBatch: anyNamed('nextBatch'),
+      )).called(1);
+    });
+
+    test('nextBatch becomes null when all sources exhausted', () async {
+      _stubServer(mockRepo);
+      _stubLocal(mockRepo);
+      _stubUnindexed(mockRepo);
+
+      controller.onQueryChanged('all exhausted');
+      await controller.performSearch();
+
+      expect(controller.nextBatch, isNull);
+    });
+  });
+
+  group('count stability', () {
+    test('totalCount stays stable on loadMore with fallback matches',
+        () async {
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        nextBatch: anyNamed('nextBatch'),
+      )).thenAnswer((_) async => ServerSearchPage(
+            results: [_makeResult(eventId: r'$s1')],
+            nextBatch: 'batch2',
+            count: 2,
+          ));
+      _stubLocal(mockRepo);
+      when(mockRepo.searchUnindexed(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        shouldAbort: anyNamed('shouldAbort'),
+      )).thenAnswer((_) async => UnindexedSearchResult(
+            results: [_makeResult(eventId: r'$f1', body: 'fallback')],
+            count: 1,
+          ));
+
+      controller.onQueryChanged('count test');
+      await controller.performSearch();
+
+      final initialCount = controller.totalCount;
+      expect(initialCount, 3);
+
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        nextBatch: anyNamed('nextBatch'),
+      )).thenAnswer((_) async => ServerSearchPage(
+            results: [_makeResult(eventId: r'$s2')],
+            count: 2,
+          ));
+
+      await controller.performSearch(loadMore: true);
+
+      expect(controller.totalCount, initialCount);
     });
   });
 }
