@@ -167,7 +167,11 @@ class MessageTimelineController extends ChangeNotifier
 
   // ── Lifecycle ──────────────────────────────────────────
 
+  bool _initializing = false;
+
   Future<void> init() async {
+    if (_initializing) return;
+    _initializing = true;
     if (!_observingLifecycle) {
       WidgetsBinding.instance.addObserver(this);
       _observingLifecycle = true;
@@ -177,12 +181,53 @@ class MessageTimelineController extends ChangeNotifier
     await _initTimeline();
   }
 
+  Future<void> _preDecryptEvents(Room room) async {
+    final encryption = room.client.encryption;
+    if (encryption == null || !room.encrypted) return;
+
+    final events = await room.client.database
+        .getEventList(room, limit: Room.defaultHistoryCount);
+
+    final sessionIds = <String>{};
+    for (final event in events) {
+      if (event.type == EventTypes.Encrypted) {
+        final sessionId =
+            event.content.tryGet<String>('session_id');
+        if (sessionId != null) sessionIds.add(sessionId);
+      }
+    }
+    for (final sessionId in sessionIds) {
+      try {
+        await encryption.keyManager
+            .loadInboundGroupSession(room.id, sessionId);
+      } catch (_) {
+        // Session key not available — event will remain undecryptable.
+      }
+    }
+
+    for (final event in events) {
+      if (event.type != EventTypes.Encrypted) continue;
+      try {
+        await encryption.decryptRoomEvent(
+          event,
+          store: !room.isArchived,
+          updateType: EventUpdateType.history,
+        );
+      } catch (_) {
+        // Session key missing — event remains encrypted.
+        // getTimeline will handle it and _requestMissingKeys will
+        // trigger key requests.
+      }
+    }
+  }
+
   Future<void> _initTimeline() async {
     final room = _room!;
     final gen = ++_initGeneration;
     final snapshotFullyRead = room.fullyRead;
     _initialFullyReadId =
         snapshotFullyRead.isNotEmpty ? snapshotFullyRead : null;
+    await _preDecryptEvents(room);
     _timeline = await room.getTimeline(
       eventContextId: initialEventId,
       onUpdate: _scheduleUpdate,
@@ -388,6 +433,7 @@ class MessageTimelineController extends ChangeNotifier
     final snapshotFullyRead = room.fullyRead;
     _initialFullyReadId =
         snapshotFullyRead.isNotEmpty ? snapshotFullyRead : null;
+    await _preDecryptEvents(room);
     _timeline = await room.getTimeline(
       onUpdate: _scheduleUpdate,
     );
