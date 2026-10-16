@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 
 // coverage:ignore-start
 abstract class MacOsPermissions {
-  static const _channel = MethodChannel('com.kohera.app/tcc');
+  static const _channel = MethodChannel('kohera/tcc');
 
   static Future<bool> checkScreenCapture() async {
     final granted =

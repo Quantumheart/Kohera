@@ -12,7 +12,7 @@ class MainFlutterWindow: NSWindow {
     RegisterGeneratedPlugins(registry: flutterViewController)
 
     let channel = FlutterMethodChannel(
-      name: "com.kohera.app/tcc",
+      name: "kohera/tcc",
       binaryMessenger: flutterViewController.engine.binaryMessenger
     )
     channel.setMethodCallHandler { (call, result) in
