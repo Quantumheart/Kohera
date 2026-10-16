@@ -8137,12 +8137,14 @@ class MockMessageSearchRepository extends _i1.Mock
     required String? query,
     required int? limit,
     Set<String>? scopeRoomIds,
+    bool Function()? shouldAbort,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#searchUnindexed, [], {
               #query: query,
               #limit: limit,
               #scopeRoomIds: scopeRoomIds,
+              #shouldAbort: shouldAbort,
             }),
             returnValue: _i5.Future<_i7.UnindexedSearchResult>.value(
               _FakeUnindexedSearchResult_74(
@@ -8151,6 +8153,7 @@ class MockMessageSearchRepository extends _i1.Mock
                   #query: query,
                   #limit: limit,
                   #scopeRoomIds: scopeRoomIds,
+                  #shouldAbort: shouldAbort,
                 }),
               ),
             ),
@@ -8162,6 +8165,7 @@ class MockMessageSearchRepository extends _i1.Mock
                       #query: query,
                       #limit: limit,
                       #scopeRoomIds: scopeRoomIds,
+                      #shouldAbort: shouldAbort,
                     }),
                   ),
                 ),

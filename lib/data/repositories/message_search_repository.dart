@@ -8,7 +8,6 @@ import 'package:kohera/data/services/message_indexer_service.dart';
 import 'package:kohera/data/services/message_search_database.dart';
 import 'package:matrix/matrix.dart';
 
-/// The outcome of a single server search page.
 class ServerSearchPage {
   const ServerSearchPage({
     this.results = const [],
@@ -21,7 +20,6 @@ class ServerSearchPage {
   final String? nextBatch;
 }
 
-/// The outcome of a single local FTS5 index search page.
 class LocalSearchPage {
   const LocalSearchPage({
     this.results = const [],
@@ -34,36 +32,18 @@ class LocalSearchPage {
   final String? nextBatch;
 }
 
-/// The outcome of the timeline-scan fallback for unindexed encrypted rooms.
 class UnindexedSearchResult {
   const UnindexedSearchResult({
     this.results = const [],
+    this.count = 0,
     this.indexingRoomIds = const {},
   });
 
   final List<MessageSearchResult> results;
-
-  /// Encrypted room IDs that were not yet indexed and have been submitted
-  /// for background indexing via [MessageIndexerService.ensureRoomIndexed].
+  final int count;
   final Set<String> indexingRoomIds;
 }
 
-/// Repository boundary for global (cross-room) message search.
-///
-/// Wraps [MessageIndexerService] (the FTS5 search index) and
-/// [MatrixClientService] (the SDK boundary) so that feature-layer
-/// controllers consume [MessageSearchResult]s without touching
-/// `SearchIndex`, `IndexedMessage`, `Client`, or `Room` directly.
-///
-/// Three search sources are unified here:
-///
-/// 1. **Server search** ([searchServer]) — the `v3/search` endpoint for
-///    unencrypted rooms.
-/// 2. **Index search** ([searchLocal]) — one unscoped FTS5 query at
-///    `roomId: null` that spans every indexed (encrypted) room at once.
-/// 3. **Fallback scan** ([searchUnindexed]) — a bounded timeline scan for
-///    encrypted rooms that have not been indexed yet, which also triggers
-///    lazy background indexing.
 class MessageSearchRepository {
   MessageSearchRepository({
     required MatrixClientService clientService,
@@ -79,8 +59,6 @@ class MessageSearchRepository {
 
   // ── Server search (unencrypted rooms) ─────────────────────
 
-  /// Searches the homeserver's `v3/search` endpoint for [query],
-  /// optionally narrowed to [scopeRoomIds].  Paginated via [nextBatch].
   Future<ServerSearchPage> searchServer({
     required String query,
     required int limit,
@@ -143,10 +121,6 @@ class MessageSearchRepository {
 
   // ── Local FTS5 index search (encrypted rooms) ────────────
 
-  /// Searches the FTS5 index with a single unscoped query (`roomId: null`)
-  /// that spans every indexed room at once.  When [scopeRoomIds] is set,
-  /// results are post-filtered client-side because the index has no
-  /// multi-room filter.
   Future<LocalSearchPage> searchLocal({
     required String query,
     required int limit,
@@ -157,43 +131,18 @@ class MessageSearchRepository {
 
     final matches = await _index.search(
       query: query,
+      roomIds: scopeRoomIds,
       limit: limit,
       offset: offset,
     );
 
-    // Post-filter by scope when a space is selected.
-    final scopedMatches = scopeRoomIds != null
-        ? matches.where((m) => scopeRoomIds.contains(m.roomId)).toList()
-        : matches;
-
-    final results = scopedMatches
+    final results = matches
         .map(_indexedMessageToResult)
         .whereType<MessageSearchResult>()
         .toList();
 
-    // Count: one unscoped COUNT for global search; for scoped search,
-    // sum per-room counts for encrypted indexed rooms in scope (bounded
-    // by scope size).
-    final int count;
-    if (scopeRoomIds != null) {
-      final indexed = await _index.indexedRoomIds();
-      final scopedEncryptedIndexed = _client.rooms
-          .where((r) =>
-              r.encrypted &&
-              scopeRoomIds.contains(r.id) &&
-              indexed.contains(r.id))
-          .map((r) => r.id)
-          .toSet();
-      var sum = 0;
-      for (final roomId in scopedEncryptedIndexed) {
-        sum += await _index.count(roomId: roomId, query: query);
-      }
-      count = sum;
-    } else {
-      count = await _index.count(query: query);
-    }
+    final count = await _index.count(query: query, roomIds: scopeRoomIds);
 
-    // Encode next offset only when the unfiltered page was full.
     final nextOffset = matches.length < limit
         ? null
         : (offset + matches.length).toString();
@@ -207,30 +156,35 @@ class MessageSearchRepository {
 
   // ── Fallback timeline scan (unindexed encrypted rooms) ────
 
-  /// Scans the local timeline of encrypted rooms that have not been
-  /// indexed yet.  Also triggers lazy background indexing via
-  /// [MessageIndexerService.ensureRoomIndexed] so subsequent searches
-  /// include these rooms via the FTS5 index.
   Future<UnindexedSearchResult> searchUnindexed({
     required String query,
     required int limit,
     Set<String>? scopeRoomIds,
+    bool Function()? shouldAbort,
   }) async {
-    if (!_index.isAvailable) return const UnindexedSearchResult();
+    final Set<String> indexedRooms;
+    if (_index.isAvailable) {
+      indexedRooms = await _index.indexedRoomIds();
+    } else {
+      indexedRooms = {};
+    }
 
-    final indexedRooms = await _index.indexedRoomIds();
+    final currentlyIndexing = _indexer.indexingRoomIds;
 
-    var unindexed = _client.rooms
-        .where((room) => room.encrypted && !indexedRooms.contains(room.id));
+    var unindexed = _client.rooms.where((room) =>
+        room.encrypted &&
+        !indexedRooms.contains(room.id) &&
+        !currentlyIndexing.contains(room.id));
     if (scopeRoomIds != null) {
       unindexed = unindexed.where((room) => scopeRoomIds.contains(room.id));
     }
     final unindexedRooms = unindexed.toList();
     if (unindexedRooms.isEmpty) return const UnindexedSearchResult();
 
-    // Trigger lazy indexing and track which rooms are being indexed.
-    for (final room in unindexedRooms) {
-      unawaited(_indexer.ensureRoomIndexed(room));
+    if (_index.isAvailable) {
+      for (final room in unindexedRooms) {
+        unawaited(_indexer.ensureRoomIndexed(room));
+      }
     }
 
     debugPrint(
@@ -238,10 +192,16 @@ class MessageSearchRepository {
       'unindexed encrypted rooms',
     );
 
-    // Search rooms in batches to avoid excessive concurrent DB queries.
     const batchSize = 5;
     final allResults = <MessageSearchResult>[];
     for (var i = 0; i < unindexedRooms.length; i += batchSize) {
+      if (shouldAbort != null && shouldAbort()) {
+        return UnindexedSearchResult(
+          results: allResults,
+          count: allResults.length,
+          indexingRoomIds: unindexedRooms.map((r) => r.id).toSet(),
+        );
+      }
       final batch = unindexedRooms.sublist(
         i,
         i + batchSize > unindexedRooms.length
@@ -286,6 +246,7 @@ class MessageSearchRepository {
 
     return UnindexedSearchResult(
       results: allResults,
+      count: allResults.length,
       indexingRoomIds: unindexedRooms.map((r) => r.id).toSet(),
     );
   }
