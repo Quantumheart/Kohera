@@ -173,9 +173,13 @@ class _ChatScreenState extends State<ChatScreen>
     _msgCtrl.addListener(_scheduleDraftSave);
     unawaited(_loadDraft());
     _composeFocusNode.addListener(_onComposeFocusChanged);
-    unawaited(_timelineController.init());
+    // Timeline init is owned by MessageListView._initAndJump, which awaits
+    // init() and then jumps to initialEventId if set.
     // Lazily index this room's history for encrypted-room search.
-    // This runs in the background and does not block the UI.
+    // Delayed so the timeline can load first — the backfill decrypts
+    // every event in the room's history on the UI isolate, and running
+    // it concurrently with getTimeline floods the sqflite platform
+    // channel with DB reads, causing an ANR.
     final room = rooms.rawRoom(widget.roomId);
     if (room != null && room.encrypted) {
       unawaited(

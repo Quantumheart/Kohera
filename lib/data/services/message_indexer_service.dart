@@ -97,6 +97,11 @@ class MessageIndexerService extends ChangeNotifier {
   static const _decryptTimeout = Duration(milliseconds: 50);
   final Map<String, Set<String>> _pendingDecryptions = {};
 
+  /// Session IDs known to be unavailable (negative cache). Prevents
+  /// repeated DB reads via [loadInboundGroupSession] for events whose
+  /// session key is missing — the SDK never caches negative lookups.
+  final Set<String> _undecryptableSessions = {};
+
   SearchIndex get database => _db;
 
   // ── Lifecycle ─────────────────────────────────────────────
@@ -355,13 +360,22 @@ class MessageIndexerService extends ChangeNotifier {
 
   Future<Event> _decryptIfNeeded(Event event) async {
     if (event.type != EventTypes.Encrypted) return event;
+    final sessionId = event.content.tryGet<String>('session_id');
+    if (sessionId != null && _undecryptableSessions.contains(sessionId)) {
+      return event;
+    }
     final encryption = _matrixClientService.client.encryption;
     if (encryption == null) return event;
     try {
-      return await encryption
+      final decrypted = await encryption
           .decryptRoomEvent(event)
           .timeout(_decryptTimeout);
+      if (decrypted.type == EventTypes.Encrypted && sessionId != null) {
+        _undecryptableSessions.add(sessionId);
+      }
+      return decrypted;
     } catch (_) {
+      if (sessionId != null) _undecryptableSessions.add(sessionId);
       return event;
     }
   }
@@ -396,7 +410,10 @@ class MessageIndexerService extends ChangeNotifier {
   void _subscribeToRoomKeys(Room room) {
     if (_keySubs.containsKey(room.id)) return;
     _keySubs[room.id] = room.onSessionKeyReceived.stream.listen(
-      (_) => unawaited(_retryPendingForRoom(room)),
+      (sessionId) {
+        _undecryptableSessions.remove(sessionId);
+        unawaited(_retryPendingForRoom(room));
+      },
     );
   }
 
