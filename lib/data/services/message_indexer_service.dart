@@ -53,6 +53,8 @@ class MessageIndexerService extends ChangeNotifier {
   /// this to show an "indexing…" indicator.
   bool get isIndexing => _indexingRooms.isNotEmpty;
 
+  Set<String> get indexingRoomIds => Set.unmodifiable(_indexingRooms);
+
   /// Per-room indexing progress: room_id → number of events indexed so far.
   final Map<String, int> _roomIndexProgress = {};
 
@@ -71,6 +73,9 @@ class MessageIndexerService extends ChangeNotifier {
   Future<void>? _drainFuture;
 
   static const maxPendingDecryptionsPerRoom = 1000;
+
+  static const _maxConcurrentBackfills = 3;
+  final List<Room> _backfillQueue = [];
 
   /// Wall-clock work budget between event-loop yields during backfill.
   /// Roughly one 60fps frame, so input dispatch is never starved.
@@ -104,21 +109,23 @@ class MessageIndexerService extends ChangeNotifier {
   Future<void> ensureRoomIndexed(Room room) async {
     if (_disposed || !_db.isAvailable) return;
 
-    // Fast path: check the in-memory cache.
     final cache = _indexedRoomsCache;
     if (cache != null && cache.contains(room.id)) return;
 
-    // Check the metadata table (and warm the cache on first call).
     if (await _db.isRoomIndexed(room.id)) {
       _indexedRoomsCache ??= {};
       _indexedRoomsCache!.add(room.id);
       return;
     }
 
-    // Already indexing this room?
     if (_indexingRooms.contains(room.id)) return;
+    if (_backfillQueue.any((r) => r.id == room.id)) return;
 
-    // Start background backfill for this room only.
+    if (_indexingRooms.length >= _maxConcurrentBackfills) {
+      _backfillQueue.add(room);
+      return;
+    }
+
     unawaited(_backfillRoomInBackground(room));
   }
 
@@ -198,6 +205,17 @@ class MessageIndexerService extends ChangeNotifier {
       _indexingRooms.remove(room.id);
       _roomIndexProgress.remove(room.id);
       _safeNotify();
+      _drainBackfillQueue();
+    }
+  }
+
+  void _drainBackfillQueue() {
+    while (_indexingRooms.length < _maxConcurrentBackfills &&
+        _backfillQueue.isNotEmpty &&
+        !_disposed) {
+      final room = _backfillQueue.removeAt(0);
+      if (_indexingRooms.contains(room.id)) continue;
+      unawaited(_backfillRoomInBackground(room));
     }
   }
 

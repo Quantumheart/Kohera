@@ -8,9 +8,6 @@ import 'package:kohera/data/repositories/message_search_repository.dart';
 class RoomListSearchController extends ChangeNotifier {
   RoomListSearchController({required this.searchRepository});
 
-  /// The search repository — the sole dependency.  All SDK interactions
-  /// (server search, FTS5 index, timeline-scan fallback) and domain-model
-  /// conversion happen behind this boundary.
   final MessageSearchRepository searchRepository;
 
   // ── Constants ──────────────────────────────────────────────
@@ -30,10 +27,9 @@ class RoomListSearchController extends ChangeNotifier {
 
   String? _serverNextBatch;
   String? _indexNextBatch;
+  bool _serverExhausted = false;
+  bool _indexExhausted = false;
 
-  /// Combined pagination token.  Non-null when either the server search
-  /// or the index search has more results, signalling the UI to show
-  /// "Load more".
   String? get nextBatch =>
       (_serverNextBatch != null || _indexNextBatch != null)
           ? (_serverNextBatch ?? _indexNextBatch)
@@ -45,10 +41,7 @@ class RoomListSearchController extends ChangeNotifier {
   String _query = '';
   String get query => _query;
 
-  /// Encrypted rooms that are being indexed in the background.  The UI can
-  /// surface an "indexing…" indicator for these rooms.
-  Set<String> _indexingRoomIds = {};
-  Set<String> get indexingRoomIds => Set.unmodifiable(_indexingRoomIds);
+  int _fallbackCount = 0;
 
   bool _disposed = false;
   Timer? _debounceTimer;
@@ -67,8 +60,10 @@ class RoomListSearchController extends ChangeNotifier {
       _results = [];
       _serverNextBatch = null;
       _indexNextBatch = null;
+      _serverExhausted = false;
+      _indexExhausted = false;
       _totalCount = null;
-      _indexingRoomIds = {};
+      _fallbackCount = 0;
       _error = null;
       _isLoading = false;
       _searchGeneration++;
@@ -94,8 +89,10 @@ class RoomListSearchController extends ChangeNotifier {
       _results = [];
       _serverNextBatch = null;
       _indexNextBatch = null;
+      _serverExhausted = false;
+      _indexExhausted = false;
       _totalCount = null;
-      _indexingRoomIds = {};
+      _fallbackCount = 0;
     }
     notifyListeners();
 
@@ -104,28 +101,46 @@ class RoomListSearchController extends ChangeNotifier {
 
       final scopeIds = _scopeRoomIds;
 
-      // Run server search, index search, and fallback scan in parallel.
-      // On loadMore, only paginate the server and index search — the
-      // fallback scan runs once on the initial search.
-      final serverFuture = searchRepository.searchServer(
-        query: searchQuery,
-        scopeRoomIds: scopeIds,
-        nextBatch: loadMore ? _serverNextBatch : null,
-        limit: _searchBatchLimit,
-      );
+      var serverFailed = false;
+      var indexFailed = false;
+      var fallbackFailed = false;
 
-      final indexFuture = searchRepository.searchLocal(
-        query: searchQuery,
-        scopeRoomIds: scopeIds,
-        limit: _searchBatchLimit,
-        offset: _parseOffset(loadMore ? _indexNextBatch : null),
-      );
+      final serverFuture = (_serverExhausted && loadMore)
+          ? Future.value(const ServerSearchPage())
+          : _guardSource(
+              () => searchRepository.searchServer(
+                query: searchQuery,
+                scopeRoomIds: scopeIds,
+                nextBatch: loadMore ? _serverNextBatch : null,
+                limit: _searchBatchLimit,
+              ),
+              const ServerSearchPage(),
+              () => serverFailed = true,
+            );
+
+      final indexFuture = (_indexExhausted && loadMore)
+          ? Future.value(const LocalSearchPage())
+          : _guardSource(
+              () => searchRepository.searchLocal(
+                query: searchQuery,
+                scopeRoomIds: scopeIds,
+                limit: _searchBatchLimit,
+                offset: _parseOffset(loadMore ? _indexNextBatch : null),
+              ),
+              const LocalSearchPage(),
+              () => indexFailed = true,
+            );
 
       final fallbackFuture = !loadMore
-          ? searchRepository.searchUnindexed(
-              query: searchQuery,
-              scopeRoomIds: scopeIds,
-              limit: _searchBatchLimit,
+          ? _guardSource(
+              () => searchRepository.searchUnindexed(
+                query: searchQuery,
+                scopeRoomIds: scopeIds,
+                limit: _searchBatchLimit,
+                shouldAbort: () => generation != _searchGeneration,
+              ),
+              const UnindexedSearchResult(),
+              () => fallbackFailed = true,
             )
           : Future.value(const UnindexedSearchResult());
 
@@ -143,13 +158,16 @@ class RoomListSearchController extends ChangeNotifier {
 
       _serverNextBatch = serverPage.nextBatch;
       _indexNextBatch = indexPage.nextBatch;
-      _indexingRoomIds = fallback.indexingRoomIds;
+      _serverExhausted = serverPage.nextBatch == null;
+      _indexExhausted = indexPage.nextBatch == null;
 
-      // Total count: server + index + fallback.
+      if (!loadMore) {
+        _fallbackCount = fallback.count;
+      }
+
       final serverCount = serverPage.count ?? 0;
-      _totalCount = serverCount + indexPage.count + fallback.results.length;
+      _totalCount = serverCount + indexPage.count + _fallbackCount;
 
-      // Merge, deduplicate by eventId, and sort by timestamp descending.
       final merged = <String, MessageSearchResult>{};
       final previousResults = loadMore ? _results : <MessageSearchResult>[];
       for (final r in previousResults) {
@@ -161,8 +179,10 @@ class RoomListSearchController extends ChangeNotifier {
       for (final r in indexPage.results) {
         merged.putIfAbsent(r.eventId, () => r);
       }
-      for (final r in fallback.results) {
-        merged.putIfAbsent(r.eventId, () => r);
+      if (!loadMore) {
+        for (final r in fallback.results) {
+          merged.putIfAbsent(r.eventId, () => r);
+        }
       }
 
       final sorted = merged.values.toList()
@@ -170,20 +190,45 @@ class RoomListSearchController extends ChangeNotifier {
 
       _results = sorted;
       _isLoading = false;
+
+      final anyFailed = serverFailed || indexFailed || fallbackFailed;
+      if (anyFailed && _results.isEmpty) {
+        _error = 'Message search failed. The server may not support it.';
+      }
+
       notifyListeners();
     } catch (e) {
       debugPrint('[Kohera] Message search error: $e');
       if (_disposed || generation != _searchGeneration) return;
       _isLoading = false;
-      _error = 'Message search failed. The server may not support it.';
+      if (_results.isEmpty) {
+        _error = 'Message search failed. The server may not support it.';
+      }
       notifyListeners();
     }
   }
 
-  /// Parses an offset-based pagination token.
   static int _parseOffset(String? nextBatch) {
     if (nextBatch == null || nextBatch.isEmpty) return 0;
     return int.tryParse(nextBatch) ?? 0;
+  }
+
+  static Future<T> _guardSource<T>(
+    Future<T> Function() source,
+    T defaultValue,
+    void Function() markFailed,
+  ) {
+    try {
+      return source().catchError((Object e) {
+        markFailed();
+        debugPrint('[Kohera] Search source failed: $e');
+        return defaultValue;
+      });
+    } catch (e) {
+      markFailed();
+      debugPrint('[Kohera] Search source failed: $e');
+      return Future.value(defaultValue);
+    }
   }
 
   void clear() {
@@ -192,8 +237,10 @@ class RoomListSearchController extends ChangeNotifier {
     _results = [];
     _serverNextBatch = null;
     _indexNextBatch = null;
+    _serverExhausted = false;
+    _indexExhausted = false;
     _totalCount = null;
-    _indexingRoomIds = {};
+    _fallbackCount = 0;
     _isLoading = false;
     _error = null;
     _query = '';
