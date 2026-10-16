@@ -2415,15 +2415,6 @@ class MockRoomListSearchController extends _i1.Mock
           as String);
 
   @override
-  Set<String> get indexingRoomIds =>
-      (super.noSuchMethod(
-            Invocation.getter(#indexingRoomIds),
-            returnValue: <String>{},
-            returnValueForMissingStub: <String>{},
-          )
-          as Set<String>);
-
-  @override
   bool get hasListeners =>
       (super.noSuchMethod(
             Invocation.getter(#hasListeners),
@@ -10189,12 +10180,14 @@ class MockMessageSearchRepository extends _i1.Mock
     required String? query,
     required int? limit,
     Set<String>? scopeRoomIds,
+    bool Function()? shouldAbort,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#searchUnindexed, [], {
               #query: query,
               #limit: limit,
               #scopeRoomIds: scopeRoomIds,
+              #shouldAbort: shouldAbort,
             }),
             returnValue: _i21.Future<_i17.UnindexedSearchResult>.value(
               _FakeUnindexedSearchResult_90(
@@ -10203,6 +10196,7 @@ class MockMessageSearchRepository extends _i1.Mock
                   #query: query,
                   #limit: limit,
                   #scopeRoomIds: scopeRoomIds,
+                  #shouldAbort: shouldAbort,
                 }),
               ),
             ),
@@ -10214,6 +10208,7 @@ class MockMessageSearchRepository extends _i1.Mock
                       #query: query,
                       #limit: limit,
                       #scopeRoomIds: scopeRoomIds,
+                      #shouldAbort: shouldAbort,
                     }),
                   ),
                 ),
