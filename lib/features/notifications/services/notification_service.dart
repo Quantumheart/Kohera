@@ -59,6 +59,7 @@ class NotificationService {
     required this.preferencesService,
     this.router,
     this.revealWindow,
+    this.requestAttention,
     @visibleForTesting FlutterLocalNotificationsPlugin? plugin,
   })  : _plugin = plugin ?? FlutterLocalNotificationsPlugin(),
         _useLinux = plugin == null && _isLinux;
@@ -68,6 +69,7 @@ class NotificationService {
   final PreferencesService preferencesService;
   final GoRouter? router;
   final Future<void> Function()? revealWindow;
+  final void Function({required bool important})? requestAttention;
   final FlutterLocalNotificationsPlugin _plugin;
   final bool _useLinux;
 
@@ -274,6 +276,7 @@ class NotificationService {
         avatarPath: avatarPath,
         avatarUrl: avatarUrl,
       );
+      requestAttention?.call(important: true);
       _notifiedInvites.add(roomId);
     } finally {
       _processingRooms.remove(roomId);
@@ -402,6 +405,7 @@ class NotificationService {
     final roomName = room.getLocalizedDisplayname();
 
     final isDirect = room.isDirectChat;
+    requestAttention?.call(important: isDirect || room.highlightCount > 0);
 
     if (notifiable.length == 1) {
       final senderDisplayName = notifiable.first.$1;

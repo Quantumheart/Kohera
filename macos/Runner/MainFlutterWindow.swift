@@ -12,7 +12,7 @@ class MainFlutterWindow: NSWindow {
     RegisterGeneratedPlugins(registry: flutterViewController)
 
     let channel = FlutterMethodChannel(
-      name: "com.kohera.app/tcc",
+      name: "kohera/tcc",
       binaryMessenger: flutterViewController.engine.binaryMessenger
     )
     channel.setMethodCallHandler { (call, result) in
@@ -36,6 +36,25 @@ class MainFlutterWindow: NSWindow {
         AVCaptureDevice.requestAccess(for: mediaType) { granted in
           DispatchQueue.main.async { result(granted) }
         }
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+
+    let attentionChannel = FlutterMethodChannel(
+      name: "kohera/window_attention",
+      binaryMessenger: flutterViewController.engine.binaryMessenger
+    )
+    attentionChannel.setMethodCallHandler { (call, result) in
+      switch call.method {
+      case "requestAttention":
+        let args = call.arguments as? [String: Any]
+        if args?["important"] as? Bool == true {
+          NSApp.requestUserAttention(.informationalRequest)
+        }
+        result(nil)
+      case "cancelAttention":
+        result(nil)
       default:
         result(FlutterMethodNotImplemented)
       }
