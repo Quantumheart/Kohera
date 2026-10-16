@@ -1,10 +1,11 @@
 import 'dart:async';
-import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:kohera/data/models/kohera_media_content.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/shared/services/media_controller.dart';
 import 'package:kohera/shared/widgets/full_image_view.dart';
+import 'package:kohera/shared/widgets/one_time_memory_image.dart';
 
 
 // coverage:ignore-start
@@ -28,7 +29,7 @@ class ImageBubble extends StatefulWidget {
 }
 
 class _ImageBubbleState extends State<ImageBubble> {
-  Uint8List? _imageBytes;
+  ImageProvider? _imageProvider;
   String? _imageUrl;
   bool _loading = true;
 
@@ -42,7 +43,7 @@ class _ImageBubbleState extends State<ImageBubble> {
   void didUpdateWidget(ImageBubble old) {
     super.didUpdateWidget(old);
     if (old.controller.eventId != widget.controller.eventId) {
-      _imageBytes = null;
+      _imageProvider = null;
       _imageUrl = null;
       _loading = true;
       unawaited(_loadImage());
@@ -57,7 +58,12 @@ class _ImageBubbleState extends State<ImageBubble> {
         );
         if (mounted) {
           setState(() {
-            _imageBytes = bytes;
+            _imageProvider = OneTimeMemoryImage(
+              eventId: widget.controller.eventId,
+              bytes: bytes,
+              cacheWidth: 560,
+              cacheHeight: 520,
+            );
             _loading = false;
           });
         }
@@ -103,8 +109,18 @@ class _ImageBubbleState extends State<ImageBubble> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 )
-              : _imageBytes != null
-                  ? Image.memory(_imageBytes!, fit: BoxFit.cover, cacheWidth: 560, cacheHeight: 520)
+              : _imageProvider != null
+                  ? Image(
+                      image: _imageProvider!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Container(
+                        height: 80,
+                        color: cs.surfaceContainerHighest,
+                        child: const Center(
+                          child: Icon(Icons.broken_image_outlined),
+                        ),
+                      ),
+                    )
                   : _imageUrl != null
                       ? Image.network(
                           _imageUrl!,
