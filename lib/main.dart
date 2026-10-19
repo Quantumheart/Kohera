@@ -123,6 +123,11 @@ ShareIntakeController? _shareIntake;
     unawaited(ShareInStore().writeActiveAccountId(service.clientName));
   }
 
+  void _retryInit() {
+    setState(() => _initError = null);
+    unawaited(_init());
+  }
+
   Future<void> _init() async {
     // Keep the branded splash up long enough for its growth animation to play.
     final minSplash = Future<void>.delayed(const Duration(seconds: 3));
@@ -274,44 +279,7 @@ ShareIntakeController? _shareIntake;
         home: Scaffold(
           body: Center(
             child: _initError != null
-                ? Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.error_outline, size: 48),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Failed to start Kohera',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _initError.toString(),
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                      ),
-                      if (_initError.toString().toLowerCase().contains('indexeddb') ||
-                          _initError.toString().toLowerCase().contains('database'))
-                        const Padding(
-                          padding: EdgeInsets.only(top: 16),
-                          child: Text(
-                            'This may be caused by your browser blocking\nIndexedDB (e.g. Private Browsing).',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
-                          ),
-                        ),
-                      const SizedBox(height: 16),
-                      FilledButton.tonalIcon(
-                        onPressed: () {
-                          setState(() => _initError = null);
-                          unawaited(_init());
-                        },
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Retry'),
-                      ),
-                    ],
-                  )
+                ? _InitErrorView(error: _initError!, onRetry: _retryInit)
                 // Loader defaults to colorScheme.primary; the splash theme is
                 // seeded by the brand color so it renders brand-blue before the
                 // Kohera theme (prefs) is loaded.
@@ -585,6 +553,57 @@ ShareIntakeController? _shareIntake;
           );
         },
       ),
+    );
+  }
+}
+
+class _InitErrorView extends StatelessWidget {
+  const _InitErrorView({required this.error, required this.onRetry});
+
+  final Object error;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final message = error.toString();
+    final lowerMessage = message.toLowerCase();
+    final isDatabaseError = lowerMessage.contains('indexeddb') ||
+        lowerMessage.contains('database');
+    final theme = Theme.of(context);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.error_outline, size: 48),
+        const SizedBox(height: 16),
+        Text(
+          'Failed to start Kohera',
+          style: theme.textTheme.titleMedium,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
+        ),
+        if (isDatabaseError)
+          const Padding(
+            padding: EdgeInsets.only(top: 16),
+            child: Text(
+              'This may be caused by your browser blocking\nIndexedDB (e.g. Private Browsing).',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
+            ),
+          ),
+        const SizedBox(height: 16),
+        FilledButton.tonalIcon(
+          onPressed: onRetry,
+          icon: const Icon(Icons.refresh),
+          label: const Text('Retry'),
+        ),
+      ],
     );
   }
 }
