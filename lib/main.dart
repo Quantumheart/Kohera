@@ -51,6 +51,7 @@ import 'package:kohera/features/share_in/services/share_in_store.dart';
 import 'package:kohera/features/share_in/services/share_intake_controller.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
+import 'package:kohera/shared/widgets/init_error_view.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/pixelation_scope.dart';
 import 'package:kohera/shared/widgets/scanline_overlay.dart';
@@ -279,7 +280,7 @@ ShareIntakeController? _shareIntake;
         home: Scaffold(
           body: Center(
             child: _initError != null
-                ? _InitErrorView(error: _initError!, onRetry: _retryInit)
+                ? InitErrorView(error: _initError!, onRetry: _retryInit)
                 // Loader defaults to colorScheme.primary; the splash theme is
                 // seeded by the brand color so it renders brand-blue before the
                 // Kohera theme (prefs) is loaded.
@@ -553,57 +554,6 @@ ShareIntakeController? _shareIntake;
           );
         },
       ),
-    );
-  }
-}
-
-class _InitErrorView extends StatelessWidget {
-  const _InitErrorView({required this.error, required this.onRetry});
-
-  final Object error;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final message = error.toString();
-    final lowerMessage = message.toLowerCase();
-    final isDatabaseError = lowerMessage.contains('indexeddb') ||
-        lowerMessage.contains('database');
-    final theme = Theme.of(context);
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Icon(Icons.error_outline, size: 48),
-        const SizedBox(height: 16),
-        Text(
-          'Failed to start Kohera',
-          style: theme.textTheme.titleMedium,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          message,
-          textAlign: TextAlign.center,
-          style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.error,
-              ),
-        ),
-        if (isDatabaseError)
-          const Padding(
-            padding: EdgeInsets.only(top: 16),
-            child: Text(
-              'This may be caused by your browser blocking\nIndexedDB (e.g. Private Browsing).',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic),
-            ),
-          ),
-        const SizedBox(height: 16),
-        FilledButton.tonalIcon(
-          onPressed: onRetry,
-          icon: const Icon(Icons.refresh),
-          label: const Text('Retry'),
-        ),
-      ],
     );
   }
 }
