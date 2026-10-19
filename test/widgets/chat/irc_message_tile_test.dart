@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/theme/kohera_theme.dart';
@@ -234,5 +235,135 @@ void main() {
       expect(text, contains('[poll: open]'));
       expect(text, contains('Tea or coffee?'));
     });
+
+    testWidgets('caches spans across rebuilds with same inputs',
+        (tester) async {
+      await tester.pumpWidget(_wrap(IrcMessageTile(
+        message: _msg(body: 'See https://example.com'),
+        reactions: null,
+        media: null,
+        isMe: false,
+        isFirst: true,
+        isMobile: false,
+        isPinned: false,
+        canPin: false,
+        canRedact: false,
+        hasThread: false,
+        threadReplyCount: 0,
+        threadUnreadCount: 0,
+        inThread: false,
+        highlightedEventId: null,
+        avatarResolver: null,
+        mediaController: null,
+        mentionResolver: null,
+        onToggleReaction: null,
+      )));
+
+      TapGestureRecognizer? firstRecognizer;
+      firstRecognizer = _extractRecognizers(tester).firstOrNull;
+      expect(firstRecognizer, isNotNull);
+
+      // Rebuild with identical inputs — spans should be cached, so the
+      // same recognizer instance is reused.
+      await tester.pumpWidget(_wrap(IrcMessageTile(
+        message: _msg(body: 'See https://example.com'),
+        reactions: null,
+        media: null,
+        isMe: false,
+        isFirst: true,
+        isMobile: false,
+        isPinned: false,
+        canPin: false,
+        canRedact: false,
+        hasThread: false,
+        threadReplyCount: 0,
+        threadUnreadCount: 0,
+        inThread: false,
+        highlightedEventId: null,
+        avatarResolver: null,
+        mediaController: null,
+        mentionResolver: null,
+        onToggleReaction: null,
+      )));
+      await tester.pump();
+
+      final recognizersAfterRebuild = _extractRecognizers(tester);
+      expect(identical(firstRecognizer, recognizersAfterRebuild.firstOrNull),
+          isTrue);
+    });
+
+    testWidgets('rebuilds spans when isPinned changes', (tester) async {
+      await tester.pumpWidget(_wrap(IrcMessageTile(
+        message: _msg(body: 'See https://example.com'),
+        reactions: null,
+        media: null,
+        isMe: false,
+        isFirst: true,
+        isMobile: false,
+        isPinned: false,
+        canPin: false,
+        canRedact: false,
+        hasThread: false,
+        threadReplyCount: 0,
+        threadUnreadCount: 0,
+        inThread: false,
+        highlightedEventId: null,
+        avatarResolver: null,
+        mediaController: null,
+        mentionResolver: null,
+        onToggleReaction: null,
+      )));
+
+      final firstRecognizer = _extractRecognizers(tester).firstOrNull;
+      expect(firstRecognizer, isNotNull);
+
+      // Rebuild with isPinned changed — spans should be rebuilt.
+      await tester.pumpWidget(_wrap(IrcMessageTile(
+        message: _msg(body: 'See https://example.com'),
+        reactions: null,
+        media: null,
+        isMe: false,
+        isFirst: true,
+        isMobile: false,
+        isPinned: true,
+        canPin: false,
+        canRedact: false,
+        hasThread: false,
+        threadReplyCount: 0,
+        threadUnreadCount: 0,
+        inThread: false,
+        highlightedEventId: null,
+        avatarResolver: null,
+        mediaController: null,
+        mentionResolver: null,
+        onToggleReaction: null,
+      )));
+      await tester.pump();
+
+      final recognizersAfterRebuild = _extractRecognizers(tester);
+      // A new recognizer was created (not the same instance).
+      expect(identical(firstRecognizer, recognizersAfterRebuild.firstOrNull),
+          isFalse);
+    });
   });
+}
+
+List<TapGestureRecognizer> _extractRecognizers(WidgetTester tester) {
+  final result = <TapGestureRecognizer>[];
+  void visitSpan(InlineSpan? span) {
+    if (span == null) return;
+    if (span is TextSpan) {
+      final recognizer = span.recognizer;
+      if (recognizer is TapGestureRecognizer) {
+        result.add(recognizer);
+      }
+      for (final child in span.children ?? const <InlineSpan>[]) {
+        visitSpan(child);
+      }
+    }
+  }
+
+  final textWidget = tester.widget<Text>(find.byType(Text).first);
+  visitSpan(textWidget.textSpan);
+  return result;
 }
