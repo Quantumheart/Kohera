@@ -27,6 +27,7 @@ abstract interface class SearchIndex {
   Future<List<IndexedMessage>> search({
     required String query,
     String? roomId,
+    Set<String>? roomIds,
     String? senderId,
     int? startTs,
     int? endTs,
@@ -36,6 +37,7 @@ abstract interface class SearchIndex {
 
   Future<int> count({
     String? roomId,
+    Set<String>? roomIds,
     String? query,
     String? senderId,
     int? startTs,
@@ -320,13 +322,11 @@ class MessageSearchDatabase implements SearchIndex {
     });
   }
 
-  /// Searches the FTS5 index for [query], optionally narrowed by [roomId],
-  /// [senderId], and/or a date range ([startTs]/[endTs] in milliseconds
-  /// since epoch, inclusive).
   @override
   Future<List<IndexedMessage>> search({
     required String query,
     String? roomId,
+    Set<String>? roomIds,
     String? senderId,
     int? startTs,
     int? endTs,
@@ -342,6 +342,11 @@ class MessageSearchDatabase implements SearchIndex {
     if (roomId != null) {
       whereParts.add('room_id = ?');
       whereArgs.add(roomId);
+    }
+    if (roomIds != null && roomIds.isNotEmpty) {
+      final placeholders = List.filled(roomIds.length, '?').join(', ');
+      whereParts.add('room_id IN ($placeholders)');
+      whereArgs.addAll(roomIds);
     }
     if (senderId != null) {
       whereParts.add('sender_id = ?');
@@ -363,12 +368,10 @@ class MessageSearchDatabase implements SearchIndex {
     return rows.map(IndexedMessage.fromRow).toList(growable: false);
   }
 
-  /// Counts matches for [query], optionally narrowed by [roomId],
-  /// [senderId], and/or a date range ([startTs]/[endTs] in milliseconds
-  /// since epoch, inclusive).
   @override
   Future<int> count({
     String? roomId,
+    Set<String>? roomIds,
     String? query,
     String? senderId,
     int? startTs,
@@ -387,6 +390,11 @@ class MessageSearchDatabase implements SearchIndex {
     if (roomId != null) {
       whereParts.add('room_id = ?');
       whereArgs.add(roomId);
+    }
+    if (roomIds != null && roomIds.isNotEmpty) {
+      final placeholders = List.filled(roomIds.length, '?').join(', ');
+      whereParts.add('room_id IN ($placeholders)');
+      whereArgs.addAll(roomIds);
     }
     if (senderId != null) {
       whereParts.add('sender_id = ?');

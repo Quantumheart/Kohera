@@ -111,6 +111,7 @@ class IsolatedSearchIndex implements SearchIndex {
   Future<List<IndexedMessage>> search({
     required String query,
     String? roomId,
+    Set<String>? roomIds,
     String? senderId,
     int? startTs,
     int? endTs,
@@ -120,6 +121,7 @@ class IsolatedSearchIndex implements SearchIndex {
     final rows = await _call(_Op.search, [
       query,
       roomId,
+      roomIds?.toList(growable: false),
       senderId,
       startTs,
       endTs,
@@ -135,6 +137,7 @@ class IsolatedSearchIndex implements SearchIndex {
   @override
   Future<int> count({
     String? roomId,
+    Set<String>? roomIds,
     String? query,
     String? senderId,
     int? startTs,
@@ -142,6 +145,7 @@ class IsolatedSearchIndex implements SearchIndex {
   }) async {
     final result = await _call(_Op.count, [
       roomId,
+      roomIds?.toList(growable: false),
       query,
       senderId,
       startTs,
@@ -319,20 +323,22 @@ Future<Object?> _dispatch(
       final matches = await db.search(
         query: args[0]! as String,
         roomId: args[1] as String?,
-        senderId: args[2] as String?,
-        startTs: args[3] as int?,
-        endTs: args[4] as int?,
-        limit: args[5]! as int,
-        offset: args[6]! as int,
+        roomIds: (args[2] as List<Object?>?)?.cast<String>().toSet(),
+        senderId: args[3] as String?,
+        startTs: args[4] as int?,
+        endTs: args[5] as int?,
+        limit: args[6]! as int,
+        offset: args[7]! as int,
       );
       return matches.map((m) => m.toRow()).toList(growable: false);
     case _Op.count:
       return db.count(
         roomId: args[0] as String?,
-        query: args[1] as String?,
-        senderId: args[2] as String?,
-        startTs: args[3] as int?,
-        endTs: args[4] as int?,
+        roomIds: (args[1] as List<Object?>?)?.cast<String>().toSet(),
+        query: args[2] as String?,
+        senderId: args[3] as String?,
+        startTs: args[4] as int?,
+        endTs: args[5] as int?,
       );
     case _Op.countAll:
       return db.countAll();
