@@ -11,13 +11,59 @@ import 'package:matrix/matrix.dart';
 class SpaceTreeRepository extends ChangeNotifier {
   SpaceTreeRepository({required MatrixClientService clientService}) : _clientService = clientService {
     _syncSub = _clientService.client.onSync.stream.listen((_) {
+      _hasSyncedOnce = true;
       invalidateSpaceTree();
       _debounceNotify();
     });
+    _watchRoomsHydration();
   }
 
   final MatrixClientService _clientService;
   StreamSubscription<SyncUpdate>? _syncSub;
+  StreamSubscription<LoginState>? _loginStateSub;
+
+  bool _hasSyncedOnce = false;
+  bool _roomsHydrated = false;
+
+  /// True after the first sync response has been processed. Drives the room
+  /// list's initial-loading state: an empty list before this point means
+  /// "still loading", not "no rooms".
+  bool get hasSyncedOnce => _hasSyncedOnce;
+
+  /// True after the SDK has loaded the cached room list from SQLite into
+  /// memory. Cached rooms become visible without waiting for a network sync.
+  bool get roomsHydrated => _roomsHydrated;
+
+  /// Attaches to [Client.roomsLoading], which is only assigned inside
+  /// `Client.init()`. This repository is constructed before that call, so we
+  /// wait for the login-state transition first. CachedStreamController
+  /// replays the current value, so a session restored before construction
+  /// attaches immediately.
+  void _watchRoomsHydration() {
+    final client = _clientService.client;
+    void attach() {
+      final loading = client.roomsLoading;
+      if (loading == null) return;
+      unawaited(loading.then((_) {
+        if (_disposed) return;
+        if (_roomsHydrated) return;
+        _roomsHydrated = true;
+        _debounceNotify();
+      }));
+    }
+
+    if (client.onLoginStateChanged.value == LoginState.loggedIn) {
+      attach();
+      return;
+    }
+    _loginStateSub = client.onLoginStateChanged.stream.listen((state) {
+      if (state == LoginState.loggedIn) {
+        attach();
+        unawaited(_loginStateSub?.cancel());
+        _loginStateSub = null;
+      }
+    });
+  }
 
   /// Debounce timer for sync-driven notifications. Matrix syncs often arrive
   /// in rapid bursts; batching prevents redundant rebuilds across the 5 views
@@ -75,6 +121,7 @@ class SpaceTreeRepository extends ChangeNotifier {
   bool _spaceTreeDirty = true;
 
   final Map<String, KoheraRoomSummary> _summaryCache = {};
+  bool _disposed = false;
 
   /// Converts a [Room] to a [KoheraRoomSummary], caching the result for the
   /// current sync cycle. The cache is invalidated on every sync.
@@ -317,9 +364,12 @@ class SpaceTreeRepository extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _notifyTimer?.cancel();
     unawaited(_syncSub?.cancel());
     _syncSub = null;
+    unawaited(_loginStateSub?.cancel());
+    _loginStateSub = null;
     super.dispose();
   }
 

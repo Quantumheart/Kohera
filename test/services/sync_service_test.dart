@@ -22,6 +22,8 @@ void main() {
     mockClient = MockClient();
     syncController = CachedStreamController<SyncUpdate>();
     when(mockClient.onSync).thenReturn(syncController);
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     changeCount = 0;
     postSyncBackupCount = 0;
     postSyncBackupThrows = false;

@@ -57,6 +57,8 @@ void main() {
     mockMatrixService = MockMatrixService();
     when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.homeserver).thenReturn(Uri.parse('https://example.org'));
     selectionService = SpaceTreeRepository(clientService: MatrixClientService(mockClient));

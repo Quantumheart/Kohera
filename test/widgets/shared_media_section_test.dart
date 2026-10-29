@@ -100,6 +100,8 @@ void main() {
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockMatrix.spaceTree).thenReturn(mockSelection);
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(mockClient.getRoomById('!room:example.com')).thenReturn(mockRoom);
     roomRepo = RoomRepository(clientService: mockMatrix.matrixClientService);
   });

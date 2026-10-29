@@ -50,6 +50,8 @@ void main() {
     when(mockClient.userID).thenReturn(ownUserId);
     when(mockClient.getRoomById(roomId)).thenReturn(mockRoom);
     when(mockClient.onSync).thenReturn(cachedController);
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(mockRoom.client).thenReturn(mockClient);
     when(mockRoom.id).thenReturn(roomId);
     when(mockRoom.pushRuleState).thenReturn(PushRuleState.notify);

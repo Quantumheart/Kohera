@@ -16,6 +16,7 @@ class RoomListSnapshot {
     this.spaceWithNoJoinedRooms,
     this.appBarTitle = 'Chats',
     this.isEmpty = true,
+    this.isInitialLoading = false,
     this.hasMessageResults = false,
     this.isMessageSearchActive = false,
     this.messageSearch,
@@ -38,6 +39,10 @@ class RoomListSnapshot {
 
   /// True when the list has no room items and no message results.
   final bool isEmpty;
+
+  /// True when [isEmpty] but the first sync or cache hydration has not
+  /// finished yet — the view should show a loader, not an empty state.
+  final bool isInitialLoading;
 
   /// True when message search has results.
   final bool hasMessageResults;

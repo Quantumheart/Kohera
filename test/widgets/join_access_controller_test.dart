@@ -40,6 +40,8 @@ void main() {
     when(matrix.matrixClientService).thenReturn(MatrixClientService(client));
     when(client.rooms).thenReturn([]);
     when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(client.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     selection = SpaceTreeRepository(clientService: MatrixClientService(client));
     when(matrix.spaceTree).thenReturn(selection);
 

@@ -17,6 +17,8 @@ void main() {
     changeCount = 0;
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     controller =
         SelectionController(clientService: MatrixClientService(mockClient));
     controller.addListener(() => changeCount++);

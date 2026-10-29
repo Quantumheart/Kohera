@@ -12,7 +12,7 @@ import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/home/widgets/mobile_space_drawer.dart';
-import 'package:matrix/matrix.dart' show Client, SyncUpdate;
+import 'package:matrix/matrix.dart' show Client, LoginState, SyncUpdate;
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -51,6 +51,8 @@ void main() {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.onSync)
         .thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     fakeMatrix = _FakeMatrixService(mockClient);
     selection = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
     selectionController = SelectionController(clientService: MatrixClientService(mockClient));

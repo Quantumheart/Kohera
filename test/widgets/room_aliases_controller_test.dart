@@ -37,6 +37,8 @@ void main() {
     when(mockClient.userID).thenReturn('@me:example.com');
     when(mockMatrixService.userID).thenReturn('@me:example.com');
     when(mockClient.onSync).thenReturn(syncController);
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(mockClient.getLocalAliases('!room:example.com'))
         .thenAnswer((_) async => const ['#room:example.com']);
     when(mockRoom.id).thenReturn('!room:example.com');

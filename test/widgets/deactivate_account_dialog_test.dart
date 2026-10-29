@@ -44,6 +44,8 @@ void main() {
 
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(mockMatrix.uia).thenReturn(mockUia);
     when(mockMatrix.passwordCache).thenReturn(mockPasswordCache);
     when(mockMatrix.keyBackupRepository).thenReturn(mockKeyBackup);

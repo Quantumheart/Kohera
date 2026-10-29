@@ -9829,6 +9829,24 @@ class MockMatrixService extends _i1.Mock implements _i25.MatrixService {
 class MockSpaceTreeRepository extends _i1.Mock
     implements _i13.SpaceTreeRepository {
   @override
+  bool get hasSyncedOnce =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasSyncedOnce),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get roomsHydrated =>
+      (super.noSuchMethod(
+            Invocation.getter(#roomsHydrated),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   List<_i29.SpaceNode> get spaceTree =>
       (super.noSuchMethod(
             Invocation.getter(#spaceTree),

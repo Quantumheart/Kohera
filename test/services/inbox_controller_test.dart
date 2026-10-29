@@ -73,6 +73,8 @@ void main() {
     when(defaultRoom.membership).thenReturn(Membership.join);
     when(mockClient.getRoomById(any)).thenReturn(defaultRoom);
     when(mockClient.onSync).thenReturn(syncCtl);
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(defaultRoom.client).thenReturn(mockClient);
     when(defaultRoom.getLocalizedDisplayname()).thenReturn('Test Room');
     when(defaultRoom.unsafeGetUserFromMemoryOrFallback(any)).thenReturn(

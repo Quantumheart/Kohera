@@ -217,6 +217,8 @@ class _RoomListViewState extends State<_RoomListView>
                           controller: context.read<SpaceRoomsController>(),
                           matrixService: matrix,
                         )
+                      : snapshot.isInitialLoading
+                      ? const _InitialLoadingState()
                       : snapshot.isEmpty && items.isEmpty
                       ? Center(
                           child: Text(
@@ -722,6 +724,36 @@ class _UnjoinedForbiddenTile extends StatelessWidget {
               'This space hides its room list',
               style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Initial loading state (first sync / cache hydration in flight) ────────
+
+class _InitialLoadingState extends StatelessWidget {
+  const _InitialLoadingState();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Loading rooms…',
+            style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
           ),
         ],
       ),

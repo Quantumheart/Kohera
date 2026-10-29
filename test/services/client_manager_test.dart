@@ -39,6 +39,8 @@ class _TestServiceFactory extends MatrixServiceFactory {
     when(mockClient.userID).thenReturn('@$clientName:example.com');
     when(mockClient.dispose()).thenAnswer((_) async {});
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(
       mockClient.onPresenceChanged,
     ).thenReturn(CachedStreamController<CachedPresence>());
@@ -182,6 +184,9 @@ void main() {
       when(
         newMockClient.onSync,
       ).thenReturn(CachedStreamController<SyncUpdate>());
+      when(
+        newMockClient.onLoginStateChanged,
+      ).thenReturn(CachedStreamController<LoginState>());
       when(
         newMockClient.onPresenceChanged,
       ).thenReturn(CachedStreamController<CachedPresence>());
@@ -367,6 +372,8 @@ class _MixedLoginFactory extends MatrixServiceFactory {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.userID).thenReturn('@$clientName:example.com');
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(
       mockClient.onPresenceChanged,
     ).thenReturn(CachedStreamController<CachedPresence>());
@@ -407,6 +414,8 @@ class _CountingFactory extends MatrixServiceFactory {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.dispose()).thenAnswer((_) async {});
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(
       mockClient.onPresenceChanged,
     ).thenReturn(CachedStreamController<CachedPresence>());

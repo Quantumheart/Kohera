@@ -32,6 +32,8 @@ void main() {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.onSync)
         .thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     service = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
     service.addListener(() => changeCount++);
   });

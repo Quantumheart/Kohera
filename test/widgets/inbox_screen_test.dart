@@ -14,7 +14,7 @@ import 'package:kohera/features/notifications/enum/inbox_filter.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:matrix/matrix.dart' as matrix_sdk;
-import 'package:matrix/matrix.dart' show Client, GetNotificationsResponse, MatrixEvent, Membership, Room, SyncUpdate, User;
+import 'package:matrix/matrix.dart' show Client, GetNotificationsResponse, LoginState, MatrixEvent, Membership, Room, SyncUpdate, User;
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -99,6 +99,8 @@ void main() {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.onSync)
         .thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     final joinedRoom = MockRoom();
     when(joinedRoom.membership).thenReturn(Membership.join);
     when(joinedRoom.client).thenReturn(mockClient);

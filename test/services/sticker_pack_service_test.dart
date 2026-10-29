@@ -94,6 +94,8 @@ void main() {
     mockClient = MockClient();
     syncCtl = CachedStreamController<SyncUpdate>();
     when(mockClient.onSync).thenReturn(syncCtl);
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(mockClient.accountData).thenReturn({});
     when(mockClient.rooms).thenReturn([]);
     service = StickerPackService(matrixClientService: MatrixClientService(mockClient));
