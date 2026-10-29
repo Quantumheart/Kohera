@@ -60,6 +60,8 @@ void main() {
     prefsService = PreferencesService();
 
     when(mockClient.onSync).thenReturn(CachedStreamController());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(mockClient.rooms).thenReturn([]);
     selectionService = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
 

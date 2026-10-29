@@ -281,6 +281,36 @@ void main() {
     });
   });
 
+  group('RoomListController initial loading', () {
+    test('isInitialLoading true when empty, not synced, not hydrated', () {
+      final controller = makeController();
+      expect(controller.snapshot.isInitialLoading, true);
+    });
+
+    test('isInitialLoading false once rooms are hydrated from cache', () {
+      when(selection.roomsHydrated).thenReturn(true);
+      final controller = makeController();
+      expect(controller.snapshot.isInitialLoading, false);
+    });
+
+    test('isInitialLoading false once first sync completes', () {
+      when(selection.hasSyncedOnce).thenReturn(true);
+      final controller = makeController();
+      expect(controller.snapshot.isInitialLoading, false);
+    });
+
+    test('isInitialLoading false when rooms exist before any sync', () {
+      final room = MockRoom();
+      when(room.id).thenReturn('!r:example.com');
+      when(room.isFavourite).thenReturn(false);
+      when(room.isDirectChat).thenReturn(false);
+      when(selection.orphanRooms).thenReturn([room]);
+      when(selection.summaryFor(room)).thenReturn(summary(roomId: room.id));
+      final controller = makeController();
+      expect(controller.snapshot.isInitialLoading, false);
+    });
+  });
+
   group('RoomListController app bar', () {
     test('appBarTitle returns Chats when no space selected', () {
       when(selectionState.selectedSpaceIds).thenReturn({});

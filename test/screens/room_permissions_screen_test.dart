@@ -580,6 +580,8 @@ void main() {
 
       when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
       when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+      when(mockClient.onLoginStateChanged)
+          .thenReturn(CachedStreamController<LoginState>());
       when(mockClient.userID).thenReturn('@me:e.com');
       when(mockClient.getRoomById(_roomId)).thenReturn(mockRoom);
       when(mockRoom.id).thenReturn(_roomId);

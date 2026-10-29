@@ -55,6 +55,7 @@ void main() {
     when(selection.spaces).thenReturn([]);
     when(selection.invitedRooms).thenReturn([]);
     when(selection.orphanRooms).thenReturn([]);
+    when(selection.hasSyncedOnce).thenReturn(true);
     when(prefs.collapsedSpaceSections).thenReturn({});
     when(client.getRoomById(any)).thenReturn(null);
     when(client.onSync).thenReturn(CachedStreamController<SyncUpdate>());

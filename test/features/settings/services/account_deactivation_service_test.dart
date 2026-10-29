@@ -24,6 +24,8 @@ void main() {
     mockMatrix = MockMatrixService();
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
 
     // Run the UIA callback inline so deactivateAccount is actually invoked.
     when(mockClient.uiaRequestBackground<IdServerUnbindResult>(any))

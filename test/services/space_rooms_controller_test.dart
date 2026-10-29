@@ -17,6 +17,8 @@ void main() {
   setUp(() {
     mockClient = MockClient();
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(mockClient.rooms).thenReturn([]);
 
     dataSource = FakeSpaceDiscoveryDataSource(delay: Duration.zero);

@@ -41,6 +41,8 @@ void main() {
     mockAccess = MockSpaceAccessService();
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     selection = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
 
     when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));

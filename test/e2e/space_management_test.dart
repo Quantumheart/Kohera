@@ -112,6 +112,8 @@ void main() {
     when(mockClient.userID).thenReturn(_myUserId);
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.onSync).thenReturn(syncController);
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(mockClient.onPresenceChanged)
         .thenReturn(CachedStreamController<CachedPresence>());
     when(mockClient.encryption).thenReturn(null);

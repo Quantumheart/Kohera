@@ -56,6 +56,8 @@ void main() {
     when(mockClient.userID).thenReturn('@me:example.com');
     when(mockClient.updateUserDeviceKeys()).thenAnswer((_) async {});
     when(mockClient.onSync).thenReturn(syncController);
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(mockClient.userDeviceKeys).thenReturn({});
     when(mockRoom.id).thenReturn('!room:example.com');
     when(mockRoom.getLocalizedDisplayname()).thenReturn('Test Room');

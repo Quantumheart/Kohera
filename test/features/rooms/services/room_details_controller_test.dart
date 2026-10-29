@@ -55,6 +55,8 @@ void main() {
     when(mockMatrix.avatarResolver).thenReturn(mockAvatarResolver);
     when(mockClient.getRoomById(roomId)).thenReturn(mockRoom);
     when(mockClient.onSync).thenReturn(syncCtl);
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(mockClient.userID).thenReturn('@me:example.com');
     when(mockRoom.id).thenReturn(roomId);
     when(mockRoom.client).thenReturn(mockClient);

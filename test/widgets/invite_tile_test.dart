@@ -54,6 +54,8 @@ void main() {
     when(mockMatrix.avatarResolver).thenReturn(const _NullAvatarResolver());
     when(mockClient.userID).thenReturn('@me:example.com');
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
 
     when(mockInvitedRoom.id).thenReturn('!invited:example.com');
     when(mockInvitedRoom.getLocalizedDisplayname()).thenReturn('Test Invite');

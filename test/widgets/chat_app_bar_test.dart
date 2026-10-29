@@ -67,6 +67,8 @@ void main() {
 
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(mockClient.onPresenceChanged).thenReturn(presenceController);
     userRepo = UserRepository(
       clientService: MatrixClientService(mockClient),

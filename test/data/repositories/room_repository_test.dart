@@ -24,6 +24,8 @@ void main() {
     mockStorage = MockFlutterSecureStorage();
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(mockClient.onPresenceChanged)
         .thenReturn(CachedStreamController<CachedPresence>());
     when(mockClient.database).thenReturn(_FakeDatabase());

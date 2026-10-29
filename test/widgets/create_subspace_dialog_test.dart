@@ -201,6 +201,8 @@ void main() {
       mockAccess = MockSpaceAccessService();
       when(mockClient.rooms).thenReturn([]);
       when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+      when(mockClient.onLoginStateChanged)
+          .thenReturn(CachedStreamController<LoginState>());
       selectionService = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
       when(mockMatrixService.matrixClientService).thenReturn(MatrixClientService(mockClient));
       when(mockMatrixService.spaceTree).thenReturn(selectionService);
@@ -311,6 +313,8 @@ void main() {
       mockAccess = MockSpaceAccessService();
       when(mockClient.rooms).thenReturn([]);
       when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+      when(mockClient.onLoginStateChanged)
+          .thenReturn(CachedStreamController<LoginState>());
       final clientService = MatrixClientService(mockClient);
       spaceRepo = SpaceRepository(
         clientService: clientService,

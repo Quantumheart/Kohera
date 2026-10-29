@@ -36,6 +36,8 @@ void main() {
     uiaService = UiaInteractionController(matrixClientService: MatrixClientService(mockClient), passwordCache: PasswordCache());
     when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onLoginStateChanged)
+        .thenReturn(CachedStreamController<LoginState>());
     when(mockClient.deviceID).thenReturn('THISDEVICE');
     when(mockClient.userID).thenReturn('@alice:example.com');
     when(mockMatrix.uia).thenReturn(uiaService);

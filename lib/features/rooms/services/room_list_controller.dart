@@ -129,6 +129,17 @@ class RoomListController extends ChangeNotifier {
       (i) => i is RoomItem || i is InviteItem || i is HeaderItem,
     );
 
+    final isEmpty = !hasRoomItems &&
+        _messageSearch.results.isEmpty &&
+        !_messageSearch.isLoading;
+
+    // The list is "still loading" when it is empty and neither a first sync
+    // nor SQLite hydration has produced data yet. Cached rooms render as soon
+    // as hydration completes; a genuinely room-less account reaches the empty
+    // state only after the first sync confirms it.
+    final isInitialLoading =
+        isEmpty && !_selection.hasSyncedOnce && !_selection.roomsHydrated;
+
     final manageableSpaceIds = {
       for (final s in _selection.spaces)
         if (s.canChangeStateEvent('m.space.child')) s.id,
@@ -145,9 +156,8 @@ class RoomListController extends ChangeNotifier {
       selectedSpaceCanManage: selectedSpaceCanManage,
       spaceWithNoJoinedRooms: _computeSpaceWithNoJoinedRooms(),
       appBarTitle: _computeAppBarTitle(),
-      isEmpty: !hasRoomItems &&
-          _messageSearch.results.isEmpty &&
-          !_messageSearch.isLoading,
+      isEmpty: isEmpty,
+      isInitialLoading: isInitialLoading,
       hasMessageResults: _messageSearch.results.isNotEmpty,
       isMessageSearchActive: _messageSearch.isLoading,
       messageSearch: _messageSearch,

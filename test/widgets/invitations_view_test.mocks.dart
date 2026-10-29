@@ -555,6 +555,24 @@ class _FakeUser_84 extends _i1.SmartFake implements _i15.User {
 class MockSpaceTreeRepository extends _i1.Mock
     implements _i9.SpaceTreeRepository {
   @override
+  bool get hasSyncedOnce =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasSyncedOnce),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get roomsHydrated =>
+      (super.noSuchMethod(
+            Invocation.getter(#roomsHydrated),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   List<_i20.SpaceNode> get spaceTree =>
       (super.noSuchMethod(
             Invocation.getter(#spaceTree),
