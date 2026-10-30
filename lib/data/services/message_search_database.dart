@@ -33,6 +33,7 @@ abstract interface class SearchIndex {
     int? endTs,
     int limit,
     int offset,
+    bool onlyIndexedRooms = false,
   });
 
   Future<int> count({
@@ -42,6 +43,7 @@ abstract interface class SearchIndex {
     String? senderId,
     int? startTs,
     int? endTs,
+    bool onlyIndexedRooms = false,
   });
 
   Future<int> countAll();
@@ -138,6 +140,56 @@ class MessageSearchDatabase implements SearchIndex {
 
   @override
   bool get isAvailable => _isAvailable;
+
+  /// SQLite limits the number of bound parameters per statement. Older
+  /// builds (common on Android) cap at 999, so a scoped search across a
+  /// space with ~999+ rooms would fail with "too many SQL variables".
+  /// Scopes larger than this go through a temp table (see [_scopeClause]).
+  static const _maxInParams = 900;
+
+  /// Temp table used to filter large scopes without hitting the parameter
+  /// limit. Populated per search and cleared on next use.
+  static const _scopeTable = '_kohera_search_scope';
+
+  /// Builds the `room_id` scope filter for a search/count, returning the
+  /// SQL fragment and bound args. Scopes at or under [_maxInParams] use an
+  /// inline `IN (?, ...)` clause; larger scopes are spilled into a temp
+  /// table (inserted in [_maxInParams]-sized batches) and filtered via a
+  /// subquery, sidestepping the parameter limit entirely.
+  Future<({String sql, List<Object?> args})> _scopeClause(
+    Database db,
+    Set<String>? roomIds,
+  ) async {
+    if (roomIds == null || roomIds.isEmpty) {
+      return (sql: '', args: const <Object?>[]);
+    }
+    if (roomIds.length <= _maxInParams) {
+      final placeholders = List.filled(roomIds.length, '?').join(', ');
+      return (
+        sql: 'room_id IN ($placeholders)',
+        args: roomIds.toList(growable: false),
+      );
+    }
+    await db.execute(
+      'CREATE TEMP TABLE IF NOT EXISTS $_scopeTable '
+      '(room_id TEXT PRIMARY KEY)',
+    );
+    await db.delete(_scopeTable);
+    final ids = roomIds.toList(growable: false);
+    for (var i = 0; i < ids.length; i += _maxInParams) {
+      final end = (i + _maxInParams).clamp(0, ids.length);
+      final batch = ids.sublist(i, end);
+      final values = List.filled(batch.length, '(?)').join(', ');
+      await db.execute(
+        'INSERT INTO $_scopeTable (room_id) VALUES $values',
+        batch,
+      );
+    }
+    return (
+      sql: 'room_id IN (SELECT room_id FROM $_scopeTable)',
+      args: const <Object?>[],
+    );
+  }
 
   Future<Database> _open() async {
     final override = _override;
@@ -332,21 +384,31 @@ class MessageSearchDatabase implements SearchIndex {
     int? endTs,
     int limit = 50,
     int offset = 0,
+    bool onlyIndexedRooms = false,
   }) async {
     if (!_isAvailable) return const [];
+    if (roomIds != null && roomIds.isEmpty) return const [];
     final sanitized = _sanitizeFts5Query(query);
     if (sanitized == null) return const [];
     final db = await _open();
     final whereParts = <String>['message_search MATCH ?'];
     final whereArgs = <Object?>[sanitized];
+    // The index only answers for rooms whose backfill completed; rooms
+    // still being backfilled are covered by the timeline-scan fallback so
+    // their partly-indexed rows never mix with the "fully indexed" set.
+    // Opt-in so single-room (in-room) search keeps partial rows while a
+    // priority backfill finishes, and raw index tests are unaffected.
+    if (onlyIndexedRooms) {
+      whereParts.add('room_id IN (SELECT room_id FROM indexed_rooms)');
+    }
     if (roomId != null) {
       whereParts.add('room_id = ?');
       whereArgs.add(roomId);
     }
-    if (roomIds != null && roomIds.isNotEmpty) {
-      final placeholders = List.filled(roomIds.length, '?').join(', ');
-      whereParts.add('room_id IN ($placeholders)');
-      whereArgs.addAll(roomIds);
+    final scope = await _scopeClause(db, roomIds);
+    if (scope.sql.isNotEmpty) {
+      whereParts.add(scope.sql);
+      whereArgs.addAll(scope.args);
     }
     if (senderId != null) {
       whereParts.add('sender_id = ?');
@@ -361,7 +423,7 @@ class MessageSearchDatabase implements SearchIndex {
       'message_search',
       where: whereParts.join(' AND '),
       whereArgs: whereArgs,
-      orderBy: 'rank ASC',
+      orderBy: 'origin_server_ts DESC',
       limit: limit,
       offset: offset,
     );
@@ -376,11 +438,16 @@ class MessageSearchDatabase implements SearchIndex {
     String? senderId,
     int? startTs,
     int? endTs,
+    bool onlyIndexedRooms = false,
   }) async {
     if (!_isAvailable) return 0;
+    if (roomIds != null && roomIds.isEmpty) return 0;
     final db = await _open();
     final whereParts = <String>[];
     final whereArgs = <Object?>[];
+    if (onlyIndexedRooms) {
+      whereParts.add('room_id IN (SELECT room_id FROM indexed_rooms)');
+    }
     if (query != null) {
       final sanitized = _sanitizeFts5Query(query);
       if (sanitized == null) return 0;
@@ -391,10 +458,10 @@ class MessageSearchDatabase implements SearchIndex {
       whereParts.add('room_id = ?');
       whereArgs.add(roomId);
     }
-    if (roomIds != null && roomIds.isNotEmpty) {
-      final placeholders = List.filled(roomIds.length, '?').join(', ');
-      whereParts.add('room_id IN ($placeholders)');
-      whereArgs.addAll(roomIds);
+    final scope = await _scopeClause(db, roomIds);
+    if (scope.sql.isNotEmpty) {
+      whereParts.add(scope.sql);
+      whereArgs.addAll(scope.args);
     }
     if (senderId != null) {
       whereParts.add('sender_id = ?');

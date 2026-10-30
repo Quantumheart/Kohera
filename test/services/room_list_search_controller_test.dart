@@ -392,7 +392,6 @@ void main() {
               _makeResult(eventId: r'$fallback1', body: 'found it'),
             ],
             count: 1,
-            indexingRoomIds: {'!encrypted:example.com'},
           ));
 
       controller.onQueryChanged('fallback query');
@@ -531,6 +530,147 @@ void main() {
       await controller.performSearch(loadMore: true);
 
       expect(controller.totalCount, initialCount);
+    });
+  });
+
+  group('count persistence across loadMore (issue 3)', () {
+    test('totalCount keeps index count after index exhausts', () async {
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        nextBatch: anyNamed('nextBatch'),
+      )).thenAnswer((_) async => ServerSearchPage(
+            results: [_makeResult(eventId: r'$s1', body: 'server')],
+            nextBatch: 'server-batch2',
+            count: 50,
+          ));
+      when(mockRepo.searchLocal(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenAnswer((_) async => LocalSearchPage(
+            results: [_makeResult(eventId: r'$i1', body: 'index')],
+            count: 5,
+          ));
+      _stubUnindexed(mockRepo);
+
+      controller.onQueryChanged('persist test');
+      await controller.performSearch();
+      expect(controller.totalCount, 55);
+
+      await controller.performSearch(loadMore: true);
+      expect(controller.totalCount, 55);
+    });
+
+    test('totalCount keeps server count after server exhausts', () async {
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        nextBatch: anyNamed('nextBatch'),
+      )).thenAnswer((_) async => ServerSearchPage(
+            results: [_makeResult(eventId: r'$s1', body: 'server')],
+            count: 50,
+          ));
+      when(mockRepo.searchLocal(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenAnswer((_) async => LocalSearchPage(
+            results: [_makeResult(eventId: r'$i1', body: 'index')],
+            nextBatch: '20',
+            count: 40,
+          ));
+      _stubUnindexed(mockRepo);
+
+      controller.onQueryChanged('server persist');
+      await controller.performSearch();
+      expect(controller.totalCount, 90);
+
+      await controller.performSearch(loadMore: true);
+      expect(controller.totalCount, 90);
+    });
+  });
+
+  group('partial failure on loadMore (issue 4)', () {
+    test('server failure keeps pagination and shows partialError', () async {
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        nextBatch: anyNamed('nextBatch'),
+      )).thenAnswer((_) async => ServerSearchPage(
+            results: [_makeResult(eventId: r'$s1', body: 'server one')],
+            nextBatch: 'server-batch2',
+            count: 5,
+          ));
+      when(mockRepo.searchLocal(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenAnswer((_) async => LocalSearchPage(
+            results: [_makeResult(eventId: r'$i1', body: 'index one')],
+            nextBatch: '20',
+            count: 3,
+          ));
+      _stubUnindexed(mockRepo);
+
+      controller.onQueryChanged('blip query');
+      await controller.performSearch();
+      expect(controller.error, isNull);
+      expect(controller.partialError, isNull);
+      expect(controller.totalCount, 8);
+
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        nextBatch: anyNamed('nextBatch'),
+      )).thenThrow(Exception('network blip'));
+
+      await controller.performSearch(loadMore: true);
+
+      expect(controller.error, isNull);
+      expect(controller.partialError, isNotNull);
+      expect(controller.results, isNotEmpty);
+      // Server token preserved so a retry can continue paging.
+      expect(controller.nextBatch, isNotNull);
+      expect(controller.totalCount, 8);
+    });
+
+    test('only-index failure does not blame the server', () async {
+      when(mockRepo.searchServer(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        nextBatch: anyNamed('nextBatch'),
+      )).thenThrow(Exception('index down'));
+      when(mockRepo.searchLocal(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        offset: anyNamed('offset'),
+      )).thenThrow(Exception('index isolate crashed'));
+      when(mockRepo.searchUnindexed(
+        query: anyNamed('query'),
+        limit: anyNamed('limit'),
+        scopeRoomIds: anyNamed('scopeRoomIds'),
+        shouldAbort: anyNamed('shouldAbort'),
+      )).thenAnswer((_) async => UnindexedSearchResult(
+            results: [_makeResult(eventId: r'$f1', body: 'fallback only')],
+            count: 1,
+          ));
+
+      controller.onQueryChanged('index only fails');
+      await controller.performSearch();
+
+      expect(controller.error, isNull);
+      expect(controller.partialError, isNotNull);
+      expect(controller.results, hasLength(1));
     });
   });
 }

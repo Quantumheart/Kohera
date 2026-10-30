@@ -417,4 +417,194 @@ void main() {
       expect(searchDb.isAvailable, isTrue);
     });
   });
+
+  group('empty scope (issue 1)', () {
+    test('search with an empty roomIds set returns no results', () async {
+      await searchDb.upsert(
+        IndexedMessage(
+          eventId: r'$e1',
+          roomId: '!r:s',
+          senderId: '@u:s',
+          body: 'hello',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024),
+        ),
+      );
+      expect(await searchDb.search(query: 'hello', roomIds: {}), isEmpty);
+      expect(await searchDb.count(query: 'hello', roomIds: {}), 0);
+    });
+  });
+
+  group('indexed-room split (issue 6)', () {
+    test('onlyIndexedRooms excludes rooms not in indexed_rooms', () async {
+      await searchDb.upsertBatch([
+        IndexedMessage(
+          eventId: r'$e1',
+          roomId: '!done:s',
+          senderId: '@u:s',
+          body: 'hello',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024),
+        ),
+        IndexedMessage(
+          eventId: r'$e2',
+          roomId: '!partial:s',
+          senderId: '@u:s',
+          body: 'hello',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024, 1, 2),
+        ),
+      ]);
+      // '!partial:s' has rows but is not marked fully indexed (mid-backfill).
+      await searchDb.markRoomIndexed('!done:s', 1);
+
+      final restricted = await searchDb.search(
+        query: 'hello',
+        onlyIndexedRooms: true,
+      );
+      expect(restricted.map((m) => m.eventId), {r'$e1'});
+
+      final unrestricted = await searchDb.search(query: 'hello');
+      expect(unrestricted, hasLength(2));
+    });
+
+    test('onlyIndexedRooms filters count the same way', () async {
+      await searchDb.upsertBatch([
+        IndexedMessage(
+          eventId: r'$e1',
+          roomId: '!done:s',
+          senderId: '@u:s',
+          body: 'hello',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024),
+        ),
+        IndexedMessage(
+          eventId: r'$e2',
+          roomId: '!partial:s',
+          senderId: '@u:s',
+          body: 'hello',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024, 1, 2),
+        ),
+      ]);
+      await searchDb.markRoomIndexed('!done:s', 1);
+
+      expect(await searchDb.count(query: 'hello', onlyIndexedRooms: true), 1);
+      expect(await searchDb.count(query: 'hello'), 2);
+    });
+
+    test('onlyIndexedRooms combines with a roomIds scope', () async {
+      await searchDb.upsertBatch([
+        IndexedMessage(
+          eventId: r'$e1',
+          roomId: '!done:s',
+          senderId: '@u:s',
+          body: 'hello',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024),
+        ),
+        IndexedMessage(
+          eventId: r'$e2',
+          roomId: '!partial:s',
+          senderId: '@u:s',
+          body: 'hello',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024, 1, 2),
+        ),
+      ]);
+      await searchDb.markRoomIndexed('!done:s', 1);
+
+      final results = await searchDb.search(
+        query: 'hello',
+        roomIds: {'!done:s', '!partial:s'},
+        onlyIndexedRooms: true,
+      );
+      expect(results.map((m) => m.eventId), {r'$e1'});
+    });
+  });
+
+  group('ordering (issue 7)', () {
+    test('search returns matches newest first', () async {
+      await searchDb.upsertBatch([
+        IndexedMessage(
+          eventId: r'$old',
+          roomId: '!r:s',
+          senderId: '@u:s',
+          body: 'hello old',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024),
+        ),
+        IndexedMessage(
+          eventId: r'$new',
+          roomId: '!r:s',
+          senderId: '@u:s',
+          body: 'hello new',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2025),
+        ),
+      ]);
+      final results = await searchDb.search(query: 'hello');
+      expect(results.map((m) => m.eventId).toList(), [r'$new', r'$old']);
+    });
+
+    test('limit and offset page through date-descending results', () async {
+      await searchDb.upsertBatch([
+        for (var i = 0; i < 5; i++)
+          IndexedMessage(
+            eventId: '\$e$i',
+            roomId: '!r:s',
+            senderId: '@u:s',
+            body: 'common word',
+            msgtype: 'm.text',
+            originServerTs: DateTime(2024, 1, i + 1),
+          ),
+      ]);
+      final page1 = await searchDb.search(
+        query: 'common',
+        roomId: '!r:s',
+        limit: 2,
+      );
+      final page2 = await searchDb.search(
+        query: 'common',
+        roomId: '!r:s',
+        limit: 2,
+        offset: 2,
+      );
+      expect(page1.map((m) => m.eventId).toList(), [r'$e4', r'$e3']);
+      expect(page2.map((m) => m.eventId).toList(), [r'$e2', r'$e1']);
+    });
+  });
+
+  group('large scope (issue 8)', () {
+    test('a scope over the parameter limit searches via the temp table',
+        () async {
+      final scope = <String>{for (var i = 0; i < 1000; i++) '!r$i:s'};
+      await searchDb.upsertBatch([
+        IndexedMessage(
+          eventId: r'$in',
+          roomId: '!r500:s',
+          senderId: '@u:s',
+          body: 'hello',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024),
+        ),
+        IndexedMessage(
+          eventId: r'$out',
+          roomId: '!other:s',
+          senderId: '@u:s',
+          body: 'hello',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024, 1, 2),
+        ),
+      ]);
+
+      final results = await searchDb.search(query: 'hello', roomIds: scope);
+      expect(results.map((m) => m.eventId), {r'$in'});
+      expect(await searchDb.count(query: 'hello', roomIds: scope), 1);
+
+      // A second large-scope search reuses (and re-clears) the temp table.
+      final second = await searchDb.search(query: 'hello', roomIds: scope);
+      expect(second.map((m) => m.eventId), {r'$in'});
+    });
+  });
 }

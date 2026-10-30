@@ -178,7 +178,9 @@ class _ChatScreenState extends State<ChatScreen>
     // This runs in the background and does not block the UI.
     final room = rooms.rawRoom(widget.roomId);
     if (room != null && room.encrypted) {
-      unawaited(context.read<MessageRepository>().ensureRoomIndexed(room));
+      unawaited(
+        context.read<MessageRepository>().ensureRoomIndexed(room, priority: true),
+      );
     }
     if (kIsWeb) {
       initWebPasteListener();
@@ -949,7 +951,9 @@ class _ChatScreenState extends State<ChatScreen>
     // Ensure the room's encrypted history is indexed for search.
     final room = context.read<RoomRepository>().rawRoom(widget.roomId);
     if (room != null && room.encrypted) {
-      unawaited(context.read<MessageRepository>().ensureRoomIndexed(room));
+      unawaited(
+        context.read<MessageRepository>().ensureRoomIndexed(room, priority: true),
+      );
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _searchFocusNode.requestFocus();

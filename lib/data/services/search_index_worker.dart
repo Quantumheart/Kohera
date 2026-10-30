@@ -117,6 +117,7 @@ class IsolatedSearchIndex implements SearchIndex {
     int? endTs,
     int limit = 50,
     int offset = 0,
+    bool onlyIndexedRooms = false,
   }) async {
     final rows = await _call(_Op.search, [
       query,
@@ -127,6 +128,7 @@ class IsolatedSearchIndex implements SearchIndex {
       endTs,
       limit,
       offset,
+      onlyIndexedRooms,
     ]) as List<Object?>?;
     if (rows == null) return const [];
     return rows
@@ -142,6 +144,7 @@ class IsolatedSearchIndex implements SearchIndex {
     String? senderId,
     int? startTs,
     int? endTs,
+    bool onlyIndexedRooms = false,
   }) async {
     final result = await _call(_Op.count, [
       roomId,
@@ -150,6 +153,7 @@ class IsolatedSearchIndex implements SearchIndex {
       senderId,
       startTs,
       endTs,
+      onlyIndexedRooms,
     ]);
     return (result as int?) ?? 0;
   }
@@ -329,6 +333,7 @@ Future<Object?> _dispatch(
         endTs: args[5] as int?,
         limit: args[6]! as int,
         offset: args[7]! as int,
+        onlyIndexedRooms: args[8] as bool? ?? false,
       );
       return matches.map((m) => m.toRow()).toList(growable: false);
     case _Op.count:
@@ -339,6 +344,7 @@ Future<Object?> _dispatch(
         senderId: args[3] as String?,
         startTs: args[4] as int?,
         endTs: args[5] as int?,
+        onlyIndexedRooms: args[6] as bool? ?? false,
       );
     case _Op.countAll:
       return db.countAll();

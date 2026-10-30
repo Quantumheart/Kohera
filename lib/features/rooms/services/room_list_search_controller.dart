@@ -27,13 +27,22 @@ class RoomListSearchController extends ChangeNotifier {
 
   String? _serverNextBatch;
   String? _indexNextBatch;
+
+  // Kept as explicit flags rather than derived from `_xNextBatch == null`:
+  // a failed source keeps its previous token, so a null token can mean
+  // either "exhausted" or "never succeeded / failed before page 1".
+  // The flag disambiguates so Load more retries a failed source instead
+  // of skipping it as done.
   bool _serverExhausted = false;
   bool _indexExhausted = false;
 
-  String? get nextBatch =>
-      (_serverNextBatch != null || _indexNextBatch != null)
-          ? (_serverNextBatch ?? _indexNextBatch)
-          : null;
+  /// Last known result count per source. Updated only when that source
+  /// actually returned a page, so an exhausted or failed source keeps its
+  /// previous count instead of dropping to zero on Load more.
+  int _serverCount = 0;
+  int _indexCount = 0;
+
+  String? get nextBatch => _serverNextBatch ?? _indexNextBatch;
 
   int? _totalCount;
   int? get totalCount => _totalCount;
@@ -42,6 +51,11 @@ class RoomListSearchController extends ChangeNotifier {
   String get query => _query;
 
   int _fallbackCount = 0;
+
+  /// Non-blocking warning shown when some (but not all) sources failed and
+  /// results are still visible. Distinct from [error], which halts the UI.
+  String? _partialError;
+  String? get partialError => _partialError;
 
   bool _disposed = false;
   Timer? _debounceTimer;
@@ -62,8 +76,11 @@ class RoomListSearchController extends ChangeNotifier {
       _indexNextBatch = null;
       _serverExhausted = false;
       _indexExhausted = false;
+      _serverCount = 0;
+      _indexCount = 0;
       _totalCount = null;
       _fallbackCount = 0;
+      _partialError = null;
       _error = null;
       _isLoading = false;
       _searchGeneration++;
@@ -91,8 +108,11 @@ class RoomListSearchController extends ChangeNotifier {
       _indexNextBatch = null;
       _serverExhausted = false;
       _indexExhausted = false;
+      _serverCount = 0;
+      _indexCount = 0;
       _totalCount = null;
       _fallbackCount = 0;
+      _partialError = null;
     }
     notifyListeners();
 
@@ -105,7 +125,10 @@ class RoomListSearchController extends ChangeNotifier {
       var indexFailed = false;
       var fallbackFailed = false;
 
-      final serverFuture = (_serverExhausted && loadMore)
+      final serverSkipped = _serverExhausted && loadMore;
+      final indexSkipped = _indexExhausted && loadMore;
+
+      final serverFuture = serverSkipped
           ? Future.value(const ServerSearchPage())
           : _guardSource(
               () => searchRepository.searchServer(
@@ -118,7 +141,7 @@ class RoomListSearchController extends ChangeNotifier {
               () => serverFailed = true,
             );
 
-      final indexFuture = (_indexExhausted && loadMore)
+      final indexFuture = indexSkipped
           ? Future.value(const LocalSearchPage())
           : _guardSource(
               () => searchRepository.searchLocal(
@@ -156,30 +179,42 @@ class RoomListSearchController extends ChangeNotifier {
       final indexPage = results[1] as LocalSearchPage;
       final fallback = results[2] as UnindexedSearchResult;
 
-      _serverNextBatch = serverPage.nextBatch;
-      _indexNextBatch = indexPage.nextBatch;
-      _serverExhausted = serverPage.nextBatch == null;
-      _indexExhausted = indexPage.nextBatch == null;
+      // Only advance a source's pagination state when it actually returned
+      // a page. A failed source keeps its previous token, exhausted flag
+      // and count so Load more can retry it instead of ending pagination.
+      if (!serverSkipped && !serverFailed) {
+        _serverNextBatch = serverPage.nextBatch;
+        _serverExhausted = serverPage.nextBatch == null;
+        if (serverPage.count != null) _serverCount = serverPage.count!;
+      }
+      if (!indexSkipped && !indexFailed) {
+        _indexNextBatch = indexPage.nextBatch;
+        _indexExhausted = indexPage.nextBatch == null;
+        if (indexPage.count != null) _indexCount = indexPage.count!;
+      }
 
       if (!loadMore) {
         _fallbackCount = fallback.count;
       }
 
-      final serverCount = serverPage.count ?? 0;
-      _totalCount = serverCount + indexPage.count + _fallbackCount;
+      _totalCount = _serverCount + _indexCount + _fallbackCount;
 
       final merged = <String, MessageSearchResult>{};
       final previousResults = loadMore ? _results : <MessageSearchResult>[];
       for (final r in previousResults) {
         merged[r.eventId] = r;
       }
-      for (final r in serverPage.results) {
-        merged[r.eventId] = r;
+      if (!serverFailed) {
+        for (final r in serverPage.results) {
+          merged[r.eventId] = r;
+        }
       }
-      for (final r in indexPage.results) {
-        merged.putIfAbsent(r.eventId, () => r);
+      if (!indexFailed) {
+        for (final r in indexPage.results) {
+          merged.putIfAbsent(r.eventId, () => r);
+        }
       }
-      if (!loadMore) {
+      if (!loadMore && !fallbackFailed) {
         for (final r in fallback.results) {
           merged.putIfAbsent(r.eventId, () => r);
         }
@@ -191,10 +226,11 @@ class RoomListSearchController extends ChangeNotifier {
       _results = sorted;
       _isLoading = false;
 
-      final anyFailed = serverFailed || indexFailed || fallbackFailed;
-      if (anyFailed && _results.isEmpty) {
-        _error = 'Message search failed. The server may not support it.';
-      }
+      _applyFailureState(
+        serverFailed: serverFailed,
+        indexFailed: indexFailed,
+        fallbackFailed: fallbackFailed && !loadMore,
+      );
 
       notifyListeners();
     } catch (e) {
@@ -205,6 +241,42 @@ class RoomListSearchController extends ChangeNotifier {
         _error = 'Message search failed. The server may not support it.';
       }
       notifyListeners();
+    }
+  }
+
+  /// Re-runs the current query from scratch. Used by the "retry" control
+  /// shown alongside [partialError] or [error].
+  Future<void> retry() => performSearch();
+
+  /// Sets [error] when every source failed (or no results came back), or
+  /// [partialError] when some sources failed but results are still shown.
+  /// The message only blames the server when the server is among the
+  /// sources that failed.
+  void _applyFailureState({
+    required bool serverFailed,
+    required bool indexFailed,
+    required bool fallbackFailed,
+  }) {
+    final failedSources = <String>[
+      if (serverFailed) 'server',
+      if (indexFailed) 'local index',
+      if (fallbackFailed) 'unindexed rooms',
+    ];
+
+    final hardError = failedSources.length >= 3 ||
+        (failedSources.isNotEmpty && _results.isEmpty);
+
+    if (hardError) {
+      _error = serverFailed
+          ? 'Message search failed. The server may not support it.'
+          : 'Message search failed.';
+      _partialError = null;
+    } else if (failedSources.isNotEmpty) {
+      _partialError = 'Some results may be missing.';
+      _error = null;
+    } else {
+      _partialError = null;
+      _error = null;
     }
   }
 
@@ -239,8 +311,11 @@ class RoomListSearchController extends ChangeNotifier {
     _indexNextBatch = null;
     _serverExhausted = false;
     _indexExhausted = false;
+    _serverCount = 0;
+    _indexCount = 0;
     _totalCount = null;
     _fallbackCount = 0;
+    _partialError = null;
     _isLoading = false;
     _error = null;
     _query = '';

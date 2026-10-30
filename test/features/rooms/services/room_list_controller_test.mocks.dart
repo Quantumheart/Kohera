@@ -2444,6 +2444,15 @@ class MockRoomListSearchController extends _i1.Mock
           as _i21.Future<void>);
 
   @override
+  _i21.Future<void> retry() =>
+      (super.noSuchMethod(
+            Invocation.method(#retry, []),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
+          )
+          as _i21.Future<void>);
+
+  @override
   void clear() => super.noSuchMethod(
     Invocation.method(#clear, []),
     returnValueForMissingStub: null,
