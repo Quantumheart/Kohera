@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/message_indexer_service.dart';
@@ -129,6 +131,7 @@ void main() {
     when(client.encryption).thenReturn(null);
 
     when(room.id).thenReturn('!r:s');
+    when(room.membership).thenReturn(Membership.join);
     when(room.onSessionKeyReceived).thenReturn(keyController);
     when(room.client).thenReturn(client);
 
@@ -510,6 +513,100 @@ void main() {
       expect(results.first.body, 'now decryptable');
     });
   });
+
+  group('leave cancellation (issue 2)', () {
+    test('leave sync removes room from index', () async {
+      await searchDb.upsert(
+        IndexedMessage(
+          eventId: r'$seed',
+          roomId: '!r:s',
+          senderId: '@u:s',
+          body: 'seed message',
+          msgtype: 'm.text',
+          originServerTs: DateTime(2024),
+        ),
+      );
+      await searchDb.markRoomIndexed('!r:s', 1);
+      await indexer.init();
+      await indexer.ensureRoomIndexed(room);
+      await indexer.waitForIdle();
+      expect(await searchDb.isRoomIndexed('!r:s'), isTrue);
+
+      syncController.add(
+        SyncUpdate(
+          nextBatch: 'b1',
+          rooms: RoomsUpdate(leave: {'!r:s': LeftRoomUpdate()}),
+        ),
+      );
+      await pumpEventQueue();
+      await indexer.waitForIdle();
+      // _cleanupRoom fires _db.removeRoom unawaited; let it drain.
+      for (var i = 0; i < 20; i++) {
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(await searchDb.isRoomIndexed('!r:s'), isFalse);
+      final results = await searchDb.search(query: 'seed', roomId: '!r:s');
+      expect(results, isEmpty);
+    });
+
+    test('ensureRoomIndexed is a no-op for a left room', () async {
+      when(room.membership).thenReturn(Membership.leave);
+      await indexer.init();
+      await indexer.ensureRoomIndexed(room);
+      await indexer.waitForIdle();
+
+      expect(indexer.isIndexing, isFalse);
+      expect(await searchDb.isRoomIndexed('!r:s'), isFalse);
+    });
+  });
+
+  group('priority indexing (issue 5)', () {
+    test('priority room starts immediately above the concurrent cap',
+        () async {
+      final blockers = <Completer<void>>[
+        Completer<void>(),
+        Completer<void>(),
+        Completer<void>(),
+      ];
+      final blockedDb = _BlockingBackfillDatabase(blockers);
+      when(client.database).thenReturn(blockedDb);
+
+      final rooms = <MockRoom>[];
+      final keys = <CachedStreamController<String>>[];
+      for (var i = 0; i < 4; i++) {
+        final r = MockRoom();
+        final k = CachedStreamController<String>();
+        final id = '!r$i:s';
+        when(r.id).thenReturn(id);
+        when(r.membership).thenReturn(Membership.join);
+        when(r.onSessionKeyReceived).thenReturn(k);
+        when(r.client).thenReturn(client);
+        when(client.getRoomById(id)).thenReturn(r);
+        rooms.add(r);
+        keys.add(k);
+      }
+      when(client.rooms).thenReturn(rooms);
+
+      await indexer.init();
+      // Fill the cap of 3 concurrent backfills with non-priority rooms.
+      for (var i = 0; i < 3; i++) {
+        await indexer.ensureRoomIndexed(rooms[i]);
+      }
+      await pumpEventQueue();
+      expect(indexer.indexingRoomIds, {'!r0:s', '!r1:s', '!r2:s'});
+
+      // A non-priority room would queue; a priority room starts now.
+      await indexer.ensureRoomIndexed(rooms[3], priority: true);
+      await pumpEventQueue();
+      expect(indexer.indexingRoomIds.contains('!r3:s'), isTrue);
+
+      for (final c in blockers) {
+        c.complete();
+      }
+      await indexer.waitForIdle();
+    });
+  });
 }
 
 class _FakeBackfillDatabase extends _FakeDatabaseApi {
@@ -529,6 +626,26 @@ class _FakeBackfillDatabase extends _FakeDatabaseApi {
         ? events.length
         : (start + limit).clamp(0, events.length);
     return events.sublist(start, end);
+  }
+}
+
+class _BlockingBackfillDatabase extends _FakeDatabaseApi {
+  _BlockingBackfillDatabase(this.blockers);
+
+  final List<Completer<void>> blockers;
+  var _calls = 0;
+
+  @override
+  Future<List<Event>> getEventList(
+    Room room, {
+    int start = 0,
+    bool onlySending = false,
+    int? limit,
+  }) async {
+    final i = _calls < blockers.length ? _calls : blockers.length - 1;
+    _calls++;
+    await blockers[i].future;
+    return const <Event>[];
   }
 }
 

@@ -77,6 +77,16 @@ class MessageIndexerService extends ChangeNotifier {
   static const _maxConcurrentBackfills = 3;
   final List<Room> _backfillQueue = [];
 
+  /// Room ids whose backfill was cancelled (user left the room). An
+  /// in-flight backfill checks this between chunks and aborts; a queued
+  /// room is removed from [_backfillQueue] in [_cleanupRoom].
+  final Set<String> _cancelledRooms = {};
+
+  /// Wall-clock work budget shared by every running backfill. A single
+  /// clock bounds the combined decrypt work between event-loop yields to
+  /// roughly one frame, instead of one budget per backfill.
+  final Stopwatch _sharedBudget = Stopwatch()..start();
+
   /// Wall-clock work budget between event-loop yields during backfill.
   /// Roughly one 60fps frame, so input dispatch is never starved.
   static const _yieldBudgetMs = 12;
@@ -106,8 +116,15 @@ class MessageIndexerService extends ChangeNotifier {
   /// The backfill runs in the background — callers should **not** await
   /// this for search.  Instead, search the FTS5 index directly and use
   /// [isIndexing] / [indexingProgressFor] to show an "indexing…" state.
-  Future<void> ensureRoomIndexed(Room room) async {
+  ///
+  /// When [priority] is `true` (a room the user just opened), the room
+  /// starts backfilling immediately even when the concurrent cap is
+  /// reached, instead of waiting behind the FIFO queue. This keeps an
+  /// opened room searchable without delay even when a global search has
+  /// queued hundreds of rooms.
+  Future<void> ensureRoomIndexed(Room room, {bool priority = false}) async {
     if (_disposed || !_db.isAvailable) return;
+    if (room.membership != Membership.join) return;
 
     final cache = _indexedRoomsCache;
     if (cache != null && cache.contains(room.id)) return;
@@ -119,18 +136,28 @@ class MessageIndexerService extends ChangeNotifier {
     }
 
     if (_indexingRooms.contains(room.id)) return;
-    if (_backfillQueue.any((r) => r.id == room.id)) return;
 
-    if (_indexingRooms.length >= _maxConcurrentBackfills) {
+    // If the room is already queued, only a priority caller rescues it;
+    // a non-priority caller leaves it at its existing queue position.
+    if (_backfillQueue.any((r) => r.id == room.id)) {
+      if (!priority) return;
+      _backfillQueue.removeWhere((r) => r.id == room.id);
+    }
+
+    // Non-priority rooms respect the concurrent cap and wait in the
+    // queue; priority rooms start immediately, even above the cap.
+    if (!priority && _indexingRooms.length >= _maxConcurrentBackfills) {
       _backfillQueue.add(room);
       return;
     }
 
+    _cancelledRooms.remove(room.id);
     unawaited(_backfillRoomInBackground(room));
   }
 
   Future<void> _backfillRoomInBackground(Room room) async {
     if (_disposed) return;
+    if (room.membership != Membership.join) return;
     _indexingRooms.add(room.id);
     _roomIndexProgress[room.id] = 0;
     _safeNotify();
@@ -140,9 +167,9 @@ class MessageIndexerService extends ChangeNotifier {
       var eventCount = 0;
       const chunkSize = 50;
       var offset = 0;
-      final budget = Stopwatch()..start();
 
       while (!_disposed) {
+        if (_cancelledRooms.contains(room.id)) return;
         List<Event> events;
         try {
           events = await _matrixClientService.client.database.getEventList(
@@ -163,14 +190,15 @@ class MessageIndexerService extends ChangeNotifier {
           // Decryption runs on this isolate — it needs the client's live
           // megolm session store, which cannot cross an isolate boundary.
           //
-          // Yield on a wall-clock budget, not an event count: a single
-          // undecryptable event can burn the full decrypt timeout, so N
-          // events is not a bound on elapsed time. One frame budget keeps
-          // the platform message loop dispatching input events.
-          if (budget.elapsedMilliseconds >= _yieldBudgetMs) {
-            budget.reset();
+          // Yield on a shared wall-clock budget, not an event count: a
+          // single undecryptable event can burn the full decrypt timeout,
+          // so N events is not a bound on elapsed time. One shared frame
+          // budget keeps the platform message loop dispatching input
+          // events regardless of how many backfills run concurrently.
+          if (_sharedBudget.elapsedMilliseconds >= _yieldBudgetMs) {
+            _sharedBudget.reset();
             await Future<void>.delayed(Duration.zero);
-            if (_disposed) return;
+            if (_disposed || _cancelledRooms.contains(room.id)) return;
           }
           if (event.redacted) continue;
           final decrypted = await _decryptIfNeeded(event);
@@ -181,6 +209,9 @@ class MessageIndexerService extends ChangeNotifier {
           final indexed = _toIndexedMessage(decrypted);
           if (indexed != null) batch.add(indexed);
         }
+        // A leave during the chunk above removes rows via _cleanupRoom;
+        // don't re-insert them or mark the room indexed.
+        if (_cancelledRooms.contains(room.id)) return;
         if (batch.isNotEmpty) {
           await _db.upsertBatch(batch);
           eventCount += batch.length;
@@ -196,6 +227,7 @@ class MessageIndexerService extends ChangeNotifier {
         offset += chunkSize;
       }
 
+      if (_cancelledRooms.contains(room.id)) return;
       await _db.markRoomIndexed(room.id, eventCount);
       _indexedRoomsCache ??= {};
       _indexedRoomsCache!.add(room.id);
@@ -243,6 +275,13 @@ class MessageIndexerService extends ChangeNotifier {
   }
 
   Future<void> _processSyncUpdate(SyncUpdate update) async {
+    final leave = update.rooms?.leave;
+    if (leave != null && leave.isNotEmpty) {
+      for (final roomId in leave.keys) {
+        _cleanupRoom(roomId);
+      }
+    }
+
     final join = update.rooms?.join;
     if (join == null || join.isEmpty) return;
 
@@ -263,13 +302,6 @@ class MessageIndexerService extends ChangeNotifier {
       final events = entry.value.timeline?.events;
       if (events == null || events.isEmpty) continue;
       await _indexEventBatch(room, events);
-    }
-
-    final leave = update.rooms?.leave;
-    if (leave != null && leave.isNotEmpty) {
-      for (final roomId in leave.keys) {
-        _cleanupRoom(roomId);
-      }
     }
   }
 
@@ -356,6 +388,8 @@ class MessageIndexerService extends ChangeNotifier {
     if (sub != null) {
       unawaited(sub.cancel());
     }
+    _backfillQueue.removeWhere((r) => r.id == roomId);
+    _cancelledRooms.add(roomId);
     _pendingDecryptions.remove(roomId);
     unawaited(_db.removeRoom(roomId));
     _indexedRoomsCache?.remove(roomId);
@@ -459,6 +493,7 @@ class MessageIndexerService extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _backfillQueue.clear();
     unawaited(_syncSub?.cancel());
     for (final sub in _keySubs.values) {
       unawaited(sub.cancel());

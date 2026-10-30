@@ -23,12 +23,15 @@ class ServerSearchPage {
 class LocalSearchPage {
   const LocalSearchPage({
     this.results = const [],
-    this.count = 0,
+    this.count,
     this.nextBatch,
   });
 
   final List<MessageSearchResult> results;
-  final int count;
+
+  /// Total matches in the index for this query, or `null` when the page
+  /// did not recompute it (paginated pages reuse the count from page 1).
+  final int? count;
   final String? nextBatch;
 }
 
@@ -36,12 +39,10 @@ class UnindexedSearchResult {
   const UnindexedSearchResult({
     this.results = const [],
     this.count = 0,
-    this.indexingRoomIds = const {},
   });
 
   final List<MessageSearchResult> results;
   final int count;
-  final Set<String> indexingRoomIds;
 }
 
 class MessageSearchRepository {
@@ -128,29 +129,58 @@ class MessageSearchRepository {
     int offset = 0,
   }) async {
     if (!_index.isAvailable) return const LocalSearchPage();
+    if (scopeRoomIds != null && scopeRoomIds.isEmpty) {
+      return const LocalSearchPage();
+    }
+
+    // The total count only changes between queries, not between pages, so
+    // recompute it only on the first page and run it concurrently with the
+    // match query to halve the isolate round-trips. Subsequent pages omit
+    // the count; the controller keeps the page-1 value.
+    if (offset == 0) {
+      final results = await Future.wait([
+        _index.search(
+          query: query,
+          roomIds: scopeRoomIds,
+          limit: limit,
+          offset: offset,
+          onlyIndexedRooms: true,
+        ),
+        _index.count(
+          query: query,
+          roomIds: scopeRoomIds,
+          onlyIndexedRooms: true,
+        ),
+      ]);
+      final matches = results[0] as List<IndexedMessage>;
+      final count = results[1] as int;
+      return LocalSearchPage(
+        results: matches
+            .map(_indexedMessageToResult)
+            .whereType<MessageSearchResult>()
+            .toList(),
+        count: count,
+        nextBatch: matches.length < limit
+            ? null
+            : (offset + matches.length).toString(),
+      );
+    }
 
     final matches = await _index.search(
       query: query,
       roomIds: scopeRoomIds,
       limit: limit,
       offset: offset,
+      onlyIndexedRooms: true,
     );
-
-    final results = matches
-        .map(_indexedMessageToResult)
-        .whereType<MessageSearchResult>()
-        .toList();
-
-    final count = await _index.count(query: query, roomIds: scopeRoomIds);
-
-    final nextOffset = matches.length < limit
-        ? null
-        : (offset + matches.length).toString();
-
     return LocalSearchPage(
-      results: results,
-      count: count,
-      nextBatch: nextOffset,
+      results: matches
+          .map(_indexedMessageToResult)
+          .whereType<MessageSearchResult>()
+          .toList(),
+      nextBatch: matches.length < limit
+          ? null
+          : (offset + matches.length).toString(),
     );
   }
 
@@ -169,12 +199,15 @@ class MessageSearchRepository {
       indexedRooms = {};
     }
 
-    final currentlyIndexing = _indexer.indexingRoomIds;
-
+    // The fallback covers every encrypted joined room the index does not
+    // yet answer for — including rooms whose backfill is in progress. The
+    // index only returns rows for fully-indexed rooms (see the
+    // `indexed_rooms` filter in `search()`/`count()`), so scanning a
+    // being-backfilled room here cannot double-count with the index.
     var unindexed = _client.rooms.where((room) =>
         room.encrypted &&
-        !indexedRooms.contains(room.id) &&
-        !currentlyIndexing.contains(room.id));
+        room.membership == Membership.join &&
+        !indexedRooms.contains(room.id));
     if (scopeRoomIds != null) {
       unindexed = unindexed.where((room) => scopeRoomIds.contains(room.id));
     }
@@ -199,7 +232,6 @@ class MessageSearchRepository {
         return UnindexedSearchResult(
           results: allResults,
           count: allResults.length,
-          indexingRoomIds: unindexedRooms.map((r) => r.id).toSet(),
         );
       }
       final batch = unindexedRooms.sublist(
@@ -247,7 +279,6 @@ class MessageSearchRepository {
     return UnindexedSearchResult(
       results: allResults,
       count: allResults.length,
-      indexingRoomIds: unindexedRooms.map((r) => r.id).toSet(),
     );
   }
 
