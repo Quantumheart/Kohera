@@ -134,8 +134,6 @@ class MessageRepository extends ChangeNotifier {
   Future<void> initSearchIndex() => _indexer.init();
 
   /// Ensures [room]'s history is indexed for local search (background).
-  /// When [priority] is `true`, the room jumps the backfill queue so an
-  /// opened room is searchable without delay.
   Future<void> ensureRoomIndexed(Room room, {bool priority = false}) =>
       _indexer.ensureRoomIndexed(room, priority: priority);
 

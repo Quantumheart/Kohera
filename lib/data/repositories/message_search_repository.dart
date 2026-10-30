@@ -28,9 +28,6 @@ class LocalSearchPage {
   });
 
   final List<MessageSearchResult> results;
-
-  /// Total matches in the index for this query, or `null` when the page
-  /// did not recompute it (paginated pages reuse the count from page 1).
   final int? count;
   final String? nextBatch;
 }
@@ -133,10 +130,6 @@ class MessageSearchRepository {
       return const LocalSearchPage();
     }
 
-    // The total count only changes between queries, not between pages, so
-    // recompute it only on the first page and run it concurrently with the
-    // match query to halve the isolate round-trips. Subsequent pages omit
-    // the count; the controller keeps the page-1 value.
     if (offset == 0) {
       final results = await Future.wait([
         _index.search(
@@ -199,11 +192,6 @@ class MessageSearchRepository {
       indexedRooms = {};
     }
 
-    // The fallback covers every encrypted joined room the index does not
-    // yet answer for — including rooms whose backfill is in progress. The
-    // index only returns rows for fully-indexed rooms (see the
-    // `indexed_rooms` filter in `search()`/`count()`), so scanning a
-    // being-backfilled room here cannot double-count with the index.
     var unindexed = _client.rooms.where((room) =>
         room.encrypted &&
         room.membership == Membership.join &&

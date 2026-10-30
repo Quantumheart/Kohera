@@ -28,17 +28,9 @@ class RoomListSearchController extends ChangeNotifier {
   String? _serverNextBatch;
   String? _indexNextBatch;
 
-  // Kept as explicit flags rather than derived from `_xNextBatch == null`:
-  // a failed source keeps its previous token, so a null token can mean
-  // either "exhausted" or "never succeeded / failed before page 1".
-  // The flag disambiguates so Load more retries a failed source instead
-  // of skipping it as done.
   bool _serverExhausted = false;
   bool _indexExhausted = false;
 
-  /// Last known result count per source. Updated only when that source
-  /// actually returned a page, so an exhausted or failed source keeps its
-  /// previous count instead of dropping to zero on Load more.
   int _serverCount = 0;
   int _indexCount = 0;
 
@@ -52,8 +44,6 @@ class RoomListSearchController extends ChangeNotifier {
 
   int _fallbackCount = 0;
 
-  /// Non-blocking warning shown when some (but not all) sources failed and
-  /// results are still visible. Distinct from [error], which halts the UI.
   String? _partialError;
   String? get partialError => _partialError;
 
@@ -179,9 +169,6 @@ class RoomListSearchController extends ChangeNotifier {
       final indexPage = results[1] as LocalSearchPage;
       final fallback = results[2] as UnindexedSearchResult;
 
-      // Only advance a source's pagination state when it actually returned
-      // a page. A failed source keeps its previous token, exhausted flag
-      // and count so Load more can retry it instead of ending pagination.
       if (!serverSkipped && !serverFailed) {
         _serverNextBatch = serverPage.nextBatch;
         _serverExhausted = serverPage.nextBatch == null;
@@ -244,14 +231,8 @@ class RoomListSearchController extends ChangeNotifier {
     }
   }
 
-  /// Re-runs the current query from scratch. Used by the "retry" control
-  /// shown alongside [partialError] or [error].
   Future<void> retry() => performSearch();
 
-  /// Sets [error] when every source failed (or no results came back), or
-  /// [partialError] when some sources failed but results are still shown.
-  /// The message only blames the server when the server is among the
-  /// sources that failed.
   void _applyFailureState({
     required bool serverFailed,
     required bool indexFailed,
