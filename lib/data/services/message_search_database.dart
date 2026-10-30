@@ -141,21 +141,9 @@ class MessageSearchDatabase implements SearchIndex {
   @override
   bool get isAvailable => _isAvailable;
 
-  /// SQLite limits the number of bound parameters per statement. Older
-  /// builds (common on Android) cap at 999, so a scoped search across a
-  /// space with ~999+ rooms would fail with "too many SQL variables".
-  /// Scopes larger than this go through a temp table (see [_scopeClause]).
   static const _maxInParams = 900;
-
-  /// Temp table used to filter large scopes without hitting the parameter
-  /// limit. Populated per search and cleared on next use.
   static const _scopeTable = '_kohera_search_scope';
 
-  /// Builds the `room_id` scope filter for a search/count, returning the
-  /// SQL fragment and bound args. Scopes at or under [_maxInParams] use an
-  /// inline `IN (?, ...)` clause; larger scopes are spilled into a temp
-  /// table (inserted in [_maxInParams]-sized batches) and filtered via a
-  /// subquery, sidestepping the parameter limit entirely.
   Future<({String sql, List<Object?> args})> _scopeClause(
     Database db,
     Set<String>? roomIds,
@@ -393,11 +381,6 @@ class MessageSearchDatabase implements SearchIndex {
     final db = await _open();
     final whereParts = <String>['message_search MATCH ?'];
     final whereArgs = <Object?>[sanitized];
-    // The index only answers for rooms whose backfill completed; rooms
-    // still being backfilled are covered by the timeline-scan fallback so
-    // their partly-indexed rows never mix with the "fully indexed" set.
-    // Opt-in so single-room (in-room) search keeps partial rows while a
-    // priority backfill finishes, and raw index tests are unaffected.
     if (onlyIndexedRooms) {
       whereParts.add('room_id IN (SELECT room_id FROM indexed_rooms)');
     }

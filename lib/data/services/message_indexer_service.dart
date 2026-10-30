@@ -209,8 +209,6 @@ class MessageIndexerService extends ChangeNotifier {
           final indexed = _toIndexedMessage(decrypted);
           if (indexed != null) batch.add(indexed);
         }
-        // A leave during the chunk above removes rows via _cleanupRoom;
-        // don't re-insert them or mark the room indexed.
         if (_cancelledRooms.contains(room.id)) return;
         if (batch.isNotEmpty) {
           await _db.upsertBatch(batch);

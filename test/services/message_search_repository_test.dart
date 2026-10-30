@@ -127,9 +127,7 @@ void main() {
       );
 
       await indexer.init();
-      // Start a backfill that blocks, so '!r:s' is mid-backfill: the old
-      // code excluded it from the fallback while the index only held its
-      // partial rows, so matches were missed entirely.
+      // Block the backfill so '!r:s' stays mid-backfill during the scan.
       await indexer.ensureRoomIndexed(room);
       for (var i = 0; i < 5; i++) {
         await Future<void>.delayed(Duration.zero);
