@@ -2,10 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
-import 'package:kohera/data/models/local_search_page.dart';
 import 'package:kohera/data/models/message_search_result.dart';
-import 'package:kohera/data/models/server_search_page.dart';
-import 'package:kohera/data/models/unindexed_search_result.dart';
+import 'package:kohera/data/models/search_page.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/message_indexer_service.dart';
 import 'package:kohera/data/services/message_search_database.dart';
