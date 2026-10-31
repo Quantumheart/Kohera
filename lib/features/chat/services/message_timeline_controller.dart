@@ -167,18 +167,26 @@ class MessageTimelineController extends ChangeNotifier
 
   // ── Lifecycle ──────────────────────────────────────────
 
-  bool _initializing = false;
+  Future<void>? _initFuture;
 
-  Future<void> init() async {
-    if (_initializing) return;
-    _initializing = true;
+  Future<void> init() => _initFuture ??= _doInit();
+
+  Future<void> _doInit() async {
     if (!_observingLifecycle) {
       WidgetsBinding.instance.addObserver(this);
       _observingLifecycle = true;
     }
     _room = rooms.rawRoom(roomId);
-    if (_room == null) return;
-    await _initTimeline();
+    if (_room == null) {
+      _initFuture = null;
+      return;
+    }
+    try {
+      await _initTimeline();
+    } catch (_) {
+      _initFuture = null;
+      rethrow;
+    }
   }
 
   Future<void> _preDecryptEvents(Room room) async {
