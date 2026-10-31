@@ -16,6 +16,8 @@ We prefer using characters from the US English keyboard.
 
 We prefer using Github markdown.
 
+Commit messages are subject lines only. If the why is not obvious from the subject and lives in no linked issue or PR, add at most 3 sentences.
+
 
 ## What is Kohera?
 
