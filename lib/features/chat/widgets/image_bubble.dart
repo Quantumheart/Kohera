@@ -53,6 +53,26 @@ class _ImageBubbleState extends State<ImageBubble> {
   Future<void> _loadImage() async {
     try {
       if (widget.controller.isEncrypted) {
+        const cacheWidth = 560;
+        const cacheHeight = 520;
+        final key = OneTimeMemoryImageKey(
+          widget.controller.eventId,
+          cacheWidth: cacheWidth,
+          cacheHeight: cacheHeight,
+        );
+        if (PaintingBinding.instance.imageCache.containsKey(key)) {
+          if (mounted) {
+            setState(() {
+              _imageProvider = OneTimeMemoryImage(
+                eventId: widget.controller.eventId,
+                cacheWidth: cacheWidth,
+                cacheHeight: cacheHeight,
+              );
+              _loading = false;
+            });
+          }
+          return;
+        }
         final bytes = await widget.controller.downloadAndDecrypt(
           getThumbnail: true,
         );
@@ -61,8 +81,8 @@ class _ImageBubbleState extends State<ImageBubble> {
             _imageProvider = OneTimeMemoryImage(
               eventId: widget.controller.eventId,
               bytes: bytes,
-              cacheWidth: 560,
-              cacheHeight: 520,
+              cacheWidth: cacheWidth,
+              cacheHeight: cacheHeight,
             );
             _loading = false;
           });

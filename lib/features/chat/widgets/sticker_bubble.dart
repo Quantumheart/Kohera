@@ -50,14 +50,34 @@ class _StickerBubbleState extends State<StickerBubble> {
   Future<void> _loadSticker() async {
     try {
       if (widget.controller.isEncrypted) {
+        const cacheWidth = 280;
+        const cacheHeight = 280;
+        final key = OneTimeMemoryImageKey(
+          widget.controller.eventId,
+          cacheWidth: cacheWidth,
+          cacheHeight: cacheHeight,
+        );
+        if (PaintingBinding.instance.imageCache.containsKey(key)) {
+          if (mounted) {
+            setState(() {
+              _imageProvider = OneTimeMemoryImage(
+                eventId: widget.controller.eventId,
+                cacheWidth: cacheWidth,
+                cacheHeight: cacheHeight,
+              );
+              _loading = false;
+            });
+          }
+          return;
+        }
         final bytes = await widget.controller.downloadAndDecrypt();
         if (mounted) {
           setState(() {
             _imageProvider = OneTimeMemoryImage(
               eventId: widget.controller.eventId,
               bytes: bytes,
-              cacheWidth: 280,
-              cacheHeight: 280,
+              cacheWidth: cacheWidth,
+              cacheHeight: cacheHeight,
             );
             _loading = false;
           });

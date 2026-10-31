@@ -117,6 +117,26 @@ class _VideoBubbleState extends State<VideoBubble>
     });
     try {
       if (widget.controller.isEncrypted) {
+        const cacheWidth = 560;
+        const cacheHeight = 520;
+        final key = OneTimeMemoryImageKey(
+          widget.controller.eventId,
+          cacheWidth: cacheWidth,
+          cacheHeight: cacheHeight,
+        );
+        if (PaintingBinding.instance.imageCache.containsKey(key)) {
+          if (mounted) {
+            setState(() {
+              _thumbProvider = OneTimeMemoryImage(
+                eventId: widget.controller.eventId,
+                cacheWidth: cacheWidth,
+                cacheHeight: cacheHeight,
+              );
+              _state = _VideoState.initial;
+            });
+          }
+          return;
+        }
         final bytes = await widget.controller.downloadAndDecrypt(
           getThumbnail: true,
         );
@@ -125,8 +145,8 @@ class _VideoBubbleState extends State<VideoBubble>
             _thumbProvider = OneTimeMemoryImage(
               eventId: widget.controller.eventId,
               bytes: bytes,
-              cacheWidth: 560,
-              cacheHeight: 520,
+              cacheWidth: cacheWidth,
+              cacheHeight: cacheHeight,
             );
             _state = _VideoState.initial;
           });
