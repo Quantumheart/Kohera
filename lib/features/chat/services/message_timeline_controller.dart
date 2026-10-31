@@ -208,9 +208,7 @@ class MessageTimelineController extends ChangeNotifier
       try {
         await encryption.keyManager
             .loadInboundGroupSession(room.id, sessionId);
-      } catch (_) {
-        // Session key not available — event will remain undecryptable.
-      }
+      } catch (_) {}
     }
 
     for (final event in events) {
@@ -221,11 +219,7 @@ class MessageTimelineController extends ChangeNotifier
           store: !room.isArchived,
           updateType: EventUpdateType.history,
         );
-      } catch (_) {
-        // Session key missing — event remains encrypted.
-        // getTimeline will handle it and _requestMissingKeys will
-        // trigger key requests.
-      }
+      } catch (_) {}
     }
   }
 

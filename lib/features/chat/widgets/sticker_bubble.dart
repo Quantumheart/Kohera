@@ -124,16 +124,16 @@ class _StickerBubbleState extends State<StickerBubble> {
                     ),
                   )
                 : _imageProvider != null
-                  ? Image(
-                      image: _imageProvider!,
-                      fit: BoxFit.contain,
-                      semanticLabel: body,
-                      errorBuilder: (_, _, _) => const Icon(
-                        Icons.broken_image_outlined,
-                        size: 48,
-                      ),
-                    )
-                  : _imageUrl != null
+                    ? Image(
+                        image: _imageProvider!,
+                        fit: BoxFit.contain,
+                        semanticLabel: body,
+                        errorBuilder: (_, _, _) => const Icon(
+                          Icons.broken_image_outlined,
+                          size: 48,
+                        ),
+                      )
+                    : _imageUrl != null
                         ? Image.network(
                             _imageUrl!,
                             fit: BoxFit.contain,

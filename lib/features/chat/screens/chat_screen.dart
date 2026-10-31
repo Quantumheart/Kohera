@@ -173,8 +173,6 @@ class _ChatScreenState extends State<ChatScreen>
     _msgCtrl.addListener(_scheduleDraftSave);
     unawaited(_loadDraft());
     _composeFocusNode.addListener(_onComposeFocusChanged);
-    // Timeline init is owned by MessageListView._initAndJump, which awaits
-    // init() and then jumps to initialEventId if set.
     final room = rooms.rawRoom(widget.roomId);
     if (room != null && room.encrypted) {
       unawaited(_indexWhenTimelineReady(room));
