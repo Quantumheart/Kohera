@@ -146,30 +146,16 @@ class _IrcMessageTileState extends State<IrcMessageTile> {
   Widget build(BuildContext context) {
     final w = widget;
     final cs = Theme.of(context).colorScheme;
-    final palette = KoheraPalette.of(context);
 
     final message = w.message;
-    final reactions = w.reactions;
     final media = w.media;
     final mediaController = w.mediaController;
-    final poll = w.poll;
-    final isMe = w.isMe;
     final isFirst = w.isFirst;
     final isMobile = w.isMobile;
-    final isPinned = w.isPinned;
-    final hasThread = w.hasThread;
-    final threadReplyCount = w.threadReplyCount;
-    final threadUnreadCount = w.threadUnreadCount;
-    final inThread = w.inThread;
     final highlightedEventId = w.highlightedEventId;
-    final replyPreviewText = w.replyPreviewText;
-    final onToggleReaction = w.onToggleReaction;
     final onReply = w.onReply;
-    final onOpenThread = w.onOpenThread;
-    final onTapSender = w.onTapSender;
     final onOpenContextMenu = w.onOpenContextMenu;
     final onShowMobileActions = w.onShowMobileActions;
-    final onTapReply = w.onTapReply;
 
     const mono = TextStyle(
       fontFamily: 'RobotoMono',
@@ -179,47 +165,14 @@ class _IrcMessageTileState extends State<IrcMessageTile> {
     );
 
     final isRedacted = message.isRedacted;
-    final isEmote = message.messageType == _msgtypeEmote;
-    final isNotice = message.messageType == _msgtypeNotice;
     final isHighlighted = message.eventId == highlightedEventId;
-
-    final nickColor = senderColor(message.senderId, cs);
-    final nick = message.senderName.isEmpty
-        ? message.senderId
-        : message.senderName;
 
     final isMediaMessage = !isRedacted &&
         _mediaMessageTypes.contains(message.messageType) &&
         media != null &&
         mediaController != null;
 
-    final spans = _buildLineSpans(
-      context: context,
-      cs: cs,
-      palette: palette,
-      mono: mono,
-      nickColor: nickColor,
-      nick: nick,
-      isRedacted: isRedacted,
-      isEmote: isEmote,
-      isNotice: isNotice,
-      isMediaMessage: isMediaMessage,
-      isMe: isMe,
-      isPinned: isPinned,
-      hasThread: hasThread,
-      inThread: inThread,
-      threadReplyCount: threadReplyCount,
-      threadUnreadCount: threadUnreadCount,
-      highlightedEventId: highlightedEventId,
-      replyPreviewText: replyPreviewText,
-      reactions: reactions,
-      media: media,
-      poll: poll,
-      onToggleReaction: onToggleReaction,
-      onOpenThread: onOpenThread,
-      onTapSender: onTapSender,
-      onTapReply: onTapReply,
-    );
+    final spans = _buildLineSpans(context, isMediaMessage: isMediaMessage);
 
     final line = Padding(
       padding: EdgeInsets.fromLTRB(4, isFirst ? 2 : 0, 4, 0),
@@ -285,35 +238,42 @@ class _IrcMessageTileState extends State<IrcMessageTile> {
     return KeyedSubtree(key: ValueKey(message.eventId), child: content);
   }
 
-  List<InlineSpan> _buildLineSpans({
-    required BuildContext context,
-    required ColorScheme cs,
-    required KoheraPalette palette,
-    required TextStyle mono,
-    required Color nickColor,
-    required String nick,
-    required bool isRedacted,
-    required bool isEmote,
-    required bool isNotice,
+  List<InlineSpan> _buildLineSpans(
+    BuildContext context, {
     required bool isMediaMessage,
-    required bool isMe,
-    required bool isPinned,
-    required bool hasThread,
-    required bool inThread,
-    required int threadReplyCount,
-    required int threadUnreadCount,
-    required String? highlightedEventId,
-    required String? replyPreviewText,
-    required KoheraReactionList? reactions,
-    required KoheraMediaContent? media,
-    required KoheraPoll? poll,
-    required void Function(String emoji)? onToggleReaction,
-    required VoidCallback? onOpenThread,
-    required void Function(BuildContext, String eventId)? onTapSender,
-    required void Function(String eventId)? onTapReply,
   }) {
     _disposeRecognizers();
-    final message = widget.message;
+    final cs = Theme.of(context).colorScheme;
+    final palette = KoheraPalette.of(context);
+    const mono = TextStyle(
+      fontFamily: 'RobotoMono',
+      fontFamilyFallback: ['monospace'],
+      fontSize: 13,
+      height: 1.35,
+    );
+
+    final w = widget;
+    final message = w.message;
+    final reactions = w.reactions;
+    final media = w.media;
+    final poll = w.poll;
+    final isRedacted = message.isRedacted;
+    final isEmote = message.messageType == _msgtypeEmote;
+    final isNotice = message.messageType == _msgtypeNotice;
+    final isMe = w.isMe;
+    final isPinned = w.isPinned;
+    final hasThread = w.hasThread;
+    final inThread = w.inThread;
+    final threadReplyCount = w.threadReplyCount;
+    final threadUnreadCount = w.threadUnreadCount;
+    final replyPreviewText = w.replyPreviewText;
+    final onToggleReaction = w.onToggleReaction;
+    final onOpenThread = w.onOpenThread;
+    final onTapSender = w.onTapSender;
+    final onTapReply = w.onTapReply;
+    final nickColor = senderColor(message.senderId, cs);
+    final nick =
+        message.senderName.isEmpty ? message.senderId : message.senderName;
     final spans = <InlineSpan>[];
 
     // Timestamp prefix.
