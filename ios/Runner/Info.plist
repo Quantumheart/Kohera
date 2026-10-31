@@ -28,6 +28,8 @@
 	<string>Kohera needs photo library access to attach images and videos to your messages.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Kohera needs permission to save images and videos from messages to your photo library.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Kohera uses location access only to display the name of the Wi-Fi network you are connected to. Kohera never tracks or stores your location.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
