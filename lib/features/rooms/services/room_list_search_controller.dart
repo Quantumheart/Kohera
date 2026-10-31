@@ -1,7 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/data/models/local_search_page.dart';
 import 'package:kohera/data/models/message_search_result.dart';
+import 'package:kohera/data/models/server_search_page.dart';
+import 'package:kohera/data/models/unindexed_search_result.dart';
 import 'package:kohera/data/repositories/message_search_repository.dart';
 
 // ── Controller ──────────────────────────────────────────────

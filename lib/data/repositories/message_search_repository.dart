@@ -2,45 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
+import 'package:kohera/data/models/local_search_page.dart';
 import 'package:kohera/data/models/message_search_result.dart';
+import 'package:kohera/data/models/server_search_page.dart';
+import 'package:kohera/data/models/unindexed_search_result.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/message_indexer_service.dart';
 import 'package:kohera/data/services/message_search_database.dart';
 import 'package:matrix/matrix.dart';
-
-class ServerSearchPage {
-  const ServerSearchPage({
-    this.results = const [],
-    this.count,
-    this.nextBatch,
-  });
-
-  final List<MessageSearchResult> results;
-  final int? count;
-  final String? nextBatch;
-}
-
-class LocalSearchPage {
-  const LocalSearchPage({
-    this.results = const [],
-    this.count,
-    this.nextBatch,
-  });
-
-  final List<MessageSearchResult> results;
-  final int? count;
-  final String? nextBatch;
-}
-
-class UnindexedSearchResult {
-  const UnindexedSearchResult({
-    this.results = const [],
-    this.count = 0,
-  });
-
-  final List<MessageSearchResult> results;
-  final int count;
-}
 
 class MessageSearchRepository {
   MessageSearchRepository({
