@@ -227,12 +227,19 @@ class MessageTimelineController extends ChangeNotifier
     final snapshotFullyRead = room.fullyRead;
     _initialFullyReadId =
         snapshotFullyRead.isNotEmpty ? snapshotFullyRead : null;
-    await _preDecryptEvents(room);
-    _timeline = await room.getTimeline(
+    try {
+      if (initialEventId == null) await _preDecryptEvents(room);
+    } catch (_) {}
+    if (gen != _initGeneration || _disposed) return;
+    final timeline = await room.getTimeline(
       eventContextId: initialEventId,
       onUpdate: _scheduleUpdate,
     );
-    if (gen != _initGeneration || _disposed) return;
+    if (gen != _initGeneration || _disposed) {
+      timeline.cancelSubscriptions();
+      return;
+    }
+    _timeline = timeline;
     _cachedMessages = null;
     _cachedReceipts = null;
     notifyListeners();
@@ -406,11 +413,15 @@ class MessageTimelineController extends ChangeNotifier
     notifyListeners();
 
     final gen = ++_initGeneration;
-    _timeline = await room.getTimeline(
+    final timeline = await room.getTimeline(
       eventContextId: eventId,
       onUpdate: _scheduleUpdate,
     );
-    if (gen != _initGeneration || _disposed) return;
+    if (gen != _initGeneration || _disposed) {
+      timeline.cancelSubscriptions();
+      return;
+    }
+    _timeline = timeline;
     _cachedMessages = null;
     _cachedReceipts = null;
     notifyListeners();
@@ -433,11 +444,18 @@ class MessageTimelineController extends ChangeNotifier
     final snapshotFullyRead = room.fullyRead;
     _initialFullyReadId =
         snapshotFullyRead.isNotEmpty ? snapshotFullyRead : null;
-    await _preDecryptEvents(room);
-    _timeline = await room.getTimeline(
+    try {
+      await _preDecryptEvents(room);
+    } catch (_) {}
+    if (gen != _initGeneration || _disposed) return;
+    final timeline = await room.getTimeline(
       onUpdate: _scheduleUpdate,
     );
-    if (gen != _initGeneration || _disposed) return;
+    if (gen != _initGeneration || _disposed) {
+      timeline.cancelSubscriptions();
+      return;
+    }
+    _timeline = timeline;
     _cachedMessages = null;
     _cachedReceipts = null;
     notifyListeners();
