@@ -175,16 +175,9 @@ class _ChatScreenState extends State<ChatScreen>
     _composeFocusNode.addListener(_onComposeFocusChanged);
     // Timeline init is owned by MessageListView._initAndJump, which awaits
     // init() and then jumps to initialEventId if set.
-    // Lazily index this room's history for encrypted-room search.
-    // Delayed so the timeline can load first — the backfill decrypts
-    // every event in the room's history on the UI isolate, and running
-    // it concurrently with getTimeline floods the sqflite platform
-    // channel with DB reads, causing an ANR.
     final room = rooms.rawRoom(widget.roomId);
     if (room != null && room.encrypted) {
-      unawaited(
-        context.read<MessageRepository>().ensureRoomIndexed(room, priority: true),
-      );
+      unawaited(_indexWhenTimelineReady(room));
     }
     if (kIsWeb) {
       initWebPasteListener();
@@ -192,6 +185,18 @@ class _ChatScreenState extends State<ChatScreen>
     }
     WidgetsBinding.instance
         .addPostFrameCallback((_) => _refreshThreadUnreadCount());
+  }
+
+  Future<void> _indexWhenTimelineReady(Room room) async {
+    try {
+      await _timelineController.init();
+    } catch (_) {
+      return;
+    }
+    if (!mounted) return;
+    unawaited(
+      context.read<MessageRepository>().ensureRoomIndexed(room, priority: true),
+    );
   }
 
   Future<void> _refreshThreadUnreadCount() async {
