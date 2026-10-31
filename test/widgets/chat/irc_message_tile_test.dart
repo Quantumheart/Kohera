@@ -37,6 +37,12 @@ Widget _wrap(Widget child) => MaterialApp(
       home: Scaffold(body: child),
     );
 
+String _plainText(WidgetTester tester) =>
+    find.byType(Text).evaluate().map((e) {
+      final rich = (e.widget as Text).textSpan;
+      return rich?.toPlainText() ?? (e.widget as Text).data ?? '';
+    }).join();
+
 void main() {
   group('IrcMessageTile', () {
     testWidgets('renders HH:MM <nick> body for a normal message',
@@ -62,10 +68,7 @@ void main() {
         onToggleReaction: null,
       )));
 
-      final text = find.byType(Text).evaluate().map((e) {
-        final rich = (e.widget as Text).textSpan;
-        return rich?.toPlainText() ?? (e.widget as Text).data ?? '';
-      }).join();
+      final text = _plainText(tester);
       expect(text, contains('14:32'));
       expect(text, contains('<Alice>'));
       expect(text, contains('Hello, world!'));
@@ -236,10 +239,10 @@ void main() {
       expect(text, contains('Tea or coffee?'));
     });
 
-    testWidgets('caches spans across rebuilds with same inputs',
+    testWidgets('updates body when content changes with same eventId',
         (tester) async {
       await tester.pumpWidget(_wrap(IrcMessageTile(
-        message: _msg(body: 'See https://example.com'),
+        message: _msg(body: 'Unable to decrypt message'),
         reactions: null,
         media: null,
         isMe: false,
@@ -259,14 +262,10 @@ void main() {
         onToggleReaction: null,
       )));
 
-      TapGestureRecognizer? firstRecognizer;
-      firstRecognizer = _extractRecognizers(tester).firstOrNull;
-      expect(firstRecognizer, isNotNull);
+      expect(_plainText(tester), contains('Unable to decrypt message'));
 
-      // Rebuild with identical inputs — spans should be cached, so the
-      // same recognizer instance is reused.
       await tester.pumpWidget(_wrap(IrcMessageTile(
-        message: _msg(body: 'See https://example.com'),
+        message: _msg(body: ' decrypted content'),
         reactions: null,
         media: null,
         isMe: false,
@@ -287,12 +286,11 @@ void main() {
       )));
       await tester.pump();
 
-      final recognizersAfterRebuild = _extractRecognizers(tester);
-      expect(identical(firstRecognizer, recognizersAfterRebuild.firstOrNull),
-          isTrue);
+      expect(_plainText(tester), contains('decrypted content'));
+      expect(_plainText(tester), isNot(contains('Unable to decrypt')));
     });
 
-    testWidgets('rebuilds spans when isPinned changes', (tester) async {
+    testWidgets('disposes previous recognizers on rebuild', (tester) async {
       await tester.pumpWidget(_wrap(IrcMessageTile(
         message: _msg(body: 'See https://example.com'),
         reactions: null,
@@ -317,7 +315,6 @@ void main() {
       final firstRecognizer = _extractRecognizers(tester).firstOrNull;
       expect(firstRecognizer, isNotNull);
 
-      // Rebuild with isPinned changed — spans should be rebuilt.
       await tester.pumpWidget(_wrap(IrcMessageTile(
         message: _msg(body: 'See https://example.com'),
         reactions: null,
@@ -340,10 +337,9 @@ void main() {
       )));
       await tester.pump();
 
-      final recognizersAfterRebuild = _extractRecognizers(tester);
-      // A new recognizer was created (not the same instance).
-      expect(identical(firstRecognizer, recognizersAfterRebuild.firstOrNull),
-          isFalse);
+      final secondRecognizer = _extractRecognizers(tester).firstOrNull;
+      expect(secondRecognizer, isNotNull);
+      expect(identical(firstRecognizer, secondRecognizer), isFalse);
     });
   });
 }

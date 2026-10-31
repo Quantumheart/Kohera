@@ -122,17 +122,6 @@ class IrcMessageTile extends StatefulWidget {
 
 class _IrcMessageTileState extends State<IrcMessageTile> {
   final _recognizers = <TapGestureRecognizer>[];
-  List<InlineSpan>? _cachedSpans;
-  String? _cachedEventId;
-  bool? _cachedIsPinned;
-  String? _cachedHighlightedEventId;
-  bool? _cachedHasThread;
-  int? _cachedThreadReplyCount;
-  int? _cachedThreadUnreadCount;
-  String? _cachedReplyPreviewText;
-  Object? _cachedReactions;
-  Object? _cachedPoll;
-  int? _cachedNickColorValue;
 
   @override
   void dispose() {
@@ -204,63 +193,33 @@ class _IrcMessageTileState extends State<IrcMessageTile> {
         media != null &&
         mediaController != null;
 
-    // ── Line fragments (cached with recognizer lifecycle) ───
-    //
-    // Spans are cached and only rebuilt when a key input changes. This
-    // ensures [TapGestureRecognizer]s are not leaked on every rebuild —
-    // old recognizers are disposed before new ones are created, matching
-    // the pattern in [LinkableText] and [HtmlMessageText].
-    final nickColorValue = nickColor.toARGB32();
-    if (_cachedSpans == null ||
-        _cachedEventId != message.eventId ||
-        _cachedIsPinned != isPinned ||
-        _cachedHighlightedEventId != highlightedEventId ||
-        _cachedHasThread != hasThread ||
-        _cachedThreadReplyCount != threadReplyCount ||
-        _cachedThreadUnreadCount != threadUnreadCount ||
-        _cachedReplyPreviewText != replyPreviewText ||
-        !identical(_cachedReactions, reactions) ||
-        !identical(_cachedPoll, poll) ||
-        _cachedNickColorValue != nickColorValue) {
-      _disposeRecognizers();
-      _cachedSpans = _buildLineSpans(
-        context: context,
-        cs: cs,
-        palette: palette,
-        mono: mono,
-        nickColor: nickColor,
-        nick: nick,
-        isRedacted: isRedacted,
-        isEmote: isEmote,
-        isNotice: isNotice,
-        isMediaMessage: isMediaMessage,
-        isMe: isMe,
-        isPinned: isPinned,
-        hasThread: hasThread,
-        inThread: inThread,
-        threadReplyCount: threadReplyCount,
-        threadUnreadCount: threadUnreadCount,
-        highlightedEventId: highlightedEventId,
-        replyPreviewText: replyPreviewText,
-        reactions: reactions,
-        media: media,
-        poll: poll,
-        onToggleReaction: onToggleReaction,
-        onOpenThread: onOpenThread,
-        onTapSender: onTapSender,
-        onTapReply: onTapReply,
-      );
-      _cachedEventId = message.eventId;
-      _cachedIsPinned = isPinned;
-      _cachedHighlightedEventId = highlightedEventId;
-      _cachedHasThread = hasThread;
-      _cachedThreadReplyCount = threadReplyCount;
-      _cachedThreadUnreadCount = threadUnreadCount;
-      _cachedReplyPreviewText = replyPreviewText;
-      _cachedReactions = reactions;
-      _cachedPoll = poll;
-      _cachedNickColorValue = nickColorValue;
-    }
+    final spans = _buildLineSpans(
+      context: context,
+      cs: cs,
+      palette: palette,
+      mono: mono,
+      nickColor: nickColor,
+      nick: nick,
+      isRedacted: isRedacted,
+      isEmote: isEmote,
+      isNotice: isNotice,
+      isMediaMessage: isMediaMessage,
+      isMe: isMe,
+      isPinned: isPinned,
+      hasThread: hasThread,
+      inThread: inThread,
+      threadReplyCount: threadReplyCount,
+      threadUnreadCount: threadUnreadCount,
+      highlightedEventId: highlightedEventId,
+      replyPreviewText: replyPreviewText,
+      reactions: reactions,
+      media: media,
+      poll: poll,
+      onToggleReaction: onToggleReaction,
+      onOpenThread: onOpenThread,
+      onTapSender: onTapSender,
+      onTapReply: onTapReply,
+    );
 
     final line = Padding(
       padding: EdgeInsets.fromLTRB(4, isFirst ? 2 : 0, 4, 0),
@@ -274,7 +233,7 @@ class _IrcMessageTileState extends State<IrcMessageTile> {
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
         child: SelectionArea(
           child: Text.rich(
-            TextSpan(children: _cachedSpans),
+            TextSpan(children: spans),
             style: mono.copyWith(color: cs.onSurface),
           ),
         ),
@@ -353,6 +312,7 @@ class _IrcMessageTileState extends State<IrcMessageTile> {
     required void Function(BuildContext, String eventId)? onTapSender,
     required void Function(String eventId)? onTapReply,
   }) {
+    _disposeRecognizers();
     final message = widget.message;
     final spans = <InlineSpan>[];
 
