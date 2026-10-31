@@ -96,11 +96,8 @@ class MessageIndexerService extends ChangeNotifier {
   /// queued for retry via [_markPending].
   static const _decryptTimeout = Duration(milliseconds: 50);
   final Map<String, Set<String>> _pendingDecryptions = {};
-
-  /// Session IDs known to be unavailable (negative cache). Prevents
-  /// repeated DB reads via [loadInboundGroupSession] for events whose
-  /// session key is missing — the SDK never caches negative lookups.
-  final Set<String> _undecryptableSessions = {};
+  static const _maxUndecryptableSessionsPerRoom = 1000;
+  final Map<String, Set<String>> _undecryptableSessions = {};
 
   SearchIndex get database => _db;
 
@@ -360,8 +357,11 @@ class MessageIndexerService extends ChangeNotifier {
 
   Future<Event> _decryptIfNeeded(Event event) async {
     if (event.type != EventTypes.Encrypted) return event;
+    final roomId = event.roomId;
     final sessionId = event.content.tryGet<String>('session_id');
-    if (sessionId != null && _undecryptableSessions.contains(sessionId)) {
+    if (sessionId != null &&
+        roomId != null &&
+        _undecryptableSessions[roomId]?.contains(sessionId) == true) {
       return event;
     }
     final encryption = _matrixClientService.client.encryption;
@@ -370,14 +370,22 @@ class MessageIndexerService extends ChangeNotifier {
       final decrypted = await encryption
           .decryptRoomEvent(event)
           .timeout(_decryptTimeout);
-      if (decrypted.type == EventTypes.Encrypted && sessionId != null) {
-        _undecryptableSessions.add(sessionId);
+      if (decrypted.type == EventTypes.Encrypted &&
+          sessionId != null &&
+          roomId != null) {
+        _addUndecryptableSession(roomId, sessionId);
       }
       return decrypted;
     } catch (_) {
-      if (sessionId != null) _undecryptableSessions.add(sessionId);
       return event;
     }
+  }
+
+  void _addUndecryptableSession(String roomId, String sessionId) {
+    final sessions =
+        _undecryptableSessions.putIfAbsent(roomId, () => <String>{});
+    if (sessions.length >= _maxUndecryptableSessionsPerRoom) sessions.clear();
+    sessions.add(sessionId);
   }
 
   void _markPending(String roomId, String eventId) {
@@ -403,6 +411,7 @@ class MessageIndexerService extends ChangeNotifier {
     _backfillQueue.removeWhere((r) => r.id == roomId);
     _cancelledRooms.add(roomId);
     _pendingDecryptions.remove(roomId);
+    _undecryptableSessions.remove(roomId);
     unawaited(_db.removeRoom(roomId));
     _indexedRoomsCache?.remove(roomId);
   }
@@ -411,7 +420,7 @@ class MessageIndexerService extends ChangeNotifier {
     if (_keySubs.containsKey(room.id)) return;
     _keySubs[room.id] = room.onSessionKeyReceived.stream.listen(
       (sessionId) {
-        _undecryptableSessions.remove(sessionId);
+        _undecryptableSessions[room.id]?.remove(sessionId);
         unawaited(_retryPendingForRoom(room));
       },
     );
@@ -509,6 +518,7 @@ class MessageIndexerService extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     _backfillQueue.clear();
+    _undecryptableSessions.clear();
     unawaited(_syncSub?.cancel());
     for (final sub in _keySubs.values) {
       unawaited(sub.cancel());
