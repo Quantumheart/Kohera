@@ -22,10 +22,11 @@ import 'package:kohera/core/state/uia_interaction_controller.dart' as _i4;
 import 'package:kohera/core/theme/custom_theme.dart' as _i15;
 import 'package:kohera/core/utils/openmoji.dart' as _i31;
 import 'package:kohera/data/models/kohera_room_summary.dart' as _i14;
+import 'package:kohera/data/models/search_page.dart' as _i23;
 import 'package:kohera/data/models/space_node.dart' as _i29;
 import 'package:kohera/data/repositories/key_backup_repository.dart' as _i7;
 import 'package:kohera/data/repositories/message_search_repository.dart'
-    as _i23;
+    as _i37;
 import 'package:kohera/data/repositories/space_tree_repository.dart' as _i8;
 import 'package:kohera/data/services/avatar_resolver.dart' as _i12;
 import 'package:kohera/data/services/matrix_client_service.dart' as _i3;
@@ -9974,7 +9975,7 @@ class MockRoom extends _i1.Mock implements _i17.Room {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockMessageSearchRepository extends _i1.Mock
-    implements _i23.MessageSearchRepository {
+    implements _i37.MessageSearchRepository {
   @override
   _i20.Future<_i23.ServerSearchPage> searchServer({
     required String? query,

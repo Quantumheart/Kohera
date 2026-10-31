@@ -1,9 +1,7 @@
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/data/models/local_search_page.dart';
 import 'package:kohera/data/models/message_search_result.dart';
-import 'package:kohera/data/models/server_search_page.dart';
-import 'package:kohera/data/models/unindexed_search_result.dart';
+import 'package:kohera/data/models/search_page.dart';
 import 'package:kohera/data/repositories/message_search_repository.dart';
 import 'package:kohera/features/rooms/services/room_list_search_controller.dart';
 import 'package:mockito/annotations.dart';

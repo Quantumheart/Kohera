@@ -4,12 +4,10 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
-import 'dart:async' as _i6;
+import 'dart:async' as _i4;
 
-import 'package:kohera/data/models/local_search_page.dart' as _i3;
-import 'package:kohera/data/models/server_search_page.dart' as _i2;
-import 'package:kohera/data/models/unindexed_search_result.dart' as _i4;
-import 'package:kohera/data/repositories/message_search_repository.dart' as _i5;
+import 'package:kohera/data/models/search_page.dart' as _i2;
+import 'package:kohera/data/repositories/message_search_repository.dart' as _i3;
 import 'package:mockito/mockito.dart' as _i1;
 
 // ignore_for_file: type=lint
@@ -35,13 +33,13 @@ class _FakeServerSearchPage_0 extends _i1.SmartFake
 }
 
 class _FakeLocalSearchPage_1 extends _i1.SmartFake
-    implements _i3.LocalSearchPage {
+    implements _i2.LocalSearchPage {
   _FakeLocalSearchPage_1(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
 class _FakeUnindexedSearchResult_2 extends _i1.SmartFake
-    implements _i4.UnindexedSearchResult {
+    implements _i2.UnindexedSearchResult {
   _FakeUnindexedSearchResult_2(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
@@ -50,9 +48,9 @@ class _FakeUnindexedSearchResult_2 extends _i1.SmartFake
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockMessageSearchRepository extends _i1.Mock
-    implements _i5.MessageSearchRepository {
+    implements _i3.MessageSearchRepository {
   @override
-  _i6.Future<_i2.ServerSearchPage> searchServer({
+  _i4.Future<_i2.ServerSearchPage> searchServer({
     required String? query,
     required int? limit,
     Set<String>? scopeRoomIds,
@@ -65,7 +63,7 @@ class MockMessageSearchRepository extends _i1.Mock
               #scopeRoomIds: scopeRoomIds,
               #nextBatch: nextBatch,
             }),
-            returnValue: _i6.Future<_i2.ServerSearchPage>.value(
+            returnValue: _i4.Future<_i2.ServerSearchPage>.value(
               _FakeServerSearchPage_0(
                 this,
                 Invocation.method(#searchServer, [], {
@@ -76,7 +74,7 @@ class MockMessageSearchRepository extends _i1.Mock
                 }),
               ),
             ),
-            returnValueForMissingStub: _i6.Future<_i2.ServerSearchPage>.value(
+            returnValueForMissingStub: _i4.Future<_i2.ServerSearchPage>.value(
               _FakeServerSearchPage_0(
                 this,
                 Invocation.method(#searchServer, [], {
@@ -88,10 +86,10 @@ class MockMessageSearchRepository extends _i1.Mock
               ),
             ),
           )
-          as _i6.Future<_i2.ServerSearchPage>);
+          as _i4.Future<_i2.ServerSearchPage>);
 
   @override
-  _i6.Future<_i3.LocalSearchPage> searchLocal({
+  _i4.Future<_i2.LocalSearchPage> searchLocal({
     required String? query,
     required int? limit,
     Set<String>? scopeRoomIds,
@@ -104,7 +102,7 @@ class MockMessageSearchRepository extends _i1.Mock
               #scopeRoomIds: scopeRoomIds,
               #offset: offset,
             }),
-            returnValue: _i6.Future<_i3.LocalSearchPage>.value(
+            returnValue: _i4.Future<_i2.LocalSearchPage>.value(
               _FakeLocalSearchPage_1(
                 this,
                 Invocation.method(#searchLocal, [], {
@@ -115,7 +113,7 @@ class MockMessageSearchRepository extends _i1.Mock
                 }),
               ),
             ),
-            returnValueForMissingStub: _i6.Future<_i3.LocalSearchPage>.value(
+            returnValueForMissingStub: _i4.Future<_i2.LocalSearchPage>.value(
               _FakeLocalSearchPage_1(
                 this,
                 Invocation.method(#searchLocal, [], {
@@ -127,10 +125,10 @@ class MockMessageSearchRepository extends _i1.Mock
               ),
             ),
           )
-          as _i6.Future<_i3.LocalSearchPage>);
+          as _i4.Future<_i2.LocalSearchPage>);
 
   @override
-  _i6.Future<_i4.UnindexedSearchResult> searchUnindexed({
+  _i4.Future<_i2.UnindexedSearchResult> searchUnindexed({
     required String? query,
     required int? limit,
     Set<String>? scopeRoomIds,
@@ -143,7 +141,7 @@ class MockMessageSearchRepository extends _i1.Mock
               #scopeRoomIds: scopeRoomIds,
               #shouldAbort: shouldAbort,
             }),
-            returnValue: _i6.Future<_i4.UnindexedSearchResult>.value(
+            returnValue: _i4.Future<_i2.UnindexedSearchResult>.value(
               _FakeUnindexedSearchResult_2(
                 this,
                 Invocation.method(#searchUnindexed, [], {
@@ -155,7 +153,7 @@ class MockMessageSearchRepository extends _i1.Mock
               ),
             ),
             returnValueForMissingStub:
-                _i6.Future<_i4.UnindexedSearchResult>.value(
+                _i4.Future<_i2.UnindexedSearchResult>.value(
                   _FakeUnindexedSearchResult_2(
                     this,
                     Invocation.method(#searchUnindexed, [], {
@@ -167,5 +165,5 @@ class MockMessageSearchRepository extends _i1.Mock
                   ),
                 ),
           )
-          as _i6.Future<_i4.UnindexedSearchResult>);
+          as _i4.Future<_i2.UnindexedSearchResult>);
 }
