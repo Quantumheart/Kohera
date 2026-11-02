@@ -38,7 +38,7 @@ jobs:
       - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2
         with:
           channel: stable
-          flutter-version: '3.47.0'
+          flutter-version: '3.47.8'
           cache: true
       - name: Cache pub dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -70,7 +70,7 @@ jobs:
       - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2
         with:
           channel: stable
-          flutter-version: '3.47.0'
+          flutter-version: '3.47.8'
           cache: true
       - name: Cache pub dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -101,7 +101,7 @@ jobs:
       - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2
         with:
           channel: stable
-          flutter-version: '3.47.0'
+          flutter-version: '3.47.8'
           cache: true
       - name: Cache pub dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -194,7 +194,7 @@ jobs:
       - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2
         with:
           channel: stable
-          flutter-version: '3.47.0'
+          flutter-version: '3.47.8'
           cache: true
       - name: Cache pub dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -279,7 +279,7 @@ jobs:
       - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2
         with:
           channel: stable
-          flutter-version: '3.47.0'
+          flutter-version: '3.47.8'
           cache: true
       - name: Cache pub dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
