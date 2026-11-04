@@ -1025,11 +1025,11 @@ packages:
     dependency: "direct main"
     description:
       path: "."
-      ref: "8700d36f"
-      resolved-ref: "8700d36f58c82050f4e992f314eae4671251f6fe"
+      ref: "35c3bcaf"
+      resolved-ref: "35c3bcaf3bc45e5a298f978b2dc1357616645330"
       url: "https://github.com/Quantumheart/matrix-dart-sdk.git"
     source: git
-    version: "12.0.2"
+    version: "14.0.0"
   media_kit:
     dependency: "direct main"
     description:

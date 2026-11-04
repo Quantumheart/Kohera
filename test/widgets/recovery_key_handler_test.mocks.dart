@@ -7460,6 +7460,15 @@ class MockCrossSigning extends _i1.Mock implements _i10.CrossSigning {
           as bool);
 
   @override
+  bool get isSelfSigned =>
+      (super.noSuchMethod(
+            Invocation.getter(#isSelfSigned),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   _i6.Future<bool> isCached() =>
       (super.noSuchMethod(
             Invocation.method(#isCached, []),

@@ -8155,9 +8155,15 @@ class MockRoom extends _i1.Mock implements _i15.Room {
     String? body,
     String? geoUri, {
     String? txid,
+    DateTime? ts,
+    String? assetType = 'm.self',
   }) =>
       (super.noSuchMethod(
-            Invocation.method(#sendLocation, [body, geoUri], {#txid: txid}),
+            Invocation.method(
+              #sendLocation,
+              [body, geoUri],
+              {#txid: txid, #ts: ts, #assetType: assetType},
+            ),
             returnValue: _i18.Future<String?>.value(),
             returnValueForMissingStub: _i18.Future<String?>.value(),
           )
@@ -8242,18 +8248,24 @@ class MockRoom extends _i1.Mock implements _i15.Room {
           as _i18.Future<String?>);
 
   @override
-  _i18.Future<void> join({bool? leaveIfNotFound = true}) =>
+  _i18.Future<void> join({
+    bool? leaveIfNotFound = true,
+    bool? waitForSync = false,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#join, [], {#leaveIfNotFound: leaveIfNotFound}),
+            Invocation.method(#join, [], {
+              #leaveIfNotFound: leaveIfNotFound,
+              #waitForSync: waitForSync,
+            }),
             returnValue: _i18.Future<void>.value(),
             returnValueForMissingStub: _i18.Future<void>.value(),
           )
           as _i18.Future<void>);
 
   @override
-  _i18.Future<void> leave() =>
+  _i18.Future<void> leave({bool? waitForSync = false}) =>
       (super.noSuchMethod(
-            Invocation.method(#leave, []),
+            Invocation.method(#leave, [], {#waitForSync: waitForSync}),
             returnValue: _i18.Future<void>.value(),
             returnValueForMissingStub: _i18.Future<void>.value(),
           )
@@ -8315,9 +8327,17 @@ class MockRoom extends _i1.Mock implements _i15.Room {
           as _i18.Future<String>);
 
   @override
-  _i18.Future<void> invite(String? userID, {String? reason}) =>
+  _i18.Future<void> invite(
+    String? userID, {
+    String? reason,
+    bool? waitForSync,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#invite, [userID], {#reason: reason}),
+            Invocation.method(
+              #invite,
+              [userID],
+              {#reason: reason, #waitForSync: waitForSync},
+            ),
             returnValue: _i18.Future<void>.value(),
             returnValueForMissingStub: _i18.Future<void>.value(),
           )

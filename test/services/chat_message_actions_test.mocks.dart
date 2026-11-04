@@ -1457,9 +1457,15 @@ class MockRoom extends _i1.Mock implements _i2.Room {
     String? body,
     String? geoUri, {
     String? txid,
+    DateTime? ts,
+    String? assetType = 'm.self',
   }) =>
       (super.noSuchMethod(
-            Invocation.method(#sendLocation, [body, geoUri], {#txid: txid}),
+            Invocation.method(
+              #sendLocation,
+              [body, geoUri],
+              {#txid: txid, #ts: ts, #assetType: assetType},
+            ),
             returnValue: _i6.Future<String?>.value(),
             returnValueForMissingStub: _i6.Future<String?>.value(),
           )
@@ -1544,18 +1550,24 @@ class MockRoom extends _i1.Mock implements _i2.Room {
           as _i6.Future<String?>);
 
   @override
-  _i6.Future<void> join({bool? leaveIfNotFound = true}) =>
+  _i6.Future<void> join({
+    bool? leaveIfNotFound = true,
+    bool? waitForSync = false,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#join, [], {#leaveIfNotFound: leaveIfNotFound}),
+            Invocation.method(#join, [], {
+              #leaveIfNotFound: leaveIfNotFound,
+              #waitForSync: waitForSync,
+            }),
             returnValue: _i6.Future<void>.value(),
             returnValueForMissingStub: _i6.Future<void>.value(),
           )
           as _i6.Future<void>);
 
   @override
-  _i6.Future<void> leave() =>
+  _i6.Future<void> leave({bool? waitForSync = false}) =>
       (super.noSuchMethod(
-            Invocation.method(#leave, []),
+            Invocation.method(#leave, [], {#waitForSync: waitForSync}),
             returnValue: _i6.Future<void>.value(),
             returnValueForMissingStub: _i6.Future<void>.value(),
           )
@@ -1617,9 +1629,17 @@ class MockRoom extends _i1.Mock implements _i2.Room {
           as _i6.Future<String>);
 
   @override
-  _i6.Future<void> invite(String? userID, {String? reason}) =>
+  _i6.Future<void> invite(
+    String? userID, {
+    String? reason,
+    bool? waitForSync,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#invite, [userID], {#reason: reason}),
+            Invocation.method(
+              #invite,
+              [userID],
+              {#reason: reason, #waitForSync: waitForSync},
+            ),
             returnValue: _i6.Future<void>.value(),
             returnValueForMissingStub: _i6.Future<void>.value(),
           )
@@ -2498,12 +2518,6 @@ class MockEvent extends _i1.Mock implements _i2.Event {
   @override
   set unsigned(Map<String, Object?>? value) => super.noSuchMethod(
     Invocation.setter(#unsigned, value),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  set prevContent(Map<String, Object?>? value) => super.noSuchMethod(
-    Invocation.setter(#prevContent, value),
     returnValueForMissingStub: null,
   );
 
