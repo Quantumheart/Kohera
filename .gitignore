@@ -59,6 +59,8 @@ web/native_executor.js*
 
 # Flatpak
 flatpak/.flatpak-builder-build/
+flatpak/repo/
+flatpak/*.flatpak
 .flatpak-builder/
 .pi/
 .plans/
