@@ -7458,9 +7458,15 @@ class MockRoom extends _i1.Mock implements _i2.Room {
     String? body,
     String? geoUri, {
     String? txid,
+    DateTime? ts,
+    String? assetType = 'm.self',
   }) =>
       (super.noSuchMethod(
-            Invocation.method(#sendLocation, [body, geoUri], {#txid: txid}),
+            Invocation.method(
+              #sendLocation,
+              [body, geoUri],
+              {#txid: txid, #ts: ts, #assetType: assetType},
+            ),
             returnValue: _i5.Future<String?>.value(),
             returnValueForMissingStub: _i5.Future<String?>.value(),
           )
@@ -7545,18 +7551,24 @@ class MockRoom extends _i1.Mock implements _i2.Room {
           as _i5.Future<String?>);
 
   @override
-  _i5.Future<void> join({bool? leaveIfNotFound = true}) =>
+  _i5.Future<void> join({
+    bool? leaveIfNotFound = true,
+    bool? waitForSync = false,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#join, [], {#leaveIfNotFound: leaveIfNotFound}),
+            Invocation.method(#join, [], {
+              #leaveIfNotFound: leaveIfNotFound,
+              #waitForSync: waitForSync,
+            }),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
           as _i5.Future<void>);
 
   @override
-  _i5.Future<void> leave() =>
+  _i5.Future<void> leave({bool? waitForSync = false}) =>
       (super.noSuchMethod(
-            Invocation.method(#leave, []),
+            Invocation.method(#leave, [], {#waitForSync: waitForSync}),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
@@ -7618,9 +7630,17 @@ class MockRoom extends _i1.Mock implements _i2.Room {
           as _i5.Future<String>);
 
   @override
-  _i5.Future<void> invite(String? userID, {String? reason}) =>
+  _i5.Future<void> invite(
+    String? userID, {
+    String? reason,
+    bool? waitForSync,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#invite, [userID], {#reason: reason}),
+            Invocation.method(
+              #invite,
+              [userID],
+              {#reason: reason, #waitForSync: waitForSync},
+            ),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
@@ -8849,6 +8869,15 @@ class MockCrossSigning extends _i1.Mock implements _i11.CrossSigning {
   bool get enabled =>
       (super.noSuchMethod(
             Invocation.getter(#enabled),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool get isSelfSigned =>
+      (super.noSuchMethod(
+            Invocation.getter(#isSelfSigned),
             returnValue: false,
             returnValueForMissingStub: false,
           )
@@ -10572,23 +10601,6 @@ class MockDatabaseApi extends _i1.Mock implements _i2.DatabaseApi {
           as _i5.Future<dynamic>);
 
   @override
-  _i5.Future<dynamic> setLastActiveUserDeviceKey(
-    int? lastActive,
-    String? userId,
-    String? deviceId,
-  ) =>
-      (super.noSuchMethod(
-            Invocation.method(#setLastActiveUserDeviceKey, [
-              lastActive,
-              userId,
-              deviceId,
-            ]),
-            returnValue: _i5.Future<dynamic>.value(),
-            returnValueForMissingStub: _i5.Future<dynamic>.value(),
-          )
-          as _i5.Future<dynamic>);
-
-  @override
   _i5.Future<dynamic> setLastSentMessageUserDeviceKey(
     String? lastSentMessage,
     String? userId,
@@ -10661,79 +10673,6 @@ class MockDatabaseApi extends _i1.Mock implements _i2.DatabaseApi {
           as _i5.Future<dynamic>);
 
   @override
-  _i5.Future<dynamic> storeUserDeviceKeysInfo(String? userId, bool? outdated) =>
-      (super.noSuchMethod(
-            Invocation.method(#storeUserDeviceKeysInfo, [userId, outdated]),
-            returnValue: _i5.Future<dynamic>.value(),
-            returnValueForMissingStub: _i5.Future<dynamic>.value(),
-          )
-          as _i5.Future<dynamic>);
-
-  @override
-  _i5.Future<dynamic> storeUserDeviceKey(
-    String? userId,
-    String? deviceId,
-    String? content,
-    bool? verified,
-    bool? blocked,
-    int? lastActive,
-  ) =>
-      (super.noSuchMethod(
-            Invocation.method(#storeUserDeviceKey, [
-              userId,
-              deviceId,
-              content,
-              verified,
-              blocked,
-              lastActive,
-            ]),
-            returnValue: _i5.Future<dynamic>.value(),
-            returnValueForMissingStub: _i5.Future<dynamic>.value(),
-          )
-          as _i5.Future<dynamic>);
-
-  @override
-  _i5.Future<dynamic> removeUserDeviceKey(String? userId, String? deviceId) =>
-      (super.noSuchMethod(
-            Invocation.method(#removeUserDeviceKey, [userId, deviceId]),
-            returnValue: _i5.Future<dynamic>.value(),
-            returnValueForMissingStub: _i5.Future<dynamic>.value(),
-          )
-          as _i5.Future<dynamic>);
-
-  @override
-  _i5.Future<dynamic> removeUserCrossSigningKey(
-    String? userId,
-    String? publicKey,
-  ) =>
-      (super.noSuchMethod(
-            Invocation.method(#removeUserCrossSigningKey, [userId, publicKey]),
-            returnValue: _i5.Future<dynamic>.value(),
-            returnValueForMissingStub: _i5.Future<dynamic>.value(),
-          )
-          as _i5.Future<dynamic>);
-
-  @override
-  _i5.Future<dynamic> storeUserCrossSigningKey(
-    String? userId,
-    String? publicKey,
-    String? content,
-    bool? verified,
-    bool? blocked, {
-    DateTime? trustOnFirstUseSince,
-  }) =>
-      (super.noSuchMethod(
-            Invocation.method(
-              #storeUserCrossSigningKey,
-              [userId, publicKey, content, verified, blocked],
-              {#trustOnFirstUseSince: trustOnFirstUseSince},
-            ),
-            returnValue: _i5.Future<dynamic>.value(),
-            returnValueForMissingStub: _i5.Future<dynamic>.value(),
-          )
-          as _i5.Future<dynamic>);
-
-  @override
   _i5.Future<dynamic> deleteFromToDeviceQueue(int? id) =>
       (super.noSuchMethod(
             Invocation.method(#deleteFromToDeviceQueue, [id]),
@@ -10759,75 +10698,6 @@ class MockDatabaseApi extends _i1.Mock implements _i2.DatabaseApi {
   ) =>
       (super.noSuchMethod(
             Invocation.method(#setRoomPrevBatch, [prevBatch, roomId, client]),
-            returnValue: _i5.Future<dynamic>.value(),
-            returnValueForMissingStub: _i5.Future<dynamic>.value(),
-          )
-          as _i5.Future<dynamic>);
-
-  @override
-  _i5.Future<dynamic> setVerifiedUserCrossSigningKey(
-    bool? verified,
-    String? userId,
-    String? publicKey, {
-    DateTime? trustOnFirstUseSince,
-  }) =>
-      (super.noSuchMethod(
-            Invocation.method(
-              #setVerifiedUserCrossSigningKey,
-              [verified, userId, publicKey],
-              {#trustOnFirstUseSince: trustOnFirstUseSince},
-            ),
-            returnValue: _i5.Future<dynamic>.value(),
-            returnValueForMissingStub: _i5.Future<dynamic>.value(),
-          )
-          as _i5.Future<dynamic>);
-
-  @override
-  _i5.Future<dynamic> setBlockedUserCrossSigningKey(
-    bool? blocked,
-    String? userId,
-    String? publicKey,
-  ) =>
-      (super.noSuchMethod(
-            Invocation.method(#setBlockedUserCrossSigningKey, [
-              blocked,
-              userId,
-              publicKey,
-            ]),
-            returnValue: _i5.Future<dynamic>.value(),
-            returnValueForMissingStub: _i5.Future<dynamic>.value(),
-          )
-          as _i5.Future<dynamic>);
-
-  @override
-  _i5.Future<dynamic> setVerifiedUserDeviceKey(
-    bool? verified,
-    String? userId,
-    String? deviceId,
-  ) =>
-      (super.noSuchMethod(
-            Invocation.method(#setVerifiedUserDeviceKey, [
-              verified,
-              userId,
-              deviceId,
-            ]),
-            returnValue: _i5.Future<dynamic>.value(),
-            returnValueForMissingStub: _i5.Future<dynamic>.value(),
-          )
-          as _i5.Future<dynamic>);
-
-  @override
-  _i5.Future<dynamic> setBlockedUserDeviceKey(
-    bool? blocked,
-    String? userId,
-    String? deviceId,
-  ) =>
-      (super.noSuchMethod(
-            Invocation.method(#setBlockedUserDeviceKey, [
-              blocked,
-              userId,
-              deviceId,
-            ]),
             returnValue: _i5.Future<dynamic>.value(),
             returnValueForMissingStub: _i5.Future<dynamic>.value(),
           )
@@ -10925,6 +10795,21 @@ class MockDatabaseApi extends _i1.Mock implements _i2.DatabaseApi {
             returnValueForMissingStub: _i5.Future<dynamic>.value(),
           )
           as _i5.Future<dynamic>);
+
+  @override
+  _i5.Future<void> removeLastSentMessageUserDeviceKey(
+    String? userId,
+    String? deviceId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#removeLastSentMessageUserDeviceKey, [
+              userId,
+              deviceId,
+            ]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
 
   @override
   _i5.Future<List<String>> getLastSentMessageUserDeviceKey(
@@ -11103,6 +10988,27 @@ class MockDatabaseApi extends _i1.Mock implements _i2.DatabaseApi {
   ) =>
       (super.noSuchMethod(
             Invocation.method(#storeLatestReceiptState, [roomId, receiptState]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<_i2.DeviceKeysList?> getDeviceKeysList(
+    String? userId,
+    _i2.Client? client,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#getDeviceKeysList, [userId, client]),
+            returnValue: _i5.Future<_i2.DeviceKeysList?>.value(),
+            returnValueForMissingStub: _i5.Future<_i2.DeviceKeysList?>.value(),
+          )
+          as _i5.Future<_i2.DeviceKeysList?>);
+
+  @override
+  _i5.Future<void> storeDeviceKeysList(_i2.DeviceKeysList? deviceKeysList) =>
+      (super.noSuchMethod(
+            Invocation.method(#storeDeviceKeysList, [deviceKeysList]),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )

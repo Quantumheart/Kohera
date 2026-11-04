@@ -414,12 +414,6 @@ class MockEvent extends _i1.Mock implements _i2.Event {
   );
 
   @override
-  set prevContent(Map<String, Object?>? value) => super.noSuchMethod(
-    Invocation.setter(#prevContent, value),
-    returnValueForMissingStub: null,
-  );
-
-  @override
   set redacts(String? value) => super.noSuchMethod(
     Invocation.setter(#redacts, value),
     returnValueForMissingStub: null,
