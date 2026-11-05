@@ -55,14 +55,10 @@ class _ThreadScreenState extends State<ThreadScreen> {
       roomId: widget.roomId,
       sendPublicReadReceipts: false,
       threadRootEventId: widget.threadRootEventId,
-      onTimelineChanged: () {
-        if (mounted) setState(() {});
-      },
     );
     _actions = ChatMessageActions(
       getRoomId: () => widget.roomId,
-      getRoom: () =>
-          context.read<RoomRepository>().rawRoom(widget.roomId),
+      getRoom: () => context.read<RoomRepository>().rawRoom(widget.roomId),
       getTimeline: () => _timelineController.timeline,
       compose: _compose,
       msgCtrl: _msgCtrl,
@@ -159,8 +155,8 @@ class _ThreadScreenState extends State<ThreadScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final matrix = context.watch<MatrixService>();
-    final room = context.watch<RoomRepository>().rawRoom(widget.roomId);
+    final matrix = context.read<MatrixService>();
+    final room = context.read<RoomRepository>().rawRoom(widget.roomId);
     final tt = Theme.of(context).textTheme;
 
     if (room == null) {
@@ -191,38 +187,41 @@ class _ThreadScreenState extends State<ThreadScreen> {
       body: Column(
         children: [
           Expanded(
-            child: MessageListView(
-              key: _messageListKey,
-              controller: _timelineController,
-              mentionResolver: (_) => null,
-              emptyText: 'No replies yet.\nStart the conversation.',
-              extraLoading: _loadingMoreReplies,
-              onLoadMoreExtra: () => unawaited(_loadMoreReplies()),
-              onReply: (eventId) {
-                final event = _timelineController.getEventById(eventId);
-                if (event != null) _compose.setReplyTo(event);
-              },
-              onEdit: (eventId) {
-                final event = _timelineController.getEventById(eventId);
-                if (event != null) {
-                  _compose.setEditEvent(
-                    event,
-                    _timelineController.timeline,
-                    _msgCtrl,
-                  );
-                }
-              },
-              onToggleReaction: (eventId, emoji) async {
-                final event = _timelineController.getEventById(eventId);
-                if (event != null) {
-                  await _actions.toggleReaction(event, emoji);
-                }
-              },
-              onPin: (eventId) async {
-                final event = _timelineController.getEventById(eventId);
-                if (event != null) await _actions.togglePin(event);
-              },
-              onHighlight: (_) {},
+            child: ListenableBuilder(
+              listenable: _timelineController,
+              builder: (context, _) => MessageListView(
+                key: _messageListKey,
+                controller: _timelineController,
+                mentionResolver: (_) => null,
+                emptyText: 'No replies yet.\nStart the conversation.',
+                extraLoading: _loadingMoreReplies,
+                onLoadMoreExtra: () => unawaited(_loadMoreReplies()),
+                onReply: (eventId) {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) _compose.setReplyTo(event);
+                },
+                onEdit: (eventId) {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) {
+                    _compose.setEditEvent(
+                      event,
+                      _timelineController.timeline,
+                      _msgCtrl,
+                    );
+                  }
+                },
+                onToggleReaction: (eventId, emoji) async {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) {
+                    await _actions.toggleReaction(event, emoji);
+                  }
+                },
+                onPin: (eventId) async {
+                  final event = _timelineController.getEventById(eventId);
+                  if (event != null) await _actions.togglePin(event);
+                },
+                onHighlight: (_) {},
+              ),
             ),
           ),
           if (_focusReady)
