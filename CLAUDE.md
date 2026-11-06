@@ -16,6 +16,12 @@ We prefer using characters from the US English keyboard.
 
 We prefer using Github markdown.
 
+## Communication style
+
+Monosemy: every statement carries exactly one meaning with no room for alternate interpretation. Use precise language, specific nouns and verbs, active voice, and concrete values. No idioms, metaphors, or implied meaning. One sentence, one job.
+
+Responses must be concise. State the answer or action first. Omit filler, pleasantries, and restating the question. Use fragments and bullet points over prose. Longer explanation is allowed only when the user asks for it or when safety or correctness requires it.
+
 
 ## What is Kohera?
 
