@@ -160,10 +160,12 @@ class _ThreadScreenState extends State<ThreadScreen> {
   @override
   Widget build(BuildContext context) {
     final matrix = context.watch<MatrixService>();
-    final room = context.watch<RoomRepository>().rawRoom(widget.roomId);
+    final roomExists = context.select<RoomRepository, bool>(
+      (rooms) => rooms.rawRoom(widget.roomId) != null,
+    );
     final tt = Theme.of(context).textTheme;
 
-    if (room == null) {
+    if (!roomExists) {
       return Scaffold(
         appBar: AppBar(title: const Text('Thread')),
         body: Center(child: Text('Room not found', style: tt.bodyLarge)),
