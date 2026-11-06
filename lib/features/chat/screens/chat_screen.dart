@@ -1173,7 +1173,9 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   Widget build(BuildContext context) {
     final matrix = context.watch<MatrixService>();
-    final room = context.watch<RoomRepository>().rawRoom(widget.roomId);
+    final room = context.select<RoomRepository, Room?>(
+      (rooms) => rooms.rawRoom(widget.roomId),
+    );
     final tt = Theme.of(context).textTheme;
 
     if (room == null) {
