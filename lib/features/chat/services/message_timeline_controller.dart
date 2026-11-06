@@ -59,6 +59,9 @@ class MessageTimelineController extends ChangeNotifier
   String? _initialFullyReadId;
   List<ChatMessageData>? _cachedMessages;
   Map<String, List<KoheraReadReceipt>>? _cachedReceipts;
+  final Map<String, _MessageDataCacheEntry> _messageDataCache = {};
+  Set<String> _prevVisibleEventIds = const {};
+  int _lastRoomStateVersion = 0;
   bool _disposed = false;
 
   /// Coalesces rapid-fire [onUpdate] callbacks from the SDK timeline
@@ -244,6 +247,8 @@ class MessageTimelineController extends ChangeNotifier
     _timeline = timeline;
     _cachedMessages = null;
     _cachedReceipts = null;
+    _messageDataCache.clear();
+    _prevVisibleEventIds = const {};
     notifyListeners();
     onTimelineChanged?.call();
     _markAsRead();
@@ -426,6 +431,8 @@ class MessageTimelineController extends ChangeNotifier
     _timeline = timeline;
     _cachedMessages = null;
     _cachedReceipts = null;
+    _messageDataCache.clear();
+    _prevVisibleEventIds = const {};
     notifyListeners();
     onTimelineChanged?.call();
   }
@@ -460,6 +467,8 @@ class MessageTimelineController extends ChangeNotifier
     _timeline = timeline;
     _cachedMessages = null;
     _cachedReceipts = null;
+    _messageDataCache.clear();
+    _prevVisibleEventIds = const {};
     notifyListeners();
     onTimelineChanged?.call();
     _markAsRead();
@@ -578,105 +587,188 @@ class MessageTimelineController extends ChangeNotifier
 
   // ── ChatMessageData pre-computation ────────────────────
 
+  static const List<String> _aggregationTypes = [
+    RelationshipTypes.reaction,
+    RelationshipTypes.thread,
+    RelationshipTypes.edit,
+    RelationshipTypes.reference,
+  ];
+
   List<ChatMessageData> _buildMessageData(List<Event> visible) {
     final uid = myUserId ?? '';
     final room = _room;
     final timeline = _timeline;
+
+    final roomStateVersion = Object.hash(
+      room?.getState(EventTypes.RoomPinnedEvents),
+      room?.getState(EventTypes.RoomPowerLevels),
+      Object.hashAll(rooms.ignoredUsers),
+    );
+    if (roomStateVersion != _lastRoomStateVersion) {
+      _lastRoomStateVersion = roomStateVersion;
+      _messageDataCache.clear();
+    }
+
+    final visibleIds = <String>{};
+    var memberEventArrived = false;
+    for (final e in visible) {
+      if (visibleIds.add(e.eventId) &&
+          !_prevVisibleEventIds.contains(e.eventId) &&
+          e.type == EventTypes.RoomMember) {
+        memberEventArrived = true;
+      }
+    }
+    if (memberEventArrived) _messageDataCache.clear();
+    _prevVisibleEventIds = visibleIds;
+
+    final receiptsNow = receipts;
     final result = <ChatMessageData>[];
 
     for (var i = 0; i < visible.length; i++) {
       final event = visible[i];
-      final isMe = event.senderId == uid;
       final prevSender = i + 1 < visible.length ? visible[i + 1].senderId : null;
       final isFirst = event.senderId != prevSender;
-
-      final isPinned = room?.pinnedEventIds.contains(event.eventId) ?? false;
-      final isRedacted = event.redacted;
-      final canPin = !isRedacted &&
-          (room?.canChangeStateEvent('m.room.pinned_events') ?? false);
-      final canRedact = event.canRedact;
-
-      final hasThread = timeline != null &&
-          event.hasAggregatedEvents(timeline, RelationshipTypes.thread);
-      final threadReplyCount = hasThread
-          ? event.aggregatedEvents(timeline, RelationshipTypes.thread).length
-          : 0;
-      final threadUnreadCount = hasThread && room != null
-          ? threadUnreadCountFor(
-              root: event,
-              timeline: timeline,
-              room: room,
-              myUserId: uid,
-            )
-          : 0;
-
-      KoheraReactionList? reactions;
-      if (timeline != null &&
-          event.hasAggregatedEvents(timeline, RelationshipTypes.reaction)) {
-        reactions = ReactionResolver.resolve(
-          event,
-          timeline,
-          myUserId: uid,
-        );
-      }
-
       final category = _classifyEvent(event);
-      final message = MessageDisplayResolver.resolve(
-        event,
-        timeline: timeline,
-      );
 
-      KoheraStateEventText? stateEventText;
-      KoheraMediaContent? media;
-      MediaController? mediaController;
-      Duration? callDuration;
-      KoheraPoll? poll;
-
-      switch (category) {
-        case MessageCategory.stateEvent:
-          stateEventText = StateEventResolver.resolve(event);
-        case MessageCategory.sticker:
-          media = MediaContentResolver.resolve(event);
-          mediaController = SdkMediaController(event, rooms.searchClient);
-        case MessageCategory.callEvent:
-          callDuration = _callDuration(event);
-        case MessageCategory.poll:
-          if (timeline != null) {
-            poll = PollResolver.resolve(
-              event,
-              timeline,
-              myUserId: uid,
-              canRedact: canRedact,
-            );
-          }
-        case MessageCategory.message:
-          if (!isRedacted) {
-            media = MediaContentResolver.resolve(event);
-            mediaController = SdkMediaController(event, rooms.searchClient);
-          }
+      if (category == MessageCategory.callEvent) {
+        result.add(_resolveEventData(event, uid, isFirst, room, timeline, category));
+        continue;
       }
 
-      result.add(ChatMessageData(
-        message: message,
-        category: category,
-        isMe: isMe,
+      final aggregationHash = _aggregationHashFor(event, timeline);
+      final entry = _messageDataCache[event.eventId];
+      if (entry != null &&
+          entry.isValidFor(event, isFirst, aggregationHash, receiptsNow)) {
+        result.add(entry.data);
+        continue;
+      }
+
+      final data = _resolveEventData(event, uid, isFirst, room, timeline, category);
+      _messageDataCache[event.eventId] = _MessageDataCacheEntry(
+        event: event,
         isFirst: isFirst,
-        isPinned: isPinned,
-        canPin: canPin,
-        canRedact: canRedact,
-        hasThread: hasThread,
-        threadReplyCount: threadReplyCount,
-        threadUnreadCount: threadUnreadCount,
-        stateEventText: stateEventText,
-        reactions: reactions,
-        media: media,
-        mediaController: mediaController,
-        callDuration: callDuration,
-        poll: poll,
-      ),);
+        aggregationHash: aggregationHash,
+        type: event.type,
+        messageType: event.messageType,
+        body: event.body,
+        redacted: event.redacted,
+        receiptsVersion: data.hasThread ? receiptsNow : null,
+        data: data,
+      );
+      result.add(data);
     }
 
+    _messageDataCache.removeWhere((id, _) => !visibleIds.contains(id));
     return result;
+  }
+
+  int _aggregationHashFor(Event event, Timeline? timeline) {
+    if (timeline == null) return 0;
+    var hash = 0;
+    for (final type in _aggregationTypes) {
+      if (!event.hasAggregatedEvents(timeline, type)) continue;
+      final aggregated = event.aggregatedEvents(timeline, type);
+      hash ^= aggregated.length;
+      for (final a in aggregated) {
+        hash ^= a.eventId.hashCode;
+      }
+    }
+    return hash;
+  }
+
+  ChatMessageData _resolveEventData(
+    Event event,
+    String uid,
+    bool isFirst,
+    Room? room,
+    Timeline? timeline,
+    MessageCategory category,
+  ) {
+    final isMe = event.senderId == uid;
+
+    final isPinned = room?.pinnedEventIds.contains(event.eventId) ?? false;
+    final isRedacted = event.redacted;
+    final canPin = !isRedacted &&
+        (room?.canChangeStateEvent('m.room.pinned_events') ?? false);
+    final canRedact = event.canRedact;
+
+    final hasThread = timeline != null &&
+        event.hasAggregatedEvents(timeline, RelationshipTypes.thread);
+    final threadReplyCount = hasThread
+        ? event.aggregatedEvents(timeline, RelationshipTypes.thread).length
+        : 0;
+    final threadUnreadCount = hasThread && room != null
+        ? threadUnreadCountFor(
+            root: event,
+            timeline: timeline,
+            room: room,
+            myUserId: uid,
+          )
+        : 0;
+
+    KoheraReactionList? reactions;
+    if (timeline != null &&
+        event.hasAggregatedEvents(timeline, RelationshipTypes.reaction)) {
+      reactions = ReactionResolver.resolve(
+        event,
+        timeline,
+        myUserId: uid,
+      );
+    }
+
+    final message = MessageDisplayResolver.resolve(
+      event,
+      timeline: timeline,
+    );
+
+    KoheraStateEventText? stateEventText;
+    KoheraMediaContent? media;
+    MediaController? mediaController;
+    Duration? callDuration;
+    KoheraPoll? poll;
+
+    switch (category) {
+      case MessageCategory.stateEvent:
+        stateEventText = StateEventResolver.resolve(event);
+      case MessageCategory.sticker:
+        media = MediaContentResolver.resolve(event);
+        mediaController = SdkMediaController(event, rooms.searchClient);
+      case MessageCategory.callEvent:
+        callDuration = _callDuration(event);
+      case MessageCategory.poll:
+        if (timeline != null) {
+          poll = PollResolver.resolve(
+            event,
+            timeline,
+            myUserId: uid,
+            canRedact: canRedact,
+          );
+        }
+      case MessageCategory.message:
+        if (!isRedacted) {
+          media = MediaContentResolver.resolve(event);
+          mediaController = SdkMediaController(event, rooms.searchClient);
+        }
+    }
+
+    return ChatMessageData(
+      message: message,
+      category: category,
+      isMe: isMe,
+      isFirst: isFirst,
+      isPinned: isPinned,
+      canPin: canPin,
+      canRedact: canRedact,
+      hasThread: hasThread,
+      threadReplyCount: threadReplyCount,
+      threadUnreadCount: threadUnreadCount,
+      stateEventText: stateEventText,
+      reactions: reactions,
+      media: media,
+      mediaController: mediaController,
+      callDuration: callDuration,
+      poll: poll,
+    );
   }
 
   MessageCategory _classifyEvent(Event event) {
@@ -696,5 +788,50 @@ class MessageTimelineController extends ChangeNotifier
     _readMarkerTimer?.cancel();
     _timeline?.cancelSubscriptions();
     super.dispose();
+  }
+}
+
+// ── Per-event message cache ──────────────────────────────
+
+class _MessageDataCacheEntry {
+  const _MessageDataCacheEntry({
+    required this.event,
+    required this.isFirst,
+    required this.aggregationHash,
+    required this.type,
+    required this.messageType,
+    required this.body,
+    required this.redacted,
+    required this.receiptsVersion,
+    required this.data,
+  });
+
+  final Event event;
+  final bool isFirst;
+  final int aggregationHash;
+  final String type;
+  final String? messageType;
+  final String body;
+  final bool redacted;
+  final Map<String, List<KoheraReadReceipt>>? receiptsVersion;
+  final ChatMessageData data;
+
+  bool isValidFor(
+    Event event,
+    bool isFirst,
+    int aggregationHash,
+    Map<String, List<KoheraReadReceipt>> receiptsNow,
+  ) {
+    if (!identical(this.event, event)) return false;
+    if (this.isFirst != isFirst) return false;
+    if (this.aggregationHash != aggregationHash) return false;
+    if (redacted != event.redacted) return false;
+    if (type != event.type) return false;
+    if (messageType != event.messageType) return false;
+    if (body != event.body) return false;
+    if (data.hasThread && !identical(receiptsVersion, receiptsNow)) {
+      return false;
+    }
+    return true;
   }
 }
