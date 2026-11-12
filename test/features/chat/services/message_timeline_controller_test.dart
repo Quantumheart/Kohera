@@ -51,7 +51,7 @@ void main() {
     )).thenAnswer((_) async => mockTimeline);
 
     controller = MessageTimelineController(
-      rooms: mockRooms,
+      roomRepository: mockRooms,
       roomId: roomId,
       sendPublicReadReceipts: false,
     );
@@ -163,7 +163,7 @@ void main() {
     test('stops observing the app lifecycle after dispose', () {
       fakeAsync((async) {
         final disposable = MessageTimelineController(
-          rooms: mockRooms,
+          roomRepository: mockRooms,
           roomId: roomId,
           sendPublicReadReceipts: false,
         );

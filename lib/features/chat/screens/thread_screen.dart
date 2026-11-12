@@ -51,7 +51,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
     super.initState();
     final rooms = context.read<RoomRepository>();
     _timelineController = MessageTimelineController(
-      rooms: rooms,
+      roomRepository: rooms,
       roomId: widget.roomId,
       sendPublicReadReceipts: false,
       threadRootEventId: widget.threadRootEventId,

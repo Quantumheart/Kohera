@@ -160,7 +160,7 @@ class _ChatScreenState extends State<ChatScreen>
     final rooms = context.read<RoomRepository>();
     final prefs = context.read<PreferencesService>();
     _timelineController = MessageTimelineController(
-      rooms: rooms,
+      roomRepository: rooms,
       roomId: widget.roomId,
       sendPublicReadReceipts: prefs.readReceipts,
       initialEventId: widget.initialEventId,
@@ -275,7 +275,7 @@ class _ChatScreenState extends State<ChatScreen>
       final rooms = context.read<RoomRepository>();
       final prefs = context.read<PreferencesService>();
       _timelineController = MessageTimelineController(
-        rooms: rooms,
+        roomRepository: rooms,
         roomId: widget.roomId,
         sendPublicReadReceipts: prefs.readReceipts,
         initialEventId: widget.initialEventId,
