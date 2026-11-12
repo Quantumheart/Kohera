@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/draft_store.dart';
@@ -27,6 +26,7 @@ import 'package:kohera/features/chat/widgets/message_bubble.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_context_menu.dart';
 import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';

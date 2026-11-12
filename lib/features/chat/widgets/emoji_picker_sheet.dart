@@ -1,18 +1,20 @@
-import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/chat/widgets/openmoji_picker.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 // coverage:ignore-start
 
-void showEmojiPickerSheet(BuildContext context, void Function(String emoji) onSelected) {
-  unawaited(showDialog(
+void showEmojiPickerSheet(
+  BuildContext context,
+  void Function(String emoji) onSelected,
+) {
+  showDialog<void>(
     context: context,
     barrierColor: Colors.black26,
     builder: (context) => _EmojiPickerDialog(onSelected: onSelected),
-  ),);
+  );
 }
 
 class _EmojiPickerDialog extends StatelessWidget {
@@ -27,7 +29,9 @@ class _EmojiPickerDialog extends StatelessWidget {
 
     return Dialog(
       backgroundColor: cs.surfaceContainer,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)), // Sharp corners for pixel theme
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(0),
+      ), // Sharp corners for pixel theme
       clipBehavior: Clip.antiAlias,
       child: SizedBox(
         width: 350,

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/data/models/kohera_device_key.dart';
@@ -12,6 +11,7 @@ import 'package:kohera/features/rooms/widgets/room_members_section.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
 import 'package:kohera/shared/widgets/detail_action_button.dart';
 import 'package:kohera/shared/widgets/joined_member_count.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Renders the room details body (header, actions, members, encryption,
 /// media gallery, notification settings, admin controls).

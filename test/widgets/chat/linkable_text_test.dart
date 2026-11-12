@@ -1,8 +1,7 @@
-﻿import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Extracts all [TextSpan] leaves from the [RichText] inside [LinkableText].
 ///

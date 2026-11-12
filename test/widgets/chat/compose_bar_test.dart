@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
@@ -10,6 +9,7 @@ import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/widgets/compose_bar.dart';
 import 'package:kohera/features/chat/widgets/link_preview_card.dart';
 import 'package:kohera/features/chat/widgets/mention_suggestion_overlay.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';

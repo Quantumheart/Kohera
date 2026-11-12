@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Returns a deterministic colour for a Matrix sender ID, using a mix
 /// of the current theme's semantic colours and fixed accent tones.

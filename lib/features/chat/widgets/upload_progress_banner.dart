@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
-
 import 'package:kohera/core/models/upload_state.dart';
+import 'package:material_ui/material_ui.dart';
 
 class UploadProgressBanner extends StatelessWidget {
   const UploadProgressBanner({

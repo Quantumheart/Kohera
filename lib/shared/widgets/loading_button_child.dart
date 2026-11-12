@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A button child that shows a centered spinner while [loading], otherwise
 /// renders [child]. Defaults match the app's button spinner (22px, stroke 2.5).

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/services/macos_permissions.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
@@ -8,6 +7,7 @@ import 'package:kohera/features/calling/widgets/call_control_bar.dart';
 import 'package:kohera/features/calling/widgets/pip_self_view.dart';
 import 'package:kohera/features/calling/widgets/screen_source_picker.dart';
 import 'package:kohera/features/calling/widgets/video_grid.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 // coverage:ignore-start

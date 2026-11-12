@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/pixel_sprite_avatar.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
+import 'package:material_ui/material_ui.dart';
 
 class _NullAvatarResolver implements AvatarResolver {
   const _NullAvatarResolver();

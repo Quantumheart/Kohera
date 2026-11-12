@@ -1,12 +1,12 @@
 // coverage:ignore-file
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/chat/services/thread_roots_service.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/widgets/thread_list_tile.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 class ThreadListScreen extends StatefulWidget {

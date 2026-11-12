@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/features/e2ee/widgets/setup/setup_custody_gate.dart';
+import 'package:material_ui/material_ui.dart';
 
 class E2eeSetupUnlockSection extends StatelessWidget {
   const E2eeSetupUnlockSection({

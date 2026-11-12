@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/data/models/call_participant.dart';
 import 'package:kohera/features/calling/widgets/participant_tile.dart';
 import 'package:kohera/features/calling/widgets/screen_share_layout.dart';
+import 'package:material_ui/material_ui.dart';
 
 // coverage:ignore-start
 

@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/theme/bubble_vibe_resolver.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A minimal PICO-8-like palette for testing.
 KoheraPalette _testPalette() => const KoheraPalette(

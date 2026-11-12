@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/features/e2ee/widgets/setup/setup_bullet_points.dart';
+import 'package:material_ui/material_ui.dart';
 
 class E2eeSetupExplainer extends StatelessWidget {
   const E2eeSetupExplainer({super.key});

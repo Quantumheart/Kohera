@@ -1,6 +1,5 @@
 // Redundant default args are kept in verify() to assert exact forwarding.
 // ignore_for_file: avoid_redundant_argument_values
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -10,6 +9,7 @@ import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/password_cache.dart';
 import 'package:kohera/features/settings/widgets/deactivate_account_dialog.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';

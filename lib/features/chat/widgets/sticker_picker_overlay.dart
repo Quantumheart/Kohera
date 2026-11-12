@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/data/models/sticker_pack.dart';
 import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
+import 'package:material_ui/material_ui.dart';
 
 class StickerPickerOverlay extends StatefulWidget {
   const StickerPickerOverlay({

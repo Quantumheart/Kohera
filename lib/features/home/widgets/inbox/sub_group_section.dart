@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/features/home/widgets/inbox/notification_tile.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/models/thread_sub_group.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
+import 'package:material_ui/material_ui.dart';
 
 class SubGroupSection extends StatefulWidget {
   const SubGroupSection({

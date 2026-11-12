@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
+import 'package:material_ui/material_ui.dart';
 
 class E2eeSetupStatusLine extends StatelessWidget {
   const E2eeSetupStatusLine({required this.message, super.key});

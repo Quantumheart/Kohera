@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Paints faint horizontal CRT scanlines over [child] using the active
 /// [KoheraPalette.scanline] tint.

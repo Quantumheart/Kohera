@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
-
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
+import 'package:material_ui/material_ui.dart';
 
 // coverage:ignore-start
 

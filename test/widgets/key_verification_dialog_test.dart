@@ -1,11 +1,10 @@
-import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_dialog.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 
@@ -129,13 +128,11 @@ void main() {
           builder: (context) => Center(
             child: ElevatedButton(
               onPressed: () {
-                unawaited(
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (_) => KeyVerificationDialog(
-                      verification: KoheraKeyVerification(verification),
-                    ),
+                showDialog<void>(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => KeyVerificationDialog(
+                    verification: KoheraKeyVerification(verification),
                   ),
                 );
               },

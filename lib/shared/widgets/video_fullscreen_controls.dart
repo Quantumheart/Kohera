@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/media/kohera_video_controller.dart';
 import 'package:kohera/core/utils/format_duration.dart';
+import 'package:material_ui/material_ui.dart';
 
 // ── Shared fullscreen video controls (mobile + desktop) ──────
 //

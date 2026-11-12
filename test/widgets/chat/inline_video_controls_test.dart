@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/media/kohera_media_source.dart';
 import 'package:kohera/core/media/kohera_video_controller.dart';
 import 'package:kohera/core/utils/format_duration.dart';
 import 'package:kohera/features/chat/widgets/inline_video_controls.dart';
+import 'package:material_ui/material_ui.dart';
 
 class _FakeVideoController implements KoheraVideoController {
   final StreamController<bool> _playing = StreamController<bool>.broadcast();

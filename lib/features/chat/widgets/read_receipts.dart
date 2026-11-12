@@ -1,9 +1,8 @@
-import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/data/models/kohera_read_receipt.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
+import 'package:material_ui/material_ui.dart';
 
 // ── ReadReceiptsRow ──────────────────────────────────────────
 
@@ -40,10 +39,15 @@ class ReadReceiptsRow extends StatelessWidget {
         padding: const EdgeInsets.only(top: 2, bottom: 4),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+          mainAxisAlignment: isMe
+              ? MainAxisAlignment.end
+              : MainAxisAlignment.start,
           children: [
             SizedBox(
-              width: _borderedSize + (visibleCount - 1) * (_borderedSize - _overlap) + (overflow > 0 ? 20 : 0),
+              width:
+                  _borderedSize +
+                  (visibleCount - 1) * (_borderedSize - _overlap) +
+                  (overflow > 0 ? 20 : 0),
               height: _borderedSize,
               child: Stack(
                 clipBehavior: Clip.none,
@@ -73,7 +77,9 @@ class ReadReceiptsRow extends StatelessWidget {
                             '+$overflow',
                             style: TextStyle(
                               fontSize: 10,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
                             ),
                           ),
                         ),
@@ -120,56 +126,56 @@ void showReadersSheet(
   List<KoheraReadReceipt> receipts,
   AvatarResolver avatarResolver,
 ) {
-  unawaited(
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        final localizations = MaterialLocalizations.of(context);
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text(
-                  'Read by ${receipts.length}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+  showModalBottomSheet<void>(
+    context: context,
+    builder: (context) {
+      final localizations = MaterialLocalizations.of(context);
+      return SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                'Read by ${receipts.length}',
+                style: Theme.of(context).textTheme.titleMedium,
               ),
-              const Divider(height: 1),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: receipts.length,
-                  itemBuilder: (context, i) {
-                    final receipt = receipts[i];
-                    final name = receipt.user.displayname;
-                    final timeOfDay = TimeOfDay.fromDateTime(receipt.time.toLocal());
-                    final timeStr = localizations.formatTimeOfDay(timeOfDay);
+            ),
+            const Divider(height: 1),
+            Flexible(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: receipts.length,
+                itemBuilder: (context, i) {
+                  final receipt = receipts[i];
+                  final name = receipt.user.displayname;
+                  final timeOfDay = TimeOfDay.fromDateTime(
+                    receipt.time.toLocal(),
+                  );
+                  final timeStr = localizations.formatTimeOfDay(timeOfDay);
 
-                    return ListTile(
-                      leading: UserAvatar(
-                        avatarResolver: avatarResolver,
-                        avatarUrl: receipt.user.avatarUrl,
-                        userId: receipt.user.userId,
-                        displayname: receipt.user.displayname,
-                        size: 36,
+                  return ListTile(
+                    leading: UserAvatar(
+                      avatarResolver: avatarResolver,
+                      avatarUrl: receipt.user.avatarUrl,
+                      userId: receipt.user.userId,
+                      displayname: receipt.user.displayname,
+                      size: 36,
+                    ),
+                    title: Text(name),
+                    trailing: Text(
+                      timeStr,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                      title: Text(name),
-                      trailing: Text(
-                        timeStr,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
-                      ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                },
               ),
-            ],
-          ),
-        );
-      },
-    ),
+            ),
+          ],
+        ),
+      );
+    },
   );
 }

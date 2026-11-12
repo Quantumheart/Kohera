@@ -1,7 +1,6 @@
 // coverage:ignore-file
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -14,6 +13,7 @@ import 'package:kohera/features/chat/services/thread_reply_loader.dart';
 import 'package:kohera/features/chat/widgets/compose_bar_section.dart';
 import 'package:kohera/features/chat/widgets/message_list_view.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 class ThreadScreen extends StatefulWidget {

@@ -6,13 +6,13 @@
 
 import 'dart:async' as _i6;
 import 'dart:typed_data' as _i13;
-import 'dart:ui' as _i10;
 
 import 'package:http/http.dart' as _i5;
 import 'package:kohera/core/models/server_auth_capabilities.dart' as _i8;
 import 'package:kohera/core/services/auth_service.dart' as _i14;
 import 'package:kohera/core/services/client_manager.dart' as _i9;
 import 'package:kohera/core/services/matrix_service.dart' as _i2;
+import 'package:listen/src/listen.dart' as _i10;
 import 'package:matrix/encryption.dart' as _i11;
 import 'package:matrix/matrix.dart' as _i3;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i7;

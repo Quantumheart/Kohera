@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
-
 import 'package:kohera/core/models/pending_attachment.dart';
+import 'package:material_ui/material_ui.dart';
 
 // coverage:ignore-start
 

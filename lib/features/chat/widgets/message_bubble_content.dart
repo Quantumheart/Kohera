@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/sender_color.dart';
 import 'package:kohera/data/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_body.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_link_preview.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_timestamp.dart';
+import 'package:material_ui/material_ui.dart';
 
 const _msgtypeText = 'm.text';
 const _msgtypeNotice = 'm.notice';

@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/data/models/kohera_message_status.dart';
 import 'package:kohera/data/repositories/outbox_repository.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 enum _Phase { sent, sending, retrying, failed }

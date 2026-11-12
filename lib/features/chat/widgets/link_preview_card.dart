@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/media_auth.dart';
 import 'package:kohera/core/utils/safe_url_launcher.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/chat/services/opengraph_service.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 /// Displays an OpenGraph preview card for a URL found in a chat message.

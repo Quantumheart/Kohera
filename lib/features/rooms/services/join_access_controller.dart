@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/routing/route_names.dart';
@@ -9,6 +8,7 @@ import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 typedef CandidateSpacesBuilder = List<SpaceRef> Function(

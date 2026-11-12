@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Animated brand loader: the pixelated mycelial mushroom stands static while
 /// a spark of light travels from the cap down the stem and out along one

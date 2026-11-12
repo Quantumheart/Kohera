@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
@@ -18,10 +17,10 @@ import 'package:kohera/features/settings/widgets/deactivate_account_dialog.dart'
 import 'package:kohera/features/settings/widgets/profile_avatar_card.dart';
 import 'package:kohera/shared/widgets/kohera_mark.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -99,7 +98,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
+                borderRadius: BorderRadius.circular(
+                  0,
+                ), // Sharp corners for pixel theme
               ),
             ),
           ),
@@ -142,8 +143,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SwitchListTile(
                   secondary: const Icon(Icons.link_rounded),
                   title: const Text('Link previews'),
-                  subtitle:
-                      const Text('Show previews for URLs in messages'),
+                  subtitle: const Text('Show previews for URLs in messages'),
                   value: prefs.showLinkPreviews,
                   onChanged: prefs.setShowLinkPreviews,
                 ),
@@ -151,8 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SwitchListTile(
                   secondary: const Icon(Icons.keyboard_rounded),
                   title: const Text('Typing indicators'),
-                  subtitle:
-                      const Text('Send and show typing notifications'),
+                  subtitle: const Text('Send and show typing notifications'),
                   value: prefs.typingIndicators,
                   onChanged: prefs.setTypingIndicators,
                 ),
@@ -160,8 +159,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SwitchListTile(
                   secondary: const Icon(Icons.done_all_rounded),
                   title: const Text('Read receipts'),
-                  subtitle:
-                      const Text('Send and show read receipts'),
+                  subtitle: const Text('Send and show read receipts'),
                   value: prefs.readReceipts,
                   onChanged: prefs.setReadReceipts,
                 ),
@@ -193,9 +191,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _SettingsTile(
                   icon: Icons.call_rounded,
                   title: 'Voice & video',
-                  subtitle: context.select<CallService, bool>(
-                            (s) => s.isCallingAvailable,
-                          )
+                  subtitle:
+                      context.select<CallService, bool>(
+                        (s) => s.isCallingAvailable,
+                      )
                       ? 'Supported by your homeserver'
                       : 'Not supported by your homeserver',
                   onTap: () => context.goNamed(Routes.settingsVoiceVideo),
@@ -217,10 +216,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: keyBackup.chatBackupLoading
                       ? 'Setting up…'
                       : keyBackup.chatBackupNeeded == null
-                          ? 'Checking...'
-                          : keyBackup.chatBackupEnabled
-                              ? 'Your keys are backed up'
-                              : 'Not set up',
+                      ? 'Checking...'
+                      : keyBackup.chatBackupEnabled
+                      ? 'Your keys are backed up'
+                      : 'Not set up',
                   onTap: keyBackup.chatBackupLoading
                       ? () {}
                       : () => context.go(RoutePaths.e2eeSetup),
@@ -274,8 +273,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     'coherent threads of a decentralized chat network: the '
                     'visible conversation and the hidden web that carries it.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ),
                 const Divider(height: 1, indent: 56),
@@ -284,7 +283,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: 'Source code',
                   subtitle: 'View on GitHub',
                   onTap: () {
-                    unawaited(launchUrl(Uri.parse('https://github.com/Quantumheart/Kohera')));
+                    unawaited(
+                      launchUrl(
+                        Uri.parse('https://github.com/Quantumheart/Kohera'),
+                      ),
+                    );
                   },
                 ),
               ],
@@ -301,7 +304,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               foregroundColor: cs.onErrorContainer,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
+                borderRadius: BorderRadius.circular(
+                  0,
+                ), // Sharp corners for pixel theme
               ),
             ),
             child: const Text('Sign Out'),
@@ -325,9 +330,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _confirmLogout(BuildContext context) {
     final matrix = context.read<MatrixService>();
     final manager = context.read<ClientManager>();
-    final backupMissing = !context.read<KeyBackupRepository>().chatBackupEnabled;
+    final backupMissing = !context
+        .read<KeyBackupRepository>()
+        .chatBackupEnabled;
 
-    unawaited(showDialog(
+    showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Sign out?'),
@@ -338,15 +345,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             if (backupMissing) ...[
               Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded,
-                      color: Theme.of(ctx).colorScheme.error,),
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    color: Theme.of(ctx).colorScheme.error,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Your encryption keys are not backed up. You will '
                       'permanently lose access to your encrypted messages.',
                       style: TextStyle(
-                          color: Theme.of(ctx).colorScheme.error,),
+                        color: Theme.of(ctx).colorScheme.error,
+                      ),
                     ),
                   ),
                 ],
@@ -386,9 +396,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
-    ),);
+    );
   }
-
 }
 
 String _ignoredUsersLabel(int count) {

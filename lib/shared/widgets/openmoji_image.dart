@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/emoji_style.dart';
 import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/shared/widgets/pixelation_scope.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Edge length in pixels of the bundled OpenMoji source assets.
 const _openMojiSourcePx = 72;

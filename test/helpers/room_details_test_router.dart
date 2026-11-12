@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/features/rooms/screens/room_details_screen.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Minimal GoRouter used by room-details tests so [RoomDetailsScreen] can
 /// navigate (back, leave-to-home) faithfully. Routes `/rooms/:roomId/details`

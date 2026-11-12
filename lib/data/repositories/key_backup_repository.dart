@@ -21,16 +21,17 @@ class KeyBackupRepository extends ChangeNotifier {
     required PasswordCache passwordCache,
     MegolmKeyMirror? keyMirrorOverride,
     BackupVersionManager? backupVersion,
-  })  : _clientService = clientService,
-        _storage = storage,
-        _passwordCache = passwordCache,
-        _backupVersion =
-            backupVersion ?? BackupVersionManager(client: clientService.client),
-        _keyMirror = keyMirrorOverride ??
-            MegolmKeyMirror(
-              matrixClientService: clientService,
-              clientName: clientName,
-            );
+  }) : _clientService = clientService,
+       _storage = storage,
+       _passwordCache = passwordCache,
+       _backupVersion =
+           backupVersion ?? BackupVersionManager(client: clientService.client),
+       _keyMirror =
+           keyMirrorOverride ??
+           MegolmKeyMirror(
+             matrixClientService: clientService,
+             clientName: clientName,
+           );
 
   final MatrixClientService _clientService;
   final FlutterSecureStorage _storage;
@@ -191,8 +192,10 @@ class KeyBackupRepository extends ChangeNotifier {
     for (final room in _client.rooms) {
       List<Event> events;
       try {
-        events =
-            await _client.database.getEventList(room, limit: _keyRequestScanLimit);
+        events = await _client.database.getEventList(
+          room,
+          limit: _keyRequestScanLimit,
+        );
       } catch (e) {
         debugPrint('[Kohera] getEventList failed for ${room.id}: $e');
         continue;
@@ -212,10 +215,14 @@ class KeyBackupRepository extends ChangeNotifier {
         if (!seen.add(dedupeKey)) continue;
 
         try {
-          encryption.keyManager.maybeAutoRequest(
-            room.id,
-            sessionId,
-            senderKey,
+          unawaited(
+            Future<void>.value(
+              encryption.keyManager.maybeAutoRequest(
+                room.id,
+                sessionId,
+                senderKey,
+              ),
+            ),
           );
         } catch (e) {
           debugPrint('[Kohera] Key request failed for ${room.id}: $e');

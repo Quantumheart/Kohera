@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/theme/kohera_theme.dart';
 import 'package:kohera/core/theme/theme_presets.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Regression guard: the pixel presets must produce distinct light and dark
 /// themes so they respect the user's Light/Dark/System selection rather than

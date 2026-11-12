@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
@@ -12,6 +11,7 @@ import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/home/widgets/mobile_space_drawer.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:matrix/matrix.dart' show Client, LoginState, SyncUpdate;
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';

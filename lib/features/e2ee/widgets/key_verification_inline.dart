@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/features/e2ee/models/kohera_verification_state.dart';
 import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/key_verification_content.dart';
+import 'package:material_ui/material_ui.dart';
 
 class KeyVerificationInline extends StatefulWidget {
   const KeyVerificationInline({

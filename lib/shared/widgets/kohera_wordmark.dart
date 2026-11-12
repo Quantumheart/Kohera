@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The Kohera wordmark: "Kohera" in `PressStart2P`, with the leading "K"
 /// tinted by the active palette's `accentRamp[0]`. See

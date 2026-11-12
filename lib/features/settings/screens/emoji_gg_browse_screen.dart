@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/emoji_gg_pack.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
@@ -8,6 +7,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/emoji_gg_service.dart';
 import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 class EmojiGgBrowseScreen extends StatefulWidget {

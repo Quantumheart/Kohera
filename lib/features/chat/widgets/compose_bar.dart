@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform;
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
@@ -25,6 +24,7 @@ import 'package:kohera/features/chat/widgets/recording_indicator.dart';
 import 'package:kohera/features/chat/widgets/reply_preview_banner.dart';
 import 'package:kohera/features/chat/widgets/upload_progress_banner.dart';
 import 'package:kohera/shared/widgets/safe_bottom_bar.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 class ComposeBar extends StatefulWidget {

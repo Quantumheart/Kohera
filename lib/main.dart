@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:dynamic_color/dynamic_color.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/brand/brand_constants.dart';
@@ -55,9 +54,9 @@ import 'package:kohera/shared/widgets/init_error_view.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/pixelation_scope.dart';
 import 'package:kohera/shared/widgets/scanline_overlay.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
-
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -88,7 +87,7 @@ class _KoheraAppState extends State<KoheraApp> {
   final _ringtoneService = RingtoneService();
   RoomSnapshotService? _roomSnapshotService;
   AvatarCacheService? _avatarCacheService;
-ShareIntakeController? _shareIntake;
+  ShareIntakeController? _shareIntake;
   DeepLinkService? _deepLinkService;
   DesktopTrayService? _desktopTray;
 
@@ -100,8 +99,9 @@ ShareIntakeController? _shareIntake;
 
   Future<String?> _getAppGroupPath() async {
     try {
-      return await const MethodChannel('kohera/apns')
-          .invokeMethod<String>('getAppGroupPath');
+      return await const MethodChannel(
+        'kohera/apns',
+      ).invokeMethod<String>('getAppGroupPath');
     } on PlatformException catch (e) {
       debugPrint('[Kohera] App Group path lookup failed: $e');
       return null;
@@ -240,7 +240,9 @@ ShareIntakeController? _shareIntake;
         );
       });
       if (oldRouter != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => oldRouter.dispose());
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => oldRouter.dispose(),
+        );
       }
     });
   }
@@ -264,13 +266,15 @@ ShareIntakeController? _shareIntake;
     if (clientManager == null) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
-        theme: _splashLight ??
+        theme:
+            _splashLight ??
             ThemeData(
               colorScheme: ColorScheme.fromSeed(
                 seedColor: BrandConstants.brandColor,
               ),
             ),
-        darkTheme: _splashDark ??
+        darkTheme:
+            _splashDark ??
             ThemeData(
               colorScheme: ColorScheme.fromSeed(
                 seedColor: BrandConstants.brandColor,
@@ -357,7 +361,10 @@ ShareIntakeController? _shareIntake;
                   ),
                   ChangeNotifierProvider<PushRepository>(
                     create: (ctx) => PushRepository(
-                      clientService: ctx.read<MatrixService>().session.matrixClientService,
+                      clientService: ctx
+                          .read<MatrixService>()
+                          .session
+                          .matrixClientService,
                     ),
                   ),
                   ChangeNotifierProxyProvider<PushRepository, InboxController>(
@@ -401,7 +408,10 @@ ShareIntakeController? _shareIntake;
                   ),
                   ChangeNotifierProvider<RoomRepository>(
                     create: (ctx) => RoomRepository(
-                      clientService: ctx.read<MatrixService>().session.matrixClientService,
+                      clientService: ctx
+                          .read<MatrixService>()
+                          .session
+                          .matrixClientService,
                     ),
                   ),
                   ChangeNotifierProvider<UserRepository>.value(
@@ -415,10 +425,15 @@ ShareIntakeController? _shareIntake;
                   ),
                   ChangeNotifierProvider<AuthRepository>(
                     create: (ctx) => AuthRepository(
-                      clientService: ctx.read<MatrixService>().session.matrixClientService,
+                      clientService: ctx
+                          .read<MatrixService>()
+                          .session
+                          .matrixClientService,
                       auth: ctx.read<MatrixService>().session.auth,
-                      setupState:
-                          ctx.read<MatrixService>().session.keyBackupSetupState,
+                      setupState: ctx
+                          .read<MatrixService>()
+                          .session
+                          .keyBackupSetupState,
                     ),
                   ),
                   ChangeNotifierProvider<KeyBackupRepository>.value(
@@ -426,13 +441,22 @@ ShareIntakeController? _shareIntake;
                   ),
                   ChangeNotifierProvider<MediaRepository>(
                     create: (ctx) => MediaRepository(
-                      avatarResolver: ctx.read<MatrixService>().session.avatarResolver,
-                      mediaResolver: ctx.read<MatrixService>().session.mediaResolver,
+                      avatarResolver: ctx
+                          .read<MatrixService>()
+                          .session
+                          .avatarResolver,
+                      mediaResolver: ctx
+                          .read<MatrixService>()
+                          .session
+                          .mediaResolver,
                     ),
                   ),
                   ChangeNotifierProvider<SpaceRepository>(
                     create: (ctx) => SpaceRepository(
-                      clientService: ctx.read<MatrixService>().session.matrixClientService,
+                      clientService: ctx
+                          .read<MatrixService>()
+                          .session
+                          .matrixClientService,
                     ),
                   ),
                 ],
@@ -446,8 +470,9 @@ ShareIntakeController? _shareIntake;
                     builder: (context) {
                       final callService = context.read<CallService>();
                       final isCustom = prefs.themePreset == 'custom';
-                      final preset =
-                          isCustom ? null : getPreset(prefs.themePreset);
+                      final preset = isCustom
+                          ? null
+                          : getPreset(prefs.themePreset);
                       final customScheme = isCustom ? prefs.customTheme : null;
 
                       final theme = customScheme != null
@@ -501,48 +526,58 @@ ShareIntakeController? _shareIntake;
                             setWebShellAccent(theme.colorScheme.primary);
                             final mq = MediaQuery.of(context);
                             final webBottom = webSafeAreaInsets().bottom;
-                            final effectiveWebBottom =
-                                mq.viewInsets.bottom > 0 ? 0.0 : webBottom;
+                            final effectiveWebBottom = mq.viewInsets.bottom > 0
+                                ? 0.0
+                                : webBottom;
                             final paddedMq = effectiveWebBottom > 0
                                 ? mq.copyWith(
                                     padding: mq.padding.copyWith(
                                       bottom:
-                                          mq.padding.bottom >
-                                                  effectiveWebBottom
-                                              ? mq.padding.bottom
-                                              : effectiveWebBottom,
+                                          mq.padding.bottom > effectiveWebBottom
+                                          ? mq.padding.bottom
+                                          : effectiveWebBottom,
                                     ),
                                   )
                                 : mq;
-                            return MediaQuery(
-                              data: paddedMq,
-                              child: AnnotatedRegion<SystemUiOverlayStyle>(
-                              value: SystemUiOverlayStyle(
-                                statusBarColor: Colors.transparent,
-                                statusBarIconBrightness:
-                                    isDark ? Brightness.light : Brightness.dark,
-                                statusBarBrightness:
-                                    isDark ? Brightness.light : Brightness.dark,
-                                systemNavigationBarColor:
-                                    theme.colorScheme.surface,
-                                systemNavigationBarIconBrightness:
-                                    isDark ? Brightness.light : Brightness.dark,
-                              ),
-                              child: ScanlineOverlay(
-                                enabled: prefs.scanlinesEnabled,
-                                child: PixelationScope(
-                                  enabled: prefs.pixelateGraphics,
-                                  child: VerificationRequestListener(
-                                    router: router,
-                                    child: IncomingCallOverlay(
-                                      router: router,
-                                      child: child ?? const SizedBox.shrink(),
+                            // Bridge maps the material_ui theme for legacy
+                            // dependencies still on package:flutter/material.dart.
+                            // Remove once all dependencies migrate.
+                            // ignore: deprecated_member_use
+                            return MaterialUiCompatibilityBridge(
+                              child: MediaQuery(
+                                data: paddedMq,
+                                child: AnnotatedRegion<SystemUiOverlayStyle>(
+                                  value: SystemUiOverlayStyle(
+                                    statusBarColor: Colors.transparent,
+                                    statusBarIconBrightness: isDark
+                                        ? Brightness.light
+                                        : Brightness.dark,
+                                    statusBarBrightness: isDark
+                                        ? Brightness.light
+                                        : Brightness.dark,
+                                    systemNavigationBarColor:
+                                        theme.colorScheme.surface,
+                                    systemNavigationBarIconBrightness: isDark
+                                        ? Brightness.light
+                                        : Brightness.dark,
+                                  ),
+                                  child: ScanlineOverlay(
+                                    enabled: prefs.scanlinesEnabled,
+                                    child: PixelationScope(
+                                      enabled: prefs.pixelateGraphics,
+                                      child: VerificationRequestListener(
+                                        router: router,
+                                        child: IncomingCallOverlay(
+                                          router: router,
+                                          child:
+                                              child ?? const SizedBox.shrink(),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                          );
+                            );
                           },
                         ),
                       );

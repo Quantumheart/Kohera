@@ -24,6 +24,7 @@ void main() {
     when(mockClient.rooms).thenReturn([]);
     when(mockClient.database).thenReturn(_FakeDatabase());
     when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
+    when(mockClient.onUiaRequest).thenReturn(CachedStreamController());
     when(mockClient.onLoginStateChanged)
         .thenReturn(CachedStreamController<LoginState>());
     when(mockClient.onPresenceChanged)

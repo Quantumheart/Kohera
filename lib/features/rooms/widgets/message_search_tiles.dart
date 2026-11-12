@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/utils/text_highlight.dart';
 import 'package:kohera/core/utils/time_format.dart';
 import 'package:kohera/data/models/message_search_result.dart';
 import 'package:kohera/features/rooms/widgets/room_list_models.dart';
+import 'package:material_ui/material_ui.dart';
 
 // ── Message search header ────────────────────────────────────
 class MessageSearchHeader extends StatelessWidget {

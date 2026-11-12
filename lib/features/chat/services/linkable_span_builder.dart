@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:html/dom.dart' as dom;
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/core/utils/safe_url_launcher.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
 import 'package:kohera/features/chat/widgets/mention_pill.dart';
+import 'package:material_ui/material_ui.dart';
 
 typedef RecognizerFactory = TapGestureRecognizer Function(VoidCallback onTap);
 

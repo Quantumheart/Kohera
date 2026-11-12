@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 enum AttachmentSource { gallery, camera, file, gif, sticker, poll }
 

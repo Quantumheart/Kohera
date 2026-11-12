@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:highlight/highlight_core.dart' as hi;
 import 'package:highlight/languages/bash.dart' as lang_bash;
@@ -25,6 +24,7 @@ import 'package:highlight/languages/xml.dart' as lang_xml;
 import 'package:highlight/languages/yaml.dart' as lang_yaml;
 import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart' show HtmlMessageText;
+import 'package:material_ui/material_ui.dart';
 
 /// Renders a fenced code block with syntax highlighting and a copy button.
 ///

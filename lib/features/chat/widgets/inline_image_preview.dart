@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/safe_url_launcher.dart';
+import 'package:material_ui/material_ui.dart';
 
 class InlineImagePreview extends StatelessWidget {
   const InlineImagePreview({

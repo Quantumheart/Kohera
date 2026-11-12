@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/shared/models/kohera_presence_type.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A presence status dot. Rebuilds independently when [presence] changes and
 /// renders nothing (no layout shift) for unknown presence.

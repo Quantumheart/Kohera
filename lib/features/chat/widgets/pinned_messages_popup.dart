@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
@@ -13,6 +12,7 @@ import 'package:kohera/features/chat/services/pinned_messages_loader.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 /// Shows a popup panel anchored below the pin icon listing pinned messages.

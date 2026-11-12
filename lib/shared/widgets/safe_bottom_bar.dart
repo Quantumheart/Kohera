@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Sanctioned owner of the bottom system-inset for docked bottom UI
 /// (compose bar, FAB clusters, space rail, action sheets).

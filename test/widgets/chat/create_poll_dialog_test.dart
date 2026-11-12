@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/theme/kohera_theme.dart';
 import 'package:kohera/features/chat/models/kohera_poll_draft.dart';
 import 'package:kohera/features/chat/widgets/create_poll_dialog.dart';
+import 'package:material_ui/material_ui.dart';
 
 Widget _harness() => MaterialApp(
   theme: ThemeData(splashFactory: InkRipple.splashFactory),

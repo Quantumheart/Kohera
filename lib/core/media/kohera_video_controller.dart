@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/media/kohera_player.dart';
+import 'package:material_ui/material_ui.dart';
 
 // ── Platform-agnostic video controller ────────────────────────
 //

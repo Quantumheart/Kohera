@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Displays a scrollable list of room members with role badges.
 /// Shows the first 5 with an expand option and a search filter.

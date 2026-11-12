@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/data/models/kohera_device.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A list tile displaying a single Matrix device with its verification status.
 class DeviceListItem extends StatelessWidget {

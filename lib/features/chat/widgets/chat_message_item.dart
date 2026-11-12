@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/data/models/kohera_media_content.dart';
 import 'package:kohera/data/models/kohera_message_display.dart';
 import 'package:kohera/data/models/kohera_reaction.dart';
@@ -19,6 +18,7 @@ import 'package:kohera/features/chat/widgets/swipeable_message.dart';
 import 'package:kohera/features/chat/widgets/thread_indicator_chip.dart';
 import 'package:kohera/features/chat/widgets/video_bubble.dart';
 import 'package:kohera/shared/services/media_controller.dart';
+import 'package:material_ui/material_ui.dart';
 
 const _msgtypeImage = 'm.image';
 const _msgtypeAudio = 'm.audio';

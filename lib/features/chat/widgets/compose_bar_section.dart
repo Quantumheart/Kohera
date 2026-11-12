@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
@@ -10,6 +9,7 @@ import 'package:kohera/features/chat/services/mention_autocomplete_controller.da
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
 import 'package:kohera/features/chat/widgets/compose_bar.dart';
+import 'package:material_ui/material_ui.dart';
 
 class ComposeBarSection extends StatelessWidget {
   const ComposeBarSection({

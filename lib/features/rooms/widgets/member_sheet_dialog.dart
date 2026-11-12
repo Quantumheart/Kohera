@@ -1,7 +1,6 @@
 // coverage:ignore-file
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
@@ -11,6 +10,7 @@ import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/rooms/models/room_role.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Opens the member profile sheet for [member].
 ///

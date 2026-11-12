@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/features/chat/widgets/inline_image_preview.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   Widget wrap(Widget child) => MaterialApp(home: Scaffold(body: Center(child: child)));

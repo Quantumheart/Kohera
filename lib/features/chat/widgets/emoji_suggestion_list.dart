@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/data/models/sticker_pack.dart';
 import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/chat/services/emoji_autocomplete_controller.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Displays filtered custom emoji suggestions above the compose field.
 class EmojiSuggestionList extends StatelessWidget {

@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
 import 'package:kohera/features/chat/widgets/reply_preview_host.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   Widget wrap(Widget child) => MaterialApp(home: Scaffold(body: child));

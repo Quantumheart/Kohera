@@ -8,8 +8,8 @@ import 'dart:async' as _i5;
 import 'dart:typed_data' as _i21;
 import 'dart:ui' as _i25;
 
-import 'package:flutter/services.dart' as _i26;
-import 'package:flutter/widgets.dart' as _i27;
+import 'package:flutter/services.dart' as _i27;
+import 'package:flutter/widgets.dart' as _i28;
 import 'package:http/http.dart' as _i4;
 import 'package:kohera/core/services/account_session.dart' as _i7;
 import 'package:kohera/core/services/auth_service.dart' as _i16;
@@ -18,17 +18,18 @@ import 'package:kohera/core/services/sync_service.dart' as _i15;
 import 'package:kohera/core/state/key_backup_setup_state.dart' as _i11;
 import 'package:kohera/core/state/selection_controller.dart' as _i14;
 import 'package:kohera/core/state/uia_interaction_controller.dart' as _i9;
-import 'package:kohera/data/models/kohera_push_rule_state.dart' as _i32;
-import 'package:kohera/data/models/kohera_room_member.dart' as _i31;
-import 'package:kohera/data/models/kohera_room_permissions.dart' as _i30;
-import 'package:kohera/data/models/kohera_room_summary.dart' as _i29;
+import 'package:kohera/data/models/kohera_push_rule_state.dart' as _i33;
+import 'package:kohera/data/models/kohera_room_member.dart' as _i32;
+import 'package:kohera/data/models/kohera_room_permissions.dart' as _i31;
+import 'package:kohera/data/models/kohera_room_summary.dart' as _i30;
 import 'package:kohera/data/repositories/key_backup_repository.dart' as _i12;
-import 'package:kohera/data/repositories/room_repository.dart' as _i28;
+import 'package:kohera/data/repositories/room_repository.dart' as _i29;
 import 'package:kohera/data/repositories/space_tree_repository.dart' as _i13;
 import 'package:kohera/data/services/avatar_resolver.dart' as _i17;
 import 'package:kohera/data/services/matrix_client_service.dart' as _i8;
 import 'package:kohera/data/services/media_resolver.dart' as _i18;
 import 'package:kohera/data/services/password_cache.dart' as _i10;
+import 'package:listen/src/listen.dart' as _i26;
 import 'package:matrix/encryption.dart' as _i19;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;
@@ -8500,13 +8501,13 @@ class MockMatrixService extends _i1.Mock implements _i24.MatrixService {
   );
 
   @override
-  void addListener(_i25.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i26.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i25.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i26.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -8521,7 +8522,7 @@ class MockMatrixService extends _i1.Mock implements _i24.MatrixService {
           as _i5.Future<bool>);
 
   @override
-  bool handleStartBackGesture(_i26.PredictiveBackEvent? backEvent) =>
+  bool handleStartBackGesture(_i27.PredictiveBackEvent? backEvent) =>
       (super.noSuchMethod(
             Invocation.method(#handleStartBackGesture, [backEvent]),
             returnValue: false,
@@ -8530,7 +8531,7 @@ class MockMatrixService extends _i1.Mock implements _i24.MatrixService {
           as bool);
 
   @override
-  void handleUpdateBackGestureProgress(_i26.PredictiveBackEvent? backEvent) =>
+  void handleUpdateBackGestureProgress(_i27.PredictiveBackEvent? backEvent) =>
       super.noSuchMethod(
         Invocation.method(#handleUpdateBackGestureProgress, [backEvent]),
         returnValueForMissingStub: null,
@@ -8565,7 +8566,7 @@ class MockMatrixService extends _i1.Mock implements _i24.MatrixService {
 
   @override
   _i5.Future<bool> didPushRouteInformation(
-    _i27.RouteInformation? routeInformation,
+    _i28.RouteInformation? routeInformation,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#didPushRouteInformation, [routeInformation]),
@@ -8633,15 +8634,15 @@ class MockMatrixService extends _i1.Mock implements _i24.MatrixService {
 /// A class which mocks [RoomRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockRoomRepository extends _i1.Mock implements _i28.RoomRepository {
+class MockRoomRepository extends _i1.Mock implements _i29.RoomRepository {
   @override
-  List<_i29.KoheraRoomSummary> get roomSummaries =>
+  List<_i30.KoheraRoomSummary> get roomSummaries =>
       (super.noSuchMethod(
             Invocation.getter(#roomSummaries),
-            returnValue: <_i29.KoheraRoomSummary>[],
-            returnValueForMissingStub: <_i29.KoheraRoomSummary>[],
+            returnValue: <_i30.KoheraRoomSummary>[],
+            returnValueForMissingStub: <_i30.KoheraRoomSummary>[],
           )
-          as List<_i29.KoheraRoomSummary>);
+          as List<_i30.KoheraRoomSummary>);
 
   @override
   _i5.Stream<_i2.SyncUpdate> get onSync =>
@@ -8683,30 +8684,30 @@ class MockRoomRepository extends _i1.Mock implements _i28.RoomRepository {
           as bool);
 
   @override
-  _i29.KoheraRoomSummary? summaryFor(String? roomId) =>
+  _i30.KoheraRoomSummary? summaryFor(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#summaryFor, [roomId]),
             returnValueForMissingStub: null,
           )
-          as _i29.KoheraRoomSummary?);
+          as _i30.KoheraRoomSummary?);
 
   @override
-  _i30.KoheraRoomPermissions? permissionsFor(String? roomId) =>
+  _i31.KoheraRoomPermissions? permissionsFor(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#permissionsFor, [roomId]),
             returnValueForMissingStub: null,
           )
-          as _i30.KoheraRoomPermissions?);
+          as _i31.KoheraRoomPermissions?);
 
   @override
-  _i5.Future<_i31.KoheraRoomMemberList?> memberListFor(String? roomId) =>
+  _i5.Future<_i32.KoheraRoomMemberList?> memberListFor(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#memberListFor, [roomId]),
-            returnValue: _i5.Future<_i31.KoheraRoomMemberList?>.value(),
+            returnValue: _i5.Future<_i32.KoheraRoomMemberList?>.value(),
             returnValueForMissingStub:
-                _i5.Future<_i31.KoheraRoomMemberList?>.value(),
+                _i5.Future<_i32.KoheraRoomMemberList?>.value(),
           )
-          as _i5.Future<_i31.KoheraRoomMemberList?>);
+          as _i5.Future<_i32.KoheraRoomMemberList?>);
 
   @override
   _i5.Future<void> joinRoom(String? roomId) =>
@@ -8738,7 +8739,7 @@ class MockRoomRepository extends _i1.Mock implements _i28.RoomRepository {
   @override
   _i5.Future<void> setPushRuleState(
     String? roomId,
-    _i32.KoheraPushRuleState? state,
+    _i33.KoheraPushRuleState? state,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#setPushRuleState, [roomId, state]),
@@ -8892,13 +8893,13 @@ class MockRoomRepository extends _i1.Mock implements _i28.RoomRepository {
           as bool);
 
   @override
-  _i32.KoheraPushRuleState getRoomPushRuleState(String? roomId) =>
+  _i33.KoheraPushRuleState getRoomPushRuleState(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#getRoomPushRuleState, [roomId]),
-            returnValue: _i32.KoheraPushRuleState.notify,
-            returnValueForMissingStub: _i32.KoheraPushRuleState.notify,
+            returnValue: _i33.KoheraPushRuleState.notify,
+            returnValueForMissingStub: _i33.KoheraPushRuleState.notify,
           )
-          as _i32.KoheraPushRuleState);
+          as _i33.KoheraPushRuleState);
 
   @override
   _i5.Stream<void> powerLevelChangesFor(String? roomId) =>
@@ -9200,13 +9201,13 @@ class MockRoomRepository extends _i1.Mock implements _i28.RoomRepository {
   );
 
   @override
-  void addListener(_i25.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i26.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i25.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i26.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );

@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
 import 'package:kohera/features/chat/widgets/inline_reply_preview.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Renders an inline reply preview for a message that replies to another
 /// event.

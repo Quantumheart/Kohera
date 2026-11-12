@@ -1,7 +1,6 @@
 // coverage:ignore-file
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
@@ -26,6 +25,7 @@ import 'package:kohera/features/spaces/widgets/space_reparent_controller.dart';
 import 'package:kohera/shared/widgets/presence_dot.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 

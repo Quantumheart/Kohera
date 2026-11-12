@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/data/models/kohera_reaction.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/chat/widgets/long_press_wrapper.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
+import 'package:material_ui/material_ui.dart';
 
 // ── ReactionChips ────────────────────────────────────────────
 
@@ -87,7 +87,9 @@ class _ReactionChipsState extends State<ReactionChips> {
                 color: isMine
                     ? cs.primaryContainer
                     : cs.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(0), // Sharp corners for pixel theme
+                borderRadius: BorderRadius.circular(
+                  0,
+                ), // Sharp corners for pixel theme
                 border: Border.all(
                   color: isMine
                       ? cs.primary.withValues(alpha: 0.5)
@@ -144,7 +146,7 @@ void showReactorsSheet(
   required AvatarResolver avatarResolver,
   void Function(String emoji)? onToggle,
 }) {
-  unawaited(showModalBottomSheet(
+  showModalBottomSheet<void>(
     context: context,
     builder: (ctx) {
       return SafeArea(
@@ -185,8 +187,9 @@ void showReactorsSheet(
                       size: 36,
                     ),
                     title: Text(name),
-                    subtitle:
-                        name != reactor.senderId ? Text(reactor.senderId) : null,
+                    subtitle: name != reactor.senderId
+                        ? Text(reactor.senderId)
+                        : null,
                   );
                 },
               ),
@@ -194,8 +197,10 @@ void showReactorsSheet(
             if (onToggle != null) ...[
               const Divider(height: 1),
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: SizedBox(
                   width: double.infinity,
                   child: FilledButton.tonal(
@@ -223,5 +228,5 @@ void showReactorsSheet(
         ),
       );
     },
-  ),);
+  );
 }

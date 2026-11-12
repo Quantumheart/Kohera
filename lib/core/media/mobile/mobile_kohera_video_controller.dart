@@ -3,9 +3,9 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/media/kohera_media_source.dart';
 import 'package:kohera/core/media/kohera_video_controller.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:video_player/video_player.dart';
 
 // ── video_player video backend (iOS/Android) ──────────────────
