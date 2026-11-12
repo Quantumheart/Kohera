@@ -1,0 +1,130 @@
+name: Screenshots
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: screenshots
+  cancel-in-progress: false
+
+env:
+  FLUTTER_CHANNEL: stable
+  # Shared across all jobs: the integration_test binding + custom driver
+  # (test_driver/screenshot_driver.dart) collect captures into this dir.
+  SCREENSHOT_DIR: build/screenshots
+
+jobs:
+  # ── Web (PWA manifest screenshots) ──────────────────────────────────────────
+  # Regenerates the narrow.png + wide.png referenced by web/manifest.json.
+  # Headless Chromium via canvaskit; viewport is set in the suite.
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: flutter pub get
+      - name: Capture screenshots
+        run: flutter drive --driver=test_driver/screenshot_driver.dart --target=integration_test/screenshot_suite.dart -d chrome --dart-define=GIPHY_API_KEY=${{ secrets.GIPHY_API_KEY }}
+      - name: Publish to manifest paths
+        run: |
+          mkdir -p web/screenshots
+          cp build/screenshots/home_narrow_light.png web/screenshots/narrow.png
+          cp build/screenshots/home_wide_light.png web/screenshots/wide.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-screenshots
+          path: |
+            web/screenshots/
+            build/screenshots/
+
+  # ── Linux desktop ───────────────────────────────────────────────────────────
+  # Headless Xvfb. The suite rasterizes via RepaintBoundary and writes PNGs
+  # directly (desktop has no integration_test capture plugin under test mode).
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build libgtk-3-dev libsecret-1-dev libmpv-dev xvfb
+      - run: flutter pub get
+      - name: Capture screenshots (Xvfb)
+        run: xvfb-run -a --server-args="-screen 0 1280x800x24" flutter drive --driver=test_driver/screenshot_driver.dart --target=integration_test/screenshot_suite.dart -d linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-screenshots
+          path: build/screenshots/
+
+  # ── Android (Play Store) ────────────────────────────────────────────────────
+  # Hardware-accelerated emulator. Sizing comes from the emulator profile;
+  # the suite's viewport override is ignored under drive on mobile.
+  android:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: ['pixel_7']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: flutter pub get
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0777"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Capture screenshots
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: ${{ matrix.profile }}
+          script: flutter drive --driver=test_driver/screenshot_driver.dart --target=integration_test/screenshot_suite.dart -d emulator-5554
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-screenshots-${{ matrix.profile }}
+          path: build/screenshots/
+
+  # ── iOS (App Store) ─────────────────────────────────────────────────────────
+  # macOS simulator. Sizing comes from the simulator profile.
+  ios:
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        device: ['iPhone 15 Pro Max']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: flutter pub get
+      - name: Boot simulator
+        id: sim
+        run: |
+          udid=$(xcrun simctl create "kohera-shot" "${{ matrix.device }}" | tr -d '[:space:]')
+          xcrun simctl boot "$udid"
+          echo "udid=$udid" >> "$GITHUB_OUTPUT"
+      - name: Capture screenshots
+        run: flutter drive --driver=test_driver/screenshot_driver.dart --target=integration_test/screenshot_suite.dart -d "${{ steps.sim.outputs.udid }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-screenshots-${{ matrix.device }}
+          path: build/screenshots/
