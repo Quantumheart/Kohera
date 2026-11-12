@@ -30,7 +30,7 @@ import 'package:matrix/matrix.dart';
 class MessageTimelineController extends ChangeNotifier
     with WidgetsBindingObserver {
   MessageTimelineController({
-    required this.rooms,
+    required this.roomRepository,
     required this.roomId,
     required this.sendPublicReadReceipts,
     this.initialEventId,
@@ -39,7 +39,7 @@ class MessageTimelineController extends ChangeNotifier
     this.onTimelineChanged,
   }) : _extraEvents = extraEvents;
 
-  final RoomRepository rooms;
+  final RoomRepository roomRepository;
   final String roomId;
   final bool sendPublicReadReceipts;
   final String? initialEventId;
@@ -106,7 +106,7 @@ class MessageTimelineController extends ChangeNotifier
   Timeline? get timeline => _timeline;
   Room? get room => _room;
 
-  String? get myUserId => rooms.userId;
+  String? get myUserId => roomRepository.userId;
 
   List<ChatMessageData> get messages {
     if (_cachedMessages != null) return _cachedMessages!;
@@ -116,7 +116,7 @@ class MessageTimelineController extends ChangeNotifier
       timelineEvents,
       extraEvents: _extraEvents,
       threadRootId: threadRootEventId,
-      ignoredUserIds: rooms.ignoredUsers,
+      ignoredUserIds: roomRepository.ignoredUsers,
     );
     _cachedMessages = _buildMessageData(visible);
     return _cachedMessages!;
@@ -179,7 +179,7 @@ class MessageTimelineController extends ChangeNotifier
       WidgetsBinding.instance.addObserver(this);
       _observingLifecycle = true;
     }
-    _room = rooms.rawRoom(roomId);
+    _room = roomRepository.rawRoom(roomId);
     if (_room == null) {
       _initFuture = null;
       return;
@@ -273,7 +273,7 @@ class MessageTimelineController extends ChangeNotifier
   void _requestMissingKeys() {
     final room = _room;
     if (room == null) return;
-    final encryption = rooms.encryption;
+    final encryption = roomRepository.encryption;
     if (encryption == null) return;
 
     final events = _timeline?.events;
@@ -375,7 +375,7 @@ class MessageTimelineController extends ChangeNotifier
         if (visible.isEmpty) return;
         final lastThreadEvent = visible.first;
         try {
-          await rooms.postReceipt(
+          await roomRepository.postReceipt(
             room.id,
             ReceiptType.mRead,
             lastThreadEvent.eventId,
@@ -396,7 +396,7 @@ class MessageTimelineController extends ChangeNotifier
           lastMainEvent.eventId,
           mRead: sendPublicReadReceipts ? lastMainEvent.eventId : null,
         );
-        await rooms.postReceipt(
+        await roomRepository.postReceipt(
           room.id,
           ReceiptType.mRead,
           lastMainEvent.eventId,
@@ -602,7 +602,7 @@ class MessageTimelineController extends ChangeNotifier
     final roomStateVersion = Object.hash(
       room?.getState(EventTypes.RoomPinnedEvents),
       room?.getState(EventTypes.RoomPowerLevels),
-      Object.hashAll(rooms.ignoredUsers),
+      Object.hashAll(roomRepository.ignoredUsers),
     );
     if (roomStateVersion != _lastRoomStateVersion) {
       _lastRoomStateVersion = roomStateVersion;
@@ -732,7 +732,7 @@ class MessageTimelineController extends ChangeNotifier
         stateEventText = StateEventResolver.resolve(event);
       case MessageCategory.sticker:
         media = MediaContentResolver.resolve(event);
-        mediaController = SdkMediaController(event, rooms.searchClient);
+        mediaController = SdkMediaController(event, roomRepository.searchClient);
       case MessageCategory.callEvent:
         callDuration = _callDuration(event);
       case MessageCategory.poll:
@@ -747,7 +747,7 @@ class MessageTimelineController extends ChangeNotifier
       case MessageCategory.message:
         if (!isRedacted) {
           media = MediaContentResolver.resolve(event);
-          mediaController = SdkMediaController(event, rooms.searchClient);
+          mediaController = SdkMediaController(event, roomRepository.searchClient);
         }
     }
 
