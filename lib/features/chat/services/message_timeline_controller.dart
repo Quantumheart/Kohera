@@ -676,6 +676,63 @@ class MessageTimelineController extends ChangeNotifier
     return hash;
   }
 
+  ({bool isMe, bool isPinned, bool canPin, bool canRedact})
+      _resolvePermissions(Event event, Room? room, String uid) {
+    return (
+      isMe: event.senderId == uid,
+      isPinned: room?.pinnedEventIds.contains(event.eventId) ?? false,
+      canPin: !event.redacted &&
+          (room?.canChangeStateEvent('m.room.pinned_events') ?? false),
+      canRedact: event.canRedact,
+    );
+  }
+
+  ({bool hasThread, int replyCount, int unreadCount}) _resolveThreadInfo(
+    Event event,
+    Timeline? timeline,
+    Room? room,
+    String uid,
+  ) {
+    if (timeline == null ||
+        !event.hasAggregatedEvents(timeline, RelationshipTypes.thread)) {
+      return (hasThread: false, replyCount: 0, unreadCount: 0);
+    }
+    return (
+      hasThread: true,
+      replyCount:
+          event.aggregatedEvents(timeline, RelationshipTypes.thread).length,
+      unreadCount: room != null
+          ? threadUnreadCountFor(
+              root: event,
+              timeline: timeline,
+              room: room,
+              myUserId: uid,
+            )
+          : 0,
+    );
+  }
+
+  KoheraReactionList? _resolveReactions(
+    Event event,
+    Timeline? timeline,
+    String uid,
+  ) {
+    if (timeline == null ||
+        !event.hasAggregatedEvents(timeline, RelationshipTypes.reaction)) {
+      return null;
+    }
+    return ReactionResolver.resolve(event, timeline, myUserId: uid);
+  }
+
+  ({KoheraMediaContent? media, MediaController? controller}) _resolveMedia(
+    Event event,
+  ) {
+    return (
+      media: MediaContentResolver.resolve(event),
+      controller: SdkMediaController(event, roomRepository.searchClient),
+    );
+  }
+
   ChatMessageData _resolveEventData(
     Event event,
     String uid,
@@ -684,38 +741,9 @@ class MessageTimelineController extends ChangeNotifier
     Timeline? timeline,
     MessageCategory category,
   ) {
-    final isMe = event.senderId == uid;
-
-    final isPinned = room?.pinnedEventIds.contains(event.eventId) ?? false;
-    final isRedacted = event.redacted;
-    final canPin = !isRedacted &&
-        (room?.canChangeStateEvent('m.room.pinned_events') ?? false);
-    final canRedact = event.canRedact;
-
-    final hasThread = timeline != null &&
-        event.hasAggregatedEvents(timeline, RelationshipTypes.thread);
-    final threadReplyCount = hasThread
-        ? event.aggregatedEvents(timeline, RelationshipTypes.thread).length
-        : 0;
-    final threadUnreadCount = hasThread && room != null
-        ? threadUnreadCountFor(
-            root: event,
-            timeline: timeline,
-            room: room,
-            myUserId: uid,
-          )
-        : 0;
-
-    KoheraReactionList? reactions;
-    if (timeline != null &&
-        event.hasAggregatedEvents(timeline, RelationshipTypes.reaction)) {
-      reactions = ReactionResolver.resolve(
-        event,
-        timeline,
-        myUserId: uid,
-      );
-    }
-
+    final permissions = _resolvePermissions(event, room, uid);
+    final thread = _resolveThreadInfo(event, timeline, room, uid);
+    final reactions = _resolveReactions(event, timeline, uid);
     final message = MessageDisplayResolver.resolve(
       event,
       timeline: timeline,
@@ -731,8 +759,9 @@ class MessageTimelineController extends ChangeNotifier
       case MessageCategory.stateEvent:
         stateEventText = StateEventResolver.resolve(event);
       case MessageCategory.sticker:
-        media = MediaContentResolver.resolve(event);
-        mediaController = SdkMediaController(event, roomRepository.searchClient);
+        final resolved = _resolveMedia(event);
+        media = resolved.media;
+        mediaController = resolved.controller;
       case MessageCategory.callEvent:
         callDuration = _callDuration(event);
       case MessageCategory.poll:
@@ -741,27 +770,28 @@ class MessageTimelineController extends ChangeNotifier
             event,
             timeline,
             myUserId: uid,
-            canRedact: canRedact,
+            canRedact: permissions.canRedact,
           );
         }
       case MessageCategory.message:
-        if (!isRedacted) {
-          media = MediaContentResolver.resolve(event);
-          mediaController = SdkMediaController(event, roomRepository.searchClient);
+        if (!event.redacted) {
+          final resolved = _resolveMedia(event);
+          media = resolved.media;
+          mediaController = resolved.controller;
         }
     }
 
     return ChatMessageData(
       message: message,
       category: category,
-      isMe: isMe,
+      isMe: permissions.isMe,
       isFirst: isFirst,
-      isPinned: isPinned,
-      canPin: canPin,
-      canRedact: canRedact,
-      hasThread: hasThread,
-      threadReplyCount: threadReplyCount,
-      threadUnreadCount: threadUnreadCount,
+      isPinned: permissions.isPinned,
+      canPin: permissions.canPin,
+      canRedact: permissions.canRedact,
+      hasThread: thread.hasThread,
+      threadReplyCount: thread.replyCount,
+      threadUnreadCount: thread.unreadCount,
       stateEventText: stateEventText,
       reactions: reactions,
       media: media,
