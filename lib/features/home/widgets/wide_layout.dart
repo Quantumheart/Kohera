@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/calling/screens/call_pane.dart';
@@ -8,6 +7,7 @@ import 'package:kohera/features/chat/screens/chat_screen.dart';
 import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/spaces/widgets/space_rail.dart';
 import 'package:kohera/shared/widgets/kohera_mark.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 // coverage:ignore-start

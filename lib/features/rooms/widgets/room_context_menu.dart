@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
@@ -10,6 +9,7 @@ import 'package:kohera/features/rooms/services/room_context_menu_actions.dart';
 import 'package:kohera/features/rooms/widgets/add_room_to_space_dialog.dart';
 import 'package:kohera/shared/widgets/popup_menu_item_row.dart';
 import 'package:kohera/shared/widgets/report_content_dialog.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 // ── Room Context Menu ───────────────────────────────────────────────

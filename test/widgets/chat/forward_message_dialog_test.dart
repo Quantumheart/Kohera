@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/chat/widgets/forward_message_dialog.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 

@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/data/models/kohera_message_display.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
 import 'package:kohera/features/chat/widgets/verification_request_tile.dart';
+import 'package:material_ui/material_ui.dart';
 
 const _msgtypeServerNotice = 'm.server_notice';
 const _msgtypeBadEncrypted = 'm.bad.encrypted';

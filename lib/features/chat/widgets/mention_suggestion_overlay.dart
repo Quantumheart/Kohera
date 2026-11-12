@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/chat/services/mention_autocomplete_controller.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Displays filtered mention suggestions above the compose bar text field.
 class MentionSuggestionList extends StatelessWidget {

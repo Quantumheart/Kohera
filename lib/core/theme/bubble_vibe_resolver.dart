@@ -1,7 +1,7 @@
 import 'dart:ui' show lerpDouble;
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Effective bubble tokens after interpolating between the retro (vibe=0)
 /// and modern (vibe=1) endpoints.

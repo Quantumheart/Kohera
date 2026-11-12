@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/screens/room_permissions_screen.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:kohera/features/rooms/services/room_permissions_sync_watcher.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 /// Boundary widget that subscribes to sync updates, converts `Room` to

@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/features/e2ee/models/kohera_verification_state.dart';
 import 'package:kohera/features/e2ee/models/verification_view.dart';
 import 'package:kohera/features/e2ee/services/kohera_key_verification.dart';
 import 'package:kohera/features/e2ee/widgets/qr_verification_views.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
+import 'package:material_ui/material_ui.dart';
 
 // ── Title ───────────────────────────────────────────────────────
 

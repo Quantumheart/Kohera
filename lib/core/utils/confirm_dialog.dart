@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Shows a standard confirmation [AlertDialog] with a cancel and a confirm
 /// action, returning `true` only when the user confirms.

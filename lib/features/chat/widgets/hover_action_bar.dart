@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/features/chat/widgets/openmoji_picker.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 /// Emoji offered in the quick-react bar, in display order.

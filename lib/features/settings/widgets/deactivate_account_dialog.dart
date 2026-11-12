@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/settings/widgets/uia_password_prompt_dialog.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 

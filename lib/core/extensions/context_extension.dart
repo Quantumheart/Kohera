@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Convenience helpers on [BuildContext] for common UI actions.
 extension ContextExtension on BuildContext {

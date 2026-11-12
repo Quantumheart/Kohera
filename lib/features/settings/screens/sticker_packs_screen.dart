@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -8,6 +7,7 @@ import 'package:kohera/data/models/kohera_sticker_pack.dart';
 import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 class StickerPacksScreen extends StatelessWidget {

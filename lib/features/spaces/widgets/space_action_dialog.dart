@@ -1,7 +1,6 @@
 // coverage:ignore-file
 import 'dart:async';
 
-import 'package:flutter/material.dart' hide Visibility;
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -14,6 +13,7 @@ import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
+import 'package:material_ui/material_ui.dart' hide Visibility;
 import 'package:provider/provider.dart';
 
 // ── Add-space actions (shared by desktop popover and mobile dialog) ──

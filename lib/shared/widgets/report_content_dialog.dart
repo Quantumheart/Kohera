@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Shows a dialog collecting a required reason for reporting content.
 ///

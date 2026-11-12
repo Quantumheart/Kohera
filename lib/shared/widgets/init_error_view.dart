@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class InitErrorView extends StatelessWidget {
   const InitErrorView({required this.error, required this.onRetry, super.key});

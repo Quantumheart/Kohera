@@ -1,10 +1,10 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/core/utils/media_cache_io.dart'
     if (dart.library.js_interop) 'package:kohera/core/utils/media_cache_web.dart';
 import 'package:kohera/data/models/kohera_media_content.dart';
 import 'package:kohera/shared/services/media_controller.dart';
+import 'package:material_ui/material_ui.dart';
 
 // coverage:ignore-start
 

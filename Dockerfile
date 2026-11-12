@@ -3,7 +3,7 @@
 # ── Build Stage ──────────────────────────────────────────────────────
 FROM docker.io/library/debian:bookworm-slim AS build
 
-ARG FLUTTER_VERSION=3.47.0
+ARG FLUTTER_VERSION=3.50.0
 # Must match the `vodozemac` dependency_overrides ref in pubspec.yaml so the
 # compiled WASM's flutter_rust_bridge handshake (codegen version + rust content
 # hash) matches the Dart bindings the app is built against.

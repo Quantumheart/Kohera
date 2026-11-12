@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A small circular affordance shown over the timeline when the view is a
 /// fragmented context jump (e.g. after navigating to a search result). Tapping

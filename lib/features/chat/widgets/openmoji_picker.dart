@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/core/utils/openmoji_catalog.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
+import 'package:material_ui/material_ui.dart';
 
 // ── OpenMojiPicker ───────────────────────────────────────────
 

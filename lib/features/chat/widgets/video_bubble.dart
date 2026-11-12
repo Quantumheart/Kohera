@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/media/kohera_player_factory.dart';
 import 'package:kohera/core/media/kohera_video_controller.dart';
 import 'package:kohera/core/utils/format_duration.dart';
@@ -13,6 +12,7 @@ import 'package:kohera/features/chat/widgets/full_video_view.dart';
 import 'package:kohera/features/chat/widgets/inline_video_controls.dart';
 import 'package:kohera/shared/services/media_controller.dart';
 import 'package:kohera/shared/widgets/one_time_memory_image.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 

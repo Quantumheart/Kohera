@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 /// Shared dialog for accepting or declining a room/space invitation.

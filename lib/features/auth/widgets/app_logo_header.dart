@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
-
 import 'package:kohera/core/brand/brand_constants.dart';
 import 'package:kohera/shared/widgets/kohera_mark.dart';
 import 'package:kohera/shared/widgets/kohera_wordmark.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Stacked brand lockup shown on auth screens: mark on top, wordmark below,
 /// tagline under the wordmark, then the per-screen contextual subtitle.

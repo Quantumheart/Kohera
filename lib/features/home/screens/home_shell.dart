@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
@@ -10,6 +9,7 @@ import 'package:kohera/features/e2ee/widgets/key_backup_banner.dart';
 import 'package:kohera/features/home/widgets/narrow_layout.dart';
 import 'package:kohera/features/home/widgets/wide_layout.dart';
 import 'package:kohera/features/spaces/widgets/space_reparent_controller.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 // coverage:ignore-start

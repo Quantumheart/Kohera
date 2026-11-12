@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/data/models/kohera_room_permissions.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Admin settings for a room: edit name, topic, encryption,
 /// and power levels. Only rendered when the user has sufficient power level.

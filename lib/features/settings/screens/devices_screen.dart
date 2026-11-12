@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/nav_helper.dart';
 import 'package:kohera/core/routing/route_names.dart';
@@ -15,6 +14,7 @@ import 'package:kohera/features/settings/widgets/rename_device_dialog.dart';
 import 'package:kohera/features/settings/widgets/uia_password_prompt_dialog.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 class DevicesScreen extends StatefulWidget {

@@ -2,8 +2,8 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
+import 'package:material_ui/material_ui.dart';
 import 'package:record/record.dart';
 
 class MicLevelIndicator extends StatefulWidget {

@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
 import 'package:kohera/core/routing/route_names.dart';
@@ -31,6 +30,7 @@ import 'package:kohera/features/settings/screens/sticker_packs_screen.dart';
 import 'package:kohera/features/settings/screens/voice_video_settings_screen.dart';
 import 'package:kohera/features/spaces/widgets/space_details_panel.dart';
 import 'package:kohera/features/whats_new/screens/whats_new_screen.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 /// Creates the app router with auth-aware redirects.

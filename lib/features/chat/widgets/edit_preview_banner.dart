@@ -1,7 +1,6 @@
-import 'package:flutter/material.dart';
-
 import 'package:kohera/data/models/kohera_reply_preview.dart';
 import 'package:kohera/features/chat/widgets/compose_preview_banner.dart';
+import 'package:material_ui/material_ui.dart';
 
 class EditPreviewBanner extends StatelessWidget {
   const EditPreviewBanner({

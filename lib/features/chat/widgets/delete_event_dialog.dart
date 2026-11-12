@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Shows a confirmation dialog and calls [onRedact] if the user confirms.
 ///

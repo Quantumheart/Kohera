@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class E2eeSetupBulletPoints extends StatelessWidget {
   const E2eeSetupBulletPoints({required this.items, super.key});

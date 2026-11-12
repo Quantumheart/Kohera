@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart' hide Visibility;
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
+import 'package:material_ui/material_ui.dart' hide Visibility;
 
 /// SDK-free request describing the subspace the user wants to create. The
 /// dialog collects these fields and hands them to [CreateSubspaceDialog.onCreateSubspace],

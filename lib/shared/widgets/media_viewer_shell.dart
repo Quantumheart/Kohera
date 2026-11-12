@@ -1,6 +1,6 @@
 import 'dart:async';
+
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/media_cache_io.dart'
     if (dart.library.js_interop) 'package:kohera/core/utils/media_cache_web.dart';
 import 'package:kohera/core/utils/time_format.dart';
@@ -8,6 +8,7 @@ import 'package:kohera/data/models/kohera_media_content.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/shared/services/media_controller.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
+import 'package:material_ui/material_ui.dart';
 
 
 // ── Shared fullscreen media viewer shell ─────────────────────

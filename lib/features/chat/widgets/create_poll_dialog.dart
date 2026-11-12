@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/features/chat/models/kohera_poll_draft.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Dialog for composing an MSC3381 poll before sending it.
 ///

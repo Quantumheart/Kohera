@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/data/models/kohera_message_display.dart';
@@ -8,6 +7,7 @@ import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
 import 'package:kohera/features/chat/widgets/message_bubble_body.dart';
 import 'package:kohera/features/chat/widgets/verification_request_tile.dart';
+import 'package:material_ui/material_ui.dart';
 
 KoheraMessageDisplay _makeMessage({
   String msgtype = 'm.text',

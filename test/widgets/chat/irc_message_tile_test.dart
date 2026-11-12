@@ -1,11 +1,11 @@
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/theme/kohera_theme.dart';
 import 'package:kohera/data/models/kohera_message_display.dart';
 import 'package:kohera/data/models/kohera_message_status.dart';
 import 'package:kohera/data/models/kohera_poll.dart';
 import 'package:kohera/features/chat/widgets/irc_message_tile.dart';
+import 'package:material_ui/material_ui.dart';
 
 KoheraMessageDisplay _msg({
   String body = 'Hello, world!',
