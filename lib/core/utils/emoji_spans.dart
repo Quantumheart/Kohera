@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/emoji_style.dart';
 import 'package:kohera/core/utils/openmoji.dart';
 import 'package:kohera/shared/widgets/openmoji_image.dart';
+import 'package:material_ui/material_ui.dart';
 
 export 'package:kohera/core/utils/emoji_style.dart';
 

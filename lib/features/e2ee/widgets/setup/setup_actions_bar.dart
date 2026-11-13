@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class E2eeSetupActionsBar extends StatelessWidget {
   const E2eeSetupActionsBar({

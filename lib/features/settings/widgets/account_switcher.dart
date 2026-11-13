@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 class AccountSwitcher extends StatelessWidget {

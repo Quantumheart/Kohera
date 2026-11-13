@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
@@ -11,6 +10,7 @@ import 'package:kohera/features/rooms/widgets/room_list.dart';
 import 'package:kohera/features/spaces/models/space_rooms_model.dart';
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 import 'package:kohera/features/spaces/widgets/space_reparent_controller.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:matrix/matrix.dart';
 import 'package:matrix/src/utils/cached_stream_controller.dart';
 import 'package:mockito/annotations.dart';

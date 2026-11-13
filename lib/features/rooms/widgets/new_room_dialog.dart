@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/services/matrix_service.dart';
@@ -10,6 +9,7 @@ import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/features/rooms/services/room_creation_service.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 // ── New Room dialog ───────────────────────────────────────────

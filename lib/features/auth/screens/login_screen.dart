@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
@@ -10,6 +9,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/features/auth/widgets/login_controller.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {

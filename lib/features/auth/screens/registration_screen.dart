@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/app_config.dart';
@@ -11,6 +10,7 @@ import 'package:kohera/features/auth/services/registration_controller.dart';
 import 'package:kohera/features/auth/widgets/app_logo_header.dart';
 import 'package:kohera/features/auth/widgets/registration_views.dart';
 import 'package:kohera/shared/widgets/loading_button_child.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 class RegistrationScreen extends StatefulWidget {

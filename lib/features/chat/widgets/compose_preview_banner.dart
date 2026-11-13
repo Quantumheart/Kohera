@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
-
 import 'package:kohera/data/models/kohera_reply_preview.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Compose-bar banner showing a leading [icon], an accent-coloured [title], and
 /// a one-line preview of [preview], with a trailing close button.

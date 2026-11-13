@@ -3,10 +3,10 @@
 // ignore_for_file: prefer_const_constructors
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/shared/widgets/mxc_image.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 

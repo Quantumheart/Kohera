@@ -1,7 +1,6 @@
 // coverage:ignore-file
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
@@ -21,6 +20,7 @@ import 'package:kohera/features/chat/widgets/sticker_bubble.dart';
 import 'package:kohera/features/chat/widgets/sticker_message_item.dart';
 import 'package:kohera/features/chat/widgets/unread_divider.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 

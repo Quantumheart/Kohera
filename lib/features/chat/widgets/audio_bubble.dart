@@ -1,7 +1,7 @@
 // coverage:ignore-file
 import 'dart:async';
 import 'dart:math';
-import 'package:flutter/material.dart';
+
 import 'package:kohera/core/media/kohera_player.dart';
 import 'package:kohera/core/media/kohera_player_factory.dart';
 import 'package:kohera/core/utils/format_duration.dart';
@@ -10,6 +10,7 @@ import 'package:kohera/core/utils/media_cache.dart';
 import 'package:kohera/data/models/kohera_media_content.dart';
 import 'package:kohera/features/chat/services/media_playback_service.dart';
 import 'package:kohera/shared/services/media_controller.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 

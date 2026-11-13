@@ -11,11 +11,11 @@ list(APPEND FLUTTER_PLUGIN_LIST
   gtk
   livekit_client
   media_kit_libs_linux
-  media_kit_video
   pasteboard
   record_linux
   screen_retriever_linux
   url_launcher_linux
+  media_kit_video
   window_manager
 )
 

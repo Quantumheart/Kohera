@@ -8,8 +8,8 @@ import 'dart:async' as _i5;
 import 'dart:typed_data' as _i13;
 import 'dart:ui' as _i21;
 
-import 'package:flutter/services.dart' as _i22;
-import 'package:flutter/widgets.dart' as _i23;
+import 'package:flutter/services.dart' as _i23;
+import 'package:flutter/widgets.dart' as _i24;
 import 'package:http/http.dart' as _i4;
 import 'package:kohera/core/services/matrix_service.dart' as _i7;
 import 'package:kohera/core/services/preferences_service.dart' as _i9;
@@ -21,14 +21,15 @@ import 'package:kohera/features/calling/services/call_service.dart' as _i14;
 import 'package:kohera/features/calling/services/livekit_service.dart' as _i15;
 import 'package:kohera/features/calling/services/ringtone_service.dart' as _i20;
 import 'package:kohera/features/notifications/services/notification_service.dart'
-    as _i24;
+    as _i25;
+import 'package:listen/src/listen.dart' as _i22;
 import 'package:livekit_client/livekit_client.dart' as _i16;
 import 'package:matrix/encryption.dart' as _i11;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;
 import 'package:matrix/src/models/timeline_chunk.dart' as _i10;
 import 'package:matrix/src/utils/cached_stream_controller.dart' as _i3;
-import 'package:matrix/src/utils/space_child.dart' as _i25;
+import 'package:matrix/src/utils/space_child.dart' as _i26;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i12;
 
@@ -6895,13 +6896,13 @@ class MockCallService extends _i1.Mock implements _i14.CallService {
   );
 
   @override
-  void addListener(_i21.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i22.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i21.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i22.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -6916,7 +6917,7 @@ class MockCallService extends _i1.Mock implements _i14.CallService {
           as _i5.Future<bool>);
 
   @override
-  bool handleStartBackGesture(_i22.PredictiveBackEvent? backEvent) =>
+  bool handleStartBackGesture(_i23.PredictiveBackEvent? backEvent) =>
       (super.noSuchMethod(
             Invocation.method(#handleStartBackGesture, [backEvent]),
             returnValue: false,
@@ -6925,7 +6926,7 @@ class MockCallService extends _i1.Mock implements _i14.CallService {
           as bool);
 
   @override
-  void handleUpdateBackGestureProgress(_i22.PredictiveBackEvent? backEvent) =>
+  void handleUpdateBackGestureProgress(_i23.PredictiveBackEvent? backEvent) =>
       super.noSuchMethod(
         Invocation.method(#handleUpdateBackGestureProgress, [backEvent]),
         returnValueForMissingStub: null,
@@ -6960,7 +6961,7 @@ class MockCallService extends _i1.Mock implements _i14.CallService {
 
   @override
   _i5.Future<bool> didPushRouteInformation(
-    _i23.RouteInformation? routeInformation,
+    _i24.RouteInformation? routeInformation,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#didPushRouteInformation, [routeInformation]),
@@ -7029,7 +7030,7 @@ class MockCallService extends _i1.Mock implements _i14.CallService {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockNotificationService extends _i1.Mock
-    implements _i24.NotificationService {
+    implements _i25.NotificationService {
   @override
   _i7.MatrixService get matrixService =>
       (super.noSuchMethod(
@@ -7745,22 +7746,22 @@ class MockRoom extends _i1.Mock implements _i2.Room {
           as bool);
 
   @override
-  List<_i25.SpaceParent> get spaceParents =>
+  List<_i26.SpaceParent> get spaceParents =>
       (super.noSuchMethod(
             Invocation.getter(#spaceParents),
-            returnValue: <_i25.SpaceParent>[],
-            returnValueForMissingStub: <_i25.SpaceParent>[],
+            returnValue: <_i26.SpaceParent>[],
+            returnValueForMissingStub: <_i26.SpaceParent>[],
           )
-          as List<_i25.SpaceParent>);
+          as List<_i26.SpaceParent>);
 
   @override
-  List<_i25.SpaceChild> get spaceChildren =>
+  List<_i26.SpaceChild> get spaceChildren =>
       (super.noSuchMethod(
             Invocation.getter(#spaceChildren),
-            returnValue: <_i25.SpaceChild>[],
-            returnValueForMissingStub: <_i25.SpaceChild>[],
+            returnValue: <_i26.SpaceChild>[],
+            returnValueForMissingStub: <_i26.SpaceChild>[],
           )
-          as List<_i25.SpaceChild>);
+          as List<_i26.SpaceChild>);
 
   @override
   set membership(_i2.Membership? value) => super.noSuchMethod(

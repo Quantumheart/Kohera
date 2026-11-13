@@ -1,10 +1,10 @@
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/format_file_size.dart';
 import 'package:kohera/core/utils/media_cache_io.dart'
     if (dart.library.js_interop) 'package:kohera/core/utils/media_cache_web.dart';
 import 'package:kohera/data/models/kohera_media_content.dart';
 import 'package:kohera/shared/services/media_controller.dart';
+import 'package:material_ui/material_ui.dart';
 
 // coverage:ignore-start
 
@@ -35,11 +35,12 @@ class _FileBubbleState extends State<FileBubble> {
 
     try {
       final bytes = await widget.controller.downloadAndDecrypt();
-      final path = await FilePicker.saveFile(
+      final uri = await FilePicker.saveFile(
         dialogTitle: 'Kohera',
-        fileName: widget.media.fileName,
+        fileName: widget.media.fileName ?? 'download',
         bytes: bytes,
       );
+      final path = uri != null && uri.scheme == 'file' ? uri.toFilePath() : null;
 
       if (path != null && bytes.isNotEmpty) {
         await File(path).writeAsBytes(bytes);

@@ -5,14 +5,14 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
 import 'dart:async' as _i10;
-import 'dart:ui' as _i8;
 
-import 'package:flutter/material.dart' as _i2;
 import 'package:kohera/data/models/sticker_pack.dart' as _i7;
 import 'package:kohera/data/repositories/sticker_pack_repository.dart' as _i3;
 import 'package:kohera/data/services/media_resolver.dart' as _i9;
 import 'package:kohera/features/chat/services/emoji_autocomplete_controller.dart'
     as _i5;
+import 'package:listen/src/listen.dart' as _i8;
+import 'package:material_ui/material_ui.dart' as _i2;
 import 'package:matrix/matrix.dart' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i6;

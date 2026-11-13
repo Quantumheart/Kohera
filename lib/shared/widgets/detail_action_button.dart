@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A compact vertical icon-over-label action button used in the room and space
 /// detail panels. Renders disabled (dimmed) when [onTap] is null.

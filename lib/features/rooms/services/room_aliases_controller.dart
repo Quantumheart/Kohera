@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/models/kohera_room_aliases.dart';
 import 'package:kohera/features/rooms/widgets/room_aliases_section.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 

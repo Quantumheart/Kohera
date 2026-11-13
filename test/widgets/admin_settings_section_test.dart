@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/data/models/kohera_room_permissions.dart';
 import 'package:kohera/features/rooms/widgets/admin_settings_section.dart';
+import 'package:material_ui/material_ui.dart';
 
 KoheraRoomPermissions _perms({
   String roomId = '!r:e.com',

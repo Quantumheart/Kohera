@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
@@ -8,6 +7,7 @@ import 'package:http/testing.dart';
 import 'package:kohera/core/services/github_releases_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/whats_new/widgets/whats_new_banner.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';

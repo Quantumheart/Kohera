@@ -1,7 +1,7 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/core/theme/theme_presets.dart';
+import 'package:material_ui/material_ui.dart';
 
 class KoheraTheme {
   KoheraTheme._();

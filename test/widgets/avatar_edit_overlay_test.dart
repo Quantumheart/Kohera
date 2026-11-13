@@ -1,10 +1,10 @@
 import 'dart:typed_data';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/shared/widgets/avatar_edit_overlay.dart';
 import 'package:kohera/shared/widgets/room_avatar.dart';
+import 'package:material_ui/material_ui.dart';
 
 KoheraRoomSummary _summary({String? avatarUrl}) => KoheraRoomSummary(
       roomId: '!room:example.com',

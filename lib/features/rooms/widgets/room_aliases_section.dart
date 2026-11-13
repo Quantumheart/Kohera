@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/features/rooms/models/kohera_room_aliases.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Renders the room alias management UI: canonical alias, list of local
 /// aliases, create field, set-canonical and delete actions.

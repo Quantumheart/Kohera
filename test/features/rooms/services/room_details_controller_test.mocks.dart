@@ -8,8 +8,8 @@ import 'dart:async' as _i5;
 import 'dart:typed_data' as _i22;
 import 'dart:ui' as _i26;
 
-import 'package:flutter/services.dart' as _i27;
-import 'package:flutter/widgets.dart' as _i28;
+import 'package:flutter/services.dart' as _i28;
+import 'package:flutter/widgets.dart' as _i29;
 import 'package:http/http.dart' as _i4;
 import 'package:kohera/core/services/account_session.dart' as _i7;
 import 'package:kohera/core/services/auth_service.dart' as _i16;
@@ -19,14 +19,15 @@ import 'package:kohera/core/state/key_backup_setup_state.dart' as _i11;
 import 'package:kohera/core/state/selection_controller.dart' as _i14;
 import 'package:kohera/core/state/uia_interaction_controller.dart' as _i9;
 import 'package:kohera/data/models/kohera_room_summary.dart' as _i19;
-import 'package:kohera/data/models/space_node.dart' as _i29;
+import 'package:kohera/data/models/space_node.dart' as _i30;
 import 'package:kohera/data/repositories/key_backup_repository.dart' as _i12;
 import 'package:kohera/data/repositories/space_tree_repository.dart' as _i13;
 import 'package:kohera/data/services/avatar_resolver.dart' as _i17;
 import 'package:kohera/data/services/matrix_client_service.dart' as _i8;
 import 'package:kohera/data/services/media_resolver.dart' as _i18;
 import 'package:kohera/data/services/password_cache.dart' as _i10;
-import 'package:kohera/data/services/presence_service.dart' as _i30;
+import 'package:kohera/data/services/presence_service.dart' as _i31;
+import 'package:listen/src/listen.dart' as _i27;
 import 'package:matrix/encryption.dart' as _i20;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:matrix/matrix_api_lite/generated/fixed_model.dart' as _i6;
@@ -8504,13 +8505,13 @@ class MockMatrixService extends _i1.Mock implements _i25.MatrixService {
   );
 
   @override
-  void addListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i27.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i27.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -8525,7 +8526,7 @@ class MockMatrixService extends _i1.Mock implements _i25.MatrixService {
           as _i5.Future<bool>);
 
   @override
-  bool handleStartBackGesture(_i27.PredictiveBackEvent? backEvent) =>
+  bool handleStartBackGesture(_i28.PredictiveBackEvent? backEvent) =>
       (super.noSuchMethod(
             Invocation.method(#handleStartBackGesture, [backEvent]),
             returnValue: false,
@@ -8534,7 +8535,7 @@ class MockMatrixService extends _i1.Mock implements _i25.MatrixService {
           as bool);
 
   @override
-  void handleUpdateBackGestureProgress(_i27.PredictiveBackEvent? backEvent) =>
+  void handleUpdateBackGestureProgress(_i28.PredictiveBackEvent? backEvent) =>
       super.noSuchMethod(
         Invocation.method(#handleUpdateBackGestureProgress, [backEvent]),
         returnValueForMissingStub: null,
@@ -8569,7 +8570,7 @@ class MockMatrixService extends _i1.Mock implements _i25.MatrixService {
 
   @override
   _i5.Future<bool> didPushRouteInformation(
-    _i28.RouteInformation? routeInformation,
+    _i29.RouteInformation? routeInformation,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#didPushRouteInformation, [routeInformation]),
@@ -8658,13 +8659,13 @@ class MockSpaceTreeRepository extends _i1.Mock
           as bool);
 
   @override
-  List<_i29.SpaceNode> get spaceTree =>
+  List<_i30.SpaceNode> get spaceTree =>
       (super.noSuchMethod(
             Invocation.getter(#spaceTree),
-            returnValue: <_i29.SpaceNode>[],
-            returnValueForMissingStub: <_i29.SpaceNode>[],
+            returnValue: <_i30.SpaceNode>[],
+            returnValueForMissingStub: <_i30.SpaceNode>[],
           )
-          as List<_i29.SpaceNode>);
+          as List<_i30.SpaceNode>);
 
   @override
   List<_i2.Room> get spaces =>
@@ -8807,13 +8808,13 @@ class MockSpaceTreeRepository extends _i1.Mock
           as int);
 
   @override
-  void addListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i27.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i27.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -8846,7 +8847,7 @@ class MockAvatarResolver extends _i1.Mock implements _i17.AvatarResolver {
 /// A class which mocks [PresenceService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockPresenceService extends _i1.Mock implements _i30.PresenceService {
+class MockPresenceService extends _i1.Mock implements _i31.PresenceService {
   @override
   bool get publishingEnabled =>
       (super.noSuchMethod(
@@ -8912,13 +8913,13 @@ class MockPresenceService extends _i1.Mock implements _i30.PresenceService {
   );
 
   @override
-  void addListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i27.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i27.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );

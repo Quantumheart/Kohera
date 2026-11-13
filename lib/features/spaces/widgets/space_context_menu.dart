@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
@@ -22,6 +21,7 @@ import 'package:kohera/features/spaces/widgets/space_details_panel.dart'
     show SpaceDetailsPanel;
 import 'package:kohera/shared/widgets/popup_menu_item_row.dart';
 import 'package:kohera/shared/widgets/report_content_dialog.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 // ── Space Context Menu ──────────────────────────────────────────────

@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/models/join_mode.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// A self-contained (id + displayname) reference to a space, used by the
 /// SDK-free [JoinAccessSection] so shared widgets do not depend on

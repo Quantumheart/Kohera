@@ -2,7 +2,6 @@
 import 'dart:async';
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/core/utils/emoji_spans.dart';
 import 'package:kohera/core/utils/safe_url_launcher.dart';
@@ -21,6 +20,7 @@ import 'package:kohera/features/chat/widgets/long_press_wrapper.dart';
 import 'package:kohera/features/chat/widgets/swipeable_message.dart';
 import 'package:kohera/features/chat/widgets/video_bubble.dart';
 import 'package:kohera/shared/services/media_controller.dart';
+import 'package:material_ui/material_ui.dart';
 
 const _msgtypeNotice = 'm.notice';
 const _msgtypeEmote = 'm.emote';

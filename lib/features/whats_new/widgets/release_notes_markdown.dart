@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:kohera/core/utils/safe_url_launcher.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 typedef LinkLauncher = Future<bool> Function(Uri uri);
@@ -38,7 +38,8 @@ class ReleaseNotesMarkdown extends StatelessWidget {
         if (href == null) return;
         final uri = Uri.tryParse(href);
         if (uri == null || !isAllowedUrl(uri)) return;
-        final launcher = linkLauncher ??
+        final launcher =
+            linkLauncher ??
             (u) => launchUrl(u, mode: LaunchMode.externalApplication);
         unawaited(launcher(uri));
       },
@@ -59,7 +60,13 @@ MarkdownStyleSheet _styleSheetFor(ThemeData theme) {
     backgroundColor: codeBg,
   );
 
-  return MarkdownStyleSheet.fromTheme(theme).copyWith(
+  return MarkdownStyleSheet(
+    blockSpacing: 8,
+    listIndent: 24,
+    horizontalRuleDecoration: BoxDecoration(
+      border: Border(top: BorderSide(color: colors.outlineVariant)),
+    ),
+  ).copyWith(
     a: TextStyle(
       color: colors.primary,
       decoration: TextDecoration.underline,
@@ -70,6 +77,11 @@ MarkdownStyleSheet _styleSheetFor(ThemeData theme) {
     h2: text.titleLarge?.copyWith(fontWeight: FontWeight.w600),
     h3: text.titleMedium?.copyWith(fontWeight: FontWeight.w600),
     h4: text.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+    h5: text.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+    h6: text.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+    em: text.bodyMedium?.copyWith(fontStyle: FontStyle.italic),
+    strong: text.bodyMedium?.copyWith(fontWeight: FontWeight.bold),
+    del: text.bodyMedium?.copyWith(decoration: TextDecoration.lineThrough),
     code: codeStyle,
     codeblockDecoration: BoxDecoration(
       color: codeBg,

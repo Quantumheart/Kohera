@@ -3,7 +3,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:giphy_get/giphy_get.dart';
 import 'package:go_router/go_router.dart';
@@ -70,9 +69,9 @@ import 'package:kohera/features/chat/widgets/typing_indicator.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/rooms/services/member_sheet_launcher.dart';
 import 'package:kohera/shared/widgets/report_content_dialog.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
-
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({
@@ -160,7 +159,7 @@ class _ChatScreenState extends State<ChatScreen>
     final rooms = context.read<RoomRepository>();
     final prefs = context.read<PreferencesService>();
     _timelineController = MessageTimelineController(
-      rooms: rooms,
+      roomRepository: rooms,
       roomId: widget.roomId,
       sendPublicReadReceipts: prefs.readReceipts,
       initialEventId: widget.initialEventId,
@@ -181,8 +180,9 @@ class _ChatScreenState extends State<ChatScreen>
       initWebPasteListener();
       _webPasteSub = webPasteImageStream.listen(_onWebPasteImage);
     }
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _refreshThreadUnreadCount());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _refreshThreadUnreadCount(),
+    );
   }
 
   Future<void> _indexWhenTimelineReady(Room room) async {
@@ -275,7 +275,7 @@ class _ChatScreenState extends State<ChatScreen>
       final rooms = context.read<RoomRepository>();
       final prefs = context.read<PreferencesService>();
       _timelineController = MessageTimelineController(
-        rooms: rooms,
+        roomRepository: rooms,
         roomId: widget.roomId,
         sendPublicReadReceipts: prefs.readReceipts,
         initialEventId: widget.initialEventId,
@@ -327,8 +327,7 @@ class _ChatScreenState extends State<ChatScreen>
   ChatMessageActions _createActions() {
     return ChatMessageActions(
       getRoomId: () => widget.roomId,
-      getRoom: () =>
-          context.read<RoomRepository>().rawRoom(widget.roomId),
+      getRoom: () => context.read<RoomRepository>().rawRoom(widget.roomId),
       getTimeline: () => _timelineController.timeline,
       compose: _compose,
       msgCtrl: _msgCtrl,
@@ -422,7 +421,8 @@ class _ChatScreenState extends State<ChatScreen>
     final rootId = event.relationshipType == 'm.thread'
         ? (event.relationshipEventId ?? event.eventId)
         : event.eventId;
-    final root = timeline?.events.firstWhere(
+    final root =
+        timeline?.events.firstWhere(
           (e) => e.eventId == rootId,
           orElse: () => event,
         ) ??
@@ -516,29 +516,27 @@ class _ChatScreenState extends State<ChatScreen>
         onReply: isRedacted ? null : () => _setReplyTo(eventId),
         onEdit: !isRedacted && isMe
             ? () => _compose.setEditEvent(
-                  event,
-                  _timelineController.timeline,
-                  _msgCtrl,
-                )
+                event,
+                _timelineController.timeline,
+                _msgCtrl,
+              )
             : null,
         onReact: isRedacted
             ? null
             : () => showEmojiPickerSheet(
-                  context,
-                  (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
-                ),
+                context,
+                (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
+              ),
         onPin: canPin ? () => unawaited(_actions.togglePin(event)) : null,
         onDelete: !isRedacted && event.canRedact
             ? () => confirmAndDeleteEvent(
-                  context,
-                  isMe: isMe,
-                  onRedact: () => event.room.redactEvent(event.eventId),
-                )
+                context,
+                isMe: isMe,
+                onRedact: () => event.room.redactEvent(event.eventId),
+              )
             : null,
         onReplyInThread: isRedacted ? null : () => _replyInThread(eventId),
-        onForward: isRedacted
-            ? null
-            : () => _forwardMessage(eventId),
+        onForward: isRedacted ? null : () => _forwardMessage(eventId),
         onIgnoreSender: (!isRedacted && !isMe)
             ? () => unawaited(_ignoreSender(event))
             : null,
@@ -647,10 +645,10 @@ class _ChatScreenState extends State<ChatScreen>
             label: isMe ? 'Delete' : 'Remove',
             icon: Icons.delete_outline_rounded,
             onTap: () => confirmAndDeleteEvent(
-                  context,
-                  isMe: isMe,
-                  onRedact: () => event.room.redactEvent(event.eventId),
-                ),
+              context,
+              isMe: isMe,
+              onRedact: () => event.room.redactEvent(event.eventId),
+            ),
             color: cs.error,
           ),
       ];
@@ -730,20 +728,23 @@ class _ChatScreenState extends State<ChatScreen>
     final confirmed = await confirmDialog(
       context,
       title: 'Ignore user?',
-      message:
-          'Hide messages and invites from $displayName across all rooms?',
+      message: 'Hide messages and invites from $displayName across all rooms?',
       confirmLabel: 'Ignore',
       destructive: true,
     );
     if (!confirmed || !mounted) return;
     final users = context.read<UserRepository>();
     try {
-      await users.ignoreUser(senderId,);
+      await users.ignoreUser(
+        senderId,
+      );
       if (mounted) context.showSnack('Ignored $displayName');
     } catch (e) {
       debugPrint('[Kohera] Ignore sender failed: $e');
       if (mounted) {
-        context.showSnack('Failed to ignore: ${MatrixService.friendlyAuthError(e)}');
+        context.showSnack(
+          'Failed to ignore: ${MatrixService.friendlyAuthError(e)}',
+        );
       }
     }
   }
@@ -872,7 +873,8 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Future<void> _handleAttachPressed() async {
-    final isMobileTouch = !kIsWeb &&
+    final isMobileTouch =
+        !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.iOS ||
             defaultTargetPlatform == TargetPlatform.android);
 
@@ -904,7 +906,8 @@ class _ChatScreenState extends State<ChatScreen>
         final attachment = await takePhotoWithCamera();
         if (attachment != null && mounted) _addAttachment(attachment);
       case AttachmentSource.gallery:
-        final remaining = ComposeStateController.maxAttachments -
+        final remaining =
+            ComposeStateController.maxAttachments -
             _compose.pendingAttachments.value.length;
         if (remaining <= 0) {
           _showAttachmentError(AddAttachmentResult.tooMany);
@@ -959,7 +962,10 @@ class _ChatScreenState extends State<ChatScreen>
     final room = context.read<RoomRepository>().rawRoom(widget.roomId);
     if (room != null && room.encrypted) {
       unawaited(
-        context.read<MessageRepository>().ensureRoomIndexed(room, priority: true),
+        context.read<MessageRepository>().ensureRoomIndexed(
+          room,
+          priority: true,
+        ),
       );
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1042,33 +1048,31 @@ class _ChatScreenState extends State<ChatScreen>
     if (room == null) return;
     final stickerService = context.read<StickerPackRepository>();
     final skinTone = context.read<PreferencesService>().skinTone;
-    unawaited(
-      showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        useSafeArea: true,
-        builder: (sheetCtx) => DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.7,
-          minChildSize: 0.7,
-          maxChildSize: 0.9,
-          builder: (_, _) => StickerPickerOverlay(
-            packs: stickerService.packsForRoom(room),
-            mediaResolver: matrix.mediaResolver,
-            skinTone: skinTone,
-            onStickerTapped: (sticker) {
-              Navigator.of(sheetCtx).pop();
-              unawaited(_handleStickerSelected(sticker));
-            },
-            onEmojiTapped: (emoji) {
-              Navigator.of(sheetCtx).pop();
-              _handleEmojiSelected(emoji);
-            },
-            onManagePacks: () {
-              Navigator.of(sheetCtx).pop();
-              context.goNamed(Routes.settingsStickerPacks);
-            },
-          ),
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetCtx) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.7,
+        minChildSize: 0.7,
+        maxChildSize: 0.9,
+        builder: (_, _) => StickerPickerOverlay(
+          packs: stickerService.packsForRoom(room),
+          mediaResolver: matrix.mediaResolver,
+          skinTone: skinTone,
+          onStickerTapped: (sticker) {
+            Navigator.of(sheetCtx).pop();
+            unawaited(_handleStickerSelected(sticker));
+          },
+          onEmojiTapped: (emoji) {
+            Navigator.of(sheetCtx).pop();
+            _handleEmojiSelected(emoji);
+          },
+          onManagePacks: () {
+            Navigator.of(sheetCtx).pop();
+            context.goNamed(Routes.settingsStickerPacks);
+          },
         ),
       ),
     );
@@ -1135,8 +1139,9 @@ class _ChatScreenState extends State<ChatScreen>
     final text = _msgCtrl.text;
     final sel = _msgCtrl.selection;
     final pos = sel.isValid ? sel.baseOffset : text.length;
-    final insertion =
-        emoji.emoji != null ? '${emoji.emoji} ' : ':${emoji.shortcode}: ';
+    final insertion = emoji.emoji != null
+        ? '${emoji.emoji} '
+        : ':${emoji.shortcode}: ';
     _msgCtrl.value = TextEditingValue(
       text: text.substring(0, pos) + insertion + text.substring(pos),
       selection: TextSelection.collapsed(offset: pos + insertion.length),
@@ -1347,7 +1352,9 @@ class _ChatScreenState extends State<ChatScreen>
                       final timeline = _timelineController.timeline;
                       if (event == null || timeline == null) return null;
                       return ReplyPreviewResolver.resolveParent(
-                          event, timeline);
+                        event,
+                        timeline,
+                      );
                     },
                     isMe: isMe,
                     onParentTap: onParentTap,
@@ -1357,8 +1364,7 @@ class _ChatScreenState extends State<ChatScreen>
                 onStickerMobileActions: _showStickerMobileActions,
                 onVotePoll: (eventId, answerIds) =>
                     unawaited(_actions.votePoll(eventId, answerIds)),
-                onEndPoll: (eventId) =>
-                    _actions.endPoll(eventId),
+                onEndPoll: (eventId) => _actions.endPoll(eventId),
               ),
               if (_timelineController.isFragmented || !_atLatest)
                 Positioned(

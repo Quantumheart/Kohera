@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/features/chat/widgets/inline_image_preview.dart';
 import 'package:kohera/features/chat/widgets/link_preview_card.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 class MessageBubbleLinkPreview extends StatefulWidget {

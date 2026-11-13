@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
+import 'package:material_ui/material_ui.dart';
 
 class LoadMoreButton extends StatelessWidget {
   const LoadMoreButton({

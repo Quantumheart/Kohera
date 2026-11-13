@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
@@ -24,6 +23,7 @@ import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
 import 'package:kohera/features/spaces/widgets/space_action_dialog.dart';
 import 'package:kohera/features/whats_new/widgets/whats_new_banner.dart';
 import 'package:kohera/shared/widgets/speed_dial_item.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 class RoomList extends StatelessWidget {

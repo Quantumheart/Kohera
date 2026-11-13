@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:kohera/core/theme/kohera_palette.dart';
 import 'package:kohera/features/chat/widgets/density_metrics.dart';
+import 'package:material_ui/material_ui.dart';
 
 BorderRadius bubbleRadii({
   required bool isMe,

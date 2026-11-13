@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
 import 'package:kohera/data/services/media_resolver.dart';
+import 'package:material_ui/material_ui.dart';
 
 class MxcImage extends StatefulWidget {
   const MxcImage({
