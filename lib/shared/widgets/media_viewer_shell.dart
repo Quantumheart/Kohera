@@ -140,11 +140,12 @@ class _MediaViewerShellState extends State<MediaViewerShell>
 
     try {
       final bytes = await widget.controller.downloadAndDecrypt();
-      final path = await FilePicker.saveFile(
+      final uri = await FilePicker.saveFile(
         dialogTitle: 'Kohera',
-        fileName: widget.media.fileName,
+        fileName: widget.media.fileName ?? 'download',
         bytes: bytes,
       );
+      final path = uri != null && uri.scheme == 'file' ? uri.toFilePath() : null;
 
       if (path != null && bytes.isNotEmpty) {
         await File(path).writeAsBytes(bytes);

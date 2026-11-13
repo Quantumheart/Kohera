@@ -19,16 +19,12 @@ Future<void> pickAndSendFile(
   final scaffold = ScaffoldMessenger.of(context);
   final rooms = context.read<RoomRepository>();
 
-  final result = await FilePicker.pickFiles(
-    dialogTitle: 'Kohera',
-    withData: true,
-  );
-  if (result == null || result.files.isEmpty) return;
+  final files = await FilePicker.pickFiles(dialogTitle: 'Kohera');
+  if (files.isEmpty) return;
 
-  final picked = result.files.first;
-  final bytes = picked.bytes;
+  final picked = files.first;
+  final bytes = await picked.readAsBytes();
   final name = picked.name;
-  if (bytes == null) return;
 
   final room = rooms.rawRoom(roomId);
   if (room == null) return;
@@ -43,14 +39,10 @@ Future<void> pickAndSendFile(
 }
 
 Future<PendingAttachment?> pickFileAsAttachment() async {
-  final result = await FilePicker.pickFiles(
-    dialogTitle: 'Kohera',
-    withData: true,
-  );
-  if (result == null || result.files.isEmpty) return null;
-  final picked = result.files.first;
-  final bytes = picked.bytes;
-  if (bytes == null) return null;
+  final files = await FilePicker.pickFiles(dialogTitle: 'Kohera');
+  if (files.isEmpty) return null;
+  final picked = files.first;
+  final bytes = await picked.readAsBytes();
   return PendingAttachment.fromBytes(bytes: bytes, name: picked.name);
 }
 

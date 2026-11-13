@@ -63,14 +63,16 @@ class _RoomHistoryExportSectionState extends State<RoomHistoryExportSection> {
       widget.exporter ??
       RoomHistoryExporter(rooms: context.read<RoomRepository>());
 
-  Future<String?> _save(Uint8List bytes, String fileName) {
+  Future<String?> _save(Uint8List bytes, String fileName) async {
     final override = widget.onSaveFile;
     if (override != null) return override(bytes, fileName);
-    return FilePicker.saveFile(
+    final uri = await FilePicker.saveFile(
       dialogTitle: 'Export chat history',
       fileName: fileName,
       bytes: bytes,
     );
+    if (uri == null || uri.scheme != 'file') return null;
+    return uri.toFilePath();
   }
 
   KoheraExportOptions get _options => KoheraExportOptions(
