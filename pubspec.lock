@@ -2119,11 +2119,11 @@ packages:
     dependency: "direct main"
     description:
       path: dart
-      ref: "412b996"
-      resolved-ref: "412b996b8d5c3ba1d4b43c57f737aa2a5299e3ae"
+      ref: "3e08753"
+      resolved-ref: "3e0875355de87c056532f87538f76e6d3bdc93f9"
       url: "https://github.com/Quantumheart/dart-vodozemac.git"
     source: git
-    version: "0.8.2"
+    version: "0.9.1"
   wakelock_plus:
     dependency: transitive
     description:
