@@ -3,7 +3,7 @@
 # Must match the `vodozemac` dependency_overrides ref in pubspec.yaml so the
 # compiled WASM's flutter_rust_bridge handshake matches the Dart bindings.
 repo=https://github.com/Quantumheart/dart-vodozemac.git
-ref=412b996b8d5c3ba1d4b43c57f737aa2a5299e3ae
+ref=3e0875355de87c056532f87538f76e6d3bdc93f9
 # Codegen version must match the flutter_rust_bridge the bindings were generated
 # against; keep in lockstep with the Dockerfile.
 frb_version=2.13.0

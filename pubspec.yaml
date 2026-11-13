@@ -116,5 +116,5 @@ dependency_overrides:
   vodozemac:
     git:
       url: https://github.com/Quantumheart/dart-vodozemac.git
-      ref: "412b996"
+      ref: "3e08753"
       path: dart

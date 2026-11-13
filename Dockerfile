@@ -8,7 +8,7 @@ ARG FLUTTER_VERSION=3.50.0
 # compiled WASM's flutter_rust_bridge handshake (codegen version + rust content
 # hash) matches the Dart bindings the app is built against.
 ARG VODOZEMAC_REPO=https://github.com/Quantumheart/dart-vodozemac.git
-ARG VODOZEMAC_REF=412b996b8d5c3ba1d4b43c57f737aa2a5299e3ae
+ARG VODOZEMAC_REF=3e0875355de87c056532f87538f76e6d3bdc93f9
 ARG GIPHY_API_KEY
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
