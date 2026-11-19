@@ -11,7 +11,6 @@ import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:kohera/features/rooms/widgets/member_sheet_dialog.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 // ── Member sheet launcher ─────────────────────────────────────
