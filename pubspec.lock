@@ -372,10 +372,11 @@ packages:
   desktop_drop:
     dependency: "direct main"
     description:
-      name: desktop_drop
-      sha256: aa1e797255bfbc76f9eb5aa4f61e5b68dbf69962ab1be6495816d2f251bc0d1f
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/desktop_drop"
+      ref: d1c7478
+      resolved-ref: d1c7478aac3a4236bba7bb470d0d6d92caf52295
+      url: "https://github.com/Quantumheart/flutter-plugins.git"
+    source: git
     version: "0.7.1"
   desktop_notifications:
     dependency: "direct main"
@@ -545,10 +546,11 @@ packages:
   flutter_background:
     dependency: "direct main"
     description:
-      name: flutter_background
-      sha256: ee47be26beddc59875158a93eeaaad0c0b5f3b21afbdad3de73a2903be824f0e
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: "768e3ab"
+      resolved-ref: "768e3abbd3fa79637a6663136227c613159f6b8d"
+      url: "https://github.com/Quantumheart/flutter_background.git"
+    source: git
     version: "1.3.1"
   flutter_cache_manager:
     dependency: transitive
@@ -561,10 +563,11 @@ packages:
   flutter_callkit_incoming:
     dependency: "direct main"
     description:
-      name: flutter_callkit_incoming
-      sha256: a7ca78008056e2e5031f728ad9707eb6c691c5058c3fa2d8488cbcaa93a96341
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: "4aec0c3"
+      resolved-ref: "4aec0c307dd1b6b3573fec7911cba7c33bd5d62c"
+      url: "https://github.com/Quantumheart/flutter_callkit_incoming.git"
+    source: git
     version: "3.1.5"
   flutter_ci_guard:
     dependency: "direct dev"
@@ -747,10 +750,11 @@ packages:
   giphy_get:
     dependency: "direct main"
     description:
-      name: giphy_get
-      sha256: "2762b2343b78da19248b6aa3302097a51eecd65584c495b5184a8e4ae0a1efc7"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: "3c6a053"
+      resolved-ref: "3c6a0539991603c5f018ba7061d37bf785f95740"
+      url: "https://github.com/Quantumheart/giphy_get.git"
+    source: git
     version: "3.6.1+1"
   glob:
     dependency: transitive
@@ -1274,10 +1278,10 @@ packages:
     dependency: "direct main"
     description:
       name: pasteboard
-      sha256: fedbe8da188d2f713aa8b01260737342e6e1087534a3ab26e1a719f8d3e8f32f
+      sha256: "7b1c7ed83b4ff27acced26e96b87c16ac37fb6c57d7886eb3130faccb28b2cc2"
       url: "https://pub.dev"
     source: hosted
-    version: "0.5.0"
+    version: "0.6.2"
   path:
     dependency: "direct main"
     description:
