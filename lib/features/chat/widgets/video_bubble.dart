@@ -65,13 +65,8 @@ class _VideoBubbleState extends State<VideoBubble>
       duration: const Duration(milliseconds: 900),
     );
     _shimmer!.repeat(reverse: true);
-    unawaited(_loadThumbnail());
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
     _playbackService = context.read<MediaPlaybackService>();
+    unawaited(_loadThumbnail());
   }
 
   @override
