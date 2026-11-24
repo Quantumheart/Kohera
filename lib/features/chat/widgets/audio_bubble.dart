@@ -50,11 +50,6 @@ class _AudioBubbleState extends State<AudioBubble> {
   void initState() {
     super.initState();
     _bars = _generateBars(widget.controller.eventId);
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
     _playbackService = context.read<MediaPlaybackService>();
   }
 
