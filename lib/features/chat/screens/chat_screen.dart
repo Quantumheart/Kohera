@@ -4,7 +4,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/services.dart';
-import 'package:giphy_get/giphy_get.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
@@ -35,6 +34,7 @@ import 'package:kohera/features/chat/services/compose_state_controller.dart';
 import 'package:kohera/features/chat/services/emoji_autocomplete_controller.dart';
 import 'package:kohera/features/chat/services/file_send_handler.dart';
 import 'package:kohera/features/chat/services/gif_send_handler.dart';
+import 'package:kohera/features/chat/services/giphy_service.dart';
 import 'package:kohera/features/chat/services/linkable_span_builder.dart';
 import 'package:kohera/features/chat/services/local_search_service.dart';
 import 'package:kohera/features/chat/services/mention_autocomplete_controller.dart';
@@ -57,6 +57,7 @@ import 'package:kohera/features/chat/widgets/delete_event_dialog.dart';
 import 'package:kohera/features/chat/widgets/desktop_drop_wrapper.dart';
 import 'package:kohera/features/chat/widgets/emoji_picker_sheet.dart';
 import 'package:kohera/features/chat/widgets/forward_message_dialog.dart';
+import 'package:kohera/features/chat/widgets/gif_picker_sheet.dart';
 import 'package:kohera/features/chat/widgets/join_call_banner.dart';
 import 'package:kohera/features/chat/widgets/jump_to_latest_button.dart';
 import 'package:kohera/features/chat/widgets/message_action_sheet.dart';
@@ -1010,18 +1011,15 @@ class _ChatScreenState extends State<ChatScreen>
   Future<void> _handleGifPressed() async {
     final room = context.read<RoomRepository>().rawRoom(widget.roomId);
     if (room == null) return;
-    final gif = await GiphyGet.getGif(
-      context: context,
-      apiKey: AppConfig.instance.giphyApiKey!,
-    );
+    final service = GiphyService(apiKey: AppConfig.instance.giphyApiKey!);
+    final gif = await showGifPickerSheet(context, service: service);
+    service.dispose();
     if (gif == null || !mounted) return;
-    final url = gif.images?.downsized?.url ?? gif.images?.original?.url;
-    if (url == null) return;
     await sendGifFromUrl(
       scaffold: ScaffoldMessenger.of(context),
       room: room,
-      url: url,
-      title: gif.title ?? 'giphy',
+      url: gif.sendUrl,
+      title: gif.title.isNotEmpty ? gif.title : 'giphy',
       uploadNotifier: _compose.uploadNotifier,
     );
   }
