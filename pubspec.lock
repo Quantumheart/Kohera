@@ -372,12 +372,11 @@ packages:
   desktop_drop:
     dependency: "direct main"
     description:
-      path: "packages/desktop_drop"
-      ref: d1c7478
-      resolved-ref: d1c7478aac3a4236bba7bb470d0d6d92caf52295
-      url: "https://github.com/Quantumheart/flutter-plugins.git"
-    source: git
-    version: "0.7.1"
+      name: desktop_drop
+      sha256: "47ded09c85909edfed644fd4cbb5051b040d0aed5c79e7e062ea4b3b7156dbe4"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.8.4"
   desktop_notifications:
     dependency: "direct main"
     description:

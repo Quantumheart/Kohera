@@ -15,7 +15,7 @@ dependencies:
   clock: ^1.1.1
   connectivity_plus: ^7.3.1
   cupertino_ui: ^1.1.6
-  desktop_drop: ^0.7.0
+  desktop_drop: ^0.8.4
   desktop_notifications: ^0.6.3
   dynamic_color: ^2.1.0
   file_picker: ^13.3.3
@@ -105,11 +105,6 @@ flutter:
         - asset: assets/fonts/PressStart2P-Regular.ttf
 
 dependency_overrides:
-  desktop_drop:
-    git:
-      url: https://github.com/Quantumheart/flutter-plugins.git
-      ref: "d1c7478"
-      path: packages/desktop_drop
   flutter_background:
     git:
       url: https://github.com/Quantumheart/flutter_background.git
@@ -122,14 +117,14 @@ dependency_overrides:
     git:
       url: https://github.com/Quantumheart/flutter-webrtc.git
       ref: "ef1ff97"
-  matrix:
-    git:
-      url: https://github.com/Quantumheart/matrix-dart-sdk.git
-      ref: "35c3bcaf"
   giphy_get:
     git:
       url: https://github.com/Quantumheart/giphy_get.git
       ref: "3c6a053"
+  matrix:
+    git:
+      url: https://github.com/Quantumheart/matrix-dart-sdk.git
+      ref: "35c3bcaf"
   vodozemac:
     git:
       url: https://github.com/Quantumheart/dart-vodozemac.git
