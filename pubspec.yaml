@@ -48,7 +48,7 @@ dependencies:
   nativeapi: ^0.3.0
   ogg_caf_converter: ^0.1.4
   package_info_plus: ^10.2.2
-  pasteboard: ^0.5.0
+  pasteboard: ^0.6.2
   path: ^1.9.1
   path_provider: ^2.1.6
   permission_handler: ^13.0.1
@@ -105,6 +105,19 @@ flutter:
         - asset: assets/fonts/PressStart2P-Regular.ttf
 
 dependency_overrides:
+  desktop_drop:
+    git:
+      url: https://github.com/Quantumheart/flutter-plugins.git
+      ref: "d1c7478"
+      path: packages/desktop_drop
+  flutter_background:
+    git:
+      url: https://github.com/Quantumheart/flutter_background.git
+      ref: "768e3ab"
+  flutter_callkit_incoming:
+    git:
+      url: https://github.com/Quantumheart/flutter_callkit_incoming.git
+      ref: "4aec0c3"
   flutter_webrtc:
     git:
       url: https://github.com/Quantumheart/flutter-webrtc.git
@@ -113,6 +126,10 @@ dependency_overrides:
     git:
       url: https://github.com/Quantumheart/matrix-dart-sdk.git
       ref: "35c3bcaf"
+  giphy_get:
+    git:
+      url: https://github.com/Quantumheart/giphy_get.git
+      ref: "3c6a053"
   vodozemac:
     git:
       url: https://github.com/Quantumheart/dart-vodozemac.git
