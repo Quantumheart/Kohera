@@ -29,7 +29,6 @@ dependencies:
   flutter_svg: ^2.0.10
   flutter_vodozemac: ^0.9.1
   flutter_webrtc: ^1.6.0
-  giphy_get: ^3.5.3
   go_router: ^17.5.0
   highlight: ^0.7.0
   html: ^0.15.4
@@ -117,10 +116,6 @@ dependency_overrides:
     git:
       url: https://github.com/Quantumheart/flutter-webrtc.git
       ref: "ef1ff97"
-  giphy_get:
-    git:
-      url: https://github.com/Quantumheart/giphy_get.git
-      ref: "3c6a053"
   matrix:
     git:
       url: https://github.com/Quantumheart/matrix-dart-sdk.git
