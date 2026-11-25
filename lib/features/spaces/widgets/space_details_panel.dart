@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/models/kohera_event_types.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
@@ -96,7 +97,7 @@ class _SpaceDetailsPanelState extends State<SpaceDetailsPanel> {
     _syncSub = roomRepo.onSync.listen((update) {
       final stateEvents = update.rooms?.join?[widget.spaceId]?.state ?? [];
       final hasPowerLevelChanges =
-          stateEvents.any((e) => e.type == 'm.room.power_levels');
+          stateEvents.any((e) => e.type == KoheraEventTypes.roomPowerLevels);
       _syncDebounce?.cancel();
       _syncDebounce = Timer(const Duration(seconds: 2), () {
         if (!mounted) return;

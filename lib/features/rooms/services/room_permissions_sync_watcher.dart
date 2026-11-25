@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/data/models/kohera_event_types.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 
 /// Watches sync updates for changes to room permissions-related state events
@@ -14,9 +15,9 @@ class RoomPermissionsSyncWatcher {
   final RoomRepository rooms;
 
   static const Set<String> _watchedTypes = {
-    'm.room.power_levels',
-    'm.room.join_rules',
-    'm.room.encryption',
+    KoheraEventTypes.roomPowerLevels,
+    KoheraEventTypes.roomJoinRules,
+    KoheraEventTypes.encryption,
   };
 
   StreamSubscription<void>? _sub;
