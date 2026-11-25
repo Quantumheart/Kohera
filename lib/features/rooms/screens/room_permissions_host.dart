@@ -38,8 +38,7 @@ class _RoomPermissionsHostState extends State<RoomPermissionsHost> {
   @override
   Widget build(BuildContext context) {
     final rooms = context.read<RoomRepository>();
-    final room = rooms.rawRoom(widget.roomId);
-    if (room == null) {
+    if (!rooms.roomExists(widget.roomId)) {
       return Scaffold(
         appBar: AppBar(title: const Text('Permissions')),
         body: const Center(child: Text('Room not found')),
@@ -50,12 +49,12 @@ class _RoomPermissionsHostState extends State<RoomPermissionsHost> {
 
     return RoomPermissionsScreen(
       permissions: permissions,
-      onSetJoinRules: (rule) => PowerLevelService.setJoinRules(room, rule),
-      onEnableEncryption: room.enableEncryption,
+      onSetJoinRules: (rule) => rooms.setJoinRules(widget.roomId, rule),
+      onEnableEncryption: () => rooms.enableEncryption(widget.roomId),
       onUpdatePowerLevel: (patch) =>
           PowerLevelService.update(rooms, widget.roomId, patch),
       onApplyPowerLevelsContent: (content) => rooms.setRoomStateWithKey(
-        room.id,
+        widget.roomId,
         'm.room.power_levels',
         '',
         content,

@@ -2,12 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
-import 'package:matrix/matrix.dart';
 
 /// Watches sync updates for changes to room permissions-related state events
 /// and invokes a callback when relevant changes occur.
 ///
-/// Encapsulates `SyncUpdate` handling so screens don't need to import
+/// Encapsulates sync handling so screens don't need to import
 /// `package:matrix/matrix.dart`.
 class RoomPermissionsSyncWatcher {
   RoomPermissionsSyncWatcher({required this.rooms});
@@ -15,21 +14,18 @@ class RoomPermissionsSyncWatcher {
   final RoomRepository rooms;
 
   static const Set<String> _watchedTypes = {
-    EventTypes.RoomPowerLevels,
-    EventTypes.RoomJoinRules,
-    EventTypes.Encryption,
+    'm.room.power_levels',
+    'm.room.join_rules',
+    'm.room.encryption',
   };
 
-  StreamSubscription<SyncUpdate>? _sub;
+  StreamSubscription<void>? _sub;
   Timer? _debounce;
 
   /// Starts watching. Calls [onChanged] (debounced) when permission-related
   /// state events arrive for [roomId].
   void watch(String roomId, VoidCallback onChanged) {
-    _sub = rooms.onSync.listen((update) {
-      final stateEvents =
-          update.rooms?.join?[roomId]?.state ?? [];
-      if (!stateEvents.any((e) => _watchedTypes.contains(e.type))) return;
+    _sub = rooms.roomStateChanges(roomId, _watchedTypes).listen((_) {
       _debounce?.cancel();
       _debounce = Timer(const Duration(milliseconds: 300), onChanged);
     });

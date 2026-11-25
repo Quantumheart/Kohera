@@ -20,7 +20,6 @@ import 'package:kohera/features/rooms/services/member_sheet_launcher.dart';
 import 'package:kohera/features/rooms/services/shared_media_loader.dart';
 import 'package:kohera/features/rooms/widgets/invite_user_dialog.dart';
 import 'package:kohera/features/rooms/widgets/shared_media_section.dart';
-import 'package:matrix/encryption.dart';
 
 
 /// Owns the room-details state for [RoomDetailsContent] and exposes
@@ -28,11 +27,8 @@ import 'package:matrix/encryption.dart';
 /// [KoheraRoomPermissions], [KoheraRoomMemberList], device keys, and
 /// action callbacks.
 ///
-/// This controller no longer imports `package:matrix/matrix.dart` — it
-/// consumes domain models from [RoomRepository], [UserRepository], and
-/// [MediaRepository]. The only SDK type it touches is [KeyVerification]
-/// (from `package:matrix/encryption.dart`) for the E2EE verification
-/// flow, obtained via [UserRepository.startDeviceVerification].
+/// This controller imports no SDK package — it consumes domain models from
+/// [RoomRepository], [UserRepository], and [MediaRepository].
 class RoomDetailsController extends ChangeNotifier {
   RoomDetailsController({
     required this.roomId,

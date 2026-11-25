@@ -1,6 +1,5 @@
-import 'package:kohera/data/models/kohera_room_permissions.dart';
+import 'package:kohera/data/models/kohera_auth_exception.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
-import 'package:matrix/matrix.dart';
 
 /// A partial update to a room's `m.room.power_levels` state event.
 ///
@@ -98,12 +97,12 @@ class PowerLevelService {
     try {
       await rooms.setRoomStateWithKey(
         roomId,
-        EventTypes.RoomPowerLevels,
+        'm.room.power_levels',
         '',
         current,
       );
-    } on MatrixException catch (e) {
-      throw PowerLevelException(e.errorMessage, errcode: e.errcode);
+    } on KoheraAuthException catch (e) {
+      throw PowerLevelException(e.message, errcode: e.errcode);
     }
   }
 
@@ -126,16 +125,4 @@ class PowerLevelService {
     existing.addAll(patch.map(MapEntry.new));
     content[key] = existing;
   }
-
-  /// Sets join rules on a room from a [KoheraJoinRule] value.
-  static Future<void> setJoinRules(Room room, KoheraJoinRule rule) async {
-    await room.setJoinRules(_toSdkJoinRules(rule));
-  }
-
-  static JoinRules _toSdkJoinRules(KoheraJoinRule rule) => switch (rule) {
-        KoheraJoinRule.public => JoinRules.public,
-        KoheraJoinRule.invite => JoinRules.invite,
-        KoheraJoinRule.knock => JoinRules.knock,
-        KoheraJoinRule.restricted => JoinRules.restricted,
-      };
 }
