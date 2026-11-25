@@ -1012,15 +1012,16 @@ class _ChatScreenState extends State<ChatScreen>
       AppConfig.isInitialized && AppConfig.instance.giphyEnabled;
 
   Future<void> _handleGifPressed() async {
-    final room = context.read<RoomRepository>().rawRoom(widget.roomId);
-    if (room == null) return;
+    final rooms = context.read<RoomRepository>();
+    if (rooms.rawRoom(widget.roomId) == null) return;
     final service = GiphyService(apiKey: AppConfig.instance.giphyApiKey!);
     final gif = await showGifPickerSheet(context, service: service);
     service.dispose();
     if (gif == null || !mounted) return;
     await sendGifFromUrl(
       scaffold: ScaffoldMessenger.of(context),
-      room: room,
+      rooms: rooms,
+      roomId: widget.roomId,
       url: gif.sendUrl,
       title: gif.title.isNotEmpty ? gif.title : 'giphy',
       uploadNotifier: _compose.uploadNotifier,

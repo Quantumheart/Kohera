@@ -113,7 +113,8 @@ class ChatMessageActions {
     for (var i = 0; i < attachments.length; i++) {
       final ok = await sendFileBytes(
         scaffold: scaffold,
-        room: room,
+        rooms: getRoomRepository(),
+        roomId: getRoomId(),
         name: attachments[i].name,
         bytes: attachments[i].bytes,
         uploadNotifier: compose.uploadNotifier,
