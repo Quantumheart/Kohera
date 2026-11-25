@@ -18,6 +18,7 @@ import 'package:kohera/core/services/sync_service.dart' as _i15;
 import 'package:kohera/core/state/key_backup_setup_state.dart' as _i11;
 import 'package:kohera/core/state/selection_controller.dart' as _i14;
 import 'package:kohera/core/state/uia_interaction_controller.dart' as _i9;
+import 'package:kohera/data/models/kohera_message_display.dart' as _i34;
 import 'package:kohera/data/models/kohera_push_rule_state.dart' as _i33;
 import 'package:kohera/data/models/kohera_room_member.dart' as _i32;
 import 'package:kohera/data/models/kohera_room_permissions.dart' as _i31;
@@ -8771,6 +8772,28 @@ class MockRoomRepository extends _i1.Mock implements _i29.RoomRepository {
           as _i5.Future<void>);
 
   @override
+  _i5.Future<void> sendFile(
+    String? roomId,
+    _i21.Uint8List? bytes,
+    String? name, {
+    String? threadRootEventId,
+    String? threadLastEventId,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #sendFile,
+              [roomId, bytes, name],
+              {
+                #threadRootEventId: threadRootEventId,
+                #threadLastEventId: threadLastEventId,
+              },
+            ),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
   _i5.Future<void> setName(String? roomId, String? name) =>
       (super.noSuchMethod(
             Invocation.method(#setName, [roomId, name]),
@@ -8870,6 +8893,42 @@ class MockRoomRepository extends _i1.Mock implements _i29.RoomRepository {
             returnValueForMissingStub: false,
           )
           as bool);
+
+  @override
+  bool getRoomCanKick(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getRoomCanKick, [roomId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool getRoomCanChangePowerLevel(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getRoomCanChangePowerLevel, [roomId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  int myPowerLevelFor(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#myPowerLevelFor, [roomId]),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  Map<String, Object?> powerLevelsContentFor(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#powerLevelsContentFor, [roomId]),
+            returnValue: <String, Object?>{},
+            returnValueForMissingStub: <String, Object?>{},
+          )
+          as Map<String, Object?>);
 
   @override
   bool getRoomIsDirectChat(String? roomId) =>
@@ -9097,6 +9156,42 @@ class MockRoomRepository extends _i1.Mock implements _i29.RoomRepository {
           as _i5.Future<void>);
 
   @override
+  _i5.Future<void> setCanonicalAlias(String? roomId, String? alias) =>
+      (super.noSuchMethod(
+            Invocation.method(#setCanonicalAlias, [roomId, alias]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> clearCanonicalAlias(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#clearCanonicalAlias, [roomId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  bool canChangeCanonicalAlias(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#canChangeCanonicalAlias, [roomId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  _i5.Stream<void> aliasChangesFor(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#aliasChangesFor, [roomId]),
+            returnValue: _i5.Stream<void>.empty(),
+            returnValueForMissingStub: _i5.Stream<void>.empty(),
+          )
+          as _i5.Stream<void>);
+
+  @override
   _i5.Future<void> deleteRoomAlias(String? alias) =>
       (super.noSuchMethod(
             Invocation.method(#deleteRoomAlias, [alias]),
@@ -9188,6 +9283,36 @@ class MockRoomRepository extends _i1.Mock implements _i29.RoomRepository {
   _i5.Future<void> setSpaceChild(String? spaceId, String? childRoomId) =>
       (super.noSuchMethod(
             Invocation.method(#setSpaceChild, [spaceId, childRoomId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<List<_i34.KoheraMessageDisplay>?> pinnedMessagesFor(
+    String? roomId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#pinnedMessagesFor, [roomId]),
+            returnValue: _i5.Future<List<_i34.KoheraMessageDisplay>?>.value(),
+            returnValueForMissingStub:
+                _i5.Future<List<_i34.KoheraMessageDisplay>?>.value(),
+          )
+          as _i5.Future<List<_i34.KoheraMessageDisplay>?>);
+
+  @override
+  bool canChangePinnedEvents(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#canChangePinnedEvents, [roomId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  _i5.Future<void> unpinEvent(String? roomId, String? eventId) =>
+      (super.noSuchMethod(
+            Invocation.method(#unpinEvent, [roomId, eventId]),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )

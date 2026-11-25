@@ -9,7 +9,7 @@ import 'package:kohera/features/notifications/models/notification_group.dart';
 import 'package:kohera/features/notifications/services/apns_push_service.dart';
 import 'package:kohera/features/notifications/services/notification_grouper.dart';
 import 'package:matrix/matrix.dart' as matrix_sdk;
-import 'package:matrix/matrix.dart' show MatrixException, Membership;
+import 'package:matrix/matrix.dart' show MatrixException;
 
 export 'package:kohera/features/notifications/services/notification_grouper.dart';
 
@@ -58,12 +58,10 @@ class InboxController extends ChangeNotifier {
   Future<String?> loadRootPreview(String roomId, String eventId) async {
     final cached = _grouper.rootPreviewFor(eventId);
     if (cached != null) return cached;
-    final room = _pushRepo.getRoom(roomId);
-    if (room == null) return null;
     try {
-      final event = await room.getEventById(eventId);
-      if (event == null) return null;
-      final body = stripReplyFallback(event.body).trim();
+      final rawBody = await _pushRepo.eventBodyFor(roomId, eventId);
+      if (rawBody == null) return null;
+      final body = stripReplyFallback(rawBody).trim();
       if (body.isEmpty) return null;
       final truncated =
           body.length > 80 ? '${body.substring(0, 80)}…' : body;
@@ -149,8 +147,7 @@ class InboxController extends ChangeNotifier {
 
   // ── Filter ─────────────────────────────────────────────────
 
-  int get invitationCount =>
-      _pushRepo.rooms.where((r) => r.membership == Membership.invite).length;
+  int get invitationCount => _pushRepo.invitationCount;
 
   void setFilter(InboxFilter newFilter) {
     if (_filter == newFilter) return;
@@ -229,8 +226,7 @@ class InboxController extends ChangeNotifier {
 
   Future<void> markRoomAsRead(String roomId) async {
     if (_tokenExpired) return;
-    final room = _pushRepo.getRoom(roomId);
-    if (room == null) return;
+    if (!_pushRepo.roomExists(roomId)) return;
 
     String? mainEventId;
     var mainTs = -1;
@@ -251,7 +247,7 @@ class InboxController extends ChangeNotifier {
       }
       break;
     }
-    mainEventId ??= room.lastEvent?.eventId;
+    mainEventId ??= _pushRepo.lastEventIdFor(roomId);
     if (mainEventId == null && perThread.isEmpty) return;
 
     _markingAsRead = true;
@@ -263,7 +259,8 @@ class InboxController extends ChangeNotifier {
       for (final n in _rawNotifications)
         if (n.roomId != roomId) n,
     ];
-    final remainingUnread = _pushRepo.unreadNotificationCount() - room.notificationCount;
+    final remainingUnread =
+        _pushRepo.unreadNotificationCount() - _pushRepo.unreadCountFor(roomId);
     final remainingBadge = remainingUnread < 0 ? 0 : remainingUnread;
     unawaited(ApnsPushService.setBadge(remainingBadge));
     if (!_disposed) notifyListeners();
@@ -277,7 +274,7 @@ class InboxController extends ChangeNotifier {
     try {
       await Future.wait([
         if (shouldPostMain)
-          room.setReadMarker(mainEventId, mRead: mainEventId),
+          _pushRepo.markRoomReadUpTo(roomId, mainEventId),
         for (final entry in perThread.entries)
           _pushRepo.postReceipt(
             roomId,

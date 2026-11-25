@@ -7,7 +7,7 @@ import 'package:kohera/features/notifications/models/kohera_notification_item.da
 import 'package:kohera/features/notifications/models/notification_group.dart';
 import 'package:kohera/features/notifications/models/thread_sub_group.dart';
 import 'package:matrix/matrix.dart' as matrix_sdk;
-import 'package:matrix/matrix.dart' show Event, EventTypes, Membership;
+import 'package:matrix/matrix.dart' show Event, EventTypes;
 
 // ── NotificationGrouper ──────────────────────────────────────
 
@@ -83,10 +83,7 @@ class NotificationGrouper {
     final lower = body.toLowerCase();
     if (lower.contains(userId.toLowerCase())) return true;
 
-    final displayName = _pushRepo
-        .getRoom(roomId)
-        ?.unsafeGetUserFromMemoryOrFallback(userId)
-        .calcDisplayname();
+    final displayName = _pushRepo.userDisplayName(roomId, userId);
     return displayName != null &&
         displayName.length >= 2 &&
         containsWord(lower, displayName.toLowerCase());
@@ -114,8 +111,8 @@ class NotificationGrouper {
           in _bucketByRecency(_collapseCalls(items), (n) => n.roomId))
         NotificationGroup(
           roomId: bucket.key,
-          roomName: _pushRepo.getRoom(bucket.key)?.getLocalizedDisplayname() ??
-              bucket.key,
+          roomName:
+              _pushRepo.roomDisplayName(bucket.key) ?? bucket.key,
           notifications: bucket.value,
           subGroups: _buildSubGroups(bucket.value),
         ),
@@ -150,8 +147,7 @@ class NotificationGrouper {
     final seen = <String>{};
     for (final n in notifications) {
       if (n.read || !seen.add(n.event.eventId)) continue;
-      final room = _pushRepo.getRoom(n.roomId);
-      if (room == null || room.membership != Membership.join) continue;
+      if (!_pushRepo.isJoinedRoom(n.roomId)) continue;
       candidates.add(n);
     }
     return candidates;
@@ -177,9 +173,7 @@ class NotificationGrouper {
   }
 
   String _senderName(matrix_sdk.Notification n) {
-    final room = _pushRepo.getRoom(n.roomId);
-    return room?.unsafeGetUserFromMemoryOrFallback(n.event.senderId)
-            .calcDisplayname() ??
+    return _pushRepo.userDisplayName(n.roomId, n.event.senderId) ??
         n.event.senderId;
   }
 

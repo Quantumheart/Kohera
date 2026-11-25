@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/media_auth.dart' as media_auth;
-import 'package:kohera/core/utils/notification_filter.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 
@@ -44,6 +43,7 @@ class PushRepository extends ChangeNotifier {
     required String lang,
     required Uri gatewayUrl,
     String? profileTag,
+    String? format,
   }) =>
       _client.postPusher(
         Pusher(
@@ -53,7 +53,7 @@ class PushRepository extends ChangeNotifier {
           deviceDisplayName: deviceDisplayName,
           kind: 'http',
           lang: lang,
-          data: PusherData(url: gatewayUrl),
+          data: PusherData(url: gatewayUrl, format: format),
           profileTag: profileTag,
         ),
         append: true,
@@ -72,6 +72,80 @@ class PushRepository extends ChangeNotifier {
     await room.setReadMarker(lastEventId, mRead: lastEventId);
   }
 
+  // ── Room accessors (notification rendering) ────────────────
+
+  /// Whether [roomId] is known to the client.
+  bool roomExists(String roomId) => _client.getRoomById(roomId) != null;
+
+  /// The localized display name of [roomId], or null if unknown.
+  String? roomDisplayName(String roomId) =>
+      _client.getRoomById(roomId)?.getLocalizedDisplayname();
+
+  /// Whether [roomId] is muted via its push rule state.
+  bool roomMutesNotifications(String roomId) =>
+      _client.getRoomById(roomId)?.pushRuleState == PushRuleState.dontNotify;
+
+  /// Whether the current user has joined [roomId].
+  bool isJoinedRoom(String roomId) =>
+      _client.getRoomById(roomId)?.membership == Membership.join;
+
+  /// Whether [roomId] is a direct chat.
+  bool isDirectChatRoom(String roomId) =>
+      _client.getRoomById(roomId)?.isDirectChat ?? false;
+
+  /// The unread highlight count of [roomId].
+  int highlightCountFor(String roomId) =>
+      _client.getRoomById(roomId)?.highlightCount ?? 0;
+
+  /// The unread notification count of [roomId].
+  int unreadCountFor(String roomId) =>
+      _client.getRoomById(roomId)?.notificationCount ?? 0;
+
+  /// The avatar URL of [roomId], or null if unset or unknown.
+  String? roomAvatarUrl(String roomId) =>
+      _client.getRoomById(roomId)?.avatar?.toString();
+
+  /// The event ID of the room's most recent event, or null.
+  String? lastEventIdFor(String roomId) =>
+      _client.getRoomById(roomId)?.lastEvent?.eventId;
+
+  /// The number of rooms the current user is invited to.
+  int get invitationCount =>
+      _client.rooms.where((r) => r.membership == Membership.invite).length;
+
+  /// The display name of [userId] in [roomId], or null if the room is
+  /// unknown. Falls back to the Matrix ID when no display name is set.
+  String? userDisplayName(String roomId, String userId) {
+    final room = _client.getRoomById(roomId);
+    return room?.unsafeGetUserFromMemoryOrFallback(userId).calcDisplayname();
+  }
+
+  /// The avatar URL of [userId] in [roomId], or null.
+  Uri? userAvatarUrl(String roomId, String userId) {
+    final room = _client.getRoomById(roomId);
+    return room?.unsafeGetUserFromMemoryOrFallback(userId).avatarUrl;
+  }
+
+  /// The body of [eventId] in [roomId], or null if unavailable.
+  Future<String?> eventBodyFor(String roomId, String eventId) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return null;
+    final event = await room.getEventById(eventId);
+    return event?.body;
+  }
+
+  /// Sends [text] as a message to [roomId].
+  Future<void> sendTextMessage(String roomId, String text) async {
+    final room = _client.getRoomById(roomId);
+    if (room != null) await room.sendTextEvent(text);
+  }
+
+  /// Marks [roomId] as read up to [eventId].
+  Future<void> markRoomReadUpTo(String roomId, String eventId) async {
+    final room = _client.getRoomById(roomId);
+    if (room != null) await room.setReadMarker(eventId, mRead: eventId);
+  }
+
   // ── Push payload access ───────────────────────────────────────
 
   /// The SDK [Room] for [roomId], or null. Escape hatch for the platform push
@@ -87,7 +161,9 @@ class PushRepository extends ChangeNotifier {
       _client.encryption?.decryptRoomEvent(event);
 
   /// The total unread notification count across all rooms.
-  int unreadNotificationCount() => totalUnreadCount(_client);
+  int unreadNotificationCount() => _client.rooms
+      .where((r) => r.notificationCount > 0)
+      .fold<int>(0, (sum, r) => sum + r.notificationCount);
 
   // ── Sync ─────────────────────────────────────────────────────
 

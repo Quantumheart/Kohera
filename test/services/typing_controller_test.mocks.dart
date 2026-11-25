@@ -7,12 +7,13 @@
 import 'dart:async' as _i5;
 import 'dart:typed_data' as _i9;
 
+import 'package:kohera/data/models/kohera_message_display.dart' as _i11;
 import 'package:kohera/data/models/kohera_push_rule_state.dart' as _i8;
 import 'package:kohera/data/models/kohera_room_member.dart' as _i7;
 import 'package:kohera/data/models/kohera_room_permissions.dart' as _i6;
 import 'package:kohera/data/models/kohera_room_summary.dart' as _i4;
 import 'package:kohera/data/repositories/room_repository.dart' as _i3;
-import 'package:listen/src/listen.dart' as _i11;
+import 'package:listen/src/listen.dart' as _i12;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i10;
@@ -178,6 +179,28 @@ class MockRoomRepository extends _i1.Mock implements _i3.RoomRepository {
           as _i5.Future<void>);
 
   @override
+  _i5.Future<void> sendFile(
+    String? roomId,
+    _i9.Uint8List? bytes,
+    String? name, {
+    String? threadRootEventId,
+    String? threadLastEventId,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #sendFile,
+              [roomId, bytes, name],
+              {
+                #threadRootEventId: threadRootEventId,
+                #threadLastEventId: threadLastEventId,
+              },
+            ),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
   _i5.Future<void> setName(String? roomId, String? name) =>
       (super.noSuchMethod(
             Invocation.method(#setName, [roomId, name]),
@@ -277,6 +300,42 @@ class MockRoomRepository extends _i1.Mock implements _i3.RoomRepository {
             returnValueForMissingStub: false,
           )
           as bool);
+
+  @override
+  bool getRoomCanKick(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getRoomCanKick, [roomId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  bool getRoomCanChangePowerLevel(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getRoomCanChangePowerLevel, [roomId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  int myPowerLevelFor(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#myPowerLevelFor, [roomId]),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  Map<String, Object?> powerLevelsContentFor(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#powerLevelsContentFor, [roomId]),
+            returnValue: <String, Object?>{},
+            returnValueForMissingStub: <String, Object?>{},
+          )
+          as Map<String, Object?>);
 
   @override
   bool getRoomIsDirectChat(String? roomId) =>
@@ -504,6 +563,42 @@ class MockRoomRepository extends _i1.Mock implements _i3.RoomRepository {
           as _i5.Future<void>);
 
   @override
+  _i5.Future<void> setCanonicalAlias(String? roomId, String? alias) =>
+      (super.noSuchMethod(
+            Invocation.method(#setCanonicalAlias, [roomId, alias]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> clearCanonicalAlias(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#clearCanonicalAlias, [roomId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  bool canChangeCanonicalAlias(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#canChangeCanonicalAlias, [roomId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  _i5.Stream<void> aliasChangesFor(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#aliasChangesFor, [roomId]),
+            returnValue: _i5.Stream<void>.empty(),
+            returnValueForMissingStub: _i5.Stream<void>.empty(),
+          )
+          as _i5.Stream<void>);
+
+  @override
   _i5.Future<void> deleteRoomAlias(String? alias) =>
       (super.noSuchMethod(
             Invocation.method(#deleteRoomAlias, [alias]),
@@ -601,6 +696,36 @@ class MockRoomRepository extends _i1.Mock implements _i3.RoomRepository {
           as _i5.Future<void>);
 
   @override
+  _i5.Future<List<_i11.KoheraMessageDisplay>?> pinnedMessagesFor(
+    String? roomId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#pinnedMessagesFor, [roomId]),
+            returnValue: _i5.Future<List<_i11.KoheraMessageDisplay>?>.value(),
+            returnValueForMissingStub:
+                _i5.Future<List<_i11.KoheraMessageDisplay>?>.value(),
+          )
+          as _i5.Future<List<_i11.KoheraMessageDisplay>?>);
+
+  @override
+  bool canChangePinnedEvents(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#canChangePinnedEvents, [roomId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  _i5.Future<void> unpinEvent(String? roomId, String? eventId) =>
+      (super.noSuchMethod(
+            Invocation.method(#unpinEvent, [roomId, eventId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
   _i2.Room? rawRoom(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#rawRoom, [roomId]),
@@ -621,13 +746,13 @@ class MockRoomRepository extends _i1.Mock implements _i3.RoomRepository {
   );
 
   @override
-  void addListener(_i11.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i12.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i11.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i12.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
