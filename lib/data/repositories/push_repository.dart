@@ -1,6 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/media_auth.dart' as media_auth;
+import 'package:kohera/data/models/kohera_auth_exception.dart';
+import 'package:kohera/data/models/kohera_decrypted_event.dart';
+import 'package:kohera/data/models/kohera_push_notification.dart';
+import 'package:kohera/data/models/kohera_sync_event.dart';
+import 'package:kohera/data/models/kohera_sync_update.dart';
+import 'package:kohera/data/resolvers/push_notification_resolver.dart';
+import 'package:kohera/data/resolvers/sync_update_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/utils/event_preview.dart';
 import 'package:matrix/matrix.dart';
 
 /// Data-layer boundary for push notifications: pusher registration with the
@@ -21,7 +29,9 @@ class PushRepository extends ChangeNotifier {
   String? get deviceId => _client.deviceID;
   String? get deviceName => _client.deviceName;
 
-  Stream<SyncUpdate> get onSync => _client.onSync.stream;
+  /// Domain view of the sync stream for the notifications feature.
+  Stream<KoheraSyncUpdate> get syncUpdates =>
+      _client.onSync.stream.map(const SyncUpdateResolver().convert);
 
   // ── Pusher registration ───────────────────────────────────────
 
@@ -141,9 +151,16 @@ class PushRepository extends ChangeNotifier {
   }
 
   /// Marks [roomId] as read up to [eventId].
+  ///
+  /// Throws [KoheraAuthException] when the homeserver rejects the request.
   Future<void> markRoomReadUpTo(String roomId, String eventId) async {
     final room = _client.getRoomById(roomId);
-    if (room != null) await room.setReadMarker(eventId, mRead: eventId);
+    if (room == null) return;
+    try {
+      await room.setReadMarker(eventId, mRead: eventId);
+    } on MatrixException catch (e) {
+      throw KoheraAuthException(e.errorMessage, errcode: e.errcode);
+    }
   }
 
   // ── Push payload access ───────────────────────────────────────
@@ -155,10 +172,6 @@ class PushRepository extends ChangeNotifier {
   /// Fetches a single event from the homeserver by [roomId]/[eventId].
   Future<MatrixEvent> getRoomEvent(String roomId, String eventId) =>
       _client.getOneRoomEvent(roomId, eventId);
-
-  /// Decrypts [event] in [room], or null if decryption is unavailable.
-  Future<Event?> decryptRoomEvent(Room room, Event event) async =>
-      _client.encryption?.decryptRoomEvent(event);
 
   /// The total unread notification count across all rooms.
   int unreadNotificationCount() => _client.rooms
@@ -173,24 +186,100 @@ class PushRepository extends ChangeNotifier {
 
   // ── Notifications API ────────────────────────────────────────
 
-  /// Fetches a page of notifications from the homeserver.
-  Future<GetNotificationsResponse> getNotifications({
-    int limit = 30,
-    String? from,
-  }) =>
-      _client.getNotifications(limit: limit, from: from);
+  /// Fetches a page of notifications as domain models.
+  ///
+  /// Throws [KoheraAuthException] when the homeserver rejects the request
+  /// (e.g. `M_UNKNOWN_TOKEN`).
+  Future<({List<KoheraPushNotification> items, String? nextToken})>
+      notifications({int limit = 30, String? from}) async {
+    try {
+      final response = await _client.getNotifications(limit: limit, from: from);
+      const resolver = PushNotificationResolver();
+      return (
+        items: [for (final n in response.notifications) resolver.convert(n)],
+        nextToken: response.nextToken,
+      );
+    } on MatrixException catch (e) {
+      throw KoheraAuthException(e.errorMessage, errcode: e.errcode);
+    }
+  }
+
+  /// Fetches a single event as a domain model.
+  Future<KoheraSyncEvent> roomEvent(String roomId, String eventId) async {
+    final event = await _client.getOneRoomEvent(roomId, eventId);
+    return SyncUpdateResolver.convertEvent(event);
+  }
+
+  /// Decrypts [event] in [roomId], returning the decrypted payload, or null
+  /// when the room is unknown or decryption is unavailable.
+  Future<KoheraDecryptedEvent?> decryptEvent(
+    String roomId,
+    KoheraSyncEvent event,
+  ) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return null;
+    final sdkEvent = Event.fromMatrixEvent(_toMatrixEvent(event), room);
+    final decrypted = await _client.encryption?.decryptRoomEvent(sdkEvent);
+    if (decrypted == null) return null;
+    return KoheraDecryptedEvent(
+      type: decrypted.type,
+      body: decrypted.body,
+      content: decrypted.content,
+    );
+  }
+
+  /// Builds the one-line notification preview for [event] in [roomId],
+  /// using [decrypted] content when available.
+  String notificationPreview({
+    required String roomId,
+    required KoheraSyncEvent event,
+    KoheraDecryptedEvent? decrypted,
+  }) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return '';
+    final sdkEvent =
+        Event.fromMatrixEvent(_toMatrixEvent(event, decrypted), room);
+    return eventPreviewText(sdkEvent, room: room, myUserId: _client.userID);
+  }
+
+  MatrixEvent _toMatrixEvent(
+    KoheraSyncEvent event, [
+    KoheraDecryptedEvent? decrypted,
+  ]) =>
+      MatrixEvent(
+        eventId: event.eventId ?? '',
+        type: decrypted?.type ?? event.type,
+        content: decrypted?.content ?? event.content,
+        senderId: event.senderId,
+        originServerTs: event.originServerTs ??
+            DateTime.fromMillisecondsSinceEpoch(0),
+      );
 
   /// Posts a read receipt for [eventId] in [roomId].
+  ///
+  /// Throws [KoheraAuthException] when the homeserver rejects the request.
   Future<void> postReceipt(
     String roomId,
     ReceiptType type,
     String eventId, {
     String? threadId,
-  }) =>
-      _client.postReceipt(roomId, type, eventId, threadId: threadId);
+  }) async {
+    try {
+      await _client.postReceipt(roomId, type, eventId, threadId: threadId);
+    } on MatrixException catch (e) {
+      throw KoheraAuthException(e.errorMessage, errcode: e.errcode);
+    }
+  }
 
-  /// All rooms the client knows about (used for invite counting).
-  Iterable<Room> get rooms => _client.rooms;
+  /// Posts an `m.read` receipt for [eventId] in [threadId] of [roomId].
+  ///
+  /// Throws [KoheraAuthException] when the homeserver rejects the request.
+  Future<void> markThreadReadUpTo(
+    String roomId,
+    String threadId,
+    String eventId,
+  ) =>
+      postReceipt(roomId, ReceiptType.mRead, eventId, threadId: threadId);
 
   // ── Media helpers (notification avatar rendering) ────────────
 

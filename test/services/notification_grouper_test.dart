@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/data/models/kohera_push_notification.dart';
+import 'package:kohera/data/models/kohera_sync_event.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/notifications/enum/inbox_filter.dart';
@@ -21,46 +23,44 @@ import 'notification_grouper_test.mocks.dart';
 
 // ── Helpers ──────────────────────────────────────────────────
 
-Notification _encryptedNotification({
+KoheraPushNotification _encryptedNotification({
   required String eventId,
   required String roomId,
   Map<String, Object?>? content,
   int ts = 1000,
 }) {
-  return Notification(
-    actions: const [],
-    event: MatrixEvent(
+  return KoheraPushNotification(
+    event: KoheraSyncEvent(
       type: 'm.room.encrypted',
       content: content ?? const {},
       senderId: '@alice:example.com',
       eventId: eventId,
       originServerTs: DateTime.fromMillisecondsSinceEpoch(ts),
-      roomId: roomId,
     ),
-    read: false,
     roomId: roomId,
-    ts: ts,
+    timestampMs: ts,
+    isRead: false,
+    hasHighlight: false,
   );
 }
 
-Notification _plaintextNotification({
+KoheraPushNotification _plaintextNotification({
   required String eventId,
   required String roomId,
   int ts = 1000,
 }) {
-  return Notification(
-    actions: const [],
-    event: MatrixEvent(
+  return KoheraPushNotification(
+    event: KoheraSyncEvent(
       type: 'm.room.message',
       content: const {'body': 'hello', 'msgtype': 'm.text'},
       senderId: '@alice:example.com',
       eventId: eventId,
       originServerTs: DateTime.fromMillisecondsSinceEpoch(ts),
-      roomId: roomId,
     ),
-    read: false,
     roomId: roomId,
-    ts: ts,
+    timestampMs: ts,
+    isRead: false,
+    hasHighlight: false,
   );
 }
 

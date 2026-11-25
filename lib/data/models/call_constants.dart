@@ -18,3 +18,13 @@ const Set<String> callEventTypes = {
   kCallHangup,
   kCallReject,
 };
+
+/// Whether an event payload is call-related (invite, hangup, or membership),
+/// given its wire [type] and [body]. SDK-free twin of `isCallEvent`.
+bool isCallEventPayload(String type, String body) =>
+    type == kCallInvite ||
+    type == kCallHangup ||
+    type == kCallMember ||
+    type == kCallMemberMsc ||
+    body.contains(kCallMember) ||
+    body.contains(kCallMemberMsc);

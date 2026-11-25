@@ -152,7 +152,7 @@ class _NotificationLifecycleObserverState
     final tray = widget.desktopTrayService;
     if (tray == null || !tray.isSupported) return;
     tray.setUnreadCount(_currentUnreadCount());
-    _unreadSyncSub = widget.pushRepository.onSync.listen((_) {
+    _unreadSyncSub = widget.pushRepository.syncUpdates.listen((_) {
       tray.setUnreadCount(_currentUnreadCount());
     });
   }

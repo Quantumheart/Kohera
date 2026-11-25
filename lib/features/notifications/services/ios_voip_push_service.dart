@@ -6,10 +6,8 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
-import 'package:kohera/features/calling/services/rtc_membership_service.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/notification_service.dart';
-import 'package:matrix/matrix.dart';
 
 
 const iosVoipMethodChannel = MethodChannel('kohera/voip');
@@ -184,21 +182,15 @@ class IosVoipPushService {
     if (gatewayUrl == null) return;
 
     try {
-      await pushRepository.postPusher(
-        Pusher(
-          appId: _appId,
-          pushkey: token,
-          appDisplayName: NotificationChannel.appName,
-          deviceDisplayName:
-              pushRepository.deviceName ?? NotificationChannel.iosDefaultDeviceName,
-          kind: 'http',
-          lang: NotificationChannel.defaultLang,
-          data: PusherData(
-            url: Uri.parse(gatewayUrl),
-          ),
-          profileTag: pushRepository.deviceId,
-        ),
-        append: true,
+      await pushRepository.registerHttpPusher(
+        appId: _appId,
+        pushkey: token,
+        appDisplayName: NotificationChannel.appName,
+        deviceDisplayName:
+            pushRepository.deviceName ?? NotificationChannel.iosDefaultDeviceName,
+        lang: NotificationChannel.defaultLang,
+        gatewayUrl: Uri.parse(gatewayUrl),
+        profileTag: pushRepository.deviceId,
       );
       callService.setVoipPushHandlesCallKit(true);
       debugPrint('[Kohera] VoIP pusher registered with gateway $gatewayUrl');
@@ -211,9 +203,7 @@ class IosVoipPushService {
     final token = _currentToken;
     if (token == null) return;
 
-    await pushRepository.deletePusher(
-      PusherId(appId: _appId, pushkey: token),
-    );
+    await pushRepository.deletePusherByKey(_appId, token);
     debugPrint('[Kohera] VoIP pusher unregistered from homeserver');
   }
 
@@ -228,17 +218,14 @@ class IosVoipPushService {
     if (_disposed) return;
     if (callService.callState != KoheraCallState.ringingIncoming) return;
 
-    final room = pushRepository.getRoom(roomId);
-    if (room != null && !room.isDirectChat) {
+    if (pushRepository.roomExists(roomId) &&
+        !pushRepository.isDirectChatRoom(roomId)) {
       debugPrint('[Kohera] VoIP post-sync: not a 1:1 room, ending CallKit ring');
       callService.endCallFromPushKit();
       return;
     }
 
-    final stillRinging = RtcMembershipService.roomHasRemoteActiveCallWith(
-      pushRepository.getRoom(roomId),
-      pushRepository.userId,
-    );
+    final stillRinging = callService.roomHasRemoteActiveCall(roomId);
     if (stillRinging) return;
 
     debugPrint('[Kohera] VoIP post-sync: caller gone, ending CallKit ring');

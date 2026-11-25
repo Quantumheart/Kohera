@@ -12,14 +12,17 @@ import 'package:kohera/core/utils/media_cache_io.dart'
     if (dart.library.js_interop) 'package:kohera/core/utils/media_cache_web.dart';
 import 'package:kohera/core/utils/notification_filter.dart';
 import 'package:kohera/core/utils/platform_info.dart';
-import 'package:kohera/core/utils/poll_body.dart';
+import 'package:kohera/core/utils/poll_content.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/data/models/call_constants.dart';
+import 'package:kohera/data/models/kohera_decrypted_event.dart';
+import 'package:kohera/data/models/kohera_event_types.dart';
+import 'package:kohera/data/models/kohera_sync_event.dart';
+import 'package:kohera/data/models/kohera_sync_update.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/web_notifications.dart';
 import 'package:kohera/features/notifications/services/windows_com_register.dart';
-import 'package:matrix/matrix.dart';
 import 'package:path_provider/path_provider.dart';
 
 
@@ -73,7 +76,7 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin;
   final bool _useLinux;
 
-  StreamSubscription<SyncUpdate>? _syncSub;
+  StreamSubscription<KoheraSyncUpdate>? _syncSub;
   bool _firstSyncDone = false;
   bool _disposed = false;
   final Set<String> _processingRooms = {};
@@ -153,7 +156,7 @@ class NotificationService {
   void startListening() {
     _firstSyncDone = false;
     unawaited(_syncSub?.cancel());
-    _syncSub = pushRepository.onSync.listen(_onSync);
+    _syncSub = pushRepository.syncUpdates.listen(_onSync);
     debugPrint('[Kohera] NotificationService listening to sync stream');
   }
 
@@ -166,7 +169,7 @@ class NotificationService {
 
   // ── Sync handler ─────────────────────────────────────────────
 
-  void _onSync(SyncUpdate sync) {
+  void _onSync(KoheraSyncUpdate sync) {
     // Skip the first sync (initial history catchup).
     if (!_firstSyncDone) {
       _firstSyncDone = true;
@@ -177,45 +180,36 @@ class NotificationService {
     if (preferencesService.notificationLevel == NotificationLevel.off) return;
 
     // Process joined room events (messages).
-    final joinedRooms = sync.rooms?.join;
-    if (joinedRooms != null) {
-      for (final entry in joinedRooms.entries) {
-        // Room joined — allow re-invite notifications in the future.
-        _notifiedInvites.remove(entry.key);
-        final events = entry.value.timeline?.events;
-        if (events == null || events.isEmpty) continue;
-        final roomId = entry.key;
-        if (_processingRooms.contains(roomId)) continue;
-        unawaited(_processRoomEvents(roomId, events).catchError((Object e) {
-          debugPrint('[Kohera] Error processing room $roomId: $e');
-        },),);
-      }
+    for (final roomId in sync.joinedRoomIds) {
+      // Room joined — allow re-invite notifications in the future.
+      _notifiedInvites.remove(roomId);
+    }
+    for (final entry in sync.joinedTimelineEvents.entries) {
+      final roomId = entry.key;
+      if (_processingRooms.contains(roomId)) continue;
+      unawaited(_processRoomEvents(roomId, entry.value).catchError((Object e) {
+        debugPrint('[Kohera] Error processing room $roomId: $e');
+      },),);
     }
 
     // Room left/declined — allow re-invite notifications in the future.
-    final leftRooms = sync.rooms?.leave;
-    if (leftRooms != null) {
-      for (final roomId in leftRooms.keys) {
-        _notifiedInvites.remove(roomId);
-      }
+    for (final roomId in sync.leftRoomIds) {
+      _notifiedInvites.remove(roomId);
     }
 
     // Process new invites.
-    final inviteRooms = sync.rooms?.invite;
-    if (inviteRooms != null) {
-      for (final entry in inviteRooms.entries) {
-        final roomId = entry.key;
-        if (_processingRooms.contains(roomId)) continue;
-        unawaited(_processInvite(roomId, entry.value).catchError((Object e) {
-          debugPrint('[Kohera] Error processing invite $roomId: $e');
-        },),);
-      }
+    for (final entry in sync.invitedRoomStates.entries) {
+      final roomId = entry.key;
+      if (_processingRooms.contains(roomId)) continue;
+      unawaited(_processInvite(roomId, entry.value).catchError((Object e) {
+        debugPrint('[Kohera] Error processing invite $roomId: $e');
+      },),);
     }
   }
 
   Future<void> _processInvite(
     String roomId,
-    InvitedRoomUpdate update,
+    List<KoheraSyncEvent> inviteState,
   ) async {
     _processingRooms.add(roomId);
     try {
@@ -236,20 +230,17 @@ class NotificationService {
       // Find who sent the invite from the invite state.
       var inviterName = NotificationText.fallbackInviterName;
       Uri? inviterAvatarUrl;
-      final inviteEvents = update.inviteState;
-      if (inviteEvents != null) {
-        for (final event in inviteEvents) {
-          if (event.type == EventTypes.RoomMember &&
-              event.stateKey == pushRepository.userId) {
-            inviterName = pushRepository.userDisplayName(
-                  roomId,
-                  event.senderId,
-                ) ??
-                event.senderId;
-            inviterAvatarUrl =
-                pushRepository.userAvatarUrl(roomId, event.senderId);
-            break;
-          }
+      for (final event in inviteState) {
+        if (event.type == KoheraEventTypes.roomMember &&
+            event.stateKey == pushRepository.userId) {
+          inviterName = pushRepository.userDisplayName(
+                roomId,
+                event.senderId,
+              ) ??
+              event.senderId;
+          inviterAvatarUrl =
+              pushRepository.userAvatarUrl(roomId, event.senderId);
+          break;
         }
       }
 
@@ -286,7 +277,7 @@ class NotificationService {
 
   Future<void> _processRoomEvents(
     String roomId,
-    List<MatrixEvent> events,
+    List<KoheraSyncEvent> events,
   ) async {
     _processingRooms.add(roomId);
     try {
@@ -298,21 +289,20 @@ class NotificationService {
 
   Future<void> _processRoomEventsInner(
     String roomId,
-    List<MatrixEvent> events,
+    List<KoheraSyncEvent> events,
   ) async {
     if (_disposed) return;
     if (isNativeIOS && preferencesService.apnsPushEnabled) return;
-    final room = pushRepository.getRoom(roomId);
-    if (room == null) return;
+    if (!pushRepository.roomExists(roomId)) return;
 
     final ownUserId = pushRepository.userId;
 
     // If any event is from the current user, they're active in this room —
     // clear any existing notification and stop processing.
     final hasOwnMessage = events.any((e) =>
-        (e.type == EventTypes.Message ||
-            e.type == EventTypes.Encrypted ||
-            e.type == PollEventContent.startType) &&
+        (e.type == KoheraEventTypes.message ||
+            e.type == KoheraEventTypes.encrypted ||
+            e.type == KoheraEventTypes.pollStart) &&
         e.senderId == ownUserId,);
     if (hasOwnMessage) {
       await cancelForRoom(roomId);
@@ -337,27 +327,27 @@ class NotificationService {
     final notifiable =
         <(String senderName, String body, Uri? avatarUrl, DateTime timestamp)>[];
 
-    for (final matrixEvent in events) {
-      final isPollStart = matrixEvent.type == PollEventContent.startType;
-      if (matrixEvent.type != EventTypes.Message &&
-          matrixEvent.type != EventTypes.Encrypted &&
+    for (final syncEvent in events) {
+      final isPollStart = syncEvent.type == KoheraEventTypes.pollStart;
+      if (syncEvent.type != KoheraEventTypes.message &&
+          syncEvent.type != KoheraEventTypes.encrypted &&
           !isPollStart) {
         continue;
       }
 
-      final event = Event.fromMatrixEvent(matrixEvent, room);
       String body;
 
-      if (matrixEvent.type == EventTypes.Encrypted) {
-        body = await _tryDecrypt(room, event);
+      if (syncEvent.type == KoheraEventTypes.encrypted) {
+        body = await _tryDecrypt(roomId, syncEvent);
       } else {
-        body = pollStartBody(event) ?? stripReplyFallback(event.body).trim();
-        if (body.isEmpty) body = event.body;
+        body = pollBodyFromContent(syncEvent.type, syncEvent.content) ??
+            stripReplyFallback(syncEvent.body).trim();
+        if (body.isEmpty) body = syncEvent.body;
       }
 
       if (!shouldNotifyForEvent(
         eventBody: body,
-        senderId: matrixEvent.senderId,
+        senderId: syncEvent.senderId,
         ownUserId: ownUserId,
         ownLowerDisplayName: lowerDisplayName,
         prefs: preferencesService,
@@ -368,11 +358,11 @@ class NotificationService {
       if (_disposed) return;
 
       notifiable.add((
-        pushRepository.userDisplayName(roomId, matrixEvent.senderId) ??
-            matrixEvent.senderId,
+        pushRepository.userDisplayName(roomId, syncEvent.senderId) ??
+            syncEvent.senderId,
         body,
-        pushRepository.userAvatarUrl(roomId, matrixEvent.senderId),
-        matrixEvent.originServerTs,
+        pushRepository.userAvatarUrl(roomId, syncEvent.senderId),
+        syncEvent.originServerTs ?? DateTime.fromMillisecondsSinceEpoch(0),
       ));
     }
 
@@ -448,15 +438,15 @@ class NotificationService {
 
   // ── Decryption ───────────────────────────────────────────────
 
-  Future<String> _tryDecrypt(Room room, Event event) async {
+  Future<String> _tryDecrypt(String roomId, KoheraSyncEvent event) async {
     try {
-      final decrypted = await pushRepository.decryptRoomEvent(room, event)
+      final decrypted = await pushRepository.decryptEvent(roomId, event)
           .timeout(const Duration(seconds: 3));
       if (decrypted != null && callEventTypes.contains(decrypted.type)) {
-        return _formatCallEvent(decrypted);
+        return _formatCallEvent(decrypted, _senderName(roomId, event));
       }
       if (decrypted != null) {
-        final poll = pollStartBody(decrypted);
+        final poll = pollBodyFromContent(decrypted.type, decrypted.content);
         if (poll != null) return poll;
         final decryptedBody = decrypted.body;
         final stripped = stripReplyFallback(decryptedBody).trim();
@@ -469,8 +459,14 @@ class NotificationService {
     }
   }
 
-  static String _formatCallEvent(Event event) {
-    final sender = event.senderFromMemoryOrFallback.calcDisplayname();
+  String _senderName(String roomId, KoheraSyncEvent event) =>
+      pushRepository.userDisplayName(roomId, event.senderId) ??
+      event.senderId;
+
+  static String _formatCallEvent(
+    KoheraDecryptedEvent event,
+    String sender,
+  ) {
     switch (event.type) {
       case kCallInvite:
         return NotificationText.callStarted(sender);
@@ -479,7 +475,7 @@ class NotificationService {
       case kCallReject:
         return NotificationText.callDeclined(sender);
       case kCallHangup:
-        final reason = event.content.tryGet<String>('reason');
+        final reason = event.content['reason'];
         if (reason == kHangupInviteTimeout) {
           return NotificationText.callMissed(sender);
         }

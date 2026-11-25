@@ -23,7 +23,7 @@ class PollResolver {
       {required String myUserId, required bool canRedact}) {
     assert(event.type == PollEventContent.startType, 'PollResolver requires a poll-start event');
 
-    final parsed = safePollStart(event);
+    final parsed = safePollStartContent(event.type, event.content);
     final kind = (parsed?.disclosed ?? false)
         ? KoheraPollKind.disclosed
         : KoheraPollKind.undisclosed;

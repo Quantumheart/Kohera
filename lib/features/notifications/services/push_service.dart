@@ -5,13 +5,14 @@ import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/notification_filter.dart';
 import 'package:kohera/core/utils/platform_info.dart';
-import 'package:kohera/core/utils/poll_body.dart';
+import 'package:kohera/core/utils/poll_content.dart';
 import 'package:kohera/data/models/call_constants.dart';
+import 'package:kohera/data/models/kohera_event_types.dart';
+import 'package:kohera/data/models/kohera_sync_event.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/notification_service.dart';
-import 'package:matrix/matrix.dart';
 import 'package:unifiedpush/unifiedpush.dart';
 
 
@@ -172,9 +173,9 @@ class PushService {
         return;
       }
 
-      MatrixEvent matrixEvent;
+      KoheraSyncEvent syncEvent;
       try {
-        matrixEvent = await pushRepository.getRoomEvent(roomId, eventId);
+        syncEvent = await pushRepository.roomEvent(roomId, eventId);
       } catch (e) {
         debugPrint('[Kohera] Failed to fetch push event: $e');
         await notificationService.showPushNotification(
@@ -186,14 +187,12 @@ class PushService {
         return;
       }
 
-      final room = pushRepository.getRoom(roomId);
-
-      if (matrixEvent.type == 'org.matrix.msc3401.call.member') {
-        _handleCallEvent(roomId, matrixEvent);
+      if (syncEvent.type == KoheraEventTypes.callMemberMsc) {
+        _handleCallEvent(roomId, syncEvent);
         return;
       }
 
-      if (room == null) {
+      if (!pushRepository.roomExists(roomId)) {
         await notificationService.showPushNotification(
           roomId: roomId,
           title: NotificationText.newMessageTitle,
@@ -202,28 +201,30 @@ class PushService {
         return;
       }
 
-      await _handleMessageEvent(room, matrixEvent);
+      await _handleMessageEvent(roomId, syncEvent);
     } catch (e) {
       debugPrint('[Kohera] Push message processing error: $e');
     }
   }
 
-  Future<void> _handleMessageEvent(Room room, MatrixEvent matrixEvent) async {
-    if (matrixEvent.senderId == pushRepository.userId) return;
+  Future<void> _handleMessageEvent(
+    String roomId,
+    KoheraSyncEvent syncEvent,
+  ) async {
+    if (syncEvent.senderId == pushRepository.userId) return;
 
-    final roomId = room.id;
-    final event = Event.fromMatrixEvent(matrixEvent, room);
     String body;
 
-    if (matrixEvent.type == EventTypes.Encrypted) {
-      body = await _tryDecrypt(room, event);
+    if (syncEvent.type == KoheraEventTypes.encrypted) {
+      body = await _tryDecrypt(roomId, syncEvent);
     } else {
-      body = pollStartBody(event) ?? event.body;
+      body = pollBodyFromContent(syncEvent.type, syncEvent.content) ??
+          syncEvent.body;
     }
 
     if (!shouldNotifyForEvent(
       eventBody: body,
-      senderId: matrixEvent.senderId,
+      senderId: syncEvent.senderId,
       ownUserId: pushRepository.userId,
       ownLowerDisplayName: pushRepository
           .userDisplayName(roomId, pushRepository.userId ?? '')
@@ -235,9 +236,9 @@ class PushService {
 
     final senderDisplayName = pushRepository.userDisplayName(
           roomId,
-          matrixEvent.senderId,
+          syncEvent.senderId,
         ) ??
-        matrixEvent.senderId;
+        syncEvent.senderId;
     final isDirect = pushRepository.isDirectChatRoom(roomId);
 
     await notificationService.showPushNotification(
@@ -250,14 +251,15 @@ class PushService {
         (
           senderName: senderDisplayName,
           body: body,
-          timestamp: matrixEvent.originServerTs,
+          timestamp: syncEvent.originServerTs ??
+              DateTime.fromMillisecondsSinceEpoch(0),
         ),
       ],
       isGroupConversation: !isDirect,
     );
   }
 
-  void _handleCallEvent(String roomId, MatrixEvent event) {
+  void _handleCallEvent(String roomId, KoheraSyncEvent event) {
     final content = event.content;
     if (content.isEmpty) return;
     final callId = content['call_id'] as String? ?? '';
@@ -274,12 +276,12 @@ class PushService {
 
   // ── Decryption ───────────────────────────────────────────────
 
-  Future<String> _tryDecrypt(Room room, Event event) async {
+  Future<String> _tryDecrypt(String roomId, KoheraSyncEvent event) async {
     try {
-      final decrypted = await pushRepository.decryptRoomEvent(room, event)
+      final decrypted = await pushRepository.decryptEvent(roomId, event)
           .timeout(const Duration(seconds: 3));
       if (decrypted != null) {
-        final poll = pollStartBody(decrypted);
+        final poll = pollBodyFromContent(decrypted.type, decrypted.content);
         if (poll != null) return poll;
       }
       return decrypted?.body ?? NotificationText.encryptedMessage;

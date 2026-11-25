@@ -1,4 +1,4 @@
-import 'package:kohera/core/utils/poll_body.dart';
+import 'package:kohera/core/utils/poll_content.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/data/models/call_constants.dart';
 import 'package:matrix/matrix.dart';
@@ -34,7 +34,7 @@ bool isCallEvent(Event event) =>
 /// the inbox. Handles calls, polls, redactions, undecryptable events, media
 /// message types, and plain text. Falls back to the raw body otherwise.
 String eventPreviewText(Event event, {required Room room, String? myUserId}) {
-  final poll = pollStartBody(event);
+  final poll = pollBodyFromContent(event.type, event.content);
   if (poll != null) return poll;
 
   if (event.type == kCallInvite) return EventPreviewText.callInProgress;
