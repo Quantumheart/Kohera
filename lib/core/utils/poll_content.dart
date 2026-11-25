@@ -1,4 +1,4 @@
-import 'package:matrix/matrix.dart';
+import 'package:kohera/data/models/kohera_event_types.dart';
 
 /// A null-safe view over an MSC3381 poll-start event's content.
 ///
@@ -42,40 +42,48 @@ class SafePollAnswer {
 }
 
 const String _startKey = 'org.matrix.msc3381.poll.start';
+const String _kindDisclosed = 'org.matrix.msc3381.poll.disclosed';
 const String _textKey = 'org.matrix.msc1767.text';
 
-/// Parses a poll-start [event] safely, or returns `null` if it is not a
-/// poll-start event with usable start content.
+/// Parses a poll-start event safely from its wire [type] and [content], or
+/// returns `null` if it is not a poll-start event with usable start content.
 ///
 /// Unlike the SDK's `Event.parsedPollEventContent`, this never throws on
 /// missing text fields.
-SafePollStart? safePollStart(Event event) {
-  if (event.type != PollEventContent.startType) return null;
-  final start = event.content.tryGetMap<String, Object?>(_startKey);
-  if (start == null) return null;
+SafePollStart? safePollStartContent(
+  String type,
+  Map<String, Object?> content,
+) {
+  if (type != KoheraEventTypes.pollStart) return null;
+  final startRaw = content[_startKey];
+  if (startRaw is! Map) return null;
+  final start = Map<String, Object?>.from(startRaw);
 
-  final kind = start.tryGet<String>('kind');
-  final disclosed = kind == PollKind.disclosed.name;
+  final disclosed = start['kind'] == _kindDisclosed;
 
-  final maxSelections = start.tryGet<int>('max_selections') ?? 1;
+  final maxSelectionsRaw = start['max_selections'];
+  final maxSelections = maxSelectionsRaw is int ? maxSelectionsRaw : 1;
 
-  final questionMap = start.tryGetMap<String, Object?>('question');
-  final question =
-      questionMap?.tryGet<String>(_textKey) ??
-      questionMap?.tryGet<String>('body') ??
+  final questionMapRaw = start['question'];
+  final questionMap =
+      questionMapRaw is Map ? Map<String, Object?>.from(questionMapRaw) : null;
+  final question = (questionMap?[_textKey] as String?) ??
+      (questionMap?['body'] as String?) ??
       '';
 
-  final answersRaw = start.tryGetList<Object?>('answers') ?? const [];
+  final answersRaw = start['answers'];
   final answers = <SafePollAnswer>[];
-  for (final entry in answersRaw) {
-    if (entry is! Map) continue;
-    final id = entry['id'];
-    if (id is! String || id.isEmpty) continue;
-    final label =
-        (entry[_textKey] as String?) ??
-        (entry['body'] as String?) ??
-        id;
-    answers.add(SafePollAnswer(id: id, label: label));
+  if (answersRaw is List) {
+    for (final entry in answersRaw) {
+      if (entry is! Map) continue;
+      final id = entry['id'];
+      if (id is! String || id.isEmpty) continue;
+      final label =
+          (entry[_textKey] as String?) ??
+          (entry['body'] as String?) ??
+          id;
+      answers.add(SafePollAnswer(id: id, label: label));
+    }
   }
 
   return SafePollStart(
@@ -84,4 +92,17 @@ SafePollStart? safePollStart(Event event) {
     maxSelections: maxSelections,
     disclosed: disclosed,
   );
+}
+
+/// Returns a readable notification/preview body for a poll-start event,
+/// or `null` when [type] is not the poll-start type.
+///
+/// Parses safely: a malformed poll (e.g. missing the `org.matrix.msc1767.text`
+/// fallback) yields a generic body instead of throwing.
+String? pollBodyFromContent(String type, Map<String, Object?> content) {
+  if (type != KoheraEventTypes.pollStart) return null;
+  final parsed = safePollStartContent(type, content);
+  if (parsed == null) return '📊 Poll';
+  final question = parsed.question;
+  return question.isEmpty ? '📊 Poll' : '📊 Poll: $question';
 }

@@ -2,14 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
+import 'package:kohera/data/models/kohera_auth_exception.dart';
+import 'package:kohera/data/models/kohera_push_notification.dart';
+import 'package:kohera/data/models/kohera_sync_update.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/notifications/enum/inbox_filter.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/models/notification_group.dart';
 import 'package:kohera/features/notifications/services/apns_push_service.dart';
 import 'package:kohera/features/notifications/services/notification_grouper.dart';
-import 'package:matrix/matrix.dart' as matrix_sdk;
-import 'package:matrix/matrix.dart' show MatrixException;
 
 export 'package:kohera/features/notifications/services/notification_grouper.dart';
 
@@ -34,7 +35,7 @@ class InboxController extends ChangeNotifier {
   InboxFilter _filter = InboxFilter.all;
   InboxFilter get filter => _filter;
 
-  StreamSubscription<matrix_sdk.SyncUpdate>? _syncSub;
+  StreamSubscription<KoheraSyncUpdate>? _syncSub;
   Timer? _debounce;
   int _pollingRefCount = 0;
   bool _markingAsRead = false;
@@ -42,7 +43,7 @@ class InboxController extends ChangeNotifier {
   static const _debounceDelay = Duration(milliseconds: 750);
 
   int _fetchGeneration = 0;
-  List<matrix_sdk.Notification> _rawNotifications = [];
+  List<KoheraPushNotification> _rawNotifications = [];
 
   // ── Public getters ─────────────────────────────────────────
 
@@ -77,20 +78,20 @@ class InboxController extends ChangeNotifier {
 
 
   Future<void> fetch() => _withLoad((gen) async {
-        final response = await _pushRepo.getNotifications();
+        final page = await _pushRepo.notifications();
         if (_disposed || gen != _fetchGeneration) return null;
-        _rawNotifications = response.notifications;
-        final grouped = await _grouper.group(response.notifications, _filter);
-        return (grouped: grouped, token: response.nextToken);
+        _rawNotifications = page.items;
+        final grouped = await _grouper.group(page.items, _filter);
+        return (grouped: grouped, token: page.nextToken);
       });
 
   Future<void> refresh() => _withLoad((gen) async {
-        final response = await _pushRepo.getNotifications();
+        final page = await _pushRepo.notifications();
         if (_disposed || gen != _fetchGeneration) return null;
         final headIds =
-            response.notifications.map((n) => n.event.eventId).toSet();
+            page.items.map((n) => n.event.eventId).toSet();
         final merged = [
-          ...response.notifications,
+          ...page.items,
           for (final n in _rawNotifications)
             if (!headIds.contains(n.event.eventId)) n,
         ];
@@ -102,14 +103,14 @@ class InboxController extends ChangeNotifier {
   Future<void> loadMore() async {
     if (_nextToken == null || _isLoading) return;
     await _withLoad((gen) async {
-      final response = await _pushRepo.getNotifications(
+      final page = await _pushRepo.notifications(
         from: _nextToken,
       );
       if (_disposed || gen != _fetchGeneration) return null;
-      final merged = [..._rawNotifications, ...response.notifications];
+      final merged = [..._rawNotifications, ...page.items];
       _rawNotifications = merged;
       final grouped = await _grouper.group(merged, _filter);
-      return (grouped: grouped, token: response.nextToken);
+      return (grouped: grouped, token: page.nextToken);
     });
   }
 
@@ -180,7 +181,7 @@ class InboxController extends ChangeNotifier {
   void _bindSync() {
     final existing = _syncSub;
     if (existing != null) unawaited(existing.cancel());
-    _syncSub = _pushRepo.onSync.listen(_onSync);
+    _syncSub = _pushRepo.syncUpdates.listen(_onSync);
   }
 
   void _unbindSync() {
@@ -190,7 +191,7 @@ class InboxController extends ChangeNotifier {
     _debounce = null;
   }
 
-  void _onSync(matrix_sdk.SyncUpdate update) {
+  void _onSync(KoheraSyncUpdate update) {
     if (_disposed || _tokenExpired) return;
     if (!_shouldInvalidate(update)) return;
     _debounce?.cancel();
@@ -201,24 +202,11 @@ class InboxController extends ChangeNotifier {
     });
   }
 
-  bool _shouldInvalidate(matrix_sdk.SyncUpdate update) {
-    final rooms = update.rooms;
-    if (rooms == null) return false;
-    final joins = rooms.join;
-    if (joins != null) {
-      for (final entry in joins.values) {
-        final timelineEvents = entry.timeline?.events;
-        if (timelineEvents != null && timelineEvents.isNotEmpty) return true;
-        final ephemeral = entry.ephemeral;
-        if (ephemeral != null) {
-          for (final ev in ephemeral) {
-            if (ev.type == 'm.receipt') return true;
-          }
-        }
-      }
-    }
-    if (rooms.invite != null && rooms.invite!.isNotEmpty) return true;
-    if (rooms.leave != null && rooms.leave!.isNotEmpty) return true;
+  bool _shouldInvalidate(KoheraSyncUpdate update) {
+    if (update.joinedTimelineEvents.isNotEmpty) return true;
+    if (update.hasReceiptEphemeral) return true;
+    if (update.invitedRoomStates.isNotEmpty) return true;
+    if (update.leftRoomIds.isNotEmpty) return true;
     return false;
   }
 
@@ -276,11 +264,10 @@ class InboxController extends ChangeNotifier {
         if (shouldPostMain)
           _pushRepo.markRoomReadUpTo(roomId, mainEventId),
         for (final entry in perThread.entries)
-          _pushRepo.postReceipt(
+          _pushRepo.markThreadReadUpTo(
             roomId,
-            matrix_sdk.ReceiptType.mRead,
+            entry.key,
             entry.value.eventId,
-            threadId: entry.key,
           ),
       ]);
     } catch (e) {
@@ -331,7 +318,7 @@ class InboxController extends ChangeNotifier {
       );
 
   static bool _isTokenExpired(Object e) =>
-      e is MatrixException && e.errcode == 'M_UNKNOWN_TOKEN';
+      e is KoheraAuthException && e.errcode == 'M_UNKNOWN_TOKEN';
 
   @override
   void dispose() {

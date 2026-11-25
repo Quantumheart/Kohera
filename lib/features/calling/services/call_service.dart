@@ -527,6 +527,16 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     return true;
   }
 
+  /// Whether [roomId] has an active call membership from a remote user.
+  ///
+  /// Boundary helper so push services can check call liveness by roomId
+  /// without touching the SDK room.
+  bool roomHasRemoteActiveCall(String roomId) =>
+      RtcMembershipService.roomHasRemoteActiveCallWith(
+        _client.getRoomById(roomId),
+        _client.userID,
+      );
+
   Future<void> _connectToLiveKit(String roomId, Room room) async {
     if (_liveKit.cachedLivekitServiceUrl == null) {
       await _liveKit.fetchWellKnownLiveKit();

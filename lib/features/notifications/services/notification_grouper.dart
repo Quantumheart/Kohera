@@ -1,13 +1,14 @@
 import 'package:clock/clock.dart';
 import 'package:kohera/core/utils/word_boundary.dart';
+import 'package:kohera/data/models/call_constants.dart';
+import 'package:kohera/data/models/kohera_decrypted_event.dart';
+import 'package:kohera/data/models/kohera_event_types.dart';
+import 'package:kohera/data/models/kohera_push_notification.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
-import 'package:kohera/data/utils/event_preview.dart';
 import 'package:kohera/features/notifications/enum/inbox_filter.dart';
 import 'package:kohera/features/notifications/models/kohera_notification_item.dart';
 import 'package:kohera/features/notifications/models/notification_group.dart';
 import 'package:kohera/features/notifications/models/thread_sub_group.dart';
-import 'package:matrix/matrix.dart' as matrix_sdk;
-import 'package:matrix/matrix.dart' show Event, EventTypes;
 
 // ── NotificationGrouper ──────────────────────────────────────
 
@@ -17,7 +18,7 @@ class NotificationGrouper {
   PushRepository _pushRepo;
   set pushRepository(PushRepository value) => _pushRepo = value;
 
-  final Map<String, Event> _decryptedEvents = {};
+  final Map<String, KoheraDecryptedEvent> _decryptedEvents = {};
 
   // ── Thread-root preview cache ─────────────────────────────
   // Moved here from _SubGroupSectionState so it is scoped to the active
@@ -44,21 +45,20 @@ class NotificationGrouper {
 
   // ── Queries ────────────────────────────────────────────────
 
-  String? threadRootIdFor(matrix_sdk.Notification n) {
+  String? threadRootIdFor(KoheraPushNotification n) {
     final content = _decryptedEvents[n.event.eventId]?.content ?? n.event.content;
     final relatesTo = content['m.relates_to'];
-    if (relatesTo is Map &&
-        relatesTo['rel_type'] == matrix_sdk.RelationshipTypes.thread) {
+    if (relatesTo is Map && relatesTo['rel_type'] == 'm.thread') {
       final id = relatesTo['event_id'];
       if (id is String) return id;
     }
     return null;
   }
 
-  bool isMention(matrix_sdk.Notification n) {
+  bool isMention(KoheraPushNotification n) {
     final userId = _pushRepo.userId;
     if (userId == null) return false;
-    if (_hasHighlightAction(n.actions)) return true;
+    if (n.hasHighlight) return true;
 
     final content = _decryptedEvents[n.event.eventId]?.content ?? n.event.content;
     final mentions = content['m.mentions'];
@@ -68,7 +68,7 @@ class NotificationGrouper {
           mentions['room'] == true;
     }
 
-    if (n.event.type != EventTypes.Encrypted) return false;
+    if (n.event.type != KoheraEventTypes.encrypted) return false;
     return _bodyMentions(content, userId, n.roomId);
   }
 
@@ -92,7 +92,7 @@ class NotificationGrouper {
   // ── Grouping ───────────────────────────────────────────────
 
   Future<List<NotificationGroup>> group(
-    List<matrix_sdk.Notification> notifications,
+    List<KoheraPushNotification> notifications,
     InboxFilter filter,
   ) async {
     final candidates = _collectCandidates(notifications);
@@ -140,39 +140,42 @@ class NotificationGrouper {
     ];
   }
 
-  List<matrix_sdk.Notification> _collectCandidates(
-    List<matrix_sdk.Notification> notifications,
+  List<KoheraPushNotification> _collectCandidates(
+    List<KoheraPushNotification> notifications,
   ) {
-    final candidates = <matrix_sdk.Notification>[];
+    final candidates = <KoheraPushNotification>[];
     final seen = <String>{};
     for (final n in notifications) {
-      if (n.read || !seen.add(n.event.eventId)) continue;
+      if (n.isRead || !seen.add(n.event.eventId ?? '')) continue;
       if (!_pushRepo.isJoinedRoom(n.roomId)) continue;
       candidates.add(n);
     }
     return candidates;
   }
 
-  KoheraNotificationItem _toItem(matrix_sdk.Notification n) {
-    final room = _pushRepo.getRoom(n.roomId);
-    final event = _decryptedEvents[n.event.eventId] ??
-        (room != null ? Event.fromMatrixEvent(n.event, room) : null);
+  KoheraNotificationItem _toItem(KoheraPushNotification n) {
+    final decrypted = _decryptedEvents[n.event.eventId];
     return KoheraNotificationItem(
-      eventId: n.event.eventId,
+      eventId: n.event.eventId ?? '',
       roomId: n.roomId,
       senderName: _senderName(n),
-      body: event != null && room != null
-          ? eventPreviewText(event, room: room, myUserId: _pushRepo.userId)
-          : '',
-      timestamp: n.ts,
-      isRead: n.read,
+      body: _pushRepo.notificationPreview(
+        roomId: n.roomId,
+        event: n.event,
+        decrypted: decrypted,
+      ),
+      timestamp: n.timestampMs,
+      isRead: n.isRead,
       isMention: isMention(n),
-      isCall: event != null && isCallEvent(event),
+      isCall: isCallEventPayload(
+        decrypted?.type ?? n.event.type,
+        decrypted?.body ?? n.event.body,
+      ),
       threadRootId: threadRootIdFor(n),
     );
   }
 
-  String _senderName(matrix_sdk.Notification n) {
+  String _senderName(KoheraPushNotification n) {
     return _pushRepo.userDisplayName(n.roomId, n.event.senderId) ??
         n.event.senderId;
   }
@@ -210,16 +213,14 @@ class NotificationGrouper {
     return [for (final key in order) MapEntry(key, buckets[key]!)];
   }
 
-  Future<void> _tryDecrypt(matrix_sdk.Notification n) async {
-    if (n.event.type != EventTypes.Encrypted) return;
+  Future<void> _tryDecrypt(KoheraPushNotification n) async {
+    if (n.event.type != KoheraEventTypes.encrypted) return;
     final eventId = n.event.eventId;
+    if (eventId == null) return;
     if (_decryptedEvents.containsKey(eventId)) return;
     if (_isFailureCached(eventId)) return;
-    final room = _pushRepo.getRoom(n.roomId);
-    if (room == null) return;
     try {
-      final event = Event.fromMatrixEvent(n.event, room);
-      final decrypted = await _pushRepo.decryptRoomEvent(room, event)
+      final decrypted = await _pushRepo.decryptEvent(n.roomId, n.event)
           .timeout(const Duration(seconds: 3));
       if (decrypted != null) {
         _decryptedEvents[eventId] = decrypted;
@@ -242,16 +243,6 @@ class NotificationGrouper {
 }
 
 // ── Helpers ──────────────────────────────────────────────────
-
-bool _hasHighlightAction(List<Object?> actions) {
-  for (final action in actions) {
-    if (action is Map && action['set_tweak'] == 'highlight') {
-      final value = action['value'];
-      if (value == null || value == true) return true;
-    }
-  }
-  return false;
-}
 
 int _mostRecentTimestamp(Iterable<KoheraNotificationItem> items) =>
     items.map((n) => n.timestamp).reduce((a, b) => a > b ? a : b);

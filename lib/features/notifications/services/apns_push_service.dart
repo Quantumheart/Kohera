@@ -9,7 +9,6 @@ import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
 import 'package:kohera/features/notifications/services/notification_service.dart';
-import 'package:matrix/matrix.dart';
 
 const apnsMethodChannel = MethodChannel('kohera/apns');
 
@@ -118,22 +117,16 @@ class ApnsPushService {
     if (gatewayUrl == null) return;
 
     try {
-      await pushRepository.postPusher(
-        Pusher(
-          appId: _appId,
-          pushkey: token,
-          appDisplayName: NotificationChannel.appName,
-          deviceDisplayName:
-              pushRepository.deviceName ?? NotificationChannel.iosDefaultDeviceName,
-          kind: 'http',
-          lang: NotificationChannel.defaultLang,
-          data: PusherData(
-            url: Uri.parse(gatewayUrl),
-            format: 'event_id_only',
-          ),
-          profileTag: pushRepository.deviceId,
-        ),
-        append: true,
+      await pushRepository.registerHttpPusher(
+        appId: _appId,
+        pushkey: token,
+        appDisplayName: NotificationChannel.appName,
+        deviceDisplayName:
+            pushRepository.deviceName ?? NotificationChannel.iosDefaultDeviceName,
+        lang: NotificationChannel.defaultLang,
+        gatewayUrl: Uri.parse(gatewayUrl),
+        profileTag: pushRepository.deviceId,
+        format: 'event_id_only',
       );
       debugPrint('[Kohera] APNs pusher registered with gateway $gatewayUrl');
     } catch (e) {
@@ -145,9 +138,7 @@ class ApnsPushService {
     final token = _currentToken;
     if (token == null) return;
 
-    await pushRepository.deletePusher(
-      PusherId(appId: _appId, pushkey: token),
-    );
+    await pushRepository.deletePusherByKey(_appId, token);
     debugPrint('[Kohera] APNs pusher unregistered from homeserver');
   }
 
@@ -171,12 +162,11 @@ class ApnsPushService {
   Future<void> _handleInlineReply(String roomId, String text) async {
     if (_disposed || text.isEmpty) return;
     try {
-      final room = pushRepository.getRoom(roomId);
-      if (room == null) {
+      if (!pushRepository.roomExists(roomId)) {
         debugPrint('[Kohera] Reply failed: room $roomId not found');
         return;
       }
-      await room.sendTextEvent(text);
+      await pushRepository.sendTextMessage(roomId, text);
       debugPrint('[Kohera] Inline reply sent to room $roomId');
     } catch (e) {
       debugPrint('[Kohera] Failed to send inline reply: $e');
@@ -186,14 +176,13 @@ class ApnsPushService {
   Future<void> _handleMarkAsRead(String roomId, String? eventId) async {
     if (_disposed) return;
     try {
-      final room = pushRepository.getRoom(roomId);
-      if (room == null) {
+      if (!pushRepository.roomExists(roomId)) {
         debugPrint('[Kohera] Mark as read failed: room $roomId not found');
         return;
       }
-      final targetEventId = eventId ?? room.lastEvent?.eventId;
+      final targetEventId = eventId ?? pushRepository.lastEventIdFor(roomId);
       if (targetEventId == null) return;
-      await room.setReadMarker(targetEventId, mRead: targetEventId);
+      await pushRepository.markRoomReadUpTo(roomId, targetEventId);
       debugPrint('[Kohera] Marked room $roomId as read');
     } catch (e) {
       debugPrint('[Kohera] Failed to mark as read: $e');

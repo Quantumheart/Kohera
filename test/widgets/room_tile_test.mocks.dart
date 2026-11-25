@@ -9562,6 +9562,15 @@ class MockCallService extends _i1.Mock implements _i12.CallService {
   );
 
   @override
+  bool roomHasRemoteActiveCall(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#roomHasRemoteActiveCall, [roomId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
   _i5.Future<void> joinCall(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#joinCall, [roomId]),
