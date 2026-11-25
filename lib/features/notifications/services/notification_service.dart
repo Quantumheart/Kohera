@@ -228,12 +228,10 @@ class NotificationService {
         return;
       }
 
-      final room = pushRepository.getRoom(roomId);
-
       // Respect per-room push rules.
-      if (room?.pushRuleState == PushRuleState.dontNotify) return;
+      if (pushRepository.roomMutesNotifications(roomId)) return;
 
-      final roomName = room?.getLocalizedDisplayname() ?? roomId;
+      final roomName = pushRepository.roomDisplayName(roomId) ?? roomId;
 
       // Find who sent the invite from the invite state.
       var inviterName = NotificationText.fallbackInviterName;
@@ -243,10 +241,13 @@ class NotificationService {
         for (final event in inviteEvents) {
           if (event.type == EventTypes.RoomMember &&
               event.stateKey == pushRepository.userId) {
-            final inviter =
-                room?.unsafeGetUserFromMemoryOrFallback(event.senderId);
-            inviterName = inviter?.calcDisplayname() ?? event.senderId;
-            inviterAvatarUrl = inviter?.avatarUrl;
+            inviterName = pushRepository.userDisplayName(
+                  roomId,
+                  event.senderId,
+                ) ??
+                event.senderId;
+            inviterAvatarUrl =
+                pushRepository.userAvatarUrl(roomId, event.senderId);
             break;
           }
         }
@@ -319,7 +320,7 @@ class NotificationService {
     }
 
     // Respect per-room push rules.
-    if (room.pushRuleState == PushRuleState.dontNotify) return;
+    if (pushRepository.roomMutesNotifications(roomId)) return;
 
     // Suppress for the currently viewed room only when the app is visible,
     // unless the user has opted in to foreground notifications.
@@ -329,12 +330,8 @@ class NotificationService {
       return;
     }
 
-    final lowerUserId = ownUserId?.toLowerCase();
     final lowerDisplayName = ownUserId != null
-        ? room
-            .unsafeGetUserFromMemoryOrFallback(ownUserId)
-            .calcDisplayname()
-            .toLowerCase()
+        ? pushRepository.userDisplayName(roomId, ownUserId)?.toLowerCase()
         : null;
 
     final notifiable =
@@ -362,22 +359,19 @@ class NotificationService {
         eventBody: body,
         senderId: matrixEvent.senderId,
         ownUserId: ownUserId,
-        room: room,
+        ownLowerDisplayName: lowerDisplayName,
         prefs: preferencesService,
-        cachedLowerUserId: lowerUserId,
-        cachedLowerDisplayName: lowerDisplayName,
       )) {
         continue;
       }
 
       if (_disposed) return;
 
-      final sender =
-          room.unsafeGetUserFromMemoryOrFallback(matrixEvent.senderId);
       notifiable.add((
-        sender.calcDisplayname(),
+        pushRepository.userDisplayName(roomId, matrixEvent.senderId) ??
+            matrixEvent.senderId,
         body,
-        sender.avatarUrl,
+        pushRepository.userAvatarUrl(roomId, matrixEvent.senderId),
         matrixEvent.originServerTs,
       ));
     }
@@ -402,10 +396,11 @@ class NotificationService {
       );
     }
 
-    final roomName = room.getLocalizedDisplayname();
+    final roomName = pushRepository.roomDisplayName(roomId) ?? roomId;
 
-    final isDirect = room.isDirectChat;
-    requestAttention?.call(important: isDirect || room.highlightCount > 0);
+    final isDirect = pushRepository.isDirectChatRoom(roomId);
+    requestAttention?.call(
+        important: isDirect || pushRepository.highlightCountFor(roomId) > 0);
 
     if (notifiable.length == 1) {
       final senderDisplayName = notifiable.first.$1;
@@ -593,10 +588,7 @@ class NotificationService {
     if (isAndroid && androidMessages != null && androidMessages.isNotEmpty) {
       final ownUserId = pushRepository.userId;
       final ownName = ownUserId != null
-          ? pushRepository
-              .getRoom(roomId)
-              ?.unsafeGetUserFromMemoryOrFallback(ownUserId)
-              .calcDisplayname()
+          ? pushRepository.userDisplayName(roomId, ownUserId)
           : null;
 
       final messages = androidMessages
@@ -740,19 +732,15 @@ class NotificationService {
       );
       unawaited(notification.action.then((actionKey) {
         if (_disposed) return;
-        final room = pushRepository.getRoom(roomId);
         if (actionKey == 'mark_read') {
           debugPrint(
             '[Kohera] Linux notification mark_read for room $roomId',
           );
-          final lastEventId = room?.lastEvent?.eventId;
-          if (room != null && lastEventId != null) {
-            unawaited(
-              room.setReadMarker(lastEventId, mRead: lastEventId).catchError((Object e) {
-                debugPrint('[Kohera] Failed to mark room as read: $e');
-              }),
-            );
-          }
+          unawaited(
+            pushRepository.markRoomRead(roomId).catchError((Object e) {
+              debugPrint('[Kohera] Failed to mark room as read: $e');
+            }),
+          );
           _linuxNotifications.remove(roomId);
           unawaited(
             notification.close().catchError((Object e) {
@@ -846,12 +834,11 @@ class NotificationService {
 
   Future<void> _handleInlineReply(String roomId, String text) async {
     try {
-      final room = pushRepository.getRoom(roomId);
-      if (room == null) {
+      if (!pushRepository.roomExists(roomId)) {
         debugPrint('[Kohera] Reply failed: room $roomId not found');
         return;
       }
-      await room.sendTextEvent(text);
+      await pushRepository.sendTextMessage(roomId, text);
       debugPrint('[Kohera] Inline reply sent to room $roomId');
     } catch (e) {
       debugPrint('[Kohera] Failed to send inline reply: $e');
@@ -860,14 +847,12 @@ class NotificationService {
 
   Future<void> _handleMarkAsRead(String roomId) async {
     try {
-      final room = pushRepository.getRoom(roomId);
-      if (room == null) {
+      if (!pushRepository.roomExists(roomId)) {
         debugPrint('[Kohera] Mark as read failed: room $roomId not found');
         return;
       }
-      final eventId = room.lastEvent?.eventId;
-      if (eventId == null) return;
-      await room.setReadMarker(eventId, mRead: eventId);
+      if (pushRepository.lastEventIdFor(roomId) == null) return;
+      await pushRepository.markRoomRead(roomId);
       await cancelForRoom(roomId);
       debugPrint('[Kohera] Marked room $roomId as read from notification');
     } catch (e) {

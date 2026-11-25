@@ -23,7 +23,9 @@ class NotificationGroupTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final room = controller.pushRepository.getRoom(group.roomId);
+    final repo = controller.pushRepository;
+    final roomAvatarUrl = repo.roomAvatarUrl(group.roomId);
+    final roomDisplayName = repo.roomDisplayName(group.roomId);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -42,10 +44,10 @@ class NotificationGroupTile extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(12, 10, 8, 6),
               child: Row(
                 children: [
-                  if (room != null) ...[
+                  if (roomAvatarUrl != null || roomDisplayName != null) ...[
                     RoomAvatarWidget(
-                      avatarUrl: room.avatar?.toString(),
-                      displayname: room.getLocalizedDisplayname(),
+                      avatarUrl: roomAvatarUrl,
+                      displayname: roomDisplayName ?? group.roomName,
                       avatarResolver: context.read<MediaRepository>().avatarResolver,
                       size: 32,
                     ),

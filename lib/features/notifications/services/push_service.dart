@@ -120,22 +120,16 @@ class PushService {
 
     final gatewayUrl = _gatewayUrl;
 
-    await pushRepository.postPusher(
-      Pusher(
-        appId: _appId,
-        pushkey: endpoint,
-        appDisplayName: NotificationChannel.appName,
-        deviceDisplayName:
-            pushRepository.deviceName ?? NotificationChannel.defaultDeviceName,
-        kind: 'http',
-        lang: NotificationChannel.defaultLang,
-        data: PusherData(
-          url: Uri.parse(gatewayUrl),
-          format: 'event_id_only',
-        ),
-        profileTag: pushRepository.deviceId,
-      ),
-      append: true,
+    await pushRepository.registerHttpPusher(
+      appId: _appId,
+      pushkey: endpoint,
+      appDisplayName: NotificationChannel.appName,
+      deviceDisplayName:
+          pushRepository.deviceName ?? NotificationChannel.defaultDeviceName,
+      lang: NotificationChannel.defaultLang,
+      gatewayUrl: Uri.parse(gatewayUrl),
+      profileTag: pushRepository.deviceId,
+      format: 'event_id_only',
     );
     debugPrint('[Kohera] Pusher registered with gateway $gatewayUrl');
   }
@@ -144,9 +138,7 @@ class PushService {
     final endpoint = _currentEndpoint;
     if (endpoint == null) return;
 
-    await pushRepository.deletePusher(
-      PusherId(appId: _appId, pushkey: endpoint),
-    );
+    await pushRepository.deletePusherByKey(_appId, endpoint);
     debugPrint('[Kohera] Pusher unregistered from homeserver');
   }
 
@@ -168,14 +160,12 @@ class PushService {
       final roomId = notification['room_id'] as String?;
       if (roomId == null) return;
 
-      final room = pushRepository.getRoom(roomId);
-
-      if (room?.pushRuleState == PushRuleState.dontNotify) return;
+      if (pushRepository.roomMutesNotifications(roomId)) return;
 
       if (eventId == null) {
         await notificationService.showPushNotification(
           roomId: roomId,
-          title: room?.getLocalizedDisplayname() ??
+          title: pushRepository.roomDisplayName(roomId) ??
               NotificationText.newMessageTitle,
           body: NotificationText.newMessageBody,
         );
@@ -189,15 +179,17 @@ class PushService {
         debugPrint('[Kohera] Failed to fetch push event: $e');
         await notificationService.showPushNotification(
           roomId: roomId,
-          title: room?.getLocalizedDisplayname() ??
+          title: pushRepository.roomDisplayName(roomId) ??
               NotificationText.newMessageTitle,
           body: NotificationText.newMessageBody,
         );
         return;
       }
 
+      final room = pushRepository.getRoom(roomId);
+
       if (matrixEvent.type == 'org.matrix.msc3401.call.member') {
-        _handleCallEvent(roomId, matrixEvent, room);
+        _handleCallEvent(roomId, matrixEvent);
         return;
       }
 
@@ -219,6 +211,7 @@ class PushService {
   Future<void> _handleMessageEvent(Room room, MatrixEvent matrixEvent) async {
     if (matrixEvent.senderId == pushRepository.userId) return;
 
+    final roomId = room.id;
     final event = Event.fromMatrixEvent(matrixEvent, room);
     String body;
 
@@ -232,20 +225,24 @@ class PushService {
       eventBody: body,
       senderId: matrixEvent.senderId,
       ownUserId: pushRepository.userId,
-      room: room,
+      ownLowerDisplayName: pushRepository
+          .userDisplayName(roomId, pushRepository.userId ?? '')
+          ?.toLowerCase(),
       prefs: preferencesService,
     )) {
       return;
     }
 
-    final sender =
-        room.unsafeGetUserFromMemoryOrFallback(matrixEvent.senderId);
-    final senderDisplayName = sender.calcDisplayname();
-    final isDirect = room.isDirectChat;
+    final senderDisplayName = pushRepository.userDisplayName(
+          roomId,
+          matrixEvent.senderId,
+        ) ??
+        matrixEvent.senderId;
+    final isDirect = pushRepository.isDirectChatRoom(roomId);
 
     await notificationService.showPushNotification(
-      roomId: room.id,
-      title: room.getLocalizedDisplayname(),
+      roomId: roomId,
+      title: pushRepository.roomDisplayName(roomId) ?? roomId,
       subtitle: isDirect ? null : senderDisplayName,
       senderName: isDirect ? '' : senderDisplayName,
       body: body,
@@ -260,11 +257,11 @@ class PushService {
     );
   }
 
-  void _handleCallEvent(String roomId, MatrixEvent event, Room? room) {
+  void _handleCallEvent(String roomId, MatrixEvent event) {
     final content = event.content;
     if (content.isEmpty) return;
     final callId = content['call_id'] as String? ?? '';
-    final callerName = room?.getLocalizedDisplayname() ?? roomId;
+    final callerName = pushRepository.roomDisplayName(roomId) ?? roomId;
     final isVideo = content[kIoKoheraIsVideo] == true;
 
     callService.handlePushCallInvite(
