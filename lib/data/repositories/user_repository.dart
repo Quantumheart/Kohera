@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/data/models/kohera_auth_exception.dart';
 import 'package:kohera/data/models/kohera_device.dart';
 import 'package:kohera/data/models/kohera_device_key.dart';
 import 'package:kohera/data/models/kohera_user_summary.dart';
@@ -295,18 +296,24 @@ class UserRepository extends ChangeNotifier {
   /// data where possible. [idServer], when provided, is the identity server
   /// to unbind all 3PIDs from. The caller is responsible for dropping the
   /// local client afterwards (see [ClientManager.removeService]).
+  ///
+  /// Throws [KoheraAuthException] when the homeserver rejects the request.
   Future<IdServerUnbindResult> deactivateAccount({
     bool erase = false,
     String? idServer,
   }) async {
     final client = _client;
-    return client.uiaRequestBackground<IdServerUnbindResult>(
-      (auth) => client.deactivateAccount(
-        auth: auth,
-        erase: erase,
-        idServer: idServer,
-      ),
-    );
+    try {
+      return await client.uiaRequestBackground<IdServerUnbindResult>(
+        (auth) => client.deactivateAccount(
+          auth: auth,
+          erase: erase,
+          idServer: idServer,
+        ),
+      );
+    } on MatrixException catch (e) {
+      throw KoheraAuthException(e.errorMessage, errcode: e.errcode);
+    }
   }
 
   /// Toggles the blocked state of a device.
@@ -326,6 +333,9 @@ class UserRepository extends ChangeNotifier {
   // ── Sync stream ──────────────────────────────────────────────
 
   Stream<SyncUpdate> get onSync => _client.onSync.stream;
+
+  /// Emits on every sync, payload-free, for UI refresh triggers.
+  Stream<void> get syncTicks => _client.onSync.stream.map((_) {});
 
   // ── Helpers ──────────────────────────────────────────────────
 

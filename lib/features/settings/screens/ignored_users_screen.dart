@@ -10,7 +10,6 @@ import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 class IgnoredUsersScreen extends StatefulWidget {
@@ -23,12 +22,12 @@ class IgnoredUsersScreen extends StatefulWidget {
 class _IgnoredUsersScreenState extends State<IgnoredUsersScreen> {
   final _displayNames = <String, String>{};
   final _loading = <String>{};
-  StreamSubscription<SyncUpdate>? _syncSub;
+  StreamSubscription<void>? _syncSub;
 
   @override
   void initState() {
     super.initState();
-    _syncSub = context.read<UserRepository>().onSync.listen((_) {
+    _syncSub = context.read<UserRepository>().syncTicks.listen((_) {
       if (mounted) setState(() {});
     });
   }

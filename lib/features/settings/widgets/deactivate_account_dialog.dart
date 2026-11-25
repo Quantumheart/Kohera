@@ -1,16 +1,16 @@
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/models/kohera_auth_exception.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/settings/widgets/uia_password_prompt_dialog.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 /// Permanently deactivate the signed-in Matrix account.
 ///
 /// Irreversible. Requires UIA (password) confirmation handled by
 /// [UiaService] via [MatrixService.uia.passwordPromptBuilder]. On success the
-/// local [Client] is dropped through [ClientManager.removeService].
+/// local client is dropped through [ClientManager.removeService].
 class DeactivateAccountDialog extends StatefulWidget {
   const DeactivateAccountDialog({super.key});
 
@@ -82,9 +82,9 @@ class _DeactivateAccountDialogState extends State<DeactivateAccountDialog> {
       if (!mounted) return;
       Navigator.of(context).pop();
       await _manager.removeService(_matrix);
-    } on MatrixException catch (e) {
+    } on KoheraAuthException catch (e) {
       _matrix.passwordCache.clearCachedPassword();
-      _setError(e.errorMessage);
+      _setError(e.message);
     } on Exception catch (e) {
       if (_isCancelError(e)) {
         if (!mounted) return;
