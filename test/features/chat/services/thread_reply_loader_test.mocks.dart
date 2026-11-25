@@ -8758,6 +8758,19 @@ class MockRoomRepository extends _i1.Mock implements _i29.RoomRepository {
           as _i5.Future<void>);
 
   @override
+  _i5.Future<void> setTyping(String? roomId, bool? typing, {int? timeoutMs}) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #setTyping,
+              [roomId, typing],
+              {#timeoutMs: timeoutMs},
+            ),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
   _i5.Future<void> setName(String? roomId, String? name) =>
       (super.noSuchMethod(
             Invocation.method(#setName, [roomId, name]),

@@ -93,6 +93,12 @@ class RoomRepository extends ChangeNotifier {
     if (room != null) await room.invite(mxid);
   }
 
+  /// Sends a typing notification for [roomId].
+  Future<void> setTyping(String roomId, bool typing, {int? timeoutMs}) async {
+    final room = _client.getRoomById(roomId);
+    if (room != null) await room.setTyping(typing, timeout: timeoutMs);
+  }
+
   Future<void> setName(String roomId, String name) async {
     final room = _client.getRoomById(roomId);
     if (room != null) await room.setName(name);
