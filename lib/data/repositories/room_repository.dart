@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/known_contacts.dart' as contacts;
 import 'package:kohera/data/models/kohera_file_too_big_exception.dart';
+import 'package:kohera/data/models/kohera_message_display.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/models/kohera_room_permissions.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/resolvers/message_display_resolver.dart';
 import 'package:kohera/data/resolvers/room_member_list_resolver.dart';
 import 'package:kohera/data/resolvers/room_permissions_resolver.dart';
 import 'package:kohera/data/resolvers/room_summary_resolver.dart';
@@ -365,6 +367,44 @@ class RoomRepository extends ChangeNotifier {
   Future<void> setSpaceChild(String spaceId, String childRoomId) async {
     final space = _client.getRoomById(spaceId);
     if (space != null) await space.setSpaceChild(childRoomId);
+  }
+
+  // ── Pinned events ───────────────────────────────────────────
+
+  /// The pinned messages of [roomId] as display models, or null if the
+  /// room is unknown. Events that fail to load are skipped.
+  Future<List<KoheraMessageDisplay>?> pinnedMessagesFor(String roomId) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return null;
+    final results = await Future.wait(
+      room.pinnedEventIds.map((id) async {
+        try {
+          return await room.getEventById(id);
+        } catch (e) {
+          debugPrint('[Kohera] Failed to load pinned event $id: $e');
+          return null;
+        }
+      }),
+    );
+    return results
+        .whereType<Event>()
+        .map(MessageDisplayResolver.resolve)
+        .toList();
+  }
+
+  /// Whether the current user can change the pinned events of [roomId].
+  bool canChangePinnedEvents(String roomId) {
+    final room = _client.getRoomById(roomId);
+    return room?.canChangeStateEvent('m.room.pinned_events') ?? false;
+  }
+
+  /// Removes [eventId] from the pinned events of [roomId].
+  Future<void> unpinEvent(String roomId, String eventId) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return;
+    final pinned = List<String>.from(room.pinnedEventIds);
+    pinned.remove(eventId);
+    await room.setPinnedEvents(pinned);
   }
 
   // ── Transitional raw room access ──────────────────────────────

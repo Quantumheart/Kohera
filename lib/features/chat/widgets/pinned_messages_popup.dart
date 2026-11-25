@@ -8,7 +8,6 @@ import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/chat/services/linkable_span_builder.dart';
-import 'package:kohera/features/chat/services/pinned_messages_loader.dart';
 import 'package:kohera/features/chat/widgets/html_message_text.dart';
 import 'package:kohera/features/chat/widgets/linkable_text.dart';
 import 'package:kohera/shared/widgets/user_avatar.dart';
@@ -155,14 +154,14 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
   void initState() {
     super.initState();
     final rooms = context.read<RoomRepository>();
-    _canUnpin = PinnedMessagesLoader.canPin(rooms, widget.roomId);
+    _canUnpin = rooms.canChangePinnedEvents(widget.roomId);
     unawaited(_loadPinnedEvents());
   }
 
   Future<void> _loadPinnedEvents() async {
     final rooms = context.read<RoomRepository>();
     final messages =
-        await PinnedMessagesLoader.load(rooms, widget.roomId);
+        await rooms.pinnedMessagesFor(widget.roomId);
     if (mounted) {
       setState(() {
         _messages = messages;
@@ -174,7 +173,7 @@ class _PinnedMessagesPanelState extends State<_PinnedMessagesPanel> {
   Future<void> _unpin(String eventId) async {
     try {
       final rooms = context.read<RoomRepository>();
-      await PinnedMessagesLoader.unpin(rooms, widget.roomId, eventId);
+      await rooms.unpinEvent(widget.roomId, eventId);
       if (mounted) {
         setState(() {
           _messages?.removeWhere((m) => m.eventId == eventId);
