@@ -1,18 +1,23 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:kohera/core/utils/known_contacts.dart' as contacts;
+import 'package:kohera/data/models/kohera_auth_exception.dart';
 import 'package:kohera/data/models/kohera_file_too_big_exception.dart';
+import 'package:kohera/data/models/kohera_media_content.dart';
 import 'package:kohera/data/models/kohera_message_display.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
+import 'package:kohera/data/models/kohera_room_history.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/models/kohera_room_permissions.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/resolvers/history_event_resolver.dart';
+import 'package:kohera/data/resolvers/media_content_resolver.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
 import 'package:kohera/data/resolvers/room_member_list_resolver.dart';
 import 'package:kohera/data/resolvers/room_permissions_resolver.dart';
 import 'package:kohera/data/resolvers/room_summary_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/services/sdk_media_controller.dart';
 import 'package:matrix/encryption.dart';
 import 'package:matrix/matrix.dart';
 
@@ -279,13 +284,21 @@ class RoomRepository extends ChangeNotifier {
   // ── State writes ─────────────────────────────────────────────
 
   /// Writes a room state event of [type] with [stateKey] to [roomId].
+  /// Sets the state event ([type], [stateKey]) of [roomId] to [content].
+  ///
+  /// Throws [KoheraAuthException] when the homeserver rejects the write.
   Future<void> setRoomStateWithKey(
     String roomId,
     String type,
     String stateKey,
     Map<String, dynamic> content,
-  ) =>
-      _client.setRoomStateWithKey(roomId, type, stateKey, content);
+  ) async {
+    try {
+      await _client.setRoomStateWithKey(roomId, type, stateKey, content);
+    } on MatrixException catch (e) {
+      throw KoheraAuthException(e.errorMessage, errcode: e.errcode);
+    }
+  }
 
   /// Unbans [userId] from [roomId], optionally recording a [reason].
   Future<void> unban(String roomId, String userId, {String? reason}) =>
@@ -387,34 +400,37 @@ class RoomRepository extends ChangeNotifier {
 
   // ── Room creation ────────────────────────────────────────────
 
-  /// Searches the user directory for [query].
-  Future<List<Profile>> searchUserDirectory(String query, {int limit = 20}) async {
-    final response = await _client.searchUserDirectory(query, limit: limit);
-    return response.results;
-  }
-
-  /// Profiles for users with an existing direct chat.
-  List<Profile> knownContacts() => contacts.knownContacts(_client);
-
-  /// Profiles for users from group rooms, excluding [excludeMxids].
-  List<Profile> roomContacts({Set<String> excludeMxids = const {}}) =>
-      contacts.roomContacts(_client, excludeMxids: excludeMxids);
-
   /// Creates a room and returns its ID.
+  ///
+  /// [enableEncryption] prepends an `m.room.encryption` initial state
+  /// event. [joinRulesEvent] is an optional pre-built join-rules state
+  /// event (from `SpaceRepository.buildJoinRulesStateEvent`); typed as
+  /// `Object?` until the spaces cluster converts it to a domain model.
   Future<String> createRoom({
     String? name,
     String? topic,
-    Visibility? visibility,
+    bool isPublic = false,
     String? roomVersion,
-    List<StateEvent>? initialState,
+    bool enableEncryption = false,
+    Object? joinRulesEvent,
     List<String>? invite,
   }) =>
       _client.createRoom(
         name: name,
         topic: topic,
-        visibility: visibility,
+        visibility: isPublic ? Visibility.public : Visibility.private,
         roomVersion: roomVersion,
-        initialState: initialState,
+        initialState: [
+          if (enableEncryption)
+            StateEvent(
+              content: {
+                'algorithm':
+                    Client.supportedGroupEncryptionAlgorithms.first,
+              },
+              type: EventTypes.Encryption,
+            ),
+          if (joinRulesEvent != null) joinRulesEvent as StateEvent,
+        ],
         invite: invite,
       );
 
@@ -422,6 +438,124 @@ class RoomRepository extends ChangeNotifier {
   Future<void> setSpaceChild(String spaceId, String childRoomId) async {
     final space = _client.getRoomById(spaceId);
     if (space != null) await space.setSpaceChild(childRoomId);
+  }
+
+  // ── Join rules ────────────────────────────────────────────────
+
+  /// Sets the `m.room.join_rules` state of [roomId] from a domain
+  /// [KoheraJoinRule] value.
+  Future<void> setJoinRules(String roomId, KoheraJoinRule rule) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return;
+    await room.setJoinRules(_toSdkJoinRules(rule));
+  }
+
+  static JoinRules _toSdkJoinRules(KoheraJoinRule rule) => switch (rule) {
+        KoheraJoinRule.public => JoinRules.public,
+        KoheraJoinRule.invite => JoinRules.invite,
+        KoheraJoinRule.knock => JoinRules.knock,
+        KoheraJoinRule.restricted => JoinRules.restricted,
+      };
+
+  /// Whether [roomId] exists in the local state.
+  bool roomExists(String roomId) => _client.getRoomById(roomId) != null;
+
+  /// Searches [roomId] for media events (image, video, file, audio).
+  ///
+  /// Returns resolved [KoheraMediaContent] plus a media controller per
+  /// event, and the `nextBatch` token for pagination.
+  Future<({List<({KoheraMediaContent media, SdkMediaController controller})> items, String? nextBatch})>
+      searchSharedMedia(
+    String roomId, {
+    String? nextBatch,
+    int limit = 20,
+  }) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) {
+      return (
+        items: const <({KoheraMediaContent media, SdkMediaController controller})>[],
+        nextBatch: null,
+      );
+    }
+
+    final result = await room.searchEvents(
+      searchFunc: (event) {
+        final mt = event.messageType;
+        return mt == MessageTypes.Image ||
+            mt == MessageTypes.Video ||
+            mt == MessageTypes.File ||
+            mt == MessageTypes.Audio;
+      },
+      nextBatch: nextBatch,
+      limit: limit,
+    );
+
+    final items = [
+      for (final event in result.events)
+        (
+          media: MediaContentResolver.resolve(event),
+          controller: SdkMediaController(event, _client),
+        ),
+    ];
+    return (items: items, nextBatch: result.nextBatch);
+  }
+
+  /// Emits when a sync delivers a state event of one of [types] for
+  /// [roomId]. One emission per matching sync update.
+  Stream<void> roomStateChanges(String roomId, Set<String> types) async* {
+    await for (final update in _client.onSync.stream) {
+      final stateEvents = update.rooms?.join?[roomId]?.state ?? [];
+      if (stateEvents.any((e) => types.contains(e.type))) yield null;
+    }
+  }
+
+  // ── History export ────────────────────────────────────────────
+
+  /// Paginates the full `m.room.message` history of [roomId] and returns
+  /// it as a domain model. Events are newest-first.
+  ///
+  /// [onProgress] receives the running count of collected events.
+  /// Throws [StateError] if the room is unknown.
+  Future<KoheraRoomHistory> roomHistory(
+    String roomId, {
+    void Function(int loaded)? onProgress,
+  }) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) {
+      throw StateError('Room $roomId not found');
+    }
+
+    final timeline = await room.getTimeline();
+    const resolver = HistoryEventResolver();
+    final seen = <String>{};
+    final events = <KoheraHistoryEvent>[];
+
+    void consume() {
+      for (final event in timeline.events) {
+        if (!seen.add(event.eventId)) continue;
+        if (event.type != EventTypes.Message) continue;
+        events.add(resolver.convert(room, event));
+      }
+      onProgress?.call(events.length);
+    }
+
+    consume();
+    while (timeline.canRequestHistory) {
+      await timeline.requestHistory(historyCount: 100);
+      if (!timeline.canRequestHistory) {
+        consume();
+        break;
+      }
+      consume();
+    }
+
+    return KoheraRoomHistory(
+      roomId: room.id,
+      displayname: room.getLocalizedDisplayname(),
+      canonicalAlias: room.canonicalAlias.isEmpty ? null : room.canonicalAlias,
+      topic: room.topic,
+      events: List.unmodifiable(events),
+    );
   }
 
   // ── Pinned events ───────────────────────────────────────────

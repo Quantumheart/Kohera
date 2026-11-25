@@ -3,42 +3,30 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/models/kohera_user_summary.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 
 /// Service layer that wraps all SDK calls needed by the room creation and
-/// DM dialogs. Converts SDK `Profile` to Kohera-owned `KoheraUserSummary`.
-///
-/// Widgets call these methods with simple types (`String`, `bool`, etc.)
-/// and receive Kohera-owned types. The SDK `Client` is never exposed;
-/// SDK access routes through [RoomRepository].
+/// DM dialogs. Widgets call these methods with simple types (`String`,
+/// `bool`, etc.) and receive Kohera-owned types. SDK access routes through
+/// [RoomRepository], [UserRepository], and [SpaceRepository].
 class RoomCreationService {
-  RoomCreationService(this._matrix, this._rooms, this._spaces);
+  RoomCreationService(this._matrix, this._rooms, this._users, this._spaces);
 
   final MatrixService _matrix;
   final RoomRepository _rooms;
+  final UserRepository _users;
   final SpaceRepository _spaces;
 
   /// Searches the user directory for [query], returning `KoheraUserSummary`.
-  Future<List<KoheraUserSummary>> searchUserDirectory(String query) async {
-    final results = await _rooms.searchUserDirectory(query,);
-    return results.map(_toSummary).toList(growable: false);
-  }
+  Future<List<KoheraUserSummary>> searchUserDirectory(String query) =>
+      _users.searchUserDirectory(query);
 
   /// Returns known contacts (from existing DM rooms) as `KoheraUserSummary`.
-  List<KoheraUserSummary> knownContacts() {
-    return _rooms
-        .knownContacts()
-        .map(_toSummary)
-        .toList(growable: false);
-  }
+  List<KoheraUserSummary> knownContacts() => _users.knownContacts();
 
   /// Returns contacts from group rooms (non-DM), excluding [excludeMxids].
-  List<KoheraUserSummary> roomContacts({Set<String> excludeMxids = const {}}) {
-    return _rooms
-        .roomContacts(excludeMxids: excludeMxids)
-        .map(_toSummary)
-        .toList(growable: false);
-  }
+  List<KoheraUserSummary> roomContacts({Set<String> excludeMxids = const {}}) =>
+      _users.roomContacts(excludeMxids: excludeMxids);
 
   /// Creates a new room with the given parameters.
   ///
@@ -52,23 +40,15 @@ class RoomCreationService {
     String? topic,
     List<String>? invite,
     String? roomVersion,
-    dynamic joinRulesEvent,
+    Object? joinRulesEvent,
   }) async {
     return _rooms.createRoom(
       name: name,
       topic: topic,
-      visibility: isPublic ? Visibility.public : Visibility.private,
+      isPublic: isPublic,
       roomVersion: roomVersion,
-      initialState: [
-        if (enableEncryption)
-          StateEvent(
-            content: {
-              'algorithm': Client.supportedGroupEncryptionAlgorithms.first,
-            },
-            type: EventTypes.Encryption,
-          ),
-        if (joinRulesEvent != null) joinRulesEvent as StateEvent,
-      ],
+      enableEncryption: enableEncryption,
+      joinRulesEvent: joinRulesEvent,
       invite: invite,
     );
   }
@@ -90,7 +70,7 @@ class RoomCreationService {
 
   /// Checks if a room is already in the local state (avoids hanging
   /// `waitForRoomInSync` for existing DMs).
-  bool isRoomInSync(String roomId) => _rooms.rawRoom(roomId) != null;
+  bool isRoomInSync(String roomId) => _rooms.roomExists(roomId);
 
   /// Builds a join-rules state event for restricted join modes.
   dynamic buildJoinRulesStateEvent(
@@ -119,10 +99,4 @@ class RoomCreationService {
 
   /// Selects a room in the SelectionService.
   void selectRoom(String roomId) => _matrix.selectionController.selectRoom(roomId);
-
-  KoheraUserSummary _toSummary(Profile p) => KoheraUserSummary(
-        userId: p.userId,
-        displayname: p.displayName ?? p.userId,
-        avatarUrl: p.avatarUrl?.toString(),
-      );
 }

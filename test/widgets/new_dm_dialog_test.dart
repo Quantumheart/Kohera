@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
+import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/rooms/widgets/new_dm_dialog.dart';
@@ -49,6 +50,9 @@ void main() {
         ),
         ChangeNotifierProvider<SpaceRepository>(
           create: (_) => SpaceRepository(clientService: mockMatrixService.matrixClientService),
+        ),
+        ChangeNotifierProvider<UserRepository>(
+          create: (_) => UserRepository(clientService: mockMatrixService.matrixClientService),
         ),
       ],
       child: MaterialApp(

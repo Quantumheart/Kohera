@@ -139,6 +139,9 @@ void main() {
         ChangeNotifierProvider<SpaceRepository>(
           create: (_) => SpaceRepository(clientService: matrixService.matrixClientService),
         ),
+        ChangeNotifierProvider<UserRepository>(
+          create: (_) => UserRepository(clientService: matrixService.matrixClientService),
+        ),
       ],
       child: MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
@@ -398,6 +401,9 @@ void main() {
             ),
             ChangeNotifierProvider<SpaceRepository>(
               create: (_) => SpaceRepository(clientService: matrixService.matrixClientService),
+            ),
+            ChangeNotifierProvider<UserRepository>(
+              create: (_) => UserRepository(clientService: matrixService.matrixClientService),
             ),
           ],
           child: MaterialApp(
