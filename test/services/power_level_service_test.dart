@@ -51,6 +51,7 @@ void main() {
 
     when(room.client).thenReturn(client);
     when(room.id).thenReturn('!test:example.com');
+    when(client.getRoomById('!test:example.com')).thenReturn(room);
     when(room.getState(EventTypes.RoomPowerLevels)).thenReturn(plEvent);
     when(plEvent.content).thenReturn(_plContent());
     when(
@@ -89,7 +90,7 @@ void main() {
   group('PowerLevelService.update', () {
     group('no-op patch', () {
       test('does not call setRoomStateWithKey when patch is empty', () async {
-        await PowerLevelService.update(rooms, room, const PowerLevelPatch());
+        await PowerLevelService.update(rooms, '!test:example.com', const PowerLevelPatch());
 
         verifyNever(client.setRoomStateWithKey(any, any, any, any));
       });
@@ -97,7 +98,7 @@ void main() {
 
     group('single-field update', () {
       test('merges kick threshold and preserves other fields', () async {
-        await PowerLevelService.update(rooms, room,
+        await PowerLevelService.update(rooms, '!test:example.com',
           const PowerLevelPatch(kick: 75),
         );
 
@@ -118,7 +119,7 @@ void main() {
       });
 
       test('merges users_default', () async {
-        await PowerLevelService.update(rooms, room,
+        await PowerLevelService.update(rooms, '!test:example.com',
           const PowerLevelPatch(usersDefault: 10),
         );
 
@@ -131,7 +132,7 @@ void main() {
       });
 
       test('merges invite threshold', () async {
-        await PowerLevelService.update(rooms, room,
+        await PowerLevelService.update(rooms, '!test:example.com',
           const PowerLevelPatch(invite: 50),
         );
 
@@ -149,7 +150,7 @@ void main() {
           _plContent(events: {EventTypes.RoomName: 50}),
         );
 
-        await PowerLevelService.update(rooms, room,
+        await PowerLevelService.update(rooms, '!test:example.com',
           const PowerLevelPatch(events: {EventTypes.RoomTopic: 75}),
         );
 
@@ -169,7 +170,7 @@ void main() {
           ),
         );
 
-        await PowerLevelService.update(rooms, room,
+        await PowerLevelService.update(rooms, '!test:example.com',
           const PowerLevelPatch(events: {EventTypes.RoomName: 100}),
         );
 
@@ -185,7 +186,7 @@ void main() {
       test('creates events map when none exists', () async {
         when(plEvent.content).thenReturn(_plContent());
 
-        await PowerLevelService.update(rooms, room,
+        await PowerLevelService.update(rooms, '!test:example.com',
           const PowerLevelPatch(events: {EventTypes.Encryption: 100}),
         );
 
@@ -200,7 +201,7 @@ void main() {
 
     group('users map update', () {
       test('merges per-user power level', () async {
-        await PowerLevelService.update(rooms, room,
+        await PowerLevelService.update(rooms, '!test:example.com',
           const PowerLevelPatch(users: {'@alice:example.com': 50}),
         );
 
@@ -217,7 +218,7 @@ void main() {
           _plContent(users: {'@bob:example.com': 100}),
         );
 
-        await PowerLevelService.update(rooms, room,
+        await PowerLevelService.update(rooms, '!test:example.com',
           const PowerLevelPatch(users: {'@alice:example.com': 50}),
         );
 
@@ -233,7 +234,7 @@ void main() {
 
     group('notifications map update', () {
       test('merges notification key', () async {
-        await PowerLevelService.update(rooms, room,
+        await PowerLevelService.update(rooms, '!test:example.com',
           const PowerLevelPatch(notifications: {'room': 50}),
         );
 
@@ -250,7 +251,7 @@ void main() {
       test('uses empty base when no power_levels event exists', () async {
         when(room.getState(EventTypes.RoomPowerLevels)).thenReturn(null);
 
-        await PowerLevelService.update(rooms, room,
+        await PowerLevelService.update(rooms, '!test:example.com',
           const PowerLevelPatch(kick: 50),
         );
 
@@ -274,7 +275,7 @@ void main() {
         );
 
         expect(
-          () => PowerLevelService.update(rooms, room,
+          () => PowerLevelService.update(rooms, '!test:example.com',
             const PowerLevelPatch(kick: 75),
           ),
           throwsA(
