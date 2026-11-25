@@ -1,3 +1,4 @@
+import 'package:kohera/data/models/kohera_event_types.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/screens/room_permissions_screen.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
@@ -55,7 +56,7 @@ class _RoomPermissionsHostState extends State<RoomPermissionsHost> {
           PowerLevelService.update(rooms, widget.roomId, patch),
       onApplyPowerLevelsContent: (content) => rooms.setRoomStateWithKey(
         widget.roomId,
-        'm.room.power_levels',
+        KoheraEventTypes.roomPowerLevels,
         '',
         content,
       ),

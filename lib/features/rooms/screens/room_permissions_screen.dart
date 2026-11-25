@@ -2,12 +2,13 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
+import 'package:kohera/data/models/kohera_event_types.dart';
 import 'package:kohera/data/models/kohera_room_permissions.dart';
 import 'package:kohera/features/rooms/services/power_level_service.dart';
 import 'package:material_ui/material_ui.dart';
 
 // Event type constants (replacing SDK EventTypes.*).
-const _kRoomPowerLevels = 'm.room.power_levels';
+const String _kRoomPowerLevels = KoheraEventTypes.roomPowerLevels;
 const _kRoomName = 'm.room.name';
 const _kRoomAvatar = 'm.room.avatar';
 const _kRoomTopic = 'm.room.topic';

@@ -6,8 +6,10 @@
 abstract class KoheraEventTypes {
   static const String message = 'm.room.message';
   static const String encrypted = 'm.room.encrypted';
+  static const String encryption = 'm.room.encryption';
   static const String roomMember = 'm.room.member';
   static const String roomPowerLevels = 'm.room.power_levels';
+  static const String roomJoinRules = 'm.room.join_rules';
   static const String receipt = 'm.receipt';
   static const String pollStart = 'org.matrix.msc3381.poll.start';
   static const String callMemberMsc = 'org.matrix.msc3401.call.member';

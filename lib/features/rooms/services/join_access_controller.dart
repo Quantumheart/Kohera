@@ -5,6 +5,7 @@ import 'package:kohera/core/models/join_mode.dart';
 import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
+import 'package:kohera/data/models/kohera_event_types.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/shared/widgets/join_access_section.dart';
@@ -250,7 +251,7 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
     final cs = Theme.of(context).colorScheme;
     final room = _rooms.rawRoom(widget.roomId);
     final canEdit =
-        room?.canChangeStateEvent('m.room.join_rules') == true && !_busy;
+        room?.canChangeStateEvent(KoheraEventTypes.roomJoinRules) == true && !_busy;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
