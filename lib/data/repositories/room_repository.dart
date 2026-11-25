@@ -326,6 +326,36 @@ class RoomRepository extends ChangeNotifier {
   Future<void> setRoomAlias(String alias, String roomId) =>
       _client.setRoomAlias(alias, roomId);
 
+  /// Sets the canonical alias of [roomId].
+  Future<void> setCanonicalAlias(String roomId, String alias) async {
+    final room = _client.getRoomById(roomId);
+    if (room != null) await room.setCanonicalAlias(alias);
+  }
+
+  /// Clears the canonical alias of [roomId].
+  Future<void> clearCanonicalAlias(String roomId) => setRoomStateWithKey(
+        roomId,
+        EventTypes.RoomCanonicalAlias,
+        '',
+        <String, Object?>{},
+      );
+
+  /// Whether the current user can change the canonical alias of [roomId].
+  bool canChangeCanonicalAlias(String roomId) {
+    final room = _client.getRoomById(roomId);
+    return room?.canChangeStateEvent(EventTypes.RoomCanonicalAlias) ?? false;
+  }
+
+  /// Emits when alias or canonical-alias state changes for [roomId].
+  Stream<void> aliasChangesFor(String roomId) {
+    return onSync.where((update) {
+      final stateEvents = update.rooms?.join?[roomId]?.state ?? [];
+      return stateEvents.any((e) =>
+          e.type == EventTypes.RoomCanonicalAlias ||
+          e.type == EventTypes.RoomAliases);
+    });
+  }
+
   /// Removes the published [alias].
   Future<void> deleteRoomAlias(String alias) =>
       _client.deleteRoomAlias(alias);

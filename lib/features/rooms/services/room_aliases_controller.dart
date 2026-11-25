@@ -4,17 +4,15 @@ import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/rooms/models/kohera_room_aliases.dart';
 import 'package:kohera/features/rooms/widgets/room_aliases_section.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 /// Conversion boundary for the room aliases feature.
 ///
-/// Owns the SDK `Room` and translates alias state + alias management calls
-/// into [KoheraRoomAliases] and callbacks for the SDK-free
+/// Reads alias state through [RoomRepository] and translates alias
+/// management calls into [KoheraRoomAliases] and callbacks for the SDK-free
 /// [RoomAliasesSection]. Mirrors [JoinAccessController]: a self-contained
-/// `StatefulWidget` that reads the room from `MatrixService`, listens to
-/// sync for alias/canonical-alias state changes, and re-fetches local
-/// aliases on demand.
+/// `StatefulWidget` that listens to sync for alias/canonical-alias state
+/// changes and re-fetches local aliases on demand.
 class RoomAliasesController extends StatefulWidget {
   const RoomAliasesController({required this.roomId, super.key});
 
@@ -27,7 +25,7 @@ class RoomAliasesController extends StatefulWidget {
 class _RoomAliasesControllerState extends State<RoomAliasesController> {
   KoheraRoomAliases? _data;
   bool _loading = true;
-  StreamSubscription<SyncUpdate>? _syncSub;
+  StreamSubscription<void>? _syncSub;
   int _fetchGen = 0;
 
   RoomRepository get _rooms => context.read<RoomRepository>();
@@ -43,7 +41,9 @@ class _RoomAliasesControllerState extends State<RoomAliasesController> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _syncSub ??= _rooms.onSync.listen(_onSync);
+    _syncSub ??= _rooms
+        .aliasChangesFor(widget.roomId)
+        .listen((_) => unawaited(_reload()));
     if (_data == null) unawaited(_reload());
   }
 
@@ -51,14 +51,6 @@ class _RoomAliasesControllerState extends State<RoomAliasesController> {
   void dispose() {
     unawaited(_syncSub?.cancel());
     super.dispose();
-  }
-
-  void _onSync(SyncUpdate update) {
-    final stateEvents = update.rooms?.join?[widget.roomId]?.state ?? [];
-    if (stateEvents.any((e) =>
-        e.type == EventTypes.RoomCanonicalAlias || e.type == EventTypes.RoomAliases)) {
-      unawaited(_reload());
-    }
   }
 
   Future<void> _reload() async {
@@ -69,8 +61,7 @@ class _RoomAliasesControllerState extends State<RoomAliasesController> {
       });
     }
     try {
-      final room = _rooms.rawRoom(widget.roomId);
-      if (room == null) {
+      if (_rooms.summaryFor(widget.roomId) == null) {
         if (mounted) {
           setState(() {
             _data = null;
@@ -84,8 +75,8 @@ class _RoomAliasesControllerState extends State<RoomAliasesController> {
       final data = KoheraRoomAliases(
         roomId: widget.roomId,
         aliases: List.unmodifiable(aliases),
-        canonicalAlias: room.canonicalAlias.isEmpty ? null : room.canonicalAlias,
-        canEdit: room.canChangeStateEvent(EventTypes.RoomCanonicalAlias),
+        canonicalAlias: _rooms.canonicalAlias(widget.roomId),
+        canEdit: _rooms.canChangeCanonicalAlias(widget.roomId),
         homeserverDomain: _homeserverDomain,
       );
       if (mounted) {
@@ -122,19 +113,12 @@ class _RoomAliasesControllerState extends State<RoomAliasesController> {
   }
 
   Future<void> _setCanonical(String alias) async {
-    final room = _rooms.rawRoom(widget.roomId);
-    if (room == null) return;
-    await room.setCanonicalAlias(alias);
+    await _rooms.setCanonicalAlias(widget.roomId, alias);
     await _reload();
   }
 
   Future<void> _clearCanonical() async {
-    await _rooms.setRoomStateWithKey(
-      widget.roomId,
-      EventTypes.RoomCanonicalAlias,
-      '',
-      <String, Object?>{},
-    );
+    await _rooms.clearCanonicalAlias(widget.roomId);
     await _reload();
   }
 
