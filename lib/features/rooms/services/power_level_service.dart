@@ -1,4 +1,5 @@
 import 'package:kohera/data/models/kohera_auth_exception.dart';
+import 'package:kohera/data/models/kohera_event_types.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 
 /// A partial update to a room's `m.room.power_levels` state event.
@@ -97,7 +98,7 @@ class PowerLevelService {
     try {
       await rooms.setRoomStateWithKey(
         roomId,
-        'm.room.power_levels',
+        KoheraEventTypes.roomPowerLevels,
         '',
         current,
       );
