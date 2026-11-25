@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/utils/known_contacts.dart' as contacts;
+import 'package:kohera/data/models/kohera_file_too_big_exception.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/models/kohera_room_permissions.dart';
@@ -97,6 +98,30 @@ class RoomRepository extends ChangeNotifier {
   Future<void> setTyping(String roomId, bool typing, {int? timeoutMs}) async {
     final room = _client.getRoomById(roomId);
     if (room != null) await room.setTyping(typing, timeout: timeoutMs);
+  }
+
+  /// Sends [bytes] as a file named [name] to [roomId].
+  ///
+  /// Throws [KoheraFileTooBigException] when the homeserver rejects the
+  /// upload for exceeding its size limit.
+  Future<void> sendFile(
+    String roomId,
+    Uint8List bytes,
+    String name, {
+    String? threadRootEventId,
+    String? threadLastEventId,
+  }) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return;
+    try {
+      await room.sendFileEvent(
+        MatrixFile.fromMimeType(bytes: bytes, name: name),
+        threadRootEventId: threadRootEventId,
+        threadLastEventId: threadLastEventId,
+      );
+    } on FileTooBigMatrixException {
+      throw KoheraFileTooBigException(name);
+    }
   }
 
   Future<void> setName(String roomId, String name) async {

@@ -1,14 +1,16 @@
 import 'package:http/http.dart' as http;
 import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/models/kohera_file_too_big_exception.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
 
 // coverage:ignore-start
 
 Future<void> sendGifFromUrl({
   required ScaffoldMessengerState scaffold,
-  required Room room,
+  required RoomRepository rooms,
+  required String roomId,
   required String url,
   required String title,
   required ValueNotifier<UploadState?> uploadNotifier,
@@ -27,14 +29,15 @@ Future<void> sendGifFromUrl({
       throw Exception('Failed to download GIF');
     }
 
-    final file = MatrixFile.fromMimeType(bytes: response.bodyBytes, name: name);
-    await room.sendFileEvent(
-      file,
+    await rooms.sendFile(
+      roomId,
+      response.bodyBytes,
+      name,
       threadRootEventId: threadRootEventId,
       threadLastEventId: threadLastEventId,
     );
     uploadNotifier.value = null;
-  } on FileTooBigMatrixException {
+  } on KoheraFileTooBigException {
     uploadNotifier.value = null;
     scaffold.showSnackBar(
       SnackBar(content: Text('GIF too large: $name')),

@@ -4,9 +4,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:kohera/core/extensions/auth_error_formatter.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
+import 'package:kohera/data/models/kohera_file_too_big_exception.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 // coverage:ignore-start
@@ -26,12 +26,10 @@ Future<void> pickAndSendFile(
   final bytes = await picked.readAsBytes();
   final name = picked.name;
 
-  final room = rooms.rawRoom(roomId);
-  if (room == null) return;
-
   await sendFileBytes(
     scaffold: scaffold,
-    room: room,
+    rooms: rooms,
+    roomId: roomId,
     name: name,
     bytes: bytes,
     uploadNotifier: uploadNotifier,
@@ -48,7 +46,8 @@ Future<PendingAttachment?> pickFileAsAttachment() async {
 
 Future<bool> sendFileBytes({
   required ScaffoldMessengerState scaffold,
-  required Room room,
+  required RoomRepository rooms,
+  required String roomId,
   required String name,
   required Uint8List bytes,
   required ValueNotifier<UploadState?> uploadNotifier,
@@ -61,15 +60,16 @@ Future<bool> sendFileBytes({
   );
 
   try {
-    final file = MatrixFile.fromMimeType(bytes: bytes, name: name);
-    await room.sendFileEvent(
-      file,
+    await rooms.sendFile(
+      roomId,
+      bytes,
+      name,
       threadRootEventId: threadRootEventId,
       threadLastEventId: threadLastEventId,
     );
     uploadNotifier.value = null;
     return true;
-  } on FileTooBigMatrixException {
+  } on KoheraFileTooBigException {
     uploadNotifier.value = null;
     scaffold.showSnackBar(
       SnackBar(content: Text('File too large: $name')),
