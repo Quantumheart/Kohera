@@ -11,7 +11,6 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/data/repositories/push_repository.dart';
 import 'package:kohera/features/notifications/models/notification_constants.dart';
-import 'package:matrix/matrix.dart';
 import 'package:web/web.dart' as web;
 
 // ── JS interop helpers ────────────────────────────────────────
@@ -135,29 +134,21 @@ class WebPushService {
     if (_disposed) return;
     if (pushRepository.userId == null) return;
 
-    await pushRepository.postPusher(
-      Pusher(
-        appId: _appId,
-        pushkey: pushkey,
-        appDisplayName: NotificationChannel.appName,
-        deviceDisplayName:
-            pushRepository.deviceName ?? NotificationChannel.webDefaultDeviceName,
-        kind: 'http',
-        lang: NotificationChannel.defaultLang,
-        data: PusherData(
-          url: Uri.parse(gatewayUrl),
-        ),
-        profileTag: pushRepository.deviceId,
-      ),
-      append: true,
+    await pushRepository.registerHttpPusher(
+      appId: _appId,
+      pushkey: pushkey,
+      appDisplayName: NotificationChannel.appName,
+      deviceDisplayName:
+          pushRepository.deviceName ?? NotificationChannel.webDefaultDeviceName,
+      lang: NotificationChannel.defaultLang,
+      gatewayUrl: Uri.parse(gatewayUrl),
+      profileTag: pushRepository.deviceId,
     );
     debugPrint('[Kohera] Web pusher registered with gateway $gatewayUrl');
   }
 
   Future<void> _unregisterPusher(String pushkey) async {
-    await pushRepository.deletePusher(
-      PusherId(appId: _appId, pushkey: pushkey),
-    );
+    await pushRepository.deletePusherByKey(_appId, pushkey);
     debugPrint('[Kohera] Web pusher unregistered from homeserver');
   }
 
@@ -202,15 +193,11 @@ class WebPushService {
           case 'mark_read':
             final roomId = obj.getProperty<JSString>('roomId'.toJS).toDart;
             if (roomId.isNotEmpty) {
-              final room = pushRepository.getRoom(roomId);
-              final lastEventId = room?.lastEvent?.eventId;
-              if (room != null && lastEventId != null) {
-                unawaited(
-                  room.setReadMarker(lastEventId, mRead: lastEventId).catchError((Object e) {
-                    debugPrint('[Kohera] Failed to mark room as read: $e');
-                  }),
-                );
-              }
+              unawaited(
+                pushRepository.markRoomRead(roomId).catchError((Object e) {
+                  debugPrint('[Kohera] Failed to mark room as read: $e');
+                }),
+              );
               debugPrint('[Kohera] Web push mark_read for room $roomId');
             }
         }

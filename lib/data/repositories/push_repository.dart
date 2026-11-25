@@ -34,6 +34,44 @@ class PushRepository extends ChangeNotifier {
   /// Removes a previously registered pusher.
   Future<void> deletePusher(PusherId id) => _client.deletePusher(id);
 
+  /// Registers an HTTP pusher with the homeserver, appending to any
+  /// existing pushers.
+  Future<void> registerHttpPusher({
+    required String appId,
+    required String pushkey,
+    required String appDisplayName,
+    required String deviceDisplayName,
+    required String lang,
+    required Uri gatewayUrl,
+    String? profileTag,
+  }) =>
+      _client.postPusher(
+        Pusher(
+          appId: appId,
+          pushkey: pushkey,
+          appDisplayName: appDisplayName,
+          deviceDisplayName: deviceDisplayName,
+          kind: 'http',
+          lang: lang,
+          data: PusherData(url: gatewayUrl),
+          profileTag: profileTag,
+        ),
+        append: true,
+      );
+
+  /// Removes a previously registered pusher by [appId] and [pushkey].
+  Future<void> deletePusherByKey(String appId, String pushkey) =>
+      _client.deletePusher(PusherId(appId: appId, pushkey: pushkey));
+
+  /// Marks [roomId] as read up to its latest event. No-op when the room
+  /// or its last event is unknown.
+  Future<void> markRoomRead(String roomId) async {
+    final room = _client.getRoomById(roomId);
+    final lastEventId = room?.lastEvent?.eventId;
+    if (room == null || lastEventId == null) return;
+    await room.setReadMarker(lastEventId, mRead: lastEventId);
+  }
+
   // ── Push payload access ───────────────────────────────────────
 
   /// The SDK [Room] for [roomId], or null. Escape hatch for the platform push
