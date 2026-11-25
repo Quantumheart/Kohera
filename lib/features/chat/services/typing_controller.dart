@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:clock/clock.dart';
 import 'package:flutter/foundation.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 
 /// Manages outgoing typing indicators for a single room.
 ///
@@ -10,9 +10,11 @@ import 'package:matrix/matrix.dart';
 /// every [_sendInterval], and automatically stops typing after [_inactivityTimeout]
 /// of silence.
 class TypingController {
-  TypingController({required this.room});
+  TypingController({required this.roomId, required RoomRepository rooms})
+      : _rooms = rooms;
 
-  final Room room;
+  final String roomId;
+  final RoomRepository _rooms;
 
   static const _sendInterval = Duration(seconds: 4);
   static const _inactivityTimeout = Duration(seconds: 30);
@@ -63,7 +65,11 @@ class TypingController {
 
   Future<void> _sendTyping(bool typing) async {
     try {
-      await room.setTyping(typing, timeout: typing ? _inactivityTimeout.inMilliseconds : null);
+      await _rooms.setTyping(
+        roomId,
+        typing,
+        timeoutMs: typing ? _inactivityTimeout.inMilliseconds : null,
+      );
     } catch (e) {
       debugPrint('[Kohera] Failed to set typing: $e');
     }

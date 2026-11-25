@@ -308,7 +308,10 @@ class _ChatScreenState extends State<ChatScreen>
   void _initControllers() {
     final room = context.read<RoomRepository>().rawRoom(widget.roomId);
     if (room != null) {
-      _typingCtrl = TypingController(room: room);
+      _typingCtrl = TypingController(
+        roomId: room.id,
+        rooms: context.read<RoomRepository>(),
+      );
       _voiceCtrl = VoiceRecordingController();
       final joinedRooms = context.read<SpaceTreeRepository>().rooms;
       _mentionController = MentionAutocompleteController(

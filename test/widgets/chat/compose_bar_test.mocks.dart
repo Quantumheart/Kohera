@@ -8376,16 +8376,19 @@ class MockClient extends _i1.Mock implements _i2.Client {
 /// See the documentation for Mockito's code generation for more information.
 class MockTypingController extends _i1.Mock implements _i12.TypingController {
   @override
-  _i2.Room get room =>
+  String get roomId =>
       (super.noSuchMethod(
-            Invocation.getter(#room),
-            returnValue: _FakeRoom_9(this, Invocation.getter(#room)),
-            returnValueForMissingStub: _FakeRoom_9(
+            Invocation.getter(#roomId),
+            returnValue: _i7.dummyValue<String>(
               this,
-              Invocation.getter(#room),
+              Invocation.getter(#roomId),
+            ),
+            returnValueForMissingStub: _i7.dummyValue<String>(
+              this,
+              Invocation.getter(#roomId),
             ),
           )
-          as _i2.Room);
+          as String);
 
   @override
   void onTextChanged(String? text) => super.noSuchMethod(
