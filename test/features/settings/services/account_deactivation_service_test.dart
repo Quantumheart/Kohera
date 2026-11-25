@@ -1,6 +1,7 @@
 // Redundant default args are kept in verify() to assert exact forwarding.
 // ignore_for_file: avoid_redundant_argument_values
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/data/models/kohera_auth_exception.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
@@ -100,7 +101,11 @@ void main() {
 
       await expectLater(
         repo.deactivateAccount(),
-        throwsA(isA<MatrixException>()),
+        throwsA(
+          isA<KoheraAuthException>()
+              .having((e) => e.errcode, 'errcode', 'M_FORBIDDEN')
+              .having((e) => e.message, 'message', 'Wrong password'),
+        ),
       );
     });
   });
