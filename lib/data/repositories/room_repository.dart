@@ -195,6 +195,31 @@ class RoomRepository extends ChangeNotifier {
     return room?.canBan ?? false;
   }
 
+  bool getRoomCanKick(String roomId) {
+    final room = _client.getRoomById(roomId);
+    return room?.canKick ?? false;
+  }
+
+  bool getRoomCanChangePowerLevel(String roomId) {
+    final room = _client.getRoomById(roomId);
+    return room?.canChangePowerLevel ?? false;
+  }
+
+  /// The current user's power level in [roomId], or 0 if unknown.
+  int myPowerLevelFor(String roomId) {
+    final room = _client.getRoomById(roomId);
+    final userId = _client.userID;
+    if (room == null || userId == null) return 0;
+    return room.getPowerLevelByUserId(userId).level;
+  }
+
+  /// A mutable copy of the current `m.room.power_levels` content of
+  /// [roomId], or an empty map if unset or the room is unknown.
+  Map<String, Object?> powerLevelsContentFor(String roomId) {
+    final room = _client.getRoomById(roomId);
+    return room?.getState(EventTypes.RoomPowerLevels)?.content.copy() ?? {};
+  }
+
   bool getRoomIsDirectChat(String roomId) {
     final room = _client.getRoomById(roomId);
     return room?.isDirectChat ?? false;

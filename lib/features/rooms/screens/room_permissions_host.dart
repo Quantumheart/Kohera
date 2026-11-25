@@ -53,7 +53,7 @@ class _RoomPermissionsHostState extends State<RoomPermissionsHost> {
       onSetJoinRules: (rule) => PowerLevelService.setJoinRules(room, rule),
       onEnableEncryption: room.enableEncryption,
       onUpdatePowerLevel: (patch) =>
-          PowerLevelService.update(rooms, room, patch),
+          PowerLevelService.update(rooms, widget.roomId, patch),
       onApplyPowerLevelsContent: (content) => rooms.setRoomStateWithKey(
         room.id,
         'm.room.power_levels',

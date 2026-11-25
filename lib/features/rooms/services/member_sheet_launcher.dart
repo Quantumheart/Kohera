@@ -18,10 +18,9 @@ import 'package:provider/provider.dart';
 /// Opens the member profile sheet for [member] in the room identified by
 /// [roomId].
 ///
-/// This is the SDK boundary helper — it computes permissions from the
-/// raw [Room] (obtained via [RoomRepository.rawRoom]), wires all SDK
-/// callbacks (start DM, role change, kick, ban, unban), and delegates
-/// to the SDK-free [showMemberSheetDialog].
+/// This is the boundary helper — it computes permissions through
+/// [RoomRepository], wires all callbacks (start DM, role change, kick,
+/// ban, unban), and delegates to the SDK-free [showMemberSheetDialog].
 ///
 /// Use this from any widget that has a `roomId` + `KoheraRoomMember`
 /// and needs to show the member profile sheet.
@@ -31,13 +30,12 @@ Future<void> showRoomMemberSheet(
   required KoheraRoomMember member,
 }) {
   final roomRepo = context.read<RoomRepository>();
-  final room = roomRepo.rawRoom(roomId)!;
   final mediaRepo = context.read<MediaRepository>();
   final userRepo = context.read<UserRepository>();
 
   final myUserId = roomRepo.userId;
   final isMe = member.userId == myUserId;
-  final ownLevel = room.getPowerLevelByUserId(myUserId ?? '').level;
+  final ownLevel = roomRepo.myPowerLevelFor(roomId);
   final isIgnored = userRepo.ignoredUsers.contains(member.userId);
 
   return showMemberSheetDialog(
@@ -45,14 +43,15 @@ Future<void> showRoomMemberSheet(
     member: member,
     isMe: isMe,
     ownLevel: ownLevel,
-    canChangeRole:
-        !isMe && room.canChangePowerLevel && member.powerLevel < ownLevel,
+    canChangeRole: !isMe &&
+        roomRepo.getRoomCanChangePowerLevel(roomId) &&
+        member.powerLevel < ownLevel,
     canKick: !isMe &&
-        room.canKick &&
+        roomRepo.getRoomCanKick(roomId) &&
         member.powerLevel < ownLevel &&
         !member.isBanned,
     canBan: !isMe &&
-        room.canBan &&
+        roomRepo.getRoomCanBan(roomId) &&
         member.powerLevel < ownLevel &&
         !member.isBanned,
     avatarResolver: mediaRepo.avatarResolver,
@@ -65,7 +64,7 @@ Future<void> showRoomMemberSheet(
             final dmRoomId = await roomRepo.startDirectChat(
               member.userId,
             );
-            if (roomRepo.rawRoom(dmRoomId) == null) {
+            if (roomRepo.summaryFor(dmRoomId) == null) {
               await roomRepo
                   .waitForRoomInSync(dmRoomId, join: true)
                   .timeout(const Duration(seconds: 30));
@@ -79,12 +78,12 @@ Future<void> showRoomMemberSheet(
           },
     onRoleChange: (level) => PowerLevelService.update(
       roomRepo,
-      room,
+      roomId,
       PowerLevelPatch(users: {member.userId: level}),
     ),
-    onKick: (reason) => roomRepo.kick(room.id, member.userId, reason: reason),
-    onBan: (reason) => roomRepo.ban(room.id, member.userId, reason: reason),
-    onUnban: (_) => roomRepo.unban(room.id, member.userId),
+    onKick: (reason) => roomRepo.kick(roomId, member.userId, reason: reason),
+    onBan: (reason) => roomRepo.ban(roomId, member.userId, reason: reason),
+    onUnban: (_) => roomRepo.unban(roomId, member.userId),
     onIgnore: isMe ? null : () => userRepo.ignoreUser(member.userId),
     onUnignore: isMe ? null : () => userRepo.unignoreUser(member.userId),
   );
@@ -106,8 +105,7 @@ Future<void> unbanRoomMember(
   String? reason,
 }) async {
   try {
-    final room = roomRepo.rawRoom(roomId)!;
-    await roomRepo.unban(room.id, member.userId, reason: reason);
+    await roomRepo.unban(roomId, member.userId, reason: reason);
     if (context.mounted) context.showSnack('Unbanned ${member.displayname}');
   } catch (e) {
     debugPrint('[Kohera] Unban failed: $e');

@@ -76,13 +76,12 @@ class PowerLevelService {
 
   static Future<void> update(
     RoomRepository rooms,
-    Room room,
+    String roomId,
     PowerLevelPatch patch,
   ) async {
     if (patch.isEmpty) return;
 
-    final current =
-        room.getState(EventTypes.RoomPowerLevels)?.content.copy() ?? {};
+    final current = rooms.powerLevelsContentFor(roomId);
 
     _applyScalar(current, 'users_default', patch.usersDefault);
     _applyScalar(current, 'events_default', patch.eventsDefault);
@@ -98,7 +97,7 @@ class PowerLevelService {
 
     try {
       await rooms.setRoomStateWithKey(
-        room.id,
+        roomId,
         EventTypes.RoomPowerLevels,
         '',
         current,
