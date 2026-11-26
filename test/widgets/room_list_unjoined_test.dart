@@ -109,7 +109,6 @@ void main() {
 
     controller = SpaceRoomsController(
       dataSource: dataSource,
-      client: mockClient,
     );
   });
 
@@ -155,8 +154,7 @@ void main() {
           delay: Duration.zero,
           failHierarchyForRoomId: spaceId,
         ),
-        client: mockClient,
-      );
+        );
       await controller.fetchSpaceRooms(spaceId);
 
       final items = buildSectionItems(
@@ -178,8 +176,7 @@ void main() {
           delay: Duration.zero,
           forbiddenHierarchyForRoomId: spaceId,
         ),
-        client: mockClient,
-      );
+        );
       await controller.fetchSpaceRooms(spaceId);
 
       final items = buildSectionItems(

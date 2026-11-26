@@ -18,7 +18,8 @@ import 'package:kohera/core/services/sync_service.dart' as _i15;
 import 'package:kohera/core/state/key_backup_setup_state.dart' as _i11;
 import 'package:kohera/core/state/selection_controller.dart' as _i14;
 import 'package:kohera/core/state/uia_interaction_controller.dart' as _i9;
-import 'package:kohera/data/models/kohera_message_display.dart' as _i35;
+import 'package:kohera/data/models/kohera_media_content.dart' as _i36;
+import 'package:kohera/data/models/kohera_message_display.dart' as _i37;
 import 'package:kohera/data/models/kohera_push_rule_state.dart' as _i34;
 import 'package:kohera/data/models/kohera_room_history.dart' as _i19;
 import 'package:kohera/data/models/kohera_room_member.dart' as _i33;
@@ -31,6 +32,7 @@ import 'package:kohera/data/services/avatar_resolver.dart' as _i17;
 import 'package:kohera/data/services/matrix_client_service.dart' as _i8;
 import 'package:kohera/data/services/media_resolver.dart' as _i18;
 import 'package:kohera/data/services/password_cache.dart' as _i10;
+import 'package:kohera/data/services/sdk_media_controller.dart' as _i35;
 import 'package:listen/src/listen.dart' as _i27;
 import 'package:matrix/encryption.dart' as _i20;
 import 'package:matrix/matrix.dart' as _i2;
@@ -9286,6 +9288,81 @@ class MockRoomRepository extends _i1.Mock implements _i30.RoomRepository {
           as bool);
 
   @override
+  _i5.Future<
+    ({
+      List<
+        ({_i35.SdkMediaController controller, _i36.KoheraMediaContent media})
+      >
+      items,
+      String? nextBatch,
+    })
+  >
+  searchSharedMedia(String? roomId, {String? nextBatch, int? limit = 20}) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #searchSharedMedia,
+              [roomId],
+              {#nextBatch: nextBatch, #limit: limit},
+            ),
+            returnValue:
+                _i5.Future<
+                  ({
+                    List<
+                      ({
+                        _i35.SdkMediaController controller,
+                        _i36.KoheraMediaContent media,
+                      })
+                    >
+                    items,
+                    String? nextBatch,
+                  })
+                >.value((
+                  items:
+                      <
+                        ({
+                          _i35.SdkMediaController controller,
+                          _i36.KoheraMediaContent media,
+                        })
+                      >[],
+                  nextBatch: null,
+                )),
+            returnValueForMissingStub:
+                _i5.Future<
+                  ({
+                    List<
+                      ({
+                        _i35.SdkMediaController controller,
+                        _i36.KoheraMediaContent media,
+                      })
+                    >
+                    items,
+                    String? nextBatch,
+                  })
+                >.value((
+                  items:
+                      <
+                        ({
+                          _i35.SdkMediaController controller,
+                          _i36.KoheraMediaContent media,
+                        })
+                      >[],
+                  nextBatch: null,
+                )),
+          )
+          as _i5.Future<
+            ({
+              List<
+                ({
+                  _i35.SdkMediaController controller,
+                  _i36.KoheraMediaContent media,
+                })
+              >
+              items,
+              String? nextBatch,
+            })
+          >);
+
+  @override
   _i5.Stream<void> roomStateChanges(String? roomId, Set<String>? types) =>
       (super.noSuchMethod(
             Invocation.method(#roomStateChanges, [roomId, types]),
@@ -9329,16 +9406,16 @@ class MockRoomRepository extends _i1.Mock implements _i30.RoomRepository {
           as _i5.Future<_i19.KoheraRoomHistory>);
 
   @override
-  _i5.Future<List<_i35.KoheraMessageDisplay>?> pinnedMessagesFor(
+  _i5.Future<List<_i37.KoheraMessageDisplay>?> pinnedMessagesFor(
     String? roomId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#pinnedMessagesFor, [roomId]),
-            returnValue: _i5.Future<List<_i35.KoheraMessageDisplay>?>.value(),
+            returnValue: _i5.Future<List<_i37.KoheraMessageDisplay>?>.value(),
             returnValueForMissingStub:
-                _i5.Future<List<_i35.KoheraMessageDisplay>?>.value(),
+                _i5.Future<List<_i37.KoheraMessageDisplay>?>.value(),
           )
-          as _i5.Future<List<_i35.KoheraMessageDisplay>?>);
+          as _i5.Future<List<_i37.KoheraMessageDisplay>?>);
 
   @override
   bool canChangePinnedEvents(String? roomId) =>

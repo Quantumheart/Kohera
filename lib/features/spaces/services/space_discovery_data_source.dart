@@ -2,25 +2,20 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:matrix/matrix.dart';
-
-export 'package:matrix/matrix.dart'
-    show
-        GetSpaceHierarchyResponse,
-        PublicRoomQueryFilter,
-        PublishedRoomsChunk,
-        QueryPublicRoomsResponse,
-        SpaceRoomsChunk$2;
+import 'package:kohera/data/models/kohera_auth_exception.dart';
+import 'package:kohera/data/models/kohera_public_room.dart';
+import 'package:kohera/data/models/kohera_space_hierarchy.dart';
+import 'package:kohera/data/repositories/space_repository.dart';
 
 abstract class SpaceDiscoveryDataSource {
-  Future<QueryPublicRoomsResponse> queryPublicRooms({
+  Future<KoheraPublicRoomsPage> queryPublicRooms({
     int? limit,
     String? since,
     String? server,
-    PublicRoomQueryFilter? filter,
+    KoheraPublicRoomFilter? filter,
   });
 
-  Future<GetSpaceHierarchyResponse> getSpaceHierarchy(
+  Future<KoheraSpaceHierarchy> getSpaceHierarchy(
     String roomId, {
     int? maxDepth,
     bool? suggestedOnly,
@@ -37,59 +32,54 @@ abstract class SpaceDiscoveryDataSource {
   /// by the dialog after a join to decide whether to select the space
   /// and pop, or remain in the preview.
   bool isSpace(String roomId);
+
+  /// Room IDs whose membership changed in each sync (join, leave, invite).
+  Stream<Set<String>> get membershipChanges;
 }
 
 class LiveSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
-  LiveSpaceDiscoveryDataSource(this._client);
+  LiveSpaceDiscoveryDataSource(this._spaces);
 
-  final Client _client;
+  final SpaceRepository _spaces;
 
   @override
-  Future<QueryPublicRoomsResponse> queryPublicRooms({
+  Future<KoheraPublicRoomsPage> queryPublicRooms({
     int? limit,
     String? since,
     String? server,
-    PublicRoomQueryFilter? filter,
-  }) {
-    return _client.queryPublicRooms(
-      limit: limit,
-      since: since,
-      server: server,
-      filter: filter,
-    );
-  }
+    KoheraPublicRoomFilter? filter,
+  }) =>
+      _spaces.queryPublicRooms(
+        limit: limit,
+        since: since,
+        server: server,
+        filter: filter,
+      );
 
   @override
-  Future<GetSpaceHierarchyResponse> getSpaceHierarchy(
+  Future<KoheraSpaceHierarchy> getSpaceHierarchy(
     String roomId, {
     int? maxDepth,
     bool? suggestedOnly,
-  }) {
-    return _client.getSpaceHierarchy(
-      roomId,
-      maxDepth: maxDepth,
-      suggestedOnly: suggestedOnly,
-    );
-  }
+  }) =>
+      _spaces.getSpaceHierarchy(
+        roomId,
+        maxDepth: maxDepth,
+        suggestedOnly: suggestedOnly,
+      );
 
   @override
-  Future<String> joinRoom(String roomIdOrAlias, {List<String>? via}) async {
-    final joinedId = await _client.joinRoom(roomIdOrAlias, via: via);
-    await _client
-        .waitForRoomInSync(joinedId, join: true)
-        .timeout(const Duration(seconds: 30));
-    return joinedId;
-  }
+  Future<String> joinRoom(String roomIdOrAlias, {List<String>? via}) =>
+      _spaces.joinRoomAndWait(roomIdOrAlias, via: via);
 
   @override
-  bool isMember(String roomId) {
-    final room = _client.getRoomById(roomId);
-    return room != null && room.membership == Membership.join;
-  }
+  bool isMember(String roomId) => _spaces.isJoinedRoom(roomId);
 
   @override
-  bool isSpace(String roomId) =>
-      _client.getRoomById(roomId)?.isSpace ?? false;
+  bool isSpace(String roomId) => _spaces.isSpaceRoom(roomId);
+
+  @override
+  Stream<Set<String>> get membershipChanges => _spaces.membershipChanges;
 }
 
 // ── Fake fixture ────────────────────────────────────────────────
@@ -108,10 +98,14 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
   final Set<String> failingServers;
   final Set<String> _joined = {};
 
-  static final List<PublishedRoomsChunk> _allSpaces = _generateSpaces();
-  static final List<PublishedRoomsChunk> _matrixOrgSpaces =
+  /// Test hook: emit membership-changed room IDs to listeners.
+  final StreamController<Set<String>> membershipChangesController =
+      StreamController<Set<String>>.broadcast();
+
+  static final List<KoheraPublicRoom> _allSpaces = _generateSpaces();
+  static final List<KoheraPublicRoom> _matrixOrgSpaces =
       _generateMatrixOrgSpaces();
-  static final Map<String, GetSpaceHierarchyResponse> _hierarchies =
+  static final Map<String, KoheraSpaceHierarchy> _hierarchies =
       _generateHierarchies();
   static final Set<String> _spaceIds = {
     ..._allSpaces.map((c) => c.roomId),
@@ -121,23 +115,23 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
   };
 
   @override
-  Future<QueryPublicRoomsResponse> queryPublicRooms({
+  Future<KoheraPublicRoomsPage> queryPublicRooms({
     int? limit,
     String? since,
     String? server,
-    PublicRoomQueryFilter? filter,
+    KoheraPublicRoomFilter? filter,
   }) async {
     await Future<void>.delayed(delay);
     if (server != null && failingServers.contains(server)) {
-      throw MatrixException.fromJson(<String, Object?>{
-        'errcode': 'M_FORBIDDEN',
-        'error': 'Federation denied by $server',
-      });
+      throw const KoheraAuthException(
+        'Federation denied by server',
+        errcode: 'M_FORBIDDEN',
+      );
     }
     final source = switch (server) {
       null => _allSpaces,
       'matrix.org' => _matrixOrgSpaces,
-      _ => const <PublishedRoomsChunk>[],
+      _ => const <KoheraPublicRoom>[],
     };
     final term = filter?.genericSearchTerm?.trim().toLowerCase();
     final filtered = (term == null || term.isEmpty)
@@ -153,29 +147,28 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
     final pageSize = limit ?? 20;
     final start = since == null ? 0 : int.tryParse(since) ?? 0;
     final end = math.min(start + pageSize, filtered.length);
-    final chunk = start >= filtered.length
-        ? <PublishedRoomsChunk>[]
-        : filtered.sublist(start, end);
+    final chunk =
+        start >= filtered.length ? <KoheraPublicRoom>[] : filtered.sublist(start, end);
     final nextBatch = end < filtered.length ? end.toString() : null;
-    return QueryPublicRoomsResponse(
-      chunk: chunk,
+    return KoheraPublicRoomsPage(
+      items: chunk,
       nextBatch: nextBatch,
       totalRoomCountEstimate: filtered.length,
     );
   }
 
   @override
-  Future<GetSpaceHierarchyResponse> getSpaceHierarchy(
+  Future<KoheraSpaceHierarchy> getSpaceHierarchy(
     String roomId, {
     int? maxDepth,
     bool? suggestedOnly,
   }) async {
     await Future<void>.delayed(delay);
     if (roomId == forbiddenHierarchyForRoomId) {
-      throw MatrixException.fromJson(<String, Object?>{
-        'errcode': 'M_FORBIDDEN',
-        'error': 'Preview not allowed for $roomId',
-      });
+      throw const KoheraAuthException(
+        'Preview not allowed',
+        errcode: 'M_FORBIDDEN',
+      );
     }
     if (roomId == failHierarchyForRoomId) {
       throw Exception('Fake hierarchy failure for $roomId');
@@ -187,7 +180,7 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
 
   // ── Fixture generation ───────────────────────────────────────
 
-  static List<PublishedRoomsChunk> _generateSpaces() {
+  static List<KoheraPublicRoom> _generateSpaces() {
     const themes = [
       ['Quantum HQ', 'Default home for quantum-matrix users.'],
       ['Linux', 'All things Linux: distros, kernels, tooling.'],
@@ -253,9 +246,9 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
     final rng = math.Random(42);
     return [
       for (var i = 0; i < themes.length; i++)
-        PublishedRoomsChunk(
+        KoheraPublicRoom(
           guestCanJoin: false,
-          numJoinedMembers: 5 + rng.nextInt(11000),
+          memberCount: 5 + rng.nextInt(11000),
           roomId: '!fake-space-$i:example.org',
           worldReadable: true,
           name: themes[i][0],
@@ -268,7 +261,7 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
     ];
   }
 
-  static List<PublishedRoomsChunk> _generateMatrixOrgSpaces() {
+  static List<KoheraPublicRoom> _generateMatrixOrgSpaces() {
     const themes = [
       ['matrix.org Lounge', 'General chat for matrix.org users.'],
       ['Synapse', 'Discussion of the Synapse homeserver.'],
@@ -281,9 +274,9 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
     final rng = math.Random(7);
     return [
       for (var i = 0; i < themes.length; i++)
-        PublishedRoomsChunk(
+        KoheraPublicRoom(
           guestCanJoin: false,
-          numJoinedMembers: 200 + rng.nextInt(40000),
+          memberCount: 200 + rng.nextInt(40000),
           roomId: '!fake-mxorg-$i:matrix.org',
           worldReadable: true,
           name: themes[i][0],
@@ -296,23 +289,24 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
     ];
   }
 
-  static Map<String, GetSpaceHierarchyResponse> _generateHierarchies() {
-    final out = <String, GetSpaceHierarchyResponse>{};
+  static Map<String, KoheraSpaceHierarchy> _generateHierarchies() {
+    final out = <String, KoheraSpaceHierarchy>{};
 
-    SpaceRoomsChunk$2 chunk({
+    KoheraSpaceHierarchyChunk chunk({
       required String roomId,
       required String name,
       String? topic,
       int members = 50,
       String? roomType,
       String? alias,
+      List<KoheraSpaceChildState> childrenState = const [],
     }) {
-      return SpaceRoomsChunk$2(
+      return KoheraSpaceHierarchyChunk(
         guestCanJoin: false,
-        numJoinedMembers: members,
+        memberCount: members,
         roomId: roomId,
         worldReadable: true,
-        childrenState: const [],
+        childrenState: childrenState,
         name: name,
         topic: topic,
         canonicalAlias: alias,
@@ -321,54 +315,43 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
     }
 
     // Quantum HQ — rich hierarchy with a subspace.
-    out['!fake-space-0:example.org'] = GetSpaceHierarchyResponse(
+    out['!fake-space-0:example.org'] = KoheraSpaceHierarchy(
       rooms: [
-        SpaceRoomsChunk$2(
-          guestCanJoin: false,
-          numJoinedMembers: 1247,
+        chunk(
           roomId: '!fake-space-0:example.org',
-          worldReadable: true,
-          childrenState: [
-            ChildrenState(
-              type: EventTypes.SpaceChild,
-              content: {'suggested': true, 'order': 'a'},
-              senderId: '@admin:example.org',
-              stateKey: '!fake-room-lounge:example.org',
-              originServerTs: DateTime(2024),
-            ),
-            ChildrenState(
-              type: EventTypes.SpaceChild,
-              content: {'order': 'b'},
-              senderId: '@admin:example.org',
-              stateKey: '!fake-room-offtopic:example.org',
-              originServerTs: DateTime(2024),
-            ),
-            ChildrenState(
-              type: EventTypes.SpaceChild,
-              content: {'suggested': true, 'order': 'c'},
-              senderId: '@admin:example.org',
-              stateKey: '!fake-room-devtalk:example.org',
-              originServerTs: DateTime(2024),
-            ),
-            ChildrenState(
-              type: EventTypes.SpaceChild,
-              content: <String, Object?>{},
-              senderId: '@admin:example.org',
-              stateKey: '!fake-subspace-tech:example.org',
-              originServerTs: DateTime(2024),
-            ),
-            ChildrenState(
-              type: EventTypes.SpaceChild,
-              content: {'order': 'd'},
-              senderId: '@admin:example.org',
-              stateKey: '!fake-room-announcements:example.org',
-              originServerTs: DateTime(2024),
-            ),
-          ],
           name: 'Quantum HQ',
           topic: 'Default home for quantum-matrix users.',
-          canonicalAlias: '#quantum-hq:example.org',
+          members: 1247,
           roomType: 'm.space',
+          alias: '#quantum-hq:example.org',
+          childrenState: const [
+            KoheraSpaceChildState(
+              type: 'm.space.child',
+              stateKey: '!fake-room-lounge:example.org',
+              isSuggested: true,
+              order: 'a',
+            ),
+            KoheraSpaceChildState(
+              type: 'm.space.child',
+              stateKey: '!fake-room-offtopic:example.org',
+              order: 'b',
+            ),
+            KoheraSpaceChildState(
+              type: 'm.space.child',
+              stateKey: '!fake-room-devtalk:example.org',
+              isSuggested: true,
+              order: 'c',
+            ),
+            KoheraSpaceChildState(
+              type: 'm.space.child',
+              stateKey: '!fake-subspace-tech:example.org',
+            ),
+            KoheraSpaceChildState(
+              type: 'm.space.child',
+              stateKey: '!fake-room-announcements:example.org',
+              order: 'd',
+            ),
+          ],
         ),
         chunk(
           roomId: '!fake-room-lounge:example.org',
@@ -408,7 +391,7 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
     );
 
     // Tech subspace under Quantum HQ.
-    out['!fake-subspace-tech:example.org'] = GetSpaceHierarchyResponse(
+    out['!fake-subspace-tech:example.org'] = KoheraSpaceHierarchy(
       rooms: [
         chunk(
           roomId: '!fake-subspace-tech:example.org',
@@ -442,7 +425,7 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
     );
 
     // Deep nested subspace.
-    out['!fake-subspace-deep:example.org'] = GetSpaceHierarchyResponse(
+    out['!fake-subspace-deep:example.org'] = KoheraSpaceHierarchy(
       rooms: [
         chunk(
           roomId: '!fake-subspace-deep:example.org',
@@ -462,7 +445,7 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
     );
 
     // Empty space — preview shows "No rooms yet".
-    out['!fake-space-9:example.org'] = GetSpaceHierarchyResponse(
+    out['!fake-space-9:example.org'] = KoheraSpaceHierarchy(
       rooms: [
         chunk(
           roomId: '!fake-space-9:example.org',
@@ -498,38 +481,39 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
   @override
   bool isSpace(String roomId) => _spaceIds.contains(roomId);
 
-  GetSpaceHierarchyResponse _hierarchyForUnknownSpace(String roomId) {
+  @override
+  Stream<Set<String>> get membershipChanges =>
+      membershipChangesController.stream;
+
+  KoheraSpaceHierarchy _hierarchyForUnknownSpace(String roomId) {
     final spaceMatch = _allSpaces.firstWhere(
       (s) => s.roomId == roomId,
       orElse: () => _allSpaces.first,
     );
-    return GetSpaceHierarchyResponse(
+    return KoheraSpaceHierarchy(
       rooms: [
-        SpaceRoomsChunk$2(
+        KoheraSpaceHierarchyChunk(
           guestCanJoin: false,
-          numJoinedMembers: spaceMatch.numJoinedMembers,
+          memberCount: spaceMatch.memberCount,
           roomId: spaceMatch.roomId,
           worldReadable: true,
-          childrenState: const [],
           name: spaceMatch.name,
           topic: spaceMatch.topic,
           canonicalAlias: spaceMatch.canonicalAlias,
           roomType: 'm.space',
         ),
-        SpaceRoomsChunk$2(
+        KoheraSpaceHierarchyChunk(
           guestCanJoin: false,
-          numJoinedMembers: 64,
+          memberCount: 64,
           roomId: '!fake-room-${roomId.hashCode}-a:example.org',
           worldReadable: true,
-          childrenState: const [],
           name: 'general',
         ),
-        SpaceRoomsChunk$2(
+        KoheraSpaceHierarchyChunk(
           guestCanJoin: false,
-          numJoinedMembers: 21,
+          memberCount: 21,
           roomId: '!fake-room-${roomId.hashCode}-b:example.org',
           worldReadable: true,
-          childrenState: const [],
           name: 'meta',
         ),
       ],
@@ -541,15 +525,17 @@ class FakeSpaceDiscoveryDataSource implements SpaceDiscoveryDataSource {
 
 /// Build-time flag. Run with
 /// `flutter run --dart-define=KOHERA_FAKE_DISCOVERY=true` to swap the
-/// live Matrix client for canned data.
+/// live data source for canned data.
 const bool kFakeSpaceDiscovery = bool.fromEnvironment(
   'KOHERA_FAKE_DISCOVERY',
 );
 
-SpaceDiscoveryDataSource defaultSpaceDiscoveryDataSource(Client client) {
+SpaceDiscoveryDataSource defaultSpaceDiscoveryDataSource(
+  SpaceRepository spaces,
+) {
   if (kFakeSpaceDiscovery) {
     debugPrint('[Kohera] SpaceDiscovery: using fake data source');
     return FakeSpaceDiscoveryDataSource();
   }
-  return LiveSpaceDiscoveryDataSource(client);
+  return LiveSpaceDiscoveryDataSource(spaces);
 }

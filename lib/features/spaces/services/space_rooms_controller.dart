@@ -1,23 +1,21 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/data/models/kohera_auth_exception.dart';
+import 'package:kohera/data/models/kohera_event_types.dart';
 import 'package:kohera/features/spaces/models/space_rooms_model.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
-import 'package:matrix/matrix.dart';
 
 /// Controller that manages the hierarchy of rooms within a space for
 /// previewing purposes. It handles fetching, filtering, ordering, and
 /// automatic synchronization of unjoined rooms and subspaces.
 class SpaceRoomsController extends ChangeNotifier {
   final SpaceDiscoveryDataSource _dataSource;
-  final Client _client;
-  StreamSubscription<SyncUpdate>? _syncSub;
+  StreamSubscription<Set<String>>? _syncSub;
 
   SpaceRoomsController({
     required SpaceDiscoveryDataSource dataSource,
-    required Client client,
-  })  : _client = client,
-        _dataSource = dataSource;
+  }) : _dataSource = dataSource;
 
   /// Internal cache mapping space ID to its current preview state.
   final Map<String, SpaceRoomsState> _cache = {};
@@ -54,16 +52,15 @@ class SpaceRoomsController extends ChangeNotifier {
       for (final chunk in response.rooms) {
         if (chunk.roomId == spaceId) {
           for (final child in chunk.childrenState) {
-            if (child.type == EventTypes.SpaceChild && child.stateKey != null) {
-              childSuggested[child.stateKey!] =
-                  child.content.tryGet<bool>('suggested') ?? false;
-              final order = child.content.tryGet<String>('order') ?? '';
+            if (child.type == KoheraEventTypes.spaceChild &&
+                child.stateKey != null) {
+              childSuggested[child.stateKey!] = child.isSuggested;
+              final order = child.order ?? '';
               if (order.isNotEmpty) {
                 childOrder[child.stateKey!] = order;
               }
-              final viaList = child.content.tryGetList<String>('via');
-              if (viaList != null && viaList.isNotEmpty) {
-                childVia[child.stateKey!] = viaList;
+              if (child.via.isNotEmpty) {
+                childVia[child.stateKey!] = child.via;
               }
             }
           }
@@ -115,7 +112,7 @@ class SpaceRoomsController extends ChangeNotifier {
         unjoinedRooms: unjoined,
         subspaces: subspaces,
       );
-    } on MatrixException catch (e) {
+    } on KoheraAuthException catch (e) {
       if (e.errcode == 'M_FORBIDDEN') {
         _cache[spaceId] = SpaceRoomsState.forbidden();
       } else {
@@ -169,19 +166,10 @@ class SpaceRoomsController extends ChangeNotifier {
     return [alias.substring(idx + 1)];
   }
 
-  /// Listen to sync events and invalidate caches for spaces whose children
-  /// had a membership change (join, leave, or invite).
+  /// Listen to membership changes and invalidate caches for spaces whose
+  /// children had a membership change (join, leave, or invite).
   void listenToSync() {
-    _syncSub = _client.onSync.stream.listen((update) {
-      final changedRoomIds = <String>{};
-      final joined = update.rooms?.join;
-      final leave = update.rooms?.leave;
-      final invite = update.rooms?.invite;
-
-      if (joined != null) changedRoomIds.addAll(joined.keys);
-      if (leave != null) changedRoomIds.addAll(leave.keys);
-      if (invite != null) changedRoomIds.addAll(invite.keys);
-
+    _syncSub = _dataSource.membershipChanges.listen((changedRoomIds) {
       if (changedRoomIds.isEmpty) return;
 
       // Invalidate only caches for spaces that contain the changed rooms.

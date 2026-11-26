@@ -94,7 +94,7 @@ void main() {
             create: (_) => MediaRepository(avatarResolver: mockMatrixService.avatarResolver, mediaResolver: mockMatrixService.mediaResolver),
           ),
           Provider<SpaceDiscoveryDataSource>(
-            create: (_) => defaultSpaceDiscoveryDataSource(mockClient),
+            create: (_) => defaultSpaceDiscoveryDataSource(SpaceRepository(clientService: mockMatrixService.matrixClientService)),
           ),
         ],
         child: Scaffold(
@@ -201,7 +201,7 @@ void main() {
               create: (_) => MediaRepository(avatarResolver: mockMatrixService.avatarResolver, mediaResolver: mockMatrixService.mediaResolver),
             ),
             Provider<SpaceDiscoveryDataSource>(
-              create: (_) => defaultSpaceDiscoveryDataSource(mockClient),
+              create: (_) => defaultSpaceDiscoveryDataSource(SpaceRepository(clientService: mockMatrixService.matrixClientService)),
             ),
           ],
           child: const SpaceDetailsPanel(
