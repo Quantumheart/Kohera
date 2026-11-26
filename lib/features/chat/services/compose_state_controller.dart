@@ -22,6 +22,10 @@ class ComposeStateController {
   // ── Thread state ────────────────────────────────────────
   final threadRootNotifier = ValueNotifier<Event?>(null);
 
+  /// Event ID of the active thread root, or null when not composing a
+  /// thread reply. Keeps SDK-free consumers off the raw notifier.
+  String? get threadRootEventId => threadRootNotifier.value?.eventId;
+
   // ── Upload state ────────────────────────────────────────
   final uploadNotifier = ValueNotifier<UploadState?>(null);
 

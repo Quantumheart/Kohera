@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:kohera/core/extensions/context_extension.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/services/matrix_service.dart';
+import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
@@ -61,13 +62,11 @@ class _ThreadScreenState extends State<ThreadScreen> {
     );
     _actions = ChatMessageActions(
       getRoomId: () => widget.roomId,
-      getRoom: () =>
-          context.read<RoomRepository>().rawRoom(widget.roomId),
-      getTimeline: () => _timelineController.timeline,
       compose: _compose,
       msgCtrl: _msgCtrl,
       getScaffold: () => ScaffoldMessenger.of(context),
       getRoomRepository: () => context.read<RoomRepository>(),
+      getMessageRepository: () => context.read<MessageRepository>(),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -217,12 +216,12 @@ class _ThreadScreenState extends State<ThreadScreen> {
               onToggleReaction: (eventId, emoji) async {
                 final event = _timelineController.getEventById(eventId);
                 if (event != null) {
-                  await _actions.toggleReaction(event, emoji);
+                  await _actions.toggleReaction(event.eventId, emoji);
                 }
               },
               onPin: (eventId) async {
                 final event = _timelineController.getEventById(eventId);
-                if (event != null) await _actions.togglePin(event);
+                if (event != null) await _actions.togglePin(event.eventId);
               },
               onHighlight: (_) {},
             ),

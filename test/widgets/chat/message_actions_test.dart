@@ -42,9 +42,7 @@ import 'package:shared_preferences/shared_preferences.dart';
   MockSpec<User>(),
 ])
 import '../../mocks/matrix_service_mock.mocks.dart';
-// Only need some mocks from services; hide overlapping Matrix SDK mocks to avoid name clashes
-import '../../services/chat_message_actions_test.mocks.dart'
-    hide MockClient, MockEvent, MockRoom, MockTimeline;
+import '../../services/chat_message_actions_test.mocks.dart';
 import 'message_actions_test.mocks.dart';
 
 class _FakeAvatarResolver implements AvatarResolver {
