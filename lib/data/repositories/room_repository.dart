@@ -107,6 +107,18 @@ class RoomRepository extends ChangeNotifier {
     if (room != null) await room.setTyping(typing, timeout: timeoutMs);
   }
 
+  /// Resolves when the client's initial room load completes.
+  Future<void> get roomsLoaded async {
+    await _client.roomsLoading;
+  }
+
+  /// Sends [text] as a plain message to [roomId]. No-op when the room is
+  /// not known locally.
+  Future<void> sendText(String roomId, String text) async {
+    final room = _client.getRoomById(roomId);
+    if (room != null) await room.sendTextEvent(text);
+  }
+
   /// Sends [bytes] as a file named [name] to [roomId].
   ///
   /// Throws [KoheraFileTooBigException] when the homeserver rejects the

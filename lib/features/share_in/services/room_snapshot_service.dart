@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/share_in/models/room_snapshot.dart';
 import 'package:kohera/features/share_in/services/avatar_cache_service.dart';
 import 'package:kohera/features/share_in/services/share_in_store.dart';
-import 'package:matrix/matrix.dart';
 
 /// Persists a [RoomSnapshot] list of the active account's joined, non-space
 /// rooms into the App-Group shared store on sync, throttled so we never
@@ -20,33 +20,34 @@ import 'package:matrix/matrix.dart';
 /// flush so the cached [RoomSnapshot.avatarPath] values land in the store.
 class RoomSnapshotService {
   RoomSnapshotService({
-    required Client client,
+    required RoomRepository rooms,
     required RoomSnapshotSink sink,
     Duration flushInterval = const Duration(seconds: 10),
     AvatarCacheService? avatarCache,
-  })  : _client = client,
+  })  : _rooms = rooms,
         _sink = sink,
         _flushInterval = flushInterval,
         _avatarCache = avatarCache;
 
-  final Client _client;
+  final RoomRepository _rooms;
   final RoomSnapshotSink _sink;
   final Duration _flushInterval;
   final AvatarCacheService? _avatarCache;
 
-  StreamSubscription<SyncUpdate>? _sub;
   Timer? _flush;
+  bool _started = false;
   bool _disposed = false;
 
   void start() {
-    if (_sub != null) return;
-    _sub = _client.onSync.stream.listen((_) => _scheduleFlush());
+    if (_started || _disposed) return;
+    _started = true;
+    _rooms.addListener(_scheduleFlush);
     unawaited(_initialFlush());
   }
 
   Future<void> _initialFlush() async {
     try {
-      await _client.roomsLoading;
+      await _rooms.roomsLoaded;
     } catch (e) {
       debugPrint('[Kohera] RoomSnapshot roomsLoading wait failed: $e');
     }
@@ -81,14 +82,13 @@ class RoomSnapshotService {
 
   List<RoomSnapshot> _buildSnapshots() {
     final avatarPaths = _avatarCache?.cachedPaths() ?? const <String, String>{};
-    return _client.rooms
-        .where((r) => r.membership == Membership.join && !r.isSpace)
+    return _rooms.roomSummaries
         .map(
-          (r) => RoomSnapshot(
-            roomId: r.id,
-            displayname: r.getLocalizedDisplayname(),
-            avatarMxc: r.avatar?.toString(),
-            avatarPath: avatarPaths[r.id],
+          (s) => RoomSnapshot(
+            roomId: s.roomId,
+            displayname: s.displayname,
+            avatarMxc: s.avatarUrl,
+            avatarPath: avatarPaths[s.roomId],
           ),
         )
         .toList(growable: false);
@@ -96,9 +96,8 @@ class RoomSnapshotService {
 
   void dispose() {
     _disposed = true;
+    _rooms.removeListener(_scheduleFlush);
     _flush?.cancel();
     _flush = null;
-    unawaited(_sub?.cancel());
-    _sub = null;
   }
 }

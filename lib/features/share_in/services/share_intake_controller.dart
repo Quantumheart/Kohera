@@ -4,30 +4,29 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kohera/core/routing/route_names.dart';
-import 'package:kohera/core/services/client_manager.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/share_in/models/incoming_share.dart';
 import 'package:kohera/features/share_in/services/share_in_store.dart';
-import 'package:matrix/matrix.dart';
 
 /// Receives the single [IncomingShare] the iOS Share Extension staged and
-/// sends it to the chosen room via the Matrix SDK (which lives in the main
-/// app, with E2EE keys), then navigates to that room. The extension only
-/// stages the content + picked room and redirects to the host app via the
-/// `koherashare://` URL scheme; this controller wakes on `resumed` / launch,
-/// reads the one-shot record, sends, and clears it.
+/// sends it to the chosen room via the active account (which lives in the
+/// main app, with E2EE keys), then navigates to that room. The extension
+/// only stages the content + picked room and redirects to the host app via
+/// the `koherashare://` URL scheme; this controller wakes on `resumed` /
+/// launch, reads the one-shot record, sends, and clears it.
 ///
 /// There is no queue: the record is cleared as soon as it is read, and the
 /// captured share is sent from the send closure.
 class ShareIntakeController with WidgetsBindingObserver {
   ShareIntakeController({
-    required ClientManager clientManager,
+    required RoomRepository rooms,
     required GoRouter Function() router,
     ShareInStore? store,
-  })  : _clientManager = clientManager,
+  })  : _rooms = rooms,
         _router = router,
         _store = store ?? ShareInStore();
 
-  final ClientManager _clientManager;
+  final RoomRepository _rooms;
 
   /// Resolves the active router. The composition root rebuilds the router on
   /// account switch, so this is read at call time rather than captured.
@@ -54,7 +53,7 @@ class ShareIntakeController with WidgetsBindingObserver {
     try {
       if (waitForLoad) {
         try {
-          await _clientManager.activeClient.roomsLoading;
+          await _rooms.roomsLoaded;
         } catch (e) {
           debugPrint('[Kohera] Share intake roomsLoading wait failed: $e');
         }
@@ -66,10 +65,9 @@ class ShareIntakeController with WidgetsBindingObserver {
       // share is sent below.
       await _store.clearIncomingShare();
 
-      final client = _clientManager.activeClient;
-      await sendIncomingShareToRoom(client, share.roomId, share);
+      await sendIncomingShareToRoom(_rooms, share.roomId, share);
       final displayname =
-          client.getRoomById(share.roomId)?.getLocalizedDisplayname() ?? share.roomId;
+          _rooms.summaryFor(share.roomId)?.displayname ?? share.roomId;
       await _store.donateSendMessage(roomId: share.roomId, displayname: displayname);
       _router().go('${RoutePaths.roomPrefix}${share.roomId}');
     } catch (e) {
@@ -85,21 +83,20 @@ class ShareIntakeController with WidgetsBindingObserver {
   }
 }
 
-/// Sends an [IncomingShare] (text + files) to [share.roomId] via [client].
+/// Sends an [IncomingShare] (text + files) to [share.roomId] via [rooms].
 /// Throws on failure so a caller can surface the error. Staged file payloads
 /// that are missing on disk are skipped with a log.
 Future<void> sendIncomingShareToRoom(
-  Client client,
+  RoomRepository rooms,
   String roomId,
   IncomingShare share,
 ) async {
-  final room = client.getRoomById(roomId);
-  if (room == null) {
+  if (!rooms.roomExists(roomId)) {
     throw StateError('Room $roomId not found');
   }
   final text = share.text;
   if (text != null && text.isNotEmpty) {
-    await room.sendTextEvent(text);
+    await rooms.sendText(roomId, text);
   }
   for (final file in share.files) {
     final path = file.filePath;
@@ -108,7 +105,6 @@ Future<void> sendIncomingShareToRoom(
       continue;
     }
     final bytes = await File(path).readAsBytes();
-    final matrixFile = MatrixFile.fromMimeType(bytes: bytes, name: file.name);
-    await room.sendFileEvent(matrixFile);
+    await rooms.sendFile(roomId, bytes, file.name);
   }
 }
