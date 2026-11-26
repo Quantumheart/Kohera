@@ -2,9 +2,14 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:kohera/core/models/join_mode.dart';
+import 'package:kohera/data/models/kohera_auth_exception.dart';
+import 'package:kohera/data/models/kohera_public_room.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/models/kohera_space_hierarchy.dart';
+import 'package:kohera/data/resolvers/public_room_resolver.dart';
 import 'package:kohera/data/resolvers/room_summary_resolver.dart';
+import 'package:kohera/data/resolvers/space_hierarchy_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/space_access_service.dart';
 import 'package:matrix/matrix.dart';
@@ -413,10 +418,88 @@ class SpaceRepository extends ChangeNotifier {
     return result.isSpace ? result.roomId : null;
   }
 
-  /// Whether [e] is a Matrix `M_FORBIDDEN` exception.
+  /// Whether [e] carries a Matrix `M_FORBIDDEN` errcode.
   bool isForbiddenException(Object e) {
+    if (e is KoheraAuthException) return e.errcode == 'M_FORBIDDEN';
     return e is MatrixException && e.errcode == 'M_FORBIDDEN';
   }
+
+  // ── Discovery ─────────────────────────────────────────────────
+
+  /// Queries the public room directory, converted to a domain page.
+  ///
+  /// Throws [KoheraAuthException] when the homeserver rejects the query.
+  Future<KoheraPublicRoomsPage> queryPublicRooms({
+    int? limit,
+    String? since,
+    String? server,
+    KoheraPublicRoomFilter? filter,
+  }) async {
+    const resolver = PublicRoomResolver();
+    try {
+      final response = await _client.queryPublicRooms(
+        limit: limit,
+        since: since,
+        server: server,
+        filter: filter == null ? null : resolver.toSdkFilter(filter),
+      );
+      return resolver.convertPage(response);
+    } on MatrixException catch (e) {
+      throw KoheraAuthException(e.errorMessage, errcode: e.errcode);
+    }
+  }
+
+  /// Fetches the child hierarchy of a space as a domain model.
+  ///
+  /// Throws [KoheraAuthException] when the homeserver rejects the
+  /// request (e.g. `M_FORBIDDEN` when preview is disallowed).
+  Future<KoheraSpaceHierarchy> getSpaceHierarchy(
+    String roomId, {
+    int? maxDepth,
+    bool? suggestedOnly,
+  }) async {
+    try {
+      final response = await _client.getSpaceHierarchy(
+        roomId,
+        maxDepth: maxDepth,
+        suggestedOnly: suggestedOnly,
+      );
+      return const SpaceHierarchyResolver().convertResponse(response);
+    } on MatrixException catch (e) {
+      throw KoheraAuthException(e.errorMessage, errcode: e.errcode);
+    }
+  }
+
+  /// Joins [roomIdOrAlias] and waits until the room appears in sync.
+  Future<String> joinRoomAndWait(String roomIdOrAlias, {List<String>? via}) async {
+    final joinedId = await _client.joinRoom(roomIdOrAlias, via: via);
+    await _client
+        .waitForRoomInSync(joinedId, join: true)
+        .timeout(const Duration(seconds: 30));
+    return joinedId;
+  }
+
+  /// True if the user is a `join` member of [roomId].
+  bool isJoinedRoom(String roomId) {
+    final room = _client.getRoomById(roomId);
+    return room != null && room.membership == Membership.join;
+  }
+
+  /// True when [roomId] resolves to a space (room type `m.space`).
+  bool isSpaceRoom(String roomId) =>
+      _client.getRoomById(roomId)?.isSpace ?? false;
+
+  /// Room IDs whose membership changed in each sync (join, leave, invite).
+  Stream<Set<String>> get membershipChanges =>
+      _client.onSync.stream.map((update) {
+        final rooms = update.rooms;
+        if (rooms == null) return const <String>{};
+        return <String>{
+          ...?rooms.join?.keys,
+          ...?rooms.leave?.keys,
+          ...?rooms.invite?.keys,
+        };
+      });
 
   // ── Helpers ────────────────────────────────────────────────
 

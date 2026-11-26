@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/data/models/kohera_public_room.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
@@ -30,11 +31,11 @@ class _SpyFakeDataSource extends FakeSpaceDiscoveryDataSource {
   final List<String?> queriedTerms = [];
 
   @override
-  Future<QueryPublicRoomsResponse> queryPublicRooms({
+  Future<KoheraPublicRoomsPage> queryPublicRooms({
     int? limit,
     String? since,
     String? server,
-    PublicRoomQueryFilter? filter,
+    KoheraPublicRoomFilter? filter,
   }) {
     queriedServers.add(server);
     queriedSinceCursors.add(since);

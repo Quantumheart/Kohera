@@ -8,6 +8,8 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/core/utils/matrix_address_parser.dart';
+import 'package:kohera/data/models/kohera_public_room.dart';
+import 'package:kohera/data/models/kohera_space_hierarchy.dart';
 import 'package:kohera/data/repositories/space_repository.dart';
 import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
@@ -489,7 +491,7 @@ class PreviewFrame {
   final Uri? fallbackAvatar;
   final String? canonicalAlias;
 
-  GetSpaceHierarchyResponse? hierarchy;
+  KoheraSpaceHierarchy? hierarchy;
   String? error;
   bool previewForbidden = false;
 }
@@ -499,7 +501,7 @@ const int _maxPreviewDepth = 5;
 class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
   static const int _pageSize = 50;
 
-  List<PublishedRoomsChunk>? _results;
+  List<KoheraPublicRoom>? _results;
   String? _error;
   String? _joiningRoomId;
   String? _joinError;
@@ -653,9 +655,9 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
     super.dispose();
   }
 
-  PublicRoomQueryFilter _buildFilter() {
-    return PublicRoomQueryFilter(
-      roomTypes: ['m.space'],
+  KoheraPublicRoomFilter _buildFilter() {
+    return KoheraPublicRoomFilter(
+      roomTypes: const ['m.space'],
       genericSearchTerm: _query.isEmpty ? null : _query,
     );
   }
@@ -705,7 +707,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
         filter: _buildFilter(),
       );
       if (!mounted) return;
-      final unique = resp.chunk.where((c) => _seenRoomIds.add(c.roomId)).toList();
+      final unique = resp.items.where((c) => _seenRoomIds.add(c.roomId)).toList();
       setState(() {
         _results = unique;
         _nextBatch = resp.nextBatch;
@@ -769,7 +771,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
         filter: _buildFilter(),
       );
       if (!mounted) return;
-      final additions = resp.chunk.where((c) => _seenRoomIds.add(c.roomId)).toList();
+      final additions = resp.items.where((c) => _seenRoomIds.add(c.roomId)).toList();
       setState(() {
         _results!.addAll(additions);
         _nextBatch = resp.nextBatch;
@@ -796,7 +798,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
 
   // ── Preview navigation ──────────────────────────────────────────
 
-  void _openPreview(PublishedRoomsChunk chunk) {
+  void _openPreview(KoheraPublicRoom chunk) {
     debugPrint('[Kohera] Space preview opened: ${chunk.roomId}');
     final frame = PreviewFrame(
       roomId: chunk.roomId,
@@ -811,7 +813,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
     unawaited(_loadHierarchy(frame));
   }
 
-  void _pushSubspace(SpaceRoomsChunk$2 child) {
+  void _pushSubspace(KoheraSpaceHierarchyChunk child) {
     if (_previewStack.length >= _maxPreviewDepth) {
       debugPrint('[Kohera] Space preview stack at max depth, ignoring open');
       return;
@@ -1095,7 +1097,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
               size: 40,
             ),
             title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
-            subtitle: Text('${chunk.numJoinedMembers} members'),
+            subtitle: Text('${chunk.memberCount} members'),
             onTap: () => _openPreview(chunk),
           );
         },
@@ -1240,7 +1242,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
     );
   }
 
-  Widget _buildPreviewHeader(SpaceRoomsChunk$2 self, int childCount) {
+  Widget _buildPreviewHeader(KoheraSpaceHierarchyChunk self, int childCount) {
     final cs = Theme.of(context).colorScheme;
     final theme = Theme.of(context);
     final name = self.name ?? self.canonicalAlias ?? self.roomId;
@@ -1273,7 +1275,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
                 ),
               const SizedBox(height: 4),
               Text(
-                '${self.numJoinedMembers} members · '
+                '${self.memberCount} members · '
                 '$childCount room${childCount == 1 ? '' : 's'}',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: cs.onSurfaceVariant,
@@ -1319,7 +1321,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
     );
   }
 
-  Widget _buildChildTile(SpaceRoomsChunk$2 child) {
+  Widget _buildChildTile(KoheraSpaceHierarchyChunk child) {
     final cs = Theme.of(context).colorScheme;
     final name = child.name ?? child.canonicalAlias ?? child.roomId;
     final isSpace = child.roomType == 'm.space';
@@ -1364,7 +1366,7 @@ class _SpaceDiscoveryDialogState extends State<SpaceDiscoveryDialog> {
         size: 32,
       ),
       title: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text('${child.numJoinedMembers} members'),
+      subtitle: Text('${child.memberCount} members'),
       trailing: trailing,
     );
   }

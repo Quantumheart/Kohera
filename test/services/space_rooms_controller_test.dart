@@ -1,31 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/data/models/kohera_public_room.dart';
+import 'package:kohera/data/models/kohera_space_hierarchy.dart';
 import 'package:kohera/features/spaces/services/space_discovery_data_source.dart';
 import 'package:kohera/features/spaces/services/space_rooms_controller.dart';
-import 'package:matrix/matrix.dart';
-import 'package:matrix/src/utils/cached_stream_controller.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
-
-@GenerateNiceMocks([MockSpec<Client>()])
-import 'space_rooms_controller_test.mocks.dart';
 
 void main() {
   late SpaceRoomsController controller;
   late SpaceDiscoveryDataSource dataSource;
-  late MockClient mockClient;
 
   setUp(() {
-    mockClient = MockClient();
-    when(mockClient.onSync).thenReturn(CachedStreamController<SyncUpdate>());
-    when(mockClient.onLoginStateChanged)
-        .thenReturn(CachedStreamController<LoginState>());
-    when(mockClient.rooms).thenReturn([]);
-
     dataSource = FakeSpaceDiscoveryDataSource(delay: Duration.zero);
 
     controller = SpaceRoomsController(
       dataSource: dataSource,
-      client: mockClient,
     );
   });
 
@@ -176,7 +165,6 @@ void main() {
         );
         controller = SpaceRoomsController(
           dataSource: dataSource,
-          client: mockClient,
         );
 
         await controller.fetchSpaceRooms(forbiddenId);
@@ -285,7 +273,6 @@ void main() {
         );
         controller = SpaceRoomsController(
           dataSource: dataSource,
-          client: mockClient,
         );
 
         // joinRoom succeeds, but the refresh of the broken parent fails.
@@ -302,7 +289,6 @@ void main() {
         dataSource = _ThrowingJoinDataSource();
         controller = SpaceRoomsController(
           dataSource: dataSource,
-          client: mockClient,
         );
 
         final joinedId = await controller.join(
@@ -319,23 +305,26 @@ void main() {
 /// A fake data source whose joinRoom always throws.
 class _ThrowingJoinDataSource implements SpaceDiscoveryDataSource {
   @override
-  Future<QueryPublicRoomsResponse> queryPublicRooms({
+  Future<KoheraPublicRoomsPage> queryPublicRooms({
     int? limit,
     String? since,
     String? server,
-    PublicRoomQueryFilter? filter,
+    KoheraPublicRoomFilter? filter,
   }) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<GetSpaceHierarchyResponse> getSpaceHierarchy(
+  Future<KoheraSpaceHierarchy> getSpaceHierarchy(
     String roomId, {
     int? maxDepth,
     bool? suggestedOnly,
   }) async {
-    return GetSpaceHierarchyResponse(rooms: []);
+    return const KoheraSpaceHierarchy(rooms: []);
   }
+
+  @override
+  Stream<Set<String>> get membershipChanges => const Stream.empty();
 
   @override
   Future<String> joinRoom(String roomIdOrAlias, {List<String>? via}) async {

@@ -1,4 +1,4 @@
-import 'package:matrix/matrix.dart';
+import 'package:kohera/data/models/kohera_space_hierarchy.dart';
 
 /// Metadata for a room as it appears in a space's hierarchy preview.
 class SpaceRoomMetadata {
@@ -23,7 +23,7 @@ class SpaceRoomMetadata {
   });
 
   factory SpaceRoomMetadata.fromHierarchy(
-    SpaceRoomsChunk$2 chunk, {
+    KoheraSpaceHierarchyChunk chunk, {
     bool isSuggested = false,
     List<String> viaServers = const [],
   }) {
@@ -32,7 +32,7 @@ class SpaceRoomMetadata {
       name: chunk.name,
       canonicalAlias: chunk.canonicalAlias,
       avatar: chunk.avatarUrl,
-      memberCount: chunk.numJoinedMembers,
+      memberCount: chunk.memberCount,
       roomType: chunk.roomType ?? 'm.room',
       isSuggested: isSuggested,
       viaServers: viaServers,

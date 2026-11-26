@@ -130,7 +130,6 @@ void main() {
         ChangeNotifierProvider<SpaceRoomsController>(
           create: (ctx) => SpaceRoomsController(
             dataSource: ctx.read<SpaceDiscoveryDataSource>(),
-            client: ctx.read<MatrixService>().matrixClientService.client,
           ),
         ),
       ],

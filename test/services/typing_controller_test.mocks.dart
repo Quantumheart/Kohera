@@ -7,14 +7,16 @@
 import 'dart:async' as _i6;
 import 'dart:typed_data' as _i10;
 
-import 'package:kohera/data/models/kohera_message_display.dart' as _i12;
+import 'package:kohera/data/models/kohera_media_content.dart' as _i13;
+import 'package:kohera/data/models/kohera_message_display.dart' as _i14;
 import 'package:kohera/data/models/kohera_push_rule_state.dart' as _i9;
 import 'package:kohera/data/models/kohera_room_history.dart' as _i3;
 import 'package:kohera/data/models/kohera_room_member.dart' as _i8;
 import 'package:kohera/data/models/kohera_room_permissions.dart' as _i7;
 import 'package:kohera/data/models/kohera_room_summary.dart' as _i5;
 import 'package:kohera/data/repositories/room_repository.dart' as _i4;
-import 'package:listen/src/listen.dart' as _i13;
+import 'package:kohera/data/services/sdk_media_controller.dart' as _i12;
+import 'package:listen/src/listen.dart' as _i15;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i11;
@@ -693,6 +695,81 @@ class MockRoomRepository extends _i1.Mock implements _i4.RoomRepository {
           as bool);
 
   @override
+  _i6.Future<
+    ({
+      List<
+        ({_i12.SdkMediaController controller, _i13.KoheraMediaContent media})
+      >
+      items,
+      String? nextBatch,
+    })
+  >
+  searchSharedMedia(String? roomId, {String? nextBatch, int? limit = 20}) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #searchSharedMedia,
+              [roomId],
+              {#nextBatch: nextBatch, #limit: limit},
+            ),
+            returnValue:
+                _i6.Future<
+                  ({
+                    List<
+                      ({
+                        _i12.SdkMediaController controller,
+                        _i13.KoheraMediaContent media,
+                      })
+                    >
+                    items,
+                    String? nextBatch,
+                  })
+                >.value((
+                  items:
+                      <
+                        ({
+                          _i12.SdkMediaController controller,
+                          _i13.KoheraMediaContent media,
+                        })
+                      >[],
+                  nextBatch: null,
+                )),
+            returnValueForMissingStub:
+                _i6.Future<
+                  ({
+                    List<
+                      ({
+                        _i12.SdkMediaController controller,
+                        _i13.KoheraMediaContent media,
+                      })
+                    >
+                    items,
+                    String? nextBatch,
+                  })
+                >.value((
+                  items:
+                      <
+                        ({
+                          _i12.SdkMediaController controller,
+                          _i13.KoheraMediaContent media,
+                        })
+                      >[],
+                  nextBatch: null,
+                )),
+          )
+          as _i6.Future<
+            ({
+              List<
+                ({
+                  _i12.SdkMediaController controller,
+                  _i13.KoheraMediaContent media,
+                })
+              >
+              items,
+              String? nextBatch,
+            })
+          >);
+
+  @override
   _i6.Stream<void> roomStateChanges(String? roomId, Set<String>? types) =>
       (super.noSuchMethod(
             Invocation.method(#roomStateChanges, [roomId, types]),
@@ -736,16 +813,16 @@ class MockRoomRepository extends _i1.Mock implements _i4.RoomRepository {
           as _i6.Future<_i3.KoheraRoomHistory>);
 
   @override
-  _i6.Future<List<_i12.KoheraMessageDisplay>?> pinnedMessagesFor(
+  _i6.Future<List<_i14.KoheraMessageDisplay>?> pinnedMessagesFor(
     String? roomId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#pinnedMessagesFor, [roomId]),
-            returnValue: _i6.Future<List<_i12.KoheraMessageDisplay>?>.value(),
+            returnValue: _i6.Future<List<_i14.KoheraMessageDisplay>?>.value(),
             returnValueForMissingStub:
-                _i6.Future<List<_i12.KoheraMessageDisplay>?>.value(),
+                _i6.Future<List<_i14.KoheraMessageDisplay>?>.value(),
           )
-          as _i6.Future<List<_i12.KoheraMessageDisplay>?>);
+          as _i6.Future<List<_i14.KoheraMessageDisplay>?>);
 
   @override
   bool canChangePinnedEvents(String? roomId) =>
@@ -786,13 +863,13 @@ class MockRoomRepository extends _i1.Mock implements _i4.RoomRepository {
   );
 
   @override
-  void addListener(_i13.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i15.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i13.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i15.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );

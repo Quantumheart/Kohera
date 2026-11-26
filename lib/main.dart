@@ -334,14 +334,13 @@ class _KoheraAppState extends State<KoheraApp> {
                     value: matrix.selectionController,
                   ),
                   Provider<SpaceDiscoveryDataSource>(
-                    create: (cxt) =>
-                        LiveSpaceDiscoveryDataSource(matrix.session.client),
+                    create: (ctx) =>
+                        LiveSpaceDiscoveryDataSource(ctx.read<SpaceRepository>()),
                   ),
                   ChangeNotifierProvider<SpaceRoomsController>(
                     create: (ctx) {
                       final controller = SpaceRoomsController(
                         dataSource: ctx.read<SpaceDiscoveryDataSource>(),
-                        client: matrix.session.client,
                       );
                       controller.listenToSync();
                       return controller;
