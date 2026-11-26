@@ -193,6 +193,14 @@ class StickerPackService extends ChangeNotifier {
 
   // ── Room packs ───────────────────────────────────────────────
 
+  /// All packs visible in the room [roomId], or just the account packs
+  /// when the room is unknown.
+  List<StickerPack> packsForRoomId(String roomId) {
+    final room = matrixClientService.client.getRoomById(roomId);
+    if (room == null) return accountPacks;
+    return packsForRoom(room);
+  }
+
   /// All packs visible in a room context: account packs + room pack + space packs.
   List<StickerPack> packsForRoom(Room room) {
     final packs = <StickerPack>[...accountPacks];

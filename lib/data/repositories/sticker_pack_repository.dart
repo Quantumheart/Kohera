@@ -53,6 +53,10 @@ class StickerPackRepository extends ChangeNotifier {
   /// Packs available in [room] (account + room state emotes).
   List<StickerPack> packsForRoom(Room room) => _service.packsForRoom(room);
 
+  /// Packs available in the room [roomId] (account + room state emotes).
+  List<StickerPack> packsForRoomId(String roomId) =>
+      _service.packsForRoomId(roomId);
+
   // ── Mutations ─────────────────────────────────────────────────
 
   Future<void> subscribeToRoomPack(String roomId) =>
