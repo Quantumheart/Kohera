@@ -295,6 +295,137 @@ class MessageRepository extends ChangeNotifier {
   /// Starts the local search index (subscribes to sync; no backfill yet).
   Future<void> initSearchIndex() => _indexer.init();
 
+  /// Toggles [emoji] on the message [eventId] for the current user: redacts
+  /// the existing matching reaction or sends a new one. No-op when the room
+  /// or event is unknown.
+  Future<void> toggleReaction(
+    String roomId,
+    String eventId,
+    String emoji,
+  ) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return;
+    final event = await room.getEventById(eventId);
+    if (event == null) return;
+    final timeline = await room.getTimeline();
+    final myId = _client.userID;
+    final existing = event
+        .aggregatedEvents(timeline, RelationshipTypes.reaction)
+        .where((e) =>
+            e.senderId == myId &&
+            e.content
+                    .tryGetMap<String, Object?>('m.relates_to')
+                    ?.tryGet<String>('key') ==
+                emoji,)
+        .firstOrNull;
+    if (existing != null) {
+      await existing.redactEvent();
+    } else {
+      await room.sendReaction(eventId, emoji);
+    }
+  }
+
+  /// Returns the event ID of the newest thread reply under [rootEventId],
+  /// or null when the thread has no replies or the root is unknown.
+  Future<String?> latestThreadEventId(
+    String roomId,
+    String rootEventId,
+  ) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return null;
+    final event = await room.getEventById(rootEventId);
+    if (event == null) return null;
+    final timeline = await room.getTimeline();
+    final children = event.aggregatedEvents(timeline, RelationshipTypes.thread);
+    if (children.isEmpty) return null;
+    return children
+        .reduce((a, b) => a.originServerTs.isAfter(b.originServerTs) ? a : b)
+        .eventId;
+  }
+
+  /// Sends [text] to [roomId] with optional reply, edit, and thread
+  /// relations. Returns the sent event ID, or null when the room is unknown.
+  Future<String?> sendText(
+    String roomId,
+    String text, {
+    String? inReplyToEventId,
+    String? editEventId,
+    String? threadRootEventId,
+    String? threadLastEventId,
+  }) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return null;
+    Event? replyEvent;
+    if (editEventId == null && inReplyToEventId != null) {
+      replyEvent = await room.getEventById(inReplyToEventId);
+    }
+    return room.sendTextEvent(
+      text,
+      inReplyTo: replyEvent,
+      editEventId: editEventId,
+      threadRootEventId: threadRootEventId,
+      threadLastEventId: threadLastEventId,
+    );
+  }
+
+  /// Starts an MSC3381 poll in [roomId] from the given answer labels.
+  Future<void> startPoll(
+    String roomId, {
+    required String question,
+    required List<String> answers,
+    required bool disclosed,
+    int maxSelections = 1,
+  }) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return;
+    final pollAnswers = answers
+        .map(
+          (label) => PollAnswer(
+            id: _client.generateUniqueTransactionId(),
+            mText: label,
+          ),
+        )
+        .toList(growable: false);
+    await room.startPoll(
+      question: question,
+      answers: pollAnswers,
+      kind: disclosed ? PollKind.disclosed : PollKind.undisclosed,
+      maxSelections: maxSelections,
+    );
+  }
+
+  /// Votes [answerIds] on the poll whose start event is [eventId].
+  Future<void> answerPoll(
+    String roomId,
+    String eventId,
+    List<String> answerIds,
+  ) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return;
+    final event = await room.getEventById(eventId);
+    if (event == null) {
+      debugPrint('[Kohera] Poll start event not found: $eventId');
+      return;
+    }
+    await event.answerPoll(answerIds);
+  }
+
+  /// Ends the MSC3381 poll whose start event is [eventId].
+  ///
+  /// The SDK (`Event.endPoll`) enforces that only the poll creator or a user
+  /// with redact power may end the poll; the UI gates the action upstream
+  /// via `KoheraPoll.canEnd`, so no extra permission check is needed here.
+  Future<void> endPoll(String roomId, String eventId) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return;
+    final event = await room.getEventById(eventId);
+    if (event == null) {
+      debugPrint('[Kohera] Poll start event not found: $eventId');
+      return;
+    }
+    await event.endPoll();
+  }
+
   /// Ensures [roomId]'s history is indexed for local search (background).
   Future<void> ensureRoomIndexed(String roomId, {bool priority = false}) {
     final room = _client.getRoomById(roomId);

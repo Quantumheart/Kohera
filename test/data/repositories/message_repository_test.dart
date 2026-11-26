@@ -349,6 +349,171 @@ void main() {
       expect(notified, isFalse);
     });
   });
+  group('toggleReaction', () {
+    late MockRoom room;
+
+    setUp(() {
+      room = MockRoom();
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
+      when(mockClient.userID).thenReturn('@me:example.com');
+      when(room.getTimeline()).thenAnswer((_) async => _FakeTimeline());
+    });
+
+    test('sends a reaction when none exists', () async {
+      final target = _FakeEvent(eventId: r'\$target:s');
+      when(room.getEventById(r'\$target:s')).thenAnswer((_) async => target);
+      when(room.sendReaction(any, any))
+          .thenAnswer((_) async => r'\$reaction:s');
+
+      await repo.toggleReaction('!room:example.com', r'\$target:s', '👍');
+
+      verify(room.sendReaction(r'\$target:s', '👍')).called(1);
+    });
+
+    test('redacts the existing matching reaction', () async {
+      final existing = _FakeEvent(
+        eventId: r'\$reaction:s',
+        senderIdValue: '@me:example.com',
+        content: {
+          'm.relates_to': {'key': '👍'},
+        },
+      );
+      final target = _FakeEvent(eventId: r'\$target:s')
+        ..aggregated = {existing};
+      when(room.getEventById(r'\$target:s')).thenAnswer((_) async => target);
+
+      await repo.toggleReaction('!room:example.com', r'\$target:s', '👍');
+
+      expect(existing.redactCalled, isTrue);
+      verifyNever(room.sendReaction(any, any));
+    });
+
+    test('ignores reactions from other users', () async {
+      final foreign = _FakeEvent(
+        eventId: r'\$reaction:s',
+        senderIdValue: '@bob:example.com',
+        content: {
+          'm.relates_to': {'key': '👍'},
+        },
+      );
+      final target = _FakeEvent(eventId: r'\$target:s')
+        ..aggregated = {foreign};
+      when(room.getEventById(r'\$target:s')).thenAnswer((_) async => target);
+      when(room.sendReaction(any, any))
+          .thenAnswer((_) async => r'\$new:s');
+
+      await repo.toggleReaction('!room:example.com', r'\$target:s', '👍');
+
+      expect(foreign.redactCalled, isFalse);
+      verify(room.sendReaction(r'\$target:s', '👍')).called(1);
+    });
+  });
+
+  group('sendText', () {
+    late MockRoom room;
+
+    setUp(() {
+      room = MockRoom();
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
+      when(room.sendTextEvent(
+        any,
+        inReplyTo: anyNamed('inReplyTo'),
+        editEventId: anyNamed('editEventId'),
+        threadRootEventId: anyNamed('threadRootEventId'),
+        threadLastEventId: anyNamed('threadLastEventId'),
+      )).thenAnswer((_) async => r'\$sent:s');
+    });
+
+    test('returns null for an unknown room', () async {
+      final id = await repo.sendText('!unknown:example.com', 'hi');
+      expect(id, isNull);
+      verifyNever(room.sendTextEvent(any));
+    });
+
+    test('resolves the reply event by ID', () async {
+      final reply = _FakeEvent(eventId: r'\$reply:s');
+      when(room.getEventById(r'\$reply:s')).thenAnswer((_) async => reply);
+
+      await repo.sendText(
+        '!room:example.com',
+        'hi',
+        inReplyToEventId: r'\$reply:s',
+      );
+
+      verify(room.sendTextEvent(
+        'hi',
+        inReplyTo: reply,
+        editEventId: anyNamed('editEventId'),
+        threadRootEventId: anyNamed('threadRootEventId'),
+        threadLastEventId: anyNamed('threadLastEventId'),
+      )).called(1);
+    });
+
+    test('skips reply resolution when editing', () async {
+      await repo.sendText('!room:example.com', 'hi', editEventId: r'\$edit:s');
+
+      verifyNever(room.getEventById(any));
+      verify(room.sendTextEvent(
+        'hi',
+        inReplyTo: anyNamed('inReplyTo'),
+        editEventId: r'\$edit:s',
+        threadRootEventId: anyNamed('threadRootEventId'),
+        threadLastEventId: anyNamed('threadLastEventId'),
+      )).called(1);
+    });
+
+    test('passes thread relations through', () async {
+      await repo.sendText(
+        '!room:example.com',
+        'hi',
+        threadRootEventId: r'\$root:s',
+        threadLastEventId: r'\$last:s',
+      );
+
+      verify(room.sendTextEvent(
+        'hi',
+        inReplyTo: anyNamed('inReplyTo'),
+        editEventId: anyNamed('editEventId'),
+        threadRootEventId: r'\$root:s',
+        threadLastEventId: r'\$last:s',
+      )).called(1);
+    });
+  });
+
+  group('latestThreadEventId', () {
+    test('returns the newest thread child ID', () async {
+      final room = MockRoom();
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
+      when(room.getTimeline()).thenAnswer((_) async => _FakeTimeline());
+      final older = _FakeEvent(
+        eventId: r'\$older:s',
+        timestamp: DateTime(2026, 2, 2),
+      );
+      final newer = _FakeEvent(
+        eventId: r'\$newer:s',
+        timestamp: DateTime(2026, 2, 4),
+      );
+      final root = _FakeEvent(eventId: r'\$root:s')
+        ..aggregated = {older, newer};
+      when(room.getEventById(r'\$root:s')).thenAnswer((_) async => root);
+
+      final id = await repo.latestThreadEventId('!room:example.com', r'\$root:s');
+
+      expect(id, r'\$newer:s');
+    });
+
+    test('returns null when the thread has no replies', () async {
+      final room = MockRoom();
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
+      when(room.getTimeline()).thenAnswer((_) async => _FakeTimeline());
+      final root = _FakeEvent(eventId: r'\$root:s');
+      when(room.getEventById(r'\$root:s')).thenAnswer((_) async => root);
+
+      final id = await repo.latestThreadEventId('!room:example.com', r'\$root:s');
+
+      expect(id, isNull);
+    });
+  });
 }
 
 class _FakeReceipts extends Fake implements LatestReceiptState {
@@ -401,6 +566,8 @@ class _FakeEvent extends Fake implements Event {
     required this.eventId,
     this.body = '',
     Map<String, Object?>? content,
+    this.senderIdValue = '@alice:example.com',
+    this.timestamp,
   }) : _content = content;
 
   @override
@@ -411,8 +578,37 @@ class _FakeEvent extends Fake implements Event {
 
   final Map<String, Object?>? _content;
 
+  final String senderIdValue;
+
+  final DateTime? timestamp;
+
+  Set<Event> aggregated = const {};
+
+  bool redactCalled = false;
+
   @override
-  String get senderId => '@alice:example.com';
+  String get senderId => senderIdValue;
+
+  @override
+  Map<String, Object?> get content =>
+      _content ?? <String, Object?>{'msgtype': 'm.text', 'body': body};
+
+  @override
+  DateTime get originServerTs => timestamp ?? DateTime(2026, 2);
+
+  @override
+  Set<Event> aggregatedEvents(Timeline timeline, String relationshipType) =>
+      aggregated;
+
+  @override
+  Future<String?> redactEvent({
+    String? reason,
+    bool redactAllEdits = false,
+    String? txid,
+  }) async {
+    redactCalled = true;
+    return r'$redaction:s';
+  }
 
   @override
   String get type => EventTypes.Message;
@@ -421,16 +617,10 @@ class _FakeEvent extends Fake implements Event {
   String get messageType => MessageTypes.Text;
 
   @override
-  DateTime get originServerTs => DateTime(2026, 2);
-
-  @override
   bool get redacted => false;
 
   @override
   bool get canRedact => false;
-
-  @override
-  Map<String, Object?> get content => _content ?? <String, Object?>{'body': body};
 
   @override
   Event getDisplayEvent(Timeline timeline) => this;

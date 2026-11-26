@@ -8752,6 +8752,24 @@ class MockRoomRepository extends _i1.Mock implements _i30.RoomRepository {
           as _i5.Future<List<_i33.KoheraRoomMember>>);
 
   @override
+  bool isPinned(String? roomId, String? eventId) =>
+      (super.noSuchMethod(
+            Invocation.method(#isPinned, [roomId, eventId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  _i5.Future<void> setPinned(String? roomId, String? eventId, bool? pin) =>
+      (super.noSuchMethod(
+            Invocation.method(#setPinned, [roomId, eventId, pin]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
   _i5.Future<void> joinRoom(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#joinRoom, [roomId]),
