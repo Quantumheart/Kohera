@@ -8423,6 +8423,15 @@ class MockRoomRepository extends _i1.Mock implements _i13.RoomRepository {
           as List<_i14.KoheraRoomSummary>);
 
   @override
+  _i5.Future<void> get roomsLoaded =>
+      (super.noSuchMethod(
+            Invocation.getter(#roomsLoaded),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
   _i5.Stream<_i2.SyncUpdate> get onSync =>
       (super.noSuchMethod(
             Invocation.getter(#onSync),
@@ -8543,6 +8552,15 @@ class MockRoomRepository extends _i1.Mock implements _i13.RoomRepository {
               [roomId, typing],
               {#timeoutMs: timeoutMs},
             ),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> sendText(String? roomId, String? text) =>
+      (super.noSuchMethod(
+            Invocation.method(#sendText, [roomId, text]),
             returnValue: _i5.Future<void>.value(),
             returnValueForMissingStub: _i5.Future<void>.value(),
           )
