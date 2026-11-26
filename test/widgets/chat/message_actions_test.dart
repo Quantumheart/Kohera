@@ -172,7 +172,7 @@ Widget _buildBubble({
                   style: style,
                   isMe: isMe,
                   mentionResolver: mentionResolverFromRoom(
-                    event.room,
+                    event.room.id,
                     _mockRoomRepository,
                   ),
                 ),
@@ -266,7 +266,7 @@ Widget _buildBubbleWithProviders({
                   style: style,
                   isMe: isMe,
                   mentionResolver: mentionResolverFromRoom(
-                    event.room,
+                    event.room.id,
                     _mockRoomRepository,
                   ),
                 ),
@@ -324,6 +324,7 @@ void main() {
     prefsService = PreferencesService();
     _mockRoom = mockRoom;
     _mockRoomRepository = MockRoomRepository();
+    when(_mockRoomRepository.roomExists(any)).thenReturn(true);
 
     when(mockClient.onSync).thenReturn(CachedStreamController());
     when(mockClient.onLoginStateChanged)

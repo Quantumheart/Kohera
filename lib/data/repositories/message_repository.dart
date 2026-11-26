@@ -248,6 +248,40 @@ class MessageRepository extends ChangeNotifier {
     return count;
   }
 
+  // ── Forwarding ──────────────────────────────────────────────
+
+  /// Forwards [sourceEventId] from [sourceRoomId] to [targetRoomId].
+  ///
+  /// The latest edited version is forwarded; relation metadata
+  /// (`m.relates_to`, `m.new_content`) is stripped so the copy is a
+  /// standalone message. Media is forwarded by reference — the original
+  /// `mxc://` URI (and, for encrypted rooms, the embedded file key)
+  /// travels in the content. No-op when a room or the event is unknown.
+  Future<void> forwardMessage({
+    required String targetRoomId,
+    required String sourceRoomId,
+    required String sourceEventId,
+  }) async {
+    final target = _client.getRoomById(targetRoomId);
+    final sourceRoom = _client.getRoomById(sourceRoomId);
+    if (target == null || sourceRoom == null) return;
+    final timeline = await sourceRoom.getTimeline();
+    Event? event;
+    for (final e in timeline.events) {
+      if (e.eventId == sourceEventId) {
+        event = e;
+        break;
+      }
+    }
+    event ??= await sourceRoom.getEventById(sourceEventId);
+    if (event == null) return;
+    final source = event.getDisplayEvent(timeline);
+    final content = Map<String, dynamic>.from(source.content)
+      ..remove('m.relates_to')
+      ..remove('m.new_content');
+    await target.sendEvent(content, type: source.type);
+  }
+
   // ── Timeline access (transitional) ───────────────────────────
 
   Future<Timeline?> timelineFor(String roomId) async {
