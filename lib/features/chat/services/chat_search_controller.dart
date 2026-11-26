@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/data/models/room_search_result.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
-import 'package:kohera/features/chat/models/room_search_result.dart';
-import 'package:kohera/features/chat/services/room_search_service.dart';
+import 'package:kohera/data/services/room_search_service.dart';
 import 'package:material_ui/material_ui.dart' show DateTimeRange;
 import 'package:shared_preferences/shared_preferences.dart';
 

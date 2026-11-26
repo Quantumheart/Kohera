@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:kohera/data/models/kohera_message_display.dart';
+import 'package:kohera/data/models/room_search_result.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
-import 'package:kohera/features/chat/models/room_search_result.dart';
-import 'package:kohera/features/chat/services/local_search_service.dart';
+import 'package:kohera/data/services/local_search_service.dart';
 import 'package:material_ui/material_ui.dart' show DateTimeRange;
 import 'package:matrix/matrix.dart';
 
