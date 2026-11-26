@@ -141,6 +141,51 @@ void main() {
       expect(notified, isFalse);
     });
   });
+
+  group('pin accessors', () {
+    late MockRoom room;
+
+    setUp(() {
+      room = MockRoom();
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
+      when(room.setPinnedEvents(any)).thenAnswer((_) async => '');
+    });
+
+    test('isPinned reflects room pinned events', () {
+      when(room.pinnedEventIds).thenReturn([r'$pinned:s']);
+
+      expect(repo.isPinned('!room:example.com', r'$pinned:s'), isTrue);
+      expect(repo.isPinned('!room:example.com', r'$other:s'), isFalse);
+    });
+
+    test('isPinned returns false for unknown room', () {
+      expect(repo.isPinned('!unknown:example.com', r'$e:s'), isFalse);
+    });
+
+    test('setPinned adds a new event', () async {
+      when(room.pinnedEventIds).thenReturn([r'$a:s']);
+
+      await repo.setPinned('!room:example.com', r'$b:s', true);
+
+      verify(room.setPinnedEvents([r'$a:s', r'$b:s'])).called(1);
+    });
+
+    test('setPinned removes an event', () async {
+      when(room.pinnedEventIds).thenReturn([r'$a:s', r'$b:s']);
+
+      await repo.setPinned('!room:example.com', r'$a:s', false);
+
+      verify(room.setPinnedEvents([r'$b:s'])).called(1);
+    });
+
+    test('setPinned does not duplicate an already pinned event', () async {
+      when(room.pinnedEventIds).thenReturn([r'$a:s']);
+
+      await repo.setPinned('!room:example.com', r'$a:s', true);
+
+      verify(room.setPinnedEvents([r'$a:s'])).called(1);
+    });
+  });
 }
 
 class _FakeDatabase extends Fake implements DatabaseApi {

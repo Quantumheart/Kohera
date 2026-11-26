@@ -108,6 +108,26 @@ class RoomRepository extends ChangeNotifier {
     ];
   }
 
+  /// Whether [eventId] is currently pinned in [roomId].
+  bool isPinned(String roomId, String eventId) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return false;
+    return room.pinnedEventIds.contains(eventId);
+  }
+
+  /// Pins or unpins [eventId] in [roomId]. Throws on failure.
+  Future<void> setPinned(String roomId, String eventId, bool pin) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return;
+    final pinned = List<String>.from(room.pinnedEventIds);
+    if (pin) {
+      if (!pinned.contains(eventId)) pinned.add(eventId);
+    } else {
+      pinned.remove(eventId);
+    }
+    await room.setPinnedEvents(pinned);
+  }
+
   // ── Room operations (write path) ──────────────────────────────
 
   Future<void> joinRoom(String roomId) => _client.joinRoom(roomId);
