@@ -1,53 +1,49 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/features/chat/services/thread_summary.dart';
+import 'package:kohera/data/models/kohera_thread_summary.dart';
 import 'package:kohera/features/chat/widgets/thread_list_tile.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 
-@GenerateNiceMocks([MockSpec<Event>(), MockSpec<User>()])
-import 'thread_list_tile_test.mocks.dart';
-
-MockEvent _event({
-  required String id,
-  required String body,
-  required int ts,
-  String displayName = 'Alice',
-  bool redacted = false,
+KoheraThreadSummary _summary({
+  String rootBody = 'Root',
+  bool rootRedacted = false,
+  int unreadCount = 0,
+  int replyCount = 0,
+  String? lastReplySenderName,
+  String? lastReplyBody,
+  bool lastReplyRedacted = false,
 }) {
-  final e = MockEvent();
-  when(e.eventId).thenReturn(id);
-  when(e.body).thenReturn(body);
-  when(e.redacted).thenReturn(redacted);
-  when(e.originServerTs).thenReturn(DateTime.fromMillisecondsSinceEpoch(ts));
-  when(e.senderId).thenReturn('@alice:example.com');
-  final user = MockUser();
-  when(user.displayName).thenReturn(displayName);
-  when(e.senderFromMemoryOrFallback).thenReturn(user);
-  return e;
+  return KoheraThreadSummary(
+    rootEventId: r'$r',
+    rootBody: rootBody,
+    rootRedacted: rootRedacted,
+    rootTimestamp: DateTime.fromMillisecondsSinceEpoch(1000),
+    replyCount: replyCount,
+    unreadCount: unreadCount,
+    lastActivity: DateTime.fromMillisecondsSinceEpoch(2000),
+    lastReplySenderName: lastReplySenderName,
+    lastReplyBody: lastReplyBody,
+    lastReplyRedacted: lastReplyRedacted,
+  );
 }
 
-Widget _wrap(Widget child) =>
-    MaterialApp(
+Widget _wrap(Widget child) => MaterialApp(
       theme: ThemeData(splashFactory: InkRipple.splashFactory),
-      home: Scaffold(body: child),);
+      home: Scaffold(body: child),
+    );
 
 void main() {
   group('ThreadListTile', () {
     testWidgets('renders preview, reply count, and last reply', (tester) async {
-      final root = _event(id: r'$r', body: 'Root msg', ts: 1000);
-      final reply =
-          _event(id: r'$r2', body: 'Reply text', ts: 2000, displayName: 'Bob');
-      final summary = ThreadSummary(
-        root: root,
-        children: [reply],
-        unreadCount: 0,
+      final summary = _summary(
+        rootBody: 'Root msg',
+        replyCount: 1,
+        lastReplySenderName: 'Bob',
+        lastReplyBody: 'Reply text',
       );
 
       await tester.pumpWidget(_wrap(
         ThreadListTile(summary: summary, onTap: () {}),
-      ),);
+      ));
 
       expect(find.text('Root msg'), findsOneWidget);
       expect(find.text('Bob: Reply text'), findsOneWidget);
@@ -55,48 +51,37 @@ void main() {
     });
 
     testWidgets('shows unread badge when unread > 0', (tester) async {
-      final root = _event(id: r'$r', body: 'Root', ts: 1000);
-      final reply = _event(id: r'$r2', body: 'Reply', ts: 2000);
-      final summary = ThreadSummary(
-        root: root,
-        children: [reply],
+      final summary = _summary(
+        replyCount: 1,
         unreadCount: 3,
+        lastReplySenderName: 'Alice',
+        lastReplyBody: 'Reply',
       );
 
       await tester.pumpWidget(_wrap(
         ThreadListTile(summary: summary, onTap: () {}),
-      ),);
+      ));
 
       expect(find.text('3'), findsOneWidget);
     });
 
     testWidgets('redacted root shows placeholder', (tester) async {
-      final root = _event(id: r'$r', body: '', ts: 1000, redacted: true);
-      final summary = ThreadSummary(
-        root: root,
-        children: const [],
-        unreadCount: 0,
-      );
+      final summary = _summary(rootBody: '', rootRedacted: true);
 
       await tester.pumpWidget(_wrap(
         ThreadListTile(summary: summary, onTap: () {}),
-      ),);
+      ));
 
       expect(find.text('[redacted]'), findsOneWidget);
     });
 
     testWidgets('tap fires onTap', (tester) async {
       var taps = 0;
-      final root = _event(id: r'$r', body: 'Root', ts: 1000);
-      final summary = ThreadSummary(
-        root: root,
-        children: const [],
-        unreadCount: 0,
-      );
+      final summary = _summary();
 
       await tester.pumpWidget(_wrap(
         ThreadListTile(summary: summary, onTap: () => taps++),
-      ),);
+      ));
 
       await tester.tap(find.byType(InkWell));
       expect(taps, 1);

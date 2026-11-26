@@ -16,7 +16,6 @@ import 'package:kohera/data/resolvers/read_receipt_resolver.dart';
 import 'package:kohera/data/resolvers/state_event_resolver.dart';
 import 'package:kohera/data/services/sdk_media_controller.dart';
 import 'package:kohera/features/chat/models/chat_message_data.dart';
-import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/shared/services/media_controller.dart';
 import 'package:matrix/matrix.dart';
 
@@ -819,6 +818,43 @@ class MessageTimelineController extends ChangeNotifier
     _timeline?.cancelSubscriptions();
     super.dispose();
   }
+}
+
+// ── Thread unread helpers (SDK; converts with this file) ─────
+
+int threadUnreadCountFor({
+  required Event root,
+  required Timeline timeline,
+  required Room room,
+  required String myUserId,
+}) {
+  if (!root.hasAggregatedEvents(timeline, RelationshipTypes.thread)) {
+    return 0;
+  }
+  final children =
+      root.aggregatedEvents(timeline, RelationshipTypes.thread).toList();
+  return _threadUnreadCountFromChildren(
+    rootEventId: root.eventId,
+    children: children,
+    room: room,
+    myUserId: myUserId,
+  );
+}
+
+int _threadUnreadCountFromChildren({
+  required String rootEventId,
+  required List<Event> children,
+  required Room room,
+  required String myUserId,
+}) {
+  final receipt = room.receiptState.byThread[rootEventId]?.latestOwnReceipt;
+  final receiptTs = receipt?.ts ?? 0;
+  var count = 0;
+  for (final child in children) {
+    if (child.senderId == myUserId) continue;
+    if (child.originServerTs.millisecondsSinceEpoch > receiptTs) count++;
+  }
+  return count;
 }
 
 // ── Per-event message cache ──────────────────────────────

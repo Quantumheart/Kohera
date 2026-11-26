@@ -1,5 +1,5 @@
 import 'package:kohera/core/utils/reply_fallback.dart';
-import 'package:kohera/features/chat/services/thread_summary.dart';
+import 'package:kohera/data/models/kohera_thread_summary.dart';
 import 'package:material_ui/material_ui.dart';
 
 class ThreadListTile extends StatelessWidget {
@@ -9,27 +9,23 @@ class ThreadListTile extends StatelessWidget {
     super.key,
   });
 
-  final ThreadSummary summary;
+  final KoheraThreadSummary summary;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final root = summary.root;
-    final lastReply = summary.lastReply;
-    final preview = root.redacted
+    final preview = summary.rootRedacted
         ? '[redacted]'
-        : stripReplyFallback(root.body).trim();
-    final replySender =
-        lastReply?.senderFromMemoryOrFallback.displayName ??
-            lastReply?.senderId ??
-            '';
-    final replyText = lastReply == null
+        : stripReplyFallback(summary.rootBody).trim();
+    final replySender = summary.lastReplySenderName ?? '';
+    final replyBody = summary.lastReplyBody;
+    final replyText = replyBody == null
         ? ''
-        : (lastReply.redacted
+        : (summary.lastReplyRedacted
             ? '[redacted]'
-            : stripReplyFallback(lastReply.body).trim());
+            : stripReplyFallback(replyBody).trim());
     final hasUnread = summary.unreadCount > 0;
 
     final previewLabel = preview.isEmpty ? 'Thread' : preview;
@@ -80,7 +76,7 @@ class ThreadListTile extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 2),
-                    if (lastReply != null)
+                    if (replyBody != null)
                       Text(
                         '$replySender: $replyText',
                         maxLines: 1,
