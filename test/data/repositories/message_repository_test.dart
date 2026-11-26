@@ -42,6 +42,93 @@ void main() {
     });
   });
 
+  group('getTimeline', () {
+    late MockRoom room;
+    late _FakeTimeline sdkTimeline;
+    void Function()? capturedOnUpdate;
+
+    setUp(() {
+      room = MockRoom();
+      sdkTimeline = _FakeTimeline();
+      capturedOnUpdate = null;
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
+      when(
+        room.getTimeline(
+          eventContextId: anyNamed('eventContextId'),
+          onUpdate: anyNamed('onUpdate'),
+          onInsert: anyNamed('onInsert'),
+          onChange: anyNamed('onChange'),
+          onRemove: anyNamed('onRemove'),
+        ),
+      ).thenAnswer((invocation) async {
+        capturedOnUpdate =
+            invocation.namedArguments[#onUpdate] as void Function()?;
+        return sdkTimeline;
+      });
+    });
+
+    test('returns null for unknown room', () async {
+      expect(await repo.getTimeline('!unknown:example.com'), isNull);
+    });
+
+    test('converts the current event list', () async {
+      sdkTimeline.eventsList = [
+        _FakeEvent(eventId: r'$a:s', body: 'first'),
+        _FakeEvent(eventId: r'$b:s', body: 'second'),
+      ];
+
+      final timeline = await repo.getTimeline('!room:example.com');
+
+      expect(timeline, isNotNull);
+      expect(timeline!.roomId, '!room:example.com');
+      expect(timeline.events, hasLength(2));
+      expect(timeline.events[0].eventId, r'$a:s');
+      expect(timeline.events[1].body, 'second');
+      timeline.dispose();
+    });
+
+    test('publishes converted snapshots on SDK updates', () async {
+      final timeline = await repo.getTimeline('!room:example.com');
+      final emitted = <List<String>>[];
+      final sub = timeline!.onEvents.listen(
+        (events) => emitted.add(events.map((e) => e.eventId).toList()),
+      );
+
+      sdkTimeline.eventsList = [_FakeEvent(eventId: r'$new:s')];
+      capturedOnUpdate!.call();
+
+      expect(timeline.events.single.eventId, r'$new:s');
+      await Future<void>.delayed(Duration.zero);
+      expect(emitted, [
+        [r'$new:s'],
+      ]);
+      await sub.cancel();
+      timeline.dispose();
+    });
+
+    test('delegates pagination and fragmentation state', () async {
+      sdkTimeline.canRequest = true;
+      sdkTimeline.allowNew = false;
+
+      final timeline = await repo.getTimeline('!room:example.com');
+
+      expect(timeline!.isFragmented, isTrue);
+      expect(timeline.canRequestHistory, isTrue);
+      await timeline.requestHistory();
+      expect(sdkTimeline.historyRequests, 1);
+      timeline.dispose();
+    });
+
+    test('dispose cancels SDK subscriptions', () async {
+      final timeline = await repo.getTimeline('!room:example.com');
+      timeline!.dispose();
+
+      expect(sdkTimeline.cancelled, isTrue);
+      capturedOnUpdate!.call();
+      expect(timeline.events, isEmpty);
+    });
+  });
+
   group('dispose', () {
     test('does not notify after dispose', () {
       var notified = false;
@@ -54,6 +141,80 @@ void main() {
       expect(notified, isFalse);
     });
   });
+}
+
+class _FakeTimeline extends Fake implements Timeline {
+  List<Event> eventsList = [];
+  bool canRequest = false;
+  bool allowNew = true;
+  int historyRequests = 0;
+  bool cancelled = false;
+
+  @override
+  List<Event> get events => eventsList;
+
+  @override
+  bool get canRequestHistory => canRequest;
+
+  @override
+  bool get allowNewEvent => allowNew;
+
+  @override
+  Future<void> requestHistory({
+    StateFilter? filter,
+    int? historyCount,
+  }) async {
+    historyRequests++;
+  }
+
+  @override
+  void cancelSubscriptions() {
+    cancelled = true;
+  }
+}
+
+class _FakeEvent extends Fake implements Event {
+  _FakeEvent({required this.eventId, this.body = ''});
+
+  @override
+  final String eventId;
+
+  @override
+  final String body;
+
+  @override
+  String get senderId => '@alice:example.com';
+
+  @override
+  String get type => EventTypes.Message;
+
+  @override
+  String get messageType => MessageTypes.Text;
+
+  @override
+  DateTime get originServerTs => DateTime(2026, 2);
+
+  @override
+  bool get redacted => false;
+
+  @override
+  bool get canRedact => false;
+
+  @override
+  Map<String, Object?> get content => <String, Object?>{'body': body};
+
+  @override
+  String? get relationshipType => null;
+
+  @override
+  String? get relationshipEventId => null;
+
+  @override
+  Map<String, Object?>? get prevContent => null;
+
+  @override
+  bool hasAggregatedEvents(Timeline timeline, String relationshipType) =>
+      false;
 }
 
 class _FakeDatabase extends Fake implements DatabaseApi {

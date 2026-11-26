@@ -8,6 +8,7 @@ import 'package:kohera/data/models/kohera_reaction.dart';
 import 'package:kohera/data/models/kohera_read_receipt.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
 import 'package:kohera/data/models/kohera_state_event_text.dart';
+import 'package:kohera/data/models/kohera_timeline.dart';
 import 'package:kohera/data/resolvers/media_content_resolver.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
 import 'package:kohera/data/resolvers/poll_resolver.dart';
@@ -15,6 +16,7 @@ import 'package:kohera/data/resolvers/reaction_resolver.dart';
 import 'package:kohera/data/resolvers/read_receipt_resolver.dart';
 import 'package:kohera/data/resolvers/reply_preview_resolver.dart';
 import 'package:kohera/data/resolvers/state_event_resolver.dart';
+import 'package:kohera/data/resolvers/timeline_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/message_indexer_service.dart';
 import 'package:kohera/data/services/message_search_database.dart';
@@ -117,6 +119,37 @@ class MessageRepository extends ChangeNotifier {
       timeline,
       myUserId: myUserId,
       canRedact: canRedact,
+    );
+  }
+
+  // ── Domain model: timeline ──────────────────────────────────
+
+  /// Returns a domain timeline for [roomId], optionally rooted at
+  /// [eventContextId] (a fragmented context view).
+  ///
+  /// The returned [KoheraTimeline] owns its SDK subscriptions; callers
+  /// must dispose it.
+  Future<KoheraTimeline?> getTimeline(
+    String roomId, {
+    String? eventContextId,
+  }) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return null;
+    const resolver = TimelineResolver();
+    late KoheraTimeline koheraTimeline;
+    late Timeline sdkTimeline;
+    sdkTimeline = await room.getTimeline(
+      eventContextId: eventContextId,
+      onUpdate: () =>
+          koheraTimeline.publish(resolver.convertTimeline(sdkTimeline)),
+    );
+    return koheraTimeline = KoheraTimeline(
+      roomId: roomId,
+      events: resolver.convertTimeline(sdkTimeline),
+      canRequestHistory: () => sdkTimeline.canRequestHistory,
+      isFragmented: () => !sdkTimeline.allowNewEvent,
+      requestHistory: sdkTimeline.requestHistory,
+      onDispose: sdkTimeline.cancelSubscriptions,
     );
   }
 
