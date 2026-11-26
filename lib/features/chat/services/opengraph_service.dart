@@ -6,7 +6,6 @@ import 'package:html/parser.dart' as html_parser;
 import 'package:http/http.dart' as http;
 import 'package:kohera/features/chat/services/opengraph_io.dart'
     if (dart.library.js_interop) 'package:kohera/features/chat/services/opengraph_web.dart';
-import 'package:matrix/matrix.dart';
 
 // ── OpenGraph data model ─────────────────────────────────────
 
@@ -40,9 +39,12 @@ class _CacheEntry {
 // ── OpenGraph fetching service ───────────────────────────────
 
 class OpenGraphService {
-  OpenGraphService({http.Client? client, Client? matrixClient})
-      : _client = client ?? http.Client(),
-        _matrixClient = matrixClient;
+  OpenGraphService({
+    http.Client? client,
+    this.accessToken,
+    this.baseUri,
+    this.resolveDownloadUri,
+  }) : _client = client ?? http.Client();
 
   static const _maxCacheSize = 200;
   static const _fetchTimeout = Duration(seconds: 5);
@@ -54,7 +56,16 @@ class OpenGraphService {
   final _inFlight = <String, Future<OpenGraphData?>>{};
 
   final http.Client _client;
-  final Client? _matrixClient;
+
+  /// Homeserver credentials for the `preview_url` endpoint; the homeserver
+  /// path is skipped when either is null.
+  final String? accessToken;
+  final Uri? baseUri;
+
+  /// Resolves an `mxc://` URI to an authenticated download URL. When null,
+  /// mxc images are dropped from preview data.
+  final Future<Uri?> Function(Uri mxcUri)? resolveDownloadUri;
+
   bool _disposed = false;
 
   void dispose() {
@@ -97,9 +108,8 @@ class OpenGraphService {
   // ── Homeserver URL preview (primary path) ─────────────────
 
   Future<OpenGraphData?> _fetchViaHomeserver(String url) async {
-    final client = _matrixClient;
-    final token = client?.accessToken;
-    final base = client?.baseUri;
+    final token = accessToken;
+    final base = baseUri;
     if (token == null || base == null) return null;
 
     try {
@@ -124,9 +134,11 @@ class OpenGraphService {
       // Image.network scales to 60×60 on the client side.
       if (imageUrl != null && imageUrl.startsWith('mxc://')) {
         final mxcUri = Uri.tryParse(imageUrl);
-        final resolved = mxcUri != null
-            ? (await mxcUri.getDownloadUri(client!)).toString()
-            : null;
+        final resolver = resolveDownloadUri;
+        final resolved =
+            (mxcUri != null && resolver != null)
+                ? (await resolver(mxcUri))?.toString()
+                : null;
         imageUrl = (resolved?.isEmpty ?? true) ? null : resolved;
       }
 

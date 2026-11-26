@@ -55,6 +55,7 @@ import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:kohera/shared/widgets/pixelation_scope.dart';
 import 'package:kohera/shared/widgets/scanline_overlay.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:matrix/matrix.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
 
@@ -325,9 +326,16 @@ class _KoheraAppState extends State<KoheraApp> {
                     value: matrix,
                   ),
                   Provider<OpenGraphService>(
-                    create: (ctx) => OpenGraphService(
-                      matrixClient: ctx.read<MatrixService>().session.client,
-                    ),
+                    create: (ctx) {
+                      final client =
+                          ctx.read<MatrixService>().session.client;
+                      return OpenGraphService(
+                        accessToken: client.accessToken,
+                        baseUri: client.baseUri,
+                        resolveDownloadUri: (mxc) =>
+                            mxc.getDownloadUri(client),
+                      );
+                    },
                     dispose: (_, service) => service.dispose(),
                   ),
                   ChangeNotifierProvider<SpaceTreeRepository>.value(
