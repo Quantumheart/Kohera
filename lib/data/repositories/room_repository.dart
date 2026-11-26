@@ -107,6 +107,27 @@ class RoomRepository extends ChangeNotifier {
     if (room != null) await room.setTyping(typing, timeout: timeoutMs);
   }
 
+  /// The display name of [userId] as seen in [roomId], or null when the
+  /// room or user is unknown.
+  String? userDisplayNameInRoom(String roomId, String userId) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return null;
+    try {
+      return room.unsafeGetUserFromMemoryOrFallback(userId).displayName;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// The localized display name of [roomId], or null when unknown.
+  String? roomDisplayName(String roomId) {
+    try {
+      return _client.getRoomById(roomId)?.getLocalizedDisplayname();
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Resolves when the client's initial room load completes.
   Future<void> get roomsLoaded async {
     await _client.roomsLoading;

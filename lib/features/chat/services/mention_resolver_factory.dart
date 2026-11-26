@@ -1,31 +1,21 @@
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/chat/services/linkable_span_builder.dart';
-import 'package:matrix/matrix.dart';
 
-/// Builds a [MentionDisplayNameResolver] from a Matrix [Room].
+/// Builds a [MentionDisplayNameResolver] bound to [roomId].
 ///
-/// Resolves `@user:server` via `Room.unsafeGetUserFromMemoryOrFallback` and
-/// `!room:server` via [RoomRepository.rawRoom]. This is the boundary
-/// construction — callers that still have SDK access use this to produce the
-/// resolver.
+/// Resolves `@user:server` via the room's member display names and
+/// `!room:server` via the room's localized display name. Returns a
+/// null-resolver when [roomId] is unknown.
 MentionDisplayNameResolver mentionResolverFromRoom(
-  Room? room,
+  String? roomId,
   RoomRepository rooms,
 ) {
-  if (room == null) return (_) => null;
+  if (roomId == null || !rooms.roomExists(roomId)) return (_) => null;
   return (String identifier) {
     if (identifier.startsWith('@')) {
-      try {
-        return room.unsafeGetUserFromMemoryOrFallback(identifier).displayName;
-      } catch (_) {
-        return null;
-      }
+      return rooms.userDisplayNameInRoom(roomId, identifier);
     } else if (identifier.startsWith('!')) {
-      try {
-        return rooms.rawRoom(identifier)?.getLocalizedDisplayname();
-      } catch (_) {
-        return null;
-      }
+      return rooms.roomDisplayName(identifier);
     }
     return null;
   };

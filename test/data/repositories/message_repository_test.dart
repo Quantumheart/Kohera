@@ -262,6 +262,81 @@ void main() {
     });
   });
 
+  group('forwardMessage', () {
+    late MockRoom sourceRoom;
+    late MockRoom targetRoom;
+    late _FakeTimeline sourceTimeline;
+
+    setUp(() {
+      sourceRoom = MockRoom();
+      targetRoom = MockRoom();
+      sourceTimeline = _FakeTimeline();
+      when(mockClient.getRoomById('!source:example.com')).thenReturn(sourceRoom);
+      when(mockClient.getRoomById('!target:example.com')).thenReturn(targetRoom);
+      when(sourceRoom.getTimeline()).thenAnswer((_) async => sourceTimeline);
+      when(
+        targetRoom.sendEvent(any, type: anyNamed('type')),
+      ).thenAnswer((_) async => r'\$sent:s');
+    });
+
+    test('strips relation metadata and preserves type', () async {
+      sourceTimeline.eventsList = [
+        _FakeEvent(
+          eventId: r'\$fwd:s',
+          content: <String, Object?>{
+            'msgtype': MessageTypes.Text,
+            'body': 'edited body',
+            'm.relates_to': <String, Object?>{
+              'm.in_reply_to': <String, Object?>{'event_id': r'\$parent:s'},
+            },
+            'm.new_content': <String, Object?>{'body': 'edited body'},
+          },
+        ),
+      ];
+
+      await repo.forwardMessage(
+        targetRoomId: '!target:example.com',
+        sourceRoomId: '!source:example.com',
+        sourceEventId: r'\$fwd:s',
+      );
+
+      final captured = verify(
+        targetRoom.sendEvent(captureAny, type: captureAnyNamed('type')),
+      ).captured;
+      final content = captured[0] as Map<String, dynamic>;
+      expect(content['body'], 'edited body');
+      expect(content.containsKey('m.relates_to'), isFalse);
+      expect(content.containsKey('m.new_content'), isFalse);
+      expect(captured[1], EventTypes.Message);
+    });
+
+    test('is a no-op when the target room is unknown', () async {
+      when(mockClient.getRoomById('!target:example.com')).thenReturn(null);
+
+      await repo.forwardMessage(
+        targetRoomId: '!target:example.com',
+        sourceRoomId: '!source:example.com',
+        sourceEventId: r'\$fwd:s',
+      );
+
+      verifyNever(targetRoom.sendEvent(any, type: anyNamed('type')));
+    });
+
+    test('is a no-op when the event is unknown', () async {
+      when(
+        sourceRoom.getEventById(r'\$missing:s'),
+      ).thenAnswer((_) async => null);
+
+      await repo.forwardMessage(
+        targetRoomId: '!target:example.com',
+        sourceRoomId: '!source:example.com',
+        sourceEventId: r'\$missing:s',
+      );
+
+      verifyNever(targetRoom.sendEvent(any, type: anyNamed('type')));
+    });
+  });
+
   group('dispose', () {
     test('does not notify after dispose', () {
       var notified = false;
@@ -322,13 +397,19 @@ class _FakeTimeline extends Fake implements Timeline {
 }
 
 class _FakeEvent extends Fake implements Event {
-  _FakeEvent({required this.eventId, this.body = ''});
+  _FakeEvent({
+    required this.eventId,
+    this.body = '',
+    Map<String, Object?>? content,
+  }) : _content = content;
 
   @override
   final String eventId;
 
   @override
   final String body;
+
+  final Map<String, Object?>? _content;
 
   @override
   String get senderId => '@alice:example.com';
@@ -349,7 +430,10 @@ class _FakeEvent extends Fake implements Event {
   bool get canRedact => false;
 
   @override
-  Map<String, Object?> get content => <String, Object?>{'body': body};
+  Map<String, Object?> get content => _content ?? <String, Object?>{'body': body};
+
+  @override
+  Event getDisplayEvent(Timeline timeline) => this;
 
   @override
   String? get relationshipType => null;

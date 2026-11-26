@@ -38,7 +38,7 @@ import 'package:kohera/features/chat/services/giphy_service.dart';
 import 'package:kohera/features/chat/services/linkable_span_builder.dart';
 import 'package:kohera/features/chat/services/local_search_service.dart';
 import 'package:kohera/features/chat/services/mention_autocomplete_controller.dart';
-import 'package:kohera/features/chat/services/message_forwarder.dart';
+import 'package:kohera/features/chat/services/mention_resolver_factory.dart';
 import 'package:kohera/features/chat/services/message_timeline_controller.dart';
 import 'package:kohera/features/chat/services/paste_image_handler.dart';
 import 'package:kohera/features/chat/services/photo_send_handler.dart';
@@ -436,24 +436,18 @@ class _ChatScreenState extends State<ChatScreen>
   void _forwardMessage(String eventId) {
     final matrix = context.read<MatrixService>();
     final rooms = context.read<RoomRepository>();
-    final event = _timelineController.getEventById(eventId);
-    if (event == null) return;
-    final timeline = _timelineController.timeline;
+    if (_timelineController.getEventById(eventId) == null) return;
     final targets = rooms.roomSummaries;
     unawaited(
       ForwardMessageDialog.show(
         context,
         targets: targets,
         avatarResolver: matrix.avatarResolver,
-        onForward: (roomId) async {
-          final target = rooms.rawRoom(roomId);
-          if (target == null) return;
-          await MessageForwarder.forward(
-            event: event,
-            target: target,
-            timeline: timeline,
-          );
-        },
+        onForward: (roomId) => context.read<MessageRepository>().forwardMessage(
+          targetRoomId: roomId,
+          sourceRoomId: widget.roomId,
+          sourceEventId: eventId,
+        ),
       ),
     );
   }
@@ -465,27 +459,7 @@ class _ChatScreenState extends State<ChatScreen>
   // ── Mention resolver ───────────────────────────────────
 
   MentionDisplayNameResolver _buildMentionResolver(String roomId) {
-    final rooms = context.read<RoomRepository>();
-    final room = rooms.rawRoom(roomId);
-    if (room == null) {
-      return (_) => null;
-    }
-    return (String identifier) {
-      if (identifier.startsWith('@')) {
-        try {
-          return room.unsafeGetUserFromMemoryOrFallback(identifier).displayName;
-        } catch (_) {
-          return null;
-        }
-      } else if (identifier.startsWith('!')) {
-        try {
-          return rooms.rawRoom(identifier)?.getLocalizedDisplayname();
-        } catch (_) {
-          return null;
-        }
-      }
-      return null;
-    };
+    return mentionResolverFromRoom(roomId, context.read<RoomRepository>());
   }
 
   // ── Message action helpers ─────────────────────────────
