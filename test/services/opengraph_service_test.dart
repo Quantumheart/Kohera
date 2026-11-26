@@ -513,7 +513,11 @@ void main() {
       http.Response Function(http.Request request) handler,
     ) {
       final httpClient = MockClient((request) async => handler(request));
-      return OpenGraphService(client: httpClient, matrixClient: mockMatrixClient)
+      return OpenGraphService(
+        client: httpClient,
+        accessToken: mockMatrixClient.accessToken,
+        baseUri: mockMatrixClient.baseUri,
+      )
         ..dnsResolver = (_) async => [_publicIp];
     }
 
@@ -610,7 +614,11 @@ void main() {
         }
         return onHomeserver(request);
       });
-      return OpenGraphService(client: httpClient, matrixClient: mockMatrixClient)
+      return OpenGraphService(
+        client: httpClient,
+        accessToken: mockMatrixClient.accessToken,
+        baseUri: mockMatrixClient.baseUri,
+      )
         ..dnsResolver = (_) async => [_publicIp];
     }
 
