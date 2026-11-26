@@ -75,6 +75,39 @@ class RoomRepository extends ChangeNotifier {
     return const RoomMemberListResolver().resolve(room);
   }
 
+  /// Locally known members of [roomId] (no network fetch).
+  List<KoheraRoomMember> cachedMembers(String roomId) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return const [];
+    return [
+      for (final u in room.getParticipants())
+        KoheraRoomMember(
+          userId: u.id,
+          displayname: u.calcDisplayname(),
+          membership: u.membership.name,
+          powerLevel: u.powerLevel.level,
+          avatarUrl: u.avatarUrl?.toString(),
+        ),
+    ];
+  }
+
+  /// Fetches the full member list of [roomId] from the server.
+  Future<List<KoheraRoomMember>> requestMembers(String roomId) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return const [];
+    final users = await room.requestParticipants();
+    return [
+      for (final u in users)
+        KoheraRoomMember(
+          userId: u.id,
+          displayname: u.calcDisplayname(),
+          membership: u.membership.name,
+          powerLevel: u.powerLevel.level,
+          avatarUrl: u.avatarUrl?.toString(),
+        ),
+    ];
+  }
+
   // ── Room operations (write path) ──────────────────────────────
 
   Future<void> joinRoom(String roomId) => _client.joinRoom(roomId);
