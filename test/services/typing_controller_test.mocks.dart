@@ -136,6 +136,29 @@ class MockRoomRepository extends _i1.Mock implements _i4.RoomRepository {
           as _i6.Future<_i8.KoheraRoomMemberList?>);
 
   @override
+  List<_i8.KoheraRoomMember> cachedMembers(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#cachedMembers, [roomId]),
+            returnValue: <_i8.KoheraRoomMember>[],
+            returnValueForMissingStub: <_i8.KoheraRoomMember>[],
+          )
+          as List<_i8.KoheraRoomMember>);
+
+  @override
+  _i6.Future<List<_i8.KoheraRoomMember>> requestMembers(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#requestMembers, [roomId]),
+            returnValue: _i6.Future<List<_i8.KoheraRoomMember>>.value(
+              <_i8.KoheraRoomMember>[],
+            ),
+            returnValueForMissingStub:
+                _i6.Future<List<_i8.KoheraRoomMember>>.value(
+                  <_i8.KoheraRoomMember>[],
+                ),
+          )
+          as _i6.Future<List<_i8.KoheraRoomMember>>);
+
+  @override
   _i6.Future<void> joinRoom(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#joinRoom, [roomId]),
@@ -195,6 +218,22 @@ class MockRoomRepository extends _i1.Mock implements _i4.RoomRepository {
             returnValueForMissingStub: _i6.Future<void>.value(),
           )
           as _i6.Future<void>);
+
+  @override
+  String? userDisplayNameInRoom(String? roomId, String? userId) =>
+      (super.noSuchMethod(
+            Invocation.method(#userDisplayNameInRoom, [roomId, userId]),
+            returnValueForMissingStub: null,
+          )
+          as String?);
+
+  @override
+  String? roomDisplayName(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#roomDisplayName, [roomId]),
+            returnValueForMissingStub: null,
+          )
+          as String?);
 
   @override
   _i6.Future<void> sendText(String? roomId, String? text) =>

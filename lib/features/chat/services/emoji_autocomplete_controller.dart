@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:kohera/data/models/sticker_pack.dart';
 import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
 
 /// Encapsulates autocomplete state and logic for custom emoji triggered by `:`.
 ///
@@ -14,7 +13,7 @@ class EmojiAutocompleteController extends ChangeNotifier {
   EmojiAutocompleteController({
     required this.textController,
     required this.stickerPackService,
-    required this.room,
+    required this.roomId,
     this.debounceDuration = const Duration(milliseconds: 100),
   }) {
     textController.addListener(_onTextChanged);
@@ -22,7 +21,7 @@ class EmojiAutocompleteController extends ChangeNotifier {
 
   final TextEditingController textController;
   final StickerPackRepository stickerPackService;
-  final Room room;
+  final String roomId;
   @visibleForTesting
   final Duration debounceDuration;
 
@@ -105,7 +104,7 @@ class EmojiAutocompleteController extends ChangeNotifier {
 
   void _updateSuggestions() {
     if (_disposed) return;
-    final packs = stickerPackService.packsForRoom(room);
+    final packs = stickerPackService.packsForRoomId(roomId);
     final lowerQuery = _query.toLowerCase();
 
     final allEmoji = <PackImage>[

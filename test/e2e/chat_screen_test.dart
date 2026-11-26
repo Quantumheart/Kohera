@@ -146,6 +146,11 @@ void main() {
       (invocation) =>
           mockClient.getRoomById(invocation.positionalArguments[0] as String),
     );
+    when(mockRoomRepository.roomExists(any)).thenAnswer(
+      (invocation) =>
+          mockClient.getRoomById(invocation.positionalArguments[0] as String) !=
+          null,
+    );
     when(mockRoomRepository.userId).thenReturn(_myUserId);
     when(mockRoomRepository.ignoredUsers).thenReturn([]);
     when(mockRoomRepository.encryption).thenReturn(null);

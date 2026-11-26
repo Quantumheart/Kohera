@@ -1,6 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/data/services/media_resolver.dart';
 import 'package:kohera/features/chat/services/mention_autocomplete_controller.dart';
@@ -22,6 +24,7 @@ import 'package:shared_preferences/shared_preferences.dart';
   MockSpec<Client>(),
   MockSpec<TypingController>(),
   MockSpec<OpenGraphService>(),
+  MockSpec<RoomRepository>(),
 ])
 import 'compose_bar_test.mocks.dart';
 
@@ -88,12 +91,13 @@ Widget _wrap({
   return withPrefs;
 }
 
-MockUser _makeUser(String id, String? displayName) {
-  final user = MockUser();
-  when(user.id).thenReturn(id);
-  when(user.displayName).thenReturn(displayName);
-  when(user.avatarUrl).thenReturn(null);
-  return user;
+KoheraRoomMember _makeMember(String id, String? displayName) {
+  return KoheraRoomMember(
+    userId: id,
+    displayname: displayName ?? id,
+    membership: 'join',
+    powerLevel: 0,
+  );
 }
 
 void main() {
@@ -343,24 +347,22 @@ void main() {
 
   group('ComposeBar with mention autocomplete', () {
     late TextEditingController controller;
-    late MockRoom mockRoom;
-    late MockClient mockClient;
-    late List<MockUser> members;
+    late MockRoomRepository mockRoomRepository;
 
     setUp(() {
       controller = TextEditingController();
-      mockRoom = MockRoom();
-      mockClient = MockClient();
+      mockRoomRepository = MockRoomRepository();
 
-      members = [
-        _makeUser('@alice:example.com', 'Alice'),
-        _makeUser('@bob:example.com', 'Bob'),
+      final members = [
+        _makeMember('@alice:example.com', 'Alice'),
+        _makeMember('@bob:example.com', 'Bob'),
       ];
 
-      when(mockRoom.client).thenReturn(mockClient);
-      when(mockRoom.id).thenReturn('!room:example.com');
-      when(mockRoom.getParticipants()).thenReturn(members);
-      when(mockRoom.requestParticipants()).thenAnswer((_) async => members);
+      when(mockRoomRepository.cachedMembers('!room:example.com'))
+          .thenReturn(members);
+      when(mockRoomRepository.requestMembers('!room:example.com'))
+          .thenAnswer((_) async => members);
+      when(mockRoomRepository.roomSummaries).thenReturn(const []);
     });
 
     tearDown(() {
@@ -374,8 +376,8 @@ void main() {
           onSend: () {},
           mentionController: MentionAutocompleteController(
             textController: controller,
-            room: mockRoom,
-            joinedRooms: [],
+            roomId: '!room:example.com',
+            roomRepository: mockRoomRepository,
           ),
         ),
       );
@@ -395,8 +397,8 @@ void main() {
           onSend: () => sendCount++,
           mentionController: MentionAutocompleteController(
             textController: controller,
-            room: mockRoom,
-            joinedRooms: [],
+            roomId: '!room:example.com',
+            roomRepository: mockRoomRepository,
           ),
         ),
       );
@@ -424,8 +426,8 @@ void main() {
           onSend: () => sendCount++,
           mentionController: MentionAutocompleteController(
             textController: controller,
-            room: mockRoom,
-            joinedRooms: [],
+            roomId: '!room:example.com',
+            roomRepository: mockRoomRepository,
           ),
         ),
       );
@@ -450,8 +452,8 @@ void main() {
           onSend: () {},
           mentionController: MentionAutocompleteController(
             textController: controller,
-            room: mockRoom,
-            joinedRooms: [],
+            roomId: '!room:example.com',
+            roomRepository: mockRoomRepository,
           ),
         ),
       );
@@ -473,8 +475,8 @@ void main() {
           onSend: () {},
           mentionController: MentionAutocompleteController(
             textController: controller,
-            room: mockRoom,
-            joinedRooms: [],
+            roomId: '!room:example.com',
+            roomRepository: mockRoomRepository,
           ),
         ),
       );

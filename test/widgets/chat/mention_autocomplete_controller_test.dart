@@ -1,48 +1,56 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/chat/services/mention_autocomplete_controller.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-@GenerateNiceMocks([
-  MockSpec<Room>(),
-  MockSpec<User>(),
-  MockSpec<Client>(),
-])
+@GenerateNiceMocks([MockSpec<RoomRepository>()])
 import 'mention_autocomplete_controller_test.mocks.dart';
 
-MockUser _makeUser(String id, String? displayName, {Uri? avatarUrl}) {
-  final user = MockUser();
-  when(user.id).thenReturn(id);
-  when(user.displayName).thenReturn(displayName);
-  when(user.avatarUrl).thenReturn(avatarUrl);
-  return user;
+KoheraRoomMember _makeUser(String id, String? displayName) {
+  return KoheraRoomMember(
+    userId: id,
+    displayname: displayName ?? id,
+    membership: 'join',
+    powerLevel: 0,
+  );
 }
 
-MockRoom _makeJoinedRoom(String id, String name, {String alias = ''}) {
-  final room = MockRoom();
-  when(room.id).thenReturn(id);
-  when(room.getLocalizedDisplayname()).thenReturn(name);
-  when(room.canonicalAlias).thenReturn(alias);
-  when(room.avatar).thenReturn(null);
-  return room;
+KoheraRoomSummary _makeJoinedRoom(String id, String name,
+    {String alias = ''}) {
+  return KoheraRoomSummary(
+    roomId: id,
+    displayname: name,
+    isDirectChat: false,
+    isEncrypted: false,
+    isSpace: false,
+    notificationCount: 0,
+    highlightCount: 0,
+    typingDisplayNames: const [],
+    pinnedEventIds: const [],
+    spaceChildCount: 0,
+    isFavourite: false,
+    lastEventPreview: '',
+    lastEventIsThreadReply: false,
+    canonicalAlias: alias.isEmpty ? null : alias,
+  );
 }
 
 void main() {
   group('MentionAutocompleteController', () {
     late TextEditingController textCtrl;
-    late MockRoom mockRoom;
-    late MockClient mockClient;
-    late List<MockUser> members;
-    late List<Room> joinedRooms;
+    late MockRoomRepository mockRoomRepository;
+    late List<KoheraRoomMember> members;
+    late List<KoheraRoomSummary> joinedRooms;
 
     setUp(() {
       textCtrl = TextEditingController();
-      mockRoom = MockRoom();
-      mockClient = MockClient();
+      mockRoomRepository = MockRoomRepository();
 
       members = [
         _makeUser('@alice:example.com', 'Alice'),
@@ -50,9 +58,9 @@ void main() {
         _makeUser('@charlie:example.com', 'Charlie'),
       ];
 
-      when(mockRoom.client).thenReturn(mockClient);
-      when(mockRoom.getParticipants()).thenReturn(members);
-      when(mockRoom.requestParticipants())
+      when(mockRoomRepository.cachedMembers('!room:example.com'))
+          .thenReturn(members);
+      when(mockRoomRepository.requestMembers('!room:example.com'))
           .thenAnswer((_) async => members);
 
       joinedRooms = [
@@ -62,6 +70,7 @@ void main() {
             alias: '#random:example.com',),
         _makeJoinedRoom('!dev:example.com', 'Development'),
       ];
+      when(mockRoomRepository.roomSummaries).thenReturn(joinedRooms);
     });
 
     tearDown(() {
@@ -73,8 +82,8 @@ void main() {
     test('typing @ activates user autocomplete', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -93,8 +102,8 @@ void main() {
     test('typing # activates room autocomplete', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -112,8 +121,8 @@ void main() {
     test('@ after whitespace activates', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -130,8 +139,8 @@ void main() {
     test('@ inside a word does not activate', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -148,8 +157,8 @@ void main() {
     test('space in query dismisses autocomplete', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -166,8 +175,8 @@ void main() {
     test('no trigger character means inactive', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -186,8 +195,8 @@ void main() {
     test('filters users by display name', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -204,12 +213,12 @@ void main() {
 
     test('filters users by MXID when displayName is null', () {
       members.add(_makeUser('@dave:example.com', null));
-      when(mockRoom.getParticipants()).thenReturn(members);
+      when(mockRoomRepository.cachedMembers('!room:example.com')).thenReturn(members);
 
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -228,8 +237,8 @@ void main() {
     test('empty query shows all members', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -246,8 +255,8 @@ void main() {
     test('filters rooms by name', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -266,8 +275,8 @@ void main() {
     test('room suggestions use canonical alias when available', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -288,8 +297,8 @@ void main() {
     test('selectSuggestion inserts mention text and dismisses', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -310,12 +319,12 @@ void main() {
 
     test('selectSuggestion uses brackets for names with spaces', () {
       members.add(_makeUser('@john.doe:example.com', 'John Doe'));
-      when(mockRoom.getParticipants()).thenReturn(members);
+      when(mockRoomRepository.cachedMembers('!room:example.com')).thenReturn(members);
 
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -336,8 +345,8 @@ void main() {
     test('selectSuggestion for room with alias inserts alias', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -356,8 +365,8 @@ void main() {
     test('selectSuggestion preserves text around trigger', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -379,8 +388,8 @@ void main() {
     test('moveDown increments selectedIndex', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -401,8 +410,8 @@ void main() {
     test('moveUp decrements selectedIndex', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -424,8 +433,8 @@ void main() {
     test('moveDown clamps at end of suggestions', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -445,8 +454,8 @@ void main() {
     test('moveUp clamps at 0', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -464,8 +473,8 @@ void main() {
     test('confirmSelection does nothing when suggestions empty', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -486,8 +495,8 @@ void main() {
     test('dismiss clears state', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -510,8 +519,8 @@ void main() {
     test('hasSuggestions is true only when active with suggestions', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -536,14 +545,14 @@ void main() {
     // ── Async member loading ───────────────────────────────
 
     test('requestParticipants updates suggestions when complete', () async {
-      final completer = Completer<List<User>>();
-      when(mockRoom.requestParticipants())
+      final completer = Completer<List<KoheraRoomMember>>();
+      when(mockRoomRepository.requestMembers('!room:example.com'))
           .thenAnswer((_) => completer.future);
 
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -569,14 +578,14 @@ void main() {
     });
 
     test('requestParticipants callback does not throw after dispose', () async {
-      final completer = Completer<List<User>>();
-      when(mockRoom.requestParticipants())
+      final completer = Completer<List<KoheraRoomMember>>();
+      when(mockRoomRepository.requestMembers('!room:example.com'))
           .thenAnswer((_) => completer.future);
 
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
@@ -597,8 +606,8 @@ void main() {
     test('selectedIndex resets when query changes', () {
       final ctrl = MentionAutocompleteController(
         textController: textCtrl,
-        room: mockRoom,
-        joinedRooms: joinedRooms,
+        roomId: '!room:example.com',
+        roomRepository: mockRoomRepository,
         debounceDuration: Duration.zero,
       );
 
