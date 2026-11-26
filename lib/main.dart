@@ -86,6 +86,7 @@ class _KoheraAppState extends State<KoheraApp> {
   ThemeData? _splashDark;
   final _ringtoneService = RingtoneService();
   RoomSnapshotService? _roomSnapshotService;
+  RoomRepository? _shareInRooms;
   AvatarCacheService? _avatarCacheService;
   ShareIntakeController? _shareIntake;
   DeepLinkService? _deepLinkService;
@@ -111,13 +112,15 @@ class _KoheraAppState extends State<KoheraApp> {
   void _bindShareIn(MatrixService service) {
     _roomSnapshotService?.dispose();
     _shareIntake?.dispose();
+    _shareInRooms?.dispose();
     unawaited(_avatarCacheService?.dispose());
     _avatarCacheService = AvatarCacheService(
       mediaResolver: service.mediaResolver,
       getAppGroupPath: _getAppGroupPath,
     );
+    _shareInRooms = RoomRepository(clientService: service.matrixClientService);
     _roomSnapshotService = RoomSnapshotService(
-      client: service.session.client,
+      rooms: _shareInRooms!,
       sink: ShareInStore(),
       avatarCache: _avatarCacheService,
     )..start();
@@ -178,7 +181,7 @@ class _KoheraAppState extends State<KoheraApp> {
       // so these long-lived services resolve it lazily instead of capturing a
       // now-stale instance.
       _shareIntake = ShareIntakeController(
-        clientManager: clientManager,
+        rooms: _shareInRooms!,
         router: () => _router!,
       )..start();
       // Start deep-link listener now that the router exists. The shared

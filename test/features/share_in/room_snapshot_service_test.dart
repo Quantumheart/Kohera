@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/share_in/models/room_snapshot.dart';
 import 'package:kohera/features/share_in/services/room_snapshot_service.dart';
 import 'package:kohera/features/share_in/services/share_in_store.dart';
@@ -55,7 +57,7 @@ void main() {
 
   RoomSnapshotService startService({Duration flushInterval = const Duration(seconds: 10)}) {
     return RoomSnapshotService(
-      client: client,
+      rooms: RoomRepository(clientService: MatrixClientService(client)),
       sink: sink,
       flushInterval: flushInterval,
     )..start();
