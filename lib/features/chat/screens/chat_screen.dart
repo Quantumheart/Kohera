@@ -20,7 +20,6 @@ import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/models/sticker_pack.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
-import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
@@ -305,24 +304,23 @@ class _ChatScreenState extends State<ChatScreen>
   EmojiAutocompleteController? _emojiController;
 
   void _initControllers() {
-    final room = context.read<RoomRepository>().rawRoom(widget.roomId);
-    if (room != null) {
+    final rooms = context.read<RoomRepository>();
+    if (rooms.roomExists(widget.roomId)) {
       _typingCtrl = TypingController(
-        roomId: room.id,
-        rooms: context.read<RoomRepository>(),
+        roomId: widget.roomId,
+        rooms: rooms,
       );
       _voiceCtrl = VoiceRecordingController();
-      final joinedRooms = context.read<SpaceTreeRepository>().rooms;
       _mentionController = MentionAutocompleteController(
         textController: _msgCtrl,
-        room: room,
-        joinedRooms: joinedRooms,
+        roomId: widget.roomId,
+        roomRepository: rooms,
       );
       final stickerService = context.read<StickerPackRepository>();
       _emojiController = EmojiAutocompleteController(
         textController: _msgCtrl,
         stickerPackService: stickerService,
-        room: room,
+        roomId: widget.roomId,
       );
     }
   }

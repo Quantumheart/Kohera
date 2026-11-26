@@ -4,18 +4,17 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
-import 'dart:async' as _i10;
+import 'dart:async' as _i9;
 
-import 'package:kohera/data/models/sticker_pack.dart' as _i7;
+import 'package:kohera/data/models/sticker_pack.dart' as _i6;
 import 'package:kohera/data/repositories/sticker_pack_repository.dart' as _i3;
-import 'package:kohera/data/services/media_resolver.dart' as _i9;
+import 'package:kohera/data/services/media_resolver.dart' as _i8;
 import 'package:kohera/features/chat/services/emoji_autocomplete_controller.dart'
-    as _i5;
-import 'package:listen/src/listen.dart' as _i8;
+    as _i4;
+import 'package:listen/src/listen.dart' as _i7;
 import 'package:material_ui/material_ui.dart' as _i2;
-import 'package:matrix/matrix.dart' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i6;
+import 'package:mockito/src/dummies.dart' as _i5;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -45,13 +44,8 @@ class _FakeStickerPackRepository_1 extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
-class _FakeRoom_2 extends _i1.SmartFake implements _i4.Room {
-  _FakeRoom_2(Object parent, Invocation parentInvocation)
-    : super(parent, parentInvocation);
-}
-
-class _FakeDuration_3 extends _i1.SmartFake implements Duration {
-  _FakeDuration_3(Object parent, Invocation parentInvocation)
+class _FakeDuration_2 extends _i1.SmartFake implements Duration {
+  _FakeDuration_2(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
@@ -59,7 +53,7 @@ class _FakeDuration_3 extends _i1.SmartFake implements Duration {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockEmojiAutocompleteController extends _i1.Mock
-    implements _i5.EmojiAutocompleteController {
+    implements _i4.EmojiAutocompleteController {
   @override
   _i2.TextEditingController get textController =>
       (super.noSuchMethod(
@@ -91,26 +85,29 @@ class MockEmojiAutocompleteController extends _i1.Mock
           as _i3.StickerPackRepository);
 
   @override
-  _i4.Room get room =>
+  String get roomId =>
       (super.noSuchMethod(
-            Invocation.getter(#room),
-            returnValue: _FakeRoom_2(this, Invocation.getter(#room)),
-            returnValueForMissingStub: _FakeRoom_2(
+            Invocation.getter(#roomId),
+            returnValue: _i5.dummyValue<String>(
               this,
-              Invocation.getter(#room),
+              Invocation.getter(#roomId),
+            ),
+            returnValueForMissingStub: _i5.dummyValue<String>(
+              this,
+              Invocation.getter(#roomId),
             ),
           )
-          as _i4.Room);
+          as String);
 
   @override
   Duration get debounceDuration =>
       (super.noSuchMethod(
             Invocation.getter(#debounceDuration),
-            returnValue: _FakeDuration_3(
+            returnValue: _FakeDuration_2(
               this,
               Invocation.getter(#debounceDuration),
             ),
-            returnValueForMissingStub: _FakeDuration_3(
+            returnValueForMissingStub: _FakeDuration_2(
               this,
               Invocation.getter(#debounceDuration),
             ),
@@ -130,11 +127,11 @@ class MockEmojiAutocompleteController extends _i1.Mock
   String get query =>
       (super.noSuchMethod(
             Invocation.getter(#query),
-            returnValue: _i6.dummyValue<String>(
+            returnValue: _i5.dummyValue<String>(
               this,
               Invocation.getter(#query),
             ),
-            returnValueForMissingStub: _i6.dummyValue<String>(
+            returnValueForMissingStub: _i5.dummyValue<String>(
               this,
               Invocation.getter(#query),
             ),
@@ -142,13 +139,13 @@ class MockEmojiAutocompleteController extends _i1.Mock
           as String);
 
   @override
-  List<_i7.PackImage> get suggestions =>
+  List<_i6.PackImage> get suggestions =>
       (super.noSuchMethod(
             Invocation.getter(#suggestions),
-            returnValue: <_i7.PackImage>[],
-            returnValueForMissingStub: <_i7.PackImage>[],
+            returnValue: <_i6.PackImage>[],
+            returnValueForMissingStub: <_i6.PackImage>[],
           )
-          as List<_i7.PackImage>);
+          as List<_i6.PackImage>);
 
   @override
   int get selectedIndex =>
@@ -196,7 +193,7 @@ class MockEmojiAutocompleteController extends _i1.Mock
   );
 
   @override
-  void selectSuggestion(_i7.PackImage? emoji) => super.noSuchMethod(
+  void selectSuggestion(_i6.PackImage? emoji) => super.noSuchMethod(
     Invocation.method(#selectSuggestion, [emoji]),
     returnValueForMissingStub: null,
   );
@@ -214,13 +211,13 @@ class MockEmojiAutocompleteController extends _i1.Mock
   );
 
   @override
-  void addListener(_i8.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i7.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i8.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i7.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -235,9 +232,9 @@ class MockEmojiAutocompleteController extends _i1.Mock
 /// A class which mocks [MediaResolver].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockMediaResolver extends _i1.Mock implements _i9.MediaResolver {
+class MockMediaResolver extends _i1.Mock implements _i8.MediaResolver {
   @override
-  _i10.Future<_i9.MediaThumbnail?> resolve(
+  _i9.Future<_i8.MediaThumbnail?> resolve(
     String? mxcUrl, {
     required double? width,
     required double? height,
@@ -248,8 +245,8 @@ class MockMediaResolver extends _i1.Mock implements _i9.MediaResolver {
               [mxcUrl],
               {#width: width, #height: height},
             ),
-            returnValue: _i10.Future<_i9.MediaThumbnail?>.value(),
-            returnValueForMissingStub: _i10.Future<_i9.MediaThumbnail?>.value(),
+            returnValue: _i9.Future<_i8.MediaThumbnail?>.value(),
+            returnValueForMissingStub: _i9.Future<_i8.MediaThumbnail?>.value(),
           )
-          as _i10.Future<_i9.MediaThumbnail?>);
+          as _i9.Future<_i8.MediaThumbnail?>);
 }

@@ -3,13 +3,11 @@ import 'package:kohera/data/models/sticker_pack.dart';
 import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/features/chat/services/emoji_autocomplete_controller.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
   MockSpec<StickerPackRepository>(),
-  MockSpec<Room>(),
 ])
 import 'emoji_autocomplete_controller_test.mocks.dart';
 
@@ -34,12 +32,11 @@ StickerPack _makePack(List<PackImage> emoji, {String id = 'test-pack'}) =>
 EmojiAutocompleteController _makeCtrl({
   required TextEditingController textCtrl,
   required MockStickerPackRepository service,
-  required MockRoom room,
 }) =>
     EmojiAutocompleteController(
       textController: textCtrl,
       stickerPackService: service,
-      room: room,
+      roomId: '!room:example.com',
       debounceDuration: Duration.zero,
     );
 
@@ -47,7 +44,6 @@ void main() {
   group('EmojiAutocompleteController', () {
     late TextEditingController textCtrl;
     late MockStickerPackRepository mockService;
-    late MockRoom mockRoom;
 
     final waveEmoji = _makeEmoji('wave', body: 'Waving hand');
     final thumbsUpEmoji = _makeEmoji('thumbsup', body: 'Thumbs up');
@@ -57,8 +53,7 @@ void main() {
     setUp(() {
       textCtrl = TextEditingController();
       mockService = MockStickerPackRepository();
-      mockRoom = MockRoom();
-      when(mockService.packsForRoom(any)).thenReturn([testPack]);
+      when(mockService.packsForRoomId('!room:example.com')).thenReturn([testPack]);
     });
 
     tearDown(() {
@@ -69,7 +64,7 @@ void main() {
 
     test('no text → not active', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       expect(ctrl.isActive, isFalse);
 
@@ -78,7 +73,7 @@ void main() {
 
     test('plain text without colon → not active', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: 'hello world',
@@ -92,7 +87,7 @@ void main() {
 
     test(': at position 0 → active with empty query', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':',
@@ -107,7 +102,7 @@ void main() {
 
     test(':abc → active with query "abc"', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':wav',
@@ -122,7 +117,7 @@ void main() {
 
     test(': after space → active', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: 'hello :wav',
@@ -137,7 +132,7 @@ void main() {
 
     test(': after newline → active', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: 'hello\n:wav',
@@ -151,7 +146,7 @@ void main() {
 
     test(': after non-whitespace → not active', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: 'word:wav',
@@ -165,7 +160,7 @@ void main() {
 
     test('space in query → dismissed', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':wave hand',
@@ -179,7 +174,7 @@ void main() {
 
     test('closed shortcode :wave: → not active', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':wave:',
@@ -193,7 +188,7 @@ void main() {
 
     test('non-collapsed selection → not active', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':wav',
@@ -209,7 +204,7 @@ void main() {
 
     test('empty query → returns all emoji from pack', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':',
@@ -223,7 +218,7 @@ void main() {
 
     test('query matches shortcode → filtered results', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':wav',
@@ -238,7 +233,7 @@ void main() {
 
     test('query matches body → filtered results', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':waving',
@@ -253,7 +248,7 @@ void main() {
 
     test('matching is case-insensitive', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':WAV',
@@ -268,7 +263,7 @@ void main() {
 
     test('no match → empty suggestions', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':zzzznotanemoji',
@@ -283,11 +278,11 @@ void main() {
     test('results capped at 20 even with many emoji', () {
       final manyEmoji =
           List.generate(30, (i) => _makeEmoji('emoji_$i'));
-      when(mockService.packsForRoom(any))
+      when(mockService.packsForRoomId('!room:example.com'))
           .thenReturn([_makePack(manyEmoji)]);
 
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':',
@@ -302,10 +297,10 @@ void main() {
     test('emoji from multiple packs are combined', () {
       final packA = _makePack([waveEmoji], id: 'pack-a');
       final packB = _makePack([thumbsUpEmoji, heartEmoji], id: 'pack-b');
-      when(mockService.packsForRoom(any)).thenReturn([packA, packB]);
+      when(mockService.packsForRoomId('!room:example.com')).thenReturn([packA, packB]);
 
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':',
@@ -321,7 +316,7 @@ void main() {
 
     test('selectSuggestion inserts :shortcode: and dismisses', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':wav',
@@ -340,7 +335,7 @@ void main() {
 
     test('selectSuggestion inserts the grapheme for built-in OpenMoji', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':grin',
@@ -365,7 +360,7 @@ void main() {
 
     test('selectSuggestion preserves text before trigger', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: 'hello :wav',
@@ -381,7 +376,7 @@ void main() {
 
     test('selectSuggestion preserves text after cursor', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':wav thanks',
@@ -397,7 +392,7 @@ void main() {
 
     test('confirmSelection selects item at selectedIndex', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':',
@@ -414,7 +409,7 @@ void main() {
 
     test('confirmSelection does nothing when suggestions empty', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':zzzznotanemoji',
@@ -432,7 +427,7 @@ void main() {
 
     test('moveDown increments selectedIndex', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':',
@@ -450,7 +445,7 @@ void main() {
 
     test('moveDown clamps at last suggestion', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':',
@@ -467,7 +462,7 @@ void main() {
 
     test('moveUp decrements selectedIndex', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':',
@@ -486,7 +481,7 @@ void main() {
 
     test('moveUp clamps at 0', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':',
@@ -501,7 +496,7 @@ void main() {
 
     test('moveDown does nothing when suggestions empty', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':zzzzz',
@@ -517,7 +512,7 @@ void main() {
 
     test('selectedIndex resets when query changes', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':',
@@ -540,7 +535,7 @@ void main() {
 
     test('dismiss() clears all state', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':wav',
@@ -562,7 +557,7 @@ void main() {
 
     test('hasSuggestions is true only when active with results', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       expect(ctrl.hasSuggestions, isFalse);
 
@@ -586,7 +581,7 @@ void main() {
 
     test('text changes after dispose do not throw', () {
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       ctrl.dispose();
 
@@ -598,10 +593,10 @@ void main() {
     });
 
     test('no packs → empty suggestions but still active', () {
-      when(mockService.packsForRoom(any)).thenReturn([]);
+      when(mockService.packsForRoomId('!room:example.com')).thenReturn([]);
 
       final ctrl = _makeCtrl(
-          textCtrl: textCtrl, service: mockService, room: mockRoom,);
+          textCtrl: textCtrl, service: mockService);
 
       textCtrl.value = const TextEditingValue(
         text: ':wav',

@@ -1,7 +1,8 @@
 import 'dart:async';
 
+import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
 
 /// The type of mention trigger detected in the compose bar.
 enum MentionTriggerType { user, room }
@@ -38,16 +39,16 @@ class MentionSuggestion {
 class MentionAutocompleteController extends ChangeNotifier {
   MentionAutocompleteController({
     required this.textController,
-    required this.room,
-    required this.joinedRooms,
+    required this.roomId,
+    required this.roomRepository,
     this.debounceDuration = const Duration(milliseconds: 150),
   }) {
     textController.addListener(_onTextChanged);
   }
 
   final TextEditingController textController;
-  final Room room;
-  final List<Room> joinedRooms;
+  final String roomId;
+  final RoomRepository roomRepository;
   @visibleForTesting
   final Duration debounceDuration;
 
@@ -63,7 +64,7 @@ class MentionAutocompleteController extends ChangeNotifier {
   int _selectedIndex = 0;
 
   /// Cached room members, loaded on first `@` trigger.
-  List<User>? _cachedMembers;
+  List<KoheraRoomMember>? _cachedMembers;
   bool _loadingMembers = false;
 
   bool get isActive => _isActive;
@@ -154,9 +155,9 @@ class MentionAutocompleteController extends ChangeNotifier {
   void _filterUsers() {
     if (_cachedMembers == null && !_loadingMembers) {
       // Start with locally known members, then fetch full list.
-      _cachedMembers = room.getParticipants();
+      _cachedMembers = roomRepository.cachedMembers(roomId);
       _loadingMembers = true;
-      unawaited(room.requestParticipants().then((members) {
+      unawaited(roomRepository.requestMembers(roomId).then((members) {
         if (_disposed) return;
         _cachedMembers = members;
         _loadingMembers = false;
@@ -176,33 +177,34 @@ class MentionAutocompleteController extends ChangeNotifier {
     final lowerQuery = _query.toLowerCase();
     _suggestions = members
         .where((u) {
-          final name = u.displayName?.toLowerCase();
-          final id = u.id.toLowerCase();
-          return (name != null && name.contains(lowerQuery)) ||
-              id.contains(lowerQuery);
+          return u.displayname.toLowerCase().contains(lowerQuery) ||
+              u.userId.toLowerCase().contains(lowerQuery);
         })
         .take(20)
         .map((u) => MentionSuggestion(
               type: MentionTriggerType.user,
-              displayName: u.displayName ?? u.id,
-              id: u.id,
-              avatarUrl: u.avatarUrl,
+              displayName: u.displayname,
+              id: u.userId,
+              avatarUrl:
+                  u.avatarUrl != null ? Uri.tryParse(u.avatarUrl!) : null,
             ),)
         .toList();
   }
 
   void _filterRooms() {
     final lowerQuery = _query.toLowerCase();
-    _suggestions = joinedRooms
-        .where((r) =>
-            r.getLocalizedDisplayname().toLowerCase().contains(lowerQuery),)
+    _suggestions = roomRepository.roomSummaries
+        .where((r) => r.displayname.toLowerCase().contains(lowerQuery))
         .take(20)
         .map((r) => MentionSuggestion(
               type: MentionTriggerType.room,
-              displayName: r.getLocalizedDisplayname(),
-              id: r.canonicalAlias.isNotEmpty ? r.canonicalAlias : r.id,
-              avatarUrl: r.avatar,
-              roomId: r.id,
+              displayName: r.displayname,
+              id: (r.canonicalAlias != null && r.canonicalAlias!.isNotEmpty)
+                  ? r.canonicalAlias!
+                  : r.roomId,
+              avatarUrl:
+                  r.avatarUrl != null ? Uri.tryParse(r.avatarUrl!) : null,
+              roomId: r.roomId,
             ),)
         .toList();
   }
