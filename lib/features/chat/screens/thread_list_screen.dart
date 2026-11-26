@@ -1,9 +1,9 @@
 // coverage:ignore-file
 import 'dart:async';
 
+import 'package:kohera/data/models/kohera_thread_summary.dart';
+import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
-import 'package:kohera/features/chat/services/thread_roots_service.dart';
-import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/widgets/thread_list_tile.dart';
 import 'package:kohera/shared/widgets/kohera_loader.dart';
 import 'package:material_ui/material_ui.dart';
@@ -26,7 +26,7 @@ class ThreadListScreen extends StatefulWidget {
 }
 
 class _ThreadListScreenState extends State<ThreadListScreen> {
-  List<ThreadSummary>? _summaries;
+  List<KoheraThreadSummary>? _summaries;
   StreamSubscription<dynamic>? _syncSub;
   bool _loading = true;
   String? _error;
@@ -40,16 +40,10 @@ class _ThreadListScreenState extends State<ThreadListScreen> {
   Future<void> _refresh() async {
     if (!mounted) return;
     final rooms = context.read<RoomRepository>();
-    final room = rooms.rawRoom(widget.roomId);
-    if (room == null) {
-      if (mounted) setState(() => _loading = false);
-      return;
-    }
     try {
-      final summaries = await fetchThreadSummaries(
-        client: rooms.searchClient,
-        room: room,
-      );
+      final summaries = await context
+          .read<MessageRepository>()
+          .fetchThreadSummaries(widget.roomId);
       if (!mounted) return;
       setState(() {
         _summaries = summaries;
@@ -77,10 +71,11 @@ class _ThreadListScreenState extends State<ThreadListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final room = context.watch<RoomRepository>().rawRoom(widget.roomId);
+    final roomExists =
+        context.watch<RoomRepository>().roomExists(widget.roomId);
     final tt = Theme.of(context).textTheme;
 
-    if (room == null) {
+    if (!roomExists) {
       return Scaffold(
         appBar: AppBar(title: const Text('Threads')),
         body: Center(child: Text('Room not found', style: tt.bodyLarge)),
@@ -103,7 +98,7 @@ class _ThreadListScreenState extends State<ThreadListScreen> {
           final s = summaries[i];
           return ThreadListTile(
             summary: s,
-            onTap: () => widget.onOpenThread(s.root.eventId),
+            onTap: () => widget.onOpenThread(s.rootEventId),
           );
         },
       );

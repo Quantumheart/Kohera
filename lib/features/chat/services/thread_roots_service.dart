@@ -1,36 +1,4 @@
-import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:matrix/matrix.dart';
-
-Future<List<ThreadSummary>> fetchThreadSummaries({
-  required Client client,
-  required Room room,
-  int limit = 50,
-}) async {
-  final myUserId = client.userID ?? '';
-  final response = await client.getThreadRoots(room.id, limit: limit);
-
-  final summaries = <ThreadSummary>[];
-  for (final raw in response.chunk) {
-    final root = await _decryptIfNeeded(
-      client,
-      Event.fromMatrixEvent(raw, room),
-    );
-    final children = await fetchThreadChildren(client, room, root.eventId);
-    summaries.add(
-      ThreadSummary(
-        root: root,
-        children: children,
-        unreadCount: unreadCountFromChildren(
-          rootEventId: root.eventId,
-          children: children,
-          room: room,
-          myUserId: myUserId,
-        ),
-      ),
-    );
-  }
-  return summaries;
-}
 
 class ThreadChildrenPage {
   ThreadChildrenPage({required this.events, this.nextBatch});

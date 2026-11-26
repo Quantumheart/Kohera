@@ -43,7 +43,6 @@ import 'package:kohera/features/chat/services/message_timeline_controller.dart';
 import 'package:kohera/features/chat/services/paste_image_handler.dart';
 import 'package:kohera/features/chat/services/photo_send_handler.dart';
 import 'package:kohera/features/chat/services/room_search_service.dart';
-import 'package:kohera/features/chat/services/thread_roots_service.dart';
 import 'package:kohera/features/chat/services/thread_summary.dart';
 import 'package:kohera/features/chat/services/typing_controller.dart';
 import 'package:kohera/features/chat/services/voice_recording_controller.dart';
@@ -194,20 +193,20 @@ class _ChatScreenState extends State<ChatScreen>
     }
     if (!mounted) return;
     unawaited(
-      context.read<MessageRepository>().ensureRoomIndexed(room, priority: true),
+      context
+          .read<MessageRepository>()
+          .ensureRoomIndexed(widget.roomId, priority: true),
     );
   }
 
   Future<void> _refreshThreadUnreadCount() async {
     if (!mounted) return;
     final rooms = context.read<RoomRepository>();
-    final room = rooms.rawRoom(widget.roomId);
-    if (room == null) return;
+    if (!rooms.roomExists(widget.roomId)) return;
     try {
-      final summaries = await fetchThreadSummaries(
-        client: rooms.searchClient,
-        room: room,
-      );
+      final summaries = await context
+          .read<MessageRepository>()
+          .fetchThreadSummaries(widget.roomId);
       if (!mounted) return;
       setState(() => _threadUnreadCount = totalThreadUnread(summaries));
       _threadCountSyncSub ??= rooms.onSync.listen((_) {
@@ -963,11 +962,10 @@ class _ChatScreenState extends State<ChatScreen>
     _search.open();
     _searchCtrl.clear();
     // Ensure the room's encrypted history is indexed for search.
-    final room = context.read<RoomRepository>().rawRoom(widget.roomId);
-    if (room != null && room.encrypted) {
+    if (context.read<RoomRepository>().getRoomEncrypted(widget.roomId)) {
       unawaited(
         context.read<MessageRepository>().ensureRoomIndexed(
-          room,
+          widget.roomId,
           priority: true,
         ),
       );
