@@ -328,12 +328,11 @@ class _ChatScreenState extends State<ChatScreen>
   ChatMessageActions _createActions() {
     return ChatMessageActions(
       getRoomId: () => widget.roomId,
-      getRoom: () => context.read<RoomRepository>().rawRoom(widget.roomId),
-      getTimeline: () => _timelineController.timeline,
       compose: _compose,
       msgCtrl: _msgCtrl,
       getScaffold: () => ScaffoldMessenger.of(context),
       getRoomRepository: () => context.read<RoomRepository>(),
+      getMessageRepository: () => context.read<MessageRepository>(),
     );
   }
 
@@ -500,9 +499,9 @@ class _ChatScreenState extends State<ChatScreen>
             ? null
             : () => showEmojiPickerSheet(
                 context,
-                (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
+                (emoji) => unawaited(_actions.toggleReaction(event.eventId, emoji)),
               ),
-        onPin: canPin ? () => unawaited(_actions.togglePin(event)) : null,
+        onPin: canPin ? () => unawaited(_actions.togglePin(event.eventId)) : null,
         onDelete: !isRedacted && event.canRedact
             ? () => confirmAndDeleteEvent(
                 context,
@@ -588,7 +587,7 @@ class _ChatScreenState extends State<ChatScreen>
           icon: Icons.add_reaction_outlined,
           onTap: () => showEmojiPickerSheet(
             context,
-            (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
+            (emoji) => unawaited(_actions.toggleReaction(event.eventId, emoji)),
           ),
         ),
         if (isMe)
@@ -642,7 +641,7 @@ class _ChatScreenState extends State<ChatScreen>
           MessageAction(
             label: isPinned ? 'Unpin' : 'Pin',
             icon: isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
-            onTap: () => unawaited(_actions.togglePin(event)),
+            onTap: () => unawaited(_actions.togglePin(event.eventId)),
           ),
         if (!isMe)
           MessageAction(
@@ -675,7 +674,7 @@ class _ChatScreenState extends State<ChatScreen>
       avatarResolver: matrix.avatarResolver,
       mentionResolver: _buildMentionResolver(event.room.id),
       mediaResolver: matrix.mediaResolver,
-      onQuickReact: (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
+      onQuickReact: (emoji) => unawaited(_actions.toggleReaction(event.eventId, emoji)),
     );
   }
 
@@ -767,9 +766,9 @@ class _ChatScreenState extends State<ChatScreen>
         onReply: () => _setReplyTo(eventId),
         onReact: () => showEmojiPickerSheet(
           context,
-          (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
+          (emoji) => unawaited(_actions.toggleReaction(event.eventId, emoji)),
         ),
-        onPin: () => unawaited(_actions.togglePin(event)),
+        onPin: () => unawaited(_actions.togglePin(event.eventId)),
         onForward: () => _forwardMessage(eventId),
       ),
     );
@@ -798,7 +797,7 @@ class _ChatScreenState extends State<ChatScreen>
       avatarResolver: matrix.avatarResolver,
       mentionResolver: _buildMentionResolver(event.room.id),
       mediaResolver: matrix.mediaResolver,
-      onQuickReact: (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
+      onQuickReact: (emoji) => unawaited(_actions.toggleReaction(event.eventId, emoji)),
       actions: [
         MessageAction(
           label: 'Reply',
@@ -810,7 +809,7 @@ class _ChatScreenState extends State<ChatScreen>
           icon: Icons.add_reaction_outlined,
           onTap: () => showEmojiPickerSheet(
             context,
-            (emoji) => unawaited(_actions.toggleReaction(event, emoji)),
+            (emoji) => unawaited(_actions.toggleReaction(event.eventId, emoji)),
           ),
         ),
         MessageAction(
@@ -821,7 +820,7 @@ class _ChatScreenState extends State<ChatScreen>
         MessageAction(
           label: isPinned ? 'Unpin' : 'Pin',
           icon: isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
-          onTap: () => unawaited(_actions.togglePin(event)),
+          onTap: () => unawaited(_actions.togglePin(event.eventId)),
         ),
         MessageAction(
           label: 'Copy link',
@@ -1288,12 +1287,12 @@ class _ChatScreenState extends State<ChatScreen>
                 onToggleReaction: (eventId, emoji) async {
                   final event = _timelineController.getEventById(eventId);
                   if (event != null) {
-                    await _actions.toggleReaction(event, emoji);
+                    await _actions.toggleReaction(event.eventId, emoji);
                   }
                 },
                 onPin: (eventId) async {
                   final event = _timelineController.getEventById(eventId);
-                  if (event != null) await _actions.togglePin(event);
+                  if (event != null) await _actions.togglePin(event.eventId);
                 },
                 onHighlight: _search.setHighlight,
                 onScrollBack: isTouchDevice ? _dismissKeyboard : null,

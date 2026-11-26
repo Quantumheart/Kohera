@@ -1,53 +1,43 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
+import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/chat/services/chat_message_actions.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
-  MockSpec<Room>(),
-  MockSpec<Event>(),
-  MockSpec<Timeline>(),
-  MockSpec<Client>(),
   MockSpec<ScaffoldMessengerState>(),
-  MockSpec<RoomRepository>()
+  MockSpec<RoomRepository>(),
+  MockSpec<MessageRepository>(),
 ])
 import 'chat_message_actions_test.mocks.dart';
 
 void main() {
-  late MockRoom mockRoom;
-  late MockEvent mockEvent;
-  late MockTimeline mockTimeline;
   late MockScaffoldMessengerState mockScaffold;
   late MockRoomRepository mockRoomRepository;
+  late MockMessageRepository mockMessageRepository;
   late ComposeStateController compose;
   late TextEditingController msgCtrl;
   late ChatMessageActions actions;
 
   setUp(() {
-    mockRoom = MockRoom();
-    mockEvent = MockEvent();
-    mockTimeline = MockTimeline();
     mockScaffold = MockScaffoldMessengerState();
+    mockRoomRepository = MockRoomRepository();
+    mockMessageRepository = MockMessageRepository();
     compose = ComposeStateController();
     msgCtrl = TextEditingController();
-    mockRoomRepository = MockRoomRepository();
 
     when(mockRoomRepository.userId).thenReturn('@me:example.com');
-    when(mockEvent.room).thenReturn(mockRoom);
-    when(mockEvent.eventId).thenReturn(r'$event1');
     actions = ChatMessageActions(
       getRoomId: () => '!room:example.com',
-      getRoom: () => mockRoom,
-      getTimeline: () => mockTimeline,
       compose: compose,
       msgCtrl: msgCtrl,
       getScaffold: () => mockScaffold,
       getRoomRepository: () => mockRoomRepository,
+      getMessageRepository: () => mockMessageRepository,
     );
   });
 
@@ -57,57 +47,24 @@ void main() {
   });
 
   group('toggleReaction', () {
-    test('returns early when timeline is null', () async {
-      final nullTimelineActions = ChatMessageActions(
-        getRoomId: () => '!room:example.com',
-        getRoom: () => mockRoom,
-        getTimeline: () => null,
-        compose: compose,
-        msgCtrl: msgCtrl,
-        getScaffold: () => mockScaffold,
-        getRoomRepository: () => mockRoomRepository,
-      );
+    test('delegates to the repository', () async {
+      await actions.toggleReaction(r'$event1', '👍');
 
-      await nullTimelineActions.toggleReaction(mockEvent, '👍');
-
-      verifyNever(mockRoom.sendReaction(any, any));
-    });
-
-    test('sends reaction when no existing reaction found', () async {
-      when(mockEvent.aggregatedEvents(mockTimeline, RelationshipTypes.reaction))
-          .thenReturn(<Event>{});
-      when(mockRoom.sendReaction(any, any))
-          .thenAnswer((_) async => r'$reaction');
-
-      await actions.toggleReaction(mockEvent, '👍');
-
-      verify(mockRoom.sendReaction(r'$event1', '👍')).called(1);
-    });
-
-    test('redacts existing reaction', () async {
-      final existingReaction = MockEvent();
-      when(existingReaction.senderId).thenReturn('@me:example.com');
-      when(existingReaction.content).thenReturn({
-        'm.relates_to': {'key': '👍'},
-      });
-      when(existingReaction.redactEvent()).thenAnswer((_) async => r'$redact');
-
-      when(mockEvent.aggregatedEvents(mockTimeline, RelationshipTypes.reaction))
-          .thenReturn(<Event>{existingReaction});
-
-      await actions.toggleReaction(mockEvent, '👍');
-
-      verify(existingReaction.redactEvent()).called(1);
-      verifyNever(mockRoom.sendReaction(any, any));
+      verify(
+        mockMessageRepository.toggleReaction(
+          '!room:example.com',
+          r'$event1',
+          '👍',
+        ),
+      ).called(1);
     });
 
     test('shows snackbar on error', () async {
-      when(mockEvent.aggregatedEvents(mockTimeline, RelationshipTypes.reaction))
-          .thenReturn(<Event>{});
-      when(mockRoom.sendReaction(any, any))
-          .thenThrow(Exception('network error'));
+      when(
+        mockMessageRepository.toggleReaction(any, any, any),
+      ).thenThrow(Exception('network error'));
 
-      await actions.toggleReaction(mockEvent, '👍');
+      await actions.toggleReaction(r'$event1', '👍');
 
       verify(mockScaffold.showSnackBar(any)).called(1);
     });
@@ -115,29 +72,35 @@ void main() {
 
   group('togglePin', () {
     test('pins an unpinned message', () async {
-      when(mockRoom.pinnedEventIds).thenReturn([]);
-      when(mockRoom.setPinnedEvents(any)).thenAnswer((_) async => '');
+      when(mockRoomRepository.isPinned(any, any)).thenReturn(false);
 
-      await actions.togglePin(mockEvent);
+      await actions.togglePin(r'$event1');
 
-      verify(mockRoom.setPinnedEvents([r'$event1'])).called(1);
+      verify(mockRoomRepository.setPinned(
+        '!room:example.com',
+        r'$event1',
+        true,
+      )).called(1);
     });
 
     test('unpins a pinned message', () async {
-      when(mockRoom.pinnedEventIds).thenReturn([r'$event1']);
-      when(mockRoom.setPinnedEvents(any)).thenAnswer((_) async => '');
+      when(mockRoomRepository.isPinned(any, any)).thenReturn(true);
 
-      await actions.togglePin(mockEvent);
+      await actions.togglePin(r'$event1');
 
-      verify(mockRoom.setPinnedEvents([])).called(1);
+      verify(mockRoomRepository.setPinned(
+        '!room:example.com',
+        r'$event1',
+        false,
+      )).called(1);
     });
 
     test('shows snackbar on error', () async {
-      when(mockRoom.pinnedEventIds).thenReturn([]);
-      when(mockRoom.setPinnedEvents(any))
+      when(mockRoomRepository.isPinned(any, any)).thenReturn(false);
+      when(mockRoomRepository.setPinned(any, any, any))
           .thenThrow(Exception('permission denied'));
 
-      await actions.togglePin(mockEvent);
+      await actions.togglePin(r'$event1');
 
       verify(mockScaffold.showSnackBar(any)).called(1);
     });
@@ -149,30 +112,28 @@ void main() {
 
       await actions.send();
 
-      verifyNever(mockRoom.sendTextEvent(any));
+      verifyNever(mockMessageRepository.sendText(any, any));
     });
 
-    test('sends text event and clears compose state', () async {
+    test('sends text and clears compose state', () async {
       msgCtrl.text = 'hello world';
-      when(mockRoom.sendTextEvent(
-        any,
-        inReplyTo: anyNamed('inReplyTo'),
-        editEventId: anyNamed('editEventId'),
-      ),).thenAnswer((_) async => r'$sent');
 
       await actions.send();
 
-      verify(mockRoom.sendTextEvent(
+      verify(mockMessageRepository.sendText(
+        '!room:example.com',
         'hello world',
-        inReplyTo: anyNamed('inReplyTo'),
+        inReplyToEventId: anyNamed('inReplyToEventId'),
         editEventId: anyNamed('editEventId'),
-      ),).called(1);
+        threadRootEventId: anyNamed('threadRootEventId'),
+        threadLastEventId: anyNamed('threadLastEventId'),
+      )).called(1);
       expect(msgCtrl.text, isEmpty);
       expect(compose.replyNotifier.value, isNull);
       expect(compose.editNotifier.value, isNull);
     });
 
-    test('sends with inReplyTo when reply is set', () async {
+    test('sends with inReplyToEventId when reply is set', () async {
       compose.replyNotifier.value = const KoheraReplyPreview(
         parentMessageId: r'$reply1',
         parentSenderId: '@alice:example.com',
@@ -180,20 +141,17 @@ void main() {
         parentBody: 'hello',
       );
       msgCtrl.text = 'my reply';
-      when(mockRoom.getEventById(any)).thenAnswer((_) async => MockEvent());
-      when(mockRoom.sendTextEvent(
-        any,
-        inReplyTo: anyNamed('inReplyTo'),
-        editEventId: anyNamed('editEventId'),
-      ),).thenAnswer((_) async => r'$sent');
 
       await actions.send();
 
-      verify(mockRoom.sendTextEvent(
+      verify(mockMessageRepository.sendText(
+        '!room:example.com',
         'my reply',
-        inReplyTo: anyNamed('inReplyTo'),
+        inReplyToEventId: r'$reply1',
         editEventId: anyNamed('editEventId'),
-      ),).called(1);
+        threadRootEventId: anyNamed('threadRootEventId'),
+        threadLastEventId: anyNamed('threadLastEventId'),
+      )).called(1);
     });
 
     test('sends with editEventId when edit is set', () async {
@@ -204,19 +162,17 @@ void main() {
         parentBody: 'original',
       );
       msgCtrl.text = 'edited text';
-      when(mockRoom.sendTextEvent(
-        any,
-        inReplyTo: anyNamed('inReplyTo'),
-        editEventId: anyNamed('editEventId'),
-      ),).thenAnswer((_) async => r'$sent');
 
       await actions.send();
 
-      verify(mockRoom.sendTextEvent(
+      verify(mockMessageRepository.sendText(
+        '!room:example.com',
         'edited text',
-        inReplyTo: anyNamed('inReplyTo'),
-        editEventId: anyNamed('editEventId'),
-      ),).called(1);
+        inReplyToEventId: anyNamed('inReplyToEventId'),
+        editEventId: r'$edit1',
+        threadRootEventId: anyNamed('threadRootEventId'),
+        threadLastEventId: anyNamed('threadLastEventId'),
+      )).called(1);
     });
 
     test('restores compose state on send error', () async {
@@ -227,35 +183,20 @@ void main() {
         parentSenderName: 'Alice',
         parentBody: 'hello',
       );
-      when(mockRoom.getEventById(any)).thenAnswer((_) async => MockEvent());
-      when(mockRoom.sendTextEvent(
+      when(mockMessageRepository.sendText(
         any,
-        inReplyTo: anyNamed('inReplyTo'),
+        any,
+        inReplyToEventId: anyNamed('inReplyToEventId'),
         editEventId: anyNamed('editEventId'),
-      ),).thenThrow(Exception('send failed'));
+        threadRootEventId: anyNamed('threadRootEventId'),
+        threadLastEventId: anyNamed('threadLastEventId'),
+      )).thenThrow(Exception('send failed'));
 
       await actions.send();
 
       expect(msgCtrl.text, 'will fail');
       expect(compose.replyNotifier.value?.parentMessageId, r'$reply1');
       verify(mockScaffold.showSnackBar(any)).called(1);
-    });
-
-    test('returns early when room is null', () async {
-      final nullRoomActions = ChatMessageActions(
-        getRoomId: () => '!room:example.com',
-        getRoom: () => null,
-        getTimeline: () => mockTimeline,
-        compose: compose,
-        msgCtrl: msgCtrl,
-        getScaffold: () => mockScaffold,
-        getRoomRepository: () => mockRoomRepository,
-      );
-      msgCtrl.text = 'hello';
-
-      await nullRoomActions.send();
-
-      verifyNever(mockRoom.sendTextEvent(any));
     });
   });
 }
