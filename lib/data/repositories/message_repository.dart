@@ -8,6 +8,7 @@ import 'package:kohera/data/models/kohera_reaction.dart';
 import 'package:kohera/data/models/kohera_read_receipt.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
 import 'package:kohera/data/models/kohera_state_event_text.dart';
+import 'package:kohera/data/models/kohera_thread_summary.dart';
 import 'package:kohera/data/models/kohera_timeline.dart';
 import 'package:kohera/data/resolvers/media_content_resolver.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
@@ -153,6 +154,100 @@ class MessageRepository extends ChangeNotifier {
     );
   }
 
+  // ── Domain model: thread summaries ──────────────────────────
+
+  /// Fetches thread roots for [roomId] from the server, with each root's
+  /// replies, decrypted where possible, as domain summaries.
+  ///
+  /// Returns an empty list when the room is unknown locally.
+  Future<List<KoheraThreadSummary>> fetchThreadSummaries(
+    String roomId, {
+    int limit = 50,
+  }) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return const [];
+    final myUserId = _client.userID ?? '';
+    final response = await _client.getThreadRoots(room.id, limit: limit);
+
+    final summaries = <KoheraThreadSummary>[];
+    for (final raw in response.chunk) {
+      final root = await _decryptIfNeeded(
+        Event.fromMatrixEvent(raw, room),
+      );
+      final children = await _fetchThreadChildren(room, root.eventId);
+      final lastReply = children.isEmpty ? null : children.last;
+      summaries.add(
+        KoheraThreadSummary(
+          rootEventId: root.eventId,
+          rootBody: root.body,
+          rootRedacted: root.redacted,
+          rootTimestamp: root.originServerTs,
+          replyCount: children.length,
+          unreadCount: _threadUnreadCount(
+            room: room,
+            rootEventId: root.eventId,
+            children: children,
+            myUserId: myUserId,
+          ),
+          lastActivity: lastReply?.originServerTs ?? root.originServerTs,
+          lastReplySenderName: lastReply == null
+              ? null
+              : lastReply.senderFromMemoryOrFallback.displayName ??
+                  lastReply.senderId,
+          lastReplyBody: lastReply?.body,
+          lastReplyRedacted: lastReply?.redacted ?? false,
+        ),
+      );
+    }
+    summaries.sort((a, b) => b.lastActivity.compareTo(a.lastActivity));
+    return summaries;
+  }
+
+  Future<List<Event>> _fetchThreadChildren(Room room, String rootEventId) async {
+    final relations = await _client.getRelatingEventsWithRelType(
+      room.id,
+      rootEventId,
+      RelationshipTypes.thread,
+      limit: 100,
+    );
+    final events = <Event>[];
+    for (final raw in relations.chunk) {
+      events.add(await _decryptIfNeeded(Event.fromMatrixEvent(raw, room)));
+    }
+    events.sort((a, b) => a.originServerTs.compareTo(b.originServerTs));
+    return events;
+  }
+
+  Future<Event> _decryptIfNeeded(Event event) async {
+    if (event.type != EventTypes.Encrypted) return event;
+    final encryption = _client.encryption;
+    if (encryption == null) return event;
+    try {
+      final decrypted = await encryption
+          .decryptRoomEvent(event)
+          .timeout(const Duration(seconds: 3));
+      return decrypted;
+    } catch (_) {
+      return event;
+    }
+  }
+
+  static int _threadUnreadCount({
+    required Room room,
+    required String rootEventId,
+    required List<Event> children,
+    required String myUserId,
+  }) {
+    final receipt = room.receiptState.byThread[rootEventId]?.latestOwnReceipt;
+    final receiptTs = receipt?.ts ?? 0;
+    var count = 0;
+    for (final child in children) {
+      if (child.senderId == myUserId) continue;
+      if (child.originServerTs.millisecondsSinceEpoch > receiptTs) count++;
+    }
+    return count;
+  }
+
   // ── Timeline access (transitional) ───────────────────────────
 
   Future<Timeline?> timelineFor(String roomId) async {
@@ -166,9 +261,12 @@ class MessageRepository extends ChangeNotifier {
   /// Starts the local search index (subscribes to sync; no backfill yet).
   Future<void> initSearchIndex() => _indexer.init();
 
-  /// Ensures [room]'s history is indexed for local search (background).
-  Future<void> ensureRoomIndexed(Room room, {bool priority = false}) =>
-      _indexer.ensureRoomIndexed(room, priority: priority);
+  /// Ensures [roomId]'s history is indexed for local search (background).
+  Future<void> ensureRoomIndexed(String roomId, {bool priority = false}) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return Future.value();
+    return _indexer.ensureRoomIndexed(room, priority: priority);
+  }
 
   /// `true` while any room's search backfill is in progress.
   bool get isIndexing => _indexer.isIndexing;

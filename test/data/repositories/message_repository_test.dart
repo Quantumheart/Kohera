@@ -129,6 +129,139 @@ void main() {
     });
   });
 
+  group('fetchThreadSummaries', () {
+    late MockRoom room;
+
+    MatrixEvent rawMessage(
+      String id,
+      String sender,
+      DateTime ts, {
+      String body = 'x',
+    }) {
+      return MatrixEvent(
+        type: EventTypes.Message,
+        eventId: id,
+        senderId: sender,
+        originServerTs: ts,
+        content: <String, Object?>{
+          'msgtype': MessageTypes.Text,
+          'body': body,
+        },
+      );
+    }
+
+    setUp(() {
+      room = MockRoom();
+      when(room.id).thenReturn('!room:example.com');
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
+      when(mockClient.userID).thenReturn('@me:example.com');
+      when(room.receiptState).thenReturn(_FakeReceipts(const {}));
+      when(room.unsafeGetUserFromMemoryOrFallback(any)).thenAnswer(
+        (invocation) =>
+            User(invocation.positionalArguments.first as String, room: room),
+      );
+    });
+
+    void stubChildren(String rootId, List<MatrixEvent> children) {
+      when(
+        mockClient.getRelatingEventsWithRelType(
+          '!room:example.com',
+          rootId,
+          RelationshipTypes.thread,
+          limit: anyNamed('limit'),
+        ),
+      ).thenAnswer(
+        (_) async => GetRelatingEventsWithRelTypeResponse(chunk: children),
+      );
+    }
+
+    test('returns empty list for unknown room', () async {
+      expect(await repo.fetchThreadSummaries('!unknown:example.com'), isEmpty);
+    });
+
+    const rootsLimit = 50;
+
+    test('builds summaries sorted by latest activity', () async {
+      when(mockClient.getThreadRoots('!room:example.com', limit: rootsLimit))
+          .thenAnswer(
+        (_) async => GetThreadRootsResponse(
+          chunk: [
+            rawMessage(r'$root1:s', '@alice:example.com', DateTime(2026, 2),
+                body: 'first thread'),
+            rawMessage(r'$root2:s', '@bob:example.com', DateTime(2026, 2, 3),
+                body: 'second thread'),
+          ],
+        ),
+      );
+      stubChildren(r'$root1:s', [
+        rawMessage(r'$r1:s', '@alice:example.com', DateTime(2026, 2, 4),
+            body: 'newer reply'),
+      ]);
+      stubChildren(r'$root2:s', [
+        rawMessage(r'$r2:s', '@me:example.com', DateTime(2026, 2, 3, 1),
+            body: 'own reply'),
+      ]);
+
+      final summaries = await repo.fetchThreadSummaries('!room:example.com');
+
+      expect(summaries, hasLength(2));
+      // root1 has the newest activity (reply at Feb 4) and sorts first.
+      expect(summaries[0].rootEventId, r'$root1:s');
+      expect(summaries[0].rootBody, 'first thread');
+      expect(summaries[0].replyCount, 1);
+      expect(summaries[0].lastReplyBody, 'newer reply');
+      expect(summaries[1].rootEventId, r'$root2:s');
+      expect(summaries[1].replyCount, 1);
+    });
+
+    test('unread counts other-user replies, excluding own', () async {
+      when(mockClient.getThreadRoots('!room:example.com', limit: 50))
+          .thenAnswer(
+        (_) async => GetThreadRootsResponse(
+          chunk: [
+            rawMessage(r'$root1:s', '@alice:example.com', DateTime(2026, 2)),
+          ],
+        ),
+      );
+      stubChildren(r'$root1:s', [
+        rawMessage(r'$r1:s', '@alice:example.com', DateTime(2026, 2, 2)),
+        rawMessage(r'$r2:s', '@me:example.com', DateTime(2026, 2, 3)),
+        rawMessage(r'$r3:s', '@bob:example.com', DateTime(2026, 2, 4)),
+      ]);
+
+      final summaries = await repo.fetchThreadSummaries('!room:example.com');
+
+      expect(summaries.single.unreadCount, 2);
+    });
+
+    test('receipt newer than a reply marks it read', () async {
+      final receiptTs = DateTime(2026, 2, 3).millisecondsSinceEpoch;
+      when(room.receiptState).thenReturn(
+        _FakeReceipts({
+          r'$root1:s': _FakeTimelineReceipts(
+            LatestReceiptStateData(r'$r1:s', receiptTs),
+          ),
+        }),
+      );
+      when(mockClient.getThreadRoots('!room:example.com', limit: 50))
+          .thenAnswer(
+        (_) async => GetThreadRootsResponse(
+          chunk: [
+            rawMessage(r'$root1:s', '@alice:example.com', DateTime(2026, 2)),
+          ],
+        ),
+      );
+      stubChildren(r'$root1:s', [
+        rawMessage(r'$r1:s', '@alice:example.com', DateTime(2026, 2, 2)),
+        rawMessage(r'$r2:s', '@alice:example.com', DateTime(2026, 2, 4)),
+      ]);
+
+      final summaries = await repo.fetchThreadSummaries('!room:example.com');
+
+      expect(summaries.single.unreadCount, 1);
+    });
+  });
+
   group('dispose', () {
     test('does not notify after dispose', () {
       var notified = false;
@@ -141,6 +274,21 @@ void main() {
       expect(notified, isFalse);
     });
   });
+}
+
+class _FakeReceipts extends Fake implements LatestReceiptState {
+  _FakeReceipts(this.byThread);
+
+  @override
+  final Map<String, LatestReceiptStateForTimeline> byThread;
+}
+
+class _FakeTimelineReceipts extends Fake
+    implements LatestReceiptStateForTimeline {
+  _FakeTimelineReceipts(this.latestOwnReceipt);
+
+  @override
+  final LatestReceiptStateData? latestOwnReceipt;
 }
 
 class _FakeTimeline extends Fake implements Timeline {
