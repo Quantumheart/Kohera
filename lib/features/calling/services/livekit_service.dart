@@ -7,10 +7,10 @@ import 'package:flutter_webrtc/flutter_webrtc.dart' as rtc;
 import 'package:http/http.dart' as http;
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/data/models/call_participant.dart' as ui;
+import 'package:kohera/data/repositories/call_repository.dart';
 import 'package:kohera/data/resolvers/call_participant_resolver.dart';
 import 'package:kohera/features/calling/models/call_state.dart';
 import 'package:livekit_client/livekit_client.dart' as livekit;
-import 'package:matrix/matrix.dart';
 
 // ── Types ──────────────────────────────────────────────────
 
@@ -55,11 +55,11 @@ class LiveKitParticipantLeft extends LiveKitParticipantEvent {
 
 class LiveKitService {
   LiveKitService({
-    required Client client,
+    required CallRepository callRepository,
     required VoidCallback onChanged,
     LiveKitRoomFactory? roomFactory,
     HttpPostFunction? httpPost,
-  })  : _client = client,
+  })  : _callRepository = callRepository,
         _onChanged = onChanged,
         _roomFactory = roomFactory ?? _defaultRoomFactory,
         httpPostForTest = httpPost ?? _sendNoAutoRedirect;
@@ -70,12 +70,13 @@ class LiveKitService {
   static const _maxRedirects = 6;
   static const _wellKnownTtl = Duration(hours: 1);
 
-  Client _client;
+  CallRepository _callRepository;
   final VoidCallback _onChanged;
   LiveKitRoomFactory _roomFactory;
   HttpPostFunction httpPostForTest;
 
-  void updateClient(Client client) => _client = client;
+  void updateRepository(CallRepository callRepository) =>
+      _callRepository = callRepository;
 
   set roomFactoryForTest(LiveKitRoomFactory factory) => _roomFactory = factory;
 
@@ -155,12 +156,10 @@ class LiveKitService {
     final result = <ui.CallParticipant>[];
     if (_livekitRoom == null) return result;
 
-    final room =
-        activeCallRoomId != null ? _client.getRoomById(activeCallRoomId) : null;
-
     Uri? avatarFor(String matrixId) {
-      if (room == null) return null;
-      return room.unsafeGetUserFromMemoryOrFallback(matrixId).avatarUrl;
+      final roomId = activeCallRoomId;
+      if (roomId == null) return null;
+      return _callRepository.avatarUrlFor(roomId, matrixId);
     }
 
     final local = _livekitRoom!.localParticipant;
@@ -381,18 +380,10 @@ class LiveKitService {
     required String livekitServiceUrl,
     required String livekitAlias,
   }) async {
-    final openId = await _client.requestOpenIdToken(
-      _client.userID!,
-      {},
-    );
+    final openId = await _callRepository.requestOpenIdToken();
 
     final headers = {'Content-Type': 'application/json'};
-    final openIdPayload = {
-      'access_token': openId.accessToken,
-      'token_type': openId.tokenType,
-      'matrix_server_name': openId.matrixServerName,
-      'expires_in': openId.expiresIn,
-    };
+    final openIdPayload = openId.toJson();
 
     final url = Uri.parse(
       _buildServiceUrl(livekitServiceUrl, 'sfu/get'),
@@ -404,7 +395,7 @@ class LiveKitService {
         jsonEncode({
           'room': livekitAlias,
           'openid_token': openIdPayload,
-          'device_id': _client.deviceID,
+          'device_id': _callRepository.deviceId,
         }),
       ),
     );
@@ -724,23 +715,15 @@ class LiveKitService {
 
   Future<void> fetchWellKnownLiveKit() async {
     try {
-      final wellKnown = await _client.getWellknown();
-      final fociList = wellKnown
-          .additionalProperties['org.matrix.msc4143.rtc_foci'] as List?;
-      if (fociList == null || fociList.isEmpty) return;
+      final serviceUrl =
+          await _callRepository.livekitServiceUrlFromWellknown();
+      if (serviceUrl == null) return;
 
-      for (final foci in fociList) {
-        if (foci is Map<String, Object?> && foci['type'] == 'livekit') {
-          final serviceUrl = foci['livekit_service_url'] as String?;
-          if (serviceUrl != null) {
-            _cachedLivekitServiceUrl = serviceUrl;
-            _wellKnownFetchedAt = DateTime.now();
-            _onChanged();
-            debugPrint('[Kohera] LiveKit service URL: $serviceUrl');
-            return;
-          }
-        }
-      }
+      _cachedLivekitServiceUrl = serviceUrl;
+      _wellKnownFetchedAt = DateTime.now();
+      _onChanged();
+      debugPrint('[Kohera] LiveKit service URL: $serviceUrl');
+      return;
     } catch (e) {
       debugPrint('[Kohera] Failed to fetch LiveKit well-known: $e');
     }

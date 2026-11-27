@@ -6,6 +6,7 @@ import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/data/repositories/auth_repository.dart';
+import 'package:kohera/data/repositories/call_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/auth/screens/registration_screen.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -106,7 +107,7 @@ void main() {
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
         ChangeNotifierProvider(
             create: (ctx) =>
-                CallService(client: ctx.read<MatrixService>().matrixClientService.client),),
+                CallService(callRepository: CallRepository(clientService: ctx.read<MatrixService>().matrixClientService)),),
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
         ChangeNotifierProvider<AuthRepository>(
           create: (_) => AuthRepository(clientService: matrixService.matrixClientService, auth: matrixService.auth, setupState: matrixService.keyBackupSetupState),

@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/data/repositories/call_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:kohera/features/settings/screens/voice_video_settings_screen.dart';
 import 'package:material_ui/material_ui.dart';
@@ -39,7 +41,7 @@ void main() {
     when(mockClient.onUiaRequest)
         .thenReturn(CachedStreamController<UiaRequest<dynamic>>());
 
-    callService = CallService(client: mockClient);
+    callService = CallService(callRepository: CallRepository(clientService: MatrixClientService(mockClient)));
   });
 
   Widget buildTestApp({bool callingAvailable = true}) {

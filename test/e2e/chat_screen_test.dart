@@ -8,6 +8,7 @@ import 'package:kohera/core/services/draft_store.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
+import 'package:kohera/data/repositories/call_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
@@ -222,7 +223,7 @@ void main() {
         ChangeNotifierProvider<RoomRepository>.value(value: mockRoomRepository),
         ChangeNotifierProvider<MessageRepository>.value(value: matrixService.session.messageRepository),
         ChangeNotifierProvider<SpaceTreeRepository>.value(value: matrixService.spaceTree),
-        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
+        ChangeNotifierProvider(create: (ctx) => CallService(callRepository: CallRepository(clientService: ctx.read<MatrixService>().matrixClientService))),
         ChangeNotifierProvider(create: (_) => PreferencesService()),
         ChangeNotifierProvider<DraftStore>(create: (_) => DraftStore(clientName: 'test')),
         ChangeNotifierProvider(create: (_) => MediaPlaybackService()),

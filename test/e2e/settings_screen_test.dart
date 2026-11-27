@@ -4,6 +4,7 @@ import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/data/repositories/call_repository.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/sticker_pack_repository.dart';
@@ -110,7 +111,7 @@ void main() {
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
         ChangeNotifierProvider<KeyBackupRepository>.value(value: matrixService.keyBackupRepository),
-        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
+        ChangeNotifierProvider(create: (ctx) => CallService(callRepository: CallRepository(clientService: ctx.read<MatrixService>().matrixClientService))),
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
         ChangeNotifierProvider(create: (_) => PreferencesService()),
         ChangeNotifierProvider(create: (ctx) => StickerPackRepository(clientService: MatrixClientService(ctx.read<MatrixService>().matrixClientService.client))),

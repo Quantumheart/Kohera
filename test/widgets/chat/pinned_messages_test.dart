@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/draft_store.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/data/repositories/call_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
@@ -87,7 +88,7 @@ Widget _buildChatWidget({
     providers: [
       ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
       ChangeNotifierProvider<SpaceTreeRepository>.value(value: selectionService),
-      ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
+      ChangeNotifierProvider(create: (ctx) => CallService(callRepository: CallRepository(clientService: ctx.read<MatrixService>().matrixClientService))),
       ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
       ChangeNotifierProvider(create: (ctx) => StickerPackRepository(clientService: MatrixClientService(ctx.read<MatrixService>().matrixClientService.client))),
       ChangeNotifierProvider<RoomRepository>(create: (_) => RoomRepository(clientService: mockMatrix.matrixClientService)),

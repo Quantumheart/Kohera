@@ -9,6 +9,7 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/repositories/call_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
@@ -112,7 +113,7 @@ Widget _buildChatWidget({
       ChangeNotifierProvider<MatrixService>.value(value: mockMatrix),
       ChangeNotifierProvider<SpaceTreeRepository>.value(value: selectionService),
       ChangeNotifierProvider(
-        create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client),
+        create: (ctx) => CallService(callRepository: CallRepository(clientService: ctx.read<MatrixService>().matrixClientService)),
       ),
       ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
       ChangeNotifierProvider(

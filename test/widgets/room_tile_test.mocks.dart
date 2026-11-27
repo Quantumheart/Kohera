@@ -6,19 +6,20 @@
 
 import 'dart:async' as _i5;
 import 'dart:typed_data' as _i11;
-import 'dart:ui' as _i20;
+import 'dart:ui' as _i21;
 
-import 'package:flutter/services.dart' as _i22;
-import 'package:flutter/widgets.dart' as _i23;
+import 'package:flutter/services.dart' as _i23;
+import 'package:flutter/widgets.dart' as _i24;
 import 'package:http/http.dart' as _i4;
 import 'package:kohera/core/services/preferences_service.dart' as _i18;
 import 'package:kohera/data/models/call_participant.dart' as _i15;
+import 'package:kohera/data/repositories/call_repository.dart' as _i20;
 import 'package:kohera/features/calling/models/call_state.dart' as _i17;
 import 'package:kohera/features/calling/models/incoming_call_info.dart' as _i16;
 import 'package:kohera/features/calling/services/call_service.dart' as _i12;
 import 'package:kohera/features/calling/services/livekit_service.dart' as _i13;
 import 'package:kohera/features/calling/services/ringtone_service.dart' as _i19;
-import 'package:listen/src/listen.dart' as _i21;
+import 'package:listen/src/listen.dart' as _i22;
 import 'package:livekit_client/livekit_client.dart' as _i14;
 import 'package:matrix/encryption.dart' as _i10;
 import 'package:matrix/matrix.dart' as _i2;
@@ -9261,18 +9262,6 @@ class MockUser extends _i1.Mock implements _i2.User {
 /// See the documentation for Mockito's code generation for more information.
 class MockCallService extends _i1.Mock implements _i12.CallService {
   @override
-  _i2.Client get client =>
-      (super.noSuchMethod(
-            Invocation.getter(#client),
-            returnValue: _FakeClient_2(this, Invocation.getter(#client)),
-            returnValueForMissingStub: _FakeClient_2(
-              this,
-              Invocation.getter(#client),
-            ),
-          )
-          as _i2.Client);
-
-  @override
   bool get initialized =>
       (super.noSuchMethod(
             Invocation.getter(#initialized),
@@ -9537,13 +9526,14 @@ class MockCallService extends _i1.Mock implements _i12.CallService {
   );
 
   @override
-  void updateClient(_i2.Client? newClient) => super.noSuchMethod(
-    Invocation.method(#updateClient, [newClient]),
-    returnValueForMissingStub: null,
-  );
+  void updateRepository(_i20.CallRepository? callRepository) =>
+      super.noSuchMethod(
+        Invocation.method(#updateRepository, [callRepository]),
+        returnValueForMissingStub: null,
+      );
 
   @override
-  void didChangeAppLifecycleState(_i20.AppLifecycleState? state) =>
+  void didChangeAppLifecycleState(_i21.AppLifecycleState? state) =>
       super.noSuchMethod(
         Invocation.method(#didChangeAppLifecycleState, [state]),
         returnValueForMissingStub: null,
@@ -9691,13 +9681,13 @@ class MockCallService extends _i1.Mock implements _i12.CallService {
   );
 
   @override
-  void addListener(_i21.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i22.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i21.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i22.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -9712,7 +9702,7 @@ class MockCallService extends _i1.Mock implements _i12.CallService {
           as _i5.Future<bool>);
 
   @override
-  bool handleStartBackGesture(_i22.PredictiveBackEvent? backEvent) =>
+  bool handleStartBackGesture(_i23.PredictiveBackEvent? backEvent) =>
       (super.noSuchMethod(
             Invocation.method(#handleStartBackGesture, [backEvent]),
             returnValue: false,
@@ -9721,7 +9711,7 @@ class MockCallService extends _i1.Mock implements _i12.CallService {
           as bool);
 
   @override
-  void handleUpdateBackGestureProgress(_i22.PredictiveBackEvent? backEvent) =>
+  void handleUpdateBackGestureProgress(_i23.PredictiveBackEvent? backEvent) =>
       super.noSuchMethod(
         Invocation.method(#handleUpdateBackGestureProgress, [backEvent]),
         returnValueForMissingStub: null,
@@ -9756,7 +9746,7 @@ class MockCallService extends _i1.Mock implements _i12.CallService {
 
   @override
   _i5.Future<bool> didPushRouteInformation(
-    _i23.RouteInformation? routeInformation,
+    _i24.RouteInformation? routeInformation,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#didPushRouteInformation, [routeInformation]),
@@ -9784,29 +9774,29 @@ class MockCallService extends _i1.Mock implements _i12.CallService {
   );
 
   @override
-  void didChangeLocales(List<_i20.Locale>? locales) => super.noSuchMethod(
+  void didChangeLocales(List<_i21.Locale>? locales) => super.noSuchMethod(
     Invocation.method(#didChangeLocales, [locales]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void didChangeViewFocus(_i20.ViewFocusEvent? event) => super.noSuchMethod(
+  void didChangeViewFocus(_i21.ViewFocusEvent? event) => super.noSuchMethod(
     Invocation.method(#didChangeViewFocus, [event]),
     returnValueForMissingStub: null,
   );
 
   @override
-  _i5.Future<_i20.AppExitResponse> didRequestAppExit() =>
+  _i5.Future<_i21.AppExitResponse> didRequestAppExit() =>
       (super.noSuchMethod(
             Invocation.method(#didRequestAppExit, []),
-            returnValue: _i5.Future<_i20.AppExitResponse>.value(
-              _i20.AppExitResponse.exit,
+            returnValue: _i5.Future<_i21.AppExitResponse>.value(
+              _i21.AppExitResponse.exit,
             ),
-            returnValueForMissingStub: _i5.Future<_i20.AppExitResponse>.value(
-              _i20.AppExitResponse.exit,
+            returnValueForMissingStub: _i5.Future<_i21.AppExitResponse>.value(
+              _i21.AppExitResponse.exit,
             ),
           )
-          as _i5.Future<_i20.AppExitResponse>);
+          as _i5.Future<_i21.AppExitResponse>);
 
   @override
   void didHaveMemoryPressure() => super.noSuchMethod(
