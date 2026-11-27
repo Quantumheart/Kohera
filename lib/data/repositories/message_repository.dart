@@ -137,16 +137,18 @@ class MessageRepository extends ChangeNotifier {
     final room = _client.getRoomById(roomId);
     if (room == null) return null;
     const resolver = TimelineResolver();
+    final myUserId = _client.userID;
     late KoheraTimeline koheraTimeline;
     late Timeline sdkTimeline;
     sdkTimeline = await room.getTimeline(
       eventContextId: eventContextId,
-      onUpdate: () =>
-          koheraTimeline.publish(resolver.convertTimeline(sdkTimeline)),
+      onUpdate: () => koheraTimeline.publish(
+        resolver.convertTimeline(sdkTimeline, myUserId: myUserId),
+      ),
     );
     return koheraTimeline = KoheraTimeline(
       roomId: roomId,
-      events: resolver.convertTimeline(sdkTimeline),
+      events: resolver.convertTimeline(sdkTimeline, myUserId: myUserId),
       canRequestHistory: () => sdkTimeline.canRequestHistory,
       isFragmented: () => !sdkTimeline.allowNewEvent,
       requestHistory: sdkTimeline.requestHistory,

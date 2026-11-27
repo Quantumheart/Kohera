@@ -1,4 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:kohera/data/models/kohera_media_content.dart';
+import 'package:kohera/data/models/kohera_message_display.dart';
+import 'package:kohera/data/models/kohera_poll.dart';
+import 'package:kohera/data/models/kohera_reaction.dart';
+import 'package:kohera/data/models/kohera_state_event_text.dart';
 
 /// SDK-free view of a single timeline event.
 ///
@@ -23,6 +28,11 @@ class KoheraTimelineEvent {
     this.relationshipEventId,
     this.prevContent,
     this.aggregatedEventIds = const {},
+    this.display,
+    this.reactions,
+    this.poll,
+    this.stateEventText,
+    this.media,
   });
 
   /// The Matrix event ID.
@@ -64,6 +74,23 @@ class KoheraTimelineEvent {
   /// Aggregated event IDs keyed by relationship type (`m.annotation`,
   /// `m.thread`, `m.replace`, `m.reference`).
   final Map<String, List<String>> aggregatedEventIds;
+
+  /// The pre-resolved display model (body, sender, status, edit/thread
+  /// state). Null for events converted without display resolution.
+  final KoheraMessageDisplay? display;
+
+  /// The pre-resolved reaction list, non-null when reaction aggregation
+  /// existed at conversion time.
+  final KoheraReactionList? reactions;
+
+  /// The pre-resolved poll state (only for poll-start events).
+  final KoheraPoll? poll;
+
+  /// The pre-resolved state event text (only for renderable state events).
+  final KoheraStateEventText? stateEventText;
+
+  /// The pre-resolved media content (only for sticker and message events).
+  final KoheraMediaContent? media;
 
   /// The [content] value at [key] when it is a [String], else null.
   String? contentString(String key) {

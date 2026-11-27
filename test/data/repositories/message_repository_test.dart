@@ -637,6 +637,37 @@ class _FakeEvent extends Fake implements Event {
   @override
   bool hasAggregatedEvents(Timeline timeline, String relationshipType) =>
       false;
+
+  @override
+  User get senderFromMemoryOrFallback => _FakeUser();
+
+  @override
+  EventStatus get status => EventStatus.synced;
+
+  @override
+  String? get transactionId => null;
+
+  @override
+  String get formattedText => '';
+
+  @override
+  Uri? get attachmentMxcUrl => null;
+}
+
+class _FakeUser extends Fake implements User {
+  @override
+  String calcDisplayname({
+    bool? formatLocalpart,
+    bool? mxidLocalPartFallback,
+    MatrixLocalizations i18n = const MatrixDefaultLocalizations(),
+  }) =>
+      'Alice';
+
+  @override
+  String? get displayName => 'Alice';
+
+  @override
+  Uri? get avatarUrl => null;
 }
 
 class _FakeDatabase extends Fake implements DatabaseApi {

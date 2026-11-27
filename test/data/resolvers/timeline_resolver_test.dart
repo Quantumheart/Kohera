@@ -6,7 +6,7 @@ import 'package:mockito/mockito.dart';
 
 import 'timeline_resolver_test.mocks.dart';
 
-@GenerateNiceMocks([MockSpec<Event>(), MockSpec<Timeline>()])
+@GenerateNiceMocks([MockSpec<Event>(), MockSpec<Timeline>(), MockSpec<User>()])
 void main() {
   late MockEvent event;
   late MockTimeline timeline;
@@ -14,6 +14,11 @@ void main() {
   setUp(() {
     event = MockEvent();
     timeline = MockTimeline();
+
+    final sender = MockUser();
+    when(sender.calcDisplayname()).thenReturn('Alice');
+    when(sender.displayName).thenReturn('Alice');
+    when(sender.avatarUrl).thenReturn(null);
 
     when(event.eventId).thenReturn(r'$evt1:server');
     when(event.senderId).thenReturn('@alice:server');
@@ -31,6 +36,12 @@ void main() {
     when(event.relationshipEventId).thenReturn(null);
     when(event.prevContent).thenReturn(null);
     when(event.hasAggregatedEvents(timeline, any)).thenReturn(false);
+    when(event.getDisplayEvent(any)).thenReturn(event);
+    when(event.senderFromMemoryOrFallback).thenReturn(sender);
+    when(event.status).thenReturn(EventStatus.synced);
+    when(event.transactionId).thenReturn(null);
+    when(event.formattedText).thenReturn('');
+    when(event.attachmentMxcUrl).thenReturn(null);
   });
 
   group('TimelineResolver.convert', () {
@@ -50,6 +61,25 @@ void main() {
       expect(result.relationshipEventId, isNull);
       expect(result.prevContent, isNull);
       expect(result.aggregatedEventIds, isEmpty);
+      expect(result.display, isNotNull);
+      expect(result.display!.senderName, 'Alice');
+      expect(result.media, isNotNull);
+      expect(result.reactions, isNull);
+      expect(result.poll, isNull);
+      expect(result.stateEventText, isNull);
+    });
+
+    test('resolves state event text for member events', () {
+      when(event.type).thenReturn(EventTypes.RoomMember);
+      when(event.content).thenReturn(<String, Object?>{
+        'membership': 'join',
+        'displayname': 'Alice',
+      });
+
+      final result = const TimelineResolver().convert(event);
+
+      expect(result.stateEventText, isNotNull);
+      expect(result.media, isNull);
     });
 
     test('maps relationship fields for thread replies', () {
@@ -128,6 +158,8 @@ void main() {
   group('TimelineResolver.convertTimeline', () {
     test('converts every event in the timeline', () {
       final other = MockEvent();
+      final otherSender = MockUser();
+      when(otherSender.calcDisplayname()).thenReturn('Bob');
       when(other.eventId).thenReturn(r'$evt2:server');
       when(other.senderId).thenReturn('@bob:server');
       when(other.type).thenReturn(EventTypes.RoomMember);
@@ -140,6 +172,11 @@ void main() {
       when(other.relationshipEventId).thenReturn(null);
       when(other.prevContent).thenReturn(null);
       when(other.hasAggregatedEvents(timeline, any)).thenReturn(false);
+      when(other.getDisplayEvent(any)).thenReturn(other);
+      when(other.senderFromMemoryOrFallback).thenReturn(otherSender);
+      when(other.status).thenReturn(EventStatus.synced);
+      when(other.transactionId).thenReturn(null);
+      when(other.formattedText).thenReturn('');
 
       when(timeline.events).thenReturn([event, other]);
 
