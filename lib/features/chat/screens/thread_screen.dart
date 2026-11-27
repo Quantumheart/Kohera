@@ -160,7 +160,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
   Widget build(BuildContext context) {
     final matrix = context.watch<MatrixService>();
     final roomExists = context.select<RoomRepository, bool>(
-      (rooms) => rooms.rawRoom(widget.roomId) != null,
+      (rooms) => rooms.roomExists(widget.roomId),
     );
     final tt = Theme.of(context).textTheme;
 

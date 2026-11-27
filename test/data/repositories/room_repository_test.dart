@@ -272,6 +272,23 @@ void main() {
 
       expect(repo.powerLevelOf('!room:example.com', '@alice:example.com'), 50);
     });
+
+    test('member count accessors delegate to the room', () async {
+      when(room.summary).thenReturn(
+        RoomSummary.fromJson({'m.joined_member_count': 7}),
+      );
+      when(room.participantListComplete).thenReturn(true);
+      when(mockClient.getJoinedMembersByRoom('!room:example.com'))
+          .thenAnswer((_) async => {'@a:s': RoomMember.fromJson({})});
+
+      expect(repo.joinedMemberCountOf('!room:example.com'), 7);
+      expect(repo.participantListComplete('!room:example.com'), isTrue);
+      expect(
+        await repo.joinedMemberCountFromServer('!room:example.com'),
+        1,
+      );
+      expect(repo.joinedMemberCountOf('!unknown:example.com'), 0);
+    });
   });
 }
 class _FakeDatabase extends Fake implements DatabaseApi {

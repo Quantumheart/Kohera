@@ -233,17 +233,11 @@ class _HeaderSubtitle extends StatelessWidget {
     final presence = this.presence;
     final userId = this.userId;
     final rooms = context.read<RoomRepository>();
-    final room = rooms.rawRoom(roomId);
     return JoinedMemberCount(
       roomId: roomId,
-      summaryMemberCount: room?.summary.mJoinedMemberCount ?? 0,
-      participantListComplete: room?.participantListComplete ?? false,
-      resolveMemberCount: (id) async {
-        final r = rooms.rawRoom(id);
-        if (r == null) return null;
-        final members = await rooms.getJoinedMembersByRoom(id);
-        return members?.length;
-      },
+      summaryMemberCount: rooms.joinedMemberCountOf(roomId),
+      participantListComplete: rooms.participantListComplete(roomId),
+      resolveMemberCount: rooms.joinedMemberCountFromServer,
       builder: (context, count) {
         if (presence == null || userId == null) {
           return Text(

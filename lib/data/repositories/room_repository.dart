@@ -752,6 +752,22 @@ class RoomRepository extends ChangeNotifier {
     return room.unsafeGetUserFromMemoryOrFallback(userId).membership.name;
   }
 
+  /// The joined member count from the room summary of [roomId], or 0
+  /// when unknown.
+  int joinedMemberCountOf(String roomId) =>
+      _client.getRoomById(roomId)?.summary.mJoinedMemberCount ?? 0;
+
+  /// Whether the participant list of [roomId] is fully loaded.
+  bool participantListComplete(String roomId) =>
+      _client.getRoomById(roomId)?.participantListComplete ?? false;
+
+  /// The number of joined members of [roomId] on the homeserver, or null
+  /// when the request fails.
+  Future<int?> joinedMemberCountFromServer(String roomId) async {
+    final members = await _client.getJoinedMembersByRoom(roomId);
+    return members?.length;
+  }
+
   // ── Read markers and receipts ─────────────────────────────
 
   /// Read receipts of other users in [roomId], keyed by event ID.
