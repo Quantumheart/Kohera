@@ -6,9 +6,8 @@ import 'package:matrix/matrix.dart';
 
 // ── Constants ──────────────────────────────────────────────
 
-const callMemberEventType = 'org.matrix.msc3401.call.member';
-const membershipExpiresMs = 14400000;
-const membershipRenewalInterval = Duration(minutes: 5);
+export 'package:kohera/data/models/call_constants.dart'
+    show callMemberEventType, membershipExpiresMs, membershipRenewalInterval;
 
 // ── RTC Membership Service ─────────────────────────────────
 
