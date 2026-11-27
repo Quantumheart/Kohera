@@ -286,6 +286,30 @@ class MockRoomRepository extends _i1.Mock implements _i4.RoomRepository {
           as _i6.Future<void>);
 
   @override
+  _i6.Future<void> sendVoiceFile(
+    String? roomId,
+    _i10.Uint8List? bytes,
+    String? name, {
+    required Duration? duration,
+    String? threadRootEventId,
+    String? threadLastEventId,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #sendVoiceFile,
+              [roomId, bytes, name],
+              {
+                #duration: duration,
+                #threadRootEventId: threadRootEventId,
+                #threadLastEventId: threadLastEventId,
+              },
+            ),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
   _i6.Future<void> setName(String? roomId, String? name) =>
       (super.noSuchMethod(
             Invocation.method(#setName, [roomId, name]),
@@ -954,6 +978,33 @@ class MockRoomRepository extends _i1.Mock implements _i4.RoomRepository {
             ),
           )
           as String);
+
+  @override
+  int joinedMemberCountOf(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#joinedMemberCountOf, [roomId]),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  bool participantListComplete(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#participantListComplete, [roomId]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  _i6.Future<int?> joinedMemberCountFromServer(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#joinedMemberCountFromServer, [roomId]),
+            returnValue: _i6.Future<int?>.value(),
+            returnValueForMissingStub: _i6.Future<int?>.value(),
+          )
+          as _i6.Future<int?>);
 
   @override
   Map<String, List<_i15.KoheraReadReceipt>> readReceipts(

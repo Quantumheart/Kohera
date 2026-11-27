@@ -71,8 +71,7 @@ class StateEventTile extends StatelessWidget {
     final router = GoRouter.of(context);
 
     try {
-      final existing = rooms.rawRoom(replacement);
-      if (existing == null) {
+      if (!rooms.roomExists(replacement)) {
         await rooms.joinRoom(replacement);
       }
       router.goNamed(Routes.room, pathParameters: {RouteParams.roomId: replacement});

@@ -132,6 +132,10 @@ void main() {
     when(mockRoomRepository.membershipOf(any, any)).thenReturn('join');
     when(mockRoomRepository.powerLevelOf(any, any)).thenReturn(0);
     when(mockRoomRepository.getRoomEncrypted(any)).thenReturn(false);
+    when(mockRoomRepository.joinedMemberCountOf(any)).thenReturn(3);
+    when(mockRoomRepository.participantListComplete(any)).thenReturn(true);
+    when(mockRoomRepository.joinedMemberCountFromServer(any))
+        .thenAnswer((_) async => 3);
   });
 
   Widget buildTestWidget() {

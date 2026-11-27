@@ -1241,8 +1241,7 @@ class _ChatScreenState extends State<ChatScreen>
   // ── Chat body (messages + compose) ────────────────────────
 
   Widget _buildChatBody(MatrixService matrix, String roomId) {
-    final room = context.read<RoomRepository>().rawRoom(roomId);
-    if (room == null) {
+    if (!context.read<RoomRepository>().roomExists(roomId)) {
       return Center(
         child: Text(
           'Room not found',
