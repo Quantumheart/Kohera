@@ -1,9 +1,9 @@
 import 'package:kohera/core/extensions/auth_error_formatter.dart';
 import 'package:kohera/core/models/upload_state.dart';
+import 'package:kohera/data/models/kohera_file_too_big_exception.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/chat/services/read_file_bytes.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 // coverage:ignore-start
@@ -19,8 +19,7 @@ Future<void> sendVoiceMessage(
 }) async {
   final scaffold = ScaffoldMessenger.of(context);
   final rooms = context.read<RoomRepository>();
-  final room = rooms.rawRoom(roomId);
-  if (room == null) return;
+  if (!rooms.roomExists(roomId)) return;
 
   final bytes = await readFileBytes(filePath);
   final name = filePath.split('/').last;
@@ -31,22 +30,16 @@ Future<void> sendVoiceMessage(
   );
 
   try {
-    final matrixFile = MatrixAudioFile(bytes: bytes, name: name);
-    await room.sendFileEvent(
-      matrixFile,
+    await rooms.sendVoiceFile(
+      roomId,
+      bytes,
+      name,
+      duration: duration,
       threadRootEventId: threadRootEventId,
       threadLastEventId: threadLastEventId,
-      extraContent: {
-        'info': {
-          'duration': duration.inMilliseconds,
-          'mimetype': 'audio/mp4',
-          'size': bytes.length,
-        },
-        'org.matrix.msc3245.voice': <String, dynamic>{},
-      },
     );
     uploadNotifier.value = null;
-  } on FileTooBigMatrixException {
+  } on KoheraFileTooBigException {
     uploadNotifier.value = null;
     scaffold.showSnackBar(
       const SnackBar(content: Text('Voice message too large for this server')),
