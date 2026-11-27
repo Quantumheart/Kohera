@@ -344,6 +344,14 @@ class _KoheraAppState extends State<KoheraApp> {
                   ChangeNotifierProvider<SelectionController>.value(
                     value: matrix.selectionController,
                   ),
+                  ChangeNotifierProvider<SpaceRepository>(
+                    create: (ctx) => SpaceRepository(
+                      clientService: ctx
+                          .read<MatrixService>()
+                          .session
+                          .matrixClientService,
+                    ),
+                  ),
                   Provider<SpaceDiscoveryDataSource>(
                     create: (ctx) =>
                         LiveSpaceDiscoveryDataSource(ctx.read<SpaceRepository>()),
@@ -459,14 +467,6 @@ class _KoheraAppState extends State<KoheraApp> {
                           .read<MatrixService>()
                           .session
                           .mediaResolver,
-                    ),
-                  ),
-                  ChangeNotifierProvider<SpaceRepository>(
-                    create: (ctx) => SpaceRepository(
-                      clientService: ctx
-                          .read<MatrixService>()
-                          .session
-                          .matrixClientService,
                     ),
                   ),
                 ],
