@@ -8,6 +8,10 @@ const kCallMemberMsc = 'org.matrix.msc3401.call.member';
 const kHangupUserHangup = 'user_hangup';
 const kHangupInviteTimeout = 'invite_timeout';
 
+const String callMemberEventType = kCallMemberMsc;
+const membershipExpiresMs = 14400000;
+const membershipRenewalInterval = Duration(minutes: 5);
+
 const kIoKoheraIsVideo = 'io.kohera.is_video';
 const kPushRuleCallMember = 'io.kohera.call_member';
 const ringPhaseExpiresMs = 60000;
