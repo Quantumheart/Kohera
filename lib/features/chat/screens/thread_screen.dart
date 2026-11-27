@@ -53,6 +53,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
     final rooms = context.read<RoomRepository>();
     _timelineController = MessageTimelineController(
       roomRepository: rooms,
+      messageRepository: context.read<MessageRepository>(),
       roomId: widget.roomId,
       sendPublicReadReceipts: false,
       threadRootEventId: widget.threadRootEventId,
@@ -75,16 +76,15 @@ class _ThreadScreenState extends State<ThreadScreen> {
   }
 
   Future<void> _loadRoot() async {
-    final rooms = context.read<RoomRepository>();
-    final room = rooms.rawRoom(widget.roomId);
-    if (room == null) {
+    final messages = context.read<MessageRepository>();
+    if (!context.read<RoomRepository>().roomExists(widget.roomId)) {
       if (mounted) setState(() => _loadingRoot = false);
       _scheduleFocusReady();
       return;
     }
     try {
       final rootFound = await _threadLoader.loadRoot(
-        rooms,
+        messages,
         widget.roomId,
         widget.threadRootEventId,
       );
@@ -107,10 +107,10 @@ class _ThreadScreenState extends State<ThreadScreen> {
   Future<void> _loadMoreReplies() async {
     if (_loadingMoreReplies || !_threadLoader.hasMore) return;
     setState(() => _loadingMoreReplies = true);
+    final messages = context.read<MessageRepository>();
     try {
-      final rooms = context.read<RoomRepository>();
       await _threadLoader.loadMoreReplies(
-        rooms,
+        messages,
         widget.roomId,
         widget.threadRootEventId,
       );
@@ -206,11 +206,7 @@ class _ThreadScreenState extends State<ThreadScreen> {
               onEdit: (eventId) {
                 final event = _timelineController.getEventById(eventId);
                 if (event != null) {
-                  _compose.setEditEvent(
-                    event,
-                    _timelineController.timeline,
-                    _msgCtrl,
-                  );
+                  _compose.setEditEvent(event, _msgCtrl);
                 }
               },
               onToggleReaction: (eventId, emoji) async {

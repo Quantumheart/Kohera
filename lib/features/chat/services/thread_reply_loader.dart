@@ -1,31 +1,29 @@
-import 'package:kohera/data/repositories/room_repository.dart';
-import 'package:kohera/features/chat/services/thread_roots_service.dart';
-import 'package:matrix/matrix.dart';
+import 'package:kohera/data/models/kohera_timeline_event.dart';
+import 'package:kohera/data/repositories/message_repository.dart';
 
-/// Loads thread root + reply events, storing SDK [Event] objects internally.
+/// Loads thread root + reply events as domain models.
 ///
-/// Screens use this to avoid referencing `Event` in their own state fields.
-/// All getters return inferred types so callers can use them without
-/// importing `package:matrix/matrix.dart`.
+/// All getters return SDK-free types so callers never import
+/// `package:matrix/matrix.dart`.
 class ThreadReplyLoader {
   ThreadReplyLoader();
 
-  List<Event> _threadReplies = const [];
-  Event? _threadRootEvent;
+  List<KoheraTimelineEvent> _threadReplies = const [];
+  KoheraTimelineEvent? _threadRootEvent;
   String? _repliesNextBatch;
 
-  /// The thread root event (inferred `Event?` — callers can pass to
-  /// `ComposeStateController.setThreadRoot` without importing matrix).
-  Event? get rootEvent => _threadRootEvent;
+  /// The thread root event.
+  KoheraTimelineEvent? get rootEvent => _threadRootEvent;
 
-  /// Root event + all replies, for `MessageTimelineController.updateExtraEvents`.
-  List<Event> get seedEvents {
+  /// Root event + all replies, for
+  /// `MessageTimelineController.updateExtraEvents`.
+  List<KoheraTimelineEvent> get seedEvents {
     final root = _threadRootEvent;
     if (root == null) return _threadReplies;
     return [root, ..._threadReplies];
   }
 
-  /// Event IDs of loaded replies (for dedup checks without holding `Event`).
+  /// Event IDs of loaded replies (for dedup checks).
   List<String> get replyIds =>
       _threadReplies.map((e) => e.eventId).toList(growable: false);
 
@@ -36,17 +34,13 @@ class ThreadReplyLoader {
   ///
   /// Returns `true` if the root event was found.
   Future<bool> loadRoot(
-    RoomRepository rooms,
+    MessageRepository messages,
     String roomId,
     String threadRootEventId,
   ) async {
-    final room = rooms.rawRoom(roomId);
-    if (room == null) return false;
-
-    final root = await room.getEventById(threadRootEventId);
-    final page = await fetchThreadChildrenPage(
-      rooms.searchClient,
-      room,
+    final root = await messages.fetchEvent(roomId, threadRootEventId);
+    final page = await messages.fetchThreadChildrenPage(
+      roomId,
       threadRootEventId,
     );
 
@@ -60,19 +54,15 @@ class ThreadReplyLoader {
   ///
   /// Returns `true` if new replies were loaded, `false` if there are no more.
   Future<bool> loadMoreReplies(
-    RoomRepository rooms,
+    MessageRepository messages,
     String roomId,
     String threadRootEventId,
   ) async {
     final from = _repliesNextBatch;
     if (from == null) return false;
 
-    final room = rooms.rawRoom(roomId);
-    if (room == null) return false;
-
-    final page = await fetchThreadChildrenPage(
-      rooms.searchClient,
-      room,
+    final page = await messages.fetchThreadChildrenPage(
+      roomId,
       threadRootEventId,
       from: from,
     );

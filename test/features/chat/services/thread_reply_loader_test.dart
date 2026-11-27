@@ -1,191 +1,135 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kohera/core/services/matrix_service.dart';
-import 'package:kohera/data/repositories/room_repository.dart';
-import 'package:kohera/data/services/matrix_client_service.dart';
+import 'package:kohera/data/models/kohera_thread_children_page.dart';
+import 'package:kohera/data/models/kohera_timeline_event.dart';
+import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/features/chat/services/thread_reply_loader.dart';
-import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
-@GenerateNiceMocks([
-  MockSpec<Client>(),
-  MockSpec<Room>(),
-  MockSpec<MatrixService>(),
-  MockSpec<RoomRepository>()
-])
+@GenerateNiceMocks([MockSpec<MessageRepository>()])
 import 'thread_reply_loader_test.mocks.dart';
 
-MatrixEvent _msgEvent(String id, {int ts = 0}) {
-  return MatrixEvent(
-    type: 'm.room.message',
-    content: {'body': 'reply $id', 'msgtype': 'm.text'},
-    senderId: '@alice:example.com',
+KoheraTimelineEvent _domainEvent(String id, {int ts = 0}) {
+  return KoheraTimelineEvent(
     eventId: id,
+    senderId: '@alice:example.com',
+    type: 'm.room.message',
+    messageType: 'm.text',
+    body: 'reply $id',
     originServerTs: DateTime.fromMillisecondsSinceEpoch(ts),
-    roomId: '!room:example.com',
+    redacted: false,
+    canRedact: false,
+    content: const {'body': 'reply', 'msgtype': 'm.text'},
   );
 }
 
 void main() {
-  late MockMatrixService mockMatrix;
-  late RoomRepository roomRepository;
-  late MockClient mockClient;
-  late MockRoom mockRoom;
+  late MockMessageRepository messages;
 
   const roomId = '!room:example.com';
   const rootId = r'$root:example.com';
 
   setUp(() {
-    mockMatrix = MockMatrixService();
-    roomRepository = MockRoomRepository();
-    mockClient = MockClient();
-    mockRoom = MockRoom();
-
-    when(mockMatrix.matrixClientService).thenReturn(MatrixClientService(mockClient));
-    when(roomRepository.rawRoom(roomId)).thenReturn(mockRoom);
-    when(roomRepository.searchClient).thenReturn(mockClient);
-    when(mockClient.getRoomById(roomId)).thenReturn(mockRoom);
-    when(mockRoom.id).thenReturn(roomId);
-    when(mockRoom.client).thenReturn(mockClient);
+    messages = MockMessageRepository();
   });
 
   group('ThreadReplyLoader.loadRoot', () {
     test('returns true and populates state when root event found', () async {
-      final rootEvent = Event.fromMatrixEvent(_msgEvent(rootId, ts: 100), mockRoom);
-      when(mockRoom.getEventById(rootId))
-          .thenAnswer((_) async => rootEvent);
-      when(mockClient.getRelatingEventsWithRelType(
-        roomId,
-        rootId,
-        RelationshipTypes.thread,
-        limit: anyNamed('limit'),
-        from: argThat(isNull, named: 'from'),
-      )).thenAnswer((_) async => GetRelatingEventsWithRelTypeResponse(
-        chunk: [_msgEvent(r'$r1:example.com', ts: 200)],
-        nextBatch: 'batch1',
-      ));
+      when(messages.fetchEvent(roomId, rootId))
+          .thenAnswer((_) async => _domainEvent(rootId, ts: 100));
+      when(messages.fetchThreadChildrenPage(roomId, rootId)).thenAnswer(
+        (_) async => KoheraThreadChildrenPage(
+          events: [_domainEvent(r'$r1:example.com', ts: 200)],
+          nextBatch: 'batch1',
+        ),
+      );
 
       final loader = ThreadReplyLoader();
-      final found = await loader.loadRoot(roomRepository, roomId, rootId);
+      final found = await loader.loadRoot(messages, roomId, rootId);
 
       expect(found, isTrue);
       expect(loader.rootEvent, isNotNull);
       expect(loader.rootEvent!.eventId, rootId);
       expect(loader.replyIds, [r'$r1:example.com']);
       expect(loader.hasMore, isTrue);
-      // seedEvents = root + replies
       expect(loader.seedEvents.length, 2);
       expect(loader.seedEvents.first.eventId, rootId);
       loader.dispose();
     });
 
     test('returns false when root event not found', () async {
-      when(mockRoom.getEventById(rootId))
-          .thenAnswer((_) async => null);
-      when(mockClient.getRelatingEventsWithRelType(
-        roomId,
-        rootId,
-        RelationshipTypes.thread,
-        limit: anyNamed('limit'),
-        from: argThat(isNull, named: 'from'),
-      )).thenAnswer((_) async => GetRelatingEventsWithRelTypeResponse(
-        chunk: [],
-      ));
+      when(messages.fetchEvent(roomId, rootId)).thenAnswer((_) async => null);
+      when(messages.fetchThreadChildrenPage(roomId, rootId)).thenAnswer(
+        (_) async => const KoheraThreadChildrenPage(events: []),
+      );
 
       final loader = ThreadReplyLoader();
-      final found = await loader.loadRoot(roomRepository, roomId, rootId);
+      final found = await loader.loadRoot(messages, roomId, rootId);
 
       expect(found, isFalse);
       expect(loader.rootEvent, isNull);
       expect(loader.replyIds, isEmpty);
       expect(loader.hasMore, isFalse);
-      // seedEvents with no root = just replies (empty)
       expect(loader.seedEvents, isEmpty);
-      loader.dispose();
-    });
-
-    test('returns false when room is null', () async {
-      when(roomRepository.rawRoom(roomId)).thenReturn(null);
-
-      final loader = ThreadReplyLoader();
-      final found = await loader.loadRoot(roomRepository, roomId, rootId);
-
-      expect(found, isFalse);
       loader.dispose();
     });
   });
 
   group('ThreadReplyLoader.loadMoreReplies', () {
     test('loads next page and deduplicates by eventId', () async {
-      // First load root with one reply and a nextBatch.
-      final rootEvent = Event.fromMatrixEvent(_msgEvent(rootId, ts: 100), mockRoom);
-      when(mockRoom.getEventById(rootId))
-          .thenAnswer((_) async => rootEvent);
-      when(mockClient.getRelatingEventsWithRelType(
-        roomId,
-        rootId,
-        RelationshipTypes.thread,
-        limit: anyNamed('limit'),
-        from: argThat(isNull, named: 'from'),
-      )).thenAnswer((_) async => GetRelatingEventsWithRelTypeResponse(
-        chunk: [_msgEvent(r'$r1:example.com', ts: 200)],
-        nextBatch: 'batch1',
-      ));
+      when(messages.fetchEvent(roomId, rootId))
+          .thenAnswer((_) async => _domainEvent(rootId, ts: 100));
+      when(messages.fetchThreadChildrenPage(roomId, rootId)).thenAnswer(
+        (_) async => KoheraThreadChildrenPage(
+          events: [_domainEvent(r'$r1:example.com', ts: 200)],
+          nextBatch: 'batch1',
+        ),
+      );
 
       final loader = ThreadReplyLoader();
-      await loader.loadRoot(roomRepository, roomId, rootId);
+      await loader.loadRoot(messages, roomId, rootId);
       expect(loader.replyIds, [r'$r1:example.com']);
 
-      // Second page: includes a duplicate + a new reply.
-      when(mockClient.getRelatingEventsWithRelType(
-        roomId,
-        rootId,
-        RelationshipTypes.thread,
-        limit: anyNamed('limit'),
-        from: argThat(equals('batch1'), named: 'from'),
-      )).thenAnswer((_) async => GetRelatingEventsWithRelTypeResponse(
-        chunk: [
-          _msgEvent(r'$r1:example.com', ts: 200), // duplicate
-          _msgEvent(r'$r2:example.com', ts: 300), // new
-        ],
-      ));
+      when(messages.fetchThreadChildrenPage(roomId, rootId, from: 'batch1'))
+          .thenAnswer(
+        (_) async => KoheraThreadChildrenPage(
+          events: [
+            _domainEvent(r'$r1:example.com', ts: 200),
+            _domainEvent(r'$r2:example.com', ts: 300),
+          ],
+        ),
+      );
 
-      final loaded = await loader.loadMoreReplies(roomRepository, roomId, rootId);
+      final loaded = await loader.loadMoreReplies(messages, roomId, rootId);
 
       expect(loaded, isTrue);
-      // Deduped: r1 not duplicated
       expect(loader.replyIds, [r'$r1:example.com', r'$r2:example.com']);
       expect(loader.hasMore, isFalse);
       loader.dispose();
     });
 
     test('returns false when hasMore is false (no nextBatch)', () async {
-      final rootEvent = Event.fromMatrixEvent(_msgEvent(rootId, ts: 100), mockRoom);
-      when(mockRoom.getEventById(rootId))
-          .thenAnswer((_) async => rootEvent);
-      when(mockClient.getRelatingEventsWithRelType(
-        roomId,
-        rootId,
-        RelationshipTypes.thread,
-        limit: anyNamed('limit'),
-        from: argThat(isNull, named: 'from'),
-      )).thenAnswer((_) async => GetRelatingEventsWithRelTypeResponse(
-        chunk: [_msgEvent(r'$r1:example.com', ts: 200)],
-      )); // no more pages
+      when(messages.fetchEvent(roomId, rootId))
+          .thenAnswer((_) async => _domainEvent(rootId, ts: 100));
+      when(messages.fetchThreadChildrenPage(roomId, rootId)).thenAnswer(
+        (_) async => KoheraThreadChildrenPage(
+          events: [_domainEvent(r'$r1:example.com', ts: 200)],
+        ),
+      );
 
       final loader = ThreadReplyLoader();
-      await loader.loadRoot(roomRepository, roomId, rootId);
+      await loader.loadRoot(messages, roomId, rootId);
 
-      final loaded = await loader.loadMoreReplies(roomRepository, roomId, rootId);
+      final loaded = await loader.loadMoreReplies(messages, roomId, rootId);
 
       expect(loaded, isFalse);
       loader.dispose();
     });
 
-    test('returns false when room is null', () async {
+    test('returns false before any loadRoot call', () async {
       final loader = ThreadReplyLoader();
-      // No prior loadRoot → _repliesNextBatch is null → returns false
-      final loaded = await loader.loadMoreReplies(roomRepository, roomId, rootId);
+
+      final loaded = await loader.loadMoreReplies(messages, roomId, rootId);
 
       expect(loaded, isFalse);
       loader.dispose();
@@ -194,22 +138,17 @@ void main() {
 
   group('ThreadReplyLoader.dispose', () {
     test('resets all state', () async {
-      final rootEvent = Event.fromMatrixEvent(_msgEvent(rootId, ts: 100), mockRoom);
-      when(mockRoom.getEventById(rootId))
-          .thenAnswer((_) async => rootEvent);
-      when(mockClient.getRelatingEventsWithRelType(
-        roomId,
-        rootId,
-        RelationshipTypes.thread,
-        limit: anyNamed('limit'),
-        from: argThat(isNull, named: 'from'),
-      )).thenAnswer((_) async => GetRelatingEventsWithRelTypeResponse(
-        chunk: [_msgEvent(r'$r1:example.com', ts: 200)],
-        nextBatch: 'batch1',
-      ));
+      when(messages.fetchEvent(roomId, rootId))
+          .thenAnswer((_) async => _domainEvent(rootId, ts: 100));
+      when(messages.fetchThreadChildrenPage(roomId, rootId)).thenAnswer(
+        (_) async => KoheraThreadChildrenPage(
+          events: [_domainEvent(r'$r1:example.com', ts: 200)],
+          nextBatch: 'batch1',
+        ),
+      );
 
       final loader = ThreadReplyLoader();
-      await loader.loadRoot(roomRepository, roomId, rootId);
+      await loader.loadRoot(messages, roomId, rootId);
       expect(loader.rootEvent, isNotNull);
       expect(loader.hasMore, isTrue);
 

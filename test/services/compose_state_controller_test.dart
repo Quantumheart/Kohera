@@ -2,38 +2,43 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/models/pending_attachment.dart';
+import 'package:kohera/data/models/kohera_message_display.dart';
+import 'package:kohera/data/models/kohera_message_status.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
+import 'package:kohera/data/models/kohera_timeline_event.dart';
 import 'package:kohera/features/chat/services/compose_state_controller.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 
-@GenerateNiceMocks([MockSpec<Event>(), MockSpec<Timeline>(), MockSpec<User>()])
-import 'compose_state_controller_test.mocks.dart';
-
-/// Stubs a [MockEvent] with enough fields for [ReplyPreviewResolver] to work.
-MockEvent _stubEvent(
-  MockEvent event, {
+/// Builds a domain timeline event with a pre-resolved display model.
+KoheraTimelineEvent _domainEvent({
   String eventId = r'$event1',
   String body = 'hello',
   String senderId = '@alice:example.com',
   String senderName = 'Alice',
 }) {
-  final sender = MockUser();
-  when(sender.displayName).thenReturn(senderName);
-  when(sender.calcDisplayname()).thenReturn(senderName);
-  when(sender.avatarUrl).thenReturn(null);
-  when(event.eventId).thenReturn(eventId);
-  when(event.senderId).thenReturn(senderId);
-  when(event.body).thenReturn(body);
-  when(event.formattedText).thenReturn('');
-  when(event.content).thenReturn({'body': body, 'msgtype': 'm.text'});
-  when(event.messageType).thenReturn('m.text');
-  when(event.type).thenReturn(EventTypes.Message);
-  when(event.senderFromMemoryOrFallback).thenReturn(sender);
-  when(event.getDisplayEvent(any)).thenReturn(event);
-  return event;
+  final timestamp = DateTime(2026, 2);
+  return KoheraTimelineEvent(
+    eventId: eventId,
+    senderId: senderId,
+    type: 'm.room.message',
+    messageType: 'm.text',
+    body: body,
+    originServerTs: timestamp,
+    redacted: false,
+    canRedact: false,
+    content: {'body': body, 'msgtype': 'm.text'},
+    display: KoheraMessageDisplay(
+      eventId: eventId,
+      senderId: senderId,
+      senderName: senderName,
+      body: body,
+      messageType: 'm.text',
+      eventType: 'm.room.message',
+      timestamp: timestamp,
+      status: KoheraMessageStatus.sent,
+      content: {'body': body, 'msgtype': 'm.text'},
+    ),
+  );
 }
 
 void main() {
@@ -52,14 +57,14 @@ void main() {
 
   group('reply', () {
     test('setReplyTo sets notifier value', () {
-      final event = _stubEvent(MockEvent());
+      final event = _domainEvent();
       controller.setReplyTo(event);
       expect(controller.replyNotifier.value, isA<KoheraReplyPreview>());
       expect(controller.replyNotifier.value?.parentMessageId, r'$event1');
     });
 
     test('cancelReply clears notifier value', () {
-      controller.setReplyTo(_stubEvent(MockEvent()));
+      controller.setReplyTo(_domainEvent());
       controller.cancelReply();
       expect(controller.replyNotifier.value, isNull);
     });
@@ -67,11 +72,11 @@ void main() {
 
   group('edit', () {
     test('setEditEvent clears reply, sets edit, and populates msgCtrl', () {
-      controller.setReplyTo(_stubEvent(MockEvent()));
+      controller.setReplyTo(_domainEvent());
 
       final editEvent =
-          _stubEvent(MockEvent(), eventId: r'$edit1', body: 'hello world');
-      controller.setEditEvent(editEvent, MockTimeline(), msgCtrl);
+          _domainEvent(eventId: r'$edit1', body: 'hello world');
+      controller.setEditEvent(editEvent, msgCtrl);
 
       expect(controller.replyNotifier.value, isNull);
       expect(controller.editNotifier.value, isA<KoheraReplyPreview>());
@@ -81,24 +86,21 @@ void main() {
     });
 
     test('setEditEvent strips reply fallback from body', () {
-      final event = _stubEvent(
-        MockEvent(),
-        body: '> quoted\n\nactual reply',
-      );
-      controller.setEditEvent(event, MockTimeline(), msgCtrl);
+      final event = _domainEvent(body: '> quoted\n\nactual reply');
+      controller.setEditEvent(event, msgCtrl);
       expect(msgCtrl.text, 'actual reply');
     });
 
-    test('setEditEvent uses event directly when timeline is null', () {
-      final event = _stubEvent(MockEvent(), body: 'direct body');
-      controller.setEditEvent(event, null, msgCtrl);
+    test('setEditEvent uses the display body when present', () {
+      final event = _domainEvent(body: 'direct body');
+      controller.setEditEvent(event, msgCtrl);
       expect(controller.editNotifier.value?.parentMessageId, r'$event1');
       expect(msgCtrl.text, 'direct body');
     });
 
     test('cancelEdit clears edit and msgCtrl', () {
-      final event = _stubEvent(MockEvent(), body: 'text');
-      controller.setEditEvent(event, MockTimeline(), msgCtrl);
+      final event = _domainEvent(body: 'text');
+      controller.setEditEvent(event, msgCtrl);
       controller.cancelEdit(msgCtrl);
       expect(controller.editNotifier.value, isNull);
       expect(msgCtrl.text, isEmpty);
@@ -170,8 +172,8 @@ void main() {
 
   group('thread', () {
     test('setThreadRoot sets notifier and clears reply', () {
-      controller.setReplyTo(_stubEvent(MockEvent()));
-      final root = MockEvent();
+      controller.setReplyTo(_domainEvent());
+      final root = _domainEvent(eventId: r'\$root1');
       controller.setThreadRoot(root);
 
       expect(controller.threadRootNotifier.value, root);
@@ -179,7 +181,7 @@ void main() {
     });
 
     test('clearThreadRoot clears notifier', () {
-      controller.setThreadRoot(MockEvent());
+      controller.setThreadRoot(_domainEvent(eventId: r'\$root1'));
       controller.clearThreadRoot();
       expect(controller.threadRootNotifier.value, isNull);
     });
@@ -187,10 +189,10 @@ void main() {
 
   group('reset', () {
     test('clears all state and msgCtrl', () {
-      controller.setReplyTo(_stubEvent(MockEvent()));
-      final editEvent = _stubEvent(MockEvent(), body: 'text');
-      controller.setEditEvent(editEvent, MockTimeline(), msgCtrl);
-      controller.setThreadRoot(MockEvent());
+      controller.setReplyTo(_domainEvent());
+      final editEvent = _domainEvent(body: 'text');
+      controller.setEditEvent(editEvent, msgCtrl);
+      controller.setThreadRoot(_domainEvent(eventId: r'\$root1'));
       controller.addAttachment(
         PendingAttachment(
           bytes: Uint8List(1),

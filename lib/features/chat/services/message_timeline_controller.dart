@@ -2,54 +2,49 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:kohera/data/models/call_constants.dart';
-import 'package:kohera/data/models/kohera_media_content.dart';
-import 'package:kohera/data/models/kohera_poll.dart';
-import 'package:kohera/data/models/kohera_reaction.dart';
+import 'package:kohera/data/models/kohera_event_types.dart';
+import 'package:kohera/data/models/kohera_message_display.dart';
+import 'package:kohera/data/models/kohera_message_status.dart';
 import 'package:kohera/data/models/kohera_read_receipt.dart';
-import 'package:kohera/data/models/kohera_state_event_text.dart';
+import 'package:kohera/data/models/kohera_timeline.dart';
+import 'package:kohera/data/models/kohera_timeline_event.dart';
+import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
-import 'package:kohera/data/resolvers/media_content_resolver.dart';
-import 'package:kohera/data/resolvers/message_display_resolver.dart';
-import 'package:kohera/data/resolvers/poll_resolver.dart';
-import 'package:kohera/data/resolvers/reaction_resolver.dart';
-import 'package:kohera/data/resolvers/read_receipt_resolver.dart';
-import 'package:kohera/data/resolvers/state_event_resolver.dart';
-import 'package:kohera/data/services/sdk_media_controller.dart';
 import 'package:kohera/features/chat/models/chat_message_data.dart';
-import 'package:kohera/shared/services/media_controller.dart';
-import 'package:matrix/matrix.dart';
 
-
-/// Manages the Matrix timeline for a chat room and converts SDK [Event]s
-/// into Kohera-owned domain models at the boundary.
+/// Manages the domain timeline for a chat room and converts
+/// [KoheraTimelineEvent] snapshots into [ChatMessageData] for rendering.
 ///
-/// This is the SDK conversion boundary for the chat message rendering path.
-/// [MessageListView] and [ChatMessageItem] below it consume
-/// [ChatMessageData] and never import `package:matrix/matrix.dart`.
+/// All SDK access lives behind [RoomRepository] and [MessageRepository];
+/// this controller never imports `package:matrix/matrix.dart`.
+/// [MessageListView] and [ChatMessageItem] below consume [ChatMessageData]
+/// and never import the SDK either.
 class MessageTimelineController extends ChangeNotifier
     with WidgetsBindingObserver {
   MessageTimelineController({
     required this.roomRepository,
+    required this.messageRepository,
     required this.roomId,
     required this.sendPublicReadReceipts,
     this.initialEventId,
     this.threadRootEventId,
-    List<Event>? extraEvents,
+    List<KoheraTimelineEvent>? extraEvents,
     this.onTimelineChanged,
   }) : _extraEvents = extraEvents;
 
   final RoomRepository roomRepository;
+  final MessageRepository messageRepository;
   final String roomId;
   final bool sendPublicReadReceipts;
   final String? initialEventId;
   final String? threadRootEventId;
-  List<Event>? _extraEvents;
+  List<KoheraTimelineEvent>? _extraEvents;
   final VoidCallback? onTimelineChanged;
 
   static const _readMarkerDelay = Duration(seconds: 1);
 
-  Room? _room;
-  Timeline? _timeline;
+  KoheraTimeline? _timeline;
+  StreamSubscription<List<KoheraTimelineEvent>>? _eventsSub;
   int _initGeneration = 0;
   bool _loadingHistory = false;
   Timer? _readMarkerTimer;
@@ -58,13 +53,10 @@ class MessageTimelineController extends ChangeNotifier
   String? _initialFullyReadId;
   List<ChatMessageData>? _cachedMessages;
   Map<String, List<KoheraReadReceipt>>? _cachedReceipts;
-  final Map<String, _MessageDataCacheEntry> _messageDataCache = {};
-  Set<String> _prevVisibleEventIds = const {};
-  int _lastRoomStateVersion = 0;
   bool _disposed = false;
 
-  /// Coalesces rapid-fire [onUpdate] callbacks from the SDK timeline
-  /// (e.g. during batch decryption or history pagination) into a single
+  /// Coalesces rapid-fire [KoheraTimeline.onEvents] emissions (e.g. during
+  /// batch decryption or history pagination) into a single
   /// [notifyListeners] call on the next microtask. Without this, dozens of
   /// synchronous updates can trigger dozens of full message-list rebuilds
   /// in one frame, each creating and leaking gesture recognizers.
@@ -99,20 +91,16 @@ class MessageTimelineController extends ChangeNotifier
   /// `eventContextId`) and cannot yet receive live sync events. A fragment is
   /// a peek: it never paginates forward on scroll. The UI shows a
   /// jump-to-latest affordance that reloads the live timeline instead.
-  bool get isFragmented =>
-      _timeline != null && !_timeline!.allowNewEvent;
-
-  Timeline? get timeline => _timeline;
-  Room? get room => _room;
+  bool get isFragmented => _timeline?.isFragmented ?? false;
 
   String? get myUserId => roomRepository.userId;
 
   List<ChatMessageData> get messages {
     if (_cachedMessages != null) return _cachedMessages!;
-    final timelineEvents = _timeline?.events;
-    if (timelineEvents == null) return [];
+    final timeline = _timeline;
+    if (timeline == null) return const [];
     final visible = buildVisibleEvents(
-      timelineEvents,
+      timeline.events,
       extraEvents: _extraEvents,
       threadRootId: threadRootEventId,
       ignoredUserIds: roomRepository.ignoredUsers,
@@ -125,29 +113,22 @@ class MessageTimelineController extends ChangeNotifier
 
   Map<String, List<KoheraReadReceipt>> get receipts {
     if (_cachedReceipts != null) return _cachedReceipts!;
-    final room = _room;
-    final uid = myUserId;
-    if (room == null || uid == null) {
-      _cachedReceipts = {};
+    if (myUserId == null) {
+      _cachedReceipts = const {};
       return _cachedReceipts!;
     }
-    _cachedReceipts = ReadReceiptResolver.resolve(
-      room,
-      uid,
+    _cachedReceipts = roomRepository.readReceipts(
+      roomId,
       threadRootId: threadRootEventId,
     );
     return _cachedReceipts!;
   }
 
-  // ── Temporary SDK access for action resolution ──────────
+  // ── Event lookup ───────────────────────────────────────
 
-  Event? getEventById(String eventId) {
-    final timelineEvents = _timeline?.events;
-    if (timelineEvents != null) {
-      for (final e in timelineEvents) {
-        if (e.eventId == eventId) return e;
-      }
-    }
+  KoheraTimelineEvent? getEventById(String eventId) {
+    final found = _timeline?.eventById(eventId);
+    if (found != null) return found;
     if (_extraEvents != null) {
       for (final e in _extraEvents!) {
         if (e.eventId == eventId) return e;
@@ -159,8 +140,9 @@ class MessageTimelineController extends ChangeNotifier
   int indexOf(String eventId) =>
       messages.indexWhere((m) => m.eventId == eventId);
 
-  /// Updates the extra events list (used by thread screen for reply pagination).
-  void updateExtraEvents(List<Event>? events) {
+  /// Updates the extra events list (used by thread screen for reply
+  /// pagination).
+  void updateExtraEvents(List<KoheraTimelineEvent>? events) {
     _extraEvents = events;
     _cachedMessages = null;
     _cachedReceipts = null;
@@ -178,8 +160,7 @@ class MessageTimelineController extends ChangeNotifier
       WidgetsBinding.instance.addObserver(this);
       _observingLifecycle = true;
     }
-    _room = roomRepository.rawRoom(roomId);
-    if (_room == null) {
+    if (!roomRepository.roomExists(roomId)) {
       _initFuture = null;
       return;
     }
@@ -191,68 +172,46 @@ class MessageTimelineController extends ChangeNotifier
     }
   }
 
-  Future<void> _preDecryptEvents(Room room) async {
-    final encryption = room.client.encryption;
-    if (encryption == null || !room.encrypted) return;
-
-    final events = await room.client.database
-        .getEventList(room, limit: Room.defaultHistoryCount);
-
-    final sessionIds = <String>{};
-    for (final event in events) {
-      if (event.type == EventTypes.Encrypted) {
-        final sessionId =
-            event.content.tryGet<String>('session_id');
-        if (sessionId != null) sessionIds.add(sessionId);
-      }
-    }
-    for (final sessionId in sessionIds) {
-      try {
-        await encryption.keyManager
-            .loadInboundGroupSession(room.id, sessionId);
-      } catch (_) {}
-    }
-
-    for (final event in events) {
-      if (event.type != EventTypes.Encrypted) continue;
-      try {
-        await encryption.decryptRoomEvent(
-          event,
-          store: !room.isArchived,
-          updateType: EventUpdateType.history,
-        );
-      } catch (_) {}
-    }
-  }
-
   Future<void> _initTimeline() async {
-    final room = _room!;
     final gen = ++_initGeneration;
-    final snapshotFullyRead = room.fullyRead;
-    _initialFullyReadId =
-        snapshotFullyRead.isNotEmpty ? snapshotFullyRead : null;
+    _initialFullyReadId = roomRepository.fullyReadMarkerId(roomId);
     try {
-      if (initialEventId == null) await _preDecryptEvents(room);
+      if (initialEventId == null) {
+        await messageRepository.preDecryptRoomHistory(roomId);
+      }
     } catch (_) {}
     if (gen != _initGeneration || _disposed) return;
-    final timeline = await room.getTimeline(
+    final timeline = await messageRepository.getTimeline(
+      roomId,
       eventContextId: initialEventId,
-      onUpdate: _scheduleUpdate,
     );
-    if (gen != _initGeneration || _disposed) {
-      timeline.cancelSubscriptions();
+    if (gen != _initGeneration || _disposed || timeline == null) {
+      timeline?.dispose();
       return;
     }
+    _attachTimeline(timeline);
+    _markAsRead();
+    messageRepository.requestMissingSessionKeys(roomId);
+    await _autoPaginateUntilVisible(gen);
+  }
+
+  void _attachTimeline(KoheraTimeline timeline) {
+    unawaited(_eventsSub?.cancel());
+    _timeline?.dispose();
     _timeline = timeline;
+    _eventsSub = timeline.onEvents.listen((_) => _scheduleUpdate());
     _cachedMessages = null;
     _cachedReceipts = null;
-    _messageDataCache.clear();
-    _prevVisibleEventIds = const {};
     notifyListeners();
     onTimelineChanged?.call();
-    _markAsRead();
-    _requestMissingKeys();
-    await _autoPaginateUntilVisible(gen);
+  }
+
+  void _detachTimeline() {
+    unawaited(_eventsSub?.cancel());
+    _eventsSub = null;
+    final timeline = _timeline;
+    _timeline = null;
+    timeline?.dispose();
   }
 
   Future<void> _autoPaginateUntilVisible(int gen) async {
@@ -262,60 +221,21 @@ class MessageTimelineController extends ChangeNotifier
         gen == _initGeneration &&
         messages.isEmpty &&
         (_timeline?.events.isNotEmpty ?? false) &&
-        (_timeline?.canRequestHistory ?? false) &&
+        canRequestHistory &&
         rounds < maxRounds) {
       rounds++;
       await _requestHistoryBatch();
     }
   }
 
-  void _requestMissingKeys() {
-    final room = _room;
-    if (room == null) return;
-    final encryption = roomRepository.encryption;
-    if (encryption == null) return;
-
-    final events = _timeline?.events;
-    if (events == null) return;
-
-    final requested = <String>{};
-    for (final event in events) {
-      if (event.type == EventTypes.Encrypted &&
-          event.messageType == MessageTypes.BadEncrypted) {
-        final sessionId = event.content.tryGet<String>('session_id');
-        final senderKey = event.content.tryGet<String>('sender_key');
-        if (sessionId != null && requested.add(sessionId)) {
-          unawaited(
-            encryption.keyManager.loadSingleKey(room.id, sessionId).catchError(
-              (Object e) {
-                debugPrint('[Kohera] Key load failed for $sessionId: $e');
-              },
-            ),
-          );
-          if (senderKey != null) {
-            try {
-              unawaited(Future.value(encryption.keyManager.maybeAutoRequest(
-                room.id,
-                sessionId,
-                senderKey,
-              )));
-            } catch (e) {
-              debugPrint('[Kohera] P2P key request failed for $sessionId: $e');
-            }
-          }
-        }
-      }
-    }
-  }
-
   // ── Pagination ─────────────────────────────────────────
 
-  bool get canRequestHistory =>
-      _timeline != null && _timeline!.canRequestHistory;
+  bool get canRequestHistory => _timeline?.canRequestHistory ?? false;
 
   Future<void> _requestHistoryBatch() async {
-    if (_timeline == null || !_timeline!.canRequestHistory) return;
-    await _timeline!.requestHistory();
+    final timeline = _timeline;
+    if (timeline == null || !timeline.canRequestHistory) return;
+    await timeline.requestHistory();
     _cachedMessages = null;
     _cachedReceipts = null;
   }
@@ -324,13 +244,14 @@ class MessageTimelineController extends ChangeNotifier
   /// The widget provides [shouldContinue] based on scroll position.
   Future<void> loadMore({required bool Function() shouldContinue}) async {
     if (threadRootEventId != null) return;
-    if (_timeline == null || !_timeline!.canRequestHistory || _loadingHistory) {
+    final timeline = _timeline;
+    if (timeline == null || !timeline.canRequestHistory || _loadingHistory) {
       return;
     }
     _loadingHistory = true;
     notifyListeners();
     try {
-      while (!_disposed && _timeline!.canRequestHistory) {
+      while (!_disposed && timeline.canRequestHistory) {
         await _requestHistoryBatch();
         notifyListeners();
         if (!shouldContinue()) break;
@@ -365,8 +286,6 @@ class MessageTimelineController extends ChangeNotifier
         _readMarkerPending = true;
         return;
       }
-      final room = _room;
-      if (room == null) return;
       final threadRootId = threadRootEventId;
 
       if (threadRootId != null) {
@@ -374,11 +293,10 @@ class MessageTimelineController extends ChangeNotifier
         if (visible.isEmpty) return;
         final lastThreadEvent = visible.first;
         try {
-          await roomRepository.postReceipt(
-            room.id,
-            ReceiptType.mRead,
+          await roomRepository.markThreadRead(
+            roomId,
             lastThreadEvent.eventId,
-            threadId: threadRootId,
+            threadRootId,
           );
         } catch (e) {
           debugPrint('[Kohera] Failed to mark thread as read: $e');
@@ -386,20 +304,15 @@ class MessageTimelineController extends ChangeNotifier
         return;
       }
 
-      if (room.notificationCount == 0) return;
+      if (roomRepository.notificationCount(roomId) == 0) return;
       final visible = messages;
       final lastMainEvent = visible.isNotEmpty ? visible.first : null;
       if (lastMainEvent == null) return;
       try {
-        await room.setReadMarker(
+        await roomRepository.markRead(
+          roomId,
           lastMainEvent.eventId,
-          mRead: sendPublicReadReceipts ? lastMainEvent.eventId : null,
-        );
-        await roomRepository.postReceipt(
-          room.id,
-          ReceiptType.mRead,
-          lastMainEvent.eventId,
-          threadId: 'main',
+          sendPublicReceipt: sendPublicReadReceipts,
         );
       } catch (e) {
         debugPrint('[Kohera] Failed to mark as read: $e');
@@ -410,80 +323,58 @@ class MessageTimelineController extends ChangeNotifier
   // ── Navigation ─────────────────────────────────────────
 
   Future<void> reloadTimelineAt(String eventId) async {
-    final room = _room;
-    if (room == null) return;
-    _timeline?.cancelSubscriptions();
+    _detachTimeline();
     _cachedMessages = null;
     _cachedReceipts = null;
-    _timeline = null;
     notifyListeners();
 
     final gen = ++_initGeneration;
-    final timeline = await room.getTimeline(
+    final timeline = await messageRepository.getTimeline(
+      roomId,
       eventContextId: eventId,
-      onUpdate: _scheduleUpdate,
     );
-    if (gen != _initGeneration || _disposed) {
-      timeline.cancelSubscriptions();
+    if (gen != _initGeneration || _disposed || timeline == null) {
+      timeline?.dispose();
       return;
     }
-    _timeline = timeline;
-    _cachedMessages = null;
-    _cachedReceipts = null;
-    _messageDataCache.clear();
-    _prevVisibleEventIds = const {};
-    notifyListeners();
-    onTimelineChanged?.call();
+    _attachTimeline(timeline);
   }
 
   /// Reloads the timeline at the live edge (`eventContextId: null`),
   /// restoring the full sync-subscribed timeline. Used by the
   /// jump-to-latest affordance to escape a fragmented context view.
   Future<void> reloadTimelineAtLive() async {
-    final room = _room;
-    if (room == null) return;
-    _timeline?.cancelSubscriptions();
+    _detachTimeline();
     _cachedMessages = null;
     _cachedReceipts = null;
-    _timeline = null;
     notifyListeners();
 
     final gen = ++_initGeneration;
-    final snapshotFullyRead = room.fullyRead;
-    _initialFullyReadId =
-        snapshotFullyRead.isNotEmpty ? snapshotFullyRead : null;
+    _initialFullyReadId = roomRepository.fullyReadMarkerId(roomId);
     try {
-      await _preDecryptEvents(room);
+      await messageRepository.preDecryptRoomHistory(roomId);
     } catch (_) {}
     if (gen != _initGeneration || _disposed) return;
-    final timeline = await room.getTimeline(
-      onUpdate: _scheduleUpdate,
-    );
-    if (gen != _initGeneration || _disposed) {
-      timeline.cancelSubscriptions();
+    final timeline = await messageRepository.getTimeline(roomId);
+    if (gen != _initGeneration || _disposed || timeline == null) {
+      timeline?.dispose();
       return;
     }
-    _timeline = timeline;
-    _cachedMessages = null;
-    _cachedReceipts = null;
-    _messageDataCache.clear();
-    _prevVisibleEventIds = const {};
-    notifyListeners();
-    onTimelineChanged?.call();
+    _attachTimeline(timeline);
     _markAsRead();
-    _requestMissingKeys();
+    messageRepository.requestMissingSessionKeys(roomId);
   }
 
   // ── Visible events filtering ───────────────────────────
 
-  static List<Event> buildVisibleEvents(
-    Iterable<Event> timelineEvents, {
-    List<Event>? extraEvents,
+  static List<KoheraTimelineEvent> buildVisibleEvents(
+    Iterable<KoheraTimelineEvent> timelineEvents, {
+    List<KoheraTimelineEvent>? extraEvents,
     String? threadRootId,
     List<String> ignoredUserIds = const [],
   }) {
     final seen = <String>{};
-    final merged = <Event>[];
+    final merged = <KoheraTimelineEvent>[];
     for (final e in timelineEvents) {
       if (seen.add(e.eventId)) merged.add(e);
     }
@@ -496,82 +387,79 @@ class MessageTimelineController extends ChangeNotifier
         .where(
           (e) =>
               !ignoredUserIds.contains(e.senderId) &&
-              (((e.type == EventTypes.Message ||
-                          e.type == EventTypes.Encrypted) &&
-                      e.relationshipType != RelationshipTypes.edit &&
+              (((e.type == KoheraEventTypes.message ||
+                          e.type == KoheraEventTypes.encrypted) &&
+                      e.relationshipType != KoheraRelationshipTypes.edit &&
                       !_isCallMemberEvent(e)) ||
                   callEventTypes.contains(e.type) ||
                   _isStateEvent(e) ||
-                  e.type == EventTypes.Sticker ||
-                  e.type == PollEventContent.startType) &&
+                  e.type == KoheraEventTypes.sticker ||
+                  e.type == KoheraEventTypes.pollStart) &&
               _matchesThread(e, threadRootId),
         )
         .toList()
       ..sort((a, b) => b.originServerTs.compareTo(a.originServerTs));
   }
 
-  static bool _matchesThread(Event event, String? threadRootId) {
+  static bool _matchesThread(KoheraTimelineEvent event, String? threadRootId) {
     if (threadRootId == null) {
-      return event.relationshipType != RelationshipTypes.thread;
+      return event.relationshipType != KoheraRelationshipTypes.thread;
     }
     if (event.eventId == threadRootId) return true;
-    if (event.relationshipType != RelationshipTypes.thread) return false;
+    if (event.relationshipType != KoheraRelationshipTypes.thread) return false;
     return event.relationshipEventId == threadRootId;
   }
 
-  static bool _isCallEvent(Event event) => callEventTypes.contains(event.type);
+  static bool _isCallEvent(KoheraTimelineEvent event) =>
+      callEventTypes.contains(event.type);
 
-  static bool _isStateEvent(Event event) {
-    if (event.type == EventTypes.RoomName ||
-        event.type == EventTypes.RoomTopic ||
-        event.type == EventTypes.RoomAvatar ||
-        event.type == EventTypes.RoomTombstone) {
+  static bool _isStateEvent(KoheraTimelineEvent event) {
+    if (event.type == KoheraEventTypes.roomName ||
+        event.type == KoheraEventTypes.roomTopic ||
+        event.type == KoheraEventTypes.roomAvatar ||
+        event.type == KoheraEventTypes.roomTombstone) {
       return true;
     }
-    if (event.type == EventTypes.RoomMember) {
+    if (event.type == KoheraEventTypes.roomMember) {
       return !_isNoOpMemberEvent(event);
     }
     return false;
   }
 
-  static bool _isNoOpMemberEvent(Event event) {
+  static bool _isNoOpMemberEvent(KoheraTimelineEvent event) {
     final prev = event.prevContent;
     if (prev == null) return false;
     final curr = event.content;
-    final prevMembership = prev.tryGet<String>('membership');
-    final currMembership = curr.tryGet<String>('membership');
+    final prevMembership = prev['membership'];
+    final currMembership = curr['membership'];
     if (prevMembership != currMembership) return false;
-    if (prev.tryGet<String>('displayname') != curr.tryGet<String>('displayname')) {
-      return false;
-    }
-    if (prev.tryGet<String>('avatar_url') != curr.tryGet<String>('avatar_url')) {
-      return false;
-    }
+    if (prev['displayname'] != curr['displayname']) return false;
+    if (prev['avatar_url'] != curr['avatar_url']) return false;
     return true;
   }
 
-  static bool _isCallMemberEvent(Event event) =>
+  static bool _isCallMemberEvent(KoheraTimelineEvent event) =>
       event.type == kCallMember ||
       event.type == kCallMemberMsc ||
       event.body.contains(kCallMember) ||
       event.body.contains(kCallMemberMsc);
 
-  Duration? _callDuration(Event event) {
+  Duration? _callDuration(KoheraTimelineEvent event) {
     if (event.type != kCallHangup) return null;
-    final reason = event.content.tryGet<String>('reason');
-    if (reason == 'invite_timeout') return null;
+    final reason = event.contentString('reason');
+    if (reason == kHangupInviteTimeout) return null;
 
-    final hangupCallId = event.content.tryGet<String>('call_id');
+    final hangupCallId = event.contentString('call_id');
     final events = _timeline?.events;
     if (events == null) return null;
 
-    Event? matchedInvite;
+    KoheraTimelineEvent? matchedInvite;
     for (final e in events) {
       if (e.type != kCallInvite) continue;
       if (!e.originServerTs.isBefore(event.originServerTs)) continue;
       if (hangupCallId != null &&
           hangupCallId.isNotEmpty &&
-          e.content.tryGet<String>('call_id') == hangupCallId) {
+          e.contentString('call_id') == hangupCallId) {
         matchedInvite = e;
         break;
       }
@@ -584,228 +472,125 @@ class MessageTimelineController extends ChangeNotifier
     return d;
   }
 
-  // ── ChatMessageData pre-computation ────────────────────
+  // ── ChatMessageData assembly ───────────────────────────
 
-  static const List<String> _aggregationTypes = [
-    RelationshipTypes.reaction,
-    RelationshipTypes.thread,
-    RelationshipTypes.edit,
-    RelationshipTypes.reference,
-  ];
-
-  List<ChatMessageData> _buildMessageData(List<Event> visible) {
+  List<ChatMessageData> _buildMessageData(List<KoheraTimelineEvent> visible) {
     final uid = myUserId ?? '';
-    final room = _room;
-    final timeline = _timeline;
-
-    final roomStateVersion = Object.hash(
-      room?.getState(EventTypes.RoomPinnedEvents),
-      room?.getState(EventTypes.RoomPowerLevels),
-      Object.hashAll(roomRepository.ignoredUsers),
-    );
-    if (roomStateVersion != _lastRoomStateVersion) {
-      _lastRoomStateVersion = roomStateVersion;
-      _messageDataCache.clear();
-    }
-
-    final visibleIds = <String>{};
-    var memberEventArrived = false;
-    for (final e in visible) {
-      if (visibleIds.add(e.eventId) &&
-          !_prevVisibleEventIds.contains(e.eventId) &&
-          e.type == EventTypes.RoomMember) {
-        memberEventArrived = true;
-      }
-    }
-    if (memberEventArrived) _messageDataCache.clear();
-    _prevVisibleEventIds = visibleIds;
-
-    final receiptsNow = receipts;
+    final threadChildren = _threadChildrenByRoot();
     final result = <ChatMessageData>[];
 
     for (var i = 0; i < visible.length; i++) {
       final event = visible[i];
-      final prevSender = i + 1 < visible.length ? visible[i + 1].senderId : null;
+      final prevSender =
+          i + 1 < visible.length ? visible[i + 1].senderId : null;
       final isFirst = event.senderId != prevSender;
       final category = _classifyEvent(event);
 
-      if (category == MessageCategory.callEvent) {
-        result.add(_resolveEventData(event, uid, isFirst, room, timeline, category));
-        continue;
+      var hasThread = false;
+      var replyCount = 0;
+      var unreadCount = 0;
+      if (event.hasAggregation(KoheraRelationshipTypes.thread)) {
+        hasThread = true;
+        replyCount = event.aggregationCount(KoheraRelationshipTypes.thread);
+        unreadCount = _threadUnreadCount(
+          event.eventId,
+          uid,
+          threadChildren[event.eventId] ?? const [],
+        );
       }
 
-      final aggregationHash = _aggregationHashFor(event, timeline);
-      final entry = _messageDataCache[event.eventId];
-      if (entry != null &&
-          entry.isValidFor(event, isFirst, aggregationHash, receiptsNow)) {
-        result.add(entry.data);
-        continue;
-      }
+      final media = switch (category) {
+        MessageCategory.sticker => event.media,
+        MessageCategory.message => event.redacted ? null : event.media,
+        _ => null,
+      };
 
-      final data = _resolveEventData(event, uid, isFirst, room, timeline, category);
-      _messageDataCache[event.eventId] = _MessageDataCacheEntry(
-        event: event,
-        isFirst: isFirst,
-        aggregationHash: aggregationHash,
-        type: event.type,
-        messageType: event.messageType,
-        body: event.body,
-        redacted: event.redacted,
-        receiptsVersion: data.hasThread ? receiptsNow : null,
-        data: data,
+      result.add(
+        ChatMessageData(
+          message: event.display ?? _fallbackDisplay(event),
+          category: category,
+          isMe: event.senderId == uid,
+          isFirst: isFirst,
+          isPinned: roomRepository.isPinned(roomId, event.eventId),
+          canPin: !event.redacted &&
+              roomRepository.canChangePinnedEvents(roomId),
+          canRedact: event.canRedact,
+          hasThread: hasThread,
+          threadReplyCount: replyCount,
+          threadUnreadCount: unreadCount,
+          stateEventText: category == MessageCategory.stateEvent
+              ? event.stateEventText
+              : null,
+          reactions: event.reactions,
+          media: media,
+          mediaController: media == null
+              ? null
+              : messageRepository.mediaControllerFor(roomId, event.eventId),
+          callDuration: category == MessageCategory.callEvent
+              ? _callDuration(event)
+              : null,
+          poll: category == MessageCategory.poll ? event.poll : null,
+        ),
       );
-      result.add(data);
     }
-
-    _messageDataCache.removeWhere((id, _) => !visibleIds.contains(id));
     return result;
   }
 
-  int _aggregationHashFor(Event event, Timeline? timeline) {
-    if (timeline == null) return 0;
-    var hash = 0;
-    for (final type in _aggregationTypes) {
-      if (!event.hasAggregatedEvents(timeline, type)) continue;
-      final aggregated = event.aggregatedEvents(timeline, type);
-      hash ^= aggregated.length;
-      for (final a in aggregated) {
-        hash ^= a.eventId.hashCode;
-      }
+  /// Groups thread children of the current timeline by root event ID.
+  Map<String, List<KoheraTimelineEvent>> _threadChildrenByRoot() {
+    final events = _timeline?.events;
+    if (events == null) return const {};
+    final map = <String, List<KoheraTimelineEvent>>{};
+    for (final e in events) {
+      if (e.relationshipType != KoheraRelationshipTypes.thread) continue;
+      final rootId = e.relationshipEventId;
+      if (rootId == null) continue;
+      (map[rootId] ??= []).add(e);
     }
-    return hash;
+    return map;
   }
 
-  ({bool isMe, bool isPinned, bool canPin, bool canRedact})
-      _resolvePermissions(Event event, Room? room, String uid) {
-    return (
-      isMe: event.senderId == uid,
-      isPinned: room?.pinnedEventIds.contains(event.eventId) ?? false,
-      canPin: !event.redacted &&
-          (room?.canChangeStateEvent('m.room.pinned_events') ?? false),
-      canRedact: event.canRedact,
-    );
-  }
-
-  ({bool hasThread, int replyCount, int unreadCount}) _resolveThreadInfo(
-    Event event,
-    Timeline? timeline,
-    Room? room,
+  int _threadUnreadCount(
+    String rootEventId,
     String uid,
+    List<KoheraTimelineEvent> children,
   ) {
-    if (timeline == null ||
-        !event.hasAggregatedEvents(timeline, RelationshipTypes.thread)) {
-      return (hasThread: false, replyCount: 0, unreadCount: 0);
+    final receiptTs = roomRepository.latestOwnThreadReceiptTs(
+      roomId,
+      rootEventId,
+    );
+    var count = 0;
+    for (final child in children) {
+      if (child.senderId == uid) continue;
+      if (child.originServerTs.millisecondsSinceEpoch > receiptTs) count++;
     }
-    return (
-      hasThread: true,
-      replyCount:
-          event.aggregatedEvents(timeline, RelationshipTypes.thread).length,
-      unreadCount: room != null
-          ? threadUnreadCountFor(
-              root: event,
-              timeline: timeline,
-              room: room,
-              myUserId: uid,
-            )
-          : 0,
-    );
+    return count;
   }
 
-  KoheraReactionList? _resolveReactions(
-    Event event,
-    Timeline? timeline,
-    String uid,
-  ) {
-    if (timeline == null ||
-        !event.hasAggregatedEvents(timeline, RelationshipTypes.reaction)) {
-      return null;
-    }
-    return ReactionResolver.resolve(event, timeline, myUserId: uid);
-  }
-
-  ({KoheraMediaContent? media, MediaController? controller}) _resolveMedia(
-    Event event,
-  ) {
-    return (
-      media: MediaContentResolver.resolve(event),
-      controller: SdkMediaController(event, roomRepository.searchClient),
-    );
-  }
-
-  ChatMessageData _resolveEventData(
-    Event event,
-    String uid,
-    bool isFirst,
-    Room? room,
-    Timeline? timeline,
-    MessageCategory category,
-  ) {
-    final permissions = _resolvePermissions(event, room, uid);
-    final thread = _resolveThreadInfo(event, timeline, room, uid);
-    final reactions = _resolveReactions(event, timeline, uid);
-    final message = MessageDisplayResolver.resolve(
-      event,
-      timeline: timeline,
-    );
-
-    KoheraStateEventText? stateEventText;
-    KoheraMediaContent? media;
-    MediaController? mediaController;
-    Duration? callDuration;
-    KoheraPoll? poll;
-
-    switch (category) {
-      case MessageCategory.stateEvent:
-        stateEventText = StateEventResolver.resolve(event);
-      case MessageCategory.sticker:
-        final resolved = _resolveMedia(event);
-        media = resolved.media;
-        mediaController = resolved.controller;
-      case MessageCategory.callEvent:
-        callDuration = _callDuration(event);
-      case MessageCategory.poll:
-        if (timeline != null) {
-          poll = PollResolver.resolve(
-            event,
-            timeline,
-            myUserId: uid,
-            canRedact: permissions.canRedact,
-          );
-        }
-      case MessageCategory.message:
-        if (!event.redacted) {
-          final resolved = _resolveMedia(event);
-          media = resolved.media;
-          mediaController = resolved.controller;
-        }
-    }
-
-    return ChatMessageData(
-      message: message,
-      category: category,
-      isMe: permissions.isMe,
-      isFirst: isFirst,
-      isPinned: permissions.isPinned,
-      canPin: permissions.canPin,
-      canRedact: permissions.canRedact,
-      hasThread: thread.hasThread,
-      threadReplyCount: thread.replyCount,
-      threadUnreadCount: thread.unreadCount,
-      stateEventText: stateEventText,
-      reactions: reactions,
-      media: media,
-      mediaController: mediaController,
-      callDuration: callDuration,
-      poll: poll,
-    );
-  }
-
-  MessageCategory _classifyEvent(Event event) {
+  MessageCategory _classifyEvent(KoheraTimelineEvent event) {
     if (_isCallEvent(event)) return MessageCategory.callEvent;
     if (_isStateEvent(event)) return MessageCategory.stateEvent;
-    if (event.type == EventTypes.Sticker) return MessageCategory.sticker;
-    if (event.type == PollEventContent.startType) return MessageCategory.poll;
+    if (event.type == KoheraEventTypes.sticker) return MessageCategory.sticker;
+    if (event.type == KoheraEventTypes.pollStart) return MessageCategory.poll;
     return MessageCategory.message;
+  }
+
+  /// Minimal display model for events converted without display
+  /// resolution. Timeline events normally carry a pre-resolved
+  /// [KoheraTimelineEvent.display].
+  KoheraMessageDisplay _fallbackDisplay(KoheraTimelineEvent event) {
+    return KoheraMessageDisplay(
+      eventId: event.eventId,
+      senderId: event.senderId,
+      senderName: event.senderId,
+      body: event.body,
+      messageType: event.messageType ?? '',
+      eventType: event.type,
+      timestamp: event.originServerTs,
+      status: KoheraMessageStatus.sent,
+      content: event.content,
+      isRedacted: event.redacted,
+    );
   }
 
   // ── Dispose ────────────────────────────────────────────
@@ -815,89 +600,7 @@ class MessageTimelineController extends ChangeNotifier
     _disposed = true;
     if (_observingLifecycle) WidgetsBinding.instance.removeObserver(this);
     _readMarkerTimer?.cancel();
-    _timeline?.cancelSubscriptions();
+    _detachTimeline();
     super.dispose();
-  }
-}
-
-// ── Thread unread helpers (SDK; converts with this file) ─────
-
-int threadUnreadCountFor({
-  required Event root,
-  required Timeline timeline,
-  required Room room,
-  required String myUserId,
-}) {
-  if (!root.hasAggregatedEvents(timeline, RelationshipTypes.thread)) {
-    return 0;
-  }
-  final children =
-      root.aggregatedEvents(timeline, RelationshipTypes.thread).toList();
-  return _threadUnreadCountFromChildren(
-    rootEventId: root.eventId,
-    children: children,
-    room: room,
-    myUserId: myUserId,
-  );
-}
-
-int _threadUnreadCountFromChildren({
-  required String rootEventId,
-  required List<Event> children,
-  required Room room,
-  required String myUserId,
-}) {
-  final receipt = room.receiptState.byThread[rootEventId]?.latestOwnReceipt;
-  final receiptTs = receipt?.ts ?? 0;
-  var count = 0;
-  for (final child in children) {
-    if (child.senderId == myUserId) continue;
-    if (child.originServerTs.millisecondsSinceEpoch > receiptTs) count++;
-  }
-  return count;
-}
-
-// ── Per-event message cache ──────────────────────────────
-
-class _MessageDataCacheEntry {
-  const _MessageDataCacheEntry({
-    required this.event,
-    required this.isFirst,
-    required this.aggregationHash,
-    required this.type,
-    required this.messageType,
-    required this.body,
-    required this.redacted,
-    required this.receiptsVersion,
-    required this.data,
-  });
-
-  final Event event;
-  final bool isFirst;
-  final int aggregationHash;
-  final String type;
-  final String? messageType;
-  final String body;
-  final bool redacted;
-  final Map<String, List<KoheraReadReceipt>>? receiptsVersion;
-  final ChatMessageData data;
-
-  bool isValidFor(
-    Event event,
-    bool isFirst,
-    int aggregationHash,
-    Map<String, List<KoheraReadReceipt>> receiptsNow,
-  ) {
-    if (!identical(this.event, event)) return false;
-    if (this.isFirst != isFirst) return false;
-    if (this.aggregationHash != aggregationHash) return false;
-    if (redacted != event.redacted) return false;
-    if (type != event.type) return false;
-    if (messageType != event.messageType) return false;
-    if (body != event.body) return false;
-    if (data.hasThread && !identical(receiptsVersion, receiptsNow)) {
-      return false;
-    }
-    return true;
   }
 }

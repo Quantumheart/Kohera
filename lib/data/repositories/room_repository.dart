@@ -229,6 +229,25 @@ class RoomRepository extends ChangeNotifier {
     if (room != null) await room.setDescription(topic);
   }
 
+  /// Sends a sticker with [body] as alt text and [url] as the `mxc://`
+  /// source to [roomId]. No-op when the room is unknown.
+  Future<void> sendSticker(
+    String roomId, {
+    required String body,
+    required String url,
+  }) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return;
+    await room.sendEvent(
+      {
+        'body': body,
+        'url': url,
+        'info': <String, Object?>{},
+      },
+      type: 'm.sticker',
+    );
+  }
+
   Future<void> enableEncryption(String roomId) async {
     final room = _client.getRoomById(roomId);
     if (room != null) await room.enableEncryption();
@@ -691,6 +710,14 @@ class RoomRepository extends ChangeNotifier {
     return room.getPowerLevelByUserId(userId).level;
   }
 
+  /// The membership state name of [userId] in [roomId] (`join`, `leave`,
+  /// ...), or an empty string when the room is unknown.
+  String membershipOf(String roomId, String userId) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return '';
+    return room.unsafeGetUserFromMemoryOrFallback(userId).membership.name;
+  }
+
   // ── Read markers and receipts ─────────────────────────────
 
   /// Read receipts of other users in [roomId], keyed by event ID.
@@ -746,6 +773,15 @@ class RoomRepository extends ChangeNotifier {
     );
     await postReceipt(roomId, ReceiptType.mRead, eventId, threadId: 'main');
   }
+
+  /// Posts a private read receipt for [eventId] in thread [threadId] of
+  /// [roomId].
+  Future<void> markThreadRead(
+    String roomId,
+    String eventId,
+    String threadId,
+  ) =>
+      postReceipt(roomId, ReceiptType.mRead, eventId, threadId: threadId);
 
   // ── Transitional raw room access ──────────────────────────────
 

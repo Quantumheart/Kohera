@@ -16,14 +16,15 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/confirm_dialog.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
+import 'package:kohera/data/models/kohera_event_types.dart';
+import 'package:kohera/data/models/kohera_message_status.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
+import 'package:kohera/data/models/kohera_timeline_event.dart';
 import 'package:kohera/data/models/sticker_pack.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/sticker_pack_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
-import 'package:kohera/data/resolvers/message_display_resolver.dart';
-import 'package:kohera/data/resolvers/reply_preview_resolver.dart';
 import 'package:kohera/data/services/local_search_service.dart';
 import 'package:kohera/data/services/room_search_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -69,7 +70,6 @@ import 'package:kohera/features/home/screens/home_shell.dart';
 import 'package:kohera/features/rooms/services/member_sheet_launcher.dart';
 import 'package:kohera/shared/widgets/report_content_dialog.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -159,6 +159,7 @@ class _ChatScreenState extends State<ChatScreen>
     final prefs = context.read<PreferencesService>();
     _timelineController = MessageTimelineController(
       roomRepository: rooms,
+      messageRepository: context.read<MessageRepository>(),
       roomId: widget.roomId,
       sendPublicReadReceipts: prefs.readReceipts,
       initialEventId: widget.initialEventId,
@@ -171,9 +172,8 @@ class _ChatScreenState extends State<ChatScreen>
     _msgCtrl.addListener(_scheduleDraftSave);
     unawaited(_loadDraft());
     _composeFocusNode.addListener(_onComposeFocusChanged);
-    final room = rooms.rawRoom(widget.roomId);
-    if (room != null && room.encrypted) {
-      unawaited(_indexWhenTimelineReady(room));
+    if (rooms.getRoomEncrypted(widget.roomId)) {
+      unawaited(_indexWhenTimelineReady());
     }
     if (kIsWeb) {
       initWebPasteListener();
@@ -184,7 +184,7 @@ class _ChatScreenState extends State<ChatScreen>
     );
   }
 
-  Future<void> _indexWhenTimelineReady(Room room) async {
+  Future<void> _indexWhenTimelineReady() async {
     try {
       await _timelineController.init();
     } catch (_) {
@@ -275,6 +275,7 @@ class _ChatScreenState extends State<ChatScreen>
       final prefs = context.read<PreferencesService>();
       _timelineController = MessageTimelineController(
         roomRepository: rooms,
+        messageRepository: context.read<MessageRepository>(),
         roomId: widget.roomId,
         sendPublicReadReceipts: prefs.readReceipts,
         initialEventId: widget.initialEventId,
@@ -344,11 +345,11 @@ class _ChatScreenState extends State<ChatScreen>
       messageRepository: messages,
       searchService: RoomSearchService(
         searchClient: rooms.searchClient,
-        getTimeline: () => _timelineController.timeline,
+        getTimeline: () => messages.currentTimelineFor(widget.roomId),
         localSearchService: LocalSearchService(
           searchClient: rooms.searchClient,
           database: messages.searchDatabase,
-          getTimeline: () => _timelineController.timeline,
+          getTimeline: () => messages.currentTimelineFor(widget.roomId),
         ),
       ),
     )..addListener(_onSearchChanged);
@@ -417,16 +418,10 @@ class _ChatScreenState extends State<ChatScreen>
   void _replyInThread(String eventId) {
     final event = _timelineController.getEventById(eventId);
     if (event == null) return;
-    final timeline = _timelineController.timeline;
-    final rootId = event.relationshipType == 'm.thread'
+    final rootId = event.relationshipType == KoheraRelationshipTypes.thread
         ? (event.relationshipEventId ?? event.eventId)
         : event.eventId;
-    final root =
-        timeline?.events.firstWhere(
-          (e) => e.eventId == rootId,
-          orElse: () => event,
-        ) ??
-        event;
+    final root = _timelineController.getEventById(rootId) ?? event;
     _openThread(root.eventId);
   }
 
@@ -472,11 +467,9 @@ class _ChatScreenState extends State<ChatScreen>
     if (event == null) return;
     final isMe = event.senderId == _timelineController.myUserId;
     final isRedacted = event.redacted;
-    final isFailed = event.status.name == 'error';
+    final isFailed = event.display?.status == KoheraMessageStatus.error;
     final copyableBody = stripReplyFallback(
-      _timelineController.timeline != null
-          ? event.getDisplayEvent(_timelineController.timeline!).body
-          : event.body,
+      event.display?.body ?? event.body,
     );
     unawaited(
       showMessageContextMenu(
@@ -489,11 +482,7 @@ class _ChatScreenState extends State<ChatScreen>
         position: position,
         onReply: isRedacted ? null : () => _setReplyTo(eventId),
         onEdit: !isRedacted && isMe
-            ? () => _compose.setEditEvent(
-                event,
-                _timelineController.timeline,
-                _msgCtrl,
-              )
+            ? () => _compose.setEditEvent(event, _msgCtrl)
             : null,
         onReact: isRedacted
             ? null
@@ -506,7 +495,9 @@ class _ChatScreenState extends State<ChatScreen>
             ? () => confirmAndDeleteEvent(
                 context,
                 isMe: isMe,
-                onRedact: () => event.room.redactEvent(event.eventId),
+                onRedact: () => context
+                    .read<MessageRepository>()
+                    .redactEvent(widget.roomId, event.eventId),
               )
             : null,
         onReplyInThread: isRedacted ? null : () => _replyInThread(eventId),
@@ -519,14 +510,18 @@ class _ChatScreenState extends State<ChatScreen>
             : null,
         onRetrySend: () async {
           try {
-            await event.sendAgain();
+            await context
+                .read<MessageRepository>()
+                .resendEvent(widget.roomId, event.eventId);
           } catch (e) {
             debugPrint('[Kohera] outbox: retry from menu failed: $e');
           }
         },
         onDiscardSend: () async {
           try {
-            await event.cancelSend();
+            await context
+                .read<MessageRepository>()
+                .cancelFailedSend(widget.roomId, event.eventId);
           } catch (e) {
             debugPrint('[Kohera] outbox: discard from menu failed: $e');
           }
@@ -548,14 +543,16 @@ class _ChatScreenState extends State<ChatScreen>
     final cs = Theme.of(context).colorScheme;
     final List<MessageAction> primaryActions;
     final List<MessageAction> secondaryActions;
-    if (event.status.name == 'error') {
+    if (event.display?.status == KoheraMessageStatus.error) {
       primaryActions = [
         MessageAction(
           label: 'Retry sending',
           icon: Icons.refresh_rounded,
           onTap: () async {
             try {
-              await event.sendAgain();
+              await context
+                  .read<MessageRepository>()
+                  .resendEvent(widget.roomId, event.eventId);
             } catch (e) {
               debugPrint('[Kohera] outbox: retry from menu failed: $e');
             }
@@ -566,7 +563,9 @@ class _ChatScreenState extends State<ChatScreen>
           icon: Icons.delete_outline_rounded,
           onTap: () async {
             try {
-              await event.cancelSend();
+              await context
+                  .read<MessageRepository>()
+                  .cancelFailedSend(widget.roomId, event.eventId);
             } catch (e) {
               debugPrint('[Kohera] outbox: discard from menu failed: $e');
             }
@@ -594,22 +593,17 @@ class _ChatScreenState extends State<ChatScreen>
           MessageAction(
             label: 'Edit',
             icon: Icons.edit_rounded,
-            onTap: () => _compose.setEditEvent(
-              event,
-              _timelineController.timeline,
-              _msgCtrl,
-            ),
+            onTap: () => _compose.setEditEvent(event, _msgCtrl),
           ),
         MessageAction(
           label: 'Copy',
           icon: Icons.copy_rounded,
           onTap: () {
-            final displayEvent = _timelineController.timeline != null
-                ? event.getDisplayEvent(_timelineController.timeline!)
-                : event;
             unawaited(
               Clipboard.setData(
-                ClipboardData(text: stripReplyFallback(displayEvent.body)),
+                ClipboardData(
+                  text: stripReplyFallback(event.display?.body ?? event.body),
+                ),
               ),
             );
           },
@@ -621,7 +615,9 @@ class _ChatScreenState extends State<ChatScreen>
             onTap: () => confirmAndDeleteEvent(
               context,
               isMe: isMe,
-              onRedact: () => event.room.redactEvent(event.eventId),
+              onRedact: () => context
+                  .read<MessageRepository>()
+                  .redactEvent(widget.roomId, event.eventId),
             ),
             color: cs.error,
           ),
@@ -660,10 +656,8 @@ class _ChatScreenState extends State<ChatScreen>
       ];
     }
     final matrix = context.read<MatrixService>();
-    final message = MessageDisplayResolver.resolve(
-      event,
-      timeline: _timelineController.timeline,
-    );
+    final message = event.display;
+    if (message == null) return;
     showMessageActionSheet(
       context: context,
       message: message,
@@ -672,7 +666,7 @@ class _ChatScreenState extends State<ChatScreen>
       actions: primaryActions,
       secondaryActions: secondaryActions,
       avatarResolver: matrix.avatarResolver,
-      mentionResolver: _buildMentionResolver(event.room.id),
+      mentionResolver: _buildMentionResolver(widget.roomId),
       mediaResolver: matrix.mediaResolver,
       onQuickReact: (emoji) => unawaited(_actions.toggleReaction(event.eventId, emoji)),
     );
@@ -681,24 +675,22 @@ class _ChatScreenState extends State<ChatScreen>
   void _showSenderSheet(BuildContext context, String eventId) {
     final event = _timelineController.getEventById(eventId);
     if (event == null) return;
-    final sender = event.senderFromMemoryOrFallback;
-    final room = event.room;
+    final rooms = context.read<RoomRepository>();
     final member = KoheraRoomMember(
-      userId: sender.id,
-      displayname: sender.calcDisplayname(),
-      avatarUrl: sender.avatarUrl?.toString(),
-      membership: sender.membership.name,
-      powerLevel: room.getPowerLevelByUserId(sender.id).level,
+      userId: event.senderId,
+      displayname: event.display?.senderName ?? event.senderId,
+      avatarUrl: event.display?.senderAvatarUrl,
+      membership: rooms.membershipOf(widget.roomId, event.senderId),
+      powerLevel: rooms.powerLevelOf(widget.roomId, event.senderId),
     );
-    unawaited(showRoomMemberSheet(context, roomId: room.id, member: member));
+    unawaited(showRoomMemberSheet(context, roomId: widget.roomId, member: member));
   }
 
-  Future<void> _ignoreSender(Event event) async {
+  Future<void> _ignoreSender(KoheraTimelineEvent event) async {
     final senderId = event.senderId;
     final myId = _timelineController.myUserId;
     if (senderId == myId) return;
-    final sender = event.senderFromMemoryOrFallback;
-    final displayName = sender.calcDisplayname();
+    final displayName = event.display?.senderName ?? senderId;
     final confirmed = await confirmDialog(
       context,
       title: 'Ignore user?',
@@ -723,13 +715,13 @@ class _ChatScreenState extends State<ChatScreen>
     }
   }
 
-  Future<void> _reportMessage(Event event) async {
+  Future<void> _reportMessage(KoheraTimelineEvent event) async {
     final reason = await showReportContentDialog(context);
     if (reason == null || reason.isEmpty || !mounted) return;
     final rooms = context.read<RoomRepository>();
     try {
       await rooms.reportEvent(
-        event.room.id,
+        widget.roomId,
         event.eventId,
         reason: reason,
       );
@@ -752,14 +744,16 @@ class _ChatScreenState extends State<ChatScreen>
     final event = _timelineController.getEventById(eventId);
     if (event == null) return;
     final isMe = event.senderId == _timelineController.myUserId;
-    final isPinned = event.room.pinnedEventIds.contains(event.eventId);
+    final isPinned = context
+        .read<RoomRepository>()
+        .isPinned(widget.roomId, event.eventId);
     final copyableBody = event.content['url'] as String? ?? '';
     unawaited(
       showMessageContextMenu(
         context,
         isMe: isMe,
         isPinned: isPinned,
-        isFailed: event.status.name == 'error',
+        isFailed: event.display?.status == KoheraMessageStatus.error,
         isRedacted: event.redacted,
         copyableBody: copyableBody,
         position: position,
@@ -783,19 +777,19 @@ class _ChatScreenState extends State<ChatScreen>
     if (event == null) return;
     final isMe = event.senderId == _timelineController.myUserId;
     final cs = Theme.of(context).colorScheme;
-    final isPinned = event.room.pinnedEventIds.contains(event.eventId);
+    final isPinned = context
+        .read<RoomRepository>()
+        .isPinned(widget.roomId, event.eventId);
     final matrix = context.read<MatrixService>();
-    final message = MessageDisplayResolver.resolve(
-      event,
-      timeline: _timelineController.timeline,
-    );
+    final message = event.display;
+    if (message == null) return;
     showMessageActionSheet(
       context: context,
       message: message,
       isMe: isMe,
       bubbleRect: bubbleRect,
       avatarResolver: matrix.avatarResolver,
-      mentionResolver: _buildMentionResolver(event.room.id),
+      mentionResolver: _buildMentionResolver(widget.roomId),
       mediaResolver: matrix.mediaResolver,
       onQuickReact: (emoji) => unawaited(_actions.toggleReaction(event.eventId, emoji)),
       actions: [
@@ -982,7 +976,7 @@ class _ChatScreenState extends State<ChatScreen>
 
   Future<void> _handleGifPressed() async {
     final rooms = context.read<RoomRepository>();
-    if (rooms.rawRoom(widget.roomId) == null) return;
+    if (!rooms.roomExists(widget.roomId)) return;
     final service = GiphyService(apiKey: AppConfig.instance.giphyApiKey!);
     final gif = await showGifPickerSheet(context, service: service);
     service.dispose();
@@ -1004,8 +998,9 @@ class _ChatScreenState extends State<ChatScreen>
         MediaQuery.sizeOf(context).width < HomeShell.wideBreakpoint;
     if (isNarrow) {
       final matrix = context.read<MatrixService>();
-      final room = context.read<RoomRepository>().rawRoom(widget.roomId);
-      if (room != null) _openStickerSheet(matrix, room.id);
+      if (context.read<RoomRepository>().roomExists(widget.roomId)) {
+        _openStickerSheet(matrix, widget.roomId);
+      }
       return;
     }
     setState(() => _emojiPanelOpen = !_emojiPanelOpen);
@@ -1015,8 +1010,7 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   void _openStickerSheet(MatrixService matrix, String roomId) {
-    final room = context.read<RoomRepository>().rawRoom(roomId);
-    if (room == null) return;
+    if (!context.read<RoomRepository>().roomExists(roomId)) return;
     final stickerService = context.read<StickerPackRepository>();
     final skinTone = context.read<PreferencesService>().skinTone;
     showModalBottomSheet<void>(
@@ -1029,7 +1023,7 @@ class _ChatScreenState extends State<ChatScreen>
         minChildSize: 0.7,
         maxChildSize: 0.9,
         builder: (_, _) => StickerPickerOverlay(
-          packs: stickerService.packsForRoom(room),
+          packs: stickerService.packsForRoomId(roomId),
           mediaResolver: matrix.mediaResolver,
           skinTone: skinTone,
           onStickerTapped: (sticker) {
@@ -1050,8 +1044,9 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Widget _buildEmojiPanel(MatrixService matrix, String roomId) {
-    final room = context.read<RoomRepository>().rawRoom(roomId);
-    if (room == null) return const SizedBox.shrink();
+    if (!context.read<RoomRepository>().roomExists(roomId)) {
+      return const SizedBox.shrink();
+    }
     final cs = Theme.of(context).colorScheme;
     final stickerService = context.watch<StickerPackRepository>();
     final skinTone = context.watch<PreferencesService>().skinTone;
@@ -1068,7 +1063,7 @@ class _ChatScreenState extends State<ChatScreen>
         width: width,
         height: height,
         child: StickerPickerOverlay(
-          packs: stickerService.packsForRoom(room),
+          packs: stickerService.packsForRoomId(roomId),
           mediaResolver: matrix.mediaResolver,
           skinTone: skinTone,
           onStickerTapped: (sticker) {
@@ -1086,16 +1081,13 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Future<void> _handleStickerSelected(PackImage sticker) async {
-    final room = context.read<RoomRepository>().rawRoom(widget.roomId);
-    if (room == null) return;
+    final rooms = context.read<RoomRepository>();
+    if (!rooms.roomExists(widget.roomId)) return;
     try {
-      await room.sendEvent(
-        {
-          'body': sticker.altText,
-          'url': sticker.url.toString(),
-          'info': <String, Object?>{},
-        },
-        type: 'm.sticker',
+      await rooms.sendSticker(
+        widget.roomId,
+        body: sticker.altText,
+        url: sticker.url.toString(),
       );
     } catch (e) {
       if (mounted) {
@@ -1149,16 +1141,15 @@ class _ChatScreenState extends State<ChatScreen>
   @override
   Widget build(BuildContext context) {
     final matrix = context.watch<MatrixService>();
-    final room = context.select<RoomRepository, Room?>(
-      (rooms) => rooms.rawRoom(widget.roomId),
-    );
+    final summary = context.watch<RoomRepository>().summaryFor(widget.roomId);
     final tt = Theme.of(context).textTheme;
 
-    if (room == null) {
+    if (summary == null) {
       return Scaffold(
         body: Center(child: Text('Room not found', style: tt.bodyLarge)),
       );
     }
+    final roomId = widget.roomId;
 
     late final PreferredSizeWidget appBar;
     if (_search.isSearching) {
@@ -1172,11 +1163,13 @@ class _ChatScreenState extends State<ChatScreen>
       );
     } else {
       appBar = ChatAppBar(
-        summary: matrix.spaceTree.summaryFor(room),
+        summary: summary,
         onBack: widget.onBack,
         onSearch: _openSearch,
         onPinnedEvent: (eventId) async {
-          final event = await room.getEventById(eventId);
+          final event = await context
+              .read<MessageRepository>()
+              .fetchEvent(widget.roomId, eventId);
           if (event != null && mounted) {
             _messageListKey.currentState?.navigateToEventById(eventId);
           }
@@ -1196,7 +1189,7 @@ class _ChatScreenState extends State<ChatScreen>
         body: Stack(
           fit: StackFit.expand,
           children: [
-            _buildChatBody(matrix, room.id),
+            _buildChatBody(matrix, roomId),
             if (_search.isSearching)
               ColoredBox(
                 color: Theme.of(context).colorScheme.surface,
@@ -1218,7 +1211,7 @@ class _ChatScreenState extends State<ChatScreen>
       appBar: appBar,
       body: Row(
         children: [
-          Expanded(child: _buildChatBody(matrix, room.id)),
+          Expanded(child: _buildChatBody(matrix, roomId)),
           AnimatedSize(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeInOut,
@@ -1258,30 +1251,26 @@ class _ChatScreenState extends State<ChatScreen>
       );
     }
     final callService = context.watch<CallService>();
-    final roomHasCall = callService.roomHasActiveCall(room.id);
-    final isInCall = callService.activeCallRoomId == room.id;
+    final roomHasCall = callService.roomHasActiveCall(roomId);
+    final isInCall = callService.activeCallRoomId == roomId;
 
     final column = Column(
       children: [
         if (roomHasCall && !isInCall)
-          JoinCallBanner(roomId: room.id, callService: callService),
+          JoinCallBanner(roomId: roomId, callService: callService),
         Expanded(
           child: Stack(
             children: [
               MessageListView(
                 key: _messageListKey,
                 controller: _timelineController,
-                mentionResolver: _buildMentionResolver(room.id),
+                mentionResolver: _buildMentionResolver(roomId),
                 highlightedEventId: _search.highlightedEventId,
                 onReply: _setReplyTo,
                 onEdit: (eventId) {
                   final event = _timelineController.getEventById(eventId);
                   if (event != null) {
-                    _compose.setEditEvent(
-                      event,
-                      _timelineController.timeline,
-                      _msgCtrl,
-                    );
+                    _compose.setEditEvent(event, _msgCtrl);
                   }
                 },
                 onToggleReaction: (eventId, emoji) async {
@@ -1312,7 +1301,9 @@ class _ChatScreenState extends State<ChatScreen>
                       confirmAndDeleteEvent(
                         ctx,
                         isMe: event.senderId == _timelineController.myUserId,
-                        onRedact: () => event.room.redactEvent(event.eventId),
+                        onRedact: () => context
+                            .read<MessageRepository>()
+                            .redactEvent(widget.roomId, event.eventId),
                       ),
                     );
                   }
@@ -1320,15 +1311,9 @@ class _ChatScreenState extends State<ChatScreen>
                 buildReplyPreview: (eventId, isMe, onParentTap) {
                   return ReplyPreviewHost(
                     replyEventId: eventId,
-                    resolvePreview: (id) async {
-                      final event = _timelineController.getEventById(id);
-                      final timeline = _timelineController.timeline;
-                      if (event == null || timeline == null) return null;
-                      return ReplyPreviewResolver.resolveParent(
-                        event,
-                        timeline,
-                      );
-                    },
+                    resolvePreview: (id) => context
+                        .read<MessageRepository>()
+                        .replyPreviewFor(widget.roomId, id),
                     isMe: isMe,
                     onParentTap: onParentTap,
                   );
@@ -1358,7 +1343,7 @@ class _ChatScreenState extends State<ChatScreen>
                 Positioned(
                   left: 8,
                   bottom: 8,
-                  child: _buildEmojiPanel(matrix, room.id),
+                  child: _buildEmojiPanel(matrix, roomId),
                 ),
               ],
             ],
@@ -1366,7 +1351,11 @@ class _ChatScreenState extends State<ChatScreen>
         ),
         TypingIndicator(
           typingDisplayNamesProvider: () =>
-              matrix.spaceTree.summaryFor(room).typingDisplayNames,
+              context
+                  .read<RoomRepository>()
+                  .summaryFor(roomId)
+                  ?.typingDisplayNames ??
+              const [],
           syncStream: context.read<RoomRepository>().onSync,
         ),
         ComposeBarSection(
