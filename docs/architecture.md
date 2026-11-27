@@ -168,6 +168,13 @@ Each repository:
   that wrap stateless SDK data calls take `MatrixClientService` (the SDK
   boundary); repos fronting a stateful engine take that sub-service.
 
+Stateful engines that are UI-facing `ChangeNotifier`s stay in the feature
+layer and consume repositories like any other controller — they are not
+relocated into `lib/data/`. Example: `CallService` and `LiveKitService`
+(`lib/features/calling/services/`) hold no SDK `Client`; their RTC
+membership, OpenID, well-known, and signaling access routes through
+`CallRepository`.
+
 Dependencies are injected once at construction; repositories are per-account and
 immutable, not re-pointed at runtime. On account switch the composition root
 rebuilds the router (recreating go_router's navigators) so the whole screen tree
