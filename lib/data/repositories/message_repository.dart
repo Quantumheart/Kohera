@@ -363,6 +363,52 @@ class MessageRepository extends ChangeNotifier {
     return SdkMediaController(event, _client);
   }
 
+  /// Redacts [eventId] in [roomId]. No-op when the room is unknown.
+  Future<void> redactEvent(String roomId, String eventId) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return;
+    await room.redactEvent(eventId);
+  }
+
+  /// Retries sending the failed message [eventId] in [roomId]. No-op
+  /// when the room is unknown.
+  Future<void> resendEvent(String roomId, String eventId) async {
+    final event = await _findEvent(roomId, eventId);
+    if (event == null) return;
+    await event.sendAgain();
+  }
+
+  /// Discards the failed message [eventId] in [roomId]. No-op when the
+  /// room is unknown.
+  Future<void> cancelFailedSend(String roomId, String eventId) async {
+    final event = await _findEvent(roomId, eventId);
+    if (event == null) return;
+    await event.cancelSend();
+  }
+
+  /// Resolves the reply-parent preview for [eventId] in [roomId], or null
+  /// when the event, its parent, or the room is unavailable.
+  Future<KoheraReplyPreview?> replyPreviewFor(
+    String roomId,
+    String eventId,
+  ) async {
+    final event = await _findEvent(roomId, eventId);
+    if (event == null) return null;
+    final room = _client.getRoomById(roomId)!;
+    final timeline = await room.getTimeline();
+    return ReplyPreviewResolver.resolveParent(event, timeline);
+  }
+
+  Future<Event?> _findEvent(String roomId, String eventId) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return null;
+    final timeline = await room.getTimeline();
+    for (final e in timeline.events) {
+      if (e.eventId == eventId) return e;
+    }
+    return room.getEventById(eventId);
+  }
+
   /// Pre-loads encryption group sessions for the recent history of
   /// [roomId] and decrypts what it can. No-op for unencrypted rooms or
   /// when no encryption engine is active.

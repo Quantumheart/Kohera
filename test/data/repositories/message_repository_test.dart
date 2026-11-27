@@ -598,6 +598,52 @@ void main() {
 
       repo.requestMissingSessionKeys('!unknown:example.com');
     });
+
+    test('redactEvent delegates to the room', () async {
+      final room = MockRoom();
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
+
+      await repo.redactEvent('!room:example.com', r'\$e:s');
+
+      verify(room.redactEvent(r'\$e:s')).called(1);
+    });
+
+    test('resendEvent sends the timeline event again', () async {
+      final room = MockRoom();
+      final timeline = _FakeTimeline();
+      final event = _FakeEvent(eventId: r'\$e:s');
+      timeline.eventsList = [event];
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
+      when(room.getTimeline()).thenAnswer((_) async => timeline);
+
+      await repo.resendEvent('!room:example.com', r'\$e:s');
+
+      expect(event.sendAgainCalled, isTrue);
+      expect(event.cancelSendCalled, isFalse);
+    });
+
+    test('cancelFailedSend cancels the timeline event', () async {
+      final room = MockRoom();
+      final timeline = _FakeTimeline();
+      final event = _FakeEvent(eventId: r'\$e:s');
+      timeline.eventsList = [event];
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
+      when(room.getTimeline()).thenAnswer((_) async => timeline);
+
+      await repo.cancelFailedSend('!room:example.com', r'\$e:s');
+
+      expect(event.cancelSendCalled, isTrue);
+      expect(event.sendAgainCalled, isFalse);
+    });
+
+    test('replyPreviewFor returns null for unknown room', () async {
+      when(mockClient.getRoomById('!unknown:example.com')).thenReturn(null);
+
+      expect(
+        await repo.replyPreviewFor('!unknown:example.com', r'\$e:s'),
+        isNull,
+      );
+    });
   });
 }
 
@@ -670,6 +716,8 @@ class _FakeEvent extends Fake implements Event {
   Set<Event> aggregated = const {};
 
   bool redactCalled = false;
+  bool sendAgainCalled = false;
+  bool cancelSendCalled = false;
 
   @override
   String get senderId => senderIdValue;
@@ -693,6 +741,17 @@ class _FakeEvent extends Fake implements Event {
   }) async {
     redactCalled = true;
     return r'$redaction:s';
+  }
+
+  @override
+  Future<String?> sendAgain({String? txid}) async {
+    sendAgainCalled = true;
+    return null;
+  }
+
+  @override
+  Future<void> cancelSend() async {
+    cancelSendCalled = true;
   }
 
   @override
