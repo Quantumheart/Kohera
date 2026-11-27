@@ -6,6 +6,7 @@ import 'package:kohera/data/models/kohera_file_too_big_exception.dart';
 import 'package:kohera/data/models/kohera_media_content.dart';
 import 'package:kohera/data/models/kohera_message_display.dart';
 import 'package:kohera/data/models/kohera_push_rule_state.dart';
+import 'package:kohera/data/models/kohera_read_receipt.dart';
 import 'package:kohera/data/models/kohera_room_history.dart';
 import 'package:kohera/data/models/kohera_room_member.dart';
 import 'package:kohera/data/models/kohera_room_permissions.dart';
@@ -13,6 +14,7 @@ import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/resolvers/history_event_resolver.dart';
 import 'package:kohera/data/resolvers/media_content_resolver.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
+import 'package:kohera/data/resolvers/read_receipt_resolver.dart';
 import 'package:kohera/data/resolvers/room_member_list_resolver.dart';
 import 'package:kohera/data/resolvers/room_permissions_resolver.dart';
 import 'package:kohera/data/resolvers/room_summary_resolver.dart';
@@ -680,6 +682,62 @@ class RoomRepository extends ChangeNotifier {
     final pinned = List<String>.from(room.pinnedEventIds);
     pinned.remove(eventId);
     await room.setPinnedEvents(pinned);
+  }
+
+  // ── Read markers and receipts ─────────────────────────────
+
+  /// Read receipts of other users in [roomId], keyed by event ID.
+  /// When [threadRootId] is given, only that thread's receipts resolve.
+  Map<String, List<KoheraReadReceipt>> readReceipts(
+    String roomId, {
+    String? threadRootId,
+  }) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return const {};
+    return ReadReceiptResolver.resolve(
+      room,
+      _client.userID,
+      threadRootId: threadRootId,
+    );
+  }
+
+  /// The millisecond timestamp of the current user's latest read receipt
+  /// in thread [threadRootId] of [roomId], or 0 when none exists.
+  int latestOwnThreadReceiptTs(String roomId, String threadRootId) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return 0;
+    return room.receiptState.byThread[threadRootId]?.latestOwnReceipt?.ts ?? 0;
+  }
+
+  /// The fully-read marker event ID of [roomId], or null when unset or
+  /// the room is unknown.
+  String? fullyReadMarkerId(String roomId) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return null;
+    final marker = room.fullyRead;
+    return marker.isEmpty ? null : marker;
+  }
+
+  /// The unread notification count of [roomId], or 0 when the room is
+  /// unknown.
+  int notificationCount(String roomId) =>
+      _client.getRoomById(roomId)?.notificationCount ?? 0;
+
+  /// Moves the read marker of [roomId] to [eventId] and posts a private
+  /// main-thread receipt. Also posts a public receipt when
+  /// [sendPublicReceipt] is true.
+  Future<void> markRead(
+    String roomId,
+    String eventId, {
+    bool sendPublicReceipt = false,
+  }) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return;
+    await room.setReadMarker(
+      eventId,
+      mRead: sendPublicReceipt ? eventId : null,
+    );
+    await postReceipt(roomId, ReceiptType.mRead, eventId, threadId: 'main');
   }
 
   // ── Transitional raw room access ──────────────────────────────
