@@ -26,8 +26,7 @@ abstract class CallNavigator {
     final granted = await CallPermissionService.request();
     if (!granted || !context.mounted) return;
 
-    final room = context.read<RoomRepository>().rawRoom(roomId);
-    final isDm = room?.isDirectChat ?? false;
+    final isDm = context.read<RoomRepository>().getRoomIsDirectChat(roomId);
 
     if (isDm) {
       await callService.initiateCall(roomId, type: type);

@@ -17,8 +17,9 @@ class CallPane extends StatelessWidget {
   String _resolveRoomName(BuildContext context, CallService callService) {
     final roomId = callService.activeCallRoomId;
     if (roomId == null) return 'Call';
-    final room = context.read<RoomRepository>().rawRoom(roomId);
-    return room?.getLocalizedDisplayname() ?? 'Call';
+    return context
+        .read<RoomRepository>()
+        .displayNameFor(roomId, fallback: 'Call');
   }
 
   @override
@@ -36,13 +37,13 @@ class CallPane extends StatelessWidget {
       KoheraCallState.joining => CallJoiningView(
           displayName: _resolveRoomName(context, callService),
           roomAvatar: () {
-            final room = roomId != null
-                ? context.read<RoomRepository>().rawRoom(roomId)
+            final summary = roomId != null
+                ? context.read<RoomRepository>().summaryFor(roomId)
                 : null;
-            if (room == null) return null;
+            if (summary == null) return null;
             return CallRoomAvatar(
-              avatarUrl: room.avatar?.toString(),
-              displayName: room.getLocalizedDisplayname(),
+              avatarUrl: summary.avatarUrl,
+              displayName: summary.displayname,
               avatarResolver: context.read<MediaRepository>().avatarResolver,
             );
           }(),

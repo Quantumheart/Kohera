@@ -371,6 +371,11 @@ class RoomRepository extends ChangeNotifier {
     return room?.isDirectChat ?? false;
   }
 
+  /// The localized display name of [roomId], or [fallback] when the
+  /// room is unknown.
+  String displayNameFor(String roomId, {String fallback = 'Unknown room'}) =>
+      _client.getRoomById(roomId)?.getLocalizedDisplayname() ?? fallback;
+
   String? getRoomPartnerId(String roomId) {
     final room = _client.getRoomById(roomId);
     return room?.directChatMatrixID;
