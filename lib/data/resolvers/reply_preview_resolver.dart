@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
+import 'package:kohera/data/models/kohera_timeline_event.dart';
 import 'package:matrix/matrix.dart';
 
 /// Converts an SDK [Event] into a pre-computed [KoheraReplyPreview] for the
@@ -47,6 +48,22 @@ class ReplyPreviewResolver {
   /// Use this when the event is already known (e.g. the reply/edit target in
   /// the compose bar) and no async parent resolution is needed.
   static KoheraReplyPreview fromEvent(Event event) => _fromEvent(event);
+
+  /// Builds a preview from a domain timeline event (for compose reply/edit
+  /// banners). Uses the pre-resolved display fields.
+  static KoheraReplyPreview fromTimelineEvent(KoheraTimelineEvent event) {
+    final display = event.display;
+    final isBadEncrypted = event.messageType == MessageTypes.BadEncrypted;
+    return KoheraReplyPreview(
+      parentMessageId: event.eventId,
+      parentSenderId: event.senderId,
+      parentSenderName: display?.senderName ?? event.senderId,
+      parentBody: isBadEncrypted
+          ? 'Unable to decrypt'
+          : stripReplyFallback(display?.body ?? event.body),
+      parentFormattedHtml: display?.formattedHtml,
+    );
+  }
 
   static KoheraReplyPreview _fromEvent(Event event) {
     final sender = event.senderFromMemoryOrFallback;

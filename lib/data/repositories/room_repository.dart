@@ -684,6 +684,13 @@ class RoomRepository extends ChangeNotifier {
     await room.setPinnedEvents(pinned);
   }
 
+  /// The power level of [userId] in [roomId], or 0 when unknown.
+  int powerLevelOf(String roomId, String userId) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return 0;
+    return room.getPowerLevelByUserId(userId).level;
+  }
+
   // ── Read markers and receipts ─────────────────────────────
 
   /// Read receipts of other users in [roomId], keyed by event ID.

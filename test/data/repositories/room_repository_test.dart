@@ -261,6 +261,17 @@ void main() {
 
       verify(room.setReadMarker(r'\$evt:s', mRead: r'\$evt:s')).called(1);
     });
+
+    test('powerLevelOf returns 0 for unknown room', () {
+      expect(repo.powerLevelOf('!unknown:example.com', '@a:s'), 0);
+    });
+
+    test('powerLevelOf delegates to the room', () {
+      when(room.getPowerLevelByUserId('@alice:example.com'))
+          .thenReturn(PowerLevel(50));
+
+      expect(repo.powerLevelOf('!room:example.com', '@alice:example.com'), 50);
+    });
   });
 }
 class _FakeDatabase extends Fake implements DatabaseApi {
