@@ -186,8 +186,83 @@ void main() {
       verify(room.setPinnedEvents([r'$a:s'])).called(1);
     });
   });
-}
 
+  group('read markers and receipts', () {
+    late MockRoom room;
+
+    setUp(() {
+      room = MockRoom();
+      when(room.id).thenReturn('!room:example.com');
+      when(room.receiptState).thenReturn(LatestReceiptState.empty());
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
+    });
+
+    test('readReceipts returns empty for unknown room', () {
+      expect(repo.readReceipts('!unknown:example.com'), isEmpty);
+    });
+
+    test('readReceipts returns empty map when no receipts exist', () {
+      when(mockClient.userID).thenReturn('@me:example.com');
+
+      expect(repo.readReceipts('!room:example.com'), isEmpty);
+    });
+
+    test('latestOwnThreadReceiptTs returns 0 without a receipt', () {
+      expect(
+        repo.latestOwnThreadReceiptTs('!room:example.com', r'\$root:s'),
+        0,
+      );
+    });
+
+    test('fullyReadMarkerId returns null for unknown room', () {
+      expect(repo.fullyReadMarkerId('!unknown:example.com'), isNull);
+    });
+
+    test('fullyReadMarkerId returns marker when set', () {
+      when(room.fullyRead).thenReturn(r'\$read:s');
+
+      expect(repo.fullyReadMarkerId('!room:example.com'), r'\$read:s');
+    });
+
+    test('fullyReadMarkerId returns null when empty', () {
+      when(room.fullyRead).thenReturn('');
+
+      expect(repo.fullyReadMarkerId('!room:example.com'), isNull);
+    });
+
+    test('notificationCount delegates to the room', () {
+      when(room.notificationCount).thenReturn(3);
+
+      expect(repo.notificationCount('!room:example.com'), 3);
+      expect(repo.notificationCount('!unknown:example.com'), 0);
+    });
+
+    test('markRead sets the read marker and posts a private receipt',
+        () async {
+      await repo.markRead('!room:example.com', r'\$evt:s');
+
+      verify(room.setReadMarker(r'\$evt:s')).called(1);
+      verify(
+        mockClient.postReceipt(
+          '!room:example.com',
+          ReceiptType.mRead,
+          r'\$evt:s',
+          threadId: 'main',
+        ),
+      ).called(1);
+    });
+
+    test('markRead posts a public receipt when requested', () async {
+      await repo.markRead(
+        '!room:example.com',
+        r'\$evt:s',
+        sendPublicReceipt: true,
+      );
+
+      verify(room.setReadMarker(r'\$evt:s', mRead: r'\$evt:s')).called(1);
+    });
+  });
+}
 class _FakeDatabase extends Fake implements DatabaseApi {
   @override
   Future<Map<String, dynamic>?> getClient(String name) async => null;

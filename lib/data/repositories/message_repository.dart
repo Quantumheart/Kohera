@@ -8,8 +8,10 @@ import 'package:kohera/data/models/kohera_reaction.dart';
 import 'package:kohera/data/models/kohera_read_receipt.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
 import 'package:kohera/data/models/kohera_state_event_text.dart';
+import 'package:kohera/data/models/kohera_thread_children_page.dart';
 import 'package:kohera/data/models/kohera_thread_summary.dart';
 import 'package:kohera/data/models/kohera_timeline.dart';
+import 'package:kohera/data/models/kohera_timeline_event.dart';
 import 'package:kohera/data/resolvers/media_content_resolver.dart';
 import 'package:kohera/data/resolvers/message_display_resolver.dart';
 import 'package:kohera/data/resolvers/poll_resolver.dart';
@@ -21,6 +23,8 @@ import 'package:kohera/data/resolvers/timeline_resolver.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/data/services/message_indexer_service.dart';
 import 'package:kohera/data/services/message_search_database.dart';
+import 'package:kohera/data/services/sdk_media_controller.dart';
+import 'package:kohera/shared/services/media_controller.dart';
 import 'package:matrix/matrix.dart';
 
 class MessageRepository extends ChangeNotifier {
@@ -290,6 +294,155 @@ class MessageRepository extends ChangeNotifier {
     final room = _client.getRoomById(roomId);
     if (room == null) return null;
     return room.getTimeline();
+  }
+
+  // ── Timeline support ─────────────────────────────────────────
+
+  /// Fetches [eventId] in [roomId] as a domain event, resolved against
+  /// the room's live timeline. Returns null when the room or event is
+  /// unknown.
+  Future<KoheraTimelineEvent?> fetchEvent(String roomId, String eventId) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return null;
+    final event = await room.getEventById(eventId);
+    if (event == null) return null;
+    final timeline = await room.getTimeline();
+    return const TimelineResolver().convert(
+      event,
+      timeline: timeline,
+      myUserId: _client.userID,
+    );
+  }
+
+  /// Fetches one page of thread replies for [rootEventId] in [roomId],
+  /// decrypted where possible, oldest first. Returns an empty page when
+  /// the room is unknown.
+  Future<KoheraThreadChildrenPage> fetchThreadChildrenPage(
+    String roomId,
+    String rootEventId, {
+    String? from,
+    int limit = 100,
+  }) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return const KoheraThreadChildrenPage(events: []);
+    final relations = await _client.getRelatingEventsWithRelType(
+      room.id,
+      rootEventId,
+      RelationshipTypes.thread,
+      limit: limit,
+      from: from,
+    );
+    final events = <Event>[];
+    for (final raw in relations.chunk) {
+      events.add(await _decryptIfNeeded(Event.fromMatrixEvent(raw, room)));
+    }
+    events.sort((a, b) => a.originServerTs.compareTo(b.originServerTs));
+    final timeline = await room.getTimeline();
+    final myUserId = _client.userID;
+    const resolver = TimelineResolver();
+    return KoheraThreadChildrenPage(
+      events: events
+          .map(
+            (e) => resolver.convert(e, timeline: timeline, myUserId: myUserId),
+          )
+          .toList(growable: false),
+      nextBatch: relations.nextBatch,
+    );
+  }
+
+  /// Builds a media controller for [eventId] in [roomId], or null when
+  /// the room or event is unknown.
+  Future<MediaController?> mediaControllerFor(
+    String roomId,
+    String eventId,
+  ) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return null;
+    final event = await room.getEventById(eventId);
+    if (event == null) return null;
+    return SdkMediaController(event, _client);
+  }
+
+  /// Pre-loads encryption group sessions for the recent history of
+  /// [roomId] and decrypts what it can. No-op for unencrypted rooms or
+  /// when no encryption engine is active.
+  Future<void> preDecryptRoomHistory(String roomId) async {
+    final room = _client.getRoomById(roomId);
+    final encryption = _client.encryption;
+    if (room == null || encryption == null || !room.encrypted) return;
+
+    final events = await _client.database
+        .getEventList(room, limit: Room.defaultHistoryCount);
+
+    final sessionIds = <String>{};
+    for (final event in events) {
+      if (event.type == EventTypes.Encrypted) {
+        final sessionId = event.content.tryGet<String>('session_id');
+        if (sessionId != null) sessionIds.add(sessionId);
+      }
+    }
+    for (final sessionId in sessionIds) {
+      try {
+        await encryption.keyManager
+            .loadInboundGroupSession(room.id, sessionId);
+      } catch (_) {}
+    }
+
+    for (final event in events) {
+      if (event.type != EventTypes.Encrypted) continue;
+      try {
+        await encryption.decryptRoomEvent(
+          event,
+          store: !room.isArchived,
+          updateType: EventUpdateType.history,
+        );
+      } catch (_) {}
+    }
+  }
+
+  /// Requests missing inbound group session keys for undecryptable
+  /// events on the live timeline of [roomId]. Fire-and-forget: failures
+  /// are logged, not thrown.
+  void requestMissingSessionKeys(String roomId) {
+    final room = _client.getRoomById(roomId);
+    final encryption = _client.encryption;
+    if (room == null || encryption == null) return;
+
+    unawaited(() async {
+      final timeline = await room.getTimeline();
+      final requested = <String>{};
+      for (final event in timeline.events) {
+        if (event.type != EventTypes.Encrypted ||
+            event.messageType != MessageTypes.BadEncrypted) {
+          continue;
+        }
+        final sessionId = event.content.tryGet<String>('session_id');
+        final senderKey = event.content.tryGet<String>('sender_key');
+        if (sessionId == null || !requested.add(sessionId)) continue;
+        unawaited(
+          encryption.keyManager.loadSingleKey(room.id, sessionId).catchError(
+            (Object e) {
+              debugPrint('[Kohera] Key load failed for $sessionId: $e');
+            },
+          ),
+        );
+        if (senderKey != null) {
+          try {
+            unawaited(
+              Future.value(
+                encryption.keyManager.maybeAutoRequest(
+                  room.id,
+                  sessionId,
+                  senderKey,
+                ),
+              ),
+            );
+          } catch (e) {
+            debugPrint('[Kohera] P2P key request failed for $sessionId: $e');
+          }
+        }
+      }
+    }());
   }
 
   // ── Message search ───────────────────────────────────────────

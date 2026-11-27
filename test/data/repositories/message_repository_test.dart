@@ -514,6 +514,91 @@ void main() {
       expect(id, isNull);
     });
   });
+
+  group('timeline support', () {
+    test('fetchEvent returns null for unknown room', () async {
+      when(mockClient.getRoomById('!unknown:example.com')).thenReturn(null);
+
+      expect(await repo.fetchEvent('!unknown:example.com', r'\$e:s'), isNull);
+    });
+
+    test('fetchEvent converts a known event against the live timeline',
+        () async {
+      final room = MockRoom();
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
+      when(room.getTimeline()).thenAnswer((_) async => _FakeTimeline());
+      final event = _FakeEvent(eventId: r'\$e:s', body: 'hello');
+      when(room.getEventById(r'\$e:s')).thenAnswer((_) async => event);
+
+      final result = await repo.fetchEvent('!room:example.com', r'\$e:s');
+
+      expect(result, isNotNull);
+      expect(result!.eventId, r'\$e:s');
+      expect(result.display, isNotNull);
+    });
+
+    test('fetchThreadChildrenPage returns empty page for unknown room',
+        () async {
+      when(mockClient.getRoomById('!unknown:example.com')).thenReturn(null);
+
+      final page = await repo.fetchThreadChildrenPage(
+        '!unknown:example.com',
+        r'\$root:s',
+      );
+
+      expect(page.events, isEmpty);
+      expect(page.nextBatch, isNull);
+    });
+
+    test('fetchThreadChildrenPage delegates and maps nextBatch', () async {
+      final room = MockRoom();
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
+      when(room.id).thenReturn('!room:example.com');
+      when(room.getTimeline()).thenAnswer((_) async => _FakeTimeline());
+      when(
+        mockClient.getRelatingEventsWithRelType(
+          '!room:example.com',
+          r'\$root:s',
+          RelationshipTypes.thread,
+          limit: 100,
+        ),
+      ).thenAnswer(
+        (_) async => GetRelatingEventsWithRelTypeResponse(
+          chunk: const [],
+          nextBatch: 'tok2',
+        ),
+      );
+
+      final page = await repo.fetchThreadChildrenPage(
+        '!room:example.com',
+        r'\$root:s',
+      );
+
+      expect(page.events, isEmpty);
+      expect(page.nextBatch, 'tok2');
+    });
+
+    test('mediaControllerFor returns null for unknown room', () async {
+      when(mockClient.getRoomById('!unknown:example.com')).thenReturn(null);
+
+      expect(
+        await repo.mediaControllerFor('!unknown:example.com', r'\$e:s'),
+        isNull,
+      );
+    });
+
+    test('preDecryptRoomHistory is a no-op for unknown room', () async {
+      when(mockClient.getRoomById('!unknown:example.com')).thenReturn(null);
+
+      await repo.preDecryptRoomHistory('!unknown:example.com');
+    });
+
+    test('requestMissingSessionKeys ignores unknown rooms', () {
+      when(mockClient.getRoomById('!unknown:example.com')).thenReturn(null);
+
+      repo.requestMissingSessionKeys('!unknown:example.com');
+    });
+  });
 }
 
 class _FakeReceipts extends Fake implements LatestReceiptState {
