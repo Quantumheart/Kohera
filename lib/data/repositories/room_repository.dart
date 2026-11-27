@@ -219,6 +219,40 @@ class RoomRepository extends ChangeNotifier {
     }
   }
 
+  /// Sends [bytes] as a voice message named [name] to [roomId] with
+  /// [duration] and the MSC3245 voice marker.
+  ///
+  /// Throws [KoheraFileTooBigException] when the homeserver rejects the
+  /// upload for exceeding its size limit.
+  Future<void> sendVoiceFile(
+    String roomId,
+    Uint8List bytes,
+    String name, {
+    required Duration duration,
+    String? threadRootEventId,
+    String? threadLastEventId,
+  }) async {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return;
+    try {
+      await room.sendFileEvent(
+        MatrixAudioFile(bytes: bytes, name: name),
+        threadRootEventId: threadRootEventId,
+        threadLastEventId: threadLastEventId,
+        extraContent: {
+          'info': {
+            'duration': duration.inMilliseconds,
+            'mimetype': 'audio/mp4',
+            'size': bytes.length,
+          },
+          'org.matrix.msc3245.voice': <String, dynamic>{},
+        },
+      );
+    } on FileTooBigMatrixException {
+      throw KoheraFileTooBigException(name);
+    }
+  }
+
   Future<void> setName(String roomId, String name) async {
     final room = _client.getRoomById(roomId);
     if (room != null) await room.setName(name);
