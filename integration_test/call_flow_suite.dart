@@ -9,6 +9,7 @@ import 'package:kohera/core/services/account_session.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/data/repositories/call_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/screens/call_pane.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -134,7 +135,7 @@ class _CallTestHarness {
       serviceFactory: FixedServiceFactory(matrixService),
     );
 
-    callService = CallService(client: mockClient);
+    callService = CallService(callRepository: CallRepository(clientService: MatrixClientService(mockClient)));
     _setupLiveKitFakes();
   }
 

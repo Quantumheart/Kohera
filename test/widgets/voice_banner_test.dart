@@ -36,7 +36,6 @@ void main() {
     selectionService = SpaceTreeRepository(clientService: MatrixClientService(mockClient));
     when(mockMatrixService.spaceTree).thenReturn(selectionService);
 
-    when(mockCallService.client).thenReturn(mockClient);
     when(mockCallService.callState).thenReturn(KoheraCallState.idle);
     when(mockCallService.activeCallRoomId).thenReturn(null);
   });

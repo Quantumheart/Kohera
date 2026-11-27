@@ -6,6 +6,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
+import 'package:kohera/data/repositories/call_repository.dart';
 import 'package:kohera/data/repositories/message_search_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
@@ -120,7 +121,7 @@ void main() {
             create: (_) => RoomRepository(clientService: mockMatrix.matrixClientService),),
         ChangeNotifierProvider<SpaceTreeRepository>.value(value: selectionService),
         ChangeNotifierProvider<SelectionController>.value(value: selectionController),
-        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
+        ChangeNotifierProvider(create: (ctx) => CallService(callRepository: CallRepository(clientService: ctx.read<MatrixService>().matrixClientService))),
         ChangeNotifierProvider<PreferencesService>.value(value: prefs),
         Provider<MessageSearchRepository>.value(
             value: messageSearchRepository,),

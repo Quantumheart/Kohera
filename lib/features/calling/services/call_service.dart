@@ -6,17 +6,20 @@ import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/data/models/call_constants.dart';
 import 'package:kohera/data/models/call_participant.dart' as ui;
+import 'package:kohera/data/models/kohera_call_member_update.dart';
+import 'package:kohera/data/models/kohera_signaling_event.dart';
+import 'package:kohera/data/repositories/call_repository.dart';
+import 'package:kohera/data/resolvers/rtc_membership_resolver.dart';
 import 'package:kohera/features/calling/models/call_state.dart';
 import 'package:kohera/features/calling/models/incoming_call_info.dart' as model;
 import 'package:kohera/features/calling/services/call_ringing_service.dart';
-import 'package:kohera/features/calling/services/call_signaling_service.dart';
 import 'package:kohera/features/calling/services/livekit_service.dart';
 import 'package:kohera/features/calling/services/native_call_ui_service.dart';
 import 'package:kohera/features/calling/services/ringtone_service.dart';
-import 'package:kohera/features/calling/services/rtc_membership_service.dart';
 import 'package:livekit_client/livekit_client.dart' as livekit;
-import 'package:matrix/matrix.dart';
 
+export 'package:kohera/data/models/call_constants.dart'
+    show callMemberEventType, membershipExpiresMs, membershipRenewalInterval;
 export 'package:kohera/features/calling/models/call_state.dart';
 export 'package:kohera/features/calling/services/livekit_service.dart'
     show
@@ -26,29 +29,24 @@ export 'package:kohera/features/calling/services/livekit_service.dart'
         LiveKitParticipantJoined,
         LiveKitParticipantLeft,
         LiveKitRoomFactory;
-export 'package:kohera/features/calling/services/rtc_membership_service.dart'
-    show callMemberEventType, membershipExpiresMs, membershipRenewalInterval;
 
 // ── Call Service ────────────────────────────────────────────
 
 class CallService extends ChangeNotifier with WidgetsBindingObserver {
   CallService({
-    required Client client,
+    required CallRepository callRepository,
     RingtoneService? ringtoneService,
     NativeCallUiService? nativeCallUiService,
-  }) : _client = client {
-    _rtcMembership = RtcMembershipService(client: client);
+  }) : _callRepository = callRepository {
     _liveKit = LiveKitService(
-      client: client,
+      callRepository: callRepository,
       onChanged: notifyListeners,
     );
-    _signaling = CallSignalingService(client: client);
     _ringing = CallRingingService(ringtoneService: ringtoneService);
     _nativeUi = nativeCallUiService ?? NativeCallUiService();
   }
 
-  Client _client;
-  Client get client => _client;
+  CallRepository _callRepository;
 
   PreferencesService? _prefs;
   set preferencesService(PreferencesService? prefs) => _prefs = prefs;
@@ -59,20 +57,18 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── Sub-services ───────────────────────────────────────────
 
-  late final RtcMembershipService _rtcMembership;
   late final LiveKitService _liveKit;
-  late final CallSignalingService _signaling;
   late final CallRingingService _ringing;
   late final NativeCallUiService _nativeUi;
 
-  StreamSubscription<SignalingEvent>? _signalingEventSub;
+  Timer? _membershipRenewalTimer;
+
+  StreamSubscription<KoheraSignalingEvent>? _signalingEventSub;
   StreamSubscription<NativeCallAction>? _nativeActionSub;
   StreamSubscription<LiveKitConnectionEvent>? _liveKitConnectionSub;
   StreamSubscription<LiveKitParticipantEvent>? _liveKitParticipantSub;
-  StreamSubscription<({String roomId, StrippedStateEvent state})>?
-      _membershipWatcherSub;
-  StreamSubscription<({String roomId, StrippedStateEvent state})>?
-      _incomingRingSub;
+  StreamSubscription<KoheraCallMemberUpdate>? _membershipWatcherSub;
+  StreamSubscription<KoheraCallMemberUpdate>? _incomingRingSub;
 
   String? _incomingCallerStateKey;
 
@@ -225,16 +221,15 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
 
   void _startMembershipWatcher(String roomId) {
     _stopMembershipWatcher();
-    _membershipWatcherSub = _client.onRoomState.stream.listen((update) {
+    _membershipWatcherSub =
+        _callRepository.onCallMemberState.listen((update) {
       if (update.roomId != roomId) return;
-      if (update.state.type != callMemberEventType) return;
       _onMembershipChanged(roomId);
     });
   }
 
   void _onMembershipChanged(String roomId) {
-    final hasRemote =
-        RtcMembershipService.roomHasRemoteActiveCall(_client, roomId);
+    final hasRemote = _callRepository.roomHasRemoteActiveCall(roomId);
 
     if (_callState == KoheraCallState.ringingOutgoing && hasRemote) {
       debugPrint('[Kohera] Detected RTC membership join, treating as answer');
@@ -246,7 +241,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
       _hadRemoteParticipant = true;
     }
 
-    final isDm = _client.getRoomById(roomId)?.isDirectChat ?? false;
+    final isDm = _callRepository.isDirectChat(roomId);
     if (isDm &&
         (_callState == KoheraCallState.connected ||
             _callState == KoheraCallState.reconnecting) &&
@@ -265,40 +260,67 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     _membershipWatcherSub = null;
   }
 
+  // ── Membership Renewal ───────────────────────────────────
+
+  void _startMembershipRenewal(
+    String roomId,
+    String livekitAlias, {
+    required String livekitServiceUrl,
+    bool isVideo = false,
+    int? createdTimeStamp,
+  }) {
+    _cancelMembershipRenewal();
+    _membershipRenewalTimer = Timer.periodic(
+      membershipRenewalInterval,
+      (_) => _callRepository
+          .joinCallMembership(
+        roomId,
+        livekitAlias,
+        livekitServiceUrl: livekitServiceUrl,
+        isVideo: isVideo,
+        createdTimeStamp: createdTimeStamp,
+      )
+          .catchError(
+        (Object e) => debugPrint('[Kohera] Failed to renew membership: $e'),
+      ),
+    );
+  }
+
+  void _cancelMembershipRenewal() {
+    _membershipRenewalTimer?.cancel();
+    _membershipRenewalTimer = null;
+  }
+
   // ── Incoming Ring (m.call.member) ───────────────────────────
 
-  void _onGlobalRoomState(
-      ({String roomId, StrippedStateEvent state}) update,) {
-    if (update.state.type != callMemberEventType) return;
-
+  void _onGlobalRoomState(KoheraCallMemberUpdate update) {
     debugPrint(
       '[Kohera] onRoomState m.call.member in ${update.roomId} '
-      'stateKey=${update.state.stateKey} contentEmpty=${update.state.content.isEmpty}',
+      'stateKey=${update.stateKey} contentEmpty=${update.content.isEmpty}',
     );
 
-    final stateKey = update.state.stateKey;
+    final stateKey = update.stateKey;
     if (stateKey == null) {
       debugPrint('[Kohera]   skip: null stateKey');
       return;
     }
 
-    final ownUserPrefix = '_${_client.userID ?? ''}_';
+    final ownUserPrefix = '_${_callRepository.userId ?? ''}_';
     if (stateKey.startsWith(ownUserPrefix)) {
       debugPrint('[Kohera]   skip: own user stateKey');
       return;
     }
 
-    final room = _client.getRoomById(update.roomId);
-    if (room == null) {
+    if (!_callRepository.roomExists(update.roomId)) {
       debugPrint('[Kohera]   skip: room not in memory');
       return;
     }
-    if (!room.isDirectChat) {
+    if (!_callRepository.isDirectChat(update.roomId)) {
       debugPrint('[Kohera]   skip: room not DM (isDirectChat=false)');
       return;
     }
 
-    final content = update.state.content;
+    final content = update.content;
     final isActive = content.isNotEmpty;
 
     if (isActive) {
@@ -310,10 +332,8 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
       }
       final expires = content['expires'];
       if (expiresTs is! int && expires is int) {
-        final stateEvent = room.states[callMemberEventType]?[stateKey];
-        final originTs = stateEvent is Event
-            ? stateEvent.originServerTs.millisecondsSinceEpoch
-            : now;
+        final originTs =
+            _callRepository.callMemberOriginTs(update.roomId, stateKey) ?? now;
         if ((originTs + expires) <= now) {
           debugPrint('[Kohera]   skip: membership expired (expires+originTs)');
           return;
@@ -323,7 +343,6 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
         roomId: update.roomId,
         stateKey: stateKey,
         content: content,
-        room: room,
       );
     } else {
       _handleRemoteMembershipRemoved(roomId: update.roomId, stateKey: stateKey);
@@ -334,7 +353,6 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     required String roomId,
     required String stateKey,
     required Map<String, Object?> content,
-    required Room room,
   }) {
     if (_callState != KoheraCallState.idle &&
         _callState != KoheraCallState.failed) {
@@ -344,10 +362,10 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     final isVideo = content[kIoKoheraIsVideo] == true;
 
     final senderId =
-        RtcMembershipService.userIdFromStateKey(stateKey) ?? stateKey;
-    final sender = room.unsafeGetUserFromMemoryOrFallback(senderId);
-    final callerName = sender.calcDisplayname();
-    final callerAvatarUrl = sender.avatarUrl;
+        RtcMembershipResolver.userIdFromStateKey(stateKey) ?? stateKey;
+    final callerProfile = _callRepository.callerProfileFor(roomId, senderId);
+    final callerName = callerProfile.displayName;
+    final callerAvatarUrl = callerProfile.avatarUrl;
 
     final info = model.IncomingCallInfo(
       roomId: roomId,
@@ -390,7 +408,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     if (_incomingCallerStateKey != null) {
       if (_incomingCallerStateKey != stateKey) return;
     } else {
-      if (RtcMembershipService.roomHasRemoteActiveCall(_client, roomId)) {
+      if (_callRepository.roomHasRemoteActiveCall(roomId)) {
         return;
       }
     }
@@ -411,24 +429,24 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     _initialized = true;
     WidgetsBinding.instance.addObserver(this);
     unawaited(_liveKit.fetchWellKnownLiveKit());
-    _signaling.startSignalingListener();
     _nativeUi.init(getCallState: () => _callState.name);
 
-    _signalingEventSub = _signaling.events.listen(_onSignalingEvent);
+    _signalingEventSub =
+        _callRepository.legacyCallAttempts.listen(_onSignalingEvent);
     _nativeActionSub = _nativeUi.actions.listen(_onNativeAction);
     _liveKitConnectionSub = _liveKit.connectionEvents.listen(_onLiveKitConnection);
     _liveKitParticipantSub =
         _liveKit.participantEvents.listen(_onLiveKitParticipant);
-    _incomingRingSub = _client.onRoomState.stream.listen(_onGlobalRoomState);
+    _incomingRingSub =
+        _callRepository.onCallMemberState.listen(_onGlobalRoomState);
 
     debugPrint('[Kohera] CallService initialized');
   }
 
   void _resetState() {
     _nativeUi.endNativeCall();
-    _signaling.stopSignalingListener();
     unawaited(_liveKit.cleanupLiveKit());
-    _rtcMembership.cancelMembershipRenewal();
+    _cancelMembershipRenewal();
     _activeCallRoomId = null;
     _callState = KoheraCallState.idle;
     _initialized = false;
@@ -453,13 +471,11 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     _stopMembershipWatcher();
   }
 
-  void updateClient(Client newClient) {
-    if (identical(_client, newClient)) return;
+  void updateRepository(CallRepository callRepository) {
+    if (identical(_callRepository, callRepository)) return;
     _resetState();
-    _client = newClient;
-    _rtcMembership.updateClient(newClient);
-    _liveKit.updateClient(newClient);
-    _signaling.updateClient(newClient);
+    _callRepository = callRepository;
+    _liveKit.updateRepository(callRepository);
   }
 
   @override
@@ -481,7 +497,6 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     _resetState();
     _ringing.dispose();
     _liveKit.dispose();
-    _signaling.dispose();
     _disposed = true;
     super.dispose();
   }
@@ -495,7 +510,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> _teardownCall({String? roomId}) async {
     await _liveKit.cleanupLiveKit();
-    _rtcMembership.cancelMembershipRenewal();
+    _cancelMembershipRenewal();
     final pending = _pendingMembershipSend;
     _pendingMembershipSend = null;
     if (pending != null) {
@@ -505,7 +520,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     }
     if (roomId != null) {
       try {
-        await _rtcMembership.removeMembershipEvent(roomId);
+        await _callRepository.leaveCallMembership(roomId);
       } catch (e) {
         debugPrint('[Kohera] Error removing membership: $e');
       }
@@ -523,7 +538,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     if (allowed == null || !allowed.contains(KoheraCallState.joining)) {
       return false;
     }
-    if (_client.getRoomById(roomId) == null) return false;
+    if (!_callRepository.roomExists(roomId)) return false;
     return true;
   }
 
@@ -532,12 +547,9 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
   /// Boundary helper so push services can check call liveness by roomId
   /// without touching the SDK room.
   bool roomHasRemoteActiveCall(String roomId) =>
-      RtcMembershipService.roomHasRemoteActiveCallWith(
-        _client.getRoomById(roomId),
-        _client.userID,
-      );
+      _callRepository.roomHasRemoteActiveCall(roomId);
 
-  Future<void> _connectToLiveKit(String roomId, Room room) async {
+  Future<void> _connectToLiveKit(String roomId) async {
     if (_liveKit.cachedLivekitServiceUrl == null) {
       await _liveKit.fetchWellKnownLiveKit();
     }
@@ -546,13 +558,11 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
       throw Exception('LiveKit service URL not found in well-known');
     }
 
-    final ownAlias =
-        room.canonicalAlias.isNotEmpty ? room.canonicalAlias : room.id;
+    final ownAlias = _callRepository.livekitAliasFor(roomId);
 
-    final oldestFocus = RtcMembershipService.selectOldestFocus(
-      _client,
+    final oldestFocus = _callRepository.selectOldestFocus(
       roomId,
-      excludeUserId: _client.userID,
+      excludeUserId: _callRepository.userId,
     );
     final activeUrl = oldestFocus?.url ?? ownServiceUrl;
     final activeAlias =
@@ -568,15 +578,15 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
 
     _activeCallRoomId = roomId;
 
-    _rtcMembership.startMembershipRenewal(
+    _startMembershipRenewal(
       roomId,
       activeAlias,
       livekitServiceUrl: activeUrl,
       createdTimeStamp: createdTimeStamp,
     );
 
-    final membershipFuture = _rtcMembership
-        .sendMembershipEvent(
+    final membershipFuture = _callRepository
+        .joinCallMembership(
       roomId,
       activeAlias,
       livekitServiceUrl: activeUrl,
@@ -626,11 +636,10 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> joinCall(String roomId) async {
     if (!_canJoin(roomId)) return;
 
-    final room = _client.getRoomById(roomId)!;
     _setCallState(KoheraCallState.joining);
 
     try {
-      await _connectToLiveKit(roomId, room);
+      await _connectToLiveKit(roomId);
       _ringing.stopRinging();
 
       if (_callState != KoheraCallState.joining) {
@@ -713,7 +722,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     final roomId = _ringing.incomingCall?.roomId;
     if (roomId != null) {
       unawaited(
-        _rtcMembership.removeMembershipEvent(roomId).catchError(
+        _callRepository.leaveCallMembership(roomId).catchError(
           (Object e) => debugPrint(
             '[Kohera] Failed to remove ring-phase membership on decline: $e',
           ),
@@ -736,7 +745,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
     final roomId = _lastInitiatedRoomId;
     if (roomId != null) {
       unawaited(
-        _rtcMembership.removeMembershipEvent(roomId).catchError(
+        _callRepository.leaveCallMembership(roomId).catchError(
           (Object e) => debugPrint(
             '[Kohera] Failed to remove ring-phase membership: $e',
           ),
@@ -766,15 +775,14 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
-    final room = _client.getRoomById(roomId);
-    if (room == null) return;
+    if (!_callRepository.roomExists(roomId)) return;
 
     _activeCallId = '';
     _lastInitiatedRoomId = roomId;
     _activeCallRoomId = roomId;
     _setCallState(KoheraCallState.ringingOutgoing);
 
-    final callerName = room.getLocalizedDisplayname();
+    final callerName = _callRepository.displayNameFor(roomId);
     final isVideo = type == model.CallType.video;
     _nativeUi.showNativeOutgoingCall(roomId, callerName, isVideo);
 
@@ -798,11 +806,10 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
       cancelOutgoingCall();
       return;
     }
-    final livekitAlias =
-        room.canonicalAlias.isNotEmpty ? room.canonicalAlias : room.id;
+    final livekitAlias = _callRepository.livekitAliasFor(roomId);
 
     try {
-      await _rtcMembership.sendMembershipEvent(
+      await _callRepository.joinCallMembership(
         roomId,
         livekitAlias,
         livekitServiceUrl: livekitServiceUrl,
@@ -817,7 +824,7 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
           'membership',
         );
         unawaited(
-          _rtcMembership.removeMembershipEvent(roomId).catchError(
+          _callRepository.leaveCallMembership(roomId).catchError(
             (Object e) => debugPrint(
               '[Kohera] Failed to remove stale ring-phase membership: $e',
             ),
@@ -838,16 +845,16 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
   // ── Queries ────────────────────────────────────────────────
 
   bool roomHasActiveCall(String roomId) =>
-      RtcMembershipService.roomHasActiveCall(_client, roomId);
+      _callRepository.roomHasActiveCall(roomId);
 
   List<String> activeCallIdsForRoom(String roomId) =>
-      RtcMembershipService.activeCallIdsForRoom(_client, roomId);
+      _callRepository.activeCallIdsForRoom(roomId);
 
   int callParticipantCount(String roomId, String groupCallId) =>
-      RtcMembershipService.callParticipantCount(_client, roomId, groupCallId);
+      _callRepository.callParticipantCount(roomId, groupCallId);
 
   Set<String> callParticipantUserIds(String roomId) =>
-      RtcMembershipService.activeCallParticipantUserIds(_client, roomId);
+      _callRepository.activeCallParticipantUserIds(roomId);
 
   // ── Push Call Handling ─────────────────────────────────────
 
@@ -905,9 +912,9 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── Event Handlers ─────────────────────────────────────────
 
-  void _onSignalingEvent(SignalingEvent event) {
+  void _onSignalingEvent(KoheraSignalingEvent event) {
     switch (event) {
-      case LegacyCallAttempt():
+      case KoheraLegacyCallAttempt():
         debugPrint(
           '[Kohera] Legacy call attempt in ${event.roomId} from '
           '${event.senderId} — surfaced as missed-call marker, no ring',
@@ -976,13 +983,13 @@ class CallService extends ChangeNotifier with WidgetsBindingObserver {
         final roomId = _activeCallRoomId;
         _stopMembershipWatcher();
         _activeCallRoomId = null;
-        _rtcMembership.cancelMembershipRenewal();
+        _cancelMembershipRenewal();
         _callStartTime = null;
         _setCallState(KoheraCallState.failed);
         unawaited(_liveKit.cleanupLiveKit());
         if (roomId != null) {
           unawaited(
-            _rtcMembership.removeMembershipEvent(roomId).catchError(
+            _callRepository.leaveCallMembership(roomId).catchError(
               (Object e) => debugPrint(
                 '[Kohera] Error removing membership after disconnect: $e',
               ),

@@ -6,6 +6,7 @@ import 'package:kohera/core/services/app_config.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/data/repositories/call_repository.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/auth/screens/login_screen.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
@@ -74,7 +75,7 @@ void main() {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<MatrixService>.value(value: matrixService),
-        ChangeNotifierProvider(create: (ctx) => CallService(client: ctx.read<MatrixService>().matrixClientService.client)),
+        ChangeNotifierProvider(create: (ctx) => CallService(callRepository: CallRepository(clientService: ctx.read<MatrixService>().matrixClientService))),
         ChangeNotifierProvider<ClientManager>.value(value: clientManager),
         ChangeNotifierProvider<PreferencesService>.value(value: prefsService),
       ],

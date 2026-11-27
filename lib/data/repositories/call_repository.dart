@@ -1,5 +1,7 @@
 import 'package:kohera/data/models/call_constants.dart';
 import 'package:kohera/data/models/kohera_call_member_state.dart';
+import 'package:kohera/data/models/kohera_call_member_update.dart';
+import 'package:kohera/data/models/kohera_caller_profile.dart';
 import 'package:kohera/data/models/kohera_livekit_focus.dart';
 import 'package:kohera/data/models/kohera_open_id_token.dart';
 import 'package:kohera/data/models/kohera_signaling_event.dart';
@@ -83,6 +85,44 @@ class CallRepository {
 
   bool isDirectChat(String roomId) =>
       _client.getRoomById(roomId)?.isDirectChat ?? false;
+
+  bool roomExists(String roomId) => _client.getRoomById(roomId) != null;
+
+  /// The localized display name of [roomId], or a placeholder when the
+  /// room is unknown.
+  String displayNameFor(String roomId) =>
+      _client.getRoomById(roomId)?.getLocalizedDisplayname() ??
+      'Unknown room';
+
+  /// The LiveKit alias for [roomId]: the canonical alias when set,
+  /// otherwise the room id.
+  String livekitAliasFor(String roomId) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return roomId;
+    return room.canonicalAlias.isNotEmpty ? room.canonicalAlias : room.id;
+  }
+
+  /// Display name and avatar for [userId] in [roomId].
+  KoheraCallerProfile callerProfileFor(String roomId, String userId) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) {
+      return KoheraCallerProfile(displayName: userId);
+    }
+    final sender = room.unsafeGetUserFromMemoryOrFallback(userId);
+    return KoheraCallerProfile(
+      displayName: sender.calcDisplayname(),
+      avatarUrl: sender.avatarUrl,
+    );
+  }
+
+  /// The origin timestamp in milliseconds of the call-member state event
+  /// under [stateKey] in [roomId], or null when unknown.
+  int? callMemberOriginTs(String roomId, String stateKey) {
+    final stateEvent =
+        _client.getRoomById(roomId)?.states[callMemberEventType]?[stateKey];
+    if (stateEvent is! Event) return null;
+    return stateEvent.originServerTs.millisecondsSinceEpoch;
+  }
 
   /// Avatar URL for [userId] in [roomId], or null when unknown.
   Uri? avatarUrlFor(String roomId, String userId) => _client
@@ -185,12 +225,15 @@ class CallRepository {
 
   // ── Signaling streams ────────────────────────────────────
 
-  /// Emits when any `org.matrix.msc3401.call.member` state changes,
-  /// carrying the affected [roomId].
-  Stream<String> get onCallMemberState =>
+  /// Emits when any `org.matrix.msc3401.call.member` state changes.
+  Stream<KoheraCallMemberUpdate> get onCallMemberState =>
       _client.onRoomState.stream
           .where((update) => update.state.type == callMemberEventType)
-          .map((update) => update.roomId);
+          .map((update) => KoheraCallMemberUpdate(
+                roomId: update.roomId,
+                stateKey: update.state.stateKey,
+                content: update.state.content,
+              ));
 
   /// Legacy `m.call.invite` attempts in direct chats from other users,
   /// rendered as missed-call markers.

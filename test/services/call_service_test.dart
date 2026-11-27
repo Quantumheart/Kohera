@@ -3,6 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:kohera/data/repositories/call_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/services/call_service.dart';
 import 'package:livekit_client/livekit_client.dart' as livekit;
 import 'package:matrix/matrix.dart';
@@ -21,6 +23,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late MockClient mockClient;
+  late CallRepository callRepository;
   late CallService service;
 
   setUp(() {
@@ -32,7 +35,9 @@ void main() {
     when(mockClient.onRoomState).thenReturn(
       CachedStreamController<({String roomId, StrippedStateEvent state})>(),
     );
-    service = CallService(client: mockClient);
+    callRepository =
+        CallRepository(clientService: MatrixClientService(mockClient));
+    service = CallService(callRepository: callRepository);
   });
 
   FakeLiveKitRoom setupLiveKitMocks() {
@@ -535,7 +540,7 @@ void main() {
     });
 
     test('toggle does nothing without LiveKit room', () async {
-      final standalone = CallService(client: mockClient);
+      final standalone = CallService(callRepository: CallRepository(clientService: MatrixClientService(mockClient)));
 
       await standalone.toggleMicrophone();
       expect(standalone.isMicEnabled, isFalse);
@@ -893,7 +898,8 @@ void main() {
     setUp(() {
       fakeNative = FakeNativeCallUiService();
       pushService = CallService(
-        client: mockClient,
+        callRepository:
+            CallRepository(clientService: MatrixClientService(mockClient)),
         nativeCallUiService: fakeNative,
       );
     });
@@ -993,18 +999,20 @@ void main() {
 
       final newClient = MockClient();
       when(newClient.rooms).thenReturn([]);
-      service.updateClient(newClient);
+      service.updateRepository(
+        CallRepository(clientService: MatrixClientService(newClient)),
+      );
 
       expect(service.callState, KoheraCallState.idle);
       expect(service.activeCallRoomId, isNull);
     });
 
-    test('no-op when same client', () async {
+    test('no-op when same repository', () async {
       setupLiveKitMocks();
       setupMockRoom();
 
       await service.joinCall('!room:example.com');
-      service.updateClient(mockClient);
+      service.updateRepository(callRepository);
 
       expect(service.callState, KoheraCallState.connected);
     });
@@ -1017,7 +1025,8 @@ void main() {
     setUp(() {
       fakeRingtone = FakeRingtoneService();
       soundService = CallService(
-        client: mockClient,
+        callRepository:
+            CallRepository(clientService: MatrixClientService(mockClient)),
         ringtoneService: fakeRingtone,
       );
     });

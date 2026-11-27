@@ -23,6 +23,7 @@ import 'package:kohera/core/theme/theme_presets.dart';
 import 'package:kohera/core/utils/platform_info.dart';
 import 'package:kohera/core/utils/vodozemac_init.dart';
 import 'package:kohera/data/repositories/auth_repository.dart';
+import 'package:kohera/data/repositories/call_repository.dart';
 import 'package:kohera/data/repositories/key_backup_repository.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
@@ -397,10 +398,18 @@ class _KoheraAppState extends State<KoheraApp> {
                       return previous;
                     },
                   ),
+                  Provider<CallRepository>(
+                    create: (ctx) => CallRepository(
+                      clientService: ctx
+                          .read<MatrixService>()
+                          .session
+                          .matrixClientService,
+                    ),
+                  ),
                   ChangeNotifierProxyProvider<MatrixService, CallService>(
                     create: (ctx) {
                       final cs = CallService(
-                        client: ctx.read<MatrixService>().session.client,
+                        callRepository: ctx.read<CallRepository>(),
                         ringtoneService: _ringtoneService,
                       )..preferencesService = prefs;
                       if (ctx.read<MatrixService>().isLoggedIn) cs.init();
@@ -409,14 +418,19 @@ class _KoheraAppState extends State<KoheraApp> {
                     update: (_, matrix, previous) {
                       if (previous == null) {
                         final cs = CallService(
-                          client: matrix.session.client,
+                          callRepository: CallRepository(
+                            clientService:
+                                matrix.session.matrixClientService,
+                          ),
                           ringtoneService: _ringtoneService,
                         )..preferencesService = prefs;
                         if (matrix.isLoggedIn) cs.init();
                         return cs;
                       }
                       previous
-                        ..updateClient(matrix.session.client)
+                        ..updateRepository(CallRepository(
+                          clientService: matrix.session.matrixClientService,
+                        ))
                         ..preferencesService = prefs;
                       if (matrix.isLoggedIn) {
                         previous.init();

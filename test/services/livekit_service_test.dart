@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
+import 'package:kohera/data/repositories/call_repository.dart';
+import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:kohera/features/calling/models/call_state.dart';
 import 'package:kohera/features/calling/services/livekit_service.dart';
 import 'package:livekit_client/livekit_client.dart' as livekit;
@@ -31,7 +33,8 @@ void main() {
     when(mockClient.deviceID).thenReturn('DEVICE1');
     changedCount = 0;
     service = LiveKitService(
-      client: mockClient,
+      callRepository:
+          CallRepository(clientService: MatrixClientService(mockClient)),
       onChanged: () => changedCount++,
     );
   });
@@ -1173,7 +1176,9 @@ void main() {
       when(newClient.requestOpenIdToken(any, any))
           .thenAnswer((_) async => openIdCredentials);
 
-      service.updateClient(newClient);
+      service.updateRepository(
+        CallRepository(clientService: MatrixClientService(newClient)),
+      );
 
       Map<String, dynamic>? capturedBody;
       service.httpPostForTest = (client, url, {headers, body}) async {
