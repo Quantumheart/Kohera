@@ -114,6 +114,8 @@ void main() {
       final sender = MockUser();
       when(sender.displayName).thenReturn(
           senderId.split(':').first.substring(1),);
+      when(sender.calcDisplayname()).thenReturn(
+          senderId.split(':').first.substring(1),);
       when(sender.avatarUrl).thenReturn(null);
       when(event.senderFromMemoryOrFallback).thenReturn(sender);
       when(event.getDisplayEvent(any)).thenReturn(event);
@@ -150,6 +152,23 @@ void main() {
       );
       when(mockRoom.client).thenReturn(mockClient);
       when(mockTimeline.canRequestHistory).thenReturn(false);
+      when(mockRoom.avatar).thenReturn(null);
+      when(mockRoom.membership).thenReturn(Membership.join);
+      when(mockRoom.notificationCount).thenReturn(0);
+      when(mockRoom.highlightCount).thenReturn(0);
+      when(mockRoom.pinnedEventIds).thenReturn([]);
+      when(mockRoom.typingUsers).thenReturn([]);
+      when(mockRoom.lastEvent).thenReturn(null);
+      when(mockRoom.isDirectChat).thenReturn(false);
+      when(mockRoom.encrypted).thenReturn(false);
+      when(mockRoom.isFavourite).thenReturn(false);
+      when(mockRoom.isSpace).thenReturn(false);
+      when(mockRoom.spaceChildren).thenReturn([]);
+      when(mockRoom.topic).thenReturn('');
+      when(mockRoom.canonicalAlias).thenReturn('');
+      when(mockRoom.fullyRead).thenReturn('');
+      when(mockRoom.canChangeStateEvent(any)).thenReturn(false);
+      when(mockRoom.getPowerLevelByUserId(any)).thenReturn(PowerLevel(0));
     });
 
     Widget buildTestWidget() {

@@ -3,17 +3,17 @@ import 'dart:async';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kohera/data/models/kohera_timeline.dart';
+import 'package:kohera/data/models/kohera_timeline_event.dart';
+import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/features/chat/services/message_timeline_controller.dart';
-import 'package:matrix/matrix.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 
 @GenerateNiceMocks([
-  MockSpec<Client>(),
-  MockSpec<Room>(),
-  MockSpec<Timeline>(),
   MockSpec<RoomRepository>(),
+  MockSpec<MessageRepository>(),
 ])
 import 'message_timeline_controller_test.mocks.dart';
 
@@ -21,37 +21,80 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late MockRoomRepository mockRooms;
-  late MockRoom mockRoom;
-  late MockTimeline mockTimeline;
-  late MockClient mockClient;
+  late MockMessageRepository mockMessages;
   late MessageTimelineController controller;
 
   const roomId = '!room:example.com';
 
+  var fragmented = false;
+  var canRequest = false;
+  var timelineEvents = <KoheraTimelineEvent>[];
+  KoheraTimeline? lastTimeline;
+
+  KoheraTimeline buildTimeline() {
+    return lastTimeline = KoheraTimeline(
+      roomId: roomId,
+      events: timelineEvents,
+      canRequestHistory: () => canRequest,
+      isFragmented: () => fragmented,
+      requestHistory: () async {},
+    );
+  }
+
+  KoheraTimelineEvent domainEvent(
+    String id, {
+    String senderId = '@alice:example.com',
+    DateTime? ts,
+    String? relationshipType,
+    String? relationshipEventId,
+    Map<String, List<String>> aggregated = const {},
+  }) {
+    return KoheraTimelineEvent(
+      eventId: id,
+      senderId: senderId,
+      type: 'm.room.message',
+      messageType: 'm.text',
+      body: 'body $id',
+      originServerTs: ts ?? DateTime(2026),
+      redacted: false,
+      canRedact: false,
+      content: {'body': 'body $id', 'msgtype': 'm.text'},
+      relationshipType: relationshipType,
+      relationshipEventId: relationshipEventId,
+      aggregatedEventIds: aggregated,
+    );
+  }
+
   setUp(() {
     mockRooms = MockRoomRepository();
-    mockRoom = MockRoom();
-    mockTimeline = MockTimeline();
-    mockClient = MockClient();
+    mockMessages = MockMessageRepository();
+    fragmented = false;
+    canRequest = false;
+    timelineEvents = [];
+    lastTimeline = null;
 
-    when(mockRooms.rawRoom(roomId)).thenReturn(mockRoom);
+    when(mockRooms.roomExists(roomId)).thenReturn(true);
     when(mockRooms.userId).thenReturn('@me:example.com');
     when(mockRooms.ignoredUsers).thenReturn([]);
-    when(mockRooms.encryption).thenReturn(null);
-    when(mockRooms.searchClient).thenReturn(mockClient);
-    when(mockRoom.id).thenReturn(roomId);
-    when(mockRoom.client).thenReturn(mockClient);
-    when(mockRoom.fullyRead).thenReturn('');
-    when(mockRoom.notificationCount).thenReturn(0);
-    when(mockRoom.receiptState).thenReturn(LatestReceiptState.empty());
-    when(mockTimeline.events).thenReturn([]);
-    when(mockTimeline.canRequestHistory).thenReturn(false);
-    when(mockRoom.getTimeline(
-      onUpdate: anyNamed('onUpdate'),
-    )).thenAnswer((_) async => mockTimeline);
+    when(mockRooms.readReceipts(roomId, threadRootId: anyNamed('threadRootId')))
+        .thenReturn(const {});
+    when(mockRooms.latestOwnThreadReceiptTs(any, any)).thenReturn(0);
+    when(mockRooms.isPinned(any, any)).thenReturn(false);
+    when(mockRooms.canChangePinnedEvents(any)).thenReturn(false);
+    when(mockRooms.notificationCount(roomId)).thenReturn(0);
+    when(mockRooms.fullyReadMarkerId(roomId)).thenReturn(null);
+    when(
+      mockMessages.getTimeline(
+        roomId,
+        eventContextId: anyNamed('eventContextId'),
+      ),
+    ).thenAnswer((_) async => buildTimeline());
+    when(mockMessages.preDecryptRoomHistory(roomId)).thenAnswer((_) async {});
+    when(mockMessages.mediaControllerFor(any, any)).thenReturn(null);
 
     controller = MessageTimelineController(
       roomRepository: mockRooms,
+      messageRepository: mockMessages,
       roomId: roomId,
       sendPublicReadReceipts: false,
     );
@@ -60,58 +103,40 @@ void main() {
   tearDown(() => controller.dispose());
 
   group('isFragmented', () {
-    test('reflects timeline.allowNewEvent', () async {
+    test('reflects the timeline fragmentation state', () async {
       await controller.init();
-      when(mockTimeline.allowNewEvent).thenReturn(false);
+      fragmented = true;
       expect(controller.isFragmented, isTrue);
 
-      when(mockTimeline.allowNewEvent).thenReturn(true);
+      fragmented = false;
       expect(controller.isFragmented, isFalse);
     });
   });
 
   group('reloadTimelineAtLive', () {
-    test('cancels old timeline and loads live timeline without eventContextId',
+    test('disposes the old timeline and reloads without eventContextId',
         () async {
       await controller.init();
-      when(mockTimeline.allowNewEvent).thenReturn(false);
+      final first = lastTimeline!;
+      fragmented = true;
 
       await controller.reloadTimelineAtLive();
-      // Allow the post-frame / microtask to flush.
-      await Future<void>.delayed(Duration.zero);
 
-      verify(mockTimeline.cancelSubscriptions()).called(1);
-      verify(mockRoom.getTimeline(
-        onUpdate: anyNamed('onUpdate'),
-      )).called(greaterThan(0));
-      verifyNever(mockRoom.getTimeline(
-        eventContextId: argThat(isNotNull, named: 'eventContextId'),
-        onUpdate: anyNamed('onUpdate'),
-      ));
+      expect(first.isDisposed, isTrue);
+      expect(lastTimeline, isNot(same(first)));
+      verifyNever(
+        mockMessages.getTimeline(
+          roomId,
+          eventContextId: argThat(isNotNull, named: 'eventContextId'),
+        ),
+      );
     });
   });
 
   group('read marker', () {
-    late void Function() onUpdate;
-
     setUp(() {
-      final event = Event(
-        content: {'body': 'hi', 'msgtype': MessageTypes.Text},
-        type: EventTypes.Message,
-        eventId: r'$latest',
-        senderId: '@alice:example.com',
-        originServerTs: DateTime(2026),
-        room: mockRoom,
-      );
-      when(mockRoom.unsafeGetUserFromMemoryOrFallback('@alice:example.com'))
-          .thenReturn(User('@alice:example.com', room: mockRoom));
-      when(mockTimeline.events).thenReturn([event]);
-      when(mockRoom.notificationCount).thenReturn(1);
-      when(mockRoom.getTimeline(onUpdate: anyNamed('onUpdate')))
-          .thenAnswer((invocation) async {
-        onUpdate = invocation.namedArguments[#onUpdate] as void Function();
-        return mockTimeline;
-      });
+      timelineEvents = [domainEvent(r'$latest')];
+      when(mockRooms.notificationCount(roomId)).thenReturn(1);
     });
 
     tearDown(() {
@@ -128,8 +153,9 @@ void main() {
           ..flushMicrotasks()
           ..elapse(const Duration(seconds: 2));
 
-        verify(mockRoom.setReadMarker(r'$latest', mRead: anyNamed('mRead')))
-            .called(1);
+        verify(
+          mockRooms.markRead(roomId, r'$latest'),
+        ).called(1);
       });
     });
 
@@ -142,20 +168,21 @@ void main() {
           async
             ..flushMicrotasks()
             ..elapse(const Duration(seconds: 2));
-          clearInteractions(mockRoom);
+          clearInteractions(mockRooms);
 
           WidgetsBinding.instance.handleAppLifecycleStateChanged(state);
-          onUpdate();
-          async.elapse(const Duration(seconds: 5));
-          verifyNever(
-            mockRoom.setReadMarker(any, mRead: anyNamed('mRead')),
-          );
+          lastTimeline!.publish(timelineEvents);
+          async
+            ..flushMicrotasks()
+            ..elapse(const Duration(seconds: 5));
+          verifyNever(mockRooms.markRead(any, any));
 
           WidgetsBinding.instance
               .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-          async.elapse(const Duration(seconds: 2));
-          verify(mockRoom.setReadMarker(r'$latest', mRead: anyNamed('mRead')))
-              .called(1);
+          async
+            ..flushMicrotasks()
+            ..elapse(const Duration(seconds: 2));
+          verify(mockRooms.markRead(any, any)).called(1);
         });
       });
     }
@@ -164,6 +191,7 @@ void main() {
       fakeAsync((async) {
         final disposable = MessageTimelineController(
           roomRepository: mockRooms,
+          messageRepository: mockMessages,
           roomId: roomId,
           sendPublicReadReceipts: false,
         );
@@ -179,101 +207,75 @@ void main() {
             .handleAppLifecycleStateChanged(AppLifecycleState.resumed);
         async.elapse(const Duration(seconds: 2));
 
-        verifyNever(mockRoom.setReadMarker(any, mRead: anyNamed('mRead')));
+        verifyNever(mockRooms.markRead(any, any));
       });
     });
   });
 
-  group('message data cache', () {
-    late void Function() onUpdate;
-
-    Event textEvent(String id, String body, DateTime ts) => Event(
-          content: {'body': body, 'msgtype': MessageTypes.Text},
-          type: EventTypes.Message,
-          eventId: id,
-          senderId: '@alice:example.com',
-          originServerTs: ts,
-          room: mockRoom,
-        );
-
-    setUp(() {
-      when(mockRoom.unsafeGetUserFromMemoryOrFallback('@alice:example.com'))
-          .thenReturn(User('@alice:example.com', room: mockRoom));
-      when(mockRoom.getTimeline(onUpdate: anyNamed('onUpdate')))
-          .thenAnswer((invocation) async {
-        onUpdate = invocation.namedArguments[#onUpdate] as void Function();
-        return mockTimeline;
-      });
-    });
-
-    test('reuses resolved data for unchanged events across updates', () async {
-      final a = textEvent(r'$a', 'first', DateTime(2026, 1, 2));
-      final b = textEvent(r'$b', 'second', DateTime(2026));
-      when(mockTimeline.events).thenReturn([a, b]);
+  group('messages', () {
+    test('returns the cached list between reads without updates', () async {
+      timelineEvents = [
+        domainEvent(r'$a', ts: DateTime(2026, 1, 2)),
+        domainEvent(r'$b'),
+      ];
 
       await controller.init();
       final first = controller.messages;
+      final second = controller.messages;
+
       expect(first, hasLength(2));
-
-      onUpdate();
-      final second = controller.messages;
-
-      expect(identical(first[0], second[0]), isTrue);
-      expect(identical(first[1], second[1]), isTrue);
+      expect(identical(first, second), isTrue);
     });
 
-    test('re-resolves only the event whose instance changed', () async {
-      final a = textEvent(r'$a', 'first', DateTime(2026, 1, 2));
-      final b = textEvent(r'$b', 'second', DateTime(2026));
-      when(mockTimeline.events).thenReturn([a, b]);
+    test('recomputes after a timeline publish', () async {
+      timelineEvents = [domainEvent(r'$a')];
 
       await controller.init();
       final first = controller.messages;
 
-      final aUpdated = textEvent(r'$a', 'first (edited)', DateTime(2026, 1, 2));
-      when(mockTimeline.events).thenReturn([aUpdated, b]);
-      onUpdate();
-      final second = controller.messages;
+      timelineEvents = [
+        KoheraTimelineEvent(
+          eventId: r'$a',
+          senderId: '@alice:example.com',
+          type: 'm.room.message',
+          messageType: 'm.text',
+          body: 'edited body',
+          originServerTs: DateTime(2026),
+          redacted: false,
+          canRedact: false,
+          content: const {'body': 'edited body', 'msgtype': 'm.text'},
+        ),
+      ];
+      lastTimeline!.publish(timelineEvents);
+      await Future<void>.delayed(Duration.zero);
 
-      expect(identical(first[0], second[0]), isFalse);
-      expect(second[0].message.body, 'first (edited)');
-      expect(identical(first[1], second[1]), isTrue);
+      final second = controller.messages;
+      expect(identical(first, second), isFalse);
+      expect(second[0].message.body, 'edited body');
     });
 
-    test('invalidates an event when a reaction is aggregated to it', () async {
-      final a = textEvent(r'$a', 'first', DateTime(2026, 1, 2));
-      final b = textEvent(r'$b', 'second', DateTime(2026));
-      when(mockTimeline.events).thenReturn([a, b]);
-      when(mockTimeline.aggregatedEvents).thenReturn({});
-
-      await controller.init();
-      final first = controller.messages;
-
-      final reaction = Event(
-        content: {
-          'm.relates_to': {
-            'rel_type': RelationshipTypes.reaction,
-            'event_id': r'$a',
-            'key': '\u{1F44D}',
-          },
-        },
-        type: EventTypes.Reaction,
-        eventId: r'$r1',
-        senderId: '@alice:example.com',
-        originServerTs: DateTime(2026, 1, 3),
-        room: mockRoom,
+    test('populates thread info from aggregation', () async {
+      final child = domainEvent(
+        r'$child',
+        ts: DateTime(2026, 1, 3),
+        relationshipType: 'm.thread',
+        relationshipEventId: r'$root',
       );
-      when(mockTimeline.aggregatedEvents).thenReturn({
-        r'$a': {
-          RelationshipTypes.reaction: {reaction},
+      final root = domainEvent(
+        r'$root',
+        aggregated: const {
+          'm.thread': [r'$child'],
         },
-      });
-      onUpdate();
-      final second = controller.messages;
+      );
+      timelineEvents = [child, root];
 
-      expect(identical(first[0], second[0]), isFalse);
-      expect(second[0].reactions, isNotNull);
-      expect(identical(first[1], second[1]), isTrue);
+      await controller.init();
+      final messages = controller.messages;
+
+      expect(messages, hasLength(1));
+      expect(messages[0].hasThread, isTrue);
+      expect(messages[0].threadReplyCount, 1);
+      expect(messages[0].threadUnreadCount, 1);
     });
   });
 }

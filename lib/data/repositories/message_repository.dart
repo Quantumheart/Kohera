@@ -45,6 +45,9 @@ class MessageRepository extends ChangeNotifier {
   final MessageIndexerService _indexer;
   bool _disposed = false;
 
+  final Map<String, Timeline> _liveTimelines = {};
+  final Map<String, Map<String, Event>> _eventCache = {};
+
   Client get _client => _clientService.client;
 
   void _onIndexerChanged() {
@@ -150,13 +153,20 @@ class MessageRepository extends ChangeNotifier {
         resolver.convertTimeline(sdkTimeline, myUserId: myUserId),
       ),
     );
+    _liveTimelines[roomId] = sdkTimeline;
     return koheraTimeline = KoheraTimeline(
       roomId: roomId,
       events: resolver.convertTimeline(sdkTimeline, myUserId: myUserId),
       canRequestHistory: () => sdkTimeline.canRequestHistory,
       isFragmented: () => !sdkTimeline.allowNewEvent,
       requestHistory: sdkTimeline.requestHistory,
-      onDispose: sdkTimeline.cancelSubscriptions,
+      onDispose: () {
+        if (identical(_liveTimelines[roomId], sdkTimeline)) {
+          _liveTimelines.remove(roomId);
+        }
+        _eventCache.remove(roomId);
+        sdkTimeline.cancelSubscriptions();
+      },
     );
   }
 
@@ -296,6 +306,11 @@ class MessageRepository extends ChangeNotifier {
     return room.getTimeline();
   }
 
+  /// The SDK timeline currently registered for [roomId] via
+  /// [getTimeline], or null. Escape hatch for data-layer services that
+  /// need synchronous timeline access (search).
+  Timeline? currentTimelineFor(String roomId) => _liveTimelines[roomId];
+
   // ── Timeline support ─────────────────────────────────────────
 
   /// Fetches [eventId] in [roomId] as a domain event, resolved against
@@ -337,6 +352,10 @@ class MessageRepository extends ChangeNotifier {
       events.add(await _decryptIfNeeded(Event.fromMatrixEvent(raw, room)));
     }
     events.sort((a, b) => a.originServerTs.compareTo(b.originServerTs));
+    final cache = _eventCache.putIfAbsent(roomId, () => {});
+    for (final event in events) {
+      cache[event.eventId] = event;
+    }
     final timeline = await room.getTimeline();
     final myUserId = _client.userID;
     const resolver = TimelineResolver();
@@ -351,14 +370,23 @@ class MessageRepository extends ChangeNotifier {
   }
 
   /// Builds a media controller for [eventId] in [roomId], or null when
-  /// the room or event is unknown.
-  Future<MediaController?> mediaControllerFor(
-    String roomId,
-    String eventId,
-  ) async {
+  /// the room or event is unknown. Looks the SDK event up in the live
+  /// timeline registered by [getTimeline] and in events cached by
+  /// [fetchThreadChildrenPage], so the call is synchronous.
+  MediaController? mediaControllerFor(String roomId, String eventId) {
     final room = _client.getRoomById(roomId);
     if (room == null) return null;
-    final event = await room.getEventById(eventId);
+    final timeline = _liveTimelines[roomId];
+    Event? event;
+    if (timeline != null) {
+      for (final e in timeline.events) {
+        if (e.eventId == eventId) {
+          event = e;
+          break;
+        }
+      }
+    }
+    event ??= _eventCache[roomId]?[eventId];
     if (event == null) return null;
     return SdkMediaController(event, _client);
   }

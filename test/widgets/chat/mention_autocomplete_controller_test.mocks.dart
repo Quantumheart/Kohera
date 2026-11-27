@@ -10,13 +10,14 @@ import 'dart:typed_data' as _i10;
 import 'package:kohera/data/models/kohera_media_content.dart' as _i13;
 import 'package:kohera/data/models/kohera_message_display.dart' as _i14;
 import 'package:kohera/data/models/kohera_push_rule_state.dart' as _i9;
+import 'package:kohera/data/models/kohera_read_receipt.dart' as _i15;
 import 'package:kohera/data/models/kohera_room_history.dart' as _i3;
 import 'package:kohera/data/models/kohera_room_member.dart' as _i8;
 import 'package:kohera/data/models/kohera_room_permissions.dart' as _i7;
 import 'package:kohera/data/models/kohera_room_summary.dart' as _i5;
 import 'package:kohera/data/repositories/room_repository.dart' as _i4;
 import 'package:kohera/data/services/sdk_media_controller.dart' as _i12;
-import 'package:listen/src/listen.dart' as _i15;
+import 'package:listen/src/listen.dart' as _i16;
 import 'package:matrix/matrix.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i11;
@@ -297,6 +298,19 @@ class MockRoomRepository extends _i1.Mock implements _i4.RoomRepository {
   _i6.Future<void> setDescription(String? roomId, String? topic) =>
       (super.noSuchMethod(
             Invocation.method(#setDescription, [roomId, topic]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
+  _i6.Future<void> sendSticker(
+    String? roomId, {
+    required String? body,
+    required String? url,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#sendSticker, [roomId], {#body: body, #url: url}),
             returnValue: _i6.Future<void>.value(),
             returnValueForMissingStub: _i6.Future<void>.value(),
           )
@@ -918,6 +932,105 @@ class MockRoomRepository extends _i1.Mock implements _i4.RoomRepository {
           as _i6.Future<void>);
 
   @override
+  int powerLevelOf(String? roomId, String? userId) =>
+      (super.noSuchMethod(
+            Invocation.method(#powerLevelOf, [roomId, userId]),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  String membershipOf(String? roomId, String? userId) =>
+      (super.noSuchMethod(
+            Invocation.method(#membershipOf, [roomId, userId]),
+            returnValue: _i11.dummyValue<String>(
+              this,
+              Invocation.method(#membershipOf, [roomId, userId]),
+            ),
+            returnValueForMissingStub: _i11.dummyValue<String>(
+              this,
+              Invocation.method(#membershipOf, [roomId, userId]),
+            ),
+          )
+          as String);
+
+  @override
+  Map<String, List<_i15.KoheraReadReceipt>> readReceipts(
+    String? roomId, {
+    String? threadRootId,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #readReceipts,
+              [roomId],
+              {#threadRootId: threadRootId},
+            ),
+            returnValue: <String, List<_i15.KoheraReadReceipt>>{},
+            returnValueForMissingStub: <String, List<_i15.KoheraReadReceipt>>{},
+          )
+          as Map<String, List<_i15.KoheraReadReceipt>>);
+
+  @override
+  int latestOwnThreadReceiptTs(String? roomId, String? threadRootId) =>
+      (super.noSuchMethod(
+            Invocation.method(#latestOwnThreadReceiptTs, [
+              roomId,
+              threadRootId,
+            ]),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  String? fullyReadMarkerId(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#fullyReadMarkerId, [roomId]),
+            returnValueForMissingStub: null,
+          )
+          as String?);
+
+  @override
+  int notificationCount(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#notificationCount, [roomId]),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  _i6.Future<void> markRead(
+    String? roomId,
+    String? eventId, {
+    bool? sendPublicReceipt = false,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #markRead,
+              [roomId, eventId],
+              {#sendPublicReceipt: sendPublicReceipt},
+            ),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
+  _i6.Future<void> markThreadRead(
+    String? roomId,
+    String? eventId,
+    String? threadId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#markThreadRead, [roomId, eventId, threadId]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
   _i2.Room? rawRoom(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#rawRoom, [roomId]),
@@ -938,13 +1051,13 @@ class MockRoomRepository extends _i1.Mock implements _i4.RoomRepository {
   );
 
   @override
-  void addListener(_i15.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i16.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i15.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i16.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );

@@ -4,38 +4,41 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
-import 'dart:async' as _i20;
-import 'dart:typed_data' as _i24;
-import 'dart:ui' as _i16;
+import 'dart:async' as _i21;
+import 'dart:typed_data' as _i25;
+import 'dart:ui' as _i17;
 
 import 'package:flutter/foundation.dart' as _i3;
 import 'package:flutter/scheduler.dart' as _i5;
 import 'package:flutter/widgets.dart' as _i4;
 import 'package:kohera/data/models/kohera_media_content.dart' as _i13;
 import 'package:kohera/data/models/kohera_message_display.dart' as _i9;
-import 'package:kohera/data/models/kohera_poll.dart' as _i29;
-import 'package:kohera/data/models/kohera_push_rule_state.dart' as _i23;
+import 'package:kohera/data/models/kohera_poll.dart' as _i30;
+import 'package:kohera/data/models/kohera_push_rule_state.dart' as _i24;
 import 'package:kohera/data/models/kohera_reaction.dart' as _i10;
-import 'package:kohera/data/models/kohera_read_receipt.dart' as _i28;
+import 'package:kohera/data/models/kohera_read_receipt.dart' as _i27;
 import 'package:kohera/data/models/kohera_reply_preview.dart' as _i11;
 import 'package:kohera/data/models/kohera_room_history.dart' as _i7;
-import 'package:kohera/data/models/kohera_room_member.dart' as _i22;
-import 'package:kohera/data/models/kohera_room_permissions.dart' as _i21;
-import 'package:kohera/data/models/kohera_room_summary.dart' as _i19;
+import 'package:kohera/data/models/kohera_room_member.dart' as _i23;
+import 'package:kohera/data/models/kohera_room_permissions.dart' as _i22;
+import 'package:kohera/data/models/kohera_room_summary.dart' as _i20;
 import 'package:kohera/data/models/kohera_state_event_text.dart' as _i12;
-import 'package:kohera/data/models/kohera_thread_summary.dart' as _i31;
-import 'package:kohera/data/models/kohera_timeline.dart' as _i30;
-import 'package:kohera/data/repositories/message_repository.dart' as _i27;
-import 'package:kohera/data/repositories/room_repository.dart' as _i18;
+import 'package:kohera/data/models/kohera_thread_children_page.dart' as _i14;
+import 'package:kohera/data/models/kohera_thread_summary.dart' as _i32;
+import 'package:kohera/data/models/kohera_timeline.dart' as _i31;
+import 'package:kohera/data/models/kohera_timeline_event.dart' as _i33;
+import 'package:kohera/data/repositories/message_repository.dart' as _i29;
+import 'package:kohera/data/repositories/room_repository.dart' as _i19;
 import 'package:kohera/data/services/message_search_database.dart' as _i8;
-import 'package:kohera/data/services/sdk_media_controller.dart' as _i25;
-import 'package:listen/src/listen.dart' as _i26;
-import 'package:material_ui/src/banner.dart' as _i15;
+import 'package:kohera/data/services/sdk_media_controller.dart' as _i26;
+import 'package:kohera/shared/services/media_controller.dart' as _i34;
+import 'package:listen/src/listen.dart' as _i28;
+import 'package:material_ui/src/banner.dart' as _i16;
 import 'package:material_ui/src/scaffold.dart' as _i2;
-import 'package:material_ui/src/snack_bar.dart' as _i14;
+import 'package:material_ui/src/snack_bar.dart' as _i15;
 import 'package:matrix/matrix.dart' as _i6;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i17;
+import 'package:mockito/src/dummies.dart' as _i18;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -150,6 +153,12 @@ class _FakeKoheraMediaContent_13 extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
+class _FakeKoheraThreadChildrenPage_14 extends _i1.SmartFake
+    implements _i14.KoheraThreadChildrenPage {
+  _FakeKoheraThreadChildrenPage_14(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
 /// A class which mocks [ScaffoldMessengerState].
 ///
 /// See the documentation for Mockito's code generation for more information.
@@ -198,9 +207,9 @@ class MockScaffoldMessengerState extends _i1.Mock
   );
 
   @override
-  _i2.ScaffoldFeatureController<_i14.SnackBar, _i14.SnackBarClosedReason>
+  _i2.ScaffoldFeatureController<_i15.SnackBar, _i15.SnackBarClosedReason>
   showSnackBar(
-    _i14.SnackBar? snackBar, {
+    _i15.SnackBar? snackBar, {
     _i4.AnimationStyle? snackBarAnimationStyle,
   }) =>
       (super.noSuchMethod(
@@ -211,8 +220,8 @@ class MockScaffoldMessengerState extends _i1.Mock
             ),
             returnValue:
                 _FakeScaffoldFeatureController_2<
-                  _i14.SnackBar,
-                  _i14.SnackBarClosedReason
+                  _i15.SnackBar,
+                  _i15.SnackBarClosedReason
                 >(
                   this,
                   Invocation.method(
@@ -223,8 +232,8 @@ class MockScaffoldMessengerState extends _i1.Mock
                 ),
             returnValueForMissingStub:
                 _FakeScaffoldFeatureController_2<
-                  _i14.SnackBar,
-                  _i14.SnackBarClosedReason
+                  _i15.SnackBar,
+                  _i15.SnackBarClosedReason
                 >(
                   this,
                   Invocation.method(
@@ -235,13 +244,13 @@ class MockScaffoldMessengerState extends _i1.Mock
                 ),
           )
           as _i2.ScaffoldFeatureController<
-            _i14.SnackBar,
-            _i14.SnackBarClosedReason
+            _i15.SnackBar,
+            _i15.SnackBarClosedReason
           >);
 
   @override
   void removeCurrentSnackBar({
-    _i14.SnackBarClosedReason? reason = _i14.SnackBarClosedReason.remove,
+    _i15.SnackBarClosedReason? reason = _i15.SnackBarClosedReason.remove,
   }) => super.noSuchMethod(
     Invocation.method(#removeCurrentSnackBar, [], {#reason: reason}),
     returnValueForMissingStub: null,
@@ -249,7 +258,7 @@ class MockScaffoldMessengerState extends _i1.Mock
 
   @override
   void hideCurrentSnackBar({
-    _i14.SnackBarClosedReason? reason = _i14.SnackBarClosedReason.hide,
+    _i15.SnackBarClosedReason? reason = _i15.SnackBarClosedReason.hide,
   }) => super.noSuchMethod(
     Invocation.method(#hideCurrentSnackBar, [], {#reason: reason}),
     returnValueForMissingStub: null,
@@ -263,38 +272,38 @@ class MockScaffoldMessengerState extends _i1.Mock
 
   @override
   _i2.ScaffoldFeatureController<
-    _i15.MaterialBanner,
-    _i15.MaterialBannerClosedReason
+    _i16.MaterialBanner,
+    _i16.MaterialBannerClosedReason
   >
-  showMaterialBanner(_i15.MaterialBanner? materialBanner) =>
+  showMaterialBanner(_i16.MaterialBanner? materialBanner) =>
       (super.noSuchMethod(
             Invocation.method(#showMaterialBanner, [materialBanner]),
             returnValue:
                 _FakeScaffoldFeatureController_2<
-                  _i15.MaterialBanner,
-                  _i15.MaterialBannerClosedReason
+                  _i16.MaterialBanner,
+                  _i16.MaterialBannerClosedReason
                 >(
                   this,
                   Invocation.method(#showMaterialBanner, [materialBanner]),
                 ),
             returnValueForMissingStub:
                 _FakeScaffoldFeatureController_2<
-                  _i15.MaterialBanner,
-                  _i15.MaterialBannerClosedReason
+                  _i16.MaterialBanner,
+                  _i16.MaterialBannerClosedReason
                 >(
                   this,
                   Invocation.method(#showMaterialBanner, [materialBanner]),
                 ),
           )
           as _i2.ScaffoldFeatureController<
-            _i15.MaterialBanner,
-            _i15.MaterialBannerClosedReason
+            _i16.MaterialBanner,
+            _i16.MaterialBannerClosedReason
           >);
 
   @override
   void removeCurrentMaterialBanner({
-    _i15.MaterialBannerClosedReason? reason =
-        _i15.MaterialBannerClosedReason.remove,
+    _i16.MaterialBannerClosedReason? reason =
+        _i16.MaterialBannerClosedReason.remove,
   }) => super.noSuchMethod(
     Invocation.method(#removeCurrentMaterialBanner, [], {#reason: reason}),
     returnValueForMissingStub: null,
@@ -302,8 +311,8 @@ class MockScaffoldMessengerState extends _i1.Mock
 
   @override
   void hideCurrentMaterialBanner({
-    _i15.MaterialBannerClosedReason? reason =
-        _i15.MaterialBannerClosedReason.hide,
+    _i16.MaterialBannerClosedReason? reason =
+        _i16.MaterialBannerClosedReason.hide,
   }) => super.noSuchMethod(
     Invocation.method(#hideCurrentMaterialBanner, [], {#reason: reason}),
     returnValueForMissingStub: null,
@@ -355,7 +364,7 @@ class MockScaffoldMessengerState extends _i1.Mock
   );
 
   @override
-  void setState(_i16.VoidCallback? fn) => super.noSuchMethod(
+  void setState(_i17.VoidCallback? fn) => super.noSuchMethod(
     Invocation.method(#setState, [fn]),
     returnValueForMissingStub: null,
   );
@@ -387,11 +396,11 @@ class MockScaffoldMessengerState extends _i1.Mock
   String toStringShort() =>
       (super.noSuchMethod(
             Invocation.method(#toStringShort, []),
-            returnValue: _i17.dummyValue<String>(
+            returnValue: _i18.dummyValue<String>(
               this,
               Invocation.method(#toStringShort, []),
             ),
-            returnValueForMissingStub: _i17.dummyValue<String>(
+            returnValueForMissingStub: _i18.dummyValue<String>(
               this,
               Invocation.method(#toStringShort, []),
             ),
@@ -444,33 +453,33 @@ class MockScaffoldMessengerState extends _i1.Mock
 /// A class which mocks [RoomRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
+class MockRoomRepository extends _i1.Mock implements _i19.RoomRepository {
   @override
-  List<_i19.KoheraRoomSummary> get roomSummaries =>
+  List<_i20.KoheraRoomSummary> get roomSummaries =>
       (super.noSuchMethod(
             Invocation.getter(#roomSummaries),
-            returnValue: <_i19.KoheraRoomSummary>[],
-            returnValueForMissingStub: <_i19.KoheraRoomSummary>[],
+            returnValue: <_i20.KoheraRoomSummary>[],
+            returnValueForMissingStub: <_i20.KoheraRoomSummary>[],
           )
-          as List<_i19.KoheraRoomSummary>);
+          as List<_i20.KoheraRoomSummary>);
 
   @override
-  _i20.Future<void> get roomsLoaded =>
+  _i21.Future<void> get roomsLoaded =>
       (super.noSuchMethod(
             Invocation.getter(#roomsLoaded),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Stream<_i6.SyncUpdate> get onSync =>
+  _i21.Stream<_i6.SyncUpdate> get onSync =>
       (super.noSuchMethod(
             Invocation.getter(#onSync),
-            returnValue: _i20.Stream<_i6.SyncUpdate>.empty(),
-            returnValueForMissingStub: _i20.Stream<_i6.SyncUpdate>.empty(),
+            returnValue: _i21.Stream<_i6.SyncUpdate>.empty(),
+            returnValueForMissingStub: _i21.Stream<_i6.SyncUpdate>.empty(),
           )
-          as _i20.Stream<_i6.SyncUpdate>);
+          as _i21.Stream<_i6.SyncUpdate>);
 
   @override
   List<String> get ignoredUsers =>
@@ -503,53 +512,53 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
           as bool);
 
   @override
-  _i19.KoheraRoomSummary? summaryFor(String? roomId) =>
+  _i20.KoheraRoomSummary? summaryFor(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#summaryFor, [roomId]),
             returnValueForMissingStub: null,
           )
-          as _i19.KoheraRoomSummary?);
+          as _i20.KoheraRoomSummary?);
 
   @override
-  _i21.KoheraRoomPermissions? permissionsFor(String? roomId) =>
+  _i22.KoheraRoomPermissions? permissionsFor(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#permissionsFor, [roomId]),
             returnValueForMissingStub: null,
           )
-          as _i21.KoheraRoomPermissions?);
+          as _i22.KoheraRoomPermissions?);
 
   @override
-  _i20.Future<_i22.KoheraRoomMemberList?> memberListFor(String? roomId) =>
+  _i21.Future<_i23.KoheraRoomMemberList?> memberListFor(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#memberListFor, [roomId]),
-            returnValue: _i20.Future<_i22.KoheraRoomMemberList?>.value(),
+            returnValue: _i21.Future<_i23.KoheraRoomMemberList?>.value(),
             returnValueForMissingStub:
-                _i20.Future<_i22.KoheraRoomMemberList?>.value(),
+                _i21.Future<_i23.KoheraRoomMemberList?>.value(),
           )
-          as _i20.Future<_i22.KoheraRoomMemberList?>);
+          as _i21.Future<_i23.KoheraRoomMemberList?>);
 
   @override
-  List<_i22.KoheraRoomMember> cachedMembers(String? roomId) =>
+  List<_i23.KoheraRoomMember> cachedMembers(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#cachedMembers, [roomId]),
-            returnValue: <_i22.KoheraRoomMember>[],
-            returnValueForMissingStub: <_i22.KoheraRoomMember>[],
+            returnValue: <_i23.KoheraRoomMember>[],
+            returnValueForMissingStub: <_i23.KoheraRoomMember>[],
           )
-          as List<_i22.KoheraRoomMember>);
+          as List<_i23.KoheraRoomMember>);
 
   @override
-  _i20.Future<List<_i22.KoheraRoomMember>> requestMembers(String? roomId) =>
+  _i21.Future<List<_i23.KoheraRoomMember>> requestMembers(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#requestMembers, [roomId]),
-            returnValue: _i20.Future<List<_i22.KoheraRoomMember>>.value(
-              <_i22.KoheraRoomMember>[],
+            returnValue: _i21.Future<List<_i23.KoheraRoomMember>>.value(
+              <_i23.KoheraRoomMember>[],
             ),
             returnValueForMissingStub:
-                _i20.Future<List<_i22.KoheraRoomMember>>.value(
-                  <_i22.KoheraRoomMember>[],
+                _i21.Future<List<_i23.KoheraRoomMember>>.value(
+                  <_i23.KoheraRoomMember>[],
                 ),
           )
-          as _i20.Future<List<_i22.KoheraRoomMember>>);
+          as _i21.Future<List<_i23.KoheraRoomMember>>);
 
   @override
   bool isPinned(String? roomId, String? eventId) =>
@@ -561,74 +570,74 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
           as bool);
 
   @override
-  _i20.Future<void> setPinned(String? roomId, String? eventId, bool? pin) =>
+  _i21.Future<void> setPinned(String? roomId, String? eventId, bool? pin) =>
       (super.noSuchMethod(
             Invocation.method(#setPinned, [roomId, eventId, pin]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> joinRoom(String? roomId) =>
+  _i21.Future<void> joinRoom(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#joinRoom, [roomId]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> leaveRoom(String? roomId) =>
+  _i21.Future<void> leaveRoom(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#leaveRoom, [roomId]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> setFavourite(String? roomId, bool? favourite) =>
+  _i21.Future<void> setFavourite(String? roomId, bool? favourite) =>
       (super.noSuchMethod(
             Invocation.method(#setFavourite, [roomId, favourite]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> setPushRuleState(
+  _i21.Future<void> setPushRuleState(
     String? roomId,
-    _i23.KoheraPushRuleState? state,
+    _i24.KoheraPushRuleState? state,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#setPushRuleState, [roomId, state]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> invite(String? roomId, String? mxid) =>
+  _i21.Future<void> invite(String? roomId, String? mxid) =>
       (super.noSuchMethod(
             Invocation.method(#invite, [roomId, mxid]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> setTyping(String? roomId, bool? typing, {int? timeoutMs}) =>
+  _i21.Future<void> setTyping(String? roomId, bool? typing, {int? timeoutMs}) =>
       (super.noSuchMethod(
             Invocation.method(
               #setTyping,
               [roomId, typing],
               {#timeoutMs: timeoutMs},
             ),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
   String? userDisplayNameInRoom(String? roomId, String? userId) =>
@@ -647,18 +656,18 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
           as String?);
 
   @override
-  _i20.Future<void> sendText(String? roomId, String? text) =>
+  _i21.Future<void> sendText(String? roomId, String? text) =>
       (super.noSuchMethod(
             Invocation.method(#sendText, [roomId, text]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> sendFile(
+  _i21.Future<void> sendFile(
     String? roomId,
-    _i24.Uint8List? bytes,
+    _i25.Uint8List? bytes,
     String? name, {
     String? threadRootEventId,
     String? threadLastEventId,
@@ -672,59 +681,72 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
                 #threadLastEventId: threadLastEventId,
               },
             ),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> setName(String? roomId, String? name) =>
+  _i21.Future<void> setName(String? roomId, String? name) =>
       (super.noSuchMethod(
             Invocation.method(#setName, [roomId, name]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> setDescription(String? roomId, String? topic) =>
+  _i21.Future<void> setDescription(String? roomId, String? topic) =>
       (super.noSuchMethod(
             Invocation.method(#setDescription, [roomId, topic]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> enableEncryption(String? roomId) =>
+  _i21.Future<void> sendSticker(
+    String? roomId, {
+    required String? body,
+    required String? url,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#sendSticker, [roomId], {#body: body, #url: url}),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
+          )
+          as _i21.Future<void>);
+
+  @override
+  _i21.Future<void> enableEncryption(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#enableEncryption, [roomId]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> setAvatar(
+  _i21.Future<void> setAvatar(
     String? roomId,
-    _i24.Uint8List? bytes,
+    _i25.Uint8List? bytes,
     String? filename,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#setAvatar, [roomId, bytes, filename]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<int?> resolveMemberCount(String? roomId) =>
+  _i21.Future<int?> resolveMemberCount(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#resolveMemberCount, [roomId]),
-            returnValue: _i20.Future<int?>.value(),
-            returnValueForMissingStub: _i20.Future<int?>.value(),
+            returnValue: _i21.Future<int?>.value(),
+            returnValueForMissingStub: _i21.Future<int?>.value(),
           )
-          as _i20.Future<int?>);
+          as _i21.Future<int?>);
 
   @override
   Set<String> existingMemberIds(String? roomId) =>
@@ -849,31 +871,31 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
           as bool);
 
   @override
-  _i23.KoheraPushRuleState getRoomPushRuleState(String? roomId) =>
+  _i24.KoheraPushRuleState getRoomPushRuleState(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#getRoomPushRuleState, [roomId]),
-            returnValue: _i23.KoheraPushRuleState.notify,
-            returnValueForMissingStub: _i23.KoheraPushRuleState.notify,
+            returnValue: _i24.KoheraPushRuleState.notify,
+            returnValueForMissingStub: _i24.KoheraPushRuleState.notify,
           )
-          as _i23.KoheraPushRuleState);
+          as _i24.KoheraPushRuleState);
 
   @override
-  _i20.Stream<void> powerLevelChangesFor(String? roomId) =>
+  _i21.Stream<void> powerLevelChangesFor(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#powerLevelChangesFor, [roomId]),
-            returnValue: _i20.Stream<void>.empty(),
-            returnValueForMissingStub: _i20.Stream<void>.empty(),
+            returnValue: _i21.Stream<void>.empty(),
+            returnValueForMissingStub: _i21.Stream<void>.empty(),
           )
-          as _i20.Stream<void>);
+          as _i21.Stream<void>);
 
   @override
-  _i20.Future<void> waitForFavourite(String? roomId, bool? target) =>
+  _i21.Future<void> waitForFavourite(String? roomId, bool? target) =>
       (super.noSuchMethod(
             Invocation.method(#waitForFavourite, [roomId, target]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
   String? lastEventId(String? roomId) =>
@@ -884,7 +906,7 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
           as String?);
 
   @override
-  _i20.Future<void> setRoomStateWithKey(
+  _i21.Future<void> setRoomStateWithKey(
     String? roomId,
     String? type,
     String? stateKey,
@@ -897,40 +919,40 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
               stateKey,
               content,
             ]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> unban(String? roomId, String? userId, {String? reason}) =>
+  _i21.Future<void> unban(String? roomId, String? userId, {String? reason}) =>
       (super.noSuchMethod(
             Invocation.method(#unban, [roomId, userId], {#reason: reason}),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> kick(String? roomId, String? userId, {String? reason}) =>
+  _i21.Future<void> kick(String? roomId, String? userId, {String? reason}) =>
       (super.noSuchMethod(
             Invocation.method(#kick, [roomId, userId], {#reason: reason}),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> ban(String? roomId, String? userId, {String? reason}) =>
+  _i21.Future<void> ban(String? roomId, String? userId, {String? reason}) =>
       (super.noSuchMethod(
             Invocation.method(#ban, [roomId, userId], {#reason: reason}),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> reportEvent(
+  _i21.Future<void> reportEvent(
     String? roomId,
     String? eventId, {
     String? reason,
@@ -941,13 +963,13 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
               [roomId, eventId],
               {#reason: reason},
             ),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> postReceipt(
+  _i21.Future<void> postReceipt(
     String? roomId,
     _i6.ReceiptType? type,
     String? eventId, {
@@ -959,25 +981,25 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
               [roomId, type, eventId],
               {#threadId: threadId},
             ),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<Map<String, _i6.RoomMember>?> getJoinedMembersByRoom(
+  _i21.Future<Map<String, _i6.RoomMember>?> getJoinedMembersByRoom(
     String? roomId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#getJoinedMembersByRoom, [roomId]),
-            returnValue: _i20.Future<Map<String, _i6.RoomMember>?>.value(),
+            returnValue: _i21.Future<Map<String, _i6.RoomMember>?>.value(),
             returnValueForMissingStub:
-                _i20.Future<Map<String, _i6.RoomMember>?>.value(),
+                _i21.Future<Map<String, _i6.RoomMember>?>.value(),
           )
-          as _i20.Future<Map<String, _i6.RoomMember>?>);
+          as _i21.Future<Map<String, _i6.RoomMember>?>);
 
   @override
-  _i20.Future<String> startDirectChat(
+  _i21.Future<String> startDirectChat(
     String? userId, {
     bool? enableEncryption = true,
   }) =>
@@ -987,8 +1009,8 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
               [userId],
               {#enableEncryption: enableEncryption},
             ),
-            returnValue: _i20.Future<String>.value(
-              _i17.dummyValue<String>(
+            returnValue: _i21.Future<String>.value(
+              _i18.dummyValue<String>(
                 this,
                 Invocation.method(
                   #startDirectChat,
@@ -997,8 +1019,8 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
                 ),
               ),
             ),
-            returnValueForMissingStub: _i20.Future<String>.value(
-              _i17.dummyValue<String>(
+            returnValueForMissingStub: _i21.Future<String>.value(
+              _i18.dummyValue<String>(
                 this,
                 Invocation.method(
                   #startDirectChat,
@@ -1008,54 +1030,54 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
               ),
             ),
           )
-          as _i20.Future<String>);
+          as _i21.Future<String>);
 
   @override
-  _i20.Future<void> waitForRoomInSync(String? roomId, {bool? join = false}) =>
+  _i21.Future<void> waitForRoomInSync(String? roomId, {bool? join = false}) =>
       (super.noSuchMethod(
             Invocation.method(#waitForRoomInSync, [roomId], {#join: join}),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<List<String>> getLocalAliases(String? roomId) =>
+  _i21.Future<List<String>> getLocalAliases(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#getLocalAliases, [roomId]),
-            returnValue: _i20.Future<List<String>>.value(<String>[]),
-            returnValueForMissingStub: _i20.Future<List<String>>.value(
+            returnValue: _i21.Future<List<String>>.value(<String>[]),
+            returnValueForMissingStub: _i21.Future<List<String>>.value(
               <String>[],
             ),
           )
-          as _i20.Future<List<String>>);
+          as _i21.Future<List<String>>);
 
   @override
-  _i20.Future<void> setRoomAlias(String? alias, String? roomId) =>
+  _i21.Future<void> setRoomAlias(String? alias, String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#setRoomAlias, [alias, roomId]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> setCanonicalAlias(String? roomId, String? alias) =>
+  _i21.Future<void> setCanonicalAlias(String? roomId, String? alias) =>
       (super.noSuchMethod(
             Invocation.method(#setCanonicalAlias, [roomId, alias]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> clearCanonicalAlias(String? roomId) =>
+  _i21.Future<void> clearCanonicalAlias(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#clearCanonicalAlias, [roomId]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
   bool canChangeCanonicalAlias(String? roomId) =>
@@ -1067,25 +1089,25 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
           as bool);
 
   @override
-  _i20.Stream<void> aliasChangesFor(String? roomId) =>
+  _i21.Stream<void> aliasChangesFor(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#aliasChangesFor, [roomId]),
-            returnValue: _i20.Stream<void>.empty(),
-            returnValueForMissingStub: _i20.Stream<void>.empty(),
+            returnValue: _i21.Stream<void>.empty(),
+            returnValueForMissingStub: _i21.Stream<void>.empty(),
           )
-          as _i20.Stream<void>);
+          as _i21.Stream<void>);
 
   @override
-  _i20.Future<void> deleteRoomAlias(String? alias) =>
+  _i21.Future<void> deleteRoomAlias(String? alias) =>
       (super.noSuchMethod(
             Invocation.method(#deleteRoomAlias, [alias]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<String> createRoom({
+  _i21.Future<String> createRoom({
     String? name,
     String? topic,
     bool? isPublic = false,
@@ -1104,8 +1126,8 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
               #joinRulesEvent: joinRulesEvent,
               #invite: invite,
             }),
-            returnValue: _i20.Future<String>.value(
-              _i17.dummyValue<String>(
+            returnValue: _i21.Future<String>.value(
+              _i18.dummyValue<String>(
                 this,
                 Invocation.method(#createRoom, [], {
                   #name: name,
@@ -1118,8 +1140,8 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
                 }),
               ),
             ),
-            returnValueForMissingStub: _i20.Future<String>.value(
-              _i17.dummyValue<String>(
+            returnValueForMissingStub: _i21.Future<String>.value(
+              _i18.dummyValue<String>(
                 this,
                 Invocation.method(#createRoom, [], {
                   #name: name,
@@ -1133,25 +1155,25 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
               ),
             ),
           )
-          as _i20.Future<String>);
+          as _i21.Future<String>);
 
   @override
-  _i20.Future<void> setSpaceChild(String? spaceId, String? childRoomId) =>
+  _i21.Future<void> setSpaceChild(String? spaceId, String? childRoomId) =>
       (super.noSuchMethod(
             Invocation.method(#setSpaceChild, [spaceId, childRoomId]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> setJoinRules(String? roomId, _i21.KoheraJoinRule? rule) =>
+  _i21.Future<void> setJoinRules(String? roomId, _i22.KoheraJoinRule? rule) =>
       (super.noSuchMethod(
             Invocation.method(#setJoinRules, [roomId, rule]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
   bool roomExists(String? roomId) =>
@@ -1163,10 +1185,10 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
           as bool);
 
   @override
-  _i20.Future<
+  _i21.Future<
     ({
       List<
-        ({_i25.SdkMediaController controller, _i13.KoheraMediaContent media})
+        ({_i26.SdkMediaController controller, _i13.KoheraMediaContent media})
       >
       items,
       String? nextBatch,
@@ -1180,11 +1202,11 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
               {#nextBatch: nextBatch, #limit: limit},
             ),
             returnValue:
-                _i20.Future<
+                _i21.Future<
                   ({
                     List<
                       ({
-                        _i25.SdkMediaController controller,
+                        _i26.SdkMediaController controller,
                         _i13.KoheraMediaContent media,
                       })
                     >
@@ -1195,18 +1217,18 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
                   items:
                       <
                         ({
-                          _i25.SdkMediaController controller,
+                          _i26.SdkMediaController controller,
                           _i13.KoheraMediaContent media,
                         })
                       >[],
                   nextBatch: null,
                 )),
             returnValueForMissingStub:
-                _i20.Future<
+                _i21.Future<
                   ({
                     List<
                       ({
-                        _i25.SdkMediaController controller,
+                        _i26.SdkMediaController controller,
                         _i13.KoheraMediaContent media,
                       })
                     >
@@ -1217,18 +1239,18 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
                   items:
                       <
                         ({
-                          _i25.SdkMediaController controller,
+                          _i26.SdkMediaController controller,
                           _i13.KoheraMediaContent media,
                         })
                       >[],
                   nextBatch: null,
                 )),
           )
-          as _i20.Future<
+          as _i21.Future<
             ({
               List<
                 ({
-                  _i25.SdkMediaController controller,
+                  _i26.SdkMediaController controller,
                   _i13.KoheraMediaContent media,
                 })
               >
@@ -1238,16 +1260,16 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
           >);
 
   @override
-  _i20.Stream<void> roomStateChanges(String? roomId, Set<String>? types) =>
+  _i21.Stream<void> roomStateChanges(String? roomId, Set<String>? types) =>
       (super.noSuchMethod(
             Invocation.method(#roomStateChanges, [roomId, types]),
-            returnValue: _i20.Stream<void>.empty(),
-            returnValueForMissingStub: _i20.Stream<void>.empty(),
+            returnValue: _i21.Stream<void>.empty(),
+            returnValueForMissingStub: _i21.Stream<void>.empty(),
           )
-          as _i20.Stream<void>);
+          as _i21.Stream<void>);
 
   @override
-  _i20.Future<_i7.KoheraRoomHistory> roomHistory(
+  _i21.Future<_i7.KoheraRoomHistory> roomHistory(
     String? roomId, {
     void Function(int)? onProgress,
   }) =>
@@ -1257,7 +1279,7 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
               [roomId],
               {#onProgress: onProgress},
             ),
-            returnValue: _i20.Future<_i7.KoheraRoomHistory>.value(
+            returnValue: _i21.Future<_i7.KoheraRoomHistory>.value(
               _FakeKoheraRoomHistory_7(
                 this,
                 Invocation.method(
@@ -1267,7 +1289,7 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
                 ),
               ),
             ),
-            returnValueForMissingStub: _i20.Future<_i7.KoheraRoomHistory>.value(
+            returnValueForMissingStub: _i21.Future<_i7.KoheraRoomHistory>.value(
               _FakeKoheraRoomHistory_7(
                 this,
                 Invocation.method(
@@ -1278,19 +1300,19 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
               ),
             ),
           )
-          as _i20.Future<_i7.KoheraRoomHistory>);
+          as _i21.Future<_i7.KoheraRoomHistory>);
 
   @override
-  _i20.Future<List<_i9.KoheraMessageDisplay>?> pinnedMessagesFor(
+  _i21.Future<List<_i9.KoheraMessageDisplay>?> pinnedMessagesFor(
     String? roomId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#pinnedMessagesFor, [roomId]),
-            returnValue: _i20.Future<List<_i9.KoheraMessageDisplay>?>.value(),
+            returnValue: _i21.Future<List<_i9.KoheraMessageDisplay>?>.value(),
             returnValueForMissingStub:
-                _i20.Future<List<_i9.KoheraMessageDisplay>?>.value(),
+                _i21.Future<List<_i9.KoheraMessageDisplay>?>.value(),
           )
-          as _i20.Future<List<_i9.KoheraMessageDisplay>?>);
+          as _i21.Future<List<_i9.KoheraMessageDisplay>?>);
 
   @override
   bool canChangePinnedEvents(String? roomId) =>
@@ -1302,13 +1324,112 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
           as bool);
 
   @override
-  _i20.Future<void> unpinEvent(String? roomId, String? eventId) =>
+  _i21.Future<void> unpinEvent(String? roomId, String? eventId) =>
       (super.noSuchMethod(
             Invocation.method(#unpinEvent, [roomId, eventId]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
+
+  @override
+  int powerLevelOf(String? roomId, String? userId) =>
+      (super.noSuchMethod(
+            Invocation.method(#powerLevelOf, [roomId, userId]),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  String membershipOf(String? roomId, String? userId) =>
+      (super.noSuchMethod(
+            Invocation.method(#membershipOf, [roomId, userId]),
+            returnValue: _i18.dummyValue<String>(
+              this,
+              Invocation.method(#membershipOf, [roomId, userId]),
+            ),
+            returnValueForMissingStub: _i18.dummyValue<String>(
+              this,
+              Invocation.method(#membershipOf, [roomId, userId]),
+            ),
+          )
+          as String);
+
+  @override
+  Map<String, List<_i27.KoheraReadReceipt>> readReceipts(
+    String? roomId, {
+    String? threadRootId,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #readReceipts,
+              [roomId],
+              {#threadRootId: threadRootId},
+            ),
+            returnValue: <String, List<_i27.KoheraReadReceipt>>{},
+            returnValueForMissingStub: <String, List<_i27.KoheraReadReceipt>>{},
+          )
+          as Map<String, List<_i27.KoheraReadReceipt>>);
+
+  @override
+  int latestOwnThreadReceiptTs(String? roomId, String? threadRootId) =>
+      (super.noSuchMethod(
+            Invocation.method(#latestOwnThreadReceiptTs, [
+              roomId,
+              threadRootId,
+            ]),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  String? fullyReadMarkerId(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#fullyReadMarkerId, [roomId]),
+            returnValueForMissingStub: null,
+          )
+          as String?);
+
+  @override
+  int notificationCount(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#notificationCount, [roomId]),
+            returnValue: 0,
+            returnValueForMissingStub: 0,
+          )
+          as int);
+
+  @override
+  _i21.Future<void> markRead(
+    String? roomId,
+    String? eventId, {
+    bool? sendPublicReceipt = false,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #markRead,
+              [roomId, eventId],
+              {#sendPublicReceipt: sendPublicReceipt},
+            ),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
+          )
+          as _i21.Future<void>);
+
+  @override
+  _i21.Future<void> markThreadRead(
+    String? roomId,
+    String? eventId,
+    String? threadId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#markThreadRead, [roomId, eventId, threadId]),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
+          )
+          as _i21.Future<void>);
 
   @override
   _i6.Room? rawRoom(String? roomId) =>
@@ -1331,13 +1452,13 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
   );
 
   @override
-  void addListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i28.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i28.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -1346,7 +1467,7 @@ class MockRoomRepository extends _i1.Mock implements _i18.RoomRepository {
 /// A class which mocks [MessageRepository].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockMessageRepository extends _i1.Mock implements _i27.MessageRepository {
+class MockMessageRepository extends _i1.Mock implements _i29.MessageRepository {
   @override
   bool get isIndexing =>
       (super.noSuchMethod(
@@ -1445,20 +1566,20 @@ class MockMessageRepository extends _i1.Mock implements _i27.MessageRepository {
           as _i11.KoheraReplyPreview);
 
   @override
-  _i20.Future<_i11.KoheraReplyPreview?> resolveReplyParent(
+  _i21.Future<_i11.KoheraReplyPreview?> resolveReplyParent(
     _i6.Event? replyEvent,
     _i6.Timeline? timeline,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#resolveReplyParent, [replyEvent, timeline]),
-            returnValue: _i20.Future<_i11.KoheraReplyPreview?>.value(),
+            returnValue: _i21.Future<_i11.KoheraReplyPreview?>.value(),
             returnValueForMissingStub:
-                _i20.Future<_i11.KoheraReplyPreview?>.value(),
+                _i21.Future<_i11.KoheraReplyPreview?>.value(),
           )
-          as _i20.Future<_i11.KoheraReplyPreview?>);
+          as _i21.Future<_i11.KoheraReplyPreview?>);
 
   @override
-  Map<String, List<_i28.KoheraReadReceipt>> readReceiptsFor(
+  Map<String, List<_i27.KoheraReadReceipt>> readReceiptsFor(
     _i6.Room? room,
     String? myUserId, {
     String? threadRootId,
@@ -1469,10 +1590,10 @@ class MockMessageRepository extends _i1.Mock implements _i27.MessageRepository {
               [room, myUserId],
               {#threadRootId: threadRootId},
             ),
-            returnValue: <String, List<_i28.KoheraReadReceipt>>{},
-            returnValueForMissingStub: <String, List<_i28.KoheraReadReceipt>>{},
+            returnValue: <String, List<_i27.KoheraReadReceipt>>{},
+            returnValueForMissingStub: <String, List<_i27.KoheraReadReceipt>>{},
           )
-          as Map<String, List<_i28.KoheraReadReceipt>>);
+          as Map<String, List<_i27.KoheraReadReceipt>>);
 
   @override
   _i12.KoheraStateEventText stateEventTextFor(_i6.Event? event) =>
@@ -1505,7 +1626,7 @@ class MockMessageRepository extends _i1.Mock implements _i27.MessageRepository {
           as _i13.KoheraMediaContent);
 
   @override
-  _i29.KoheraPoll? pollFor(
+  _i30.KoheraPoll? pollFor(
     _i6.Event? event,
     _i6.Timeline? timeline, {
     required String? myUserId,
@@ -1519,10 +1640,10 @@ class MockMessageRepository extends _i1.Mock implements _i27.MessageRepository {
             ),
             returnValueForMissingStub: null,
           )
-          as _i29.KoheraPoll?);
+          as _i30.KoheraPoll?);
 
   @override
-  _i20.Future<_i30.KoheraTimeline?> getTimeline(
+  _i21.Future<_i31.KoheraTimeline?> getTimeline(
     String? roomId, {
     String? eventContextId,
   }) =>
@@ -1532,31 +1653,31 @@ class MockMessageRepository extends _i1.Mock implements _i27.MessageRepository {
               [roomId],
               {#eventContextId: eventContextId},
             ),
-            returnValue: _i20.Future<_i30.KoheraTimeline?>.value(),
+            returnValue: _i21.Future<_i31.KoheraTimeline?>.value(),
             returnValueForMissingStub:
-                _i20.Future<_i30.KoheraTimeline?>.value(),
+                _i21.Future<_i31.KoheraTimeline?>.value(),
           )
-          as _i20.Future<_i30.KoheraTimeline?>);
+          as _i21.Future<_i31.KoheraTimeline?>);
 
   @override
-  _i20.Future<List<_i31.KoheraThreadSummary>> fetchThreadSummaries(
+  _i21.Future<List<_i32.KoheraThreadSummary>> fetchThreadSummaries(
     String? roomId, {
     int? limit = 50,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#fetchThreadSummaries, [roomId], {#limit: limit}),
-            returnValue: _i20.Future<List<_i31.KoheraThreadSummary>>.value(
-              <_i31.KoheraThreadSummary>[],
+            returnValue: _i21.Future<List<_i32.KoheraThreadSummary>>.value(
+              <_i32.KoheraThreadSummary>[],
             ),
             returnValueForMissingStub:
-                _i20.Future<List<_i31.KoheraThreadSummary>>.value(
-                  <_i31.KoheraThreadSummary>[],
+                _i21.Future<List<_i32.KoheraThreadSummary>>.value(
+                  <_i32.KoheraThreadSummary>[],
                 ),
           )
-          as _i20.Future<List<_i31.KoheraThreadSummary>>);
+          as _i21.Future<List<_i32.KoheraThreadSummary>>);
 
   @override
-  _i20.Future<void> forwardMessage({
+  _i21.Future<void> forwardMessage({
     required String? targetRoomId,
     required String? sourceRoomId,
     required String? sourceEventId,
@@ -1567,56 +1688,177 @@ class MockMessageRepository extends _i1.Mock implements _i27.MessageRepository {
               #sourceRoomId: sourceRoomId,
               #sourceEventId: sourceEventId,
             }),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<_i6.Timeline?> timelineFor(String? roomId) =>
+  _i21.Future<_i6.Timeline?> timelineFor(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#timelineFor, [roomId]),
-            returnValue: _i20.Future<_i6.Timeline?>.value(),
-            returnValueForMissingStub: _i20.Future<_i6.Timeline?>.value(),
+            returnValue: _i21.Future<_i6.Timeline?>.value(),
+            returnValueForMissingStub: _i21.Future<_i6.Timeline?>.value(),
           )
-          as _i20.Future<_i6.Timeline?>);
+          as _i21.Future<_i6.Timeline?>);
 
   @override
-  _i20.Future<void> initSearchIndex() =>
+  _i6.Timeline? currentTimelineFor(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#currentTimelineFor, [roomId]),
+            returnValueForMissingStub: null,
+          )
+          as _i6.Timeline?);
+
+  @override
+  _i21.Future<_i33.KoheraTimelineEvent?> fetchEvent(
+    String? roomId,
+    String? eventId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#fetchEvent, [roomId, eventId]),
+            returnValue: _i21.Future<_i33.KoheraTimelineEvent?>.value(),
+            returnValueForMissingStub:
+                _i21.Future<_i33.KoheraTimelineEvent?>.value(),
+          )
+          as _i21.Future<_i33.KoheraTimelineEvent?>);
+
+  @override
+  _i21.Future<_i14.KoheraThreadChildrenPage> fetchThreadChildrenPage(
+    String? roomId,
+    String? rootEventId, {
+    String? from,
+    int? limit = 100,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #fetchThreadChildrenPage,
+              [roomId, rootEventId],
+              {#from: from, #limit: limit},
+            ),
+            returnValue: _i21.Future<_i14.KoheraThreadChildrenPage>.value(
+              _FakeKoheraThreadChildrenPage_14(
+                this,
+                Invocation.method(
+                  #fetchThreadChildrenPage,
+                  [roomId, rootEventId],
+                  {#from: from, #limit: limit},
+                ),
+              ),
+            ),
+            returnValueForMissingStub:
+                _i21.Future<_i14.KoheraThreadChildrenPage>.value(
+                  _FakeKoheraThreadChildrenPage_14(
+                    this,
+                    Invocation.method(
+                      #fetchThreadChildrenPage,
+                      [roomId, rootEventId],
+                      {#from: from, #limit: limit},
+                    ),
+                  ),
+                ),
+          )
+          as _i21.Future<_i14.KoheraThreadChildrenPage>);
+
+  @override
+  _i34.MediaController? mediaControllerFor(String? roomId, String? eventId) =>
+      (super.noSuchMethod(
+            Invocation.method(#mediaControllerFor, [roomId, eventId]),
+            returnValueForMissingStub: null,
+          )
+          as _i34.MediaController?);
+
+  @override
+  _i21.Future<void> redactEvent(String? roomId, String? eventId) =>
+      (super.noSuchMethod(
+            Invocation.method(#redactEvent, [roomId, eventId]),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
+          )
+          as _i21.Future<void>);
+
+  @override
+  _i21.Future<void> resendEvent(String? roomId, String? eventId) =>
+      (super.noSuchMethod(
+            Invocation.method(#resendEvent, [roomId, eventId]),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
+          )
+          as _i21.Future<void>);
+
+  @override
+  _i21.Future<void> cancelFailedSend(String? roomId, String? eventId) =>
+      (super.noSuchMethod(
+            Invocation.method(#cancelFailedSend, [roomId, eventId]),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
+          )
+          as _i21.Future<void>);
+
+  @override
+  _i21.Future<_i11.KoheraReplyPreview?> replyPreviewFor(
+    String? roomId,
+    String? eventId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#replyPreviewFor, [roomId, eventId]),
+            returnValue: _i21.Future<_i11.KoheraReplyPreview?>.value(),
+            returnValueForMissingStub:
+                _i21.Future<_i11.KoheraReplyPreview?>.value(),
+          )
+          as _i21.Future<_i11.KoheraReplyPreview?>);
+
+  @override
+  _i21.Future<void> preDecryptRoomHistory(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#preDecryptRoomHistory, [roomId]),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
+          )
+          as _i21.Future<void>);
+
+  @override
+  void requestMissingSessionKeys(String? roomId) => super.noSuchMethod(
+    Invocation.method(#requestMissingSessionKeys, [roomId]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  _i21.Future<void> initSearchIndex() =>
       (super.noSuchMethod(
             Invocation.method(#initSearchIndex, []),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> toggleReaction(
+  _i21.Future<void> toggleReaction(
     String? roomId,
     String? eventId,
     String? emoji,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#toggleReaction, [roomId, eventId, emoji]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<String?> latestThreadEventId(
+  _i21.Future<String?> latestThreadEventId(
     String? roomId,
     String? rootEventId,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#latestThreadEventId, [roomId, rootEventId]),
-            returnValue: _i20.Future<String?>.value(),
-            returnValueForMissingStub: _i20.Future<String?>.value(),
+            returnValue: _i21.Future<String?>.value(),
+            returnValueForMissingStub: _i21.Future<String?>.value(),
           )
-          as _i20.Future<String?>);
+          as _i21.Future<String?>);
 
   @override
-  _i20.Future<String?> sendText(
+  _i21.Future<String?> sendText(
     String? roomId,
     String? text, {
     String? inReplyToEventId,
@@ -1635,13 +1877,13 @@ class MockMessageRepository extends _i1.Mock implements _i27.MessageRepository {
                 #threadLastEventId: threadLastEventId,
               },
             ),
-            returnValue: _i20.Future<String?>.value(),
-            returnValueForMissingStub: _i20.Future<String?>.value(),
+            returnValue: _i21.Future<String?>.value(),
+            returnValueForMissingStub: _i21.Future<String?>.value(),
           )
-          as _i20.Future<String?>);
+          as _i21.Future<String?>);
 
   @override
-  _i20.Future<void> startPoll(
+  _i21.Future<void> startPoll(
     String? roomId, {
     required String? question,
     required List<String>? answers,
@@ -1659,35 +1901,35 @@ class MockMessageRepository extends _i1.Mock implements _i27.MessageRepository {
                 #maxSelections: maxSelections,
               },
             ),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> answerPoll(
+  _i21.Future<void> answerPoll(
     String? roomId,
     String? eventId,
     List<String>? answerIds,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#answerPoll, [roomId, eventId, answerIds]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> endPoll(String? roomId, String? eventId) =>
+  _i21.Future<void> endPoll(String? roomId, String? eventId) =>
       (super.noSuchMethod(
             Invocation.method(#endPoll, [roomId, eventId]),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
-  _i20.Future<void> ensureRoomIndexed(
+  _i21.Future<void> ensureRoomIndexed(
     String? roomId, {
     bool? priority = false,
   }) =>
@@ -1697,10 +1939,10 @@ class MockMessageRepository extends _i1.Mock implements _i27.MessageRepository {
               [roomId],
               {#priority: priority},
             ),
-            returnValue: _i20.Future<void>.value(),
-            returnValueForMissingStub: _i20.Future<void>.value(),
+            returnValue: _i21.Future<void>.value(),
+            returnValueForMissingStub: _i21.Future<void>.value(),
           )
-          as _i20.Future<void>);
+          as _i21.Future<void>);
 
   @override
   int? indexingProgressFor(String? roomId) =>
@@ -1723,13 +1965,13 @@ class MockMessageRepository extends _i1.Mock implements _i27.MessageRepository {
   );
 
   @override
-  void addListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i28.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i26.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i28.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );

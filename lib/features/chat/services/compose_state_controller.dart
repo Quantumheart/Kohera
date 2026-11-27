@@ -2,10 +2,10 @@ import 'package:kohera/core/models/pending_attachment.dart';
 import 'package:kohera/core/models/upload_state.dart';
 import 'package:kohera/core/utils/reply_fallback.dart';
 import 'package:kohera/data/models/kohera_reply_preview.dart';
+import 'package:kohera/data/models/kohera_timeline_event.dart';
 import 'package:kohera/data/resolvers/reply_preview_resolver.dart';
 import 'package:kohera/features/chat/services/paste_image_handler.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
 
 enum AddAttachmentResult { ok, tooMany, tooLarge }
 
@@ -20,7 +20,7 @@ class ComposeStateController {
   final editNotifier = ValueNotifier<KoheraReplyPreview?>(null);
 
   // ── Thread state ────────────────────────────────────────
-  final threadRootNotifier = ValueNotifier<Event?>(null);
+  final threadRootNotifier = ValueNotifier<KoheraTimelineEvent?>(null);
 
   /// Event ID of the active thread root, or null when not composing a
   /// thread reply. Keeps SDK-free consumers off the raw notifier.
@@ -35,8 +35,8 @@ class ComposeStateController {
 
   // ── Reply ───────────────────────────────────────────────
 
-  void setReplyTo(Event event) {
-    replyNotifier.value = ReplyPreviewResolver.fromEvent(event);
+  void setReplyTo(KoheraTimelineEvent event) {
+    replyNotifier.value = ReplyPreviewResolver.fromTimelineEvent(event);
   }
 
   void cancelReply() {
@@ -45,7 +45,7 @@ class ComposeStateController {
 
   // ── Thread ──────────────────────────────────────────────
 
-  void setThreadRoot(Event event) {
+  void setThreadRoot(KoheraTimelineEvent event) {
     threadRootNotifier.value = event;
     replyNotifier.value = null;
   }
@@ -58,15 +58,12 @@ class ComposeStateController {
   // ── Edit ────────────────────────────────────────────────
 
   void setEditEvent(
-    Event event,
-    Timeline? timeline,
+    KoheraTimelineEvent event,
     TextEditingController msgCtrl,
   ) {
     replyNotifier.value = null;
-    final displayEvent =
-        timeline != null ? event.getDisplayEvent(timeline) : event;
-    editNotifier.value = ReplyPreviewResolver.fromEvent(displayEvent);
-    msgCtrl.text = stripReplyFallback(displayEvent.body);
+    editNotifier.value = ReplyPreviewResolver.fromTimelineEvent(event);
+    msgCtrl.text = stripReplyFallback(event.display?.body ?? event.body);
     msgCtrl.selection =
         TextSelection.collapsed(offset: msgCtrl.text.length);
   }

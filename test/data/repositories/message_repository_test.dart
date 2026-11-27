@@ -578,11 +578,11 @@ void main() {
       expect(page.nextBatch, 'tok2');
     });
 
-    test('mediaControllerFor returns null for unknown room', () async {
+    test('mediaControllerFor returns null for unknown room', () {
       when(mockClient.getRoomById('!unknown:example.com')).thenReturn(null);
 
       expect(
-        await repo.mediaControllerFor('!unknown:example.com', r'\$e:s'),
+        repo.mediaControllerFor('!unknown:example.com', r'\$e:s'),
         isNull,
       );
     });

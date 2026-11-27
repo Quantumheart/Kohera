@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kohera/core/services/draft_store.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
+import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/repositories/message_repository.dart';
 import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
@@ -97,6 +98,40 @@ void main() {
     when(mockRoomRepository.searchClient).thenReturn(mockClient);
     when(mockRoomRepository.onSync).thenAnswer((_) => syncController.stream);
     when(mockRoomRepository.roomSummaries).thenReturn([]);
+    when(mockRoomRepository.roomExists(any)).thenAnswer(
+      (invocation) =>
+          mockClient.getRoomById(invocation.positionalArguments[0] as String) !=
+          null,
+    );
+    when(mockRoomRepository.summaryFor(any)).thenAnswer(
+      (invocation) => KoheraRoomSummary(
+        roomId: invocation.positionalArguments[0] as String,
+        displayname: mockRoom.getLocalizedDisplayname(),
+        isDirectChat: false,
+        isEncrypted: false,
+        isSpace: false,
+        notificationCount: 0,
+        highlightCount: 0,
+        typingDisplayNames: mockRoom.typingUsers
+            .map((u) => u.calcDisplayname())
+            .toList(),
+        pinnedEventIds: mockRoom.pinnedEventIds,
+        spaceChildCount: 0,
+        isFavourite: false,
+        lastEventPreview: '',
+        lastEventIsThreadReply: false,
+      ),
+    );
+    when(mockRoomRepository.readReceipts(any, threadRootId: anyNamed('threadRootId')))
+        .thenReturn(const {});
+    when(mockRoomRepository.isPinned(any, any)).thenReturn(false);
+    when(mockRoomRepository.canChangePinnedEvents(any)).thenReturn(false);
+    when(mockRoomRepository.latestOwnThreadReceiptTs(any, any)).thenReturn(0);
+    when(mockRoomRepository.notificationCount(any)).thenReturn(0);
+    when(mockRoomRepository.fullyReadMarkerId(any)).thenReturn(null);
+    when(mockRoomRepository.membershipOf(any, any)).thenReturn('join');
+    when(mockRoomRepository.powerLevelOf(any, any)).thenReturn(0);
+    when(mockRoomRepository.getRoomEncrypted(any)).thenReturn(false);
   });
 
   Widget buildTestWidget() {
