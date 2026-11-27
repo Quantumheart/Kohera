@@ -16,10 +16,11 @@ class AdaptiveCallScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isWide = MediaQuery.sizeOf(context).width >= HomeShell.wideBreakpoint;
     if (isWide) return const CallPane();
-    final room = context.read<RoomRepository>().rawRoom(roomId);
+    final displayName =
+        context.read<RoomRepository>().displayNameFor(roomId, fallback: 'Call');
     return CallScreen(
       roomId: roomId,
-      displayName: room?.getLocalizedDisplayname() ?? 'Call',
+      displayName: displayName,
     );
   }
 }

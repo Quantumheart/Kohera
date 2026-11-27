@@ -56,8 +56,8 @@ class _VoiceBannerState extends State<VoiceBanner> {
 
     _startTimer();
 
-    final room = context.read<RoomRepository>().rawRoom(activeRoomId);
-    final roomName = room?.getLocalizedDisplayname() ?? 'Unknown room';
+    final roomName =
+        context.read<RoomRepository>().displayNameFor(activeRoomId);
     final elapsed = callService.callElapsed;
     final elapsedText = elapsed != null ? formatCallElapsed(elapsed) : '';
     final cs = Theme.of(context).colorScheme;
