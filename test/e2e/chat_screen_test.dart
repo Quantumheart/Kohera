@@ -144,10 +144,6 @@ void main() {
       clientName: 'test',
     );
 
-    when(mockRoomRepository.rawRoom(any)).thenAnswer(
-      (invocation) =>
-          mockClient.getRoomById(invocation.positionalArguments[0] as String),
-    );
     when(mockRoomRepository.roomExists(any)).thenAnswer(
       (invocation) =>
           mockClient.getRoomById(invocation.positionalArguments[0] as String) !=

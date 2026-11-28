@@ -89,10 +89,6 @@ void main() {
 
     mockRoomRepository = MockRoomRepository();
     syncController = CachedStreamController<SyncUpdate>();
-    when(mockRoomRepository.rawRoom(any)).thenAnswer(
-      (invocation) =>
-          mockClient.getRoomById(invocation.positionalArguments[0] as String),
-    );
     when(mockRoomRepository.userId).thenReturn('@me:example.com');
     when(mockRoomRepository.ignoredUsers).thenReturn([]);
     when(mockRoomRepository.encryption).thenReturn(null);

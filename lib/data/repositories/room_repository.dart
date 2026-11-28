@@ -874,10 +874,6 @@ class RoomRepository extends ChangeNotifier {
   ) =>
       postReceipt(roomId, ReceiptType.mRead, eventId, threadId: threadId);
 
-  // ── Transitional raw room access ──────────────────────────────
-
-  Room? rawRoom(String roomId) => _client.getRoomById(roomId);
-
   // ── Helpers ──────────────────────────────────────────────────
 
   PushRuleState _toSdkPushRuleState(KoheraPushRuleState state) {
