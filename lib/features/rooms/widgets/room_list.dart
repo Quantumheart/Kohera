@@ -119,7 +119,10 @@ class _RoomListViewState extends State<_RoomListView>
     final cs = Theme.of(context).colorScheme;
 
     _syncAnimations(controller);
-    controller.maybeFetchSpaceHierarchy();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      controller.maybeFetchSpaceHierarchy();
+    });
 
     final items = snapshot.items;
     final spaceEmpty = snapshot.spaceWithNoJoinedRooms;
