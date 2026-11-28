@@ -9502,14 +9502,6 @@ class MockRoomRepository extends _i1.Mock implements _i13.RoomRepository {
           as _i5.Future<void>);
 
   @override
-  _i2.Room? rawRoom(String? roomId) =>
-      (super.noSuchMethod(
-            Invocation.method(#rawRoom, [roomId]),
-            returnValueForMissingStub: null,
-          )
-          as _i2.Room?);
-
-  @override
   void notifyListeners() => super.noSuchMethod(
     Invocation.method(#notifyListeners, []),
     returnValueForMissingStub: null,

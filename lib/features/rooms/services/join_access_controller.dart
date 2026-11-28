@@ -282,10 +282,10 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
 
   /// Converts a list of room IDs back to [SpaceRef] by looking up each room.
   List<SpaceRef> _idsToRefs(List<String> ids) {
-    return ids
-        .map(_rooms.rawRoom)
-        .where((r) => r != null)
-        .map((r) => (id: r!.id, displayname: r.getLocalizedDisplayname()))
-        .toList(growable: false);
+    return [
+      for (final id in ids)
+        if (_rooms.roomExists(id))
+          (id: id, displayname: _rooms.displayNameFor(id)),
+    ];
   }
 }
