@@ -469,6 +469,29 @@ class MockRoomRepository extends _i1.Mock implements _i4.RoomRepository {
           as bool);
 
   @override
+  String displayNameFor(String? roomId, {String? fallback = 'Unknown room'}) =>
+      (super.noSuchMethod(
+            Invocation.method(#displayNameFor, [roomId], {#fallback: fallback}),
+            returnValue: _i11.dummyValue<String>(
+              this,
+              Invocation.method(
+                #displayNameFor,
+                [roomId],
+                {#fallback: fallback},
+              ),
+            ),
+            returnValueForMissingStub: _i11.dummyValue<String>(
+              this,
+              Invocation.method(
+                #displayNameFor,
+                [roomId],
+                {#fallback: fallback},
+              ),
+            ),
+          )
+          as String);
+
+  @override
   String? getRoomPartnerId(String? roomId) =>
       (super.noSuchMethod(
             Invocation.method(#getRoomPartnerId, [roomId]),
@@ -781,13 +804,49 @@ class MockRoomRepository extends _i1.Mock implements _i4.RoomRepository {
           as _i6.Future<String>);
 
   @override
-  _i6.Future<void> setSpaceChild(String? spaceId, String? childRoomId) =>
+  _i6.Future<void> setSpaceChild(
+    String? spaceId,
+    String? childRoomId, {
+    bool? suggested,
+    String? order,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#setSpaceChild, [spaceId, childRoomId]),
+            Invocation.method(
+              #setSpaceChild,
+              [spaceId, childRoomId],
+              {#suggested: suggested, #order: order},
+            ),
             returnValue: _i6.Future<void>.value(),
             returnValueForMissingStub: _i6.Future<void>.value(),
           )
           as _i6.Future<void>);
+
+  @override
+  _i6.Future<void> removeSpaceChild(String? spaceId, String? childRoomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#removeSpaceChild, [spaceId, childRoomId]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
+  bool canChangeStateEventOf(String? roomId, String? stateType) =>
+      (super.noSuchMethod(
+            Invocation.method(#canChangeStateEventOf, [roomId, stateType]),
+            returnValue: false,
+            returnValueForMissingStub: false,
+          )
+          as bool);
+
+  @override
+  Map<String, String> spaceChildOrderMap(String? spaceId) =>
+      (super.noSuchMethod(
+            Invocation.method(#spaceChildOrderMap, [spaceId]),
+            returnValue: <String, String>{},
+            returnValueForMissingStub: <String, String>{},
+          )
+          as Map<String, String>);
 
   @override
   _i6.Future<void> setJoinRules(String? roomId, _i7.KoheraJoinRule? rule) =>

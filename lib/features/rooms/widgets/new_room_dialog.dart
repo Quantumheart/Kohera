@@ -128,10 +128,10 @@ class _NewRoomDialogState extends State<NewRoomDialog> {
     final source = widget.parentSpaceIds ??
         widget.matrixService.selectionController.selectedSpaceIds;
     final eligible = <SpaceRef>[];
+    final rooms = context.read<RoomRepository>();
     for (final id in source) {
-      final space = context.read<RoomRepository>().rawRoom(id);
-      if (space != null && space.canChangeStateEvent('m.space.child')) {
-        eligible.add((id: id, displayname: space.getLocalizedDisplayname()));
+      if (rooms.canChangeStateEventOf(id, 'm.space.child')) {
+        eligible.add((id: id, displayname: rooms.displayNameFor(id)));
       }
     }
     return eligible;

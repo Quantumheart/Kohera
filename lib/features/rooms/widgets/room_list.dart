@@ -363,10 +363,7 @@ class _RoomListViewState extends State<_RoomListView>
     return switch (item) {
       InviteItem() => InviteTile(
         summary: item.summary,
-        inviterName: () {
-          final room = context.read<RoomRepository>().rawRoom(item.summary.roomId);
-          return room != null ? selection.inviterDisplayName(room) : null;
-        }(),
+        inviterName: selection.inviterDisplayName(item.summary.roomId),
       ),
       HeaderItem() => RoomSectionHeader(
         item: item,
@@ -473,7 +470,7 @@ class _UnjoinedGroupHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final space = context.read<RoomRepository>().rawRoom(item.spaceId);
+    final spaceSummary = context.read<RoomRepository>().summaryFor(item.spaceId);
 
     return Padding(
       padding: const EdgeInsets.only(left: 10, right: 10, top: 8, bottom: 2),
@@ -491,15 +488,16 @@ class _UnjoinedGroupHeader extends StatelessWidget {
           ),
           TextButton.icon(
             onPressed: () {
-              if (space == null) return;
+              final summary = spaceSummary;
+              if (summary == null) return;
               unawaited(
                 SpaceDiscoveryDialog.showSpaceRooms(
                   context,
                   matrixService: matrixService,
-                  roomId: space.id,
-                  name: space.getLocalizedDisplayname(),
-                  avatar: space.avatar,
-                  canonicalAlias: space.canonicalAlias,
+                  roomId: summary.roomId,
+                  name: summary.displayname,
+                  avatar: summary.avatarUri,
+                  canonicalAlias: summary.canonicalAlias,
                 ),
               );
             },
@@ -779,10 +777,10 @@ class _SpaceEmptyState extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final state = controller.getRoomState(spaceId);
-    final room = context.read<RoomRepository>().rawRoom(spaceId);
-    final spaceName = room?.getLocalizedDisplayname() ?? spaceId;
-    final spaceAvatar = room?.avatar;
-    final spaceAlias = room?.canonicalAlias;
+    final summary = context.read<RoomRepository>().summaryFor(spaceId);
+    final spaceName = summary?.displayname ?? spaceId;
+    final spaceAvatar = summary?.avatarUri;
+    final spaceAlias = summary?.canonicalAlias;
 
     void browseRooms() {
       unawaited(

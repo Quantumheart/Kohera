@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:kohera/core/utils/order_utils.dart' as order_utils;
 import 'package:kohera/data/models/kohera_auth_exception.dart';
 import 'package:kohera/data/models/kohera_file_too_big_exception.dart';
 import 'package:kohera/data/models/kohera_media_content.dart';
@@ -580,10 +581,45 @@ class RoomRepository extends ChangeNotifier {
         invite: invite,
       );
 
-  /// Adds [childRoomId] as a child of [spaceId].
-  Future<void> setSpaceChild(String spaceId, String childRoomId) async {
+  /// Adds [childRoomId] as a child of [spaceId], with optional
+  /// [suggested] flag and lexicographic [order] string.
+  Future<void> setSpaceChild(
+    String spaceId,
+    String childRoomId, {
+    bool? suggested,
+    String? order,
+  }) async {
     final space = _client.getRoomById(spaceId);
-    if (space != null) await space.setSpaceChild(childRoomId);
+    if (space != null) {
+      await space.setSpaceChild(
+        childRoomId,
+        suggested: suggested,
+        order: order,
+      );
+    }
+  }
+
+  /// Removes [childRoomId] from [spaceId].
+  Future<void> removeSpaceChild(String spaceId, String childRoomId) async {
+    final space = _client.getRoomById(spaceId);
+    if (space != null) await space.removeSpaceChild(childRoomId);
+  }
+
+  /// Whether the current user can change [stateType] events in [roomId].
+  bool canChangeStateEventOf(String roomId, String stateType) {
+    final room = _client.getRoomById(roomId);
+    return room?.canChangeStateEvent(stateType) ?? false;
+  }
+
+  /// The `m.space.child` order strings of [spaceId], keyed by child
+  /// room id.
+  Map<String, String> spaceChildOrderMap(String spaceId) {
+    final space = _client.getRoomById(spaceId);
+    if (space == null) return const {};
+    return order_utils.buildOrderMap([
+      for (final child in space.spaceChildren)
+        (roomId: child.roomId, order: child.order),
+    ]);
   }
 
   // ── Join rules ────────────────────────────────────────────────

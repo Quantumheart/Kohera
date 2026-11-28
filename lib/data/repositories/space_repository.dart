@@ -63,16 +63,27 @@ class SpaceRepository extends ChangeNotifier {
 
   // ── Join access ────────────────────────────────────────────
 
-  /// The join mode of [room] (public/knock/restricted/invite).
-  JoinMode getJoinMode(Room room) => _spaceAccess.getJoinMode(room);
+  /// The join mode of [roomId] (public/knock/restricted/invite).
+  JoinMode getJoinMode(String roomId) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return JoinMode.invite;
+    return _spaceAccess.getJoinMode(room);
+  }
 
-  /// The space IDs allowed to join [room] under a restricted rule.
-  List<String> allowedSpaceIds(Room room) =>
-      _spaceAccess.allowedSpaceIds(room);
+  /// The space IDs allowed to join [roomId] under a restricted rule.
+  List<String> allowedSpaceIds(String roomId) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return const [];
+    return _spaceAccess.allowedSpaceIds(room);
+  }
 
-  /// Whether [room] needs a version upgrade for a restricted join rule.
-  bool needsUpgradeForRestricted(Room room, {required bool wantKnock}) =>
-      _spaceAccess.needsUpgradeForRestricted(room, wantKnock: wantKnock);
+  /// Whether [roomId] needs a version upgrade for a restricted join
+  /// rule.
+  bool needsUpgradeForRestricted(String roomId, {required bool wantKnock}) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) return false;
+    return _spaceAccess.needsUpgradeForRestricted(room, wantKnock: wantKnock);
+  }
 
   /// Applies a join [mode] to [roomId], scoped to [allowSpaceIds].
   Future<void> applyJoinMode({
@@ -90,20 +101,40 @@ class SpaceRepository extends ChangeNotifier {
   Future<String?> pickRestrictedRoomVersion({required bool wantKnock}) =>
       _spaceAccess.pickRestrictedRoomVersion(wantKnock: wantKnock);
 
-  /// Upgrades [room] to [newVersion], returning the replacement room ID.
-  Future<String> upgradeRoomTo(Room room, String newVersion) =>
-      _spaceAccess.upgradeRoomTo(room, newVersion);
+  /// Upgrades [roomId] to [newVersion], returning the replacement room
+  /// ID. Throws [StateError] when the room is unknown.
+  Future<String> upgradeRoomTo(String roomId, String newVersion) {
+    final room = _client.getRoomById(roomId);
+    if (room == null) throw StateError('Room not found: $roomId');
+    return _spaceAccess.upgradeRoomTo(room, newVersion);
+  }
 
-  /// Rewires [parents] to point at [newRoomId] in place of [oldRoomId].
+  /// The ids of spaces that list [roomId] as a child.
+  List<String> parentSpaceIdsOf(String roomId) {
+    final ids = <String>[];
+    for (final candidate in _client.rooms) {
+      if (!candidate.isSpace) continue;
+      if (candidate.id == roomId) continue;
+      if (candidate.spaceChildren.any((c) => c.roomId == roomId)) {
+        ids.add(candidate.id);
+      }
+    }
+    return ids;
+  }
+
+  /// Rewires the spaces in [parentSpaceIds] to point at [newRoomId] in
+  /// place of [oldRoomId].
   Future<void> rewireParentSpaces({
     required String oldRoomId,
     required String newRoomId,
-    required List<Room> parents,
+    required List<String> parentSpaceIds,
   }) =>
       _spaceAccess.rewireParentSpaces(
         oldRoomId: oldRoomId,
         newRoomId: newRoomId,
-        parents: parents,
+        parents: [
+          for (final id in parentSpaceIds) ?_client.getRoomById(id),
+        ],
       );
 
   /// Builds an `m.room.join_rules` state event for [mode].

@@ -46,9 +46,8 @@ class _InviteTileState extends State<InviteTile> {
       if (widget.onJoin != null) {
         await widget.onJoin!();
       } else {
-        // Fallback: join via the client
-        final room = rooms.rawRoom(widget.summary.roomId);
-        if (room != null) await room.join();
+        // Fallback: join via the repository
+        await rooms.joinRoom(widget.summary.roomId);
       }
     } catch (e) {
       debugPrint('[Kohera] Accept invite failed: $e');
@@ -86,9 +85,7 @@ class _InviteTileState extends State<InviteTile> {
       if (widget.onDecline != null) {
         await widget.onDecline!();
       } else {
-        final room =
-            context.read<RoomRepository>().rawRoom(widget.summary.roomId);
-        if (room != null) await room.leave();
+        await context.read<RoomRepository>().leaveRoom(widget.summary.roomId);
       }
     } catch (e) {
       debugPrint('[Kohera] Decline invite failed: $e');

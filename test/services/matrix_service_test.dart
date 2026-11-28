@@ -1065,10 +1065,11 @@ void main() {
 
       when(mockClient.rooms).thenReturn([invitedRoom1, joinedRoom, invitedRoom2, invitedSpace]);
 
-      final result = service.spaceTree.invitedRooms;
-      expect(result, hasLength(2));
-      expect(result[0].getLocalizedDisplayname(), 'A Room');
-      expect(result[1].getLocalizedDisplayname(), 'B Room');
+      when(invitedRoom1.id).thenReturn('!b:example.com');
+      when(invitedRoom2.id).thenReturn('!a:example.com');
+
+      final result = service.spaceTree.invitedRoomIds;
+      expect(result, ['!a:example.com', '!b:example.com']);
     });
 
     test('returns empty list when no invites', () {
@@ -1078,7 +1079,7 @@ void main() {
 
       when(mockClient.rooms).thenReturn([joinedRoom]);
 
-      expect(service.spaceTree.invitedRooms, isEmpty);
+      expect(service.spaceTree.invitedRoomIds, isEmpty);
     });
   });
 
@@ -1104,10 +1105,11 @@ void main() {
 
       when(mockClient.rooms).thenReturn([invitedSpace1, invitedRoom, joinedSpace, invitedSpace2]);
 
-      final result = service.spaceTree.invitedSpaces;
-      expect(result, hasLength(2));
-      expect(result[0].getLocalizedDisplayname(), 'A Space');
-      expect(result[1].getLocalizedDisplayname(), 'Z Space');
+      when(invitedSpace1.id).thenReturn('!z:example.com');
+      when(invitedSpace2.id).thenReturn('!a:example.com');
+
+      final result = service.spaceTree.invitedSpaceIds;
+      expect(result, ['!a:example.com', '!z:example.com']);
     });
   });
 
@@ -1131,24 +1133,35 @@ void main() {
       when(room.unsafeGetUserFromMemoryOrFallback('@alice:example.com'))
           .thenReturn(User('@alice:example.com', room: room, displayName: 'Alice'));
 
-      final result = service.spaceTree.inviterDisplayName(room);
+      when(room.id).thenReturn('!room:example.com');
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
+
+      final result = service.spaceTree.inviterDisplayName('!room:example.com');
       expect(result, 'Alice');
     });
 
     test('returns null when no userID', () {
       final room = MockRoom();
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
       when(mockClient.userID).thenReturn(null);
 
-      expect(service.spaceTree.inviterDisplayName(room), isNull);
+      expect(
+        service.spaceTree.inviterDisplayName('!room:example.com'),
+        isNull,
+      );
     });
 
     test('returns null when no invite state event', () {
       final room = MockRoom();
+      when(mockClient.getRoomById('!room:example.com')).thenReturn(room);
       when(mockClient.userID).thenReturn('@me:example.com');
       when(room.getState(EventTypes.RoomMember, '@me:example.com'))
           .thenReturn(null);
 
-      expect(service.spaceTree.inviterDisplayName(room), isNull);
+      expect(
+        service.spaceTree.inviterDisplayName('!room:example.com'),
+        isNull,
+      );
     });
   });
 

@@ -11,6 +11,7 @@ import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/services/preferences_service.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/repositories/user_repository.dart';
 import 'package:kohera/features/notifications/services/inbox_controller.dart';
@@ -54,7 +55,8 @@ class _SpaceRailState extends State<SpaceRail> {
     final spaces = selection.topLevelSpaces;
 
     final inboxUnread = context.select<InboxController, int>((c) => c.unreadCount);
-    final inviteCount = selection.invitedRooms.length + selection.invitedSpaces.length;
+    final inviteCount =
+        selection.invitedRoomIds.length + selection.invitedSpaceIds.length;
     final totalInboxBadge = inboxUnread + inviteCount;
 
     return Container(
@@ -221,7 +223,7 @@ class _SpaceRailState extends State<SpaceRail> {
 
           // Invited spaces (non-reorderable, scrollable)
           Builder(builder: (_) {
-            final invited = selection.invitedSpaces;
+            final invited = selection.invitedSpaceIds;
             if (invited.isEmpty) return const SizedBox.shrink();
             return Flexible(
               child: Column(
@@ -239,7 +241,7 @@ class _SpaceRailState extends State<SpaceRail> {
                       children: [
                         for (final space in invited)
                           Builder(builder: (_) {
-                            final summary = selection.summaryFor(space);
+                            final summary = selection.summaryForId(space);
                             final name = summary.displayname;
                             return Padding(
                             padding: const EdgeInsets.only(bottom: 6),
@@ -257,15 +259,18 @@ class _SpaceRailState extends State<SpaceRail> {
                                 onTap: () async {
                                   final result = await InviteDialog.show(
                                     context,
-                                    roomId: space.id,
+                                    roomId: space,
                                     summary: summary,
                                     inviterName:
                                         selection.inviterDisplayName(space),
-                                    onAccept: space.join,
-                                    onDecline: space.leave,
+                                    onAccept: () =>
+                                context.read<RoomRepository>().joinRoom(space),
+                                    onDecline: () => context
+                                .read<RoomRepository>()
+                                .leaveRoom(space),
                                   );
                                   if (result == true && mounted) {
-                                    selectionState.selectSpace(space.id);
+                                    selectionState.selectSpace(space);
                                   }
                                 },
                               ),

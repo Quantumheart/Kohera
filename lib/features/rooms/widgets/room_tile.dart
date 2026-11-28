@@ -827,8 +827,9 @@ class _ReorderDragTargetState extends State<_ReorderDragTarget> {
     required bool insertAbove,
   }) async {
     final selection = context.read<SpaceTreeRepository>();
-    final space = context.read<RoomRepository>().rawRoom(widget.parentSpaceId);
-    if (space == null) return;
+    final rooms = context.read<RoomRepository>();
+    final spaceId = widget.parentSpaceId;
+    if (!rooms.roomExists(spaceId)) return;
 
     try {
       final roomIds = widget.sectionRoomIds;
@@ -837,7 +838,7 @@ class _ReorderDragTargetState extends State<_ReorderDragTarget> {
 
       final insertIndex = insertAbove ? targetIndex : targetIndex + 1;
 
-      final orderMap = order_utils.buildOrderMap(space);
+      final orderMap = rooms.spaceChildOrderMap(spaceId);
 
       final neighborBefore =
           insertIndex > 0 ? orderMap[roomIds[insertIndex - 1]] : null;
@@ -850,7 +851,7 @@ class _ReorderDragTargetState extends State<_ReorderDragTarget> {
         return;
       }
 
-      await space.setSpaceChild(data.roomId, order: newOrder);
+      await rooms.setSpaceChild(spaceId, data.roomId, order: newOrder);
       selection.invalidateSpaceTree();
     } catch (e) {
       debugPrint('[Kohera] Drag reorder failed: $e');

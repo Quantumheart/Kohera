@@ -4,15 +4,16 @@
 /// See: https://spec.matrix.org/latest/client-server-api/#spaces
 library;
 
-import 'package:matrix/matrix.dart';
-
 const int _minChar = 0x20;
 const int _maxChar = 0x7E;
 const int _maxLength = 50;
 
-Map<String, String> buildOrderMap(Room space) {
+/// Builds the child-id → order-string map from space child snapshots.
+Map<String, String> buildOrderMap(
+  Iterable<({String? roomId, String order})> children,
+) {
   final map = <String, String>{};
-  for (final child in space.spaceChildren) {
+  for (final child in children) {
     final cid = child.roomId;
     if (cid != null && child.order.isNotEmpty) {
       map[cid] = child.order;

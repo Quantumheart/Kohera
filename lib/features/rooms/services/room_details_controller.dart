@@ -92,7 +92,7 @@ class RoomDetailsController extends ChangeNotifier {
   // ── Lifecycle ───────────────────────────────────────────────
 
   void init() {
-    _hasRoom = roomRepo.rawRoom(roomId) != null;
+    _hasRoom = roomRepo.roomExists(roomId);
     if (!_hasRoom) {
       notifyListeners();
       return;
@@ -105,7 +105,7 @@ class RoomDetailsController extends ChangeNotifier {
       _syncDebounce = Timer(const Duration(seconds: 2), () {
         if (_disposed) return;
         notifyListeners();
-        if (roomRepo.rawRoom(roomId) != null) {
+        if (roomRepo.roomExists(roomId)) {
           unawaited(loadMembers());
         }
       });
@@ -115,7 +115,7 @@ class RoomDetailsController extends ChangeNotifier {
   /// Called by the panel on `didUpdateWidget` to detect the room appearing or
   /// a member-count change requiring a member reload.
   void checkRoomChanged() {
-    final roomExists = roomRepo.rawRoom(roomId) != null;
+    final roomExists = roomRepo.roomExists(roomId);
     if (roomExists && !_hasRoom) {
       _hasRoom = true;
       _lastMemberCount = roomRepo.getRoomSummaryMemberCount(roomId);

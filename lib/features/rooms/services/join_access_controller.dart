@@ -54,12 +54,7 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
   @override
   void initState() {
     super.initState();
-    final room = _rooms.rawRoom(widget.roomId);
-    if (room != null) {
-      _mode = _service.getJoinMode(room);
-    } else {
-      _mode = JoinMode.invite;
-    }
+    _mode = _service.getJoinMode(widget.roomId);
     _allowed = _resolveAllowed();
   }
 
@@ -79,9 +74,8 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
 
   void _onSync(dynamic _) {
     if (_userDirty || _busy || (_saveTimer?.isActive ?? false)) return;
-    final room = _rooms.rawRoom(widget.roomId);
-    if (room == null) return;
-    final remoteMode = _service.getJoinMode(room);
+    if (!_rooms.roomExists(widget.roomId)) return;
+    final remoteMode = _service.getJoinMode(widget.roomId);
     final remoteAllowed = _resolveAllowed();
     final changed = remoteMode != _mode ||
         remoteAllowed.length != _allowed.length ||
@@ -101,14 +95,13 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
   }
 
   List<SpaceRef> _resolveAllowed() {
-    final room = _rooms.rawRoom(widget.roomId);
-    if (room == null) return const [];
-    final ids = _service.allowedSpaceIds(room);
-    return ids
-        .map(_rooms.rawRoom)
-        .where((r) => r != null)
-        .map((r) => (id: r!.id, displayname: r.getLocalizedDisplayname()))
-        .toList(growable: false);
+    if (!_rooms.roomExists(widget.roomId)) return const [];
+    final ids = _service.allowedSpaceIds(widget.roomId);
+    return [
+      for (final id in ids)
+        if (_rooms.roomExists(id))
+          (id: id, displayname: _rooms.displayNameFor(id)),
+    ];
   }
 
   List<SpaceRef> get _candidates {
@@ -134,10 +127,8 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
 
   bool get _needsUpgrade {
     if (!_mode.isRestrictedFamily) return false;
-    final room = _rooms.rawRoom(widget.roomId);
-    if (room == null) return false;
     return _service.needsUpgradeForRestricted(
-      room,
+      widget.roomId,
       wantKnock: _mode == JoinMode.knockRestricted,
     );
   }
@@ -201,10 +192,8 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
     );
     if (!confirmed || !mounted) return;
 
-    final matrix = context.read<MatrixService>();
-    final room = _rooms.rawRoom(widget.roomId);
-    if (room == null) return;
-    final parents = matrix.spaceTree.parentSpacesOf(room);
+    if (!_rooms.roomExists(widget.roomId)) return;
+    final parentSpaceIds = _service.parentSpaceIdsOf(widget.roomId);
 
     setState(() {
       _busy = true;
@@ -212,7 +201,8 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
       _error = null;
     });
     try {
-      final newRoomId = await _service.upgradeRoomTo(room, newVersion);
+      final newRoomId =
+          await _service.upgradeRoomTo(widget.roomId, newVersion);
       try {
         await _rooms
             .waitForRoomInSync(newRoomId, join: true)
@@ -223,7 +213,7 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
       await _service.rewireParentSpaces(
         oldRoomId: widget.roomId,
         newRoomId: newRoomId,
-        parents: parents,
+        parentSpaceIds: parentSpaceIds,
       );
       await _service.applyJoinMode(
         roomId: newRoomId,
@@ -249,9 +239,11 @@ class _JoinAccessControllerState extends State<JoinAccessController> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final room = _rooms.rawRoom(widget.roomId);
-    final canEdit =
-        room?.canChangeStateEvent(KoheraEventTypes.roomJoinRules) == true && !_busy;
+    final canEdit = _rooms.canChangeStateEventOf(
+          widget.roomId,
+          KoheraEventTypes.roomJoinRules,
+        ) &&
+        !_busy;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

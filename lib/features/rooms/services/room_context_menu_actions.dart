@@ -23,17 +23,14 @@ class RoomContextMenuActions {
   /// Returns the display name of [roomId], or `null` if the room is not
   /// found.
   String? roomDisplayName(String roomId) {
-    final room = rooms.rawRoom(roomId);
-    return room?.getLocalizedDisplayname();
+    if (!rooms.roomExists(roomId)) return null;
+    return rooms.displayNameFor(roomId);
   }
 
   /// Whether the room with [spaceId] allows the current user to manage
   /// space children (add/remove/reorder).
-  bool canManageSpaceChildren(String spaceId) {
-    final space = rooms.rawRoom(spaceId);
-    if (space == null) return false;
-    return space.canChangeStateEvent('m.space.child');
-  }
+  bool canManageSpaceChildren(String spaceId) =>
+      rooms.canChangeStateEventOf(spaceId, 'm.space.child');
 
   /// Whether any of the selected spaces allows managing children.
   ({bool canRemove, String? activeSpaceId}) checkSelectedSpaces() {
@@ -64,10 +61,10 @@ class RoomContextMenuActions {
   ) async {
     var failures = 0;
     for (final entry in selections.entries) {
-      final space = rooms.rawRoom(entry.key);
-      if (space == null) continue;
+      if (!rooms.roomExists(entry.key)) continue;
       try {
-        await space.setSpaceChild(
+        await rooms.setSpaceChild(
+          entry.key,
           roomId,
           suggested: entry.value ? true : null,
         );
@@ -82,9 +79,8 @@ class RoomContextMenuActions {
 
   /// Removes [roomId] from the space [spaceId].
   Future<void> removeFromSpace(String spaceId, String roomId) async {
-    final space = rooms.rawRoom(spaceId);
-    if (space == null) return;
-    await space.removeSpaceChild(roomId);
+    if (!rooms.roomExists(spaceId)) return;
+    await rooms.removeSpaceChild(spaceId, roomId);
     selection.invalidateSpaceTree();
   }
 
@@ -96,11 +92,10 @@ class RoomContextMenuActions {
     int fromIndex,
     int toIndex,
   ) async {
-    final space = rooms.rawRoom(spaceId);
-    if (space == null) return;
+    if (!rooms.roomExists(spaceId)) return;
 
     final roomId = orderedRoomIds[fromIndex];
-    final orderMap = order_utils.buildOrderMap(space);
+    final orderMap = rooms.spaceChildOrderMap(spaceId);
 
     final String? neighborBefore;
     final String? neighborAfter;
@@ -121,7 +116,7 @@ class RoomContextMenuActions {
       return;
     }
 
-    await space.setSpaceChild(roomId, order: newOrder);
+    await rooms.setSpaceChild(spaceId, roomId, order: newOrder);
     selection.invalidateSpaceTree();
   }
 }

@@ -17,8 +17,8 @@ class InvitationsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selection = context.watch<SpaceTreeRepository>();
-    final invitedRooms = selection.invitedRooms;
-    final invitedSpaces = selection.invitedSpaces;
+    final invitedRooms = selection.invitedRoomIds;
+    final invitedSpaces = selection.invitedSpaceIds;
 
     if (invitedRooms.isEmpty && invitedSpaces.isEmpty) {
       return Center(
@@ -55,7 +55,7 @@ class InvitationsView extends StatelessWidget {
             ),
           ),
           for (final space in invitedSpaces) InviteTile(
-            summary: selection.summaryFor(space),
+            summary: selection.summaryForId(space),
             inviterName: selection.inviterDisplayName(space),
           ),
         ],
@@ -71,7 +71,7 @@ class InvitationsView extends StatelessWidget {
             ),
           ),
           for (final room in invitedRooms) InviteTile(
-            summary: selection.summaryFor(room),
+            summary: selection.summaryForId(room),
             inviterName: selection.inviterDisplayName(room),
           ),
         ],
