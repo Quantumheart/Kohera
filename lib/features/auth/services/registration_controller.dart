@@ -4,10 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:kohera/core/services/client_manager.dart';
 import 'package:kohera/core/services/matrix_service.dart';
 import 'package:kohera/core/utils/network_error.dart';
+import 'package:kohera/data/models/kohera_auth_exception.dart';
+import 'package:kohera/data/models/kohera_uia_auth.dart';
 import 'package:kohera/data/repositories/auth_repository.dart';
 import 'package:kohera/features/auth/services/recaptcha_server.dart';
 import 'package:kohera/features/e2ee/services/bootstrap_controller.dart' show BootstrapController;
-import 'package:matrix/matrix.dart';
 
 /// States for the registration flow state machine.
 enum RegistrationState {
@@ -218,12 +219,12 @@ class RegistrationController extends ChangeNotifier {
     await _attemptRegister();
   }
 
-  Future<void> _attemptRegister({AuthenticationData? auth}) async {
+  Future<void> _attemptRegister({KoheraUiaAuth? auth}) async {
     _state = RegistrationState.registering;
     _notify();
 
     try {
-      final response = await authRepository.register(
+      await authRepository.registerAndComplete(
         username: _username,
         password: _password,
         initialDeviceDisplayName: 'Kohera Flutter',
@@ -231,15 +232,13 @@ class RegistrationController extends ChangeNotifier {
       );
 
       if (_isDisposed) return;
-
-      await authRepository.completeRegistration(response, password: _password);
       if (!clientManager.services.contains(matrixService)) {
         await clientManager.commitPendingService();
       }
       _clearCredentials();
       _state = RegistrationState.done;
       _notify();
-    } on MatrixException catch (e) {
+    } on KoheraAuthException catch (e) {
       if (_isDisposed) return;
 
       // UIA challenge — parse flows and advance to next stage.
@@ -285,11 +284,11 @@ class RegistrationController extends ChangeNotifier {
     );
 
     switch (nextStage) {
-      case AuthenticationTypes.dummy:
+      case kUiaDummy:
         // Auto-complete dummy stage.
         await _attemptRegister(
-          auth: AuthenticationData(
-            type: AuthenticationTypes.dummy,
+          auth: KoheraUiaAuth(
+            type: kUiaDummy,
             session: _session,
           ),
         );
@@ -297,15 +296,16 @@ class RegistrationController extends ChangeNotifier {
       case 'm.login.registration_token':
         // Auto-complete with the token collected from the form.
         await _attemptRegister(
-          auth: _RegistrationTokenAuth(
+          auth: KoheraUiaAuth(
+            type: kUiaRegistrationToken,
             session: _session,
-            token: _token,
+            params: {'token': _token},
           ),
         );
         return;
-      case AuthenticationTypes.emailIdentity:
+      case kUiaEmailIdentity:
         _state = RegistrationState.enterEmail;
-      case AuthenticationTypes.recaptcha:
+      case kUiaRecaptcha:
         _state = RegistrationState.recaptcha;
       case 'm.login.terms':
         _state = RegistrationState.acceptTerms;
@@ -321,11 +321,11 @@ class RegistrationController extends ChangeNotifier {
   }
 
   static const Set<String> _supportedStages = {
-    AuthenticationTypes.dummy,
-    AuthenticationTypes.emailIdentity,
-    AuthenticationTypes.recaptcha,
-    'm.login.terms',
-    'm.login.registration_token',
+    kUiaDummy,
+    kUiaEmailIdentity,
+    kUiaRecaptcha,
+    kUiaTerms,
+    kUiaRegistrationToken,
   };
 
   List<String> _findBestFlow() {
@@ -375,7 +375,11 @@ class RegistrationController extends ChangeNotifier {
       if (_isDisposed) return;
 
       await _attemptRegister(
-        auth: _RecaptchaAuth(session: _session, response: token),
+        auth: KoheraUiaAuth(
+          type: kUiaRecaptcha,
+          session: _session,
+          params: {'response': token},
+        ),
       );
     } on RecaptchaException catch (e) {
       if (_isDisposed) return;
@@ -400,8 +404,8 @@ class RegistrationController extends ChangeNotifier {
     if (_state != RegistrationState.acceptTerms) return;
 
     await _attemptRegister(
-      auth: AuthenticationData(
-        type: 'm.login.terms',
+      auth: KoheraUiaAuth(
+        type: kUiaTerms,
         session: _session,
       ),
     );
@@ -418,7 +422,7 @@ class RegistrationController extends ChangeNotifier {
   bool _isUsernameError(String? errcode) =>
       _usernameErrcodes.contains(errcode);
 
-  String _humanReadableError(MatrixException e) {
+  String _humanReadableError(KoheraAuthException e) {
     switch (e.errcode) {
       case 'M_USER_IN_USE':
         return 'This username is already taken';
@@ -433,7 +437,7 @@ class RegistrationController extends ChangeNotifier {
       case 'M_THREEPID_DENIED':
         return 'This email domain is not allowed';
       default:
-        return e.errorMessage;
+        return e.message;
     }
   }
 
@@ -486,33 +490,5 @@ class RegistrationController extends ChangeNotifier {
 }
 
 /// [AuthenticationData] subclass for the `m.login.recaptcha` UIA stage.
-class _RecaptchaAuth extends AuthenticationData {
-  final String _response;
-
-  _RecaptchaAuth({required String response, super.session})
-      : _response = response,
-        super(type: AuthenticationTypes.recaptcha);
-
-  @override
-  Map<String, Object?> toJson() {
-    final data = super.toJson();
-    data['response'] = _response;
-    return data;
-  }
-}
 
 /// [AuthenticationData] subclass for the `m.login.registration_token` UIA stage.
-class _RegistrationTokenAuth extends AuthenticationData {
-  final String _token;
-
-  _RegistrationTokenAuth({required String token, super.session})
-      : _token = token,
-        super(type: 'm.login.registration_token');
-
-  @override
-  Map<String, Object?> toJson() {
-    final data = super.toJson();
-    data['token'] = _token;
-    return data;
-  }
-}

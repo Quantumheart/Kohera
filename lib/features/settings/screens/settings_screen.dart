@@ -18,7 +18,6 @@ import 'package:kohera/features/settings/widgets/profile_avatar_card.dart';
 import 'package:kohera/shared/widgets/kohera_mark.dart';
 import 'package:kohera/shared/widgets/section_header.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:matrix/matrix.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -31,7 +30,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   String? _lastShownError;
-  StreamSubscription<SyncUpdate>? _syncSub;
+  StreamSubscription<void>? _syncSub;
   int _ignoredCount = 0;
 
   @override
@@ -39,7 +38,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.initState();
     final userRepo = context.read<UserRepository>();
     _ignoredCount = userRepo.ignoredUsers.length;
-    _syncSub = userRepo.onSync.listen((_) {
+    _syncSub = userRepo.syncTicks.listen((_) {
       if (!mounted) return;
       final count = userRepo.ignoredUsers.length;
       if (count != _ignoredCount) {
