@@ -76,8 +76,8 @@ void main() {
 
   group('InvitationsView', () {
     testWidgets('shows empty state when no invitations', (tester) async {
-      when(mockSelection.invitedRooms).thenReturn([]);
-      when(mockSelection.invitedSpaces).thenReturn([]);
+      when(mockSelection.invitedRoomIds).thenReturn([]);
+      when(mockSelection.invitedSpaceIds).thenReturn([]);
 
       await tester.pumpWidget(wrap());
       await tester.pumpAndSettle();
@@ -89,11 +89,11 @@ void main() {
     testWidgets('shows room invitations with section header', (tester) async {
       final room = MockRoom();
       when(room.id).thenReturn('!room1:example.com');
-      when(mockSelection.invitedRooms).thenReturn([room]);
-      when(mockSelection.invitedSpaces).thenReturn([]);
-      when(mockSelection.summaryFor(room))
+      when(mockSelection.invitedRoomIds).thenReturn(['!room1:example.com']);
+      when(mockSelection.invitedSpaceIds).thenReturn([]);
+      when(mockSelection.summaryForId('!room1:example.com'))
           .thenReturn(_summary('!room1:example.com', 'My Room'));
-      when(mockSelection.inviterDisplayName(room)).thenReturn('Alice');
+      when(mockSelection.inviterDisplayName('!room1:example.com')).thenReturn('Alice');
 
       await tester.pumpWidget(wrap());
       await tester.pumpAndSettle();
@@ -105,11 +105,11 @@ void main() {
     testWidgets('shows space invitations with section header', (tester) async {
       final space = MockRoom();
       when(space.id).thenReturn('!space1:example.com');
-      when(mockSelection.invitedRooms).thenReturn([]);
-      when(mockSelection.invitedSpaces).thenReturn([space]);
-      when(mockSelection.summaryFor(space))
+      when(mockSelection.invitedRoomIds).thenReturn([]);
+      when(mockSelection.invitedSpaceIds).thenReturn(['!space1:example.com']);
+      when(mockSelection.summaryForId('!space1:example.com'))
           .thenReturn(_summary('!space1:example.com', 'My Space'));
-      when(mockSelection.inviterDisplayName(space)).thenReturn('Bob');
+      when(mockSelection.inviterDisplayName('!space1:example.com')).thenReturn('Bob');
 
       await tester.pumpWidget(wrap());
       await tester.pumpAndSettle();
@@ -124,14 +124,14 @@ void main() {
       final room = MockRoom();
       when(room.id).thenReturn('!room1:example.com');
 
-      when(mockSelection.invitedRooms).thenReturn([room]);
-      when(mockSelection.invitedSpaces).thenReturn([space]);
-      when(mockSelection.summaryFor(space))
+      when(mockSelection.invitedRoomIds).thenReturn(['!room1:example.com']);
+      when(mockSelection.invitedSpaceIds).thenReturn(['!space1:example.com']);
+      when(mockSelection.summaryForId('!space1:example.com'))
           .thenReturn(_summary('!space1:example.com', 'My Space'));
-      when(mockSelection.summaryFor(room))
+      when(mockSelection.summaryForId('!room1:example.com'))
           .thenReturn(_summary('!room1:example.com', 'My Room'));
-      when(mockSelection.inviterDisplayName(space)).thenReturn('Bob');
-      when(mockSelection.inviterDisplayName(room)).thenReturn('Alice');
+      when(mockSelection.inviterDisplayName('!space1:example.com')).thenReturn('Bob');
+      when(mockSelection.inviterDisplayName('!room1:example.com')).thenReturn('Alice');
 
       await tester.pumpWidget(wrap());
       await tester.pumpAndSettle();
@@ -145,11 +145,11 @@ void main() {
     testWidgets('uses ListView when invitations present', (tester) async {
       final room = MockRoom();
       when(room.id).thenReturn('!room1:example.com');
-      when(mockSelection.invitedRooms).thenReturn([room]);
-      when(mockSelection.invitedSpaces).thenReturn([]);
-      when(mockSelection.summaryFor(room))
+      when(mockSelection.invitedRoomIds).thenReturn(['!room1:example.com']);
+      when(mockSelection.invitedSpaceIds).thenReturn([]);
+      when(mockSelection.summaryForId('!room1:example.com'))
           .thenReturn(_summary('!room1:example.com', 'My Room'));
-      when(mockSelection.inviterDisplayName(room)).thenReturn('Alice');
+      when(mockSelection.inviterDisplayName('!room1:example.com')).thenReturn('Alice');
 
       await tester.pumpWidget(wrap());
       await tester.pumpAndSettle();

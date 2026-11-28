@@ -64,7 +64,7 @@ List<ListItem> buildSectionItems(
   final items = <ListItem>[];
 
   final invitedSummaries =
-      applySearch(matrix.invitedRooms.map(matrix.summaryFor).toList(), query);
+      applySearch(matrix.invitedRoomIds.map(matrix.summaryForId).toList(), query);
   for (final summary in invitedSummaries) {
     items.add(InviteItem(summary: summary));
   }

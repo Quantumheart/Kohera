@@ -161,7 +161,8 @@ void main() {
     });
 
     testWidgets('accept calls join and selects room', (tester) async {
-      when(mockInvitedRoom.join()).thenAnswer((_) async => '');
+      when(mockClient.joinRoom('!invited:example.com'))
+          .thenAnswer((_) async => '!invited:example.com');
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
@@ -169,12 +170,13 @@ void main() {
       await tester.tap(find.text('Test Invite'));
       await tester.pumpAndSettle();
 
-      verify(mockInvitedRoom.join()).called(1);
+      verify(mockClient.joinRoom('!invited:example.com')).called(1);
       expect(lastNavigatedRoom, '!invited:example.com');
     });
 
     testWidgets('accept shows snackbar on failure', (tester) async {
-      when(mockInvitedRoom.join()).thenThrow(Exception('Server error'));
+      when(mockClient.joinRoom('!invited:example.com'))
+          .thenThrow(Exception('Server error'));
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
@@ -187,7 +189,8 @@ void main() {
 
     testWidgets('shows loading indicator during accept', (tester) async {
       final completer = Completer<String>();
-      when(mockInvitedRoom.join()).thenAnswer((_) => completer.future);
+      when(mockClient.joinRoom('!invited:example.com'))
+          .thenAnswer((_) => completer.future);
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 
@@ -252,7 +255,8 @@ void main() {
 
     testWidgets('concurrent tap guard prevents double accept', (tester) async {
       final completer = Completer<String>();
-      when(mockInvitedRoom.join()).thenAnswer((_) => completer.future);
+      when(mockClient.joinRoom('!invited:example.com'))
+          .thenAnswer((_) => completer.future);
       await tester.pumpWidget(buildTestWidget());
       await tester.pumpAndSettle();
 

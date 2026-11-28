@@ -88,7 +88,7 @@ void main() {
     when(selection.rooms).thenReturn([]);
     when(selection.spaceTree).thenReturn([]);
     when(selection.spaces).thenReturn([]);
-    when(selection.invitedRooms).thenReturn([]);
+    when(selection.invitedRoomIds).thenReturn([]);
     when(selection.orphanRooms).thenReturn([]);
     when(prefs.collapsedSpaceSections).thenReturn({});
     when(messageSearch.results).thenReturn([]);
@@ -192,8 +192,9 @@ void main() {
       when(room.id).thenReturn('!invite:example.com');
       when(room.membership).thenReturn(Membership.invite);
       when(room.isSpace).thenReturn(false);
-      when(selection.invitedRooms).thenReturn([room]);
-      when(selection.summaryFor(room)).thenReturn(summary(roomId: room.id));
+      when(selection.invitedRoomIds).thenReturn([room.id]);
+      when(selection.summaryForId(room.id))
+          .thenReturn(summary(roomId: room.id));
       final controller = makeController();
       final items = controller.snapshot.items;
       expect(items.length, 1);

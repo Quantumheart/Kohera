@@ -45,6 +45,13 @@ class KoheraRoomSummary {
   /// The raw `mxc://` avatar URI as a string, or `null`.
   final String? avatarUrl;
 
+  /// The avatar URL parsed as a [Uri], or null when unset or malformed.
+  Uri? get avatarUri {
+    final url = avatarUrl;
+    if (url == null) return null;
+    return Uri.tryParse(url);
+  }
+
   /// The room topic / description, or `null`.
   final String? topic;
 

@@ -46,7 +46,7 @@ class _InboxScreenState extends State<InboxScreen> {
     final controller = context.watch<InboxController>();
     final selection = context.watch<SpaceTreeRepository>();
     final inviteCount =
-        selection.invitedRooms.length + selection.invitedSpaces.length;
+        selection.invitedRoomIds.length + selection.invitedSpaceIds.length;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final isNarrow =

@@ -35,9 +35,10 @@ class RoomSectionHeader extends StatelessWidget {
     final isCollapsed =
         prefs.collapsedSpaceSections.contains(item.sectionKey);
 
-    final spaceRoom = context.read<RoomRepository>().rawRoom(item.sectionKey);
     final canManageChildren = item.isSpace &&
-        (spaceRoom?.canChangeStateEvent('m.space.child') ?? false);
+        context
+            .read<RoomRepository>()
+            .canChangeStateEventOf(item.sectionKey, 'm.space.child');
 
     final reparent = context.watch<SpaceReparentController>();
     final isHovered = reparent.hoveredHeaderId == item.sectionKey;
@@ -225,17 +226,16 @@ class RoomSectionHeader extends StatelessWidget {
             parentSpaceIds: {item.sectionKey},
           ),);
         case _HeaderAddAction.createSubspace:
-          final spaceRoom = rooms.rawRoom(item.sectionKey);
-          if (spaceRoom != null) {
+          if (rooms.roomExists(item.sectionKey)) {
             unawaited(CreateSubspaceDialog.show(
               context,
               parentSpaceRef: (
-                id: spaceRoom.id,
-                displayname: spaceRoom.getLocalizedDisplayname(),
+                id: item.sectionKey,
+                displayname: rooms.displayNameFor(item.sectionKey),
               ),
               loadCapabilities: () => loadSubspaceCapabilities(spaceRepo),
               onCreateSubspace: (request) =>
-                  createSubspace(spaceRepo, spaceRoom.id, request),
+                  createSubspace(spaceRepo, item.sectionKey, request),
             ),);
           }
       }
@@ -244,8 +244,7 @@ class RoomSectionHeader extends StatelessWidget {
 
   Future<void> _handleDrop(BuildContext context, ReparentDragData data) async {
     final rooms = context.read<RoomRepository>();
-    final targetRoom = rooms.rawRoom(item.sectionKey);
-    if (targetRoom == null) return;
+    if (!rooms.roomExists(item.sectionKey)) return;
 
     try {
       switch (data) {
@@ -260,18 +259,16 @@ class RoomSectionHeader extends StatelessWidget {
             }
           }
 
-          await targetRoom.setSpaceChild(spaceId);
+          await rooms.setSpaceChild(item.sectionKey, spaceId);
           if (oldParentId != null && oldParentId != item.sectionKey) {
-            final oldParent = rooms.rawRoom(oldParentId);
-            await oldParent?.removeSpaceChild(spaceId);
+            await rooms.removeSpaceChild(oldParentId, spaceId);
           }
 
         case RoomDragData(:final roomId, :final currentParentSpaceId):
-          await targetRoom.setSpaceChild(roomId);
+          await rooms.setSpaceChild(item.sectionKey, roomId);
           if (currentParentSpaceId != null &&
               currentParentSpaceId != item.sectionKey) {
-            final oldParent = rooms.rawRoom(currentParentSpaceId);
-            await oldParent?.removeSpaceChild(roomId);
+            await rooms.removeSpaceChild(currentParentSpaceId, roomId);
           }
       }
 

@@ -53,7 +53,7 @@ void main() {
     when(selection.rooms).thenReturn([]);
     when(selection.spaceTree).thenReturn([]);
     when(selection.spaces).thenReturn([]);
-    when(selection.invitedRooms).thenReturn([]);
+    when(selection.invitedRoomIds).thenReturn([]);
     when(selection.orphanRooms).thenReturn([]);
     when(selection.hasSyncedOnce).thenReturn(true);
     when(prefs.collapsedSpaceSections).thenReturn({});

@@ -132,6 +132,16 @@ class SpaceTreeRepository extends ChangeNotifier {
     );
   }
 
+  /// The [KoheraRoomSummary] for [roomId]. Throws [StateError] when the
+  /// room is unknown.
+  KoheraRoomSummary summaryForId(String roomId) {
+    final room = _clientService.client.getRoomById(roomId);
+    if (room == null) {
+      throw StateError('Room not found: $roomId');
+    }
+    return summaryFor(room);
+  }
+
   void invalidateSpaceTree() {
     _spaceTreeDirty = true;
     _summaryCache.clear();
@@ -266,23 +276,31 @@ class SpaceTreeRepository extends ChangeNotifier {
     return _cachedRooms!;
   }
 
-  List<Room> get invitedRooms => _clientService.client.rooms
-      .where((r) =>
-          !r.isSpace &&
-          r.membership == Membership.invite &&
-          !_isInviterIgnored(r))
-      .toList()
-    ..sort((a, b) => a.getLocalizedDisplayname().compareTo(
-        b.getLocalizedDisplayname(),),);
+  /// The ids of rooms with a pending invite, sorted by display name.
+  List<String> get invitedRoomIds {
+    final rooms = _clientService.client.rooms
+        .where((r) =>
+            !r.isSpace &&
+            r.membership == Membership.invite &&
+            !_isInviterIgnored(r))
+        .toList()
+      ..sort((a, b) => a.getLocalizedDisplayname().compareTo(
+          b.getLocalizedDisplayname(),),);
+    return [for (final room in rooms) room.id];
+  }
 
-  List<Room> get invitedSpaces => _clientService.client.rooms
-      .where((r) =>
-          r.isSpace &&
-          r.membership == Membership.invite &&
-          !_isInviterIgnored(r))
-      .toList()
-    ..sort((a, b) => a.getLocalizedDisplayname().compareTo(
-        b.getLocalizedDisplayname(),),);
+  /// The ids of spaces with a pending invite, sorted by display name.
+  List<String> get invitedSpaceIds {
+    final rooms = _clientService.client.rooms
+        .where((r) =>
+            r.isSpace &&
+            r.membership == Membership.invite &&
+            !_isInviterIgnored(r))
+        .toList()
+      ..sort((a, b) => a.getLocalizedDisplayname().compareTo(
+          b.getLocalizedDisplayname(),),);
+    return [for (final room in rooms) room.id];
+  }
 
   bool _isInviterIgnored(Room room) {
     final userId = _clientService.client.userID;
@@ -292,9 +310,12 @@ class SpaceTreeRepository extends ChangeNotifier {
     return _clientService.client.ignoredUsers.contains(inviteState.senderId);
   }
 
-  String? inviterDisplayName(Room room) {
+  /// The display name of the user who invited the current user to
+  /// [roomId], or null when unknown.
+  String? inviterDisplayName(String roomId) {
+    final room = _clientService.client.getRoomById(roomId);
     final userId = _clientService.client.userID;
-    if (userId == null) return null;
+    if (room == null || userId == null) return null;
     final inviteState = room.getState(EventTypes.RoomMember, userId);
     if (inviteState == null) return null;
     final senderId = inviteState.senderId;
@@ -344,7 +365,10 @@ class SpaceTreeRepository extends ChangeNotifier {
         }
       }
     }
-    final orderMap = order_utils.buildOrderMap(space);
+    final orderMap = order_utils.buildOrderMap([
+      for (final child in space.spaceChildren)
+        (roomId: child.roomId, order: child.order),
+    ]);
     final result = rooms.where((r) => childIds.contains(r.id)).toList();
     result.sort((a, b) {
       final aOrder = orderMap[a.id];

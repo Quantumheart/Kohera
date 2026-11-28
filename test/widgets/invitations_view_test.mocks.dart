@@ -610,22 +610,22 @@ class MockSpaceTreeRepository extends _i1.Mock
           as List<_i15.Room>);
 
   @override
-  List<_i15.Room> get invitedRooms =>
+  List<String> get invitedRoomIds =>
       (super.noSuchMethod(
-            Invocation.getter(#invitedRooms),
-            returnValue: <_i15.Room>[],
-            returnValueForMissingStub: <_i15.Room>[],
+            Invocation.getter(#invitedRoomIds),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
           )
-          as List<_i15.Room>);
+          as List<String>);
 
   @override
-  List<_i15.Room> get invitedSpaces =>
+  List<String> get invitedSpaceIds =>
       (super.noSuchMethod(
-            Invocation.getter(#invitedSpaces),
-            returnValue: <_i15.Room>[],
-            returnValueForMissingStub: <_i15.Room>[],
+            Invocation.getter(#invitedSpaceIds),
+            returnValue: <String>[],
+            returnValueForMissingStub: <String>[],
           )
-          as List<_i15.Room>);
+          as List<String>);
 
   @override
   List<_i15.Room> get orphanRooms =>
@@ -667,15 +667,30 @@ class MockSpaceTreeRepository extends _i1.Mock
           as _i2.KoheraRoomSummary);
 
   @override
+  _i2.KoheraRoomSummary summaryForId(String? roomId) =>
+      (super.noSuchMethod(
+            Invocation.method(#summaryForId, [roomId]),
+            returnValue: _FakeKoheraRoomSummary_0(
+              this,
+              Invocation.method(#summaryForId, [roomId]),
+            ),
+            returnValueForMissingStub: _FakeKoheraRoomSummary_0(
+              this,
+              Invocation.method(#summaryForId, [roomId]),
+            ),
+          )
+          as _i2.KoheraRoomSummary);
+
+  @override
   void invalidateSpaceTree() => super.noSuchMethod(
     Invocation.method(#invalidateSpaceTree, []),
     returnValueForMissingStub: null,
   );
 
   @override
-  String? inviterDisplayName(_i15.Room? room) =>
+  String? inviterDisplayName(String? roomId) =>
       (super.noSuchMethod(
-            Invocation.method(#inviterDisplayName, [room]),
+            Invocation.method(#inviterDisplayName, [roomId]),
             returnValueForMissingStub: null,
           )
           as String?);

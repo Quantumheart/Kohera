@@ -145,10 +145,8 @@ class RoomListController extends ChangeNotifier {
         if (s.canChangeStateEvent('m.space.child')) s.id,
     };
 
-    final selectedSpaceCanManage = _selectionState.selectedSpaceIds.any((id) {
-      final space = _rooms.rawRoom(id);
-      return space != null && space.canChangeStateEvent('m.space.child');
-    });
+    final selectedSpaceCanManage = _selectionState.selectedSpaceIds
+        .any((id) => _rooms.canChangeStateEventOf(id, 'm.space.child'));
 
     _snapshot = RoomListSnapshot(
       items: List.unmodifiable(items),
@@ -171,8 +169,8 @@ class RoomListController extends ChangeNotifier {
     if (_query.isNotEmpty) return null;
 
     final spaceId = _selectionState.selectedSpaceIds.first;
-    final space = _rooms.rawRoom(spaceId);
-    if (space == null || !space.isSpace) return null;
+    final spaceSummary = _rooms.summaryFor(spaceId);
+    if (spaceSummary == null || !spaceSummary.isSpace) return null;
 
     final joinedRooms = _selection.roomsForSpace(spaceId);
     if (joinedRooms.isNotEmpty) return null;
@@ -190,7 +188,7 @@ class RoomListController extends ChangeNotifier {
     final ids = _selectionState.selectedSpaceIds;
     if (ids.isEmpty) return 'Chats';
     if (ids.length == 1) {
-      return _rooms.rawRoom(ids.first)?.getLocalizedDisplayname() ?? 'Space';
+      return _rooms.displayNameFor(ids.first, fallback: 'Space');
     }
     return '${ids.length} spaces';
   }

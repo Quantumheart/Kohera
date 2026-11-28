@@ -6,6 +6,7 @@ import 'package:kohera/core/routing/route_names.dart';
 import 'package:kohera/core/state/selection_controller.dart';
 import 'package:kohera/data/models/kohera_room_summary.dart';
 import 'package:kohera/data/repositories/media_repository.dart';
+import 'package:kohera/data/repositories/room_repository.dart';
 import 'package:kohera/data/repositories/space_tree_repository.dart';
 import 'package:kohera/data/services/avatar_resolver.dart';
 import 'package:kohera/features/rooms/widgets/invite_dialog.dart';
@@ -55,7 +56,7 @@ class MobileSpaceDrawer extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final topLevel = selection.topLevelSpaces;
-    final invited = selection.invitedSpaces;
+    final invited = selection.invitedSpaceIds;
     final homeSelected = selectionState.selectedSpaceIds.isEmpty;
 
     return Drawer(
@@ -137,24 +138,27 @@ class MobileSpaceDrawer extends StatelessWidget {
                         leading: Opacity(
                           opacity: 0.7,
                           child: RoomAvatarWidget(
-                          avatarUrl: selection.summaryFor(space).avatarUrl,
-                          displayname: selection.summaryFor(space).displayname,
+                          avatarUrl: selection.summaryForId(space).avatarUrl,
+                          displayname: selection.summaryForId(space).displayname,
                           avatarResolver: avatarResolver,
                           size: 36,
                         ),
                         ),
-                        title: Text(selection.summaryFor(space).displayname),
+                        title: Text(selection.summaryForId(space).displayname),
                         onTap: () async {
                           final result = await InviteDialog.show(
                             context,
-                            roomId: space.id,
-                            summary: selection.summaryFor(space),
+                            roomId: space,
+                            summary: selection.summaryForId(space),
                             inviterName: selection.inviterDisplayName(space),
-                            onAccept: space.join,
-                            onDecline: space.leave,
+                            onAccept: () =>
+                                context.read<RoomRepository>().joinRoom(space),
+                            onDecline: () => context
+                                .read<RoomRepository>()
+                                .leaveRoom(space),
                           );
                           if (result == true && context.mounted) {
-                            selectionState.selectSpace(space.id);
+                            selectionState.selectSpace(space);
                             if (context.mounted) {
                               Navigator.of(context).pop();
                               context.goNamed(Routes.home);

@@ -156,13 +156,10 @@ void main() {
       when(joined.isSpace).thenReturn(false);
       when(joined.membership).thenReturn(Membership.join);
 
+      when(invited.id).thenReturn('!invited:example.com');
       when(mockClient.rooms).thenReturn([invited, joined]);
 
-      expect(service.invitedRooms, hasLength(1));
-      expect(
-        service.invitedRooms[0].getLocalizedDisplayname(),
-        'Invited Room',
-      );
+      expect(service.invitedRoomIds, ['!invited:example.com']);
     });
 
     test('hides invites from ignored users', () {
@@ -198,13 +195,11 @@ void main() {
         ),
       );
 
+      when(inviteFromBad.id).thenReturn('!bad:example.com');
+      when(inviteFromGood.id).thenReturn('!good:example.com');
       when(mockClient.rooms).thenReturn([inviteFromBad, inviteFromGood]);
 
-      expect(service.invitedRooms, hasLength(1));
-      expect(
-        service.invitedRooms[0].getLocalizedDisplayname(),
-        'Good Invite',
-      );
+      expect(service.invitedRoomIds, ['!good:example.com']);
     });
   });
 
@@ -220,9 +215,10 @@ void main() {
       when(invitedRoom.isSpace).thenReturn(false);
       when(invitedRoom.membership).thenReturn(Membership.invite);
 
+      when(invitedSpace.id).thenReturn('!space:example.com');
       when(mockClient.rooms).thenReturn([invitedSpace, invitedRoom]);
 
-      expect(service.invitedSpaces, hasLength(1));
+      expect(service.invitedSpaceIds, ['!space:example.com']);
     });
   });
 
