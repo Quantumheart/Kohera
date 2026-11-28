@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:kohera/core/models/server_auth_capabilities.dart';
 import 'package:kohera/core/services/auth_service.dart';
 import 'package:kohera/core/state/key_backup_setup_state.dart';
+import 'package:kohera/data/models/kohera_auth_exception.dart';
+import 'package:kohera/data/models/kohera_uia_auth.dart';
 import 'package:kohera/data/services/matrix_client_service.dart';
 import 'package:matrix/matrix.dart';
 
@@ -63,24 +65,38 @@ class AuthRepository extends ChangeNotifier {
   Future<void> checkHomeserver(Uri homeserver) =>
       _client.checkHomeserver(homeserver);
 
-  Future<RegisterResponse> register({
+  /// Registers a new account and completes the login on success.
+  ///
+  /// Throws [KoheraAuthException] when the homeserver rejects the call.
+  /// A UIA challenge arrives as a [KoheraAuthException] whose [raw]
+  /// payload contains `flows`, `session`, and `completed`.
+  Future<void> registerAndComplete({
     String? username,
     String? password,
     String? initialDeviceDisplayName,
-    AuthenticationData? auth,
-  }) =>
-      _client.register(
+    KoheraUiaAuth? auth,
+  }) async {
+    try {
+      final response = await _client.register(
         username: username,
         password: password,
         initialDeviceDisplayName: initialDeviceDisplayName,
-        auth: auth,
+        auth: auth == null
+            ? null
+            : AuthenticationData(
+                type: auth.type,
+                session: auth.session,
+                additionalFields: auth.params,
+              ),
       );
-
-  Future<void> completeRegistration(
-    RegisterResponse response, {
-    String? password,
-  }) {
-    return _auth.completeRegistration(response, password: password);
+      await _auth.completeRegistration(response, password: password);
+    } on MatrixException catch (e) {
+      throw KoheraAuthException(
+        e.errorMessage,
+        errcode: e.errcode,
+        raw: e.raw,
+      );
+    }
   }
 
   Future<void> logout() => _auth.logout();
